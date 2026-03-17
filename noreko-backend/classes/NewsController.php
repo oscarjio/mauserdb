@@ -192,7 +192,7 @@ class NewsController {
     private function delete() {
         if (!$this->requireAdmin()) return;
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $id   = intval($body['id'] ?? 0);
 
         if ($id <= 0) {

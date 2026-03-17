@@ -518,6 +518,8 @@ class KvalitetscertifikatController {
         }
 
         try {
+            $this->pdo->beginTransaction();
+
             $stmt = $this->pdo->prepare("
                 UPDATE kvalitetskriterier
                 SET namn = :namn, beskrivning = :beskrivning,
@@ -543,11 +545,16 @@ class KvalitetscertifikatController {
                 $updated++;
             }
 
+            $this->pdo->commit();
+
             $this->sendSuccess([
                 'message' => "Kriterier uppdaterade ({$updated} st)",
                 'updated' => $updated,
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('KvalitetscertifikatController::uppdateraKriterier: ' . $e->getMessage());
             $this->sendError('Kunde inte uppdatera kriterier', 500);
         }

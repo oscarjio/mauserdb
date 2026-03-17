@@ -1,3 +1,37 @@
+## 2026-03-17 Session #148 Worker A — 14 buggar fixade (transaction consistency, error handling)
+### Uppgift: PHP transaction consistency + error handling audit
+Granskade alla PHP-controllers i noreko-backend/classes/ efter INSERT/UPDATE-operationer som borde anvanda transactions men inte gor det, samt json_decode() utan null-check.
+
+**Transaction consistency (5 buggar):**
+1. `noreko-backend/classes/KvalitetscertifikatController.php` rad 520-553 — `uppdateraKriterier()` kor loop av UPDATE-satser utan transaktion. Om en uppdatering lyckas men nasta misslyckas far man inkonsistenta kriterier. Lade till beginTransaction/commit/rollBack.
+2. `noreko-backend/classes/RebotlingAdminController.php` rad 449-478 — `saveShiftTimes()` kor loop av UPDATE-satser (formiddag, eftermiddag, natt) utan transaktion. Partiell uppdatering = inkonsistenta skifttider. Lade till beginTransaction/commit/rollBack.
+3. `noreko-backend/classes/RebotlingAdminController.php` rad 962-988 — `saveLiveRankingSettings()` kor loop av INSERT ON DUPLICATE KEY UPDATE utan transaktion. Lade till beginTransaction/commit/rollBack.
+4. `noreko-backend/classes/RebotlingAdminController.php` rad 1028-1064 — `setLiveRankingConfig()` kor loop av INSERT ON DUPLICATE KEY UPDATE utan transaktion. Lade till beginTransaction/commit/rollBack.
+5. `noreko-backend/classes/OperatorController.php` rad 123-148 — `delete` action gor SELECT + DELETE utan transaktion — race condition dar operator kan raderas mellan SELECT och DELETE. Lade till beginTransaction/commit/rollBack med FOR UPDATE.
+
+**json_decode() utan null-check (9 buggar):**
+6. `noreko-backend/classes/RebotlingAdminController.php` rad 56 — `saveAdminSettings()` json_decode utan null-check, anvander `$data['rebotlingTarget']` etc direkt. Lade till `!is_array($data)` guard med 400-svar.
+7. `noreko-backend/classes/RebotlingAdminController.php` rad 793 — `saveNotificationSettings()` json_decode utan null-fallback. Lade till `?? []`.
+8. `noreko-backend/classes/RebotlingAdminController.php` rad 1165 — `saveMaintenanceLog()` json_decode utan null-fallback. Lade till `?? []`.
+9. `noreko-backend/classes/RebotlingAdminController.php` rad 1290 — `deleteGoalException()` json_decode utan null-fallback. Lade till `?? []`.
+10. `noreko-backend/classes/NewsController.php` rad 195 — `delete()` json_decode utan null-fallback, `intval($body['id'])` kraschar om body ar null. Lade till `?? []`.
+11. `noreko-backend/classes/SkiftrapportController.php` rad 56 — json_decode utan null-check, anvander `$data['action']` direkt. Lade till `!is_array($data)` guard med 400-svar.
+12. `noreko-backend/classes/RebotlingProductController.php` rad 135,194 — `updateProduct()` och `deleteProduct()` json_decode utan null-fallback. Lade till `?? []`.
+13. `noreko-backend/classes/RebotlingAnalyticsController.php` rad 4369 — `sendAutoShiftReport()` json_decode utan null-fallback. Lade till `?? []`.
+14. `noreko-backend/classes/RebotlingAnalyticsController.php` rad 5606 — `sendWeeklySummaryEmail()` json_decode utan null-fallback. Lade till `?? []`.
+
+**Audit-resultat for ovriga omraden (inga problem hittade):**
+- AdminController: Alla write-operationer (create, delete, toggleAdmin, toggleActive) anvander redan korrekta transactions med rollBack i catch-block.
+- BonusController: Inga write-operationer (read-only controller). json_decode-anropen har `!is_array()` guards.
+- BonusAdminController: Alla write-operationer anvander redan transactions. json_decode-anropen har `json_last_error()` guards.
+- SkiftplaneringController: assignOperator() anvander redan transaktion med FOR UPDATE.
+- StopporsakRegistreringController: endStop() anvander redan transaktion med FOR UPDATE. registerStop() ar enkel INSERT.
+- MaskinunderhallController: Inga multi-statement writes utan transaktioner.
+- MaintenanceController: Alla write-operationer ar enkla INSERT/UPDATE (ingen multi-statement).
+- UnderhallsloggController: json_decode har `!is_array()` guards. Inga multi-statement writes.
+- file_get_contents() pa migrationsfiler: Alla har `if ($sql)` guard som hanterar false-returvarde.
+- Division by zero: Alla berakningar anvander NULLIF(), max(1,...) eller > 0 guards.
+
 ## 2026-03-17 Session #148 Worker B — 7 buggar fixade (unused imports, form validation)
 ### Uppgift: Angular unused imports/declarations + form validation audit
 Granskade alla Angular-komponenter efter oanvanda imports, dead code och formularvalideringsproblem.

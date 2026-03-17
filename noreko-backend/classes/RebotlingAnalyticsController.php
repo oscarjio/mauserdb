@@ -4366,7 +4366,7 @@ class RebotlingAnalyticsController {
     // =========================================================
 
     public function sendAutoShiftReport(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $date  = $data['date']  ?? date('Y-m-d');
         $shift = (int)($data['shift'] ?? 0);
 
@@ -5603,7 +5603,7 @@ HTML;
      */
 
     public function sendWeeklySummaryEmail(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $week = $data['week'] ?? '';
 
         if (empty($week)) {

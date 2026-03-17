@@ -54,6 +54,11 @@ class RebotlingAdminController {
 
     public function saveAdminSettings() {
         $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
 
         try {
             $this->ensureSettingsTable();
@@ -448,6 +453,11 @@ class RebotlingAdminController {
 
     public function saveShiftTimes() {
         $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $shifts = $data['shifts'] ?? [];
         if (!is_array($shifts)) {
             http_response_code(400);
@@ -456,6 +466,7 @@ class RebotlingAdminController {
         }
         try {
             $this->ensureShiftTimesTable();
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE rebotling_shift_times SET start_time = ?, end_time = ?, enabled = ? WHERE shift_name = ?");
             foreach ($shifts as $s) {
                 $name    = $s['shift_name'] ?? '';
@@ -469,8 +480,12 @@ class RebotlingAdminController {
                     $stmt->execute([$start, $end, $enabled, $name]);
                 }
             }
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Skifttider sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingAdminController::saveShiftTimes: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara skifttider'], JSON_UNESCAPED_UNICODE);
@@ -790,8 +805,8 @@ class RebotlingAdminController {
      */
 
     public function saveNotificationSettings(): void {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($data)) {
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!is_array($data) || empty($data)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltig data'], JSON_UNESCAPED_UNICODE);
             return;
@@ -975,12 +990,17 @@ class RebotlingAdminController {
                 'lr_poll_interval' => strval(max(10, min(120, intval($body['lr_poll_interval'] ?? 30)))),
                 'lr_title'         => substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
             ];
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
             }
+            $this->pdo->commit();
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingAdminController::saveLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1051,12 +1071,17 @@ class RebotlingAdminController {
                 'lrc_sort_by'          => $sortBy,
                 'lrc_refresh_interval' => strval($refreshInterval),
             ];
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
             }
+            $this->pdo->commit();
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingAdminController::setLiveRankingConfig: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1137,7 +1162,7 @@ class RebotlingAdminController {
 
     public function saveMaintenanceLog(): void {
         try {
-            $body = json_decode(file_get_contents('php://input'), true);
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
             $actionText = trim($body['action_text'] ?? '');
             if (strlen($actionText) === 0 || strlen($actionText) > 1000) {
                 http_response_code(400);
@@ -1262,7 +1287,7 @@ class RebotlingAdminController {
      */
 
     public function deleteGoalException() {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $datum = $data['datum'] ?? '';
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);

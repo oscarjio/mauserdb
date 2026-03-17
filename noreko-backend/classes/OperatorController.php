@@ -122,11 +122,13 @@ class OperatorController {
 
             if ($action === 'delete') {
                 try {
-                    $stmt = $pdo->prepare("SELECT name, number FROM operators WHERE id = ?");
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare("SELECT name, number FROM operators WHERE id = ? FOR UPDATE");
                     $stmt->execute([$id]);
                     $op = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!$op) {
+                        $pdo->rollBack();
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                         return;
@@ -134,12 +136,16 @@ class OperatorController {
 
                     $stmt = $pdo->prepare("DELETE FROM operators WHERE id = ?");
                     $stmt->execute([$id]);
+                    $pdo->commit();
                     AuditLogger::log($pdo, 'delete_operator', 'operator', $id,
                         "Tog bort operatör: " . ($op['name'] ?? 'okänd') . " (#" . ($op['number'] ?? '?') . ")",
                         $op, null
                     );
                     echo json_encode(['success' => true, 'message' => 'Operatör borttagen'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     error_log('OperatorController::delete: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort operatör'], JSON_UNESCAPED_UNICODE);

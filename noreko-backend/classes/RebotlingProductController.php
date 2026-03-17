@@ -132,8 +132,8 @@ class RebotlingProductController {
     }
 
     private function updateProduct() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
         if (!isset($data['id']) || !isset($data['name']) || !isset($data['cycle_time_minutes'])) {
             http_response_code(400);
             echo json_encode([
@@ -191,8 +191,8 @@ class RebotlingProductController {
     }
 
     private function deleteProduct() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
         if (!isset($data['id']) || (int)$data['id'] <= 0) {
             http_response_code(400);
             echo json_encode([
