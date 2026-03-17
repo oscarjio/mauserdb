@@ -64,8 +64,17 @@ import {
       <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar...
     </div>
 
+    <!-- Felmeddelande -->
+    <div *ngIf="!isLoading && loadError" class="text-center py-3" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
+      <p class="mt-2 mb-1">Kunde inte ladda underhållsposter.</p>
+      <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadEntries()">
+        <i class="fas fa-sync me-1"></i>Försök igen
+      </button>
+    </div>
+
     <!-- Inga poster -->
-    <div *ngIf="!isLoading && entries.length === 0" class="empty-state">
+    <div *ngIf="!isLoading && !loadError && entries.length === 0" class="empty-state">
       <i class="fas fa-tools fa-3x mb-3 text-muted"></i>
       <p class="mb-0">Inga underhållsposter hittades för valda filter.</p>
       <button class="btn btn-outline-success btn-sm mt-3" (click)="addEntry.emit()">
@@ -74,7 +83,7 @@ import {
     </div>
 
     <!-- Postlista -->
-    <div class="entries-list" *ngIf="!isLoading && entries.length > 0">
+    <div class="entries-list" *ngIf="!isLoading && !loadError && entries.length > 0">
       <div class="entry-card" *ngFor="let entry of entries; trackBy: trackByIndex"
            [class.entry-pagaende]="entry.status === 'pagaende'"
            [class.entry-akut]="entry.maintenance_type === 'akut'">
@@ -217,6 +226,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
 
   entries: MaintenanceEntry[] = [];
   isLoading = false;
+  loadError = false;
   totalCount = 0;
 
   filterLine = '';
@@ -248,6 +258,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
   loadEntries(): void {
     if (this.isLoading) return;
     this.isLoading = true;
+    this.loadError = false;
 
     const params = new URLSearchParams();
     if (this.filterLine) params.set('line', this.filterLine);
@@ -264,6 +275,8 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
         if (data?.entries) {
           this.entries = data.entries;
           this.totalCount = data.total_count ?? data.entries.length;
+        } else {
+          this.loadError = true;
         }
       });
   }

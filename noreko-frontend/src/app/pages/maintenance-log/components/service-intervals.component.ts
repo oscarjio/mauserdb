@@ -24,7 +24,16 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
       <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar serviceintervall...
     </div>
 
-    <div *ngIf="!serviceLoading">
+    <!-- Felmeddelande -->
+    <div *ngIf="!serviceLoading && serviceLoadError" class="text-center py-4" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
+      <p class="mt-2 mb-1">Kunde inte ladda serviceintervall.</p>
+      <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadServiceIntervals()">
+        <i class="fas fa-sync me-1"></i>Forsok igen
+      </button>
+    </div>
+
+    <div *ngIf="!serviceLoading && !serviceLoadError">
 
       <!-- Ingen data -->
       <div *ngIf="serviceIntervals.length === 0" class="empty-state">
@@ -185,6 +194,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
 
   serviceIntervals: ServiceInterval[] = [];
   serviceLoading = false;
+  serviceLoadError = false;
   showServiceForm = false;
   editingServiceId: number | null = null;
   isSavingService = false;
@@ -209,12 +219,15 @@ export class ServiceIntervalsComponent implements OnDestroy {
 
   loadServiceIntervals(): void {
     this.serviceLoading = true;
+    this.serviceLoadError = false;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=service-intervals`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.serviceLoading = false;
         if (data?.intervals) {
           this.serviceIntervals = data.intervals;
+        } else {
+          this.serviceLoadError = true;
         }
       });
   }

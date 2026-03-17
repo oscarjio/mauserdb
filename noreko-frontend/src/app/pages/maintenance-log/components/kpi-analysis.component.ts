@@ -33,7 +33,16 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
       <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar KPI-data...
     </div>
 
-    <div *ngIf="!kpiLoading">
+    <!-- Felmeddelande -->
+    <div *ngIf="!kpiLoading && kpiError" class="text-center py-4" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
+      <p class="mt-2 mb-1">Kunde inte ladda KPI-data.</p>
+      <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadKpiData()">
+        <i class="fas fa-sync me-1"></i>Forsok igen
+      </button>
+    </div>
+
+    <div *ngIf="!kpiLoading && !kpiError">
 
       <!-- Ingen data -->
       <div *ngIf="kpiRows.length === 0" class="empty-state">
@@ -98,6 +107,7 @@ export class KpiAnalysisComponent implements OnDestroy {
 
   kpiRows: KpiRow[] = [];
   kpiLoading = false;
+  kpiError = false;
   kpiDays = 90;
   kpiDayOptions = [30, 90, 180, 365];
 
@@ -110,6 +120,7 @@ export class KpiAnalysisComponent implements OnDestroy {
 
   loadKpiData(): void {
     this.kpiLoading = true;
+    this.kpiError = false;
     const url = `${this.apiBase}?action=maintenance&run=mttr-mtbf&days=${this.kpiDays}`;
     this.http.get<any>(url, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
@@ -117,6 +128,8 @@ export class KpiAnalysisComponent implements OnDestroy {
         this.kpiLoading = false;
         if (data?.kpis) {
           this.kpiRows = data.kpis;
+        } else {
+          this.kpiError = true;
         }
       });
   }

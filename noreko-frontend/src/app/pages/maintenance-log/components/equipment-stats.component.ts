@@ -21,7 +21,16 @@ import {
       <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar statistik...
     </div>
 
-    <div *ngIf="!statsLoading">
+    <!-- Felmeddelande -->
+    <div *ngIf="!statsLoading && statsError" class="text-center py-4" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
+      <p class="mt-2 mb-1">Kunde inte ladda utrustningsstatistik.</p>
+      <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadEquipmentStats()">
+        <i class="fas fa-sync me-1"></i>Forsok igen
+      </button>
+    </div>
+
+    <div *ngIf="!statsLoading && !statsError">
       <!-- KPI-summering (90 dagar) -->
       <div class="row g-3 mb-4" *ngIf="equipmentSummary">
         <div class="col-12 col-md-4">
@@ -132,6 +141,7 @@ export class EquipmentStatsComponent implements OnDestroy {
   equipmentStats: EquipmentStat[] = [];
   equipmentSummary: EquipmentSummary | null = null;
   statsLoading = false;
+  statsError = false;
 
   sortField: keyof EquipmentStat = 'total_driftstopp_min';
   sortDir: 'asc' | 'desc' = 'desc';
@@ -153,6 +163,7 @@ export class EquipmentStatsComponent implements OnDestroy {
 
   loadEquipmentStats(): void {
     this.statsLoading = true;
+    this.statsError = false;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-stats`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
@@ -160,6 +171,8 @@ export class EquipmentStatsComponent implements OnDestroy {
         if (data?.stats) {
           this.equipmentStats = data.stats;
           this.equipmentSummary = data.summary ?? null;
+        } else {
+          this.statsError = true;
         }
       });
   }

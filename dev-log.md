@@ -1,3 +1,41 @@
+## 2026-03-17 Session #135 Worker B — Angular frontend: 6 buggar fixade (error state UI, auth guard, HTTP error handling audit)
+
+### Uppgift 1: Angular error state UI audit
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/pages/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). De flesta sidor (VD Dashboard, Drifttids-timeline, Statistik-overblick, Operator-ranking, Tidrapport, Historisk-sammanfattning, OEE Trendanalys) hade redan korrekt felhantering med loading/error states i bade .ts och .html.
+
+Hittade 4 maintenance-log-komponenter som saknade error state UI — HTTP-anrop med catchError som returnerade null, men ingen visuell feedback till anvandaren vid fel:
+
+1. **MaintenanceListComponent** — loadEntries() visade inget fel nar API:et misslyckades. Fixat: lagt till `loadError`-flagga + felmeddelande-UI med "Forsok igen"-knapp.
+2. **EquipmentStatsComponent** — loadEquipmentStats() visade inget fel. Fixat: lagt till `statsError`-flagga + felmeddelande-UI.
+3. **KpiAnalysisComponent** — loadKpiData() visade inget fel. Fixat: lagt till `kpiError`-flagga + felmeddelande-UI.
+4. **ServiceIntervalsComponent** — loadServiceIntervals() visade inget fel. Fixat: lagt till `serviceLoadError`-flagga + felmeddelande-UI.
+
+Alla felmeddelanden ar pa svenska, i dark theme-stil (#fc8181 farg) med "Forsok igen"-knappar.
+
+### Uppgift 2: Angular auth.guard unused route params
+Fixade 2 diagnostik-varningar i auth.guard.ts:
+1. **authGuard** (rad 6): `route` -> `_route` (oanvand parameter)
+2. **adminGuard** (rad 25): `route` -> `_route` (oanvand parameter)
+
+### Uppgift 3: Angular HTTP error handling consistency audit
+Granskade SAMTLIGA services i noreko-frontend/src/app/services/ (92 filer med HTTP-anrop). Alla services foljde ett konsekvent monster:
+- Alla HTTP-anrop har `timeout()` (8000-20000ms beroende pa komplexitet)
+- Alla har `catchError(() => of(null))` eller `catchError(() => of({ success: false, ... }))`
+- Inga services loggar till console.error (forutom pdf-export.service.ts som loggar ett specifikt DOM-element-fel — korrekt beteende)
+- Ingen service returnerar undefined vid fel — alla returnerar null eller ett explicit felobjekt
+- Inga inkonsistenser hittade — service-lagret ar valstrukturerat
+
+Andrade filer:
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/guards/auth.guard.ts`
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/maintenance-log/components/maintenance-list.component.ts`
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/maintenance-log/components/equipment-stats.component.ts`
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/maintenance-log/components/kpi-analysis.component.ts`
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/maintenance-log/components/service-intervals.component.ts`
+
+Totalt: 6 buggar fixade i 5 filer.
+
+---
+
 ## 2026-03-17 Session #135 Worker A — PHP backend: 9 buggar fixade (date/time, unused vars, null/edge cases)
 
 ### Uppgift 1: PHP date/time handling audit
