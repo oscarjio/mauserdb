@@ -88,28 +88,24 @@ Session #133: BUGGJAKT — 29 buggar (22 Worker A + 7 Worker B). Error response 
 Session #134: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL prepared statements OK, 1 XSS-fix, unused vars + form validation, unused declarations, subscription fixes.
 Session #135: BUGGJAKT — 15 buggar (9 Worker A + 6 Worker B). Date/time ISO-fix, unused vars, null/edge cases + error state UI, auth guard. HTTP services alla konsekvent.
 Session #136: BUGGJAKT — 6 buggar (3 Worker A + 3 Worker B). JSON_UNESCAPED_UNICODE (263x), error_log format (444x), PreloadAllModules, setTimeout-lacka. 109 charts + 138 routes OK.
+Session #137: BUGGJAKT — 23 buggar (9 Worker A + 14 Worker B). Session fixation, cookie cleanup, 7x date range validation + 5 null-check, 5 input sanitization, 90 HTTP timeout/catchError.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] PHP response format consistency audit [Worker A #136]
-- [x] Angular chart destroy audit [Worker B #136]
-- [x] PHP file upload validation audit [Worker A #136] — inga filuppladdningar i projektet
-- [x] PHP error_log format consistency [Worker A #136]
-- [x] Angular lazy loading route audit [Worker B #136]
-- [ ] PHP session/cookie security audit
-- [ ] Angular template strict null-check audit
-- [ ] PHP SQL column name verification
+- [ ] PHP error boundary audit — try/catch-block i controllers
+- [ ] Angular router parameter validation — route params typ/format
+- [ ] PHP boundary/pagination validation — LIMIT/OFFSET max-granser
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #135 (klar)
-Worker A: 9 buggar — 1x date('o') ISO-vecka, 1x unused $shift, 7x null/edge cases.
-Worker B: 6 buggar — 4x error state UI, 2x auth.guard unused params. Totalt: 15 buggar.
-
 ### 2026-03-17 — Session #136 (klar)
-Worker A: 3 buggar — 263x json_encode saknade JSON_UNESCAPED_UNICODE (42 filer), 444x error_log standardiserade. Ingen filuppladdning i projektet.
-Worker B: 3 buggar — PreloadAllModules saknades, 1x setTimeout-lacka i maskinunderhall. 109 chart-komponenter + 138 routes alla OK.
-Totalt: 6 buggar fixade (748+ rader andrade).
+Worker A: 3 buggar — 263x json_encode saknade JSON_UNESCAPED_UNICODE (42 filer), 444x error_log standardiserade.
+Worker B: 3 buggar — PreloadAllModules saknades, 1x setTimeout-lacka. Totalt: 6 buggar.
+
+### 2026-03-17 — Session #137 (klar)
+Worker A: 9 buggar — session_regenerate_id vid login, cookie-rensning vid logout, 7x date range validation (swap + max 365 dagar).
+Worker B: 14 buggar — 5x template null-check (pipe-precedens, null-safety), 5x input sanitization (trim, maxlength), 4x HTTP timeout/catchError (90 anrop i 4 services).
+Totalt: 23 buggar fixade.
