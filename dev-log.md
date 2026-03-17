@@ -1,3 +1,68 @@
+## 2026-03-17 Session #137 Worker A — PHP-backend: 9 buggar fixade (session security, SQL columns, date validation)
+
+### Uppgift 1: PHP session/cookie security audit
+Granskade ALLA PHP-filer i noreko-backend/ efter session_start(), setcookie(), $_SESSION-anvandning, session fixation och CSRF.
+
+**Positiva fynd (redan korrekt):**
+- api.php konfigurerar session-cookie-parametrar centralt med httponly, secure, samesite=Lax (rad 63-75)
+- AuthHelper.php anvander bcrypt for losen (password_hash/password_verify)
+- Rate limiting finns i AuthHelper.php (5 forsok, 15 min lockout)
+- Alla controllers kontrollerar $_SESSION['user_id'] for auth-skyddade endpoints
+- De flesta controllers anvander session_start(['read_and_close' => true]) for GET-endpoints (bra praxis)
+- Inga setcookie()-anrop utan flaggor hittades
+
+**BUGG 1 FIXAD:** LoginController saknade session_regenerate_id(true) efter lyckad inloggning. Om en befintlig session-cookie skickades av browsern (t.ex. fran ett tidigare besok pa en annan sida) kunde session fixation-attack genomforas. Lade till session_regenerate_id(true) direkt efter session_start().
+
+**BUGG 2 FIXAD:** LoginController::logout() anropade session_destroy() men rensade inte session-cookien. Stale PHPSESSID kunde ligga kvar i browsern. Lade till setcookie() med httponly=true, secure, samesite=Lax och expires i det forflutna.
+
+### Uppgift 2: PHP SQL column name verification
+Granskade SQL-queries i ALLA PHP-controllers (noreko-backend/classes/) mot tabellstrukturer i noreko-backend/migrations/.
+
+**Resultat:** Inga SQL-kolumnnamn-buggar hittades. Controllerna anvander konsekventa kolumnnamn:
+- rebotling_ibc: datum, ibc_ok, ibc_ej_ok, skiftraknare, runtime_plc, op1, op2, op3, bur_ej_ok, station_id — alla stammer
+- kassationsregistrering: datum, orsak_id, antal, skiftraknare, kommentar, registrerad_av — alla stammer
+- stoppage_log: start_time, reason_id, duration_minutes, line, comment — alla stammer
+- stopporsak_registreringar: start_time, end_time, kategori_id, linje — alla stammer
+- operators: id, number, name — alla stammer
+- users: id, username, email, password, admin, operator_id, role, last_login, active — alla stammer
+- Alla JOINs anvander korrekta nycklar (t.ex. sl.reason_id = sr.id, r.orsak_id = t.id)
+- Controllers med dynamiska tabeller anvander SHOW TABLES/SHOW COLUMNS for att kontrollera existens fore query
+
+### Uppgift 3: PHP date range validation audit
+Granskade ALLA PHP-controllers som tar emot datum-parametrar (from/to, from_date/to_date, start_date/end_date).
+
+**Redan korrekt (hade validering):**
+- HistoriskProduktionController: from <= to validering + max 365 dagar
+- OeeTrendanalysController::jamforelse(): from <= to validering + format-check
+- RebotlingAnalyticsController: from <= to + max 365 dagar
+- RebotlingController::getCycleTrend(): from <= to + max 365 dagar
+- SkiftrapportController::getShiftReportByOperator(): from <= to validering
+- Controllers med getDays()-metod: max(1, min(365, ...)) — redan begransat
+
+**7 BUGGAR FIXADE (Bugg 3-9):** Foljande controllers saknade from <= to validering OCH max datum-spann (kunde orsaka enorma queries vid felaktiga parametrar):
+
+- **Bugg 3:** AuditController::getLogs() — saknade from <= to + max spann
+- **Bugg 4:** ProduktionskostnadController::getDailyTable() — saknade from <= to + max spann
+- **Bugg 5:** UnderhallsloggController (list-endpoint) — saknade from <= to + max spann
+- **Bugg 6:** SkiftoverlamningController (historik-endpoint) — saknade from <= to + max spann
+- **Bugg 7:** OperatorsbonusController::getHistorik() — saknade from <= to + max spann
+- **Bugg 8:** BatchSparningController::getBatchHistory() — saknade from <= to + max spann
+- **Bugg 9:** TidrapportController (anpassat period) — saknade from <= to + max spann
+
+Alla 7 controllers fixade med: (1) automatisk swap om from > to, (2) max 365 dagars spann.
+
+**Filer andrade:**
+- noreko-backend/classes/LoginController.php
+- noreko-backend/classes/AuditController.php
+- noreko-backend/classes/ProduktionskostnadController.php
+- noreko-backend/classes/UnderhallsloggController.php
+- noreko-backend/classes/SkiftoverlamningController.php
+- noreko-backend/classes/OperatorsbonusController.php
+- noreko-backend/classes/BatchSparningController.php
+- noreko-backend/classes/TidrapportController.php
+
+---
+
 ## 2026-03-17 Session #136 Worker A — PHP-backend: 3 buggar fixade (response format, error_log format, json_encode unicode)
 
 ### Uppgift 1: PHP response format consistency audit
