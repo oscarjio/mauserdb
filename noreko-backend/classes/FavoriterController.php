@@ -89,10 +89,12 @@ class FavoriterController {
         }
 
         try {
-            // Hämta nästa sort_order
+            $this->pdo->beginTransaction();
+
+            // Hämta nästa sort_order (inom transaktion för att undvika race condition)
             $stmtMax = $this->pdo->prepare(
                 "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order
-                 FROM user_favoriter WHERE user_id = :user_id"
+                 FROM user_favoriter WHERE user_id = :user_id FOR UPDATE"
             );
             $stmtMax->execute([':user_id' => $userId]);
             $nextOrder = (int) $stmtMax->fetchColumn();
@@ -111,6 +113,7 @@ class FavoriterController {
             ]);
 
             $newId = (int) $this->pdo->lastInsertId();
+            $this->pdo->commit();
 
             $this->sendSuccess([
                 'id'         => $newId,
@@ -121,6 +124,9 @@ class FavoriterController {
                 'sort_order' => $nextOrder,
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             if ((string)$e->getCode() === '23000') {
                 $this->sendError('Denna sida finns redan bland dina favoriter');
                 return;
@@ -185,6 +191,8 @@ class FavoriterController {
         }
 
         try {
+            $this->pdo->beginTransaction();
+
             $stmt = $this->pdo->prepare(
                 "UPDATE user_favoriter SET sort_order = :sort_order
                  WHERE id = :id AND user_id = :user_id"
@@ -198,8 +206,13 @@ class FavoriterController {
                 ]);
             }
 
+            $this->pdo->commit();
+
             $this->sendSuccess(['reordered' => true]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('FavoriterController::reorder: ' . $e->getMessage());
             $this->sendError('Kunde inte ändra ordning', 500);
         }

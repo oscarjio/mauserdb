@@ -553,17 +553,21 @@ class AlertsController {
      * Infoga en ny alert i databasen.
      */
     private function insertAlert(string $type, string $message, float $value, float $threshold, string $severity): void {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO alerts (type, message, value, threshold, severity)
-            VALUES (:type, :message, :value, :threshold, :severity)
-        ");
-        $stmt->execute([
-            'type'      => $type,
-            'message'   => $message,
-            'value'     => $value,
-            'threshold' => $threshold,
-            'severity'  => $severity,
-        ]);
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO alerts (type, message, value, threshold, severity)
+                VALUES (:type, :message, :value, :threshold, :severity)
+            ");
+            $stmt->execute([
+                'type'      => $type,
+                'message'   => $message,
+                'value'     => $value,
+                'threshold' => $threshold,
+                'severity'  => $severity,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('AlertsController::insertAlert: ' . $e->getMessage());
+        }
     }
 
     // ================================================================

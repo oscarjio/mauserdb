@@ -2486,17 +2486,21 @@ class RebotlingController {
 
     private function checkAndCreateRecordNews(): void {
         try {
-            // Kontrollera om en rekordnyhet redan skapats idag
+            $this->pdo->beginTransaction();
+
+            // Kontrollera om en rekordnyhet redan skapats idag (FOR UPDATE för att undvika dubbletter vid parallella requests)
             $stmtCheck = $this->pdo->prepare("
                 SELECT COUNT(*) AS cnt
                 FROM news
                 WHERE DATE(created_at) = CURDATE()
                   AND category = 'rekord'
+                FOR UPDATE
             ");
             $stmtCheck->execute();
             $checkRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
             if ($checkRow && (int)$checkRow['cnt'] > 0) {
                 // Rekordnyhet redan skapad idag, skippa
+                $this->pdo->rollBack();
                 return;
             }
 
@@ -2514,7 +2518,10 @@ class RebotlingController {
             $todayRow = $stmtToday->fetch(PDO::FETCH_ASSOC);
             $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
 
-            if ($ibcIdag <= 0) return;
+            if ($ibcIdag <= 0) {
+                $this->pdo->rollBack();
+                return;
+            }
 
             // Hämta historiskt rekord (bästa dag före idag)
             $stmtRekord = $this->pdo->query("
@@ -2536,7 +2543,10 @@ class RebotlingController {
             $rekordIbc = (int)($rekordRow['rekord_ibc'] ?? 0);
 
             // Slå bara om idag är bättre än rekordet
-            if ($ibcIdag <= $rekordIbc) return;
+            if ($ibcIdag <= $rekordIbc) {
+                $this->pdo->rollBack();
+                return;
+            }
 
             // Skapa rekordnyhet
             $titel = 'Ny rekordag!';
@@ -2551,9 +2561,14 @@ class RebotlingController {
                 ':title' => $titel,
                 ':body'  => $body,
             ]);
+
+            $this->pdo->commit();
             error_log('RebotlingController::checkAndCreateRecordNews: Rekordnyhet skapad! Idag=' . $ibcIdag . ', Rekord=' . $rekordIbc);
 
         } catch (\Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingController::checkAndCreateRecordNews: ' . $e->getMessage());
         }
     }

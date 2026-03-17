@@ -100,6 +100,7 @@ class EffektivitetController {
      * sorterad stigande på datum.
      */
     private function getDagligData(int $days): array {
+        $days = max(1, min(365, $days));
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 

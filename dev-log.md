@@ -1,3 +1,46 @@
+## 2026-03-17 Session #138 Worker A — PHP-backend: 9 buggar fixade (boundary, error boundary, race condition)
+
+### Uppgift 1: PHP boundary/pagination validation
+Granskade alla PHP-controllers i noreko-backend/classes/ som anvander LIMIT, OFFSET, pagination.
+Alla befintliga $_GET-parametrar for limit/offset/page/per_page har korrekt validering med max()/min()/intval().
+
+**BUGG 1 FIXAD:** EffektivitetController.php rad 102 — `getDagligData()` saknade boundary-validering av `$days`-parameter. Lade till `$days = max(1, min(365, $days))` for att forhindra extremvardet.
+
+### Uppgift 2: PHP error boundary audit
+Granskade alla PHP-controllers for try/catch-block. Privata hjalpfunktioner utan try/catch anropas fran metoder med try/catch, sa exceptions propagerar korrekt. Hittade en metod dar ett misslyckat INSERT borde fangas lokalt.
+
+**BUGG 2 FIXAD:** AlertsController.php rad 555 — `insertAlert()` saknade try/catch runt PDO-anrop. Ett INSERT-fel i alert-tabellen bor loggas och ignoreras (inte krascha hela alertkontroll-cykeln). Lade till try/catch med error_log().
+
+### Uppgift 3: PHP race condition audit
+Granskade controllers som gor UPDATE/INSERT baserat pa SELECT-resultat utan transaktioner. Hittade 7 race conditions.
+
+**BUGG 3 FIXAD:** FavoriterController.php rad 91-113 — `addFavorit()`: SELECT MAX(sort_order) sedan INSERT utan transaktion. Parallella requests kunde fa samma sort_order. Lade till beginTransaction()/commit()/rollBack() och FOR UPDATE.
+
+**BUGG 4 FIXAD:** FavoriterController.php rad 187-205 — `reorderFavoriter()`: Multipla UPDATE-satser i loop utan transaktion. En krasch mitt i loopen lamnade inkonsekvent ordning. Lade till beginTransaction()/commit()/rollBack().
+
+**BUGG 5 FIXAD:** SkiftplaneringController.php rad 522-545 — `assignOperator()`: SELECT-check sedan INSERT utan transaktion. Tva parallella requests kunde tilldela samma operator pa samma dag. Lade till beginTransaction()/commit()/rollBack() och FOR UPDATE.
+
+**BUGG 6 FIXAD:** StopporsakRegistreringController.php rad 263-294 — `endStop()`: SELECT sedan UPDATE utan transaktion. Tva parallella requests kunde avsluta samma stopp. Lade till beginTransaction()/commit()/rollBack(), FOR UPDATE, och extra WHERE end_time IS NULL pa UPDATE.
+
+**BUGG 7 FIXAD:** BatchSparningController.php rad 516-542 — `completeBatch()`: SELECT sedan UPDATE utan transaktion. Tva parallella requests kunde markera batch som klar. Lade till beginTransaction()/commit()/rollBack(), FOR UPDATE, och extra WHERE status != 'klar' pa UPDATE.
+
+**BUGG 8 FIXAD:** RebotlingController.php rad 2487-2558 — `checkAndCreateRecordNews()`: SELECT COUNT sedan INSERT utan transaktion. Parallella requests kunde skapa duplicerade rekordnyheter. Lade till beginTransaction()/commit()/rollBack() och FOR UPDATE.
+
+**BUGG 9 FIXAD:** RegisterController.php rad 77-117 — `handle()`: SELECT username sedan INSERT i separata try/catch-block utan transaktion. Tva parallella registreringar med samma anvandarnamn kunde lyckas. Slog ihop till en enda transaktion med FOR UPDATE + hanterar duplicate key (23000).
+
+**BUGG 10 (bonus) FIXAD:** RebotlingAnalyticsController.php rad 6348-6384 — `setProductionGoal()`: SELECT sedan INSERT/UPDATE utan transaktion. Parallella requests kunde skapa dubbletter. Lade till beginTransaction()/commit()/rollBack() och FOR UPDATE.
+
+**Andrade filer:**
+- noreko-backend/classes/EffektivitetController.php
+- noreko-backend/classes/AlertsController.php
+- noreko-backend/classes/FavoriterController.php
+- noreko-backend/classes/SkiftplaneringController.php
+- noreko-backend/classes/StopporsakRegistreringController.php
+- noreko-backend/classes/BatchSparningController.php
+- noreko-backend/classes/RebotlingController.php
+- noreko-backend/classes/RegisterController.php
+- noreko-backend/classes/RebotlingAnalyticsController.php
+
 ## 2026-03-17 Session #137 Worker B — Angular frontend: 14 buggar fixade (null-check, input sanitization, HTTP timeout)
 
 ### Uppgift 1: Angular template strict null-check audit

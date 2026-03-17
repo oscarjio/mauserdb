@@ -73,29 +73,27 @@ class RegisterController {
             return;
         }
         
-        // Kontrollera om användarnamn redan finns
+        $hashedPassword = AuthHelper::hashPassword($password);
+
+        // Kontrollera och registrera inom transaktion för att undvika race condition med duplicerade användarnamn
         try {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? FOR UPDATE");
             $stmt->execute([$username]);
             if ($stmt->fetch()) {
+                $pdo->rollBack();
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
                 return;
             }
-        } catch (PDOException $e) {
-            error_log('RegisterController::check_username: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        
-        $hashedPassword = AuthHelper::hashPassword($password);
-        
-        // Spara användare i databasen
-        try {
+
             $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, code, admin, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())");
             $stmt->execute([$username, $hashedPassword, $email, $phone ?: null, $code ?: null]);
             $newUserId = (int)$pdo->lastInsertId();
+
+            $pdo->commit();
+
             AuditLogger::log($pdo, 'register', 'users', $newUserId, "Ny användare registrerad: $username");
 
             echo json_encode([
@@ -108,6 +106,15 @@ class RegisterController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            // Hantera duplicate key-fel (extra säkerhet om UNIQUE constraint finns)
+            if ((string)$e->getCode() === '23000') {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             error_log('RegisterController::create_user: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([

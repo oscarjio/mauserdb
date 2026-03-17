@@ -520,12 +520,15 @@ class SkiftplaneringController {
         }
 
         try {
-            // Kontrollera att operatören inte redan är inplanerad denna dag
+            $this->pdo->beginTransaction();
+
+            // Kontrollera att operatören inte redan är inplanerad denna dag (med FOR UPDATE för att undvika race condition)
             $checkStmt = $this->pdo->prepare(
-                "SELECT id FROM skift_schema WHERE operator_id = ? AND datum = ?"
+                "SELECT id FROM skift_schema WHERE operator_id = ? AND datum = ? FOR UPDATE"
             );
             $checkStmt->execute([$operatorId, $datum]);
             if ($checkStmt->fetch()) {
+                $this->pdo->rollBack();
                 $this->sendError('Operatören är redan inplanerad denna dag');
                 return;
             }
@@ -535,11 +538,17 @@ class SkiftplaneringController {
             );
             $stmt->execute([$operatorId, $skiftTyp, $datum]);
 
+            $newId = (int)$this->pdo->lastInsertId();
+            $this->pdo->commit();
+
             $this->sendSuccess([
-                'id'      => (int)$this->pdo->lastInsertId(),
+                'id'      => $newId,
                 'message' => 'Operatör tilldelad',
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftplaneringController::assignOperator: ' . $e->getMessage());
             $this->sendError('Kunde inte tilldela operatör', 500);
         }

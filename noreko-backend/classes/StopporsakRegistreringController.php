@@ -260,20 +260,24 @@ class StopporsakRegistreringController {
                 return;
             }
 
-            // Verify the stop exists and belongs to user (or user is admin)
+            $this->pdo->beginTransaction();
+
+            // Verify the stop exists and belongs to user (or user is admin) — FOR UPDATE to prevent race condition
             $stmt = $this->pdo->prepare(
-                "SELECT id, user_id, end_time FROM stopporsak_registreringar WHERE id = ?"
+                "SELECT id, user_id, end_time FROM stopporsak_registreringar WHERE id = ? FOR UPDATE"
             );
             $stmt->execute([$id]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$row) {
+                $this->pdo->rollBack();
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Stopp hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             if ($row['end_time'] !== null) {
+                $this->pdo->rollBack();
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Stoppet är redan avslutat'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -282,6 +286,7 @@ class StopporsakRegistreringController {
             $userId  = (int)$_SESSION['user_id'];
             $role    = $_SESSION['role'] ?? '';
             if ($role !== 'admin' && (int)$row['user_id'] !== $userId) {
+                $this->pdo->rollBack();
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -289,12 +294,17 @@ class StopporsakRegistreringController {
 
             $endTime = date('Y-m-d H:i:s');
             $upd = $this->pdo->prepare(
-                "UPDATE stopporsak_registreringar SET end_time = ? WHERE id = ?"
+                "UPDATE stopporsak_registreringar SET end_time = ? WHERE id = ? AND end_time IS NULL"
             );
             $upd->execute([$endTime, $id]);
 
+            $this->pdo->commit();
+
             echo json_encode(['success' => true, 'message' => 'Stopp avslutat', 'end_time' => $endTime], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('StopporsakRegistreringController::endStop: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte avsluta stopp'], JSON_UNESCAPED_UNICODE);

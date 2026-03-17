@@ -6347,9 +6347,11 @@ HTML;
 
             $userId = (int)$_SESSION['user_id'];
 
-            // Uppdatera befintlig rad eller infoga ny
+            $this->pdo->beginTransaction();
+
+            // Uppdatera befintlig rad eller infoga ny (med FOR UPDATE för att undvika race condition)
             $existing = $this->pdo->prepare(
-                "SELECT id FROM rebotling_production_goals WHERE period_type = ? ORDER BY id DESC LIMIT 1"
+                "SELECT id FROM rebotling_production_goals WHERE period_type = ? ORDER BY id DESC LIMIT 1 FOR UPDATE"
             );
             $existing->execute([$periodType]);
             $row = $existing->fetch(PDO::FETCH_ASSOC);
@@ -6366,6 +6368,8 @@ HTML;
                 $stmt->execute([$periodType, $targetCount, $userId]);
             }
 
+            $this->pdo->commit();
+
             $label = $periodType === 'daily' ? 'Dagsmål' : 'Veckamål';
             echo json_encode([
                 'success' => true,
@@ -6374,6 +6378,9 @@ HTML;
                 'target_count' => $targetCount,
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingAnalyticsController::setProductionGoal: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara produktionsmål'], JSON_UNESCAPED_UNICODE);

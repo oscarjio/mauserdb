@@ -514,29 +514,38 @@ class BatchSparningController {
         }
 
         try {
-            // Kontrollera att batchen finns och inte redan är klar
+            $this->pdo->beginTransaction();
+
+            // Kontrollera att batchen finns och inte redan är klar (FOR UPDATE för att undvika race condition)
             $checkStmt = $this->pdo->prepare(
-                "SELECT id, status FROM batch_order WHERE id = ?"
+                "SELECT id, status FROM batch_order WHERE id = ? FOR UPDATE"
             );
             $checkStmt->execute([$batchId]);
             $batch = $checkStmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$batch) {
+                $this->pdo->rollBack();
                 $this->sendError('Batch hittades inte', 404);
                 return;
             }
             if ($batch['status'] === 'klar') {
+                $this->pdo->rollBack();
                 $this->sendError('Batchen är redan markerad som klar');
                 return;
             }
 
             $stmt = $this->pdo->prepare(
-                "UPDATE batch_order SET status = 'klar', avslutad_datum = NOW() WHERE id = ?"
+                "UPDATE batch_order SET status = 'klar', avslutad_datum = NOW() WHERE id = ? AND status != 'klar'"
             );
             $stmt->execute([$batchId]);
 
+            $this->pdo->commit();
+
             $this->sendSuccess(['message' => 'Batch markerad som klar']);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('BatchSparningController::completeBatch: ' . $e->getMessage());
             $this->sendError('Kunde inte avsluta batch', 500);
         }
