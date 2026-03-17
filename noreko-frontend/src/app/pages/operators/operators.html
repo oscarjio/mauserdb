@@ -38,7 +38,7 @@
       <form (ngSubmit)="createOperator()" class="row g-2 align-items-end">
         <div class="col-md-4">
           <label class="form-label">Namn</label>
-          <input class="form-control form-control-sm" [(ngModel)]="addForm.name"
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
                  name="add-name" placeholder="Operatörens namn" required />
         </div>
         <div class="col-md-2">
@@ -47,7 +47,7 @@
                  name="add-number" placeholder="T.ex. 101" type="number" min="1" required />
         </div>
         <div class="col-auto">
-          <button class="btn btn-success btn-sm" type="submit">
+          <button class="btn btn-success btn-sm" type="submit" [disabled]="!addForm.name.trim() || !addForm.number || addForm.number <= 0">
             <i class="fas fa-save me-1"></i>Spara
           </button>
         </div>
@@ -411,7 +411,7 @@
                   <form (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
                     <div class="col-md-4">
                       <label class="form-label">Namn</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="op.name"
+                      <input type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
                              [name]="'name-' + op.id" placeholder="Namn" required />
                     </div>
                     <div class="col-md-2">
@@ -420,7 +420,7 @@
                              [name]="'number-' + op.id" type="number" min="1" required />
                     </div>
                     <div class="col-auto">
-                      <button class="btn btn-success btn-sm" type="submit">
+                      <button class="btn btn-success btn-sm" type="submit" [disabled]="!op.name?.trim() || !op.number || op.number <= 0">
                         <i class="fas fa-save me-1"></i>Spara
                       </button>
                     </div>

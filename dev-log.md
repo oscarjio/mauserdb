@@ -1,3 +1,30 @@
+## 2026-03-17 Session #143 Worker B — 9 buggar fixade (form validation, routing, template null-safety)
+
+### Uppgift 1: Angular form validation audit — 5 fix
+Granskade alla ~20 formuler med (ngSubmit) i noreko-frontend/src/app/. Fokus pa formuler som skickar data till backend.
+
+1. create-user.html — username-input saknade type="text" attribut (defaultar till text men explicit ar battre for tillganglighet)
+2. news-admin.ts — submit-knapp var bara disabled pa `saving`, inte nar titel var tom. Lade till `|| !form.title.trim()`
+3. stoppage-log.ts — saveEdit() validerade inte duration-range trots HTML min/max. Lade till JS-validering 0-14400 med felmeddelande
+4. operators.html — createOperator-formularet: name-input saknade type="text", submit-knapp saknade [disabled] (kunde skicka tomt formular)
+5. operators.html — saveOperator-formularet (edit): name-input saknade type="text", submit-knapp saknade [disabled]
+
+Redan valvaliderade (ingen fix kravs): login, register, users saveUser, batch-sparning, kassationskvot-alarm, maskinunderhall (bade service och maskin), menu updateProfile, stoppage-log addStoppage, maintenance-form, service-intervals.
+
+### Uppgift 2: Angular lazy loading/routing audit — 1 fix
+Granskade app.routes.ts (~160 routes). Alla anvander loadComponent lazy loading. Alla admin-routes har adminGuard, auth-routes har authGuard. Inga duplicerade eller doda routes.
+
+6. app.routes.ts — root child route { path: '' } saknade pathMatch: 'full'. Utan detta matchar tomma sökvägen som prefix for ALLA URLer, vilket kan ladda News-komponenten parallellt med andra routes.
+
+### Uppgift 3: Angular template null-safety audit — 3 fix
+Granskade templates for saknade ?. och *ngIf guards. Projektet anvander strictTemplates: true, sa !. ar compile-time non-null assertion (inte logisk NOT). 149 !.-assertions i 22 filer bekraftades vara korrekta inom *ngIf-guardade block. Ingen async pipe anvands i projektet.
+
+7. andon-board.html — shift-times div saknade *ngIf="shift" guard, renderade " - " innan data laddats
+8. andon-board.html — shift.operator inuti *ngIf="shift?.operator" beholl !. assertion (korrekt — Angular narrowing kraver det)
+9. backlog.md — uppdaterade avklarade uppgifter och lade till nya audit-forslag
+
+Filer andrade: app.routes.ts, andon-board.html, create-user.html, news-admin.ts, operators.html, stoppage-log.ts, backlog.md
+
 ## 2026-03-17 Session #143 Worker A — 15 buggar fixade (SQL N+1, json_encode, Content-Type)
 
 ### Uppgift 1: PHP SQL query optimization audit — 7 fix

@@ -164,7 +164,7 @@ interface NewsItem {
               <button
                 class="btn btn-primary"
                 (click)="saveNews()"
-                [disabled]="saving"
+                [disabled]="saving || !form.title.trim()"
               >
                 <span *ngIf="saving"><i class="fas fa-spinner fa-spin me-2"></i>Sparar...</span>
                 <span *ngIf="!saving"><i class="fas fa-save me-2"></i>{{ editingId ? 'Uppdatera' : 'Skapa' }}</span>

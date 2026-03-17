@@ -526,9 +526,13 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   saveEdit(entry: StoppageEntry) {
     if (this.savingId) return;
-    this.savingId = entry.id;
     const parsed = parseInt(this.editDuration, 10);
     const duration = this.editDuration.trim() === '' ? null : (isNaN(parsed) ? null : parsed);
+    if (duration !== null && (duration < 0 || duration > 14400)) {
+      this.errorMessage = 'Varaktighet måste vara 0–14400 minuter';
+      return;
+    }
+    this.savingId = entry.id;
     const comment = this.editComment;
 
     this.stoppageService.update(entry.id, { duration_minutes: duration, comment })

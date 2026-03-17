@@ -82,7 +82,7 @@
     <div class="card shift-card">
       <div class="card-label">Skift</div>
       <div class="shift-name">{{ shift?.name ?? '-' }}</div>
-      <div class="shift-times">{{ shift?.start }} - {{ shift?.end }}</div>
+      <div class="shift-times" *ngIf="shift">{{ shift.start }} - {{ shift.end }}</div>
       <div class="shift-operator" *ngIf="shift?.operator">
         <i class="fas fa-user"></i> {{ shift!.operator }}
       </div>

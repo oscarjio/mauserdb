@@ -8,7 +8,7 @@ export const routes: Routes = [
     component: Layout,
     children: [
       // Public
-      { path: '', loadComponent: () => import('./news/news').then(m => m.News) },
+      { path: '', pathMatch: 'full', loadComponent: () => import('./news/news').then(m => m.News) },
       { path: 'login', loadComponent: () => import('./pages/login/login').then(m => m.LoginPage) },
       { path: 'register', loadComponent: () => import('./pages/register/register').then(m => m.RegisterPage) },
       { path: 'about', loadComponent: () => import('./pages/about/about').then(m => m.AboutPage) },
