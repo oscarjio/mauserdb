@@ -133,7 +133,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
         this.loadingGraph = false;
         if (res?.success) {
           this.periodData = res.data;
-          setTimeout(() => this.renderProductionChart(), 100);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
         }
       });
   }

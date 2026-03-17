@@ -141,7 +141,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
       this.loadingPerMaskin = false;
       if (res?.success) {
         this.perMaskinData = res.data;
-        setTimeout(() => this.buildBarChart(), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
       }
     });
   }
@@ -159,7 +159,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
           .sort((a, b) => b.sum - a.sum)
           .slice(0, 3);
         top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-        setTimeout(() => this.buildTrendChart(), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
       }
     });
   }
@@ -170,7 +170,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
       this.loadingFordelning = false;
       if (res?.success) {
         this.fordelningData = res.data;
-        setTimeout(() => this.buildDoughnutChart(), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 80);
       }
     });
   }

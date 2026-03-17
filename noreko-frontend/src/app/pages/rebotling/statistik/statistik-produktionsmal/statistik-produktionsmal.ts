@@ -97,7 +97,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
           period_label:          res.period_label ?? 'Idag',
         };
         this.newDailyTarget = this.todayData.target;
-        setTimeout(() => this.renderChart('day'), 60);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderChart('day'); }, 60);
       } else {
         this.error = res?.error ?? 'Kunde inte hämta dagsmål';
       }
@@ -123,7 +123,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
           period_label:          res.period_label ?? 'Denna vecka',
         };
         this.newWeeklyTarget = this.weekData.target;
-        setTimeout(() => this.renderChart('week'), 60);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderChart('week'); }, 60);
       } else if (!this.error) {
         this.error = res?.error ?? 'Kunde inte hämta veckamål';
       }

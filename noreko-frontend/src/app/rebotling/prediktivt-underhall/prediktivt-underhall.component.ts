@@ -86,7 +86,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   bytFlik(flik: 'heatmap' | 'mtbf' | 'trender' | 'rekom'): void {
     this.aktivFlik = flik;
     if (flik === 'trender') {
-      setTimeout(() => this.buildTrendChart(), 150);
+      setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150);
     }
   }
 
@@ -216,7 +216,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
         this.trendStationer = res.data.trender;
         this.trendVeckonycklar = res.data.veckonycklar;
         if (this.aktivFlik === 'trender') {
-          setTimeout(() => this.buildTrendChart(), 150);
+          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150);
         }
       } else if (res !== null) {
         this.errorTrender = true;

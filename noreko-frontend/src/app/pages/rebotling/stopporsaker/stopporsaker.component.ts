@@ -188,7 +188,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
-        setTimeout(() => this.buildParetoChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
       }
     });
   }
@@ -199,7 +199,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingStation = false;
       if (res?.success) {
         this.stationData = res.data;
-        setTimeout(() => this.buildStationChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildStationChart(); }, 100);
       }
     });
   }
@@ -210,7 +210,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
-        setTimeout(() => this.buildTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       }
     });
   }

@@ -162,7 +162,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
           .sort((a, b) => b.avg - a.avg)
           .slice(0, 3);
         top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-        setTimeout(() => this.buildTrendChart(), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
       }
     });
   }
@@ -173,7 +173,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
       this.loadingBenchmark = false;
       if (res?.success) {
         this.benchmarkData = res.data;
-        setTimeout(() => this.buildBarChart(), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
       }
     });
   }

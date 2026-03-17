@@ -82,7 +82,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
-        setTimeout(() => this.buildChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
       } else if (res !== null) {
         this.errorOverview = true;
       }

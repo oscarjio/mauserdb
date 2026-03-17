@@ -136,7 +136,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
             this.stationChecked[s.station_id] = true;
           }
         }
-        setTimeout(() => this.buildTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       } else if (res !== null) {
         this.errorTrend = true;
       }

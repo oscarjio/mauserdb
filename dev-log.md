@@ -1,3 +1,40 @@
+## 2026-03-17 Session #140 Worker B — Angular frontend: 32 buggar fixade (setTimeout memory leak guards)
+
+### Uppgift 1: Angular form validation audit
+Sokte igenom hela frontend efter reaktiva formuler (FormGroup, FormControl, Validators). Inga reaktiva formuler anvands i kodbasen — alla formuler anvander template-driven approach (ngModel). Inga buggar att fixa.
+
+### Uppgift 2: Angular lazy loading audit
+Granskade app.routes.ts. Alla routes anvander `loadComponent` for lazy loading korrekt. Layout-komponenten ar eagerly loaded som root wrapper (korrekt monster). Auth guards (authGuard, adminGuard) ar korrekt applicerade pa skyddade routes. Inga buggar att fixa.
+
+### Uppgift 3: Angular service audit — setTimeout memory leak guards (32 buggar fixade)
+Hittade 32 stallen dar `setTimeout(() => this.buildXxxChart(), N)` anropades utan `this.destroy$.closed`-guard, vilket kan leda till att Chart.js-diagram byggs pa forstorda komponenter (memory leak + runtime-fel). Lade till `if (!this.destroy$.closed)` guard pa samtliga.
+
+**Filer som fixades (19 komponentfiler, 32 setTimeout-anrop):**
+- prediktivt-underhall.component.ts (2 fix)
+- daglig-briefing.component.ts (1 fix)
+- kassationsorsak-statistik.ts (3 fix)
+- stopporsaker.component.ts (3 fix)
+- avvikelselarm.component.ts (1 fix)
+- kvalitetstrendanalys.ts (1 fix)
+- maskin-oee.component.ts (2 fix)
+- stopptidsanalys.component.ts (3 fix)
+- kvalitets-trendbrott.ts (1 fix)
+- statistik-produkttyp-effektivitet.ts (2 fix)
+- produktionstakt.ts (1 fix)
+- produktionskostnad.component.ts (3 fix)
+- kvalitetscertifikat.component.ts (1 fix)
+- produktions-sla.component.ts (3 fix)
+- skiftplanering.component.ts (1 fix)
+- historisk-produktion.component.ts (1 fix)
+- operatorsbonus.component.ts (2 fix)
+- rebotling-sammanfattning.component.ts (1 fix)
+- statistik-produktionsmal.ts (2 fix)
+
+**Monster som redan var sakra (ej andrade):**
+- Komponenter som sparar setTimeout i en timer-variabel och anvander clearTimeout i ngOnDestroy (t.ex. maskinunderhall, cykeltid-heatmap, vd-dashboard, operator-ranking, etc.) — dessa ar redan skyddade.
+
+---
+
 ## 2026-03-17 Session #140 Worker A — PHP backend: 7 buggar fixade (SQL-injection, credentials, error_log, security headers)
 
 ### Uppgift 1: PHP SQL query consistency — prepared statements, bindParam-typer

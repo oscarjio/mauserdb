@@ -165,7 +165,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success) {
-        setTimeout(() => this.buildTrendChart(res.data.dates, res.data.series), 80);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
       }
     });
   }

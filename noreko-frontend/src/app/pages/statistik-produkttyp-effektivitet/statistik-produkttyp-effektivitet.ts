@@ -135,7 +135,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
           }
 
           // Build IBC/timme chart after view updates
-          setTimeout(() => this.buildIbcPerTimmeChart(), 50);
+          setTimeout(() => { if (!this.destroy$.closed) this.buildIbcPerTimmeChart(); }, 50);
         }
       });
   }
@@ -158,6 +158,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
         if (res?.success && res.data?.har_data) {
           this.trendHarData = true;
           setTimeout(() => {
+            if (this.destroy$.closed) return;
             this.buildCykeltidChart(res.data.labels, res.data.datasets_cykeltid);
             this.buildIbcTrendChart(res.data.labels, res.data.datasets_ibc);
           }, 50);

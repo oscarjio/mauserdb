@@ -113,7 +113,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
       this.loadingDaily = false;
       if (res?.success) {
         this.daily = res.data;
-        setTimeout(() => this.renderGaugeChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
       }
     });
   }
@@ -126,7 +126,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
       this.loadingWeekly = false;
       if (res?.success) {
         this.weekly = res.data;
-        setTimeout(() => this.renderWeeklyChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
       }
     });
   }
@@ -139,7 +139,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
       this.loadingHistory = false;
       if (res?.success) {
         this.historyData = res.data;
-        setTimeout(() => this.renderHistoryChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
       }
     });
   }

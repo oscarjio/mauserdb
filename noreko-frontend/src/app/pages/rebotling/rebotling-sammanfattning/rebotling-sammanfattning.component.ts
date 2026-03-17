@@ -93,7 +93,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
         this.isFetchingGraph = false;
         if (res?.success) {
           this.produktion7d = res.data;
-          setTimeout(() => this.renderChart(), 100);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
         }
       });
   }

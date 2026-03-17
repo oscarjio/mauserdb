@@ -124,7 +124,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
-        setTimeout(() => this.buildParetoChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
       }
     });
   }
@@ -143,7 +143,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
           .sort((a, b) => b.sum - a.sum)
           .slice(0, 3);
         top.forEach(t => this.selectedTrendOrsaker.add(t.id));
-        setTimeout(() => this.buildTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       }
     });
   }
@@ -180,7 +180,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
       this.loadingDrilldown = false;
       if (res?.success) {
         this.drilldownData = res.data;
-        setTimeout(() => this.buildDrilldownChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildDrilldownChart(); }, 100);
       }
     });
   }

@@ -257,7 +257,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.capacityData = res.dag_data;
         this.capacityMinPerDay = res.min_per_dag;
-        setTimeout(() => this.renderCapacityChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderCapacityChart(); }, 100);
       } else {
         this.errorCapacity = true;
       }

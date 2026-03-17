@@ -97,7 +97,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.hourlyHistory = res.data.history;
         this.loadingHistory = false;
-        setTimeout(() => this.renderChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
       }
     });
   }

@@ -164,7 +164,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trend = res.data.trend;
-        setTimeout(() => this.buildTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       } else if (res !== null) {
         this.errorTrend = true;
       }

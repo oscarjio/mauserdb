@@ -281,7 +281,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.loadingStatistik = false;
       if (res?.success) {
         this.statistik = res.data;
-        setTimeout(() => this.renderChart(), 150);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
       }
     });
   }

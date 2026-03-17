@@ -118,7 +118,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       this.loadingBreakdown = false;
       if (res?.success) {
         this.breakdown = res.data;
-        setTimeout(() => this.renderDoughnutChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderDoughnutChart(); }, 100);
       }
     });
   }
@@ -136,7 +136,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
-        setTimeout(() => this.renderTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
       }
     });
   }
@@ -169,7 +169,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       this.loadingShift = false;
       if (res?.success) {
         this.shiftComp = res.data;
-        setTimeout(() => this.renderShiftChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderShiftChart(); }, 100);
       }
     });
   }
