@@ -72,6 +72,9 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   sortColumn: keyof OeeDetaljItem = 'datum';
   sortAsc = false;
 
+  // Cached sorted list
+  cachedSortedDetaljer: OeeDetaljItem[] = [];
+
   // Charts
   private barChart:   Chart | null = null;
   private trendChart: Chart | null = null;
@@ -204,6 +207,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
         this.loadingDetalj = false;
         if (res?.success) {
           this.detaljData = res.data;
+          this.rebuildSortedDetaljer();
         }
       },
       error: () => { this.loadingDetalj = false; }
@@ -234,10 +238,11 @@ export class MaskinOeePage implements OnInit, OnDestroy {
       this.sortColumn = col;
       this.sortAsc = false;
     }
+    this.rebuildSortedDetaljer();
   }
 
-  get sortedDetaljer(): OeeDetaljItem[] {
-    if (!this.detaljData?.detaljer) return [];
+  private rebuildSortedDetaljer(): void {
+    if (!this.detaljData?.detaljer) { this.cachedSortedDetaljer = []; return; }
     const arr = [...this.detaljData.detaljer];
     arr.sort((a, b) => {
       const va = a[this.sortColumn];
@@ -248,7 +253,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
       if (va > vb) return this.sortAsc ? 1 : -1;
       return 0;
     });
-    return arr;
+    this.cachedSortedDetaljer = arr;
   }
 
   // ---- Charts ----

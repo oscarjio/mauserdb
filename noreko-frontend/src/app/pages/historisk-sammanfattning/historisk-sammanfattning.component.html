@@ -28,7 +28,7 @@
         <label class="form-label small text-muted">Period</label>
         <select class="form-select form-select-sm bg-dark text-light border-secondary"
                 [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()">
-          <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p.value">{{ p.label }}</option>
+          <option *ngFor="let p of cachedPeriodOptions; trackBy: trackByIndex" [value]="p.value">{{ p.label }}</option>
         </select>
       </div>
     </div>

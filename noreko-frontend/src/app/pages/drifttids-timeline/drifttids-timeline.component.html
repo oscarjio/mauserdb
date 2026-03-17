@@ -109,19 +109,19 @@
     </div>
 
     <!-- Tom data -->
-    <div class="empty-state" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length === 0">
+    <div class="empty-state" *ngIf="!loadingTimeline && !errorTimeline && cachedVisibleSegments.length === 0">
       <i class="fas fa-calendar-times me-2 text-muted"></i>
       <span class="text-muted">Ingen data tillgänglig för detta datum</span>
     </div>
 
     <!-- Tidslinje-innehåll -->
-    <div class="timeline-wrapper" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length > 0">
+    <div class="timeline-wrapper" *ngIf="!loadingTimeline && !errorTimeline && cachedVisibleSegments.length > 0">
 
       <!-- Timrubriker -->
       <div class="timeline-hours">
         <span
           class="hour-label"
-          *ngFor="let h of timelineHours; trackBy: trackByIndex"
+          *ngFor="let h of cachedTimelineHours; trackBy: trackByIndex"
           [style.left.%]="hourLeft(h)">
           {{ h }}:00
         </span>
@@ -131,7 +131,7 @@
       <div class="timeline-track">
         <div
           class="timeline-segment"
-          *ngFor="let seg of visibleSegments; let i = index; trackBy: trackByIndex"
+          *ngFor="let seg of cachedVisibleSegments; let i = index; trackBy: trackByIndex"
           [style.left.%]="segmentLeft(seg)"
           [style.width.%]="segmentWidth(seg)"
           [style.background-color]="segmentColor(seg.type)"
@@ -244,7 +244,7 @@
   </div>
 
   <!-- Segmentlista i tabellformat -->
-  <div class="table-card" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length > 0">
+  <div class="table-card" *ngIf="!loadingTimeline && !errorTimeline && cachedVisibleSegments.length > 0">
     <h2 class="section-title">
       <i class="fas fa-list me-2" style="color:#a0aec0"></i>Alla segment
     </h2>
@@ -262,7 +262,7 @@
         </thead>
         <tbody>
           <tr
-            *ngFor="let seg of visibleSegments; trackBy: trackByIndex"
+            *ngFor="let seg of cachedVisibleSegments; trackBy: trackByIndex"
             [class.table-active]="selectedSegment === seg"
             (click)="onSegmentClick(seg)"
             style="cursor: pointer;">

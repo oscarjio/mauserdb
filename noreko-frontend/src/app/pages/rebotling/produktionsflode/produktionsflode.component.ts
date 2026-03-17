@@ -45,6 +45,10 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
   svgWidth  = 900;
   svgHeight = 500;
 
+  // Cached Sankey data (rebuilt when flodeData changes)
+  cachedSankeyNodes: Array<{id: string; label: string; x: number; y: number; w: number; h: number; color: string; value: number}> = [];
+  cachedSankeyLinks: Array<{d: string; color: string; opacity: number; strokeWidth: number; value: number; from: string; to: string}> = [];
+
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -104,7 +108,7 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
       .subscribe(res => {
         this.loadingFlode = false;
         this.isFetchingFlode = false;
-        if (res?.success) { this.flodeData = res.data; }
+        if (res?.success) { this.flodeData = res.data; this.rebuildSankey(); }
         else { this.errorFlode = true; }
       });
   }
@@ -124,9 +128,14 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
       });
   }
 
-  // ---- SVG Sankey helpers ----
+  // ---- SVG Sankey helpers (cached — rebuilt on data change) ----
 
-  get sankeyNodes(): Array<{id: string; label: string; x: number; y: number; w: number; h: number; color: string; value: number}> {
+  private rebuildSankey(): void {
+    this.cachedSankeyNodes = this.buildSankeyNodes();
+    this.cachedSankeyLinks = this.buildSankeyLinks();
+  }
+
+  private buildSankeyNodes(): Array<{id: string; label: string; x: number; y: number; w: number; h: number; color: string; value: number}> {
     if (!this.flodeData) return [];
 
     const nodes = this.flodeData.nodes;
@@ -184,10 +193,10 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     return result;
   }
 
-  get sankeyLinks(): Array<{d: string; color: string; opacity: number; strokeWidth: number; value: number; from: string; to: string}> {
+  private buildSankeyLinks(): Array<{d: string; color: string; opacity: number; strokeWidth: number; value: number; from: string; to: string}> {
     if (!this.flodeData) return [];
 
-    const nodes = this.sankeyNodes;
+    const nodes = this.cachedSankeyNodes;
     const links = this.flodeData.links;
     const total = this.flodeData.summary.total || 1;
 

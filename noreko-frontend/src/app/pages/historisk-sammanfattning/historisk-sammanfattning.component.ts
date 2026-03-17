@@ -86,8 +86,10 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     if (this.paretoChart) { this.paretoChart.destroy(); this.paretoChart = null; }
   }
 
-  get periodOptions(): PeriodOption[] {
-    return this.selectedTyp === 'kvartal' ? this.kvartalOptions : this.manadOptions;
+  cachedPeriodOptions: PeriodOption[] = [];
+
+  private rebuildPeriodOptions(): void {
+    this.cachedPeriodOptions = this.selectedTyp === 'kvartal' ? this.kvartalOptions : this.manadOptions;
   }
 
   loadPerioder(): void {
@@ -98,6 +100,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.manadOptions = res.data.manader || [];
         this.kvartalOptions = res.data.kvartal || [];
+        this.rebuildPeriodOptions();
         // Default: forsta alternativet
         if (this.manadOptions.length > 0) {
           this.selectedPeriod = this.manadOptions[0].value;
@@ -110,7 +113,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
   }
 
   onTypChange(): void {
-    const opts = this.periodOptions;
+    this.rebuildPeriodOptions();
+    const opts = this.cachedPeriodOptions;
     if (opts.length > 0) {
       this.selectedPeriod = opts[0].value;
     }

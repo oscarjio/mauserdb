@@ -55,6 +55,9 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   sortColumn: keyof KundorderItem = 'prioritet';
   sortAsc = true;
 
+  // Cached sorted list
+  cachedSortedOrdrar: KundorderItem[] = [];
+
   // New order modal
   showNewOrderModal = false;
   savingOrder = false;
@@ -151,6 +154,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       this.loadingOrdrar = false;
       if (res?.success) {
         this.ordrarData = res.data;
+        this.rebuildSortedOrdrar();
       } else {
         this.errorOrdrar = true;
       }
@@ -185,10 +189,11 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       this.sortColumn = col;
       this.sortAsc = true;
     }
+    this.rebuildSortedOrdrar();
   }
 
-  get sortedOrdrar(): KundorderItem[] {
-    if (!this.ordrarData?.ordrar) return [];
+  private rebuildSortedOrdrar(): void {
+    if (!this.ordrarData?.ordrar) { this.cachedSortedOrdrar = []; return; }
     const arr = [...this.ordrarData.ordrar];
     arr.sort((a, b) => {
       const va = a[this.sortColumn];
@@ -199,7 +204,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       if (va > vb) return this.sortAsc ? 1 : -1;
       return 0;
     });
-    return arr;
+    this.cachedSortedOrdrar = arr;
   }
 
   getSortIcon(col: string): string {

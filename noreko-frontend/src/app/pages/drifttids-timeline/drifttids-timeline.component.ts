@@ -47,11 +47,18 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   readonly TIMELINE_END_H   = 22;  // 22:00
   readonly TIMELINE_DURATION_MIN = (22 - 6) * 60; // 960 min
 
+  // -- Cached computed properties (rebuilt on data change) --
+  cachedTimelineHours: number[] = [];
+  cachedVisibleSegments: TimelineSegment[] = [];
+  cachedRunningCount = 0;
+  cachedStoppedCount = 0;
+
   private destroy$ = new Subject<void>();
 
   constructor(private svc: DrifttidsTimelineService) {}
 
   ngOnInit(): void {
+    this.rebuildTimelineHours();
     this.loadAll();
   }
 
@@ -71,6 +78,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   onDateChange(): void {
     this.selectedSegment = null;
     this.tooltipSegment  = null;
+    this.updateIsToday();
     this.loadAll();
   }
 
@@ -91,8 +99,12 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     }
   }
 
-  get isToday(): boolean {
-    return this.selectedDate === this.todayStr();
+  // isToday ar nu en cached property, se updateIsToday()
+
+  isToday = true;
+
+  private updateIsToday(): void {
+    this.isToday = this.selectedDate === this.todayStr();
   }
 
   formatDisplayDate(dateStr: string): string {
@@ -135,9 +147,11 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
         this.loadingTimeline = false;
         if (res?.success) {
           this.timelineData = res.data;
+          this.rebuildCachedSegments();
         } else {
           this.errorTimeline = true;
           this.timelineData  = null;
+          this.rebuildCachedSegments();
         }
       });
   }
@@ -174,13 +188,14 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
 
   /**
    * Generera timrubriker för tidslinjen (06, 07, ..., 22).
+   * Byggs en gang vid init (konstant).
    */
-  get timelineHours(): number[] {
+  private rebuildTimelineHours(): void {
     const hours = [];
     for (let h = this.TIMELINE_START_H; h <= this.TIMELINE_END_H; h++) {
       hours.push(h);
     }
-    return hours;
+    this.cachedTimelineHours = hours;
   }
 
   hourLeft(hour: number): number {
@@ -189,10 +204,18 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
 
   /**
    * Filtrera bort segment utanför synlig tidszon och med noll bredd.
+   * Byggs om nar timelineData andras.
    */
-  get visibleSegments(): TimelineSegment[] {
-    if (!this.timelineData?.segments) return [];
-    return this.timelineData.segments.filter(seg => this.segmentWidth(seg) > 0);
+  private rebuildCachedSegments(): void {
+    if (!this.timelineData?.segments) {
+      this.cachedVisibleSegments = [];
+      this.cachedRunningCount = 0;
+      this.cachedStoppedCount = 0;
+      return;
+    }
+    this.cachedVisibleSegments = this.timelineData.segments.filter(seg => this.segmentWidth(seg) > 0);
+    this.cachedRunningCount = this.timelineData.segments.filter(s => s.type === 'running').length;
+    this.cachedStoppedCount = this.timelineData.segments.filter(s => s.type === 'stopped').length;
   }
 
   // =================================================================
@@ -277,13 +300,6 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     return this.formatDuration(min);
   }
 
-  // Räkna körnings-segment
-  get runningCount(): number {
-    return this.timelineData?.segments.filter(s => s.type === 'running').length ?? 0;
-  }
-
-  get stoppedCount(): number {
-    return this.timelineData?.segments.filter(s => s.type === 'stopped').length ?? 0;
-  }
+  // runningCount och stoppedCount ar nu cachedRunningCount / cachedStoppedCount (beraknas i rebuildCachedSegments)
   trackByIndex(index: number): number { return index; }
 }

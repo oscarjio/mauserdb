@@ -92,7 +92,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of sortedEquipmentStats; trackBy: trackByIndex">
+              <tr *ngFor="let row of cachedSortedEquipmentStats; trackBy: trackByIndex">
                 <td class="fw-semibold">{{ row.namn }}</td>
                 <td>
                   <span class="badge kategori-badge" [class]="getKategoriBadgeClass(row.kategori)">
@@ -146,6 +146,9 @@ export class EquipmentStatsComponent implements OnDestroy {
   sortField: keyof EquipmentStat = 'total_driftstopp_min';
   sortDir: 'asc' | 'desc' = 'desc';
 
+  // Cached sorted list
+  cachedSortedEquipmentStats: EquipmentStat[] = [];
+
   // Expose helpers to template
   formatDuration = formatDuration;
   formatCost = formatCost;
@@ -171,16 +174,17 @@ export class EquipmentStatsComponent implements OnDestroy {
         if (data?.stats) {
           this.equipmentStats = data.stats;
           this.equipmentSummary = data.summary ?? null;
+          this.rebuildSortedStats();
         } else {
           this.statsError = true;
         }
       });
   }
 
-  get sortedEquipmentStats(): EquipmentStat[] {
+  private rebuildSortedStats(): void {
     const field = this.sortField;
     const dir = this.sortDir === 'asc' ? 1 : -1;
-    return [...this.equipmentStats].sort((a, b) => {
+    this.cachedSortedEquipmentStats = [...this.equipmentStats].sort((a, b) => {
       const av = a[field];
       const bv = b[field];
       if (av === null || av === undefined) return 1;
@@ -199,6 +203,7 @@ export class EquipmentStatsComponent implements OnDestroy {
       this.sortField = field;
       this.sortDir = 'desc';
     }
+    this.rebuildSortedStats();
   }
 
   getSortIcon(field: string): string {

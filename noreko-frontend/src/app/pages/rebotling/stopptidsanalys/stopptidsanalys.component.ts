@@ -69,6 +69,9 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   sortColumn: keyof StoppEvent = 'startad_at';
   sortAsc = false;
 
+  // Cached sorted list
+  cachedSortedStopp: StoppEvent[] = [];
+
   // Charts
   private barChart:       Chart | null = null;
   private trendChart:     Chart | null = null;
@@ -201,6 +204,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         this.loadingDetalj = false;
         if (res?.success) {
           this.detaljData = res.data;
+          this.rebuildSortedStopp();
         }
       },
       error: () => { this.loadingDetalj = false; }
@@ -231,10 +235,11 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
       this.sortColumn = col;
       this.sortAsc = false;
     }
+    this.rebuildSortedStopp();
   }
 
-  get sortedStopp(): StoppEvent[] {
-    if (!this.detaljData?.stopp) return [];
+  private rebuildSortedStopp(): void {
+    if (!this.detaljData?.stopp) { this.cachedSortedStopp = []; return; }
     const arr = [...this.detaljData.stopp];
     arr.sort((a, b) => {
       const va = a[this.sortColumn];
@@ -245,7 +250,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
       if (va > vb) return this.sortAsc ? 1 : -1;
       return 0;
     });
-    return arr;
+    this.cachedSortedStopp = arr;
   }
 
   // ---- Charts ----

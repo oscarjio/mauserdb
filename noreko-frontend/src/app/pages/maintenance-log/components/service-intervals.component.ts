@@ -14,9 +14,9 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
   imports: [CommonModule, FormsModule],
   template: `
     <!-- Varning-banner om kritisk -->
-    <div class="alert alert-danger d-flex align-items-center mb-3" *ngIf="serviceKritiskCount > 0">
+    <div class="alert alert-danger d-flex align-items-center mb-3" *ngIf="cachedServiceKritiskCount > 0">
       <i class="fas fa-exclamation-triangle me-2"></i>
-      <span><strong>{{ serviceKritiskCount }} maskin{{ serviceKritiskCount > 1 ? 'er' : '' }}</strong> har &lt;10% kvar till service! Planera underhåll omgående.</span>
+      <span><strong>{{ cachedServiceKritiskCount }} maskin{{ cachedServiceKritiskCount > 1 ? 'er' : '' }}</strong> har &lt;10% kvar till service! Planera underhåll omgående.</span>
     </div>
 
     <!-- Laddning -->
@@ -193,6 +193,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
   @Output() showError = new EventEmitter<string>();
 
   serviceIntervals: ServiceInterval[] = [];
+  cachedServiceKritiskCount = 0;
   serviceLoading = false;
   serviceLoadError = false;
   showServiceForm = false;
@@ -206,8 +207,8 @@ export class ServiceIntervalsComponent implements OnDestroy {
     senaste_service_ibc: 0
   };
 
-  get serviceKritiskCount(): number {
-    return this.serviceIntervals.filter(s => s.status === 'kritisk').length;
+  private rebuildServiceKritiskCount(): void {
+    this.cachedServiceKritiskCount = this.serviceIntervals.filter(s => s.status === 'kritisk').length;
   }
 
   constructor(private http: HttpClient) {}
@@ -226,6 +227,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
         this.serviceLoading = false;
         if (data?.intervals) {
           this.serviceIntervals = data.intervals;
+          this.rebuildServiceKritiskCount();
         } else {
           this.serviceLoadError = true;
         }

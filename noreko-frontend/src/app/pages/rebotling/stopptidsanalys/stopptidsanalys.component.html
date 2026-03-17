@@ -232,7 +232,7 @@
       <div class="spinner-border spinner-border-sm text-info" role="status"></div>
     </div>
 
-    <div class="table-responsive" *ngIf="!loadingDetalj && sortedStopp.length">
+    <div class="table-responsive" *ngIf="!loadingDetalj && cachedSortedStopp.length">
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
@@ -251,7 +251,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of sortedStopp; trackBy: trackByIndex">
+          <tr *ngFor="let s of cachedSortedStopp; trackBy: trackByIndex">
             <td class="text-nowrap">{{ s.startad_at | date:'yyyy-MM-dd HH:mm' }}</td>
             <td>{{ s.maskin_namn }}</td>
             <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(s.duration_min) }}</td>
@@ -264,7 +264,7 @@
     </div>
 
     <div class="text-center text-muted py-4"
-         *ngIf="!loadingDetalj && !sortedStopp.length">
+         *ngIf="!loadingDetalj && !cachedSortedStopp.length">
       <i class="fas fa-info-circle me-2"></i>Inga stopptider registrerade under vald period.
     </div>
 

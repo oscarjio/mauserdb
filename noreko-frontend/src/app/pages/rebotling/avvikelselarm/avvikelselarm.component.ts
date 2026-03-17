@@ -75,6 +75,9 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   sortColumn: keyof LarmItem = 'tidsstampel';
   sortAsc = false;
 
+  // Cached sorted list (rebuilt on data/sort change)
+  cachedSortedHistorik: LarmItem[] = [];
+
   // Kvittera dialog
   kvitteraLarm: LarmItem | null = null;
   kvitteraNamn = '';
@@ -160,6 +163,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
           this.loadingHistorik = false;
           if (res?.success) {
             this.historikData = res.data;
+            this.rebuildSortedHistorik();
           }
         },
         error: () => { this.loadingHistorik = false; }
@@ -309,10 +313,11 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
       this.sortColumn = col;
       this.sortAsc = false;
     }
+    this.rebuildSortedHistorik();
   }
 
-  get sortedHistorik(): LarmItem[] {
-    if (!this.historikData?.larm) return [];
+  private rebuildSortedHistorik(): void {
+    if (!this.historikData?.larm) { this.cachedSortedHistorik = []; return; }
     const arr = [...this.historikData.larm];
     arr.sort((a, b) => {
       const va = a[this.sortColumn];
@@ -323,7 +328,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
       if (va > vb) return this.sortAsc ? 1 : -1;
       return 0;
     });
-    return arr;
+    this.cachedSortedHistorik = arr;
   }
 
   // ---- Helpers ----

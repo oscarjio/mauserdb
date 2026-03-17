@@ -1,3 +1,23 @@
+## 2026-03-17 Session #146 Worker B — 14 buggar fixade (getter-to-cached change detection, template performance)
+### Uppgift 1: Getter-i-template performance-audit — 14 fix
+Granskade alla 42 Angular-komponenter i noreko-frontend/src/app/ for getter-anrop i templates som orsakar tunga berakningar pa varje change detection-cykel. Konverterade getters till cached properties som bara raknas om nar data faktiskt andras.
+1. produktionsflode — sankeyNodes getter (tung SVG-berakning) -> cachedSankeyNodes, byggs om vid loadFlode()
+2. produktionsflode — sankeyLinks getter (tung SVG-berakning + anropade sankeyNodes internt = dubbelberakning) -> cachedSankeyLinks
+3. drifttids-timeline — timelineHours getter -> cachedTimelineHours, byggs en gang vid init
+4. drifttids-timeline — visibleSegments getter (filter med segmentWidth per segment) -> cachedVisibleSegments
+5. drifttids-timeline — runningCount getter (filter pa segments) -> cachedRunningCount
+6. drifttids-timeline — stoppedCount getter (filter pa segments) -> cachedStoppedCount
+7. drifttids-timeline — isToday getter (anropade todayStr() varje CD-cykel) -> cached property med updateIsToday()
+8. avvikelselarm — sortedHistorik getter (sortering pa varje CD-cykel) -> cachedSortedHistorik, byggs om vid data/sort-andringar
+9. maskin-oee — sortedDetaljer getter (sortering pa varje CD-cykel) -> cachedSortedDetaljer
+10. leveransplanering — sortedOrdrar getter (sortering pa varje CD-cykel) -> cachedSortedOrdrar
+11. stopptidsanalys — sortedStopp getter (sortering pa varje CD-cykel) -> cachedSortedStopp
+12. equipment-stats — sortedEquipmentStats getter (sortering pa varje CD-cykel) -> cachedSortedEquipmentStats
+13. service-intervals — serviceKritiskCount getter (filter pa varje CD-cykel) -> cachedServiceKritiskCount
+14. historisk-sammanfattning — periodOptions getter -> cachedPeriodOptions, byggs om vid typChange/loadPerioder
+
+Alla templates uppdaterade med nya cached-propertynamn. Frontend bygger utan fel.
+
 ## 2026-03-17 Session #145 Worker B — 52 buggar fixade (HTTP error display, memory profiling)
 ### Uppgift 1: Angular HTTP error display audit — 52 fix
 Granskade 15+ komponenter i noreko-frontend/src/app/ for subscribe()-anrop utan error-handler, dar HTTP-fel leder till att loading-flaggor fastnar pa true och anvandaren inte far nagot felmeddelande.

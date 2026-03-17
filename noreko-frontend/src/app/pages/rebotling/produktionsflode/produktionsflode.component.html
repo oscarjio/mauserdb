@@ -152,7 +152,7 @@
              class="sankey-svg">
 
           <!-- Links -->
-          <g *ngFor="let link of sankeyLinks; trackBy: trackByIndex">
+          <g *ngFor="let link of cachedSankeyLinks; trackBy: trackByIndex">
             <path [attr.d]="link.d"
                   [attr.stroke]="link.color"
                   [attr.stroke-width]="link.strokeWidth"
@@ -164,7 +164,7 @@
           </g>
 
           <!-- Nodes -->
-          <g *ngFor="let node of sankeyNodes; trackBy: trackByIndex">
+          <g *ngFor="let node of cachedSankeyNodes; trackBy: trackByIndex">
             <rect [attr.x]="node.x"
                   [attr.y]="node.y"
                   [attr.width]="node.w"
