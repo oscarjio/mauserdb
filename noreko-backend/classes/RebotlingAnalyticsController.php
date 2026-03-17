@@ -2445,11 +2445,19 @@ class RebotlingAnalyticsController {
                 $stmtRank = $this->pdo->prepare($rankSQL);
                 $stmtRank->execute([$firstDay, $lastDay, $firstDay, $lastDay, $firstDay, $lastDay]);
                 $rankRows = $stmtRank->fetchAll(PDO::FETCH_ASSOC);
+                // Batch-hämta operatörsnamn istället för en query per rad
+                $opIds2 = array_column($rankRows, 'op_id');
+                $opNameMap2 = [];
+                if (!empty($opIds2)) {
+                    $ph2 = implode(',', array_fill(0, count($opIds2), '?'));
+                    $ns2 = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph2)");
+                    $ns2->execute($opIds2);
+                    foreach ($ns2->fetchAll(PDO::FETCH_ASSOC) as $nr) {
+                        $opNameMap2[(int)$nr['number']] = $nr['name'];
+                    }
+                }
                 foreach ($rankRows as $rr) {
-                    $nameStmt2 = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
-                    $nameStmt2->execute([$rr['op_id']]);
-                    $nameRow2 = $nameStmt2->fetch(PDO::FETCH_ASSOC);
-                    $opNamn = $nameRow2 ? $nameRow2['name'] : 'Okänd';
+                    $opNamn = $opNameMap2[(int)$rr['op_id']] ?? 'Okänd';
                     $parts2 = explode(' ', trim($opNamn));
                     $init2 = '';
                     foreach ($parts2 as $p2) {
@@ -6263,13 +6271,25 @@ HTML;
         $streak = 0;
         $date   = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
         $date->modify('-1 day'); // Börja med igår
+        $startDate = (clone $date)->modify('-364 days')->format('Y-m-d');
+
+        // Hämta alla dagars antal i en enda query istället för en per dag
+        $stmt = $this->pdo->prepare(
+            "SELECT DATE(datum) AS d, COUNT(*) AS cnt
+             FROM rebotling_ibc
+             WHERE DATE(datum) BETWEEN ? AND ? AND produktion_procent > 0
+             GROUP BY DATE(datum)
+             ORDER BY DATE(datum) DESC"
+        );
+        $stmt->execute([$startDate, $date->format('Y-m-d')]);
+        $dayCounts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $dayCounts[$row['d']] = (int)$row['cnt'];
+        }
+
         for ($i = 0; $i < 365; $i++) {
             $d = $date->format('Y-m-d');
-            $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ? AND produktion_procent > 0"
-            );
-            $stmt->execute([$d]);
-            $cnt = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+            $cnt = $dayCounts[$d] ?? 0;
             if ($cnt >= $target) {
                 $streak++;
                 $date->modify('-1 day');
@@ -6288,17 +6308,25 @@ HTML;
         $monday->modify('-' . ($dow - 1 + 7) . ' days'); // Föregående veckas måndag
         $monday->setTime(0, 0, 0);
 
-        for ($i = 0; $i < 52; $i++) {
-            $weekStart = $monday->format('Y-m-d 00:00:00');
-            $sunday    = clone $monday;
-            $sunday->modify('+6 days');
-            $weekEnd   = $sunday->format('Y-m-d 23:59:59');
+        // Hämta antal per vecka i en enda query istället för en per vecka
+        $startDate = (clone $monday)->modify('-51 weeks')->format('Y-m-d');
+        $endDate   = (clone $monday)->modify('+6 days')->format('Y-m-d');
+        $stmt = $this->pdo->prepare(
+            "SELECT DATE(DATE_SUB(datum, INTERVAL (WEEKDAY(datum)) DAY)) AS week_monday, COUNT(*) AS cnt
+             FROM rebotling_ibc
+             WHERE datum BETWEEN ? AND ? AND produktion_procent > 0
+             GROUP BY week_monday
+             ORDER BY week_monday DESC"
+        );
+        $stmt->execute([$startDate, $endDate]);
+        $weekCounts = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $weekCounts[$row['week_monday']] = (int)$row['cnt'];
+        }
 
-            $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0"
-            );
-            $stmt->execute([$weekStart, $weekEnd]);
-            $cnt = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+        for ($i = 0; $i < 52; $i++) {
+            $mondayKey = $monday->format('Y-m-d');
+            $cnt = $weekCounts[$mondayKey] ?? 0;
 
             if ($cnt >= $target) {
                 $streak++;

@@ -83,8 +83,8 @@ class KlassificeringslinjeController {
             ['skift_start',  '06:00'],
             ['skift_slut',   '22:00'],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO klassificeringslinje_settings (setting, value) VALUES (?, ?)");
         foreach ($defaults as [$k, $v]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO klassificeringslinje_settings (setting, value) VALUES (?, ?)");
             $stmt->execute([$k, $v]);
         }
     }
@@ -195,8 +195,8 @@ class KlassificeringslinjeController {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $defaults = [[0,120],[1,120],[2,120],[3,120],[4,120],[5,80],[6,0]];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO klassificeringslinje_weekday_goals (weekday, mal) VALUES (?, ?)");
         foreach ($defaults as [$wd, $mal]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO klassificeringslinje_weekday_goals (weekday, mal) VALUES (?, ?)");
             $stmt->execute([$wd, $mal]);
         }
     }

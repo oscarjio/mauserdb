@@ -8,4 +8,4 @@ http_response_code(410);
 echo json_encode([
     'success' => false,
     'error' => 'Denna endpoint ar borttagen. Anvand api.php?action=admin istallet.'
-]);
+], JSON_UNESCAPED_UNICODE);

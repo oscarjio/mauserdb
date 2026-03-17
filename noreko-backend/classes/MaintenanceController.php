@@ -530,6 +530,9 @@ class MaintenanceController {
             $totalIbc = (int)$ibcStmt->fetchColumn();
 
             // Beräkna status för varje intervall
+            $countStmt = $this->pdo->prepare("
+                SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum
+            ");
             foreach ($intervals as &$row) {
                 $row['id'] = (int)$row['id'];
                 $row['intervall_ibc'] = (int)$row['intervall_ibc'];
@@ -537,9 +540,6 @@ class MaintenanceController {
 
                 // Räkna IBC sedan senaste service
                 if ($row['senaste_service_datum']) {
-                    $countStmt = $this->pdo->prepare("
-                        SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum
-                    ");
                     $countStmt->execute([':datum' => $row['senaste_service_datum']]);
                     $ibcSinceService = (int)$countStmt->fetchColumn();
                 } else {

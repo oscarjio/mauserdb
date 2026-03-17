@@ -83,8 +83,8 @@ class SaglinjeController {
             ['skift_start', '06:00'],
             ['skift_slut',  '22:00'],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO saglinje_settings (setting, value) VALUES (?, ?)");
         foreach ($defaults as [$k, $v]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO saglinje_settings (setting, value) VALUES (?, ?)");
             $stmt->execute([$k, $v]);
         }
     }
@@ -195,8 +195,8 @@ class SaglinjeController {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $defaults = [[0,50],[1,50],[2,50],[3,50],[4,50],[5,30],[6,0]];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO saglinje_weekday_goals (weekday, mal) VALUES (?, ?)");
         foreach ($defaults as [$wd, $mal]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO saglinje_weekday_goals (weekday, mal) VALUES (?, ?)");
             $stmt->execute([$wd, $mal]);
         }
     }

@@ -80,7 +80,7 @@ try {
     $dbConfig = __DIR__ . '/db_config.php';
     if (!file_exists($dbConfig)) {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas (db_config.php)']);
+        echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas (db_config.php)'], JSON_UNESCAPED_UNICODE);
         exit;
     }
     $db = require $dbConfig;
@@ -90,7 +90,7 @@ try {
     ]);
 } catch (PDOException) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades']);
+    echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -224,7 +224,7 @@ $classNameMap = [
 $actionKey = strtolower($action);
 if (!isset($classNameMap[$actionKey])) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+    echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 $className = $classNameMap[$actionKey];
@@ -244,7 +244,7 @@ if (class_exists($className)) {
         echo json_encode([
             'success' => false,
             'error' => 'Internt serverfel'
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         error_log("API Error [{$action}]: " . $e->getMessage());
     }
 } else {
@@ -252,5 +252,5 @@ if (class_exists($className)) {
     echo json_encode([
         'success' => false,
         'error' => 'Endpoint hittades inte'
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }

@@ -183,9 +183,9 @@ class SkiftrapportController {
                     'rasttime'  => 'INT DEFAULT NULL',
                     'lopnummer' => 'INT DEFAULT NULL',
                 ];
+                $existingCols = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport")->fetchAll(PDO::FETCH_COLUMN);
                 foreach ($plcCols as $col => $def) {
-                    $chk = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport LIKE '$col'");
-                    if ($chk->rowCount() === 0) {
+                    if (!in_array($col, $existingCols, true)) {
                         $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `$col` $def");
                     }
                 }

@@ -110,8 +110,8 @@ class TvattlinjeController {
             ['skift_start',  '06:00'],
             ['skift_slut',   '22:00'],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES (?, ?)");
         foreach ($defaults as [$k, $v]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES (?, ?)");
             $stmt->execute([$k, $v]);
         }
     }
@@ -423,8 +423,8 @@ class TvattlinjeController {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $defaults = [[0,80],[1,80],[2,80],[3,80],[4,80],[5,60],[6,0]];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES (?, ?)");
         foreach ($defaults as [$wd, $mal]) {
-            $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES (?, ?)");
             $stmt->execute([$wd, $mal]);
         }
     }

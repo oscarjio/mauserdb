@@ -349,6 +349,7 @@ class LeveransplaneringController {
                 SELECT * FROM kundordrar
                 WHERE status IN ('planerad','i_produktion','forsenad')
                 ORDER BY prioritet ASC, onskat_leveransdatum ASC
+                LIMIT 500
             ");
             $stmt->execute();
             $ordrar = $stmt->fetchAll();

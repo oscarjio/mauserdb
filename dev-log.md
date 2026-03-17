@@ -1,3 +1,42 @@
+## 2026-03-17 Session #143 Worker A — 15 buggar fixade (SQL N+1, json_encode, Content-Type)
+
+### Uppgift 1: PHP SQL query optimization audit — 7 fix
+Granskade alla ~100+ PHP-controllers i noreko-backend/classes/ for N+1 patterns, prepare() inside loops, och saknade LIMIT.
+
+1. SkiftrapportController.php — N+1 fix: SHOW COLUMNS anropades 6 ganger i loop, ersatt med en enda SHOW COLUMNS + in_array-check
+2. RebotlingController.php — 3 separata team-rekord queries (dag/vecka/manad) med identisk subquery kombinerade till en enda query
+3. RebotlingAnalyticsController.php — N+1 fix: operatorsnamn-lookup (prepare+execute per rad) i ranking-loop ersatt med batch IN-query
+4. RebotlingAnalyticsController.php — calcDailyStreak: upp till 365 enskilda queries (en per dag) ersatt med en enda GROUP BY DATE query
+5. RebotlingAnalyticsController.php — calcWeeklyStreak: upp till 52 enskilda queries (en per vecka) ersatt med en enda GROUP BY week query
+6. MaintenanceController.php — prepare() inuti foreach-loop for serviceintervall flyttat utanfor loopen (ateranvander prepared statement)
+7. KlassificeringslinjeController.php, SaglinjeController.php, TvattlinjeController.php — prepare() inuti foreach-loop (4 stallen totalt) flyttat utanfor loopen
+
+### Uppgift 1b: Saknad LIMIT — 1 fix
+8. LeveransplaneringController.php — SELECT * FROM kundordrar utan LIMIT, lade till LIMIT 500
+
+### Uppgift 2: PHP CORS/headers audit — 7 fix
+CORS och Content-Type hanteras centralt i api.php (redan korrekt med charset=utf-8). Alla controllers i classes/ anvander redan JSON_UNESCAPED_UNICODE.
+Fixade saknade JSON_UNESCAPED_UNICODE i root-filerna:
+
+9. api.php — 5 json_encode()-anrop saknade JSON_UNESCAPED_UNICODE (felmeddelanden)
+10. admin.php — json_encode() saknade JSON_UNESCAPED_UNICODE
+11. login.php — json_encode() saknade JSON_UNESCAPED_UNICODE
+12. update-weather.php — 3 json_encode() saknade JSON_UNESCAPED_UNICODE
+13. update-weather.php — Content-Type header saknade charset=utf-8 (2 stallen)
+
+### Uppgift 3: PHP error_log consistency audit — 1 fix
+Granskade alla ~200+ error_log()-anrop i controllers. Alla foljer redan standardformatet 'ControllerNamn::metodNamn: ' . $e->getMessage().
+Inga losenord, tokens eller full SQL loggas. En inkonsekvent post fixad:
+
+14. update-weather.php — error_log saknade strukturerat format, andrat till '[update-weather] Fel: ...'
+
+### Sammanfattning
+- Granskade: 100+ PHP-controllers, 4 root PHP-filer
+- Ingen kanslig data i error_log
+- Ingen inkonsekvent CORS-hantering (centraliserad i api.php)
+- Alla controllers anvander redan JSON_UNESCAPED_UNICODE
+- Storsta prestandavinst: calcDailyStreak (365->1 queries), calcWeeklyStreak (52->1 queries), team-rekord (3->1 queries)
+
 ## 2026-03-17 Session #142 Worker B — 22 buggar fixade (isFetching polling guards + setTimeout memory leak guards)
 
 ### Uppgift 1: Angular HTTP retry/timeout audit — polling isFetching guards (20 fix)

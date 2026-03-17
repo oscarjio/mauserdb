@@ -8,7 +8,7 @@
 $dbConfig = __DIR__ . '/db_config.php';
 if (!file_exists($dbConfig)) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas']);
+    echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 $db = require $dbConfig;
@@ -58,25 +58,25 @@ try {
     ]);
     
     // Returnera JSON för eventuell loggning
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => true,
         'message' => 'Väderdata uppdaterad',
         'temperature' => $temperature,
         'timestamp' => date('Y-m-d H:i:s')
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     
 } catch (Exception $e) {
     // Logga fel men returnera JSON för cron-loggar
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'Väderdata kunde inte uppdateras',
         'timestamp' => date('Y-m-d H:i:s')
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     
     // Skriv även till error log
-    error_log('Väderdata update fel: ' . $e->getMessage());
+    error_log('[update-weather] Fel: ' . $e->getMessage());
 }
 

@@ -1897,39 +1897,35 @@ class RebotlingController {
                 $bestMonthByOp[intval($bm['op_num'])] = intval($bm['best_month_ibc']);
             }
 
-            // Team-rekord dag/vecka/månad (alla operatörer sammanslagna)
-            $stmtTeamDay = $pdo->query("
-                SELECT MAX(day_ibc) AS best FROM (
-                    SELECT DATE(datum) AS d, SUM(shift_ibc) AS day_ibc FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) ps GROUP BY DATE(datum)
-                ) td
+            // Team-rekord dag/vecka/månad (alla operatörer sammanslagna) — en enda query
+            $stmtTeamAll = $pdo->query("
+                SELECT
+                    (SELECT MAX(day_ibc) FROM (
+                        SELECT SUM(shift_ibc) AS day_ibc FROM (
+                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            GROUP BY DATE(datum), skiftraknare
+                        ) ps GROUP BY DATE(datum)
+                    ) td) AS best_day,
+                    (SELECT MAX(week_ibc) FROM (
+                        SELECT SUM(shift_ibc) AS week_ibc FROM (
+                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            GROUP BY DATE(datum), skiftraknare
+                        ) ps GROUP BY YEAR(datum), WEEK(datum,1)
+                    ) tw) AS best_week,
+                    (SELECT MAX(month_ibc) FROM (
+                        SELECT SUM(shift_ibc) AS month_ibc FROM (
+                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            GROUP BY DATE(datum), skiftraknare
+                        ) ps GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                    ) tm) AS best_month
             ");
-            $teamBestDay = intval($stmtTeamDay->fetchColumn() ?: 0);
-
-            $stmtTeamWeek = $pdo->query("
-                SELECT MAX(week_ibc) AS best FROM (
-                    SELECT YEAR(datum) AS yr, WEEK(datum,1) AS wk, SUM(shift_ibc) AS week_ibc FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) ps GROUP BY YEAR(datum), WEEK(datum,1)
-                ) tw
-            ");
-            $teamBestWeek = intval($stmtTeamWeek->fetchColumn() ?: 0);
-
-            $stmtTeamMonth = $pdo->query("
-                SELECT MAX(month_ibc) AS best FROM (
-                    SELECT DATE_FORMAT(datum, '%Y-%m') AS mon, SUM(shift_ibc) AS month_ibc FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) ps GROUP BY DATE_FORMAT(datum, '%Y-%m')
-                ) tm
-            ");
-            $teamBestMonth = intval($stmtTeamMonth->fetchColumn() ?: 0);
+            $teamRow = $stmtTeamAll->fetch(\PDO::FETCH_ASSOC);
+            $teamBestDay   = intval($teamRow['best_day']   ?? 0);
+            $teamBestWeek  = intval($teamRow['best_week']  ?? 0);
+            $teamBestMonth = intval($teamRow['best_month'] ?? 0);
 
             $result = array_map(function($r) use ($teamRecord, $bestDayByOp, $bestWeekByOp, $bestMonthByOp) {
                 $opNum = intval($r['op_number']);
