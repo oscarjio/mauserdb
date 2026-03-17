@@ -58,6 +58,8 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
   // Chart
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private chartTimerId: ReturnType<typeof setTimeout> | null = null;
+  private messageTimerId: ReturnType<typeof setTimeout> | null = null;
 
   // Skiftnamn
   readonly skiftNamn: Record<string, string> = {
@@ -85,6 +87,8 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.chartTimerId) { clearTimeout(this.chartTimerId); this.chartTimerId = null; }
+    if (this.messageTimerId) { clearTimeout(this.messageTimerId); this.messageTimerId = null; }
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
   }
@@ -150,7 +154,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
         this.isFetchingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+          this.chartTimerId = setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
         } else {
           this.errorTrend = true;
         }
@@ -210,7 +214,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
         this.sparaTroskelLoading = false;
         if (res?.success) {
           this.sparaTroskelMeddelande = 'Troskelvarden sparades!';
-          setTimeout(() => { this.sparaTroskelMeddelande = ''; }, 3000);
+          this.messageTimerId = setTimeout(() => { this.sparaTroskelMeddelande = ''; }, 3000);
           this.laddaAll();
         } else {
           this.sparaTroskelFel = 'Sparning misslyckades.';

@@ -154,7 +154,7 @@ import { localDateStr } from '../../../utils/date-utils';
             <!-- Knappar -->
             <div class="d-flex gap-2 mt-4 justify-content-end">
               <button type="button" class="btn btn-secondary" (click)="close()">Avbryt</button>
-              <button type="submit" class="btn btn-success" [disabled]="isSaving">
+              <button type="submit" class="btn btn-success" [disabled]="isSaving || !form.title.trim() || !form.start_time">
                 <span *ngIf="isSaving"><i class="fas fa-circle-notch fa-spin me-2"></i>Sparar...</span>
                 <span *ngIf="!isSaving"><i class="fas fa-save me-2"></i>{{ editingId ? 'Uppdatera' : 'Spara' }}</span>
               </button>

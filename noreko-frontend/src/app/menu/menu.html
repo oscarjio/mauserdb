@@ -216,8 +216,8 @@
               </div>
               <div class="alert alert-success py-1 px-2 mb-2" *ngIf="profileMessage">{{ profileMessage }}</div>
               <div class="alert alert-danger py-1 px-2 mb-2" *ngIf="profileError">{{ profileError }}</div>
-              <button class="btn btn-sm btn-primary w-100" type="submit" [disabled]="savingProfile">
-                {{ savingProfile ? 'Sparar…' : 'Spara' }}
+              <button class="btn btn-sm btn-primary w-100" type="submit" [disabled]="savingProfile || !profileForm.email.trim()">
+                {{ savingProfile ? 'Sparar...' : 'Spara' }}
               </button>
             </form>
           </li>
@@ -274,7 +274,7 @@
         </ul>
       </li>
       <li class="nav-item dropdown menu-selector-item">
-        <select [(ngModel)]="selectedMenu" (change)="onMenuChange($event)" class="menu-selector">
+        <select [(ngModel)]="selectedMenu" (change)="onMenuChange()" class="menu-selector">
           <option value="Älvängen">Älvängen</option>
           <option value="Moss">Moss</option>
         </select>

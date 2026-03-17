@@ -304,7 +304,7 @@
         <div class="alert alert-danger py-2" *ngIf="serviceError">{{ serviceError }}</div>
         <div class="d-flex gap-2 justify-content-end mt-3">
           <button type="button" class="btn btn-secondary" (click)="closeAddServiceModal()">Avbryt</button>
-          <button type="submit" class="btn btn-success" [disabled]="savingService">
+          <button type="submit" class="btn btn-success" [disabled]="savingService || !addServiceForm.maskin_id || !addServiceForm.service_datum">
             <i class="fas fa-save me-1"></i>{{ savingService ? 'Sparar...' : 'Spara service' }}
           </button>
         </div>
@@ -349,7 +349,7 @@
         <div class="alert alert-danger py-2" *ngIf="maskinError">{{ maskinError }}</div>
         <div class="d-flex gap-2 justify-content-end mt-3">
           <button type="button" class="btn btn-secondary" (click)="closeAddMachineModal()">Avbryt</button>
-          <button type="submit" class="btn btn-info" [disabled]="savingMachine">
+          <button type="submit" class="btn btn-info" [disabled]="savingMachine || !addMachineForm.namn?.trim() || !addMachineForm.service_intervall_dagar || addMachineForm.service_intervall_dagar < 1">
             <i class="fas fa-save me-1"></i>{{ savingMachine ? 'Sparar...' : 'Spara maskin' }}
           </button>
         </div>

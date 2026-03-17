@@ -164,7 +164,10 @@
               <input type="number" id="alarmTroskel" class="form-control form-control-sm"
                      [(ngModel)]="troskelForm.alarm" name="alarm"
                      min="0.1" max="99" step="0.5" required />
-              <small class="text-muted">Rod alarm – standard 5%</small>
+              <small class="text-muted">Rod alarm -- standard 5%</small>
+            </div>
+            <div class="alert alert-warning py-1 px-2 mb-2 small" *ngIf="troskelForm.varning >= troskelForm.alarm && troskelForm.varning > 0 && troskelForm.alarm > 0">
+              <i class="fas fa-exclamation-triangle me-1"></i>Varningstroskeln maste vara lagre an alarmtroskeln.
             </div>
             <div class="alert alert-success py-1 px-2 mb-2 small" *ngIf="sparaTroskelMeddelande">
               <i class="fas fa-check me-1"></i>{{ sparaTroskelMeddelande }}
@@ -172,8 +175,8 @@
             <div class="alert alert-danger py-1 px-2 mb-2 small" *ngIf="sparaTroskelFel">
               <i class="fas fa-times me-1"></i>{{ sparaTroskelFel }}
             </div>
-            <button class="btn btn-sm btn-warning w-100" type="submit" [disabled]="sparaTroskelLoading">
-              <i class="fas fa-save me-1"></i>{{ sparaTroskelLoading ? 'Sparar…' : 'Spara troskelvarden' }}
+            <button class="btn btn-sm btn-warning w-100" type="submit" [disabled]="sparaTroskelLoading || !troskelForm.varning || !troskelForm.alarm || troskelForm.varning <= 0 || troskelForm.alarm <= 0 || troskelForm.varning >= troskelForm.alarm">
+              <i class="fas fa-save me-1"></i>{{ sparaTroskelLoading ? 'Sparar...' : 'Spara troskelvarden' }}
             </button>
           </form>
         </div>

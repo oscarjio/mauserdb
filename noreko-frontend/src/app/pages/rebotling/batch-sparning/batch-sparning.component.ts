@@ -61,6 +61,8 @@ export class BatchSparningPage implements OnInit, OnDestroy {
   private progressChart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private chartTimerId: ReturnType<typeof setTimeout> | null = null;
+  private modalTimerId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: BatchSparningService) {}
 
@@ -75,6 +77,14 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+    if (this.chartTimerId) {
+      clearTimeout(this.chartTimerId);
+      this.chartTimerId = null;
+    }
+    if (this.modalTimerId) {
+      clearTimeout(this.modalTimerId);
+      this.modalTimerId = null;
     }
     if (this.progressChart) {
       this.progressChart.destroy();
@@ -112,7 +122,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
       this.loadingActive = false;
       if (res?.success) {
         this.activeBatches = res.batchar;
-        setTimeout(() => this.renderProgressChart(), 100);
+        this.chartTimerId = setTimeout(() => this.renderProgressChart(), 100);
       } else if (res !== null) {
         this.errorActive = true;
       }
@@ -208,7 +218,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.createMessage = 'Batch skapad!';
         this.loadAll();
-        setTimeout(() => this.closeCreateModal(), 1000);
+        this.modalTimerId = setTimeout(() => this.closeCreateModal(), 1000);
       } else {
         this.createError = res?.error || 'Kunde inte skapa batch';
       }

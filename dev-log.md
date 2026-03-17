@@ -1,3 +1,32 @@
+## 2026-03-17 Session #134 Worker B — Angular frontend: 14 buggar fixade (form validation, unused declarations, subscription/timer leaks)
+
+### Uppgift 1: Angular form validation audit (7 buggar)
+Granskade alla formulaer i noreko-frontend och fixade saknad disabled-state pa submit-knappar, saknade valideringsmeddelanden:
+
+1. **menu.html** — Profil-formularet: submit-knapp saknade disabled-state nar e-post var tom. Fixat: `[disabled]="savingProfile || !profileForm.email.trim()"`
+2. **maskinunderhall.component.html** — Service-formularet: submit-knapp bara disabled under sparning, inte nar obligatoriska falt var tomma. Fixat: laggt till kontroll for maskin_id och service_datum
+3. **maskinunderhall.component.html** — Ny maskin-formularet: submit-knapp saknade validering. Fixat: laggt till kontroll for namn och service_intervall_dagar
+4. **batch-sparning.component.html** — Skapa batch-formularet: submit-knapp bara disabled under sparning. Fixat: laggt till kontroll for batch_nummer och planerat_antal
+5. **kassationskvot-alarm.component.html** — Troskel-formularet: submit-knapp saknade validering for ogiltiga varden. Fixat: disabled nar varning >= alarm eller varden <= 0
+6. **kassationskvot-alarm.component.html** — Saknat valideringsmeddelande nar varning >= alarm. Fixat: lagt till alert-warning med feltext
+7. **maintenance-form.component.ts** — Submit-knapp saknade disabled-state for tomma obligatoriska falt. Fixat: laggt till kontroll for title och start_time
+8. **service-intervals.component.ts** — Submit-knapp saknade disabled-state for tomma obligatoriska falt. Fixat: laggt till kontroll for maskin_namn och intervall_ibc
+
+### Uppgift 2: Angular unused declarations cleanup (2 buggar)
+1. **guards/auth.guard.ts** — `developerGuard` exporterades men anvandes aldrig i nagon route. Borttagen.
+2. **app.routes.ts** — Import av `developerGuard` borttagen (anvandes aldrig i nagon canActivate)
+3. **menu.ts** — `onMenuChange(event: Event)` hade en oanvand `event`-parameter. Fixat: tagit bort parametern. Template uppdaterad: `(change)="onMenuChange()"` istallet for `(change)="onMenuChange($event)"`
+
+### Uppgift 3: Angular subscription/observable audit (5 buggar)
+1. **menu.ts** — `this.auth.fetchStatus().subscribe()` utan takeUntil: potentiell memory leak. Fixat: lagt till `.pipe(takeUntil(this.destroy$))`
+2. **maskinunderhall.component.ts** — 3 st setTimeout (modal-stangning, chart-bygg) utan clearTimeout i ngOnDestroy. Fixat: sparar timer-ID i `modalTimerId`/`chartTimerId`, rensar i ngOnDestroy
+3. **batch-sparning.component.ts** — 2 st setTimeout (chart-rendering, modal-stangning) utan clearTimeout i ngOnDestroy. Fixat: sparar timer-ID i `chartTimerId`/`modalTimerId`, rensar i ngOnDestroy
+4. **kassationskvot-alarm.component.ts** — 2 st setTimeout (chart-bygg, meddelande-rensning) utan clearTimeout i ngOnDestroy. Fixat: sparar timer-ID i `chartTimerId`/`messageTimerId`, rensar i ngOnDestroy
+
+Totalt: 14 buggar fixade i 11 filer.
+
+---
+
 ## 2026-03-17 Session #133 Worker A — PHP backend: 22 buggar fixade (error response consistency, missing HTTP status codes)
 
 ### Uppgift 1: PHP error response consistency (19 filer, 19 buggar)

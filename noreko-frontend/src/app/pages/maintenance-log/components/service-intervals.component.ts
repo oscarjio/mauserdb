@@ -164,7 +164,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
             </div>
             <div class="d-flex gap-2 mt-4 justify-content-end">
               <button type="button" class="btn btn-secondary" (click)="closeServiceForm()">Avbryt</button>
-              <button type="submit" class="btn btn-success" [disabled]="isSavingService">
+              <button type="submit" class="btn btn-success" [disabled]="isSavingService || !serviceForm.maskin_namn.trim() || !serviceForm.intervall_ibc || serviceForm.intervall_ibc <= 0">
                 <span *ngIf="isSavingService"><i class="fas fa-circle-notch fa-spin me-2"></i>Sparar...</span>
                 <span *ngIf="!isSavingService"><i class="fas fa-save me-2"></i>{{ editingServiceId ? 'Uppdatera' : 'Spara' }}</span>
               </button>

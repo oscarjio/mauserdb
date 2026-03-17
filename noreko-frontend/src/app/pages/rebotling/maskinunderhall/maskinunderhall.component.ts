@@ -71,6 +71,8 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
   private timelineChart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private modalTimerId: ReturnType<typeof setTimeout> | null = null;
+  private chartTimerId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: MaskinunderhallService) {}
 
@@ -87,6 +89,14 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     if (this.refreshInterval !== null) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+    if (this.modalTimerId !== null) {
+      clearTimeout(this.modalTimerId);
+      this.modalTimerId = null;
+    }
+    if (this.chartTimerId !== null) {
+      clearTimeout(this.chartTimerId);
+      this.chartTimerId = null;
     }
   }
 
@@ -145,7 +155,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.loadingTimeline = false;
       if (res?.success) {
         this.timelineItems = res.items;
-        setTimeout(() => this.buildTimelineChart(), 100);
+        this.chartTimerId = setTimeout(() => this.buildTimelineChart(), 100);
       } else if (res !== null) {
         this.errorTimeline = true;
       }
@@ -253,7 +263,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.savingService = false;
       if (res?.success) {
         this.serviceMessage = 'Service registrerad!';
-        setTimeout(() => {
+        this.modalTimerId = setTimeout(() => {
           this.showAddServiceModal = false;
           this.loadAll();
           // Uppdatera historik om aktuell maskin visas
@@ -294,7 +304,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.savingMachine = false;
       if (res?.success) {
         this.maskinMessage = 'Maskin registrerad!';
-        setTimeout(() => {
+        this.modalTimerId = setTimeout(() => {
           this.showAddMachineModal = false;
           this.loadAll();
         }, 1000);

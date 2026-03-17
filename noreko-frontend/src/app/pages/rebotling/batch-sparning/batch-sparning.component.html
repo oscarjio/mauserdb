@@ -359,7 +359,7 @@
         <div class="alert alert-success py-2" *ngIf="createMessage">{{ createMessage }}</div>
         <div class="alert alert-danger py-2" *ngIf="createError">{{ createError }}</div>
 
-        <button type="submit" class="btn btn-success w-100" [disabled]="savingBatch">
+        <button type="submit" class="btn btn-success w-100" [disabled]="savingBatch || !createForm.batch_nummer.trim() || createForm.planerat_antal < 1">
           {{ savingBatch ? 'Skapar...' : 'Skapa batch' }}
         </button>
       </form>

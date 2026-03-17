@@ -49,26 +49,3 @@ export const adminGuard: CanActivateFn = (route, state) => {
     })
   );
 };
-
-export const developerGuard: CanActivateFn = (route, state) => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-
-  return auth.initialized$.pipe(
-    filter(init => init === true),
-    take(1),
-    switchMap(() => auth.loggedIn$.pipe(
-      take(1),
-      combineLatestWith(auth.user$.pipe(take(1)))
-    )),
-    map(([loggedIn, user]) => {
-      if (user?.role === 'developer') return true;
-      if (!loggedIn) {
-        router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-      } else {
-        router.navigate(['/']);
-      }
-      return false;
-    })
-  );
-};

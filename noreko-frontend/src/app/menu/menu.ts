@@ -245,7 +245,7 @@ export class Menu implements OnInit, OnDestroy {
       });
   }
 
-  onMenuChange(event: Event) {
+  onMenuChange() {
     localStorage.setItem('selectedMenu', this.selectedMenu);
   }
 
@@ -298,7 +298,7 @@ export class Menu implements OnInit, OnDestroy {
             this.profileForm.currentPassword = '';
             this.profileForm.newPassword = '';
             this.profileForm.confirmPassword = '';
-            this.auth.fetchStatus().subscribe();
+            this.auth.fetchStatus().pipe(takeUntil(this.destroy$)).subscribe();
           } else {
             this.profileError = response?.message || 'Kunde inte uppdatera kontot.';
           }
