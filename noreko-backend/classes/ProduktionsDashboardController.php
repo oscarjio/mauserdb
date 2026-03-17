@@ -564,7 +564,7 @@ class ProduktionsDashboardController {
             $statusKor = false;
             if ($senasteDatum) {
                 $senasteTid = strtotime($senasteDatum);
-                $statusKor  = (time() - $senasteTid) < 1800;
+                $statusKor  = ($senasteTid !== false) && (time() - $senasteTid) < 1800;
             }
 
             $result[] = [

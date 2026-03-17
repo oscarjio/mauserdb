@@ -8,6 +8,8 @@
 class AuthHelper {
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_MINUTES = 15;
+    /** Session timeout i sekunder (8 timmar — matchar session.gc_maxlifetime i api.php) */
+    private const SESSION_TIMEOUT = 28800;
 
     /**
      * Verify password using bcrypt.
@@ -91,7 +93,9 @@ class AuthHelper {
             $stmt->execute([$ip, $cutoff]);
             $oldest = $stmt->fetchColumn();
             if (!$oldest) return 0;
-            $unlockAt = strtotime($oldest) + (self::LOCKOUT_MINUTES * 60);
+            $oldestTs = strtotime($oldest);
+            if ($oldestTs === false) return self::LOCKOUT_MINUTES;
+            $unlockAt = $oldestTs + (self::LOCKOUT_MINUTES * 60);
             return max(1, (int)ceil(($unlockAt - time()) / 60));
         } catch (PDOException) {
             return self::LOCKOUT_MINUTES;
@@ -107,6 +111,25 @@ class AuthHelper {
         } catch (PDOException $e) {
             error_log('AuthHelper::clearAttempts: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Kontrollera om sessionen har gått ut p.g.a. inaktivitet.
+     * Uppdaterar last_activity vid varje anrop.
+     * Returnerar true om sessionen är giltig, false om den bör förstöras.
+     */
+    public static function checkSessionTimeout(): bool {
+        if (!isset($_SESSION['user_id'])) {
+            return false;
+        }
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > self::SESSION_TIMEOUT) {
+            // Sessionen har gått ut — rensa allt
+            session_unset();
+            session_destroy();
+            return false;
+        }
+        $_SESSION['last_activity'] = time();
+        return true;
     }
 
     /**

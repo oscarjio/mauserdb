@@ -135,7 +135,10 @@ class CertificationController {
                 $opNum = (int)$row['op_number'];
                 $daysUntil = null;
                 if ($row['expires_date']) {
-                    $daysUntil = (int)round((strtotime($row['expires_date']) - time()) / 86400);
+                    $expiresTs = strtotime($row['expires_date']);
+                    if ($expiresTs !== false) {
+                        $daysUntil = (int)round(($expiresTs - time()) / 86400);
+                    }
                 }
 
                 if (!isset($grouped[$opNum])) {
@@ -219,7 +222,10 @@ class CertificationController {
                 if (!isset($certIndex[$key])) {
                     $daysUntil = null;
                     if ($cert['expires_date']) {
-                        $daysUntil = (int)round((strtotime($cert['expires_date']) - time()) / 86400);
+                        $expiresTs = strtotime($cert['expires_date']);
+                        if ($expiresTs !== false) {
+                            $daysUntil = (int)round(($expiresTs - time()) / 86400);
+                        }
                     }
 
                     // Bestäm status

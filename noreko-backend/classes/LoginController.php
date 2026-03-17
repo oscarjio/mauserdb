@@ -82,6 +82,7 @@ class LoginController {
                 $_SESSION['role'] = $user['role'] ?? (((int)$user['admin'] === 1) ? 'admin' : 'user');
                 $_SESSION['email'] = $user['email'] ?? null;
                 $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
+                $_SESSION['last_activity'] = time();
 
                 // Audit log
                 AuditLogger::log($pdo, 'login', 'user', $user['id'], "Inloggning: {$user['username']}");

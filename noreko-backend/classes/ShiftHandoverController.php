@@ -85,8 +85,9 @@ class ShiftHandoverController {
     // -------------------------------------------------------------------------
 
     private function timeAgo(string $createdAt): string {
-        $now     = new DateTime();
-        $created = new DateTime($createdAt);
+        $tz      = new DateTimeZone('Europe/Stockholm');
+        $now     = new DateTime('now', $tz);
+        $created = new DateTime($createdAt, $tz);
         $diff    = $now->getTimestamp() - $created->getTimestamp();
 
         if ($diff < 60) {
@@ -102,8 +103,8 @@ class ShiftHandoverController {
         }
 
         // Jämför kalenderdag
-        $nowMidnight     = new DateTime($now->format('Y-m-d'));
-        $createdMidnight = new DateTime($created->format('Y-m-d'));
+        $nowMidnight     = new DateTime($now->format('Y-m-d'), $tz);
+        $createdMidnight = new DateTime($created->format('Y-m-d'), $tz);
         $dayDiff         = (int)$nowMidnight->diff($createdMidnight)->days;
 
         if ($dayDiff === 1) {

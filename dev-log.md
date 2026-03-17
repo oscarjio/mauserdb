@@ -1,3 +1,41 @@
+## 2026-03-17 Session #142 Worker A — 21 buggar fixade (date/time, strtotime, session timeout)
+
+### Uppgift 1: PHP date/time handling audit (15 fix)
+Granskade alla PHP-controllers for DateTime-objekt utan explicit timezone och strtotime()-edge cases.
+
+1. RuntimeController — new DateTime() utan timezone (2 stallen: $now + $entryTime + $lastEntryTime)
+2. WeeklyReportController — new DateTime() utan timezone (3 stallen: $monday, $thisMonday, $dt)
+3. TvattlinjeController — new DateTime() utan timezone (4 stallen: $now, $entryTime, $lastEntryTime, $firstIbc/$lastIbc)
+4. ShiftPlanController — new DateTime() utan timezone (4 stallen: getWeek + getWeekView, bade primart och fallback)
+5. ShiftHandoverController — new DateTime() utan timezone (4 stallen: $now, $created, $nowMidnight, $createdMidnight)
+6. RebotlingController — new DateTime() utan timezone (3 stallen: $now, $entryTime, $lastEntryTime)
+7. RebotlingAnalyticsController — new DateTime() utan timezone (3 stallen: $mondayThis, 2x getWeeklySummaryEmail/sendWeeklySummaryEmail)
+8. VDVeckorapportController — new DateTime() utan timezone (4 stallen: $today, $monday, $today i kpiJamforelse)
+9. StoppageController — new DateTime() utan timezone (4 stallen: 2x $start/$end vid duration-berakning)
+10. BonusController — new DateTime() utan timezone (6 stallen: $today, $dag, $d, $todayDt, $startDt/$endDt)
+11. OperatorController — new DateTime() utan timezone (2 stallen: $prev, $dt i streak-berakning)
+12. OperatorsportalController — strtotime() pa potentiellt tom strang utan false-check
+13. ProduktionsDashboardController — strtotime() utan false-check vid statusbedomning
+14. UnderhallsloggController — strtotime() pa anvandarlevererad ISO-datetime utan false-check
+15. CertificationController — strtotime() pa nullable DB-falt utan false-check (2 stallen)
+
+### Uppgift 2: PHP file upload validation audit (0 fix)
+Granskade hela PHP-backenden. Inga filuppladdningar ($_FILES, move_uploaded_file) hittades. Projektet anvander JSON-baserade API-anrop for all datakommunikation.
+
+### Uppgift 3: PHP session handling audit (6 fix)
+16. AuthHelper — Lade till SESSION_TIMEOUT-konstant (8 timmar) och checkSessionTimeout()-metod for inaktivitets-timeout
+17. AuthHelper — strtotime() i getLockoutRemaining() utan false-check fixad
+18. LoginController — Lade till $_SESSION['last_activity'] = time() vid lyckad inloggning
+19. StatusController — Lade till session-timeout-kontroll (8 timmars inaktivitet) i status-endpointen
+20. StatusController — Lade till require_once for AuthHelper
+21. StatusController — Session timeout forstar sessionen korrekt (session_unset + session_destroy) vid utgangen session
+
+Befintlig session-sakerhet som redan var pa plats:
+- session_regenerate_id(true) vid login (session fixation-skydd)
+- session_unset() + session_destroy() + cookie-radering vid logout
+- Secure/HttpOnly/SameSite cookies via api.php
+- read_and_close for GET-requests (minskar session lock-contention)
+
 ## 2026-03-17 Session #141 Worker A — 15 buggar fixade (response format, transaktioner, input-sanering)
 
 ### Uppgift 1: PHP response format consistency (4 fix)

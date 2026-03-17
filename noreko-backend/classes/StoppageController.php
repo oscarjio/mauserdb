@@ -277,8 +277,9 @@ class StoppageController {
 
             $durationMinutes = null;
             if ($endTime && preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/', $endTime)) {
-                $start = new DateTime($startTime);
-                $end = new DateTime($endTime);
+                $tz = new DateTimeZone('Europe/Stockholm');
+                $start = new DateTime($startTime, $tz);
+                $end = new DateTime($endTime, $tz);
                 if ($end < $start) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Sluttid kan inte vara före starttid'], JSON_UNESCAPED_UNICODE);
@@ -350,8 +351,9 @@ class StoppageController {
                     $stmt->execute([$id]);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($row) {
-                        $start = new DateTime($row['start_time']);
-                        $end = new DateTime($endTime);
+                        $tz = new DateTimeZone('Europe/Stockholm');
+                        $start = new DateTime($row['start_time'], $tz);
+                        $end = new DateTime($endTime, $tz);
                         $fields[] = 'duration_minutes = ?';
                         $params[] = max(0, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60));
                     }

@@ -491,7 +491,7 @@ class TvattlinjeController {
 
             // Beräkna total runtime för idag
             $totalRuntimeMinutes = 0;
-            $now = new DateTime();
+            $now = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
 
             // Hämta alla rader för idag sorterade efter datum
             $stmt = $this->pdo->prepare('
@@ -506,8 +506,9 @@ class TvattlinjeController {
             if (count($todayEntries) > 0) {
                 $lastRunningStart = null;
                 
+                $tzSe = new DateTimeZone('Europe/Stockholm');
                 foreach ($todayEntries as $entry) {
-                    $entryTime = new DateTime($entry['datum']);
+                    $entryTime = new DateTime($entry['datum'], $tzSe);
                     $isRunning = (bool)($entry['running'] ?? false);
                     
                     if ($isRunning && $lastRunningStart === null) {
@@ -521,7 +522,7 @@ class TvattlinjeController {
                 }
                 
                 if ($lastRunningStart !== null) {
-                    $lastEntryTime = new DateTime($todayEntries[count($todayEntries) - 1]['datum']);
+                    $lastEntryTime = new DateTime($todayEntries[count($todayEntries) - 1]['datum'], $tzSe);
                     $diff = $lastRunningStart->diff($lastEntryTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $totalRuntimeMinutes += $periodMinutes;
@@ -539,8 +540,8 @@ class TvattlinjeController {
                 $stmt->execute();
                 $ibcRange = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($ibcRange && $ibcRange['first_ibc']) {
-                    $firstIbc = new DateTime($ibcRange['first_ibc']);
-                    $lastIbc  = new DateTime($ibcRange['last_ibc']);
+                    $firstIbc = new DateTime($ibcRange['first_ibc'], new DateTimeZone('Europe/Stockholm'));
+                    $lastIbc  = new DateTime($ibcRange['last_ibc'], new DateTimeZone('Europe/Stockholm'));
                     $spanDiff = $firstIbc->diff($lastIbc);
                     $spanMin  = ($spanDiff->days * 1440) + ($spanDiff->h * 60) + $spanDiff->i + ($spanDiff->s / 60);
                     if ($spanMin < 1) { $spanMin = 5; }

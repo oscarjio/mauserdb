@@ -58,7 +58,7 @@ class WeeklyReportController {
                 return;
             }
 
-            $thisMonday = new DateTime($weekStartParam);
+            $thisMonday = new DateTime($weekStartParam, new DateTimeZone('Europe/Stockholm'));
             $thisSunday = clone $thisMonday;
             $thisSunday->modify('+6 days');
 
@@ -264,13 +264,13 @@ class WeeklyReportController {
                 $week = intval($m[2]);
             } else {
                 // Default: förra veckan
-                $dt = new DateTime('last monday -1 week');
+                $dt = new DateTime('last monday -1 week', new DateTimeZone('Europe/Stockholm'));
                 $year = intval($dt->format('o'));
                 $week = intval($dt->format('W'));
             }
 
             // Beräkna måndag och söndag för veckan
-            $monday = new DateTime();
+            $monday = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
             $monday->setISODate($year, $week, 1);
             $sunday = clone $monday;
             $sunday->modify('+6 days');

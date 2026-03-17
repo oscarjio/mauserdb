@@ -456,7 +456,8 @@ class UnderhallsloggController {
 
             // Parsear datum
             if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/', $datum)) {
-                $datum = date('Y-m-d H:i:s', strtotime($datum));
+                $parsed = strtotime($datum);
+                $datum = ($parsed !== false) ? date('Y-m-d H:i:s', $parsed) : date('Y-m-d H:i:s');
             } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
                 $datum = $datum . ' ' . date('H:i:s');
             } else {

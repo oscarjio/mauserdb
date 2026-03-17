@@ -81,7 +81,7 @@ class VDVeckorapportController {
     private function kpiJamforelse(): void {
         // Beräkna veckointervall: ISO-vecka
         // Denna vecka = aktuell ISO-vecka (måndag-söndag)
-        $today       = new DateTime('today');
+        $today       = new DateTime('today', new DateTimeZone('Europe/Stockholm'));
         $monday      = clone $today;
         $monday->modify('monday this week');
         $sunday      = clone $monday;
@@ -578,14 +578,16 @@ class VDVeckorapportController {
             $ar    = (int)$m[1];
             $vecka = (int)$m[2];
             // Hitta måndag för given vecka
-            $monday = new DateTime();
+            $tz = new DateTimeZone('Europe/Stockholm');
+            $monday = new DateTime('now', $tz);
             $monday->setISODate($ar, $vecka, 1);
             $sunday = clone $monday;
             $sunday->modify('+6 days');
         } else {
             // Aktuell vecka
-            $monday = new DateTime('monday this week');
-            $today  = new DateTime('today');
+            $tz = new DateTimeZone('Europe/Stockholm');
+            $monday = new DateTime('monday this week', $tz);
+            $today  = new DateTime('today', $tz);
             $sunday = clone $monday;
             $sunday->modify('+6 days');
             // Begränsa till idag

@@ -308,10 +308,11 @@ class RuntimeController {
 
         $totalBreakMinutes = 0;
         $lastBreakStart = null;
-        $now = new DateTime();
-        
+        $tz = new DateTimeZone('Europe/Stockholm');
+        $now = new DateTime('now', $tz);
+
         foreach ($entries as $entry) {
-            $entryTime = new DateTime($entry['datum']);
+            $entryTime = new DateTime($entry['datum'], $tz);
             $isOnBreak = (bool)($entry['rast_status'] ?? false);
             
             // Om rasten startar (rast_status=1) och vi inte redan räknar en period
@@ -329,7 +330,7 @@ class RuntimeController {
         
         // Om rasten fortfarande pågår (senaste entry är rast_status=1)
         if ($lastBreakStart !== null) {
-            $lastEntryTime = new DateTime($entries[count($entries) - 1]['datum']);
+            $lastEntryTime = new DateTime($entries[count($entries) - 1]['datum'], $tz);
             
             // För "today": räkna till nu
             // För andra perioder: räkna bara till senaste entry

@@ -5304,7 +5304,7 @@ HTML;
         }
 
         // Beräkna måndag–söndag för denna vecka och förra veckan
-        $mondayThis = new DateTime();
+        $mondayThis = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
         $mondayThis->setISODate($year, $wk, 1);
         $sundayThis = clone $mondayThis;
         $sundayThis->modify('+6 days');
@@ -5570,7 +5570,7 @@ HTML;
         $week = $_GET['week'] ?? '';
         if (empty($week)) {
             // Default: förra veckan
-            $dt = new DateTime('last monday');
+            $dt = new DateTime('last monday', new DateTimeZone('Europe/Stockholm'));
             $dt->modify('-7 days');
             $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
         }
@@ -5599,7 +5599,7 @@ HTML;
         $week = $data['week'] ?? '';
 
         if (empty($week)) {
-            $dt = new DateTime('last monday');
+            $dt = new DateTime('last monday', new DateTimeZone('Europe/Stockholm'));
             $dt->modify('-7 days');
             $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
         }

@@ -1308,10 +1308,11 @@ class BonusController {
             // Beräkna nuvarande streak (dagar i rad med ibc_dag > 0, bakifrån idag)
             $streak   = 0;
             $prevDate = null;
-            $today    = new DateTime('today');
+            $tzBon = new DateTimeZone('Europe/Stockholm');
+            $today = new DateTime('today', $tzBon);
 
             foreach ($rows as $row) {
-                $dag = new DateTime($row['dag']);
+                $dag = new DateTime($row['dag'], $tzBon);
                 if ($row['ibc_dag'] <= 0) {
                     if ($streak > 0) break;
                     if ($prevDate === null && $dag->diff($today)->days <= 1) continue;
@@ -1332,7 +1333,7 @@ class BonusController {
             $prevD    = null;
 
             foreach ($rowsAsc as $row) {
-                $d = new DateTime($row['dag']);
+                $d = new DateTime($row['dag'], $tzBon);
                 if ($row['ibc_dag'] > 0) {
                     if ($prevD !== null && $prevD->diff($d)->days <= 1) {
                         $current++;
@@ -1465,9 +1466,10 @@ class BonusController {
 
             $currentStreak = 0;
             $prevDate = null;
-            $todayDt = new DateTime('today');
+            $tzBon2 = new DateTimeZone('Europe/Stockholm');
+            $todayDt = new DateTime('today', $tzBon2);
             foreach ($streakRows as $row) {
-                $dag = new DateTime($row['dag']);
+                $dag = new DateTime($row['dag'], $tzBon2);
                 if ($row['ibc_dag'] <= 0) {
                     if ($currentStreak > 0) break;
                     if ($prevDate === null && $dag->diff($todayDt)->days <= 1) continue;
@@ -1803,8 +1805,9 @@ class BonusController {
                 [$start, $end] = [$end, $start];
             }
             // Begränsa datumintervall till max 365 dagar för att förhindra timeout/memory exhaustion
-            $startDt = new DateTime($start);
-            $endDt   = new DateTime($end);
+            $tzBon3 = new DateTimeZone('Europe/Stockholm');
+            $startDt = new DateTime($start, $tzBon3);
+            $endDt   = new DateTime($end, $tzBon3);
             $diffDays = (int)$startDt->diff($endDt)->days;
             if ($diffDays > 365) {
                 $start = (clone $endDt)->modify('-365 days')->format('Y-m-d');

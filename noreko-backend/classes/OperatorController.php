@@ -549,9 +549,10 @@ class OperatorController {
 
             $streakDays = 0;
             if (!empty($streakDates)) {
-                $prev = new DateTime('today');
+                $tzOp = new DateTimeZone('Europe/Stockholm');
+                $prev = new DateTime('today', $tzOp);
                 foreach ($streakDates as $ds) {
-                    $dt = new DateTime($ds);
+                    $dt = new DateTime($ds, $tzOp);
                     $diff = (int)$prev->diff($dt)->days;
                     if ($diff <= 1) {
                         $streakDays++;

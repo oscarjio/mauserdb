@@ -85,10 +85,11 @@ class ShiftPlanController {
             $dateParam = date('Y-m-d');
         }
 
+        $tz = new DateTimeZone('Europe/Stockholm');
         try {
-            $dt = new DateTime($dateParam);
+            $dt = new DateTime($dateParam, $tz);
         } catch (Exception) {
-            $dt = new DateTime();
+            $dt = new DateTime('now', $tz);
         }
 
         // Beräkna veckans måndag (ISO-vecka: måndag = 1)
@@ -167,10 +168,11 @@ class ShiftPlanController {
             $weekStartParam = date('Y-m-d');
         }
 
+        $tz = new DateTimeZone('Europe/Stockholm');
         try {
-            $dt = new DateTime($weekStartParam);
+            $dt = new DateTime($weekStartParam, $tz);
         } catch (Exception) {
-            $dt = new DateTime();
+            $dt = new DateTime('now', $tz);
         }
 
         // Säkerställ att vi utgår från måndag

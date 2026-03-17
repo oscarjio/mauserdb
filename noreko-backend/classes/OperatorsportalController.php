@@ -226,8 +226,8 @@ class OperatorsportalController {
             }
 
             // Aktivt om senaste registrering är inom 30 minuter
-            $senaste    = strtotime($row['senaste_aktivitet'] ?? '');
-            $aktiv      = $senaste && (time() - $senaste) < 1800;
+            $senaste    = !empty($row['senaste_aktivitet']) ? strtotime($row['senaste_aktivitet']) : false;
+            $aktiv      = ($senaste !== false) && (time() - $senaste) < 1800;
 
             return [
                 'aktiv'             => $aktiv,

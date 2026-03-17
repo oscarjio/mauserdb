@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
+
 class StatusController {
     public function handle() {
         $run = $_GET['run'] ?? '';
@@ -23,6 +25,18 @@ class StatusController {
         }
 
         if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Kontrollera session-timeout (inaktivitet).
+        // Sessionen öppnades med read_and_close ovan, så vi kan inte skriva last_activity här.
+        // Istället kollar vi bara — om den har gått ut, förstör sessionen och returnera utloggad.
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 28800) {
+            // Sessionen har gått ut — öppna den igen i skrivbart läge för att förstöra den
+            session_start();
+            session_unset();
+            session_destroy();
             echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
             return;
         }

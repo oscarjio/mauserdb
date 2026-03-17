@@ -435,10 +435,11 @@ class RebotlingController {
                 
                 if (count($skiftEntries) > 0) {
                     $lastRunningStart = null;
-                    $now = new DateTime();
-                    
+                    $tz = new DateTimeZone('Europe/Stockholm');
+                    $now = new DateTime('now', $tz);
+
                     foreach ($skiftEntries as $entry) {
-                        $entryTime = new DateTime($entry['datum']);
+                        $entryTime = new DateTime($entry['datum'], $tz);
                         $isRunning = (bool)($entry['running'] ?? false);
                         
                         // Om maskinen startar (running=1) och vi inte redan räknar en period
@@ -456,7 +457,7 @@ class RebotlingController {
                     
                     // Om maskinen fortfarande kör (senaste entry är running=1)
                     if ($lastRunningStart !== null) {
-                        $lastEntryTime = new DateTime($skiftEntries[count($skiftEntries) - 1]['datum']);
+                        $lastEntryTime = new DateTime($skiftEntries[count($skiftEntries) - 1]['datum'], $tz);
                         // Räkna från när maskinen startade till senaste entry
                         $diff = $lastRunningStart->diff($lastEntryTime);
                         $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
