@@ -572,7 +572,7 @@ class OeeTrendanalysController {
                 }
                 // Utan station_id kan vi bara visa topporsaken for alla stationer
                 if ($topOrsak) {
-                    foreach ($flaskhalsar as $fIdx => $fItem) {
+                    foreach ($flaskhalsar as $fItem) {
                         $stoppInfo[$fItem['station_id']] = $topOrsak;
                     }
                 }

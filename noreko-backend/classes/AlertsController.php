@@ -333,6 +333,11 @@ class AlertsController {
     // ================================================================
 
     private function runAlertCheck(): void {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->sendError('Metod inte tillåten — använd POST', 405);
+            return;
+        }
+
         try {
             // Hämta aktiva inställningar
             $stmtS = $this->pdo->query("
@@ -570,7 +575,7 @@ class AlertsController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {

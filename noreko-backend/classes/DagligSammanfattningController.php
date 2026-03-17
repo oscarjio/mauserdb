@@ -469,7 +469,6 @@ class DagligSammanfattningController {
      * Hämta veckosnitt (senaste 5 motsvarande veckodagar exklusive idag).
      */
     private function getVeckosnitt(string $date): array {
-        $dagIndex = (int)date('N', strtotime($date)); // 1=mån … 7=sön
         $snittPoints = [];
         // Hämta senaste 5 veckorna
         for ($w = 1; $w <= 5; $w++) {

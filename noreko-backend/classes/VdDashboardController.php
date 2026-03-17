@@ -228,9 +228,13 @@ class VdDashboardController {
             $dagsmal = 0;
             if ($this->tableExists('produktionsmal')) {
                 try {
-                    $sql = "SELECT mal_antal FROM produktionsmal WHERE datum = :today LIMIT 1";
+                    $sql = "SELECT COALESCE(mal_antal, target_ibc) AS mal_antal
+                            FROM produktionsmal
+                            WHERE (datum = :today OR (giltig_from <= :today2 AND (giltig_tom IS NULL OR giltig_tom >= :today3)))
+                            ORDER BY datum DESC, giltig_from DESC
+                            LIMIT 1";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today]);
+                    $stmt->execute([':today' => $today, ':today2' => $today, ':today3' => $today]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row) {
                         $dagsmal = (int)$row['mal_antal'];

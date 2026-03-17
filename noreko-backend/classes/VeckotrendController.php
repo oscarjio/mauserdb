@@ -25,7 +25,7 @@ class VeckotrendController {
      *  - drifttid_pct   (drifttidsprocent per dag baserat på rebotling_skiftrapport)
      */
     public function getWeeklyKpis() {
-        header('Content-Type: application/json; charset=utf-8');
+        // Content-Type sätts redan i api.php
 
         try {
             $startDate = date('Y-m-d', strtotime('-7 days'));

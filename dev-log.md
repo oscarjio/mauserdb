@@ -1,3 +1,27 @@
+## 2026-03-17 Session #132 Worker A — PHP backend: 11 buggar fixade (method enforcement, unused vars, headers)
+
+### Uppgift 1: HTTP method enforcement (2 fixar)
+- **LoginController.php**: Lade till POST-krav for login-endpoint — tidigare kunde inloggningsdata skickas via GET
+- **AlertsController.php**: Lade till POST-krav for runAlertCheck() som gor INSERT-operationer
+
+### Uppgift 2: Oanvanda variabler (6 fixar)
+- **DagligSammanfattningController.php**: Tog bort oanvand `$dagIndex` i getVeckosnitt()
+- **KapacitetsplaneringController.php**: Tog bort oanvand `$currentStoppStart` i stoppberakning
+- **LeveransplaneringController.php**: Tog bort oanvand `$idag` i getOverview()
+- **OeeTrendanalysController.php**: Tog bort oanvand `$fIdx` loop-nyckel i flaskhalsar-loop
+- **ShiftPlanController.php**: Tog bort oanvand `$targetMonday` (DateTime-objektet anvands, men strangvariabeln aldrig)
+- **VpnController.php**: Tog bort oanvanda `$lineNum` och `$originalLine` i parseStatusOutput()
+
+### Uppgift 3: CORS/headers audit (3 fixar)
+- **VeckotrendController.php**: Tog bort redundant Content-Type header (satts redan centralt i api.php)
+- **DashboardLayoutController.php**: Lade till JSON_UNESCAPED_UNICODE i sendSuccess() for korrekt svensk teckenkodning
+- **AlertsController.php**: Lade till JSON_UNESCAPED_UNICODE i sendSuccess()
+
+### Extra fix
+- **VdDashboardController.php**: Forbattrad produktionsmal-query — stodjer bade `mal_antal` och `target_ibc` kolumner, samt datumintervall med `giltig_from`/`giltig_tom`
+
+---
+
 ## 2026-03-16 Session #131 Worker B — Angular frontend: 30 buggar fixade (form validation, error state UI)
 
 ### Uppgift 1: Angular form validation audit (4 fixar)

@@ -615,7 +615,6 @@ class KapacitetsplaneringController {
 
             $prevTime = null;
             $prevRunning = null;
-            $currentStoppStart = null;
 
             foreach ($rows as $row) {
                 $ts = strtotime($row['datum']);

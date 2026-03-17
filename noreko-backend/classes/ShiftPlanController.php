@@ -572,7 +572,6 @@ class ShiftPlanController {
         // Säkerställ att target_week_start är en måndag
         $dow = (int)$dt->format('N');
         $dt->modify('-' . ($dow - 1) . ' days');
-        $targetMonday = $dt->format('Y-m-d');
 
         // Beräkna föregående veckas måndag och söndag
         $prevMonday = clone $dt;

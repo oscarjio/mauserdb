@@ -116,7 +116,6 @@ class LeveransplaneringController {
     private function getOverview(): void {
         try {
             $config = $this->getConfig();
-            $idag = date('Y-m-d');
 
             // Aktiva ordrar (planerad + i_produktion + forsenad)
             $stmt = $this->pdo->prepare("

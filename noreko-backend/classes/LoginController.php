@@ -20,6 +20,13 @@ class LoginController {
             return;
         }
 
+        // Login MÅSTE vara POST — avvisa alla andra metoder
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);

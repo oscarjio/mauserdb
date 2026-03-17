@@ -270,8 +270,7 @@ class VpnController {
         $inRoutingTable = false;
         $headerSkipped = false;
         
-        foreach ($lines as $lineNum => $line) {
-            $originalLine = $line;
+        foreach ($lines as $line) {
             $line = rtrim($line, "\r\n");
             $trimmedLine = trim($line);
             
