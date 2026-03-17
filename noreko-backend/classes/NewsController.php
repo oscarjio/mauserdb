@@ -95,6 +95,12 @@ class NewsController {
             echo json_encode(['success' => false, 'error' => 'Rubrik krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
+        if (mb_strlen($title) > 200) {
+            $title = mb_substr($title, 0, 200);
+        }
+        if (mb_strlen($content) > 5000) {
+            $content = mb_substr($content, 0, 5000);
+        }
 
         try {
             $stmt = $this->pdo->prepare("
@@ -151,6 +157,12 @@ class NewsController {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Rubrik krävs'], JSON_UNESCAPED_UNICODE);
             return;
+        }
+        if (mb_strlen($title) > 200) {
+            $title = mb_substr($title, 0, 200);
+        }
+        if (mb_strlen($content) > 5000) {
+            $content = mb_substr($content, 0, 5000);
         }
 
         try {

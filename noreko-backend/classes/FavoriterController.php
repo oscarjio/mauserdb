@@ -189,6 +189,10 @@ class FavoriterController {
             $this->sendError('ids (array) krävs');
             return;
         }
+        if (count($ids) > 50) {
+            $this->sendError('Max 50 favoriter');
+            return;
+        }
 
         try {
             $this->pdo->beginTransaction();

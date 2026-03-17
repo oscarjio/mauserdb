@@ -360,13 +360,17 @@ class StoppageController {
                 }
             }
             if (isset($data['comment'])) {
+                $comment = strip_tags(trim($data['comment']));
+                if (mb_strlen($comment) > 500) {
+                    $comment = mb_substr($comment, 0, 500);
+                }
                 $fields[] = 'comment = ?';
-                $params[] = strip_tags(trim($data['comment']));
+                $params[] = $comment;
             }
             if (isset($data['duration_minutes'])) {
                 $dm = $data['duration_minutes'];
                 $fields[] = 'duration_minutes = ?';
-                $params[] = ($dm === null || $dm === '') ? null : max(0, intval($dm));
+                $params[] = ($dm === null || $dm === '') ? null : max(0, min(14400, intval($dm)));
             }
 
             if (empty($fields)) {

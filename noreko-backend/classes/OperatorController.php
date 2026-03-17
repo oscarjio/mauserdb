@@ -39,6 +39,16 @@ class OperatorController {
                     echo json_encode(['success' => false, 'error' => 'Namn och nummer krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
+                if (mb_strlen($name) > 100) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Namn får vara max 100 tecken'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                if ($number > 99999) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Operatörsnummer får vara max 99999'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
 
                 try {
                     $stmt = $pdo->prepare("INSERT INTO operators (name, number) VALUES (?, ?)");
@@ -76,6 +86,16 @@ class OperatorController {
                 if (empty($name) || $number === null || $number <= 0) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Namn och nummer krävs'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                if (mb_strlen($name) > 100) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Namn får vara max 100 tecken'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                if ($number > 99999) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Operatörsnummer får vara max 99999'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
 
@@ -129,11 +149,13 @@ class OperatorController {
 
             if ($action === 'toggleActive') {
                 try {
-                    $stmt = $pdo->prepare("SELECT active, name FROM operators WHERE id = ?");
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare("SELECT active, name FROM operators WHERE id = ? FOR UPDATE");
                     $stmt->execute([$id]);
                     $op = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!$op) {
+                        $pdo->rollBack();
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                         return;
@@ -142,12 +164,16 @@ class OperatorController {
                     $newActive = (int)$op['active'] === 1 ? 0 : 1;
                     $stmt = $pdo->prepare("UPDATE operators SET active = ? WHERE id = ?");
                     $stmt->execute([$newActive, $id]);
+                    $pdo->commit();
                     AuditLogger::log($pdo, 'toggle_operator_active', 'operator', $id,
                         ($newActive ? 'Aktiverade' : 'Inaktiverade') . " operatör: " . $op['name'],
                         ['active' => $op['active']], ['active' => $newActive]
                     );
                     echo json_encode(['success' => true, 'active' => $newActive], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     error_log('OperatorController::toggleActive: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte ändra status'], JSON_UNESCAPED_UNICODE);
@@ -793,7 +819,7 @@ class OperatorController {
      */
     private function getMachineCompatibility() {
         try {
-            $days = isset($_GET['days']) ? max(1, intval($_GET['days'])) : 90;
+            $days = isset($_GET['days']) ? max(1, min(365, intval($_GET['days']))) : 90;
 
             $stmt = $this->pdo->prepare("
                 SELECT

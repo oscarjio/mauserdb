@@ -42,6 +42,12 @@ class LoginController {
             echo json_encode(['success' => false, 'error' => 'Användarnamn och lösenord krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
+        // Begränsa indata-längd för att förhindra missbruk (bcrypt trunkerar vid 72 bytes)
+        if (strlen($username) > 100 || strlen($password) > 255) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Användarnamn eller lösenord är för långt'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
 
         // Rate limiting
         if (AuthHelper::isRateLimited($pdo, $ip)) {

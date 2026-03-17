@@ -177,24 +177,29 @@ class FeedbackController {
             $skiftRow      = $stmtSkift->fetch(PDO::FETCH_ASSOC);
             $skiftraknare  = $skiftRow ? (int) $skiftRow['skiftraknare'] : null;
 
-            // Kolla om feedback redan finns för denna operator + skiftraknare (eller dagens datum om skiftraknare är null)
+            // Kolla och infoga inom transaktion för att undvika double-submit race condition
+            $this->pdo->beginTransaction();
+
             if ($skiftraknare !== null) {
                 $stmtCheck = $this->pdo->prepare(
                     "SELECT id FROM operator_feedback
                      WHERE operator_id = :uid AND skiftraknare = :skift
-                     LIMIT 1"
+                     LIMIT 1
+                     FOR UPDATE"
                 );
                 $stmtCheck->execute([':uid' => $userId, ':skift' => $skiftraknare]);
             } else {
                 $stmtCheck = $this->pdo->prepare(
                     "SELECT id FROM operator_feedback
                      WHERE operator_id = :uid AND datum = CURDATE()
-                     LIMIT 1"
+                     LIMIT 1
+                     FOR UPDATE"
                 );
                 $stmtCheck->execute([':uid' => $userId]);
             }
 
             if ($stmtCheck->fetch()) {
+                $this->pdo->rollBack();
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Feedback redan inlämnad för detta skift'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -212,8 +217,13 @@ class FeedbackController {
                 ':kommentar' => $kommentar,
             ]);
 
+            $this->pdo->commit();
+
             echo json_encode(['success' => true, 'message' => 'Tack för din feedback!'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('FeedbackController::submit — ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sparning av feedback'], JSON_UNESCAPED_UNICODE);

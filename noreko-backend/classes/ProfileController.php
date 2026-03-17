@@ -62,7 +62,7 @@ class ProfileController {
         $params = [];
 
         if ($email !== null && $email !== '' && $email !== $user['email']) {
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress.'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -72,7 +72,7 @@ class ProfileController {
         }
 
         if (!empty($newPassword)) {
-            if (strlen($newPassword) < 8 || !preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+            if (strlen($newPassword) < 8 || strlen($newPassword) > 255 || !preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Lösenordet måste vara minst 8 tecken och innehålla både bokstäver och siffror.'], JSON_UNESCAPED_UNICODE);
                 return;

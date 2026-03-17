@@ -236,11 +236,12 @@ class SkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
-            $ibc_ok = intval($data['ibc_ok'] ?? 0);
-            $bur_ej_ok = intval($data['bur_ej_ok'] ?? 0);
-            $ibc_ej_ok = intval($data['ibc_ej_ok'] ?? 0);
+            $ibc_ok = max(0, min(999999, intval($data['ibc_ok'] ?? 0)));
+            $bur_ej_ok = max(0, min(999999, intval($data['bur_ej_ok'] ?? 0)));
+            $ibc_ej_ok = max(0, min(999999, intval($data['ibc_ej_ok'] ?? 0)));
             $totalt = $ibc_ok + $bur_ej_ok + $ibc_ej_ok;
             $product_id = isset($data['product_id']) ? intval($data['product_id']) : null;
+            if ($product_id !== null && $product_id <= 0) $product_id = null;
             $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -303,6 +304,11 @@ class SkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+            if (count($ids) > 500) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Max 500 ID:n per anrop'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
 
             $ids = array_map('intval', $ids);
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -361,10 +367,15 @@ class SkiftrapportController {
         try {
             $ids = $data['ids'] ?? [];
             $inlagd = isset($data['inlagd']) ? ($data['inlagd'] ? 1 : 0) : 0;
-            
+
             if (empty($ids) || !is_array($ids)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            if (count($ids) > 500) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Max 500 ID:n per anrop'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -401,9 +412,9 @@ class SkiftrapportController {
             }
 
             $datum = $data['datum'] ?? null;
-            $ibc_ok = isset($data['ibc_ok']) ? intval($data['ibc_ok']) : null;
-            $bur_ej_ok = isset($data['bur_ej_ok']) ? intval($data['bur_ej_ok']) : null;
-            $ibc_ej_ok = isset($data['ibc_ej_ok']) ? intval($data['ibc_ej_ok']) : null;
+            $ibc_ok = isset($data['ibc_ok']) ? max(0, min(999999, intval($data['ibc_ok']))) : null;
+            $bur_ej_ok = isset($data['bur_ej_ok']) ? max(0, min(999999, intval($data['bur_ej_ok']))) : null;
+            $ibc_ej_ok = isset($data['ibc_ej_ok']) ? max(0, min(999999, intval($data['ibc_ej_ok']))) : null;
             $product_id = isset($data['product_id']) ? intval($data['product_id']) : null;
             
             $fields = [];

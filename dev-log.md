@@ -1,3 +1,40 @@
+## 2026-03-17 Session #144 Worker A — 19 buggar fixade (race conditions, input boundary)
+
+### Uppgift 1: PHP race condition audit — 8 fix
+
+Granskade alla 47 PHP-controllers med INSERT/UPDATE/DELETE i noreko-backend/classes/. Bara 10 av dessa anvande transaktioner. Fixade SELECT-then-UPDATE/INSERT race conditions:
+
+1. AdminController::create — SELECT username + INSERT utan transaktion = race condition for duplikat. Lade till beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+2. AdminController::toggleAdmin — SELECT admin + UPDATE utan transaktion. Lade till beginTransaction + SELECT FOR UPDATE, hamtar username i samma fraga.
+3. AdminController::toggleActive — SELECT active + UPDATE utan transaktion. Lade till beginTransaction + SELECT FOR UPDATE, hamtar username i samma fraga.
+4. AdminController::delete — SELECT user + DELETE utan transaktion. Lade till beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+5. OperatorController::toggleActive — SELECT active + UPDATE utan transaktion. Lade till beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+6. FeedbackController::submit — SELECT for duplicate check + INSERT utan transaktion = double-submit risk. Lade till beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+7. StoppageController::updateStoppage — duration_minutes saknade max-grans (kunde satta extremt stora varden). Lade till min(14400) cap.
+8. RebotlingController::addEvent — title och description saknade langdbegransning. Lade till mb_substr-truncering.
+
+Controllers som redan hade korrekt transaktionshantering: RegisterController, BatchSparningController, StopporsakRegistreringController, RebotlingController::checkAndCreateRecordNews, FavoriterController, SkiftplaneringController, ShiftPlanController.
+
+### Uppgift 2: PHP input length/boundary audit — 11 fix
+
+9. AdminController::create — Saknade max-langd pa username (lade till 3-50), password (8-255), email (max 255), phone (max 50).
+10. OperatorController::create — Saknade max-langd pa name (max 100) och max-varde pa number (max 99999).
+11. OperatorController::update — Samma fix som create.
+12. OperatorController::getMachineCompatibility — days-parameter saknade max-grans, kunde vara godtyckligt stort. Lade till min(365).
+13. SkiftrapportController::createSkiftrapport — Negativa varden tillats for ibc_ok/bur_ej_ok/ibc_ej_ok. Lade till max(0, min(999999)).
+14. SkiftrapportController::updateSkiftrapport — Samma fix for negativa varden.
+15. SkiftrapportController::bulkDelete + bulkUpdateInlagd — Ingen grans pa ids-arrayens storlek. Lade till max 500 IDs per anrop.
+16. NewsController::create + update — Saknade max-langd pa title (max 200) och content (max 5000).
+17. LoginController — Saknade max-langd pa username (max 100) och password (max 255) for att forhindra missbruk.
+18. RegisterController — Saknade max-langd pa username (max 50), email (max 255), password (8-255), phone (max 50).
+19. ProfileController — Saknade max-langd pa email (max 255) och newPassword (max 255).
+
+Ovriga kontrollerade men redan korrekta: FavoriterController (max 255/100/50/20), ShiftHandoverController (max 500 tecken), StoppageController::createStoppage (max 500), RebotlingController::setSkiftKommentar (max 500), RebotlingController::registerKassation (max 500), BatchSparningController (max 100/2000).
+
+Bonus-fix (redan granskade): FavoriterController::reorderFavoriter — lade till max 50 ids-grans. StoppageController::updateStoppage — lade till max 500 pa comment och max 14400 pa duration_minutes.
+
+Filer andrade: AdminController.php, OperatorController.php, FeedbackController.php, SkiftrapportController.php, NewsController.php, StoppageController.php, RebotlingController.php, LoginController.php, RegisterController.php, ProfileController.php, FavoriterController.php
+
 ## 2026-03-17 Session #143 Worker B — 9 buggar fixade (form validation, routing, template null-safety)
 
 ### Uppgift 1: Angular form validation audit — 5 fix

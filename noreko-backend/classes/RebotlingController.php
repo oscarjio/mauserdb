@@ -1705,6 +1705,12 @@ class RebotlingController {
         $title = strip_tags(trim($_POST['title']   ?? ''));
         $desc  = strip_tags(trim($_POST['description'] ?? ''));
         $type  = trim($_POST['event_type']   ?? 'ovrigt');
+        if (mb_strlen($title) > 200) {
+            $title = mb_substr($title, 0, 200);
+        }
+        if (mb_strlen($desc) > 2000) {
+            $desc = mb_substr($desc, 0, 2000);
+        }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltiga uppgifter'], JSON_UNESCAPED_UNICODE);

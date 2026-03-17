@@ -36,42 +36,36 @@ class AdminController {
                 $password = $data['password'] ?? '';
                 $email = strip_tags(trim($data['email'] ?? ''));
                 $phone = strip_tags(trim($data['phone'] ?? ''));
-                
+
                 // Enkel validering
                 if (empty($username) || empty($password) || empty($email)) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Användarnamn, lösenord och e-post krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                if (strlen($password) < 8) {
+                if (strlen($username) < 3 || strlen($username) > 50) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'Lösenordet måste vara minst 8 tecken'], JSON_UNESCAPED_UNICODE);
+                    echo json_encode(['success' => false, 'error' => 'Användarnamn måste vara 3–50 tecken'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                if (strlen($password) < 8 || strlen($password) > 255) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Lösenordet måste vara 8–255 tecken'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-
-                // Kontrollera om användarnamn redan finns
-                try {
-                    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-                    $stmt->execute([$username]);
-                    if ($stmt->fetch()) {
-                        http_response_code(409);
-                        echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
-                        return;
-                    }
-                } catch (PDOException $e) {
-                    error_log('AdminController::create_user check: ' . $e->getMessage());
-                    http_response_code(500);
-                    echo json_encode(['success' => false, 'error' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
+                if (strlen($phone) > 50) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Telefonnummer får vara max 50 tecken'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                
+
                 $hashedPassword = AuthHelper::hashPassword($password);
-                
+
                 // Kontrollera om active-kolumnen finns
                 try {
                     $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'active'");
@@ -79,17 +73,30 @@ class AdminController {
                 } catch (PDOException) {
                     $activeExists = false;
                 }
-                
-                // Spara användare i databasen
+
+                // Kontrollera och skapa användare inom transaktion för att undvika race condition
                 try {
+                    $pdo->beginTransaction();
+
+                    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? FOR UPDATE");
+                    $stmt->execute([$username]);
+                    if ($stmt->fetch()) {
+                        $pdo->rollBack();
+                        http_response_code(409);
+                        echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
+                        return;
+                    }
+
                     if ($activeExists) {
                         $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, admin, active, created_at) VALUES (?, ?, ?, ?, 0, 1, NOW())");
                     } else {
                         $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, admin, created_at) VALUES (?, ?, ?, ?, 0, NOW())");
                     }
                     $stmt->execute([$username, $hashedPassword, $email, $phone ?: null]);
-                    
+
                     $newId = $pdo->lastInsertId();
+                    $pdo->commit();
+
                     AuditLogger::log($pdo, 'create_user', 'user', (int)$newId,
                         "Skapade användare: $username"
                     );
@@ -103,6 +110,14 @@ class AdminController {
                         ]
                     ], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    if ((string)$e->getCode() === '23000') {
+                        http_response_code(409);
+                        echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
+                        return;
+                    }
                     error_log('AdminController::create_user insert: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte skapa användare'], JSON_UNESCAPED_UNICODE);
@@ -126,14 +141,16 @@ class AdminController {
                     echo json_encode(['success' => false, 'error' => 'Du kan inte ta bort ditt eget konto'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                
+
                 try {
-                    // Hämta användardata innan radering för audit
-                    $stmt = $pdo->prepare("SELECT username, email FROM users WHERE id = ?");
+                    $pdo->beginTransaction();
+                    // Hämta användardata innan radering för audit (FOR UPDATE förhindrar race condition)
+                    $stmt = $pdo->prepare("SELECT username, email FROM users WHERE id = ? FOR UPDATE");
                     $stmt->execute([$id]);
                     $deletedUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
                     if (!$deletedUser) {
+                        $pdo->rollBack();
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                         return;
@@ -141,12 +158,16 @@ class AdminController {
 
                     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
                     $stmt->execute([$id]);
+                    $pdo->commit();
                     AuditLogger::log($pdo, 'delete_user', 'user', (int)$id,
                         "Tog bort användare: " . ($deletedUser['username'] ?? 'okänd'),
                         $deletedUser, null
                     );
                     echo json_encode(['success' => true, 'message' => 'Användare borttagen'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     error_log('AdminController::delete_user: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort användare'], JSON_UNESCAPED_UNICODE);
@@ -163,27 +184,30 @@ class AdminController {
                     return;
                 }
                 try {
-                    $stmt = $pdo->prepare("SELECT admin FROM users WHERE id = ?");
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare("SELECT admin, username FROM users WHERE id = ? FOR UPDATE");
                     $stmt->execute([$id]);
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($user) {
                         $newAdminStatus = (int)$user['admin'] === 1 ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET admin = ? WHERE id = ?");
                         $stmt->execute([$newAdminStatus, $id]);
-                        // Hämta username för audit
-                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
-                        $stmt->execute([$id]);
-                        $uname = $stmt->fetchColumn() ?: 'okänd';
+                        $pdo->commit();
+                        $uname = $user['username'] ?: 'okänd';
                         AuditLogger::log($pdo, 'toggle_admin', 'user', (int)$id,
                             "Ändrade admin-status för $uname: " . ($newAdminStatus ? 'admin' : 'user'),
                             ['admin' => $user['admin']], ['admin' => $newAdminStatus]
                         );
                         echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus], JSON_UNESCAPED_UNICODE);
                     } else {
+                        $pdo->rollBack();
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     error_log('AdminController::toggle_admin: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera admin-status'], JSON_UNESCAPED_UNICODE);
@@ -203,7 +227,7 @@ class AdminController {
                     // Kontrollera om active-kolumnen finns
                     $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'active'");
                     $activeExists = $stmt->rowCount() > 0;
-                    
+
                     if (!$activeExists) {
                         // Skapa active-kolumnen om den inte finns
                         $stmt = $pdo->prepare("ALTER TABLE users ADD COLUMN active TINYINT(1) DEFAULT 1");
@@ -211,29 +235,33 @@ class AdminController {
                         $stmt = $pdo->prepare("UPDATE users SET active = 1 WHERE active IS NULL");
                         $stmt->execute();
                     }
-                    
-                    // Hämta nuvarande status
-                    $stmt = $pdo->prepare("SELECT active FROM users WHERE id = ?");
+
+                    // Hämta och uppdatera inom transaktion för att undvika race condition
+                    $pdo->beginTransaction();
+                    $stmt = $pdo->prepare("SELECT active, username FROM users WHERE id = ? FOR UPDATE");
                     $stmt->execute([$id]);
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
+
                     if ($user) {
                         $newActiveStatus = ((int)$user['active'] === 1) ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET active = ? WHERE id = ?");
                         $stmt->execute([$newActiveStatus, $id]);
-                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
-                        $stmt->execute([$id]);
-                        $uname = $stmt->fetchColumn() ?: 'okänd';
+                        $pdo->commit();
+                        $uname = $user['username'] ?: 'okänd';
                         AuditLogger::log($pdo, 'toggle_active', 'user', (int)$id,
                             ($newActiveStatus ? 'Aktiverade' : 'Inaktiverade') . " användare: $uname",
                             ['active' => $user['active']], ['active' => $newActiveStatus]
                         );
                         echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus], JSON_UNESCAPED_UNICODE);
                     } else {
+                        $pdo->rollBack();
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     error_log('AdminController::inte uppdatera status (toggleActive): ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);

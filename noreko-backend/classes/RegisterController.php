@@ -34,12 +34,14 @@ class RegisterController {
             $errors[] = 'Användarnamn krävs';
         } elseif (strlen($username) < 3) {
             $errors[] = 'Användarnamn måste vara minst 3 tecken';
+        } elseif (strlen($username) > 50) {
+            $errors[] = 'Användarnamn får vara max 50 tecken';
         }
         
         if (empty($password)) {
             $errors[] = 'Lösenord krävs';
-        } elseif (strlen($password) < 8) {
-            $errors[] = 'Lösenord måste vara minst 8 tecken';
+        } elseif (strlen($password) < 8 || strlen($password) > 255) {
+            $errors[] = 'Lösenord måste vara 8–255 tecken';
         } elseif (!preg_match('/[A-Za-z]/', $password)) {
             $errors[] = 'Lösenord måste innehålla minst en bokstav';
         } elseif (!preg_match('/[0-9]/', $password)) {
@@ -52,10 +54,16 @@ class RegisterController {
         
         if (empty($email)) {
             $errors[] = 'E-postadress krävs';
+        } elseif (strlen($email) > 255) {
+            $errors[] = 'E-postadress får vara max 255 tecken';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Ogiltig e-postadress';
         }
         
+        if (strlen($phone) > 50) {
+            $errors[] = 'Telefonnummer får vara max 50 tecken';
+        }
+
         // Load registration code from config
         $registrationCode = 'Noreko2025'; // fallback
         $configFile = __DIR__ . '/../app_config.php';
