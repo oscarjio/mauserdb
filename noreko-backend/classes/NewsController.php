@@ -463,7 +463,7 @@ class NewsController {
                         'typ'      => 'produktionsrekord',
                         'datum'    => $row['event_datum'],
                         'datetime' => $row['event_datum'] . ' 18:00:00',
-                        'text'     => '🏅 Produktionsrekord! ' . date('d M', strtotime($row['event_datum'])) . ': '
+                        'text'     => '🏅 Produktionsrekord! ' . date('d M', strtotime($row['event_datum']) ?: time()) . ': '
                                       . $row['today_ibc'] . ' IBC — slog föregående bästa (' . $row['prev_best'] . ')!',
                         'ikon'     => 'medal',
                         'category' => 'rekord',
@@ -502,7 +502,7 @@ class NewsController {
                         'typ'      => 'oee_milstolpe',
                         'datum'    => $row['event_datum'],
                         'datetime' => $row['event_datum'] . ' 16:00:00',
-                        'text'     => '🎯 OEE-milstolpe! ' . date('d M', strtotime($row['event_datum'])) . ': OEE '
+                        'text'     => '🎯 OEE-milstolpe! ' . date('d M', strtotime($row['event_datum']) ?: time()) . ': OEE '
                                       . $row['oee_val'] . '% — World Class Manufacturing-nivå!',
                         'ikon'     => 'bullseye',
                         'category' => 'produktion',
@@ -574,7 +574,11 @@ class NewsController {
                 $streak = 0;
                 $prevDate = null;
                 foreach ($dates as $ds) {
-                    $d = new \DateTime(trim($ds));
+                    try {
+                        $d = new \DateTime(trim($ds));
+                    } catch (\Exception $dtEx) {
+                        break;
+                    }
                     if ($prevDate !== null) {
                         $diff = $prevDate->diff($d)->days;
                         if ($diff > 1) break;

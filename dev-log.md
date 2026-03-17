@@ -1,3 +1,41 @@
+## 2026-03-17 Session #149 Worker A — 16 buggar fixade (file I/O, date/time, response consistency)
+### Uppgift: PHP file I/O error handling, date/time edge cases, response consistency
+Granskade alla PHP-controllers i noreko-backend/classes/ efter file I/O utan felkontroll, DateTime/strtotime utan try/catch eller false-check, och json_decode utan null-check.
+
+**File I/O error handling (2 buggar):**
+1. `noreko-backend/classes/VpnController.php` rad 99 — `fwrite($socket, "kill ...")` utan returvardeskontroll. Om skrivningen misslyckas returneras inget felmeddelande. Lade till `@fwrite()` med false-check och felreturn.
+2. `noreko-backend/classes/VpnController.php` rad 151 — `fwrite($socket, "status\n")` utan returvardeskontroll i `getVpnStatus()`. Lade till `@fwrite()` med false-check och tidig return med felmeddelande.
+
+**Date/time edge cases (7 buggar):**
+3. `noreko-backend/classes/ShiftHandoverController.php` rad 90 — `new DateTime($createdAt)` utan try/catch i `timeAgo()`. Ogiltigt datum kastar Exception som inte fangas. Lade till try/catch som returnerar 'Okant datum'.
+4. `noreko-backend/classes/StoppageController.php` rad 281-282 — `new DateTime($startTime)` och `new DateTime($endTime)` utan try/catch i `createStoppage()`. Lade till try/catch med 400-svar.
+5. `noreko-backend/classes/StoppageController.php` rad 355-356 — `new DateTime($row['start_time'])` och `new DateTime($endTime)` utan try/catch i `updateStoppage()`. Lade till try/catch med error_log.
+6. `noreko-backend/classes/BonusController.php` rad 1318,1339 — `new DateTime($row['dag'])` i streak-berakning utan try/catch (catch fangar bara PDOException, inte Exception). Lade till try/catch per iteration.
+7. `noreko-backend/classes/BonusController.php` rad 1475 — `new DateTime($row['dag'])` i andra streak-berakningen utan try/catch. Lade till try/catch.
+8. `noreko-backend/classes/BonusController.php` rad 1812-1813 — `new DateTime($start/$end)` i `getDateFilter()` utan try/catch. Lade till try/catch som returnerar "1=0".
+9. `noreko-backend/classes/NewsController.php` rad 577 — `new \DateTime(trim($ds))` utan try/catch i streak-berakning. Lade till try/catch.
+
+**strtotime utan false-check (2 buggar):**
+10. `noreko-backend/classes/NewsController.php` rad 466 — `strtotime($row['event_datum'])` utan false-check, anvands i `date()`. Lade till `?: time()` fallback.
+11. `noreko-backend/classes/NewsController.php` rad 505 — `strtotime($row['event_datum'])` utan false-check. Lade till `?: time()` fallback.
+
+**DateTime utan try/catch i RebotlingAnalyticsController (3 buggar):**
+12. `noreko-backend/classes/RebotlingAnalyticsController.php` rad 489-490 — `new DateTime($fromDate/$toDate)` i `getOEETrend()` utanfor try/catch. Lade till try/catch med 400-svar.
+13. `noreko-backend/classes/RebotlingAnalyticsController.php` rad 1429-1430 — `new DateTime($startDate/$endDate)` i `getCycleByOperator()` utanfor try/catch. Lade till try/catch med 400-svar.
+14. `noreko-backend/classes/RebotlingAnalyticsController.php` rad 6284 — `new DateTime($today)` i `calcDailyStreak()` utan try/catch. Lade till try/catch som returnerar 0.
+
+**json_decode utan null-check (5 buggar — response consistency):**
+15a. `noreko-backend/classes/RebotlingAdminController.php` rad 172 — `saveWeekdayGoals()` json_decode utan is_array-check, `$data['goals']` pa null. Lade till guard.
+15b. `noreko-backend/classes/TvattlinjeController.php` rad 131 — `setSettings()` json_decode utan null-check. Lade till is_array guard.
+15c. `noreko-backend/classes/TvattlinjeController.php` rad 444 — `setWeekdayGoals()` json_decode utan null-check. Lade till is_array guard.
+15d. `noreko-backend/classes/TvattlinjeController.php` rad 660 — `saveAdminSettings()` json_decode utan null-check. Lade till is_array guard.
+15e. `noreko-backend/classes/KlassificeringslinjeController.php` rad 104 — `setSettings()` json_decode utan null-check. Lade till is_array guard.
+15f. `noreko-backend/classes/KlassificeringslinjeController.php` rad 216 — `setWeekdayGoals()` json_decode utan null-check. Lade till is_array guard.
+15g. `noreko-backend/classes/SaglinjeController.php` rad 104 — `setSettings()` json_decode utan null-check. Lade till is_array guard.
+15h. `noreko-backend/classes/SaglinjeController.php` rad 216 — `setWeekdayGoals()` json_decode utan null-check. Lade till is_array guard.
+16. `noreko-backend/classes/UnderhallsloggController.php` rad 512 — json_decode utan null-check, `$data['id']` pa null ger warning. Lade till is_array guard.
+15. `noreko-backend/classes/RebotlingController.php` rad 1397-1398 — `new DateTime($fromDate/$toDate)` i `getHeatmap()` utanfor try/catch. Lade till try/catch med 400-svar.
+
 ## 2026-03-17 Session #148 Worker A — 14 buggar fixade (transaction consistency, error handling)
 ### Uppgift: PHP transaction consistency + error handling audit
 Granskade alla PHP-controllers i noreko-backend/classes/ efter INSERT/UPDATE-operationer som borde anvanda transactions men inte gor det, samt json_decode() utan null-check.

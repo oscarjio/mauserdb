@@ -510,6 +510,10 @@ class UnderhallsloggController {
             }
 
             $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) {
+                $this->sendError('Ogiltig JSON-data');
+                return;
+            }
             $id = (int)($data['id'] ?? 0);
             if ($id <= 0) {
                 $this->sendError('Ogiltigt ID');

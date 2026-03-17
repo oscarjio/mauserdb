@@ -96,7 +96,14 @@ class VpnController {
         // Läs välkomstmeddelande innan vi skickar kommando
         $this->readUntilPrompt($socket, 1);
 
-        fwrite($socket, "kill {$commonName}\n");
+        $written = @fwrite($socket, "kill {$commonName}\n");
+        if ($written === false) {
+            @fclose($socket);
+            return [
+                'success' => false,
+                'message' => 'Kunde inte skicka kommando till management interface.'
+            ];
+        }
         $response = $this->readUntilPrompt($socket, 2);
         fclose($socket);
 
@@ -148,7 +155,16 @@ class VpnController {
             
             // Skicka status-kommando (status ger all information)
             $statusStart = microtime(true);
-            fwrite($socket, "status\n");
+            $written = @fwrite($socket, "status\n");
+            if ($written === false) {
+                @fclose($socket);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Kunde inte skicka status-kommando till management interface',
+                    'timings' => $timings
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             
             // Läs hela status-svaret - optimerad timeout
             $fullOutput = $this->readUntilPrompt($socket, 3);

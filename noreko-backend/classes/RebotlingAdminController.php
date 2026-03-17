@@ -170,6 +170,11 @@ class RebotlingAdminController {
 
     public function saveWeekdayGoals() {
         $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $goals = $data['goals'] ?? [];
         if (!is_array($goals)) {
             http_response_code(400);

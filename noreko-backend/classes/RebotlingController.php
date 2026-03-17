@@ -1394,8 +1394,13 @@ class RebotlingController {
                 [$fromDate, $toDate] = [$toDate, $fromDate];
             }
             // Begränsa till max 365 dagar
-            $startDt = new DateTime($fromDate);
-            $endDt   = new DateTime($toDate);
+            try {
+                $startDt = new DateTime($fromDate);
+                $endDt   = new DateTime($toDate);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $diffDays = (int)$startDt->diff($endDt)->days;
             if ($diffDays > 365) {
                 $fromDate = (clone $endDt)->modify('-365 days')->format('Y-m-d');

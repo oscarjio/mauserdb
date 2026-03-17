@@ -486,8 +486,14 @@ class RebotlingAnalyticsController {
                 [$fromDate, $toDate] = [$toDate, $fromDate];
             }
             // Begränsa till max 365 dagar för att förhindra timeout/memory exhaustion
-            $startDt = new DateTime($fromDate);
-            $endDt   = new DateTime($toDate);
+            try {
+                $startDt = new DateTime($fromDate);
+                $endDt   = new DateTime($toDate);
+            } catch (Exception $e) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $diffDays = (int)$startDt->diff($endDt)->days;
             if ($diffDays > 365) {
                 $fromDate = (clone $endDt)->modify('-365 days')->format('Y-m-d');
@@ -1420,8 +1426,14 @@ class RebotlingAnalyticsController {
         }
 
         // Begränsa datumintervall till max 365 dagar
-        $startDt = new DateTime($startDate);
-        $endDt   = new DateTime($endDate);
+        try {
+            $startDt = new DateTime($startDate);
+            $endDt   = new DateTime($endDate);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $diffDays = (int)$startDt->diff($endDt)->days;
         if ($diffDays > 365) {
             $startDate = (clone $endDt)->modify('-365 days')->format('Y-m-d');
@@ -6269,7 +6281,11 @@ HTML;
 
     private function calcDailyStreak(int $target, string $today): int {
         $streak = 0;
-        $date   = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
+        try {
+            $date = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
+        } catch (Exception $e) {
+            return 0;
+        }
         $date->modify('-1 day'); // Börja med igår
         $startDate = (clone $date)->modify('-364 days')->format('Y-m-d');
 

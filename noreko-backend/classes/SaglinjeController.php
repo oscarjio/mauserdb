@@ -102,6 +102,11 @@ class SaglinjeController {
 
     private function setSettings() {
         $data    = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $allowed = ['dagmal', 'takt_mal', 'skift_start', 'skift_slut'];
         try {
             $this->ensureSettingsTable();
@@ -214,6 +219,11 @@ class SaglinjeController {
 
     private function setWeekdayGoals() {
         $data  = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $goals = $data['goals'] ?? [];
         if (!is_array($goals)) {
             http_response_code(400);

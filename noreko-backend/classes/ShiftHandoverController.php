@@ -87,7 +87,11 @@ class ShiftHandoverController {
     private function timeAgo(string $createdAt): string {
         $tz      = new DateTimeZone('Europe/Stockholm');
         $now     = new DateTime('now', $tz);
-        $created = new DateTime($createdAt, $tz);
+        try {
+            $created = new DateTime($createdAt, $tz);
+        } catch (Exception $e) {
+            return 'Okänt datum';
+        }
         $diff    = $now->getTimestamp() - $created->getTimestamp();
 
         if ($diff < 60) {
