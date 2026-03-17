@@ -7,15 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP race condition audit** — concurrent requests, locking, DB transactions (Worker A #144)
-- [x] **PHP input length/boundary audit** — max-langder, overflow, edge cases (Worker A #144)
-- [x] **Angular template null-safety audit** — saknade ?. och *ngIf guards (Worker B #144)
-- [x] **Angular router guard audit** — saknade guards pa admin/auth-routes (Worker B #144)
+- [ ] **PHP error handling consistency** — granska try/catch-block, saknade rollback vid exception (Worker A #145)
+- [ ] **Angular HTTP error display** — granska att alla API-anrop visar felmeddelanden for anvandaren (Worker B #145)
+- [ ] **PHP session security audit** — session fixation, cookie flags, session regeneration (Worker A #145)
+- [ ] **Angular memory profiling** — granska komponenter for DOM-lackor, event listener cleanup (Worker B #145)
 - [ ] **Angular change detection audit** — OnPush-strategi (stor refactor, lag prioritet)
-- [ ] **PHP error handling consistency** — granska try/catch-block, saknade rollback vid exception
-- [ ] **Angular HTTP error display** — granska att alla API-anrop visar felmeddelanden for anvandaren
-- [ ] **PHP session security audit** — session fixation, cookie flags, session regeneration
-- [ ] **Angular memory profiling** — granska komponenter for DOM-lackor, event listener cleanup
+- [ ] **PHP SQL injection re-audit** — granska prepared statements, dynamiska kolumnnamn, ORDER BY
+- [ ] **Angular lazy loading performance** — granska bundle-storlekar, onodiga imports i components
 
 ## Parkerade features (ta inte dessa nu)
 
