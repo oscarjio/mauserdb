@@ -623,7 +623,9 @@ class ShiftPlanController {
                 }
                 $this->pdo->commit();
             } catch (Exception $txEx) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
                 throw $txEx;
             }
 

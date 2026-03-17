@@ -117,6 +117,7 @@ class MaintenanceController {
             $total = (int)$countStmt->fetchColumn();
 
             echo json_encode([
+                'success'     => true,
                 'entries'     => $entries,
                 'total_count' => $total
             ], JSON_UNESCAPED_UNICODE);

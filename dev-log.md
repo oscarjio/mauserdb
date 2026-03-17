@@ -1,3 +1,31 @@
+## 2026-03-17 Session #141 Worker A — 15 buggar fixade (response format, transaktioner, input-sanering)
+
+### Uppgift 1: PHP response format consistency (4 fix)
+Granskade alla PHP-controllers i noreko-backend/classes/ for inkonsekventa JSON-svar.
+1. MaintenanceController::listEntries — saknade 'success' => true i JSON-svaret
+2. OperatorCompareController::operatorsList — returnerade bar array utan 'success'-wrapper
+3. ShiftHandoverController::unreadCount — 3 kodvagar saknade 'success'-nyckel i JSON
+4. StatusController — 3 session-status-svar saknade 'success'-nyckel
+
+### Uppgift 2: PHP transaction audit (4 fix)
+Granskade alla controllers med beginTransaction/commit/rollBack.
+5. ShiftPlanController — rollBack() utan inTransaction()-check i catch-block
+6. RebotlingAdminController — rollBack() utan inTransaction()-check i catch-block
+7. BonusAdminController — rollBack() utan inTransaction()-check i catch-block (2 stallen)
+8. BonusAdminController — return inuti transaktion utan rollBack() vid ogiltigt belopp
+
+### Uppgift 3: PHP input sanitization audit (7 fix)
+Granskade alla controllers for saknad input-sanering.
+9. KassationsanalysController — in_array() utan strict (true) for group-parameter
+10. SkiftplaneringController — in_array() utan strict for skift-validering (2 stallen)
+11. RuntimeController — in_array() utan strict for line-validering (4 stallen)
+12. RebotlingController — in_array() utan strict for event_type-validering
+13. HistoriskProduktionController — in_array() utan strict for sort-parameter
+14. OperatorsportalController — $_GET['run'] ekad i felmeddelande utan htmlspecialchars()
+15. KvalitetstrendanalysController — $_GET['run'] ekad i felmeddelande utan htmlspecialchars()
+16. OperatorsbonusController — in_array() utan strict for faktor-validering
+17. LeveransplaneringController — in_array() utan strict for status-validering
+
 ## 2026-03-17 Session #141 Worker B — 40 buggar fixade (error state UI + setTimeout guards)
 
 ### Uppgift 1: Angular error state UI audit (7 fix)

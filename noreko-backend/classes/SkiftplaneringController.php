@@ -398,7 +398,7 @@ class SkiftplaneringController {
         $shift = strtoupper(trim($_GET['shift'] ?? ''));
         $date  = trim($_GET['date'] ?? '');
 
-        if (!in_array($shift, ['FM', 'EM', 'NATT'])) {
+        if (!in_array($shift, ['FM', 'EM', 'NATT'], true)) {
             $this->sendError('Ogiltig skifttyp (FM/EM/NATT)');
             return;
         }
@@ -510,7 +510,7 @@ class SkiftplaneringController {
             $this->sendError('operator_id krävs');
             return;
         }
-        if (!in_array($skiftTyp, ['FM', 'EM', 'NATT'])) {
+        if (!in_array($skiftTyp, ['FM', 'EM', 'NATT'], true)) {
             $this->sendError('Ogiltig skifttyp (FM/EM/NATT)');
             return;
         }

@@ -123,7 +123,7 @@ class ShiftHandoverController {
             session_start(['read_and_close' => true]);
         }
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['antal' => 0], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'antal' => 0], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -137,10 +137,10 @@ class ShiftHandoverController {
             ');
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            echo json_encode(['antal' => (int)($row['antal'] ?? 0)], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'antal' => (int)($row['antal'] ?? 0)], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('ShiftHandoverController::unreadCount: ' . $e->getMessage());
-            echo json_encode(['antal' => 0], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'antal' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
 

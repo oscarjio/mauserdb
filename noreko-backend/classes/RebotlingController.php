@@ -1710,7 +1710,7 @@ class RebotlingController {
             return;
         }
         $allowed = ['underhall', 'ny_operator', 'mal_andring', 'rekord', 'ovrigt'];
-        if (!in_array($type, $allowed)) $type = 'ovrigt';
+        if (!in_array($type, $allowed, true)) $type = 'ovrigt';
         try {
             $stmt = $this->pdo->prepare(
                 "INSERT INTO production_events (event_date, title, description, event_type, created_by)

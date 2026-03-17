@@ -721,7 +721,7 @@ class KassationsanalysController {
     private function getByPeriod(): void {
         $days     = $this->getDays();
         $group    = $_GET['group'] ?? 'week';
-        if (!in_array($group, ['week', 'month'])) $group = 'week';
+        if (!in_array($group, ['week', 'month'], true)) $group = 'week';
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 

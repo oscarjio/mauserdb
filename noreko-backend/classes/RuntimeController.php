@@ -61,7 +61,7 @@ class RuntimeController {
 
             // Validera line
             $validLines = ['tvattlinje', 'rebotling'];
-            if (!in_array($line, $validLines)) {
+            if (!in_array($line, $validLines, true)) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -139,7 +139,7 @@ class RuntimeController {
             }
 
             $validLines = ['tvattlinje', 'rebotling'];
-            if (!in_array($line, $validLines)) {
+            if (!in_array($line, $validLines, true)) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -188,7 +188,7 @@ class RuntimeController {
             }
 
             $validLines = ['tvattlinje', 'rebotling'];
-            if (!in_array($line, $validLines)) {
+            if (!in_array($line, $validLines, true)) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -234,7 +234,7 @@ class RuntimeController {
             }
 
             $validLines = ['tvattlinje', 'rebotling'];
-            if (!in_array($line, $validLines)) {
+            if (!in_array($line, $validLines, true)) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,

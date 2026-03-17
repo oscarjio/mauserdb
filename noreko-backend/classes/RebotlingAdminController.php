@@ -187,7 +187,9 @@ class RebotlingAdminController {
                 }
                 $this->pdo->commit();
             } catch (Exception $txEx) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
                 throw $txEx;
             }
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);

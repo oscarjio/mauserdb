@@ -52,7 +52,7 @@ class OperatorCompareController {
             }
             unset($r);
 
-            echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('OperatorCompareController::operatorsList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);

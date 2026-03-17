@@ -39,7 +39,7 @@ class KvalitetstrendanalysController {
             case 'per-operator':      $this->getPerOperator();      break;
             case 'alarm':             $this->getAlarm();            break;
             case 'heatmap':           $this->getHeatmap();          break;
-            default:                  $this->sendError('Ogiltig run: ' . $run); break;
+            default:                  $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 

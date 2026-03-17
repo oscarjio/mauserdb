@@ -811,6 +811,9 @@ class BonusAdminController {
                 }
                 $amount = filter_var($input[$level], FILTER_VALIDATE_INT);
                 if ($amount === false || $amount < 0 || $amount > 100000) {
+                    if ($this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
+                    }
                     $this->sendError("Ogiltigt belopp for niva: $level (0-100 000 kr)");
                     return;
                 }
@@ -823,14 +826,18 @@ class BonusAdminController {
             }
 
             if (empty($saved)) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
                 $this->sendError('Inga giltiga belopp skickades');
                 return;
             }
 
             $this->pdo->commit();
             } catch (Exception $txEx) {
-                $this->pdo->rollBack();
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
                 throw $txEx;
             }
 

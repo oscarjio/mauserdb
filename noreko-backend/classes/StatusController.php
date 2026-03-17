@@ -23,7 +23,7 @@ class StatusController {
         }
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -41,7 +41,7 @@ class StatusController {
                 session_start();
                 session_unset();
                 session_destroy();
-                echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -49,6 +49,7 @@ class StatusController {
             $role = $user['role'] ?? (((int)$user['admin'] === 1) ? 'admin' : 'user');
 
             echo json_encode([
+                'success' => true,
                 'loggedIn' => true,
                 'user' => [
                     'id' => $userId,
@@ -60,7 +61,7 @@ class StatusController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('StatusController::fel: ' . $e->getMessage());
-            echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
         }
     }
 

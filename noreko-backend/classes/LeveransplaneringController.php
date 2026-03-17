@@ -202,7 +202,7 @@ class LeveransplaneringController {
             $where = [];
             $params = [];
 
-            if ($status !== 'alla' && in_array($status, ['planerad','i_produktion','levererad','forsenad'])) {
+            if ($status !== 'alla' && in_array($status, ['planerad','i_produktion','levererad','forsenad'], true)) {
                 $where[] = "status = :status";
                 $params[':status'] = $status;
             }

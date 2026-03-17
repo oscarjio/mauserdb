@@ -619,7 +619,7 @@ class OperatorsbonusController {
             $updated = 0;
             foreach ($data as $item) {
                 $faktor = trim($item['faktor'] ?? '');
-                if (!in_array($faktor, $validFaktorer)) continue;
+                if (!in_array($faktor, $validFaktorer, true)) continue;
 
                 $vikt     = max(0, min(100, (float)($item['vikt'] ?? 0)));
                 $malVarde = max(0, (float)($item['mal_varde'] ?? 0));
