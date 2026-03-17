@@ -568,17 +568,20 @@ class SkiftoverlamningController {
         try {
             $where  = [];
             $params = [];
+            $paramIdx = 0;
 
             $skiftTyp = trim($_GET['skift_typ'] ?? '');
             if (in_array($skiftTyp, ['dag', 'kvall', 'natt'], true)) {
-                $where[]  = 'l.skift_typ = ?';
-                $params[] = $skiftTyp;
+                $paramIdx++;
+                $where[]  = "l.skift_typ = :p{$paramIdx}";
+                $params[":p{$paramIdx}"] = $skiftTyp;
             }
 
             $opId = isset($_GET['operator_id']) ? (int)$_GET['operator_id'] : 0;
             if ($opId > 0) {
-                $where[]  = 'l.operator_id = ?';
-                $params[] = $opId;
+                $paramIdx++;
+                $where[]  = "l.operator_id = :p{$paramIdx}";
+                $params[":p{$paramIdx}"] = $opId;
             }
 
             $from = trim($_GET['from'] ?? '');
@@ -595,12 +598,14 @@ class SkiftoverlamningController {
                 }
             }
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
-                $where[]  = 'l.datum >= ?';
-                $params[] = $from;
+                $paramIdx++;
+                $where[]  = "l.datum >= :p{$paramIdx}";
+                $params[":p{$paramIdx}"] = $from;
             }
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
-                $where[]  = 'l.datum <= ?';
-                $params[] = $to;
+                $paramIdx++;
+                $where[]  = "l.datum <= :p{$paramIdx}";
+                $params[":p{$paramIdx}"] = $to;
             }
 
             $whereSql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';

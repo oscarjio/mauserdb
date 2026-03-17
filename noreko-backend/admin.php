@@ -2,6 +2,8 @@
 // admin.php - LEGACY STUB, all admin traffic goes through api.php?action=admin
 // This file is kept to prevent 404 but does NOT expose any admin functionality.
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
 http_response_code(410);
 echo json_encode([
     'success' => false,

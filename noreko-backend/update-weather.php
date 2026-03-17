@@ -4,9 +4,21 @@
  * Anropas via: wget http://localhost/noreko-backend/update-weather.php
  */
 
-// Databasanslutning
-$pdo = new PDO('mysql:host=localhost:33061;dbname=mauserdb;charset=utf8mb4', 'aiab', 'Noreko2025');
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// Databasanslutning via db_config.php (inga hårdkodade credentials)
+$dbConfig = __DIR__ . '/db_config.php';
+if (!file_exists($dbConfig)) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas']);
+    exit;
+}
+$db = require $dbConfig;
+$pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+]);
+
+// Security headers
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
 
 // API URL för väderdata
 $apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=57.96&longitude=12.12&current=temperature_2m&temperature_unit=celsius&timezone=Europe/Stockholm';
@@ -60,7 +72,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage(),
+        'error' => 'Väderdata kunde inte uppdateras',
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     

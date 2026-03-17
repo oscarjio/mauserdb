@@ -1,3 +1,31 @@
+## 2026-03-17 Session #140 Worker A — PHP backend: 7 buggar fixade (SQL-injection, credentials, error_log, security headers)
+
+### Uppgift 1: PHP SQL query consistency — prepared statements, bindParam-typer
+
+**BUGG 1 FIXAD (mixed PDO placeholders):** SkiftoverlamningController.php getList() — Blandade `?`-placeholders med namngivna parametrar (`:lim`, `:off`) i samma SQL-fraga. PDO stodjer inte blandade placeholder-typer. Konverterade alla `?` till namngivna params (`:p1`, `:p2`, etc.) sa att alla parametrar ar konsistenta.
+
+**BUGG 2 FIXAD (LIMIT/OFFSET utan PARAM_INT):** AuditController.php getLogs() — LIMIT och OFFSET skickades som strangvarden via execute()-arrayen. Andrat till inline integer-cast for sakrare hantering, da vardena redan ar validerade med intval()/max()/min().
+
+### Uppgift 2: PHP error_log audit — sakerhetskanslig data
+
+**BUGG 3 FIXAD (e-post i error_log):** RebotlingAnalyticsController.php rad 4502 — Loggade mottagarens e-postadress vid misslyckad e-postutskick. Ersatt med generiskt meddelande utan persondata.
+
+**BUGG 4 FIXAD (e-post i error_log):** RebotlingAnalyticsController.php rad 5649 — Samma problem for veckosammanfattning-e-post. Ersatt med generiskt meddelande.
+
+**BUGG 5 FIXAD (PII i audit):** AdminController.php — create_user loggade e-post och telefonnummer i audit_log extra_data. Borttaget.
+
+**BUGG 6 FIXAD (felmeddelande exponerat):** update-weather.php — Exception-meddelande skickades direkt till klienten ($e->getMessage()). Ersatt med generiskt felmeddelande — detaljerat fel loggas enbart till error_log.
+
+### Uppgift 3: PHP CORS/headers audit
+
+CORS i api.php ar korrekt implementerad: dynamisk origin-validering mot vitlista + cors_origins.php, inga wildcards (*). Security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy) ar alla pa plats i api.php.
+
+**BUGG 7 FIXAD (hardkodade credentials):** update-weather.php rad 8 — Databasanslutning med hardkodade credentials direkt i koden istallet for db_config.php. Andrat till att lasa fran db_config.php precis som api.php gor.
+
+**Saknade security headers:** login.php, admin.php (legacy stubs) och update-weather.php saknade X-Content-Type-Options och X-Frame-Options. Lagt till.
+
+---
+
 ## 2026-03-17 Session #139 Worker A — PHP backend: 13 buggar fixade (SQL-kolumner, timestamp, GROUP BY, null-safety, dead code)
 
 ### Uppgift 1: PHP file operation safety audit

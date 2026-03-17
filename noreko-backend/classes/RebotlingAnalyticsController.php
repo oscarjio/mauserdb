@@ -4499,7 +4499,7 @@ class RebotlingAnalyticsController {
                 if (mail($email, $subject, $html, $headers)) {
                     $sentTo[] = $email;
                 } else {
-                    error_log("RebotlingAnalyticsController::sendAutoShiftReport: Kunde inte skicka till $email");
+                    error_log("RebotlingAnalyticsController::sendAutoShiftReport: Kunde inte skicka e-post till mottagare");
                 }
             }
 
@@ -5646,7 +5646,7 @@ HTML;
                 if (mail($email, $subject, $html, $headers)) {
                     $sentTo[] = $email;
                 } else {
-                    error_log("RebotlingAnalyticsController::sendWeeklySummaryEmail: Kunde inte skicka till $email");
+                    error_log("RebotlingAnalyticsController::sendWeeklySummaryEmail: Kunde inte skicka e-post till mottagare");
                 }
             }
 

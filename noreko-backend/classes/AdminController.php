@@ -91,9 +91,7 @@ class AdminController {
                     
                     $newId = $pdo->lastInsertId();
                     AuditLogger::log($pdo, 'create_user', 'user', (int)$newId,
-                        "Skapade användare: $username",
-                        null,
-                        ['username' => $username, 'email' => $email, 'phone' => $phone]
+                        "Skapade användare: $username"
                     );
                     echo json_encode([
                         'success' => true,

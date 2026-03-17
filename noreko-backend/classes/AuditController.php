@@ -117,13 +117,11 @@ class AuditController {
             $total = (int)$countStmt->fetchColumn();
 
             // Fetch page
-            $params[] = $limit;
-            $params[] = $offset;
             $stmt = $this->pdo->prepare("
                 SELECT * FROM audit_log
                 WHERE $whereClause
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT " . (int)$limit . " OFFSET " . (int)$offset . "
             ");
             $stmt->execute($params);
 
