@@ -1,3 +1,54 @@
+## 2026-03-17 Session #137 Worker B — Angular frontend: 14 buggar fixade (null-check, input sanitization, HTTP timeout)
+
+### Uppgift 1: Angular template strict null-check audit
+Granskade ALLA .html-templates i noreko-frontend/src/app/pages/ (exkl. *-live-kataloger).
+
+**BUGG 1-2 FIXADE:** min-dag.html rad 98, 117 — pipe-precedens-bugg: `{{ summary?.kvalitet_pct ?? 0 | number:'1.1-1' }}` applicerar pipe pa 0 istallet for hela uttrycket. Fixat med parenteser: `{{ (summary?.kvalitet_pct ?? 0) | number:'1.1-1' }}`.
+
+**BUGG 3-4 FIXADE:** kassationskvot-alarm.component.html rad 122-126, 138-148 — saknade null-guards for `trendData.troskel` och `aktuellData.troskel`. Lade till `?.troskel` i *ngIf-villkor och `!`-assertions i interpoleringar.
+
+**BUGG 5 FIXAD:** produktionseffektivitet.ts rad 135 — implicit `any`-typ pa filter-callback. Lade till `(t: any)`.
+
+### Uppgift 2: Angular form input sanitization audit
+Granskade alla komponenter som POSTar anvandardata. Inga [innerHTML]-bindningar hittades (ingen XSS-risk).
+
+**BUGG 6 FIXAD:** create-user.html — saknade `maxlength="20"` pa telefon-inputfalt.
+
+**BUGG 7 FIXAD:** create-user.ts — saknade `.trim()` pa username, email, phone fore POST.
+
+**BUGG 8 FIXAD:** register.ts — saknade `.trim()` pa username, email, phone, code fore POST.
+
+**BUGG 9 FIXAD:** statistik-annotationer.html — saknade `maxlength="500"` pa beskrivning-inputfalt.
+
+**BUGG 10 FIXAD:** statistik-annotationer.ts — saknade `.trim()` pa titel och beskrivning fore POST.
+
+### Uppgift 3: Angular HTTP retry/timeout audit
+Granskade ALLA services i noreko-frontend/src/app/services/. auth.service.ts och users.service.ts hade redan timeout+catchError.
+
+**BUGG 11 FIXAD:** klassificeringslinje.service.ts — 6 HTTP-anrop saknade timeout() och catchError(). Lade till `.pipe(timeout(15000), catchError(() => of(null)))`.
+
+**BUGG 12 FIXAD:** saglinje.service.ts — 6 HTTP-anrop saknade timeout() och catchError(). Samma fix.
+
+**BUGG 13 FIXAD:** tvattlinje.service.ts — 4 HTTP-anrop saknade timeout() och catchError(). Samma fix.
+
+**BUGG 14 FIXAD:** rebotling.service.ts — 74 HTTP-anrop saknade timeout() och catchError(). Lade till pipe pa alla 74 anrop, andrade returtyper till `Observable<any>` for typkompatibilitet med null.
+
+**Andrade filer:**
+- noreko-frontend/src/app/pages/rebotling/min-dag/min-dag.html
+- noreko-frontend/src/app/pages/rebotling/kassationskvot-alarm/kassationskvot-alarm.component.html
+- noreko-frontend/src/app/pages/rebotling/produktionseffektivitet/produktionseffektivitet.ts
+- noreko-frontend/src/app/pages/create-user/create-user.html
+- noreko-frontend/src/app/pages/create-user/create-user.ts
+- noreko-frontend/src/app/pages/register/register.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-annotationer/statistik-annotationer.html
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-annotationer/statistik-annotationer.ts
+- noreko-frontend/src/app/services/klassificeringslinje.service.ts
+- noreko-frontend/src/app/services/saglinje.service.ts
+- noreko-frontend/src/app/services/tvattlinje.service.ts
+- noreko-frontend/src/app/services/rebotling.service.ts
+
+---
+
 ## 2026-03-17 Session #137 Worker A — PHP-backend: 9 buggar fixade (session security, SQL columns, date validation)
 
 ### Uppgift 1: PHP session/cookie security audit

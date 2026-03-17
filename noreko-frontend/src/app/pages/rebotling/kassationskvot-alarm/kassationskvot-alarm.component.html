@@ -119,10 +119,10 @@
             Ingen data senaste 24h
           </div>
           <!-- Troskelfargforklaring -->
-          <div *ngIf="trendData" class="d-flex gap-3 mt-2 justify-content-center small">
-            <span><span class="legend-dot gron-dot"></span>Under varning (&lt;{{ trendData.troskel.varning_procent }}%)</span>
-            <span><span class="legend-dot gul-dot"></span>Varning ({{ trendData.troskel.varning_procent }}–{{ trendData.troskel.alarm_procent }}%)</span>
-            <span><span class="legend-dot rod-dot"></span>Alarm (&gt;{{ trendData.troskel.alarm_procent }}%)</span>
+          <div *ngIf="trendData?.troskel" class="d-flex gap-3 mt-2 justify-content-center small">
+            <span><span class="legend-dot gron-dot"></span>Under varning (&lt;{{ trendData!.troskel!.varning_procent }}%)</span>
+            <span><span class="legend-dot gul-dot"></span>Varning ({{ trendData!.troskel!.varning_procent }}–{{ trendData!.troskel!.alarm_procent }}%)</span>
+            <span><span class="legend-dot rod-dot"></span>Alarm (&gt;{{ trendData!.troskel!.alarm_procent }}%)</span>
           </div>
         </div>
       </div>
@@ -135,15 +135,15 @@
           <i class="fas fa-sliders-h me-2" style="color:#ecc94b"></i>Troskelinstallning
         </div>
         <div class="card-dark-body">
-          <ng-container *ngIf="aktuellData">
+          <ng-container *ngIf="aktuellData?.troskel">
             <div class="mb-3 p-2 rounded" style="background:#1a202c">
               <div class="d-flex justify-content-between mb-1">
                 <span class="text-muted small">Nuvarande varning:</span>
-                <span class="text-warning fw-bold">{{ aktuellData.troskel.varning_procent }}%</span>
+                <span class="text-warning fw-bold">{{ aktuellData!.troskel!.varning_procent }}%</span>
               </div>
               <div class="d-flex justify-content-between">
                 <span class="text-muted small">Nuvarande alarm:</span>
-                <span class="text-danger fw-bold">{{ aktuellData.troskel.alarm_procent }}%</span>
+                <span class="text-danger fw-bold">{{ aktuellData!.troskel!.alarm_procent }}%</span>
               </div>
             </div>
           </ng-container>

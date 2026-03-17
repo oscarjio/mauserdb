@@ -132,7 +132,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success && res.data) {
-          this.summaryTimmar = res.data.timmar.filter(t => t.snitt_ibc !== null);
+          this.summaryTimmar = res.data.timmar.filter((t: any) => t.snitt_ibc !== null);
           this.computeKpis();
           setTimeout(() => {
             if (!this.destroy$.closed) { this.buildLineChart(); }

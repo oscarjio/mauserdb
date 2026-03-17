@@ -79,7 +79,14 @@ export class CreateUserPage implements OnInit, OnDestroy {
 
     this.isLoading = true;
 
-    this.usersService.createUser(this.user).pipe(
+    const trimmedUser = {
+      username: this.user.username.trim(),
+      password: this.user.password,
+      email: this.user.email.trim(),
+      phone: this.user.phone.trim()
+    };
+
+    this.usersService.createUser(trimmedUser).pipe(
       takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {

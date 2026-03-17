@@ -84,8 +84,8 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
     this.rebotlingService.createManualAnnotation({
       datum: this.newDatum,
       typ: this.newTyp,
-      titel: this.newTitel,
-      beskrivning: this.newBeskrivning
+      titel: this.newTitel.trim(),
+      beskrivning: this.newBeskrivning.trim()
     }).pipe(
       timeout(10000),
       takeUntil(this.destroy$),

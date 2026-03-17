@@ -92,12 +92,12 @@ export class RegisterPage implements OnDestroy {
     this.isLoading = true;
 
     this.http.post<any>('/noreko-backend/api.php?action=register', {
-      username: this.user.username,
+      username: this.user.username.trim(),
       password: this.user.password,
       password2: this.user.password2,
-      email: this.user.email,
-      phone: this.user.phone,
-      code: this.user.code
+      email: this.user.email.trim(),
+      phone: this.user.phone.trim(),
+      code: this.user.code.trim()
     }, { withCredentials: true }).pipe(
       takeUntil(this.destroy$),
       timeout(8000),

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
 
 export interface LineStatusResponse {
   success: boolean;
@@ -81,31 +82,31 @@ export interface OeeTrendResponse {
 export class TvattlinjeService {
   constructor(private http: HttpClient) {}
 
-  getLiveStats(): Observable<TvattlinjeLiveStatsResponse> {
+  getLiveStats(): Observable<any> {
     return this.http.get<TvattlinjeLiveStatsResponse>(
       '/noreko-backend/api.php?action=tvattlinje',
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getRunningStatus(): Observable<LineStatusResponse> {
+  getRunningStatus(): Observable<any> {
     return this.http.get<LineStatusResponse>(
       '/noreko-backend/api.php?action=tvattlinje&run=status',
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getStatistics(startDate: string, endDate: string): Observable<StatisticsResponse> {
+  getStatistics(startDate: string, endDate: string): Observable<any> {
     return this.http.get<StatisticsResponse>(
       `/noreko-backend/api.php?action=tvattlinje&run=statistics&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getOeeTrend(dagar: number = 30): Observable<OeeTrendResponse> {
+  getOeeTrend(dagar: number = 30): Observable<any> {
     return this.http.get<OeeTrendResponse>(
       `/noreko-backend/api.php?action=tvattlinje&run=oee-trend&dagar=${dagar}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 }
