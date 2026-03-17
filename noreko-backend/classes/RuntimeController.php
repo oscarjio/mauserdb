@@ -123,8 +123,8 @@ class RuntimeController {
      * Registrerar rast via POST
      */
     private function registerBreak() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
         try {
             $line = $data['line'] ?? null;
             $rastStatus = isset($data['rast_status']) ? (int)$data['rast_status'] : null;

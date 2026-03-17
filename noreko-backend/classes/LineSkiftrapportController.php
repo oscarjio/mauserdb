@@ -45,7 +45,7 @@ class LineSkiftrapportController {
                 return;
             }
 
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = json_decode(file_get_contents('php://input'), true) ?? [];
             $action = $data['action'] ?? '';
 
             switch ($action) {
@@ -245,8 +245,13 @@ class LineSkiftrapportController {
                 $stmt = $this->pdo->prepare("SELECT antal_ok, antal_ej_ok FROM `$table` WHERE id = ?");
                 $stmt->execute([$id]);
                 $cur = $stmt->fetch(PDO::FETCH_ASSOC);
-                $final_ok    = isset($data['antal_ok'])    ? intval($data['antal_ok'])    : $cur['antal_ok'];
-                $final_ej_ok = isset($data['antal_ej_ok']) ? intval($data['antal_ej_ok']) : $cur['antal_ej_ok'];
+                if (!$cur) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'error' => 'Rapport hittades inte'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                $final_ok    = isset($data['antal_ok'])    ? intval($data['antal_ok'])    : (int)$cur['antal_ok'];
+                $final_ej_ok = isset($data['antal_ej_ok']) ? intval($data['antal_ej_ok']) : (int)$cur['antal_ej_ok'];
                 $fields[] = 'totalt = ?';
                 $params[] = $final_ok + $final_ej_ok;
             }
@@ -319,8 +324,12 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna'], JSON_UNESCAPED_UNICODE);
                 return;
             }
-            $ids = array_map('intval', $ids);
-            $ids = array_filter($ids, fn($id) => $id > 0);
+            $ids = array_values(array_filter(array_map('intval', $ids), fn($id) => $id > 0));
+            if (empty($ids)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Inga giltiga ID:n angivna'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $stmt = $this->pdo->prepare("DELETE FROM `$table` WHERE id IN ($placeholders)");
             $stmt->execute(array_values($ids));
@@ -344,6 +353,11 @@ class LineSkiftrapportController {
                 return;
             }
             $ids = array_values(array_filter(array_map('intval', $ids), fn($id) => $id > 0));
+            if (empty($ids)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Inga giltiga ID:n angivna'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $params = array_merge([$inlagd], $ids);
             $stmt = $this->pdo->prepare("UPDATE `$table` SET inlagd = ? WHERE id IN ($placeholders)");

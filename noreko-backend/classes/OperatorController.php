@@ -27,7 +27,7 @@ class OperatorController {
         AuditLogger::ensureTable($pdo);
 
         if ($isPost) {
-            $data = json_decode(file_get_contents('php://input'), true);
+            $data = json_decode(file_get_contents('php://input'), true) ?? [];
             $action = $data['action'] ?? '';
 
             if ($action === 'create') {

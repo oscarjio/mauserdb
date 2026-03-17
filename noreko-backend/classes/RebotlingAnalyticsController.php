@@ -4533,6 +4533,9 @@ class RebotlingAnalyticsController {
         int $drifttid, int $rasttime, float $kvalitet, float $ibcPerH,
         array $operators, array $products, array $rows
     ): string {
+        // $shift används i subject/metadata men inte direkt i HTML-kroppen.
+        // Behåller parametern för API-kompatibilitet men undertrycker unused-varning.
+        unset($shift);
         $driftH = floor($drifttid / 60);
         $driftM = $drifttid % 60;
         $rastH  = floor($rasttime / 60);

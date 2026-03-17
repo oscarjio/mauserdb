@@ -627,7 +627,7 @@ class OperatorsPrestandaController {
             $veckoStart = date('Y-m-d', strtotime("monday -{$i} weeks"));
             $veckoSlut  = date('Y-m-d', strtotime("sunday -{$i} weeks"));
             $veckoNr    = (int)date('W', strtotime($veckoStart));
-            $ar         = (int)date('Y', strtotime($veckoStart));
+            $ar         = (int)date('o', strtotime($veckoStart)); // 'o' = ISO-8601 år (korrekt vid årsgräns)
 
             try {
                 $sql = "

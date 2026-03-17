@@ -135,6 +135,12 @@ class AdminController {
                     $stmt->execute([$id]);
                     $deletedUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
+                    if (!$deletedUser) {
+                        http_response_code(404);
+                        echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
+                        return;
+                    }
+
                     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
                     $stmt->execute([$id]);
                     AuditLogger::log($pdo, 'delete_user', 'user', (int)$id,
