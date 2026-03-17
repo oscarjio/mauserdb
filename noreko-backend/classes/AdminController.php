@@ -70,7 +70,8 @@ class AdminController {
                 try {
                     $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'active'");
                     $activeExists = $stmt->rowCount() > 0;
-                } catch (PDOException) {
+                } catch (PDOException $e) {
+                    error_log('AdminController::create_user SHOW COLUMNS: ' . $e->getMessage());
                     $activeExists = false;
                 }
 

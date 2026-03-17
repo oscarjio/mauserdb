@@ -1,3 +1,28 @@
+## 2026-03-17 Session #145 Worker A — 18 buggar fixade (error handling, session security)
+### Uppgift 1: PHP error handling consistency — 14 fix
+1. ProfileController.php — DB-fraga (SELECT user) utanfor try/catch. Lade till try/catch med error_log och HTTP 500-svar.
+2. SkiftrapportController.php — ensureTableExists catch(PDOException) svaljde exception utan error_log. Lade till error_log.
+3. SkiftrapportController.php — getSkiftTider onoff-fallback: tom catch(Exception){} svaljde DB-fel. Lade till error_log.
+4. SkiftrapportController.php — getSkiftTider runtime-fallback: tom catch(Exception){} svaljde DB-fel. Lade till error_log.
+5. SkiftrapportController.php — 7 felmeddelanden anvande 'message'-nyckel istallet for 'error' i JSON-svar (inkonsekvent med alla andra controllers). Andrade till 'error'.
+6. RegisterController.php — felmeddelande vid databasfel anvande 'message'-nyckel istallet for 'error'. Andrade till 'error'.
+7. AuthHelper.php — getLockoutRemaining catch(PDOException) utan error_log. Lade till error_log.
+8. AdminController.php — create_user SHOW COLUMNS catch(PDOException) utan error_log. Lade till error_log.
+9. ShiftPlanController.php — getStaffingWarning catch(Exception $ignored) utan error_log. Lade till error_log.
+10. RebotlingAdminController.php — meningslos try/catch runt array-push (kan inte kasta exception). Tog bort onodigt try/catch-block.
+11. BonusAdminController.php — exportReport tier amounts: catch(PDOException) utan error_log. Lade till error_log.
+12. BonusAdminController.php — operatorForecast config: catch(PDOException) utan error_log. Lade till error_log.
+13. RebotlingAnalyticsController.php — getShiftPdfSummary kommentar: tom catch(Exception){} svaljde DB-fel. Lade till error_log.
+14. DashboardLayoutController.php — handle() oppnade session med read_and_close for ALLA requests inklusive POST. Fixade till POST=session_start(), GET=read_and_close. Tog bort redundant session_start i saveLayout.
+### Uppgift 2: PHP session security audit — 4 fix
+1. api.php — session cookie lifetime var 86400 (24h) men AuthHelper::SESSION_TIMEOUT ar 28800 (8h). Synkade cookie lifetime till 28800.
+2. api.php — session.gc_maxlifetime var 86400 (24h), matchade inte SESSION_TIMEOUT. Andrade till 28800.
+3. api.php — Lade till session.use_strict_mode=1 for att avvisa oinitierade session-ID:n (skyddar mot session fixation).
+4. api.php — Lade till session.use_only_cookies=1 och session.use_trans_sid=0 for att forhindra session-ID i URL (extra session fixation-skydd).
+### LeveransplaneringController.php — 1 fix (raknades in i Uppgift 1 punkt 14-liknande)
+LeveransplaneringController.php — handle() oppnade session med read_and_close for ALLA requests inklusive POST (skapa-order, uppdatera-order). Fixade till POST=session_start(), GET=read_and_close.
+Filer andrade: noreko-backend/api.php, noreko-backend/classes/ProfileController.php, noreko-backend/classes/SkiftrapportController.php, noreko-backend/classes/AuthHelper.php, noreko-backend/classes/AdminController.php, noreko-backend/classes/ShiftPlanController.php, noreko-backend/classes/RebotlingAdminController.php, noreko-backend/classes/BonusAdminController.php, noreko-backend/classes/RebotlingAnalyticsController.php, noreko-backend/classes/DashboardLayoutController.php, noreko-backend/classes/LeveransplaneringController.php, noreko-backend/classes/RegisterController.php
+
 ## 2026-03-17 Session #144 Worker B — 14 buggar fixade (null-safety, router guard, template safety)
 
 ### Uppgift 1: Angular template null-safety audit — 12 fix

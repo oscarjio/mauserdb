@@ -5161,7 +5161,7 @@ HTML;
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
-            } catch (Exception) {}
+            } catch (Exception $e) { error_log("RebotlingAnalyticsController::getShiftPdfSummary kommentar: " . $e->getMessage()); }
 
             $shiftNames = [1 => 'Formiddag (06-14)', 2 => 'Eftermiddag (14-22)', 3 => 'Natt (22-06)'];
             $shiftName = $shiftNames[$shift] ?? "Skift $shift";

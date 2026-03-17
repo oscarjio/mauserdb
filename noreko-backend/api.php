@@ -64,14 +64,17 @@ if (session_status() === PHP_SESSION_NONE) {
     $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
                (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     session_set_cookie_params([
-        'lifetime' => 86400,
+        'lifetime' => 28800,   // 8 timmar — matchar AuthHelper::SESSION_TIMEOUT
         'path'     => '/',
         'domain'   => '',
         'secure'   => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    @ini_set('session.gc_maxlifetime', '86400');
+    @ini_set('session.gc_maxlifetime', '28800');  // 8 timmar — matchar AuthHelper::SESSION_TIMEOUT
+    @ini_set('session.use_strict_mode', '1');     // Avvisa oinitierade session-ID:n (skydd mot session fixation)
+    @ini_set('session.use_only_cookies', '1');    // Förhindra session-ID i URL (skydd mot session fixation)
+    @ini_set('session.use_trans_sid', '0');       // Förhindra session-ID i URL-parametrar
 }
 
 // Databasanslutning

@@ -373,8 +373,9 @@ class ShiftPlanController {
                 if ($sr && isset($sr['min_operators'])) {
                     $minOps = max(1, (int)$sr['min_operators']);
                 }
-            } catch (Exception $ignored) {
-                // Kolumnen finns inte ännu
+            } catch (Exception $e) {
+                // Kolumnen finns inte ännu — logga för diagnostik
+                error_log('ShiftPlanController::getStaffingWarning min_operators: ' . $e->getMessage());
             }
 
             $today   = date('Y-m-d');

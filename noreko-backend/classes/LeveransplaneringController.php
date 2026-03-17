@@ -22,8 +22,13 @@ class LeveransplaneringController {
     }
 
     public function handle(): void {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if (session_status() === PHP_SESSION_NONE) {
-            session_start(['read_and_close' => true]);
+            if ($method === 'POST') {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
         }
 
         if (empty($_SESSION['user_id'])) {

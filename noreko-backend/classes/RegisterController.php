@@ -127,7 +127,7 @@ class RegisterController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte skapa användare. Försök igen senare.'
+                'error' => 'Kunde inte skapa användare. Försök igen senare.'
             ], JSON_UNESCAPED_UNICODE);
         }
     }

@@ -20,9 +20,16 @@ class ProfileController {
 
         global $pdo;
 
-        $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('ProfileController::handle fetch user: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av användarprofil.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
 
         if (!$user) {
             session_unset();

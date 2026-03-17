@@ -97,7 +97,8 @@ class AuthHelper {
             if ($oldestTs === false) return self::LOCKOUT_MINUTES;
             $unlockAt = $oldestTs + (self::LOCKOUT_MINUTES * 60);
             return max(1, (int)ceil(($unlockAt - time()) / 60));
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('AuthHelper::getLockoutRemaining: ' . $e->getMessage());
             return self::LOCKOUT_MINUTES;
         }
     }

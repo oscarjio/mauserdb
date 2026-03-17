@@ -190,8 +190,8 @@ class SkiftrapportController {
                     }
                 }
             }
-        } catch (PDOException) {
-            // Ignorera om tabellen redan finns
+        } catch (PDOException $e) {
+            error_log('SkiftrapportController::ensureTableExists: ' . $e->getMessage());
         }
     }
 
@@ -223,7 +223,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte hämta skiftrapporter'
+                'error' => 'Kunde inte hämta skiftrapporter'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -262,7 +262,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte skapa skiftrapport'
+                'error' => 'Kunde inte skapa skiftrapport'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -291,7 +291,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte ta bort skiftrapport'
+                'error' => 'Kunde inte ta bort skiftrapport'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -327,7 +327,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte ta bort skiftrapporter'
+                'error' => 'Kunde inte ta bort skiftrapporter'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -358,7 +358,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera status'
+                'error' => 'Kunde inte uppdatera status'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -397,7 +397,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera status'
+                'error' => 'Kunde inte uppdatera status'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -491,7 +491,7 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera skiftrapport'
+                'error' => 'Kunde inte uppdatera skiftrapport'
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -623,7 +623,9 @@ class SkiftrapportController {
                 $maxStmt->execute([$foundSkiftraknare]);
                 $slutTid = $maxStmt->fetchColumn() ?: null;
             }
-        } catch (Exception) {}
+        } catch (Exception $e) {
+            error_log('SkiftrapportController::getSkiftTider onoff: ' . $e->getMessage());
+        }
 
         // Fallback: cykeltider om onoff saknas
         if (!$startTid || !$slutTid) {
@@ -657,7 +659,9 @@ class SkiftrapportController {
                         $slutTid = date('Y-m-d H:i:s', strtotime($startTid) + ($runtimeMin * 60));
                     }
                 }
-            } catch (Exception) {}
+            } catch (Exception $e) {
+                error_log('SkiftrapportController::getSkiftTider runtime fallback: ' . $e->getMessage());
+            }
         }
 
         return [

@@ -77,10 +77,8 @@ class RebotlingAdminController {
             if ($alertThreshold  !== null) { $fields[] = 'alert_threshold = ?';  $params[] = $alertThreshold; }
             // min_operators sparas om kolumnen finns
             if ($minOperators !== null) {
-                try {
-                    $fields[] = 'min_operators = ?';
-                    $params[] = $minOperators;
-                } catch (\Exception $ignored) {}
+                $fields[] = 'min_operators = ?';
+                $params[] = $minOperators;
             }
 
             if (!empty($fields)) {

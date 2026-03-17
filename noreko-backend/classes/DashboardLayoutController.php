@@ -61,8 +61,13 @@ class DashboardLayoutController {
     }
 
     public function handle(): void {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if (session_status() === PHP_SESSION_NONE) {
-            session_start(['read_and_close' => true]);
+            if ($method === 'POST') {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
         }
 
         if (empty($_SESSION['user_id'])) {
@@ -70,8 +75,7 @@ class DashboardLayoutController {
             return;
         }
 
-        $run    = trim($_GET['run'] ?? '');
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
             case 'get-layout':
@@ -129,11 +133,6 @@ class DashboardLayoutController {
     // ENDPOINT: save-layout (POST)
     // ================================================================
     private function saveLayout(): void {
-        // Öppna session för skrivning
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         $userId = (int)$_SESSION['user_id'];
 
         $body = json_decode(file_get_contents('php://input'), true);
