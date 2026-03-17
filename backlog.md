@@ -7,15 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP error response consistency** — 19 controllers fixade (Worker A #133)
-- [x] **PHP session/auth timeout audit** — OK, inga problem (Worker A #133)
-- [x] **Angular route guard audit** — 3 fixar (Worker B #133)
-- [x] **Angular HTTP error interceptor** — 2 fixar + clearSession (Worker B #133)
-- [ ] **PHP SQL prepared statement audit** — granska att alla queries anvander prepared statements korrekt
-- [ ] **Angular form validation audit** — granska formularsvalidering och felmeddelanden
-- [ ] **PHP unused variables cleanup** — VpnController, RebotlingController, RebotlingAnalyticsController, TvattlinjeController (fran diagnostics)
-- [ ] **Angular unused declarations cleanup** — developerGuard, alertsService, event (fran diagnostics)
-- [ ] **PHP input sanitization audit** — granska att user-input saneras korrekt i alla controllers
+- [x] **PHP SQL prepared statement audit** — alla queries OK, inga sarbarheter (Worker A #134)
+- [x] **PHP input sanitization audit** — 1 XSS-risk fixad i createAnnotation (Worker A #134)
+- [x] **PHP unused variables cleanup** — 4 fixar i VpnController, RebotlingAnalyticsController, TvattlinjeController (Worker A #134)
+- [x] **Angular form validation audit** — 8 formulaer fixade med disabled submit (Worker B #134)
+- [x] **Angular unused declarations cleanup** — developerGuard borttagen, event-param fixad (Worker B #134)
+- [x] **Angular subscription/observable audit** — 5 fixar: takeUntil + clearTimeout (Worker B #134)
+- [ ] **PHP date/time handling audit** — granska tidszoner, date()-format, strtotime()-edge cases
+- [ ] **Angular error state UI audit** — granska att alla komponenter visar felmeddelanden vid API-fel
+- [ ] **Angular auth.guard unused route params** — diagnostics visar unused 'route' param pa rad 6 och 25
+- [ ] **PHP RebotlingAnalyticsController unused vars** — diagnostics: $shift (rad 4531-4532), $opRows (rad 6616-6617)
+- [ ] **PHP null/edge case audit** — granska saknade null-checks, tomma arrays, division-by-zero
 
 ## Parkerade features (ta inte dessa nu)
 

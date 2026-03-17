@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #133)*
+*Senast uppdaterad: 2026-03-17 (session #134)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -85,21 +85,18 @@ Session #130: BUGGJAKT — 48 buggar (27 Worker A + 21 Worker B). SQL edge cases
 Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary validation, date range swap, SQL param whitelists + form validation, error state UI i 6 komponenter.
 Session #132: BUGGJAKT — 33 buggar (11 Worker A + 22 Worker B). HTTP method enforcement, unused vars, CORS/headers + accessibility, template null-safety. Memory profiling: inga lakor.
 Session #133: BUGGJAKT — 29 buggar (22 Worker A + 7 Worker B). Error response consistency (19 controllers), HTTP 405 + route guards, error interceptor, dark theme.
+Session #134: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL prepared statements OK, 1 XSS-fix, unused vars + form validation, unused declarations, subscription fixes.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] PHP error response consistency (Worker A #133)
-- [x] PHP session/auth timeout audit (Worker A #133 — OK)
-- [x] PHP file upload validation (Worker A #133 — ej tillampbart)
-- [x] Angular route guard audit (Worker B #133)
-- [x] Angular HTTP error interceptor (Worker B #133)
-- [ ] PHP SQL prepared statement audit
-- [ ] Angular form validation audit
-- [ ] PHP unused variables cleanup (diagnostics visar kvarstaende i VpnController, RebotlingController, RebotlingAnalyticsController, TvattlinjeController)
-- [ ] Angular unused declarations cleanup (diagnostics: developerGuard, alertsService, event)
+- [ ] PHP date/time handling audit
+- [ ] Angular error state UI audit
+- [ ] Angular auth.guard unused route params
+- [ ] PHP RebotlingAnalyticsController unused vars ($shift, $opRows)
+- [ ] PHP null/edge case audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -109,6 +106,11 @@ Worker B: 22 buggar — accessibility (13), template null-safety (9). Memory pro
 Totalt: 33 buggar.
 
 ### 2026-03-17 — Session #133 (klar)
-Worker A: 22 buggar — 19x error response consistency (alla controllers nu {"success":false,"error":"..."}), 3x HTTP 405 statuskod. Session/auth OK, inga filuppladdningar finns.
-Worker B: 7 buggar — 3x route guard (narvarotracker+VD-vyer), 2x error interceptor (clearSession, fetchStatus subscribe), 1x unused observable, 3x dark theme.
+Worker A: 22 buggar — 19x error response consistency, 3x HTTP 405.
+Worker B: 7 buggar — 3x route guard, 2x error interceptor, 1x unused observable, 3x dark theme.
 Totalt: 29 buggar.
+
+### 2026-03-17 — Session #134 (klar)
+Worker A: 5 buggar — SQL prepared statements alla OK (inga sarbarheter), 1x XSS-risk (strip_tags i createAnnotation), 4x unused vars (VpnController, RebotlingAnalyticsController, TvattlinjeController).
+Worker B: 14 buggar — 8x form validation (disabled submit), 3x unused declarations (developerGuard borttagen), 3x subscription/timeout fixes (takeUntil + clearTimeout).
+Totalt: 19 buggar.
