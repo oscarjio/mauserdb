@@ -1,3 +1,42 @@
+## 2026-03-17 Session #136 Worker B — Angular frontend: 3 buggar fixade (chart destroy audit, lazy loading audit, setTimeout-laeacka)
+
+### Uppgift 1: Angular Chart.js destroy audit (GRUNDLIG)
+Granskade ALLA 109 Angular-komponenter som anvander Chart.js (new Chart()) i noreko-frontend/src/app/.
+For VARJE komponent verifierades:
+- Att chart-referensen sparas som class property
+- Att ngOnDestroy finns och kallar chart.destroy()
+- Att chart destroyas INNAN en ny skapas (vid re-rendering)
+- Att ALLA chart-instanser i komponenten destroyas
+
+**Resultat:** Samtliga 109 komponenter foljer korrekt monster:
+- Alla sparar chart-referens som class property (t.ex. `private trendChart: Chart | null = null`)
+- Alla har ngOnDestroy som kallar destroyChart()/destroyCharts()/destroyAllCharts()
+- Alla destroyer chart INNAN ny skapas (via helper-metod som kallas bade fran ngOnDestroy och fore new Chart)
+- Komponenter med multipla charts (t.ex. production-analysis med 9+1 charts, bonus-dashboard med 4, my-bonus med 4) destroyer ALLA instanser
+- 2 filer (rebotling-trendanalys, statistik-produktionsmal) anvander `const chart = new Chart(...)` men tilldelar resultatet korrekt till class property via setter/direkt tilldelning — inget laeckage
+
+### Uppgift 2: Angular lazy loading route audit (GRUNDLIG)
+Granskade app.routes.ts (163 rader, 138 routes):
+- Alla routes anvander loadComponent korrekt med lazy loading
+- Alla importerade filer existerar och exporterar ratt klass
+- Inga duplicerade route-paths
+- Route guards (authGuard/adminGuard) ar korrekt applicerade pa alla skyddade routes
+- Publika routes (live-vyer, skiftrapporter, statistik, login, register, about, contact, andon) saknar guard medvetet
+- Wildcard-route (**) finns sist som catch-all -> NotFoundPage
+- **BUGG FIXAD:** Ingen preloading-strategi var konfigurerad i app.config.ts. Lade till `withPreloading(PreloadAllModules)` for att prefetcha lazy-loaded routes efter initial laddning, vilket forbattrar navigation hastighet.
+
+### Extra: setTimeout-laecka i maskinunderhall
+- **BUGG FIXAD:** maskinunderhall.component.ts hade tva setTimeout-tilldelningar till `this.modalTimerId` (rad 266 och 307) utan att forst rensa eventuell paaende timer. Om bada submitAddService() och submitAddMachine() kallades snabbt efter varandra kunde den forsta timern laecka. Fixat genom att lagga till `clearTimeout()` fore varje ny tilldelning.
+
+### Extra: Subscription audit
+- Alla komponenter (exkl. live-vyer som ej far roras) anvander takeUntil(this.destroy$) korrekt
+- Alla setInterval() har matchande clearInterval() i ngOnDestroy
+- Alla lagrade setTimeout() har matchande clearTimeout() i ngOnDestroy (efter fix ovan)
+
+Andrade filer:
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/app.config.ts` (preloading-strategi)
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/rebotling/maskinunderhall/maskinunderhall.component.ts` (setTimeout-laecka)
+
 ## 2026-03-17 Session #135 Worker B — Angular frontend: 6 buggar fixade (error state UI, auth guard, HTTP error handling audit)
 
 ### Uppgift 1: Angular error state UI audit

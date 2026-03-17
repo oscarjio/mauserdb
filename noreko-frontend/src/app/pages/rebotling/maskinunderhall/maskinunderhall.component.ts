@@ -263,6 +263,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.savingService = false;
       if (res?.success) {
         this.serviceMessage = 'Service registrerad!';
+        if (this.modalTimerId !== null) { clearTimeout(this.modalTimerId); }
         this.modalTimerId = setTimeout(() => {
           this.showAddServiceModal = false;
           this.loadAll();
@@ -304,6 +305,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.savingMachine = false;
       if (res?.success) {
         this.maskinMessage = 'Maskin registrerad!';
+        if (this.modalTimerId !== null) { clearTimeout(this.modalTimerId); }
         this.modalTimerId = setTimeout(() => {
           this.showAddMachineModal = false;
           this.loadAll();
