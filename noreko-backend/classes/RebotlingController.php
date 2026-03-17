@@ -299,14 +299,14 @@ class RebotlingController {
                 $this->analyticsController->setProductionGoal();
             } else {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig action'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig action'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
 
         // Om ingen matchande metod finns
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => 'Ogiltig metod eller action'], JSON_UNESCAPED_UNICODE);
     }
 
 

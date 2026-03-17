@@ -62,13 +62,13 @@ class VpnController {
 
             if ($commonName === '') {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Common Name krävs.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Common Name krävs.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             if (preg_match('/[\r\n]/', $commonName) || !preg_match('/^[\w\.\-@]+$/u', $commonName)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltigt Common Name-format.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt Common Name-format.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -78,7 +78,7 @@ class VpnController {
         }
 
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Ogiltigt kommando.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => 'Ogiltigt kommando.'], JSON_UNESCAPED_UNICODE);
     }
 
     private function disconnectClient($commonName) {

@@ -14,7 +14,7 @@ class ProfileController {
         }
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Du måste vara inloggad för att uppdatera kontot.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Du måste vara inloggad för att uppdatera kontot.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -28,7 +28,7 @@ class ProfileController {
             session_unset();
             session_destroy();
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Användaren hittades inte.']);
+            echo json_encode(['success' => false, 'error' => 'Användaren hittades inte.']);
             return;
         }
 
@@ -48,7 +48,7 @@ class ProfileController {
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Endast POST-metod tillåten.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -64,7 +64,7 @@ class ProfileController {
         if ($email !== null && $email !== '' && $email !== $user['email']) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $fields[] = 'email = ?';
@@ -74,17 +74,17 @@ class ProfileController {
         if (!empty($newPassword)) {
             if (strlen($newPassword) < 8 || !preg_match('/[A-Za-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken och innehålla både bokstäver och siffror.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Lösenordet måste vara minst 8 tecken och innehålla både bokstäver och siffror.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             if (empty($currentPassword)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Nuvarande lösenord krävs för att ändra lösenord.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Nuvarande lösenord krävs för att ändra lösenord.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             if (!AuthHelper::verifyPassword($currentPassword, $user['password'])) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Nuvarande lösenord är felaktigt.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Nuvarande lösenord är felaktigt.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $fields[] = 'password = ?';
@@ -107,7 +107,7 @@ class ProfileController {
 
         if (!$fields) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Inga ändringar att spara.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Inga ändringar att spara.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -143,11 +143,11 @@ class ProfileController {
         } catch (PDOException $e) {
             error_log('ProfileController update error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ProfileController update error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Internt serverfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         }
     }
 

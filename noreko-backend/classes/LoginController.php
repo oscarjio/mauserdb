@@ -23,14 +23,14 @@ class LoginController {
         // Login MÅSTE vara POST — avvisa alla andra metoder
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $username = strip_tags(trim($data['username'] ?? ''));
@@ -39,7 +39,7 @@ class LoginController {
 
         if ($username === '' || $password === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Användarnamn och lösenord krävs'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Användarnamn och lösenord krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -100,7 +100,7 @@ class LoginController {
                 AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
 
                 http_response_code(401);
-                echo json_encode(['success' => false, 'message' => $msg], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
             }
 
             // Cleanup old attempts ~1% of requests
@@ -110,7 +110,7 @@ class LoginController {
         } catch (PDOException $e) {
             error_log('LoginController handle: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel — försök igen senare.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel — försök igen senare.'], JSON_UNESCAPED_UNICODE);
         }
     }
 

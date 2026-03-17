@@ -24,7 +24,7 @@ class FeatureFlagController {
                 $this->getList();
             } else {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig run-parameter'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig run-parameter'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
@@ -36,7 +36,7 @@ class FeatureFlagController {
             }
             if (!$this->isDeveloper()) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Kräver admin- eller developer-behörighet'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Kräver admin- eller developer-behörighet'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -46,13 +46,13 @@ class FeatureFlagController {
                 $this->bulkUpdate();
             } else {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig run-parameter'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig run-parameter'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
 
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Metod ej tillåten'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => 'Metod ej tillåten'], JSON_UNESCAPED_UNICODE);
     }
 
     private function isDeveloper(): bool {
@@ -88,7 +88,7 @@ class FeatureFlagController {
         } catch (\PDOException $e) {
             error_log('FeatureFlagController getList: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta feature flags'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta feature flags'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -96,7 +96,7 @@ class FeatureFlagController {
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -106,7 +106,7 @@ class FeatureFlagController {
 
         if ($featureKey === '' || !in_array($minRole, $validRoles, true)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig feature_key eller min_role'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig feature_key eller min_role'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -118,7 +118,7 @@ class FeatureFlagController {
 
             if ($stmt->rowCount() === 0) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'message' => 'Feature flag hittades inte'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Feature flag hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -126,7 +126,7 @@ class FeatureFlagController {
         } catch (\PDOException $e) {
             error_log('FeatureFlagController updateFlag: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -134,7 +134,7 @@ class FeatureFlagController {
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data) || !isset($data['updates']) || !is_array($data['updates'])) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON — förväntar { updates: [{feature_key, min_role}] }'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON — förväntar { updates: [{feature_key, min_role}] }'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -157,7 +157,7 @@ class FeatureFlagController {
         } catch (\PDOException $e) {
             error_log('FeatureFlagController bulkUpdate: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

@@ -3763,7 +3763,7 @@ class RebotlingAnalyticsController {
 
         if ($cause === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Parameter "cause" saknas.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Parameter "cause" saknas.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -3775,13 +3775,13 @@ class RebotlingAnalyticsController {
                    AND table_name IN ('stoppage_log','stoppage_reasons')"
             );
             if ((int)$check->fetchColumn() < 2) {
-                echo json_encode(['success' => false, 'message' => 'Tabellerna finns inte.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Tabellerna finns inte.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
         } catch (Exception $e) {
             error_log('getStopCauseDrilldown check: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -3881,7 +3881,7 @@ class RebotlingAnalyticsController {
         } catch (Exception $e) {
             error_log('getStopCauseDrilldown: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel vid drill-down.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid drill-down.'], JSON_UNESCAPED_UNICODE);
         }
     }
 

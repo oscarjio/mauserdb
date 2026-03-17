@@ -1,3 +1,50 @@
+## 2026-03-17 Session #133 Worker A — PHP backend: 22 buggar fixade (error response consistency, missing HTTP status codes)
+
+### Uppgift 1: PHP error response consistency (19 filer, 19 buggar)
+Alla error-svar i backend anvande inkonsekvent JSON-format: nagra hade `{"success": false, "error": "..."}` medan andra hade `{"success": false, "message": "..."}`. Standardiserade ALLA error-svar till `"error"`-nyckel.
+
+Fixade filer:
+- **RuntimeController.php**: 1 error-svar (message -> error)
+- **StoppageController.php**: 20 error-svar (message -> error)
+- **ProfileController.php**: 10 error-svar (message -> error)
+- **UnderhallsloggController.php**: 16 error-svar (message -> error)
+- **AuditController.php**: 3 error-svar (message -> error)
+- **FeatureFlagController.php**: 7 error-svar (message -> error)
+- **RegisterController.php**: 5 error-svar (message -> error)
+- **LoginController.php**: 5 error-svar (message -> error)
+- **VpnController.php**: 3 error-svar (message -> error)
+- **OperatorController.php**: 7 error-svar (message -> error)
+- **AdminController.php**: 8+ error-svar (message -> error)
+- **LineSkiftrapportController.php**: 3+ error-svar (message -> error)
+- **StopporsakRegistreringController.php**: 5 error-svar (message -> error)
+- **RebotlingController.php**: 2 error-svar (message -> error)
+- **RebotlingAnalyticsController.php**: 4 error-svar (message -> error)
+- **SkiftrapportController.php**: 24 error-svar (message -> error)
+- **TvattlinjeController.php**: 1 error-svar (message -> error)
+- **SaglinjeController.php**: 1 error-svar (message -> error)
+- **KlassificeringslinjeController.php**: 1 error-svar (message -> error)
+- **login.php** (legacy stub): message -> error
+- **admin.php** (legacy stub): message -> error
+
+### Uppgift 1b: Missing HTTP status codes (3 buggar)
+Error-svar som returnerade 200 OK istallet for korrekt HTTP-statuskod:
+- **TvattlinjeController.php**: La till `http_response_code(405)` for "Ogiltig metod eller action"
+- **SaglinjeController.php**: La till `http_response_code(405)` for "Ogiltig metod eller action"
+- **KlassificeringslinjeController.php**: La till `http_response_code(405)` for "Ogiltig metod eller action"
+
+### Uppgift 2: PHP session/auth timeout audit (0 buggar)
+- Session-cookie: lifetime=86400 (24h), httponly=true, secure=auto, samesite=Lax — korrekt
+- gc_maxlifetime=86400 — matchar cookie-lifetime, korrekt
+- AuthHelper: bcrypt (PASSWORD_BCRYPT), rate limiting (5 forsok, 15 min lockout) — korrekt
+- Alla controllers med session_start() har session_status()-guard (ingen dubbel session_start)
+- Alla POST-endpoints kraver session/user_id, GET-endpoints anvander read_and_close — korrekt
+
+### Uppgift 3: PHP file upload validation (0 buggar — inga uploads finns)
+- Inga $_FILES, move_uploaded_file, eller tmp_name anvands i hela backend
+- Ingen file upload-funktionalitet existerar — inga sakerhetsproblem
+
+---
+
 ## 2026-03-17 Session #133 Worker B — Angular frontend: 7 buggar fixade (route guards, interceptor, theme, unsubscribed observable)
 
 ### Uppgift 1: Angular route guard audit (3 fixar)

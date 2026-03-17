@@ -21,7 +21,7 @@ class AuditController {
 
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -130,7 +130,7 @@ class AuditController {
         } catch (PDOException $e) {
             error_log('AuditController getLogs: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta loggar'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta loggar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -183,7 +183,7 @@ class AuditController {
         } catch (PDOException $e) {
             error_log('AuditController getStats: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 

@@ -8,14 +8,14 @@ class RegisterController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
             return;
         }
         
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -69,7 +69,7 @@ class RegisterController {
 
         if (!empty($errors)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => implode('. ', $errors)], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => implode('. ', $errors)], JSON_UNESCAPED_UNICODE);
             return;
         }
         
@@ -79,13 +79,13 @@ class RegisterController {
             $stmt->execute([$username]);
             if ($stmt->fetch()) {
                 http_response_code(409);
-                echo json_encode(['success' => false, 'message' => 'Användarnamnet är redan taget']);
+                echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget']);
                 return;
             }
         } catch (PDOException $e) {
             error_log('RegisterController check_username: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
             return;
         }
         

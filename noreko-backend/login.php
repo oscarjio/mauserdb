@@ -5,5 +5,5 @@ header('Content-Type: application/json; charset=utf-8');
 http_response_code(410);
 echo json_encode([
     'success' => false,
-    'message' => 'Denna endpoint ar borttagen. Anvand api.php?action=login istallet.'
+    'error' => 'Denna endpoint ar borttagen. Anvand api.php?action=login istallet.'
 ]);
