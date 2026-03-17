@@ -149,7 +149,7 @@
 
     <!-- Filter -->
     <div class="d-flex gap-2 mb-3 flex-wrap">
-      <select class="form-select form-select-sm" style="max-width:180px" [(ngModel)]="filterTyp" (ngModelChange)="loadHistorik()">
+      <select class="form-select form-select-sm" style="max-width:180px" aria-label="Filtrera typ" [(ngModel)]="filterTyp" (ngModelChange)="loadHistorik()">
         <option value="">Alla typer</option>
         <option value="oee">OEE</option>
         <option value="kassation">Kassation</option>
@@ -157,7 +157,7 @@
         <option value="maskinstopp">Maskinstopp</option>
         <option value="produktionsmal">Produktionsmal</option>
       </select>
-      <select class="form-select form-select-sm" style="max-width:180px" [(ngModel)]="filterGrad" (ngModelChange)="loadHistorik()">
+      <select class="form-select form-select-sm" style="max-width:180px" aria-label="Filtrera allvarlighetsgrad" [(ngModel)]="filterGrad" (ngModelChange)="loadHistorik()">
         <option value="">Alla grader</option>
         <option value="kritisk">Kritisk</option>
         <option value="varning">Varning</option>
@@ -207,7 +207,7 @@
           </tbody>
         </table>
       </div>
-      <div class="text-muted small mt-2">Visar {{ historikData.larm.length }} av {{ historikData.total }} larm</div>
+      <div class="text-muted small mt-2">Visar {{ historikData.larm?.length ?? 0 }} av {{ historikData.total }} larm</div>
     </div>
 
   </ng-container>

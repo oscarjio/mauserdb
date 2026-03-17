@@ -208,7 +208,7 @@
           </div>
           <div class="trend-stat">
             <span class="text-muted small">Antal dagar</span>
-            <span class="trend-stat-val">{{ trendData.daily.length }}</span>
+            <span class="trend-stat-val">{{ trendData.daily?.length ?? 0 }}</span>
           </div>
         </div>
         <div class="chart-wrapper">
@@ -232,7 +232,7 @@
         <h6 class="mb-0">
           <i class="fas fa-calendar-day me-2 text-info"></i>{{ formatDatum(tooltipItem.datum) }}
         </h6>
-        <button class="btn-close btn-close-white" (click)="closeTrendTooltip()"></button>
+        <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeTrendTooltip()"></button>
       </div>
       <div class="row g-2">
         <div class="col-6">

@@ -250,7 +250,7 @@
   <div class="modal-content-custom" (click)="$event.stopPropagation()">
     <div class="modal-header-custom">
       <h5 class="mb-0"><i class="fas fa-plus me-2 text-success"></i>Registrera service</h5>
-      <button class="btn-close btn-close-white" (click)="closeAddServiceModal()"></button>
+      <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddServiceModal()"></button>
     </div>
     <div class="modal-body-custom">
       <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm" novalidate>
@@ -319,7 +319,7 @@
   <div class="modal-content-custom" (click)="$event.stopPropagation()">
     <div class="modal-header-custom">
       <h5 class="mb-0"><i class="fas fa-cogs me-2 text-info"></i>Registrera ny maskin</h5>
-      <button class="btn-close btn-close-white" (click)="closeAddMachineModal()"></button>
+      <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddMachineModal()"></button>
     </div>
     <div class="modal-body-custom">
       <form (ngSubmit)="submitAddMachine()" novalidate>

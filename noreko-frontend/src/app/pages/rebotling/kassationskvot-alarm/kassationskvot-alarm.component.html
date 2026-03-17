@@ -115,7 +115,7 @@
           <div *ngIf="!loadingTrend && trendData" style="height:280px; position:relative">
             <canvas id="kassationsTrendChart"></canvas>
           </div>
-          <div *ngIf="!loadingTrend && trendData && trendData.trend.length === 0" class="text-center text-muted py-3">
+          <div *ngIf="!loadingTrend && trendData && !trendData.trend?.length" class="text-center text-muted py-3">
             Ingen data senaste 24h
           </div>
           <!-- Troskelfargforklaring -->

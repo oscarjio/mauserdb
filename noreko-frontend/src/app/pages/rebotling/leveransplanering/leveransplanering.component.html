@@ -19,7 +19,7 @@
   <div class="filter-bar mb-4">
     <div class="d-flex align-items-center gap-2">
       <span class="filter-label">Status:</span>
-      <select class="form-select form-select-sm" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width:auto">
+      <select class="form-select form-select-sm" aria-label="Filtrera status" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width:auto">
         <option value="alla">Alla</option>
         <option value="planerad">Planerad</option>
         <option value="i_produktion">I produktion</option>
@@ -116,7 +116,7 @@
       <div class="spinner-border spinner-border-sm text-info"></div>
     </div>
 
-    <div class="table-responsive" *ngIf="!loadingOrdrar && ordrarData.ordrar.length > 0">
+    <div class="table-responsive" *ngIf="!loadingOrdrar && ordrarData?.ordrar?.length">
       <table class="table table-dark table-striped table-hover mb-0">
         <thead>
           <tr>
@@ -170,7 +170,7 @@
       </table>
     </div>
 
-    <div class="text-center text-muted py-3" *ngIf="!loadingOrdrar && ordrarData.ordrar.length === 0">
+    <div class="text-center text-muted py-3" *ngIf="!loadingOrdrar && !ordrarData?.ordrar?.length">
       Inga ordrar matchar filtret.
     </div>
   </div>
@@ -216,7 +216,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-info"></i>Ny kundorder</h5>
-          <button type="button" class="btn-close btn-close-white" (click)="showNewOrderModal = false"></button>
+          <button type="button" class="btn-close btn-close-white" aria-label="Stang" (click)="showNewOrderModal = false"></button>
         </div>
         <div class="modal-body">
           <div class="row g-3">

@@ -232,7 +232,7 @@
       <i class="fas fa-list-alt me-2 text-info"></i>
       Stationsdetaljer
       <span class="text-muted ms-2 small" *ngIf="stationerData">
-        ({{ stationerData.rows.length }} stationer)
+        ({{ stationerData.rows?.length ?? 0 }} stationer)
       </span>
     </div>
 

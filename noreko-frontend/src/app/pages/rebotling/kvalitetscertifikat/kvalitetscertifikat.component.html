@@ -73,21 +73,21 @@
   <div class="d-flex gap-2 mb-4 align-items-center flex-wrap">
     <span class="text-muted small me-1">Filter:</span>
 
-    <select class="filter-select" [(ngModel)]="filterPeriod" (change)="onFilterChange()">
+    <select class="filter-select" aria-label="Filtrera period" [(ngModel)]="filterPeriod" (change)="onFilterChange()">
       <option value="">Alla perioder</option>
       <option value="vecka">Denna vecka</option>
       <option value="manad">Denna manad</option>
       <option value="kvartal">Detta kvartal</option>
     </select>
 
-    <select class="filter-select" [(ngModel)]="filterStatus" (change)="onFilterChange()">
+    <select class="filter-select" aria-label="Filtrera status" [(ngModel)]="filterStatus" (change)="onFilterChange()">
       <option value="">Alla statusar</option>
       <option value="godkand">Godkand</option>
       <option value="underkand">Underkand</option>
       <option value="ej_bedomd">Ej bedomd</option>
     </select>
 
-    <select class="filter-select" [(ngModel)]="filterOperator" (change)="onFilterChange()">
+    <select class="filter-select" aria-label="Filtrera operator" [(ngModel)]="filterOperator" (change)="onFilterChange()">
       <option [ngValue]="0">Alla operatorer</option>
       <option *ngFor="let op of operatorer; trackBy: trackByIndex" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
     </select>
