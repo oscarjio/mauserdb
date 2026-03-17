@@ -1,3 +1,31 @@
+## 2026-03-17 Session #132 Worker B — Angular frontend: 22 buggar (0 memory leaks, 13 accessibility, 9 null-safety)
+
+### Uppgift 1: Angular memory profiling (0 buggar)
+- Granskade alla ~42 komponenter (exkl. live-sidor) for minneslakor
+- Alla komponenter har korrekt `destroy$` Subject med `takeUntil` pa observables
+- Alla `setInterval`/`setTimeout` rensas i `ngOnDestroy()`
+- Alla Chart.js-instanser destroyas korrekt
+- **Resultat: Inga minneslakor hittades**
+
+### Uppgift 2: Angular accessibility audit (13 fixar)
+- **leveransplanering.component.html**: `aria-label="Stang"` pa stang-knapp, `aria-label="Filtrera status"` pa status-select
+- **maskinunderhall.component.html**: `aria-label="Stang"` pa 2 stang-knappar (redigera/lagg till modaler)
+- **statistik-dashboard.component.html**: `aria-label="Stang"` pa stang-knapp
+- **daglig-briefing.component.html**: `aria-label="Valj datum"` pa datum-select, `aria-label="Valj specifikt datum"` pa date-input
+- **oee-trendanalys.component.html**: `aria-label="Valj station"` pa station-select
+- **avvikelselarm.component.html**: `aria-label="Filtrera typ"` + `aria-label="Filtrera allvarlighetsgrad"` pa filter-selects
+- **kvalitetscertifikat.component.html**: `aria-label="Filtrera period"` + `aria-label="Filtrera status"` + `aria-label="Filtrera operator"` pa 3 filter-selects
+
+### Uppgift 3: Angular template null-safety (9 fixar)
+- **leveransplanering.component.html**: `ordrarData.ordrar.length` -> `ordrarData?.ordrar?.length` (2 stallen)
+- **statistik-dashboard.component.html**: `trendData.daily.length` -> `trendData.daily?.length ?? 0`
+- **produktionsflode.component.html**: `stationerData.rows.length` -> `stationerData.rows?.length ?? 0`
+- **avvikelselarm.component.html**: `historikData.larm.length` -> `historikData.larm?.length ?? 0`
+- **kassationskvot-alarm.component.html**: `trendData.trend.length === 0` -> `!trendData.trend?.length`
+- **vd-veckorapport.component.html**: 3 fixar — `trenderData.anomalier` och `stopporsakData.stopporsaker` saknade `?.` vid `.length`-access
+
+---
+
 ## 2026-03-17 Session #132 Worker A — PHP backend: 11 buggar fixade (method enforcement, unused vars, headers)
 
 ### Uppgift 1: HTTP method enforcement (2 fixar)
