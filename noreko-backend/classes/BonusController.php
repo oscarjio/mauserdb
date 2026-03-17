@@ -1061,10 +1061,8 @@ class BonusController {
             $monthPct    = $daysInMonth > 0 ? round($dayOfMonth / $daysInMonth * 100) : 0;
             $daysLeft    = $daysInMonth - $dayOfMonth;
 
-            $dateFilter = "DATE(datum) BETWEEN '$monthStart' AND '$today'";
-
             // Per-skift per operatör denna månad (alla positioner)
-            $stmt = $this->pdo->query("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     op_id,
                     COUNT(*)           AS antal_skift,
@@ -1075,24 +1073,29 @@ class BonusController {
                            MAX(ibc_ok) AS shift_ibc_ok,
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE $dateFilter AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
+                    WHERE DATE(datum) BETWEEN :ms1 AND :td1 AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op1, skiftraknare
                     UNION ALL
                     SELECT op2, skiftraknare, MAX(ibc_ok),
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
                     FROM rebotling_ibc
-                    WHERE $dateFilter AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
+                    WHERE DATE(datum) BETWEEN :ms2 AND :td2 AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op2, skiftraknare
                     UNION ALL
                     SELECT op3, skiftraknare, MAX(ibc_ok),
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
                     FROM rebotling_ibc
-                    WHERE $dateFilter AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
+                    WHERE DATE(datum) BETWEEN :ms3 AND :td3 AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op3, skiftraknare
                 ) AS per_shift
                 GROUP BY op_id
                 ORDER BY avg_bonus DESC
             ");
+            $stmt->execute([
+                ':ms1' => $monthStart, ':td1' => $today,
+                ':ms2' => $monthStart, ':td2' => $today,
+                ':ms3' => $monthStart, ':td3' => $today,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Standard bonus-tiers (SEK) baserade på bonus_poang

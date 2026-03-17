@@ -184,7 +184,7 @@ class StopporsakRegistreringController {
                  LEFT JOIN users u ON r.user_id = u.id
                  WHERE r.linje = ?
                  ORDER BY r.start_time DESC
-                 LIMIT " . $limit
+                 LIMIT " . (int)$limit
             );
             $stmt->execute([$linje]);
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);

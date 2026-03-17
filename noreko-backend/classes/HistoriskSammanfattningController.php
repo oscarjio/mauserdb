@@ -18,7 +18,6 @@
  */
 class HistoriskSammanfattningController {
     private $pdo;
-    private const IDEAL_CYCLE_SEC = 120;
     private const PLANERAD_MIN = 480;
     private const TEORIETISK_MAX_IBC_H = 60.0;
 

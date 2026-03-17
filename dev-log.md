@@ -1,3 +1,15 @@
+## 2026-03-17 Session #146 Worker A — 5 buggar fixade (SQL injection re-audit, deprecated patterns)
+### Uppgift: PHP SQL injection re-audit + deprecated patterns
+Granskade ALLA PHP-filer i noreko-backend/controllers/, noreko-backend/classes/, noreko-backend/api.php, samt auxiliarfiler (login.php, admin.php, update-weather.php). Systematisk sokning efter SQL injection, deprecated PHP patterns, type coercion buggar och dead code.
+
+1. controllers/SkiftjamforelseController.php — Full dubblett av classes/-versionen (688 rader) med dead code (oanvand IDEAL_CYCLE_SEC-konstant, oanvanda variabler $lagstStopp/$lagstStoppMin). Ersatt med proxy-fil som alla andra controllers.
+2. classes/StopporsakRegistreringController.php rad 187 — LIMIT-interpolering utan explicit (int)-cast. Lagt till (int) for defense-in-depth (parametern har redan int type hint, men casten gor avsikten tydlig).
+3. classes/BonusController.php rad 1064-1095 — getLoneprognos() anvande $this->pdo->query() med string-interpolerade datumvarden i SQL (BETWEEN '$monthStart' AND '$today'). Refaktorerat till prepare()/execute() med namngivna parametrar (:ms1/:td1 etc.) for alla 3 UNION ALL-grenar.
+4. classes/RebotlingAnalyticsController.php rad 6636-6694 — getTopOperatorsLeaderboard() hade dateFilter som passades som raskt SQL-strang in i closure. Refaktorerat: $makeInner tar inte langre dateFilter-strang, istallet anvands ?-placeholders. $calcRanking tar fromDate/toDate som separata parametrar och binder dem via execute(). LIMIT castad med (int).
+5. classes/HistoriskSammanfattningController.php rad 21 — Dead code: oanvand private const IDEAL_CYCLE_SEC = 120 (PLANERAD_MIN och TEORIETISK_MAX_IBC_H anvands, men inte IDEAL_CYCLE_SEC). Borttagen.
+
+Audit-resultat for ovriga filer: Alla anvander prepared statements korrekt. Inga strftime()-anrop, inga deprecated nullable parameters (alla anvander ?type $param = null korrekt), inga sha1/md5, inga eval/extract/unserialize, inga loose == jamforelser som ar farliga. ORDER BY-klausuler anvander antingen hardkodade uttryck eller whitelisted varden. $_GET-varden castas konsekvent med (int)/intval() innan SQL-anvandning.
+
 ## 2026-03-17 Session #146 Worker B — 14 buggar fixade (getter-to-cached change detection, template performance)
 ### Uppgift 1: Getter-i-template performance-audit — 14 fix
 Granskade alla 42 Angular-komponenter i noreko-frontend/src/app/ for getter-anrop i templates som orsakar tunga berakningar pa varje change detection-cykel. Konverterade getters till cached properties som bara raknas om nar data faktiskt andras.

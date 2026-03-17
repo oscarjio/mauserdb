@@ -6633,7 +6633,7 @@ HTML;
                                ->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // Hjälpfunktion: perShiftByPosition (liknande BonusController)
-            $makeInner = function(int $pos, string $dateFilter): string {
+            $makeInner = function(int $pos): string {
                 return "
                     SELECT
                         op{$pos}          AS operator_id,
@@ -6646,15 +6646,15 @@ HTML;
                     FROM rebotling_ibc
                     WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
                       AND skiftraknare IS NOT NULL
-                      AND $dateFilter
+                      AND DATE(datum) BETWEEN ? AND ?
                     GROUP BY op{$pos}, skiftraknare
                 ";
             };
 
-            $calcRanking = function(string $dateFilter) use ($makeInner, $opRows, $limit): array {
-                $s1 = $makeInner(1, $dateFilter);
-                $s2 = $makeInner(2, $dateFilter);
-                $s3 = $makeInner(3, $dateFilter);
+            $calcRanking = function(string $fromDate, string $toDate) use ($makeInner, $opRows, $limit): array {
+                $s1 = $makeInner(1);
+                $s2 = $makeInner(2);
+                $s3 = $makeInner(3);
 
                 $stmt = $this->pdo->prepare("
                     SELECT
@@ -6675,23 +6675,22 @@ HTML;
                     GROUP BY operator_id
                     HAVING skift_count >= 1
                     ORDER BY avg_bonus DESC
-                    LIMIT $limit
+                    LIMIT " . (int)$limit . "
                 ");
-                $stmt->execute();
+                // 3 UNION-delar x 2 parametrar (from, to) = 6 parametrar
+                $stmt->execute([$fromDate, $toDate, $fromDate, $toDate, $fromDate, $toDate]);
                 return $stmt->fetchAll(\PDO::FETCH_ASSOC);
             };
 
             // Nuvarande period
             $endDate   = date('Y-m-d');
             $startDate = date('Y-m-d', strtotime("-{$days} days"));
-            $curFilter = "DATE(datum) BETWEEN '{$startDate}' AND '{$endDate}'";
-            $curRows   = $calcRanking($curFilter);
+            $curRows   = $calcRanking($startDate, $endDate);
 
             // Föregående period (för trendberäkning)
             $prevEnd   = date('Y-m-d', strtotime("-{$days} days - 1 day"));
             $prevStart = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
-            $prevFilter = "DATE(datum) BETWEEN '{$prevStart}' AND '{$prevEnd}'";
-            $prevRows   = $calcRanking($prevFilter);
+            $prevRows   = $calcRanking($prevStart, $prevEnd);
 
             // Bygg previous-rank-map
             $prevRankMap = [];
