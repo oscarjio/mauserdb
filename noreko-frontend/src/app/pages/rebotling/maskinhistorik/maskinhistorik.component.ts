@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   MaskinhistorikService,
@@ -84,7 +84,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
   laddaStationer(): void {
     this.loadingStationer = true;
     this.svc.getStationer()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
         if (res?.success && res.data.stationer.length > 0) {
@@ -129,7 +129,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.kpi        = null;
 
     this.svc.getStationKpi(this.valdStation, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingKpi = false;
         if (res?.success) {
@@ -150,7 +150,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.drifttidData    = [];
 
     this.svc.getStationDrifttid(this.valdStation, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDrifttid = false;
         if (res?.success) {
@@ -248,7 +248,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.oeeTrendData    = [];
 
     this.svc.getStationOeeTrend(this.valdStation, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOeeTrend = false;
         if (res?.success) {
@@ -369,7 +369,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.stoppData    = [];
 
     this.svc.getStationStopp(this.valdStation, 20)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStopp = false;
         if (res?.success) {
@@ -390,7 +390,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.jamforelseData    = [];
 
     this.svc.getJamforelse(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingJamforelse = false;
         if (res?.success) {

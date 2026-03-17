@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationsorsakPerStationService,
@@ -125,7 +125,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.loadingOverview = true;
     this.errorOverview   = false;
     this.svc.getOverview()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         if (res?.success) {
@@ -140,7 +140,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.loadingPerStation = true;
     this.errorPerStation   = false;
     this.svc.getPerStation(this.dagar)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingPerStation = false;
         if (res?.success) {
@@ -158,7 +158,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.errorTopOrsaker   = false;
     const station = this.valdStation || undefined;
     this.svc.getTopOrsaker(this.dagar, station)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTopOrsaker = false;
         if (res?.success) {
@@ -176,7 +176,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.loadingTrend = true;
     this.errorTrend   = false;
     this.svc.getTrend(this.dagar)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -193,7 +193,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.loadingDetaljer = true;
     this.errorDetaljer   = false;
     this.svc.getDetaljer(this.dagar)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDetaljer = false;
         if (res?.success) {

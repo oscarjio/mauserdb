@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -108,7 +108,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
     this.errorHeatmap = false;
 
     this.svc.getHourlyHeatmap(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingHeatmap = false;
         if (res?.success && res.data) {
@@ -128,7 +128,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
     this.errorSummary = false;
 
     this.svc.getHourlySummary(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success && res.data) {
@@ -149,7 +149,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
     this.errorPeak = false;
 
     this.svc.getPeakAnalysis(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingPeak = false;
         if (res?.success && res.data) {

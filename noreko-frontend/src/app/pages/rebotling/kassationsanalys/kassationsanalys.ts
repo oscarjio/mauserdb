@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationsanalysService,
@@ -121,7 +121,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.loadingSammanfattning = true;
     this.errorSammanfattning = false;
     this.svc.getSammanfattning()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSammanfattning = false;
         if (res?.success) {
@@ -136,7 +136,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.loadingOrsaker = true;
     this.errorOrsaker = false;
     this.svc.getOrsaker(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOrsaker = false;
         if (res?.success) {
@@ -153,7 +153,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.loadingTrend = true;
     this.errorTrend = false;
     this.svc.getOrsakerTrend(this.days, this.trendGroup)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -169,7 +169,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.loadingStationer = true;
     this.errorStationer = false;
     this.svc.getPerStation(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
         if (res?.success) {
@@ -184,7 +184,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.loadingOperatorer = true;
     this.errorOperatorer = false;
     this.svc.getPerOperator(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOperatorer = false;
         if (res?.success) {
@@ -200,7 +200,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.errorDetaljer = false;
     this.expandedRows.clear();
     this.svc.getDetaljer(this.days, 200)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDetaljer = false;
         if (res?.success) {

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   RebotlingTrendanalysService,
@@ -114,7 +114,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.loadingTrender = true;
     this.errorTrender   = false;
     this.svc.getTrender()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrender = false;
         if (res?.success) {
@@ -131,7 +131,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.errorHistorik   = false;
     this.historikData    = [];
     this.svc.getDagligHistorik()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingHistorik = false;
         if (res?.success) {
@@ -148,7 +148,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.errorVecko   = false;
     this.veckoData    = [];
     this.svc.getVeckosammanfattning()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingVecko = false;
         if (res?.success) {
@@ -164,7 +164,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.errorAnomalier   = false;
     this.anomalierData    = [];
     this.svc.getAnomalier()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingAnomalier = false;
         if (res?.success) {
@@ -180,7 +180,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.errorPrognos   = false;
     this.prognosData    = null;
     this.svc.getPrognos()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingPrognos = false;
         if (res?.success) {

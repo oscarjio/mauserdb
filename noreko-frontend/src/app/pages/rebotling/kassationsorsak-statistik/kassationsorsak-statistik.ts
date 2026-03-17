@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationsorsakStatistikService,
@@ -105,7 +105,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
@@ -120,7 +120,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   // ---- Pareto ----
   private loadPareto(): void {
     this.loadingPareto = true;
-    this.svc.getPareto(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPareto(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
@@ -132,7 +132,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   // ---- Trend ----
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTrend(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
@@ -151,7 +151,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   // ---- Per operator ----
   private loadPerOperator(): void {
     this.loadingOperator = true;
-    this.svc.getPerOperator(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPerOperator(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOperator = false;
       if (res?.success) {
         this.operatorData = res.data;
@@ -162,7 +162,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   // ---- Per shift ----
   private loadPerShift(): void {
     this.loadingShift = true;
-    this.svc.getPerShift(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPerShift(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingShift = false;
       if (res?.success) {
         this.shiftData = res.data;
@@ -176,7 +176,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.loadingDrilldown = true;
     this.drilldownData = null;
 
-    this.svc.getDrilldown(orsakId, this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getDrilldown(orsakId, this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDrilldown = false;
       if (res?.success) {
         this.drilldownData = res.data;

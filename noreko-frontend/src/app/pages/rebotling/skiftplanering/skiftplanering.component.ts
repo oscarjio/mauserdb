@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { localToday } from '../../../utils/date-utils';
 import {
@@ -102,7 +102,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(timeout(15000), catchError(() => { this.errorOverview = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       this.isFetching = false;
       if (res?.success) {
@@ -118,7 +118,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   loadSchedule(week?: string): void {
     this.loadingSchedule = true;
     this.errorSchedule = false;
-    this.svc.getSchedule(week).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSchedule(week).pipe(timeout(15000), catchError(() => { this.errorSchedule = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSchedule = false;
       if (res?.success) {
         this.schema = res.schema;
@@ -165,7 +165,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     this.shiftDetail = null;
     this.errorDetail = false;
     this.removeError = '';
-    this.svc.getShiftDetail(skiftTyp, datum).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getShiftDetail(skiftTyp, datum).pipe(timeout(15000), catchError(() => { this.errorDetail = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetail = false;
       if (res?.success) {
         this.shiftDetail = res;
@@ -182,7 +182,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   removeOperator(schemaId: number): void {
     if (!confirm('Ta bort operatör från detta skift?')) return;
     this.removeError = '';
-    this.svc.unassignOperator(schemaId).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.unassignOperator(schemaId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadSchedule(this.currentWeek);
         this.loadOverview();
@@ -211,7 +211,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     if (this.allOperators.length === 0) {
       this.loadingOperators = true;
       this.errorOperators = false;
-      this.svc.getOperators().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.svc.getOperators().pipe(timeout(15000), catchError(() => { this.errorOperators = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOperators = false;
         if (res?.success) {
           this.allOperators = res.operatorer;
@@ -236,7 +236,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     this.assignError = '';
     this.assignMessage = '';
     this.svc.assignOperator(this.assignOperatorId, this.assignSkift, this.assignDatum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.savingAssign = false;
         if (res?.success) {
@@ -256,7 +256,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   loadCapacity(): void {
     this.loadingCapacity = true;
     this.errorCapacity = false;
-    this.svc.getCapacity().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getCapacity().pipe(timeout(15000), catchError(() => { this.errorCapacity = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingCapacity = false;
       if (res?.success) {
         this.capacityData = res.dag_data;

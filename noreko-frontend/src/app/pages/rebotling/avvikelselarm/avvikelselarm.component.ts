@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   AvvikelselarmService,
@@ -130,7 +130,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
         this.isFetching = false;
@@ -143,7 +143,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadAktiva(): void {
     this.loadingAktiva = true;
-    this.svc.getAktiva().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getAktiva().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingAktiva = false;
         if (res?.success) {
@@ -157,7 +157,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   loadHistorik(): void {
     this.loadingHistorik = true;
     this.svc.getHistorik(this.period, this.filterTyp, this.filterGrad)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingHistorik = false;
@@ -172,7 +172,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadRegler(): void {
     this.loadingRegler = true;
-    this.svc.getRegler().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getRegler().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingRegler = false;
         if (res?.success) {
@@ -185,7 +185,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getTrend(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -265,7 +265,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     if (!this.kvitteraLarm || !this.kvitteraNamn.trim()) return;
     this.savingKvittera = true;
     this.svc.kvittera(this.kvitteraLarm.id, this.kvitteraNamn.trim(), this.kvitteraKommentar.trim())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.savingKvittera = false;
@@ -284,7 +284,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   toggleRegel(regel: Regel): void {
     this.svc.uppdateraRegel(regel.id, undefined, !regel.aktiv)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.aktiv = !regel.aktiv;
@@ -296,7 +296,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     const val = parseFloat((event.target as HTMLInputElement).value);
     if (isNaN(val)) return;
     this.svc.uppdateraRegel(regel.id, val)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.grans_varde = val;

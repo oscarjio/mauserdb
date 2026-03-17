@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   OperatorsbonusService,
@@ -104,7 +104,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getOverview(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
         this.isFetching = false;
@@ -119,7 +119,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadOperatorer(): void {
     this.loadingOperatorer = true;
-    this.svc.getPerOperator(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getPerOperator(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOperatorer = false;
         if (res?.success) {
@@ -191,7 +191,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadKonfig(): void {
     this.loadingKonfig = true;
-    this.svc.getKonfiguration().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getKonfiguration().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingKonfig = false;
         if (res?.success) {
@@ -214,7 +214,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.konfigError  = '';
     this.konfigMessage = '';
 
-    this.svc.sparaKonfiguration(this.konfigForm).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.sparaKonfiguration(this.konfigForm).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.savingKonfig = false;
         if (res?.success) {
@@ -234,7 +234,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   runSimulering(): void {
     this.loadingSimulering = true;
     this.svc.getSimulering(this.simIbcPerTimme, this.simKvalitet, this.simNarvaro, this.simTeamMal)
-      .pipe(takeUntil(this.destroy$)).subscribe({
+      .pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
         next: res => {
           this.loadingSimulering = false;
           if (res?.success) {

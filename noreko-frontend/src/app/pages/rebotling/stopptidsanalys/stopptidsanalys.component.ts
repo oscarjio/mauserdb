@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   StopptidsanalysService,
@@ -85,7 +85,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   constructor(private svc: StopptidsanalysService) {}
 
   ngOnInit(): void {
-    this.svc.getMaskiner().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getMaskiner().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         if (res?.success) {
           this.allaMaskiner = res.data.maskiner;
@@ -134,7 +134,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview   = false;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getOverview(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
         this.isFetching = false;
@@ -150,7 +150,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
 
   private loadPerMaskin(): void {
     this.loadingPerMaskin = true;
-    this.svc.getPerMaskin(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getPerMaskin(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingPerMaskin = false;
         if (res?.success) {
@@ -164,7 +164,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getTrend(this.period, this.maskinFilter).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -185,7 +185,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
 
   private loadFordelning(): void {
     this.loadingFordelning = true;
-    this.svc.getFordelning(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getFordelning(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingFordelning = false;
         if (res?.success) {
@@ -199,7 +199,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
 
   private loadDetaljtabell(): void {
     this.loadingDetalj = true;
-    this.svc.getDetaljtabell(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getDetaljtabell(this.period, this.maskinFilter).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingDetalj = false;
         if (res?.success) {

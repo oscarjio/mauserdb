@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   SkiftrapportSammanstallningService,
@@ -91,7 +91,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     this.loadingDaglig = true;
     this.errorDaglig = false;
     this.svc.getDagligSammanstallning(this.valdDatum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDaglig = false;
         if (res?.success) {
@@ -108,7 +108,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     this.loadingVecko = true;
     this.errorVecko = false;
     this.svc.getVeckosammanstallning()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingVecko = false;
         if (res?.success) {
@@ -124,7 +124,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     this.loadingJamforelse = true;
     this.errorJamforelse = false;
     this.svc.getSkiftjamforelse(30)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingJamforelse = false;
         if (res?.success) {

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../../utils/date-utils';
 
@@ -97,7 +97,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     this.errorKpi   = false;
 
     this.svc.getKpiJamforelse()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingKpi = false;
@@ -122,7 +122,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     this.errorTrender   = false;
 
     this.svc.getTrenderAnomalier()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingTrender = false;
@@ -144,7 +144,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     this.errorOperatorer   = false;
 
     this.svc.getTopBottomOperatorer(this.valdPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingOperatorer = false;
@@ -166,7 +166,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     this.errorStopp   = false;
 
     this.svc.getStopporsaker(this.valdPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingStopp = false;
@@ -193,7 +193,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     this.visaSammanfattning    = false;
 
     this.svc.getVeckaSammanfattning()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingSammanfattning = false;

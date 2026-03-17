@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -110,7 +110,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
     this.errorOperators   = false;
 
     this.svc.getOperatorsForCompare()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOperators = false;
         if (res?.success) {
@@ -200,7 +200,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
 
     const ids = Array.from(this.valdaIds);
     this.svc.compareOperators(ids, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.isFetchingCompare = false;
@@ -232,7 +232,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
 
     const ids = Array.from(this.valdaIds);
     this.svc.compareOperatorsTrend(ids, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.isFetchingTrend = false;

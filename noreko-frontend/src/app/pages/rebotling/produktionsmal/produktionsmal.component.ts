@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../../utils/date-utils';
 
@@ -95,7 +95,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.sammanfattningLoading = true;
     this.sammanfattningError = false;
     this.service.getSammanfattning()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sammanfattningLoading = false;
         if (res?.success) {
@@ -110,7 +110,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.skiftLoading = true;
     this.skiftError = false;
     this.service.getPerSkift()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.skiftLoading = false;
         if (res?.success) {
@@ -125,7 +125,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.veckoLoading = true;
     this.veckoError = false;
     this.service.getVeckodata(4)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.veckoLoading = false;
         if (res?.success) {
@@ -144,7 +144,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.historikLoading = true;
     this.historikError = false;
     this.service.getHistorik(30)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.historikLoading = false;
         if (res?.success) {
@@ -159,7 +159,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.stationLoading = true;
     this.stationError = false;
     this.service.getPerStation()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.stationLoading = false;
         if (res?.success) {
@@ -182,7 +182,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     this.sparMeddelande = '';
 
     this.service.sparaMal(this.formTyp, this.formAntal)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sparLoading = false;
         if (res?.success) {

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ProduktionsSlaService,
@@ -104,7 +104,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
   loadOverview(): void {
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
         this.isFetching = false;
@@ -119,7 +119,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadDailyProgress(): void {
     this.loadingDaily = true;
-    this.svc.getDailyProgress().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getDailyProgress().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingDaily = false;
         if (res?.success) {
@@ -135,7 +135,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadWeeklyProgress(): void {
     this.loadingWeekly = true;
-    this.svc.getWeeklyProgress().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getWeeklyProgress().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingWeekly = false;
         if (res?.success) {
@@ -151,7 +151,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadHistory(): void {
     this.loadingHistory = true;
-    this.svc.getHistory(this.historyPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getHistory(this.historyPeriod).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingHistory = false;
         if (res?.success) {
@@ -171,7 +171,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadGoals(): void {
     this.loadingGoals = true;
-    this.svc.getGoals().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getGoals().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingGoals = false;
         if (res?.success) {
@@ -199,7 +199,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     this.savingGoal = true;
     this.goalError = '';
     this.goalMessage = '';
-    this.svc.setGoal(this.goalForm).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.setGoal(this.goalForm).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.savingGoal = false;
         if (res?.success) {

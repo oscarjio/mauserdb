@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   HistoriskProduktionService,
@@ -125,7 +125,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     this.loadingOverview = true;
     this.errorData = false;
     this.svc.getOverview(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingOverview = false;
@@ -140,7 +140,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   loadGraph(): void {
     this.loadingGraph = true;
     this.svc.getProduktionPerPeriod(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingGraph = false;
@@ -156,7 +156,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   loadCompare(): void {
     this.loadingCompare = true;
     this.svc.getJamforelse(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingCompare = false;
@@ -176,7 +176,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
       per_page: 50,
       sort: this.tableSort,
       order: this.tableOrder,
-    }).pipe(takeUntil(this.destroy$)).subscribe({
+    }).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingTable = false;
         if (res?.success) this.tabell = res.data;

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KapacitetsplaneringService,
@@ -186,7 +186,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.kpiData    = null;
 
     this.svc.getKpi(this.periodFilter)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingKpi = false;
@@ -211,7 +211,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.dagligData    = [];
 
     this.svc.getDagligKapacitet(this.diagramPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingDaglig = false;
@@ -348,7 +348,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.stationData    = [];
 
     this.svc.getStationUtnyttjande(this.diagramPeriod, this.periodFilter)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingStation = false;
@@ -448,7 +448,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.trendData    = [];
 
     this.svc.getUtnyttjandegradTrend(this.diagramPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingTrend = false;
@@ -552,7 +552,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.stopporsakData      = [];
 
     this.svc.getStopporsaker(this.diagramPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingStopporsaker = false;
@@ -633,7 +633,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.tidFordelningData    = [];
 
     this.svc.getTidFordelning(this.diagramPeriod)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingTidFordelning = false;
@@ -735,7 +735,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.veckoData    = [];
 
     this.svc.getVeckoOversikt()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingVecko = false;
@@ -759,7 +759,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.tabellData    = [];
 
     this.svc.getKapacitetstabell(this.periodFilter)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingTabell = false;
@@ -783,7 +783,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.bemanningData    = null;
 
     this.svc.getBemanning(this.orderbehovInput, this.periodFilter)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingBemanning = false;
@@ -811,7 +811,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.prognosData    = null;
 
     this.svc.getPrognos(this.prognosTimmar, this.prognosOperatorer)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingPrognos = false;

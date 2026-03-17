@@ -8,9 +8,8 @@ import {
   ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { RebotlingService, WeeklyKpiCard, WeeklyKpisResponse } from '../../../../services/rebotling.service';
 
 @Component({
@@ -40,7 +39,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
   ngAfterViewInit(): void {
     // Prenumerera på ändringar i canvas-listan (ritas om när data laddas)
     this.canvasRefs.changes
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(() => this.drawAllSparklines());
   }
 

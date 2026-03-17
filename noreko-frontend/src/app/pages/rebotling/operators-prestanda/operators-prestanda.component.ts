@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -143,7 +143,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     this.errorScatter   = false;
 
     this.svc.getScatterData(this.period, this.valtSkift)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingScatter = false;
@@ -175,7 +175,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     this.errorRanking   = false;
 
     this.svc.getRanking(sortBy, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingRanking = false;
@@ -246,7 +246,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     this.errorTeam   = false;
 
     this.svc.getTeamjamforelse(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingTeam = false;
@@ -287,7 +287,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     this.errorDetalj   = false;
 
     this.svc.getOperatorDetalj(id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingDetalj = false;
@@ -316,7 +316,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     this.errorUtveckling   = false;
 
     this.svc.getUtveckling(id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingUtveckling = false;

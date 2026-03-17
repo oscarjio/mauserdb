@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import {
   MaskinDrifttidService,
   HeatmapData,
@@ -102,7 +102,7 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
 
   laddaStationer(): void {
     this.svc.getStationer()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           this.stationer = res.data.stationer ?? [];
@@ -114,7 +114,7 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
     this.loadingHeatmap = true;
     this.errorHeatmap   = false;
     this.svc.getHeatmap(this.dagar)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingHeatmap = false;
         if (res?.success) {
@@ -130,7 +130,7 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
     this.loadingKpi = true;
     this.errorKpi   = false;
     this.svc.getKpi(this.dagar)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingKpi = false;
         if (res?.success) {
@@ -158,7 +158,7 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
     this.dagDetalj     = null;
 
     this.svc.getDagDetalj(datum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDetalj = false;
         if (res?.success) {

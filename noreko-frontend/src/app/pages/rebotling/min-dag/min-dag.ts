@@ -46,7 +46,7 @@ export class MinDagPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+    this.authService.user$.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(user => {
       this.operatorId = user?.operator_id ?? null;
       this.loadAll();
     });
@@ -76,7 +76,7 @@ export class MinDagPage implements OnInit, OnDestroy {
       summary: this.rebotlingService.getMinDagSummary(opId).pipe(timeout(10000), catchError(() => of(null))),
       goals:   this.rebotlingService.getMinDagGoalsProgress(opId).pipe(timeout(10000), catchError(() => of(null))),
       trend:   this.rebotlingService.getMinDagCycleTrend(opId).pipe(timeout(10000), catchError(() => of(null))),
-    }).pipe(takeUntil(this.destroy$)).subscribe(({ summary, goals, trend }) => {
+    }).pipe(timeout(15000), catchError(() => of({ summary: null, goals: null, trend: null })), takeUntil(this.destroy$)).subscribe(({ summary, goals, trend }) => {
       this.loading = false;
 
       if (summary?.success) {

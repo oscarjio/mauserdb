@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   LeveransplaneringService,
@@ -135,7 +135,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(timeout(15000), catchError(() => { this.errorOverview = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       this.loading = false;
       this.isFetching = false;
@@ -150,7 +150,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   private loadOrdrar(): void {
     this.loadingOrdrar = true;
     this.errorOrdrar = false;
-    this.svc.getOrdrar(this.filterStatus, this.filterPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOrdrar(this.filterStatus, this.filterPeriod).pipe(timeout(15000), catchError(() => { this.errorOrdrar = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOrdrar = false;
       if (res?.success) {
         this.ordrarData = res.data;
@@ -164,7 +164,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   private loadKapacitet(): void {
     this.loadingKapacitet = true;
     this.errorKapacitet = false;
-    this.svc.getKapacitet(30).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getKapacitet(30).pipe(timeout(15000), catchError(() => { this.errorKapacitet = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingKapacitet = false;
       if (res?.success) {
         this.kapacitetData = res.data;
@@ -245,7 +245,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   // ---- Update order status ----
 
   updateStatus(id: number, status: string): void {
-    this.svc.uppdateraOrder(id, status).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.uppdateraOrder(id, status).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
       }
@@ -266,7 +266,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
     }
 
     this.savingOrder = true;
-    this.svc.skapaOrder(this.newOrder).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.skapaOrder(this.newOrder).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.savingOrder = false;
       if (res?.success) {
         this.showNewOrderModal = false;

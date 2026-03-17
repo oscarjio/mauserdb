@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KvalitetscertifikatService,
@@ -115,7 +115,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
         this.isFetching = false;
@@ -134,7 +134,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     const period = this.filterPeriod || undefined;
     const opId   = this.filterOperator > 0 ? this.filterOperator : undefined;
 
-    this.svc.getLista(status, period, opId).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getLista(status, period, opId).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingLista = false;
         if (res?.success) {
@@ -193,7 +193,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadDetalj(id: number): void {
     this.loadingDetalj = true;
-    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getDetalj(id).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingDetalj = false;
         if (res?.success) {
@@ -223,7 +223,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.selectedCert.id,
       this.bedomStatus as 'godkand' | 'underkand',
       this.bedomKommentar
-    ).pipe(takeUntil(this.destroy$)).subscribe({
+    ).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.bedomLoading = false;
         if (res?.success) {
@@ -274,7 +274,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       antal_ibc: this.genAntalIbc,
       kassation_procent: this.genKassationPct,
       cykeltid_snitt: this.genCykeltidSnitt,
-    }).pipe(takeUntil(this.destroy$)).subscribe({
+    }).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.genLoading = false;
         if (res?.success) {
@@ -299,7 +299,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadStatistik(): void {
     this.loadingStatistik = true;
-    this.svc.getStatistik(30).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.getStatistik(30).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingStatistik = false;
         if (res?.success) {

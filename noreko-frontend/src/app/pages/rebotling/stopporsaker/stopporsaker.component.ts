@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../../utils/date-utils';
 import {
@@ -174,7 +174,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
     this.errorSammanfattning = false;
-    this.svc.getSammanfattning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSammanfattning(this.period).pipe(timeout(15000), catchError(() => { this.errorSammanfattning = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
       this.isFetching = false;
       if (res?.success) {
@@ -187,7 +187,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   private loadPareto(): void {
     this.loadingPareto = true;
-    this.svc.getPareto(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPareto(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
@@ -198,7 +198,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   private loadPerStation(): void {
     this.loadingStation = true;
-    this.svc.getPerStation(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPerStation(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingStation = false;
       if (res?.success) {
         this.stationData = res.data;
@@ -209,7 +209,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTrend(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
@@ -220,7 +220,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   private loadOrsaker(): void {
     this.loadingOrsaker = true;
-    this.svc.getOrsakerTabell(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOrsakerTabell(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOrsaker = false;
       if (res?.success) {
         this.orsakerData = res.data;
@@ -230,7 +230,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   private loadDetaljer(): void {
     this.loadingDetaljer = true;
-    this.svc.getDetaljer(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getDetaljer(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetaljer = false;
       if (res?.success) {
         this.detaljerData = res.data;

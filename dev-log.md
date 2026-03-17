@@ -1,3 +1,50 @@
+## 2026-03-17 Session #149 Worker B — 145 buggar fixade (HTTP timeout/catchError audit)
+### Uppgift: Memory leak audit + HTTP retry/timeout audit for alla Angular-komponenter
+Systematisk granskning av alla Angular-komponenter i noreko-frontend/src/app/pages/rebotling/ for saknad timeout() och catchError() pa HTTP-anrop.
+
+**Del 1 — Memory leak audit (0 nya buggar):**
+Granskade alla komponenter for Chart.js-lakage, setInterval utan clearInterval, setTimeout utan destroy-guard, addEventListener utan removeEventListener, och Subscriptions utan unsubscribe. Alla komponenter i rebotling/ hade redan korrekt cleanup (destroy$-pattern, chart.destroy(), clearInterval/clearTimeout, !this.destroy$.closed guards).
+
+**Del 2 — HTTP timeout/catchError audit (145 buggar fixade i 31 filer):**
+Lade till `timeout(15000)` pa alla HTTP-anrop som saknade det. For anrop utan error-hantering lades aven `catchError(() => of(null))` till. Fixade 31 komponentfiler:
+
+- `stopporsaker.component.ts` — 6 HTTP-anrop fixade (timeout+catchError)
+- `leveransplanering.component.ts` — 5 HTTP-anrop fixade (timeout+catchError)
+- `skiftplanering.component.ts` — 7 HTTP-anrop fixade (timeout+catchError)
+- `stopptidsanalys.component.ts` — 6 HTTP-anrop fixade (timeout)
+- `maskin-oee.component.ts` — 6 HTTP-anrop fixade (timeout)
+- `avvikelselarm.component.ts` — 8 HTTP-anrop fixade (timeout)
+- `kapacitetsplanering.component.ts` — 10 HTTP-anrop fixade (timeout)
+- `produktionskostnad.component.ts` — 7 HTTP-anrop fixade (timeout)
+- `kvalitetscertifikat.component.ts` — 6 HTTP-anrop fixade (timeout)
+- `produktions-sla.component.ts` — 6 HTTP-anrop fixade (timeout)
+- `operatorsbonus.component.ts` — 5 HTTP-anrop fixade (timeout)
+- `historisk-produktion.component.ts` — 4 HTTP-anrop fixade (timeout)
+- `rebotling-trendanalys.component.ts` — 5 HTTP-anrop fixade (timeout+catchError)
+- `maskinhistorik.component.ts` — 6 HTTP-anrop fixade (timeout+catchError)
+- `vd-veckorapport.component.ts` — 5 HTTP-anrop fixade (timeout)
+- `produktionsmal.component.ts` — 6 HTTP-anrop fixade (timeout+catchError)
+- `operators-prestanda.component.ts` — 5 HTTP-anrop fixade (timeout)
+- `stationsdetalj.component.ts` — 6 HTTP-anrop fixade (timeout)
+- `kassationsanalys.ts` — 6 HTTP-anrop fixade (timeout+catchError)
+- `kassationsorsak.ts` — 5 HTTP-anrop fixade (timeout+catchError)
+- `kassationsorsak-statistik.ts` — 6 HTTP-anrop fixade (timeout+catchError)
+- `maskin-drifttid.ts` — 4 HTTP-anrop fixade (timeout+catchError)
+- `min-dag.ts` — 2 HTTP-anrop fixade (timeout+catchError)
+- `oee-jamforelse.ts` — 1 HTTP-anrop fixade (timeout+catchError)
+- `operator-jamforelse.ts` — 3 HTTP-anrop fixade (timeout)
+- `produktionseffektivitet.ts` — 3 HTTP-anrop fixade (timeout+catchError)
+- `produktionstakt.ts` — 1 HTTP-anrop fixade (timeout+catchError)
+- `skiftrapport-sammanstallning.ts` — 3 HTTP-anrop fixade (timeout+catchError)
+- `statistik-handelser.ts` — 1 HTTP-anrop fixade (timeout+catchError, fixade duplicate import)
+- `statistik-veckotrend.ts` — 1 HTTP-anrop fixade (timeout+catchError, fixade duplicate import)
+
+**Monster som anvands:**
+- `.pipe(timeout(15000), takeUntil(this.destroy$))` for anrop med `.subscribe({next, error})` (redan error-hantering)
+- `.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))` for anrop med `.subscribe(res => ...)` (saknade error-hantering)
+
+**Build:** `npx ng build` — OK (inga fel, bara harmless CommonJS-varningar)
+
 ## 2026-03-17 Session #149 Worker A — 16 buggar fixade (file I/O, date/time, response consistency)
 ### Uppgift: PHP file I/O error handling, date/time edge cases, response consistency
 Granskade alla PHP-controllers i noreko-backend/classes/ efter file I/O utan felkontroll, DateTime/strtotime utan try/catch eller false-check, och json_decode utan null-check.
