@@ -61,7 +61,7 @@ class RebotlingProductController {
 
     private function getProducts() {
         try {
-            $stmt = $this->pdo->prepare("SELECT * FROM rebotling_products ORDER BY id");
+            $stmt = $this->pdo->prepare("SELECT id, name, cycle_time_minutes FROM rebotling_products ORDER BY id");
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             

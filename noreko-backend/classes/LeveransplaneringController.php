@@ -73,7 +73,7 @@ class LeveransplaneringController {
     }
 
     private function getConfig(): array {
-        $row = $this->pdo->query("SELECT * FROM produktionskapacitet_config ORDER BY id ASC LIMIT 1")->fetch();
+        $row = $this->pdo->query("SELECT kapacitet_per_dag, planerade_underhallsdagar, buffer_procent FROM produktionskapacitet_config ORDER BY id ASC LIMIT 1")->fetch();
         if (!$row) {
             return ['kapacitet_per_dag' => 80, 'planerade_underhallsdagar' => [], 'buffer_procent' => 10];
         }
@@ -221,9 +221,12 @@ class LeveransplaneringController {
             $whereClause = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
             $stmt = $this->pdo->prepare("
-                SELECT * FROM kundordrar
+                SELECT id, kundnamn, antal_ibc, bestallningsdatum, onskat_leveransdatum,
+                       beraknat_leveransdatum, status, prioritet, notering
+                FROM kundordrar
                 {$whereClause}
                 ORDER BY prioritet ASC, onskat_leveransdatum ASC
+                LIMIT 1000
             ");
             $stmt->execute($params);
             $rows = $stmt->fetchAll();
@@ -351,7 +354,9 @@ class LeveransplaneringController {
             $config = $this->getConfig();
 
             $stmt = $this->pdo->prepare("
-                SELECT * FROM kundordrar
+                SELECT id, kundnamn, antal_ibc, onskat_leveransdatum, beraknat_leveransdatum,
+                       status, prioritet
+                FROM kundordrar
                 WHERE status IN ('planerad','i_produktion','forsenad')
                 ORDER BY prioritet ASC, onskat_leveransdatum ASC
                 LIMIT 500
@@ -418,6 +423,11 @@ class LeveransplaneringController {
     }
 
     private function uppdateraKonfiguration(): void {
+        // Konfigurationsandringar kraver admin-behorighet
+        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            $this->sendError('Admin-behörighet krävs för att ändra konfiguration', 403);
+            return;
+        }
         try {
             $input = json_decode(file_get_contents('php://input'), true);
             if (!$input) {

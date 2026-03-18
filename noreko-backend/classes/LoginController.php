@@ -61,9 +61,19 @@ class LoginController {
         }
 
         try {
-            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id, role FROM users WHERE username = ?");
+            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id, role, active FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Kontrollera om kontot är inaktiverat (active-kolumnen kan saknas i äldre DB:er)
+            if ($user && array_key_exists('active', $user) && (int)$user['active'] === 0) {
+                AuthHelper::recordAttempt($pdo, $ip, $username, false);
+                AuditLogger::log($pdo, 'login_blocked_inactive', 'user', (int)$user['id'],
+                    "Inloggningsförsök till inaktiverat konto: {$username}");
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Kontot är inaktiverat. Kontakta administratören.'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
 
             if ($user && AuthHelper::verifyPassword($password, $user['password'])) {
                 AuthHelper::clearAttempts($pdo, $ip);

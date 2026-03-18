@@ -700,7 +700,9 @@ class OperatorsbonusController {
             }
 
             $stmt = $this->pdo->prepare("
-                SELECT *
+                SELECT id, operator_id, operator_namn, period_start, period_slut,
+                       ibc_per_timme, kvalitet_procent, narvaro_procent, team_mal_uppnadd,
+                       bonus_belopp, status, skapad_datum
                 FROM bonus_utbetalning
                 WHERE {$where}
                 ORDER BY period_start DESC, operator_namn ASC

@@ -123,9 +123,11 @@ class AuditController {
             $countStmt->execute($params);
             $total = (int)$countStmt->fetchColumn();
 
-            // Fetch page
+            // Fetch page — välj specifika kolumner istället för SELECT * för att undvika
+            // att skicka potentiellt stora old_value/new_value JSON-fält i listningen
             $stmt = $this->pdo->prepare("
-                SELECT * FROM audit_log
+                SELECT id, action, entity_type, entity_id, description, `user`, ip_address, created_at
+                FROM audit_log
                 WHERE $whereClause
                 ORDER BY created_at DESC
                 LIMIT " . (int)$limit . " OFFSET " . (int)$offset . "

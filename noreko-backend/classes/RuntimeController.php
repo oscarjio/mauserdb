@@ -32,7 +32,15 @@ class RuntimeController {
         }
 
         if ($method === 'POST') {
-            // POST endpoint för manuell registrering om behövs
+            // POST endpoint för manuell registrering — kräver inloggning
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            if (empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'Inloggning krävs'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $this->registerBreak();
             return;
         }

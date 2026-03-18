@@ -359,55 +359,70 @@ class OperatorRankingController {
 
     /**
      * Berakna streak (dagar i rad med poang over snittet) for operatorer.
+     * Optimerad: en enda batch-query for alla operatorer istallet for N+1.
      */
     private function calcStreaks(array &$ranking): void {
         if (empty($ranking)) return;
 
         $avgPoang = array_sum(array_column($ranking, 'total_poang')) / count($ranking);
+        $dagGrans = max(1, $avgPoang / 30);
 
+        $userIds = array_column($ranking, 'user_id');
+        if (empty($userIds)) return;
+
+        // Batch-hamta daglig IBC per operator senaste 30 dagar i EN query
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $allDagData = []; // op_id => [{dag, ibc_count}, ...]
+
+        try {
+            $sql = "
+                SELECT op_id, dag, SUM(cnt) AS ibc_count
+                FROM (
+                    SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    FROM rebotling_ibc
+                    WHERE op1 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op1, DATE(datum)
+                    UNION ALL
+                    SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    FROM rebotling_ibc
+                    WHERE op2 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op2, DATE(datum)
+                    UNION ALL
+                    SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    FROM rebotling_ibc
+                    WHERE op3 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op3, DATE(datum)
+                ) AS combined
+                GROUP BY op_id, dag
+                ORDER BY op_id, dag DESC
+            ";
+            $params = array_merge($userIds, $userIds, $userIds);
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $opId = (int)$row['op_id'];
+                $allDagData[$opId][] = [
+                    'dag'       => $row['dag'],
+                    'ibc_count' => (int)$row['ibc_count'],
+                ];
+            }
+        } catch (\PDOException $e) {
+            error_log('OperatorRankingController::calcStreaks batch: ' . $e->getMessage());
+        }
+
+        // Berakna streak per operator fran batch-data
         foreach ($ranking as &$op) {
-            // Hamta daglig IBC for denna operator senaste 30 dagar
-            // Operatorer identifieras via op1/op2/op3-kolumner, inte user_id
             $streak = 0;
-            try {
-                $sql = "
-                    SELECT dag, SUM(cnt) AS ibc_count
-                    FROM (
-                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-                        FROM rebotling_ibc
-                        WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                        GROUP BY DATE(datum)
-                        UNION ALL
-                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-                        FROM rebotling_ibc
-                        WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                        GROUP BY DATE(datum)
-                        UNION ALL
-                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-                        FROM rebotling_ibc
-                        WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                        GROUP BY DATE(datum)
-                    ) AS combined
-                    GROUP BY dag
-                    ORDER BY dag DESC
-                ";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':uid1' => $op['user_id'], ':uid2' => $op['user_id'], ':uid3' => $op['user_id']]);
-                $dagData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $dagData = $allDagData[$op['user_id']] ?? [];
 
-                // Daglig poang-grans = snittet / antal dagar normaliserat
-                $dagGrans = max(1, $avgPoang / 30);
-
-                foreach ($dagData as $d) {
-                    $dagPoang = (int)$d['ibc_count'] * 10;
-                    if ($dagPoang >= $dagGrans) {
-                        $streak++;
-                    } else {
-                        break;
-                    }
+            foreach ($dagData as $d) {
+                $dagPoang = $d['ibc_count'] * 10;
+                if ($dagPoang >= $dagGrans) {
+                    $streak++;
+                } else {
+                    break;
                 }
-            } catch (\PDOException $e) {
-                error_log('OperatorRankingController::calcStreaks: ' . $e->getMessage());
             }
 
             $op['streak'] = $streak;

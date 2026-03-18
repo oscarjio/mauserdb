@@ -278,7 +278,10 @@ class KvalitetscertifikatController {
 
         try {
             $stmt = $this->pdo->prepare("
-                SELECT * FROM kvalitetscertifikat WHERE id = :id
+                SELECT id, batch_nummer, datum, operator_id, operator_namn,
+                       antal_ibc, kassation_procent, cykeltid_snitt,
+                       kvalitetspoang, status, kommentar, bedomd_av, bedomd_datum, skapad_datum
+                FROM kvalitetscertifikat WHERE id = :id
             ");
             $stmt->execute([':id' => $id]);
             $cert = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -290,7 +293,7 @@ class KvalitetscertifikatController {
 
             // Hamta kvalitetskriterier for bedomning
             $kriterier = $this->pdo->query(
-                "SELECT * FROM kvalitetskriterier WHERE aktiv = 1 ORDER BY vikt DESC"
+                "SELECT id, namn, beskrivning, min_varde, max_varde, vikt, aktiv FROM kvalitetskriterier WHERE aktiv = 1 ORDER BY vikt DESC"
             )->fetchAll(\PDO::FETCH_ASSOC);
 
             $this->sendSuccess([
@@ -367,7 +370,7 @@ class KvalitetscertifikatController {
     private function beraknaKvalitetspoang(float $kassation, float $cykeltid, int $antalIbc): float {
         try {
             $kriterier = $this->pdo->query(
-                "SELECT * FROM kvalitetskriterier WHERE aktiv = 1"
+                "SELECT id, namn, beskrivning, min_varde, max_varde, vikt, aktiv FROM kvalitetskriterier WHERE aktiv = 1"
             )->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException) {
             // Fallback: enkel berakning
@@ -498,7 +501,7 @@ class KvalitetscertifikatController {
     private function getKriterier(): void {
         try {
             $rows = $this->pdo->query(
-                "SELECT * FROM kvalitetskriterier ORDER BY vikt DESC, id ASC"
+                "SELECT id, namn, beskrivning, min_varde, max_varde, vikt, aktiv FROM kvalitetskriterier ORDER BY vikt DESC, id ASC"
             )->fetchAll(\PDO::FETCH_ASSOC);
 
             $this->sendSuccess(['data' => $rows]);

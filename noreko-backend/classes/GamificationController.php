@@ -300,53 +300,77 @@ class GamificationController {
 
     /**
      * Berakna streak (dagar i rad med produktion).
+     * Optimerad: en enda query for alla operatorer istallet for N+1.
      */
     private function calcStreaks(array &$ranking): void {
+        if (empty($ranking)) return;
+
+        $userIds = array_column($ranking, 'user_id');
+        if (empty($userIds)) return;
+
+        // Batch-hamta daglig IBC per operator senaste 30 dagar i EN query
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $allDagData = []; // op_id => [{dag, ibc_count}, ...]
+
+        try {
+            $sql = "
+                SELECT op_id, dag, SUM(cnt) AS ibc_count FROM (
+                    SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op1 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op1, DATE(datum)
+                    UNION ALL
+                    SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op2 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op2, DATE(datum)
+                    UNION ALL
+                    SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op3 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY op3, DATE(datum)
+                ) AS sub
+                GROUP BY op_id, dag
+                ORDER BY op_id, dag DESC
+            ";
+            $params = array_merge($userIds, $userIds, $userIds);
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $opId = (int)$row['op_id'];
+                $allDagData[$opId][] = [
+                    'dag'       => $row['dag'],
+                    'ibc_count' => (int)$row['ibc_count'],
+                ];
+            }
+        } catch (\PDOException) {
+            // Ignorera — streaks blir 0
+        }
+
+        // Berakna streak per operator fran batch-data
         foreach ($ranking as &$op) {
             $streak = 0;
-            try {
-                $sql = "
-                    SELECT dag, SUM(cnt) AS ibc_count FROM (
-                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
-                        UNION ALL
-                        SELECT DATE(datum), COUNT(*) FROM rebotling_ibc
-                        WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
-                        UNION ALL
-                        SELECT DATE(datum), COUNT(*) FROM rebotling_ibc
-                        WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
-                    ) AS sub
-                    GROUP BY dag ORDER BY dag DESC
-                ";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':uid1' => $op['user_id'], ':uid2' => $op['user_id'], ':uid3' => $op['user_id']]);
-                $dagData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $dagData = $allDagData[$op['user_id']] ?? [];
+            $prevDate = null;
 
-                $prevDate = null;
-                foreach ($dagData as $d) {
-                    $currentDate = $d['dag'];
-                    if ((int)$d['ibc_count'] <= 0) {
+            foreach ($dagData as $d) {
+                $currentDate = $d['dag'];
+                if ($d['ibc_count'] <= 0) {
+                    break;
+                }
+                if ($prevDate === null) {
+                    $daysDiff = (int)((strtotime(date('Y-m-d')) - strtotime($currentDate)) / 86400);
+                    if ($daysDiff > 1) {
                         break;
                     }
-                    if ($prevDate === null) {
-                        // Forsta dagen -- kontrollera att det ar idag eller igar
-                        $daysDiff = (int)((strtotime(date('Y-m-d')) - strtotime($currentDate)) / 86400);
-                        if ($daysDiff > 1) {
-                            break; // Senaste produktionsdagen ar for lang sedan
-                        }
-                        $streak = 1;
+                    $streak = 1;
+                } else {
+                    $gap = (int)round((strtotime($prevDate) - strtotime($currentDate)) / 86400);
+                    if ($gap === 1) {
+                        $streak++;
                     } else {
-                        $gap = (int)round((strtotime($prevDate) - strtotime($currentDate)) / 86400);
-                        if ($gap === 1) {
-                            $streak++;
-                        } else {
-                            break; // Lucka i datumen — streak bruten
-                        }
+                        break;
                     }
-                    $prevDate = $currentDate;
                 }
-            } catch (\PDOException) {
-                // Ignorera
+                $prevDate = $currentDate;
             }
 
             $op['streak'] = $streak;
@@ -811,11 +835,18 @@ class GamificationController {
             $totalIbc = array_sum(array_column($leaderboard, 'total_ibc'));
             $avgPoang = $totalOperatorer > 0 ? round($totalPoang / $totalOperatorer, 1) : 0;
 
-            // Badge-statistik
+            // Badge-statistik — estimera baserat pa top 10 for att undvika N+1
+            // (getBadges gor flera DB-queries per operator, alltfor dyrt for alla)
             $badgeCount = 0;
-            foreach ($leaderboard as $op) {
+            $badgeSample = array_slice($leaderboard, 0, 10);
+            foreach ($badgeSample as $op) {
                 $badges = $this->getBadges($op['user_id']);
                 $badgeCount += count($badges);
+            }
+            // Extrapolera for resten
+            if (count($badgeSample) > 0 && $totalOperatorer > count($badgeSample)) {
+                $avgBadges = $badgeCount / count($badgeSample);
+                $badgeCount = (int)round($avgBadges * $totalOperatorer);
             }
 
             // Streak-statistik
