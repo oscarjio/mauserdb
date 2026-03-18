@@ -1,3 +1,39 @@
+## 2026-03-18 Session #166 Worker A — PHP security audit (file upload validation + CORS/security headers)
+
+### Audit 1: PHP file upload validation audit — 0 buggar (inga uploads)
+Soktes igenom ALLA PHP-controllers i noreko-backend/classes/ efter $_FILES, move_uploaded_file, tmp_name, file upload patterns.
+**Resultat**: Projektet hanterar INGA filuppladdningar via PHP. Alla file_get_contents-anrop ar for php://input (JSON body) eller SQL-migrationsfiler. Inga upload-sarhetshetsproblem att fixa.
+
+### Audit 2: PHP CORS/security headers audit — 7 buggar fixade
+
+**api.php (central router) — redan bra, 1 bugg:**
+- Hade redan: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Cache-Control, Pragma, HSTS
+- CORS korrekt: whitelist-baserad (ingen Access-Control-Allow-Origin: *)
+1. **api.php** — saknade Content-Security-Policy header. Fix: tillagd CSP med default-src 'self', script-src 'self', frame-ancestors 'none'.
+
+**Legacy stubs (login.php, admin.php) — saknade manga headers:**
+2. **login.php** — saknade 6 headers: X-XSS-Protection, Referrer-Policy, Permissions-Policy, Pragma, Content-Security-Policy, Strict-Transport-Security. Fix: alla tillagda.
+3. **admin.php** — saknade 6 headers: X-XSS-Protection, Referrer-Policy, Permissions-Policy, Pragma, Content-Security-Policy, Strict-Transport-Security. Fix: alla tillagda.
+
+**Standalone scripts:**
+4. **update-weather.php** — hade bara X-Content-Type-Options och X-Frame-Options. Saknade 7 headers: X-XSS-Protection, Referrer-Policy, Permissions-Policy, Cache-Control, Pragma, Content-Security-Policy, Strict-Transport-Security. Fix: alla tillagda + header_remove('X-Powered-By').
+
+**CSV filename header injection:**
+5. **BonusAdminController.php exportCSV()** — filnamn-parameter anvandes direkt i Content-Disposition utan sanitering. Fix: basename() + preg_replace for att ta bort otillagna tecken.
+6. **RebotlingAnalyticsController.php CSV-export** — $startDate fran user input anvandes direkt i Content-Disposition. Fix: preg_replace('/[^0-9-]/', '') for sanitering.
+7. **TidrapportController.php getExportCsv()** — $fromDate/$toDate anvandes direkt i Content-Disposition. Fix: preg_replace('/[^0-9-]/', '') for sanitering.
+
+**Andrade filer:**
+- noreko-backend/api.php
+- noreko-backend/login.php
+- noreko-backend/admin.php
+- noreko-backend/update-weather.php
+- noreko-backend/classes/BonusAdminController.php
+- noreko-backend/classes/RebotlingAnalyticsController.php
+- noreko-backend/classes/TidrapportController.php
+
+---
+
 ## 2026-03-18 Session #165 Worker A — PHP buggjakt (3 audits: input boundary, date/timezone, logging)
 
 ### Audit 1: PHP input length/boundary audit — 15 buggar fixade
