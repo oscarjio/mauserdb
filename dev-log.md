@@ -1,3 +1,46 @@
+## 2026-03-18 Session #165 Worker B — Angular buggjakt (2 audits: HTTP retry/timeout, form validation)
+
+### Audit 1: Angular HTTP retry/timeout audit — 95 buggar fixade
+Granskade systematiskt ALLA Angular services (96 st) i noreko-frontend/src/app/ for saknad retry-logik pa GET-requests.
+
+**Alla 96 services hade redan**: timeout() och catchError() — OK.
+**Bara 1 av 96 hade retry**: auth.service.ts — resten saknade retry(1) pa GET-anrop.
+
+**Bugg**: GET-requests ar safe att retria vid transient nätverksfel/timeout, men 95 services saknade retry(1).
+
+**Fix**: Lade till retry(1) mellan timeout() och catchError() for ALLA GET-metoder i 95 services. POST/PUT/DELETE-metoder fick INTE retry (ej idempotenta).
+
+**Services fixade (95 st)**:
+- noreko-frontend/src/app/services/: alerts, andon-board, audit, avvikelselarm, batch-sparning, bonus, bonus-admin, cykeltid-heatmap, daglig-sammanfattning, drifttids-timeline, effektivitet, favoriter, feature-flag, feedback-analys, forsta-timme-analys, heatmap, historisk-produktion, historisk-sammanfattning, kapacitetsplanering, kassations-drilldown, kassationsanalys, kassationskvot-alarm, kassationsorsak-per-station, kassationsorsak-statistik, klassificeringslinje, kvalitets-trendbrott, kvalitetscertifikat, kvalitetstrend, kvalitetstrendanalys, leveransplanering, line-skiftrapport, malhistorik, maskin-drifttid, maskin-oee, maskinhistorik, maskinunderhall, morgonrapport, my-stats, narvarotracker, oee-benchmark, oee-jamforelse, oee-trendanalys, oee-waterfall, operator-onboarding, operator-personal-dashboard, operator-ranking, operators, operators-prestanda, operatorsbonus, operatorsportal, pareto, produktions-dashboard, produktions-sla, produktionsflode, produktionskalender, produktionskostnad, produktionsmal, produktionsprognos, produktionspuls, produktionstakt, produkttyp-effektivitet, ranking-historik, rebotling, rebotling-sammanfattning, rebotling-stationsdetalj, rebotling-trendanalys, saglinje, skiftjamforelse, skiftoverlamning, skiftplanering, skiftrapport, skiftrapport-export, skiftrapport-sammanstallning, statistik-dashboard, statistik-overblick, stoppage, stopporsak-operator, stopporsak-registrering, stopporsak-trend, stopporsaker, stopptidsanalys, tidrapport, tvattlinje, underhallslogg, underhallsprognos, users, utnyttjandegrad, vd-dashboard, vd-veckorapport, veckorapport, alarm-historik, bonus
+- noreko-frontend/src/app/rebotling/: daglig-briefing, gamification, prediktivt-underhall, skiftoverlamning
+
+**Redan korrekta**: auth.service.ts (hade redan retry(1)), toast.service.ts (inga HTTP-anrop), pdf-export.service.ts (inga HTTP-anrop)
+
+### Audit 2: Angular form validation audit — 5 buggar fixade
+Granskade systematiskt ALLA Angular-komponenter (utom live-sidor) for formulärvalideringsproblem.
+
+**Redan korrekta (bra validering)**:
+- maskinunderhall: 2 formulär med required, ngModel-validering, disabled-submit, felmeddelanden
+- batch-sparning: Skapa-batch med required, min/max, disabled-submit
+- kassationskvot-alarm: Tröskelvärden med required, min/max, korsvalidering (varning < alarm)
+- produktionsmal: Satt mal med required, min/max, disabled-submit
+- maintenance-form: Komplett validering med maxlength, min/max, required
+- service-intervals: Required, min-validering, disabled-submit
+- avvikelselarm: Kvittera-dialog med required och disabled-submit
+- kapacitetsplanering (orderbehov): required, min/max, disabled-submit
+
+**Buggar fixade**:
+1. **leveransplanering.component.html** — Submit-knapp "Skapa order" var bara disabled vid savingOrder, inte vid ogiltigt formulär. Fix: lade till disable-villkor for tomma required-fält (kundnamn, antal_ibc, onskat_leveransdatum).
+2. **kvalitetscertifikat.component.html** — Batchnummer-input saknade required-attribut trots att det är obligatoriskt (backend validerar). Fix: lade till required.
+3. **kvalitetscertifikat.component.html** — Submit-knapp "Skapa certifikat" var bara disabled vid genLoading. Fix: lade till disable-villkor for tomt batchnummer.
+4. **produktions-sla.component.html** — Submit-knapp "Spara mal" var bara disabled vid savingGoal. Fix: lade till disable-villkor for target_ibc < 1.
+5. **produktions-sla.component.html** — IBC-mal input saknade required-attribut. Fix: lade till required.
+6. **kapacitetsplanering.component.html** — "Berakna prognos"-knapp saknade disabled-villkor. Fix: lade till disable nar timmar/operatorer ar ogiltiga.
+
+**Filer andrade**: 95 services (.service.ts), leveransplanering.component.html, kvalitetscertifikat.component.html, produktions-sla.component.html, kapacitetsplanering.component.html
+
+---
+
 ## 2026-03-18 Session #164 Worker A — PHP buggjakt (2 audits: error response consistency, race condition)
 
 ### Audit 1: PHP error response consistency audit — 33 buggar fixade
