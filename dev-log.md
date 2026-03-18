@@ -1,3 +1,27 @@
+## 2026-03-18 Session #168 Worker B — Angular HTTP error message + form reset/dirty state audit — 5 buggar fixade
+
+### Audit 1: Angular HTTP error message audit — 4 buggar fixade
+
+Granskade ALLA Angular components i noreko-frontend/src/app/ for catchError/subscribe-handlers som svalde fel tyst utan att visa felmeddelande for anvandaren.
+
+**Buggar fixade:**
+
+1. **skiftoverlamning.component.ts** — toggleHistorikItem() anvande console.error() vid detaljladdningsfel utan att visa ngt for anvandaren. Ersatt med toast.error() sa anvandaren ser att nagot gick fel.
+
+2. **kvalitetscertifikat.component.ts + .html** — loadLista(), loadDetalj(), loadStatistik() svalde alla HTTP-fel tyst (error-callbacks satte bara loading=false). Lade till errorLista/errorDetalj/errorStatistik flaggor + felmeddelanden i template for alla 3 sektioner.
+
+3. **avvikelselarm.component.ts + .html** — loadAktiva(), loadHistorik(), loadRegler(), loadTrend() + submitKvittera() svalde alla HTTP-fel tyst. Lade till errorAktiva/errorHistorik/errorRegler/errorTrend/kvitteraError + felmeddelanden i template for 5 sektioner.
+
+4. **operatorsbonus.component.ts + .html** — loadOperatorer(), loadKonfig(), runSimulering() svalde alla HTTP-fel tyst. Lade till errorOperatorer/errorKonfig/errorSimulering + felmeddelanden i template for 3 sektioner.
+
+### Audit 2: Angular form reset/dirty state audit — 1 bugg fixad
+
+Granskade ALLA Angular components med formular for form-state som inte aterstalls korrekt.
+
+**Buggar fixade:**
+
+5. **produktionsmal.component.ts** — sparaMal() aterstallde inte formAntal efter lyckad sparning. Anvandaren sag kvar det gamla vardet i formularet efter sparning, vilket kunde leda till forvirring eller oavsiktlig dubbelregistrering. Lade till `this.formAntal = null;` efter lyckad save.
+
 ## 2026-03-18 Session #168 Worker A — PHP response consistency + error logging + type coercion audit — 8 buggar fixade
 
 ### Audit 1: PHP response consistency — 1 bugg fixad
