@@ -82,6 +82,11 @@ import {
       </button>
     </div>
 
+    <!-- Borttagningsfel -->
+    <div *ngIf="deleteError" class="alert alert-danger py-2 mb-3">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ deleteError }}
+    </div>
+
     <!-- Postlista -->
     <div class="entries-list" *ngIf="!isLoading && !loadError && entries.length > 0">
       <div class="entry-card" *ngFor="let entry of entries; trackBy: trackById"
@@ -227,6 +232,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
   entries: MaintenanceEntry[] = [];
   isLoading = false;
   loadError = false;
+  deleteError = '';
   totalCount = 0;
 
   filterLine = '';
@@ -291,12 +297,16 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
   onDeleteEntry(entry: MaintenanceEntry): void {
     if (!confirm(`Ta bort underhållsposten "${entry.title}"?\n(Posten markeras som avbokad och bevaras i historiken.)`)) return;
 
+    this.deleteError = '';
     this.http.post<any>(`${this.apiBase}?action=maintenance&run=delete&id=${entry.id}`, {}, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         if (data?.success) {
+          this.deleteError = '';
           this.entryDeleted.emit();
           this.loadEntries();
+        } else {
+          this.deleteError = 'Kunde inte ta bort posten. Försök igen.';
         }
       });
   }

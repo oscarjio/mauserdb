@@ -31,6 +31,7 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
   liveKpi: LiveKpiResponse | null = null;
 
   loading = true;
+  error: string | null = null;
   paused = false;
 
   constructor(private pulsService: ProduktionspulsService) {}
@@ -50,14 +51,18 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
   }
 
   fetchAll(): void {
+    this.error = null;
+
     // Legacy: senaste IBC:er for ticker
     this.pulsService.getLatest(50).pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success && Array.isArray(res.data)) {
         this.items = res.data;
-        this.loading = false;
+      } else if (this.loading) {
+        this.error = 'Kunde inte hämta produktionsdata';
       }
+      this.loading = false;
     });
 
     // Legacy: timstatistik

@@ -13,6 +13,14 @@
       <p class="text-muted mt-2">Hamtar produktionsdata...</p>
     </div>
 
+    <!-- Felmeddelande -->
+    <div *ngIf="!loading && error" class="alert alert-danger">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      <button class="btn btn-sm btn-outline-danger ms-3" (click)="fetchAll()">
+        <i class="fas fa-sync-alt me-1"></i>Forsok igen
+      </button>
+    </div>
+
     <!-- === TICKER === -->
     <div class="ticker-container" *ngIf="!loading"
          (mouseenter)="onTickerMouseEnter()"
