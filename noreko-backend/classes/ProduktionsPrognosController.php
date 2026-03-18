@@ -232,7 +232,9 @@ class ProduktionsPrognosController {
         $tidKvarMod = $tidKvarMin % 60;
 
         // -- Elapsed progress (for progress bar i skiftet) --
-        $shiftElapsedPct = min(100, round(($elapsed / $shiftDuration) * 100, 1));
+        $shiftElapsedPct = $shiftDuration > 0
+            ? min(100, round(($elapsed / $shiftDuration) * 100, 1))
+            : 0.0;
 
         $this->sendSuccess([
             'skift_namn'         => $shift['name'],

@@ -180,6 +180,7 @@ class MaskinOeeController {
             foreach ($maskiner as $m) {
                 $planerad = (float)$m['planerad_tid_min'];
                 $idealSek = (float)$m['ideal_cykeltid_sek'];
+                if ($planerad <= 0) continue; // Skydda mot division by zero
 
                 for ($d = 0; $d < 30; $d++) {
                     $datum = date('Y-m-d', strtotime("-{$d} days"));

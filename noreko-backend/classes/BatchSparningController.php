@@ -415,8 +415,9 @@ class BatchSparningController {
             $search = trim($_GET['search'] ?? '');
             if ($search) {
                 $where .= " AND (bo.batch_nummer LIKE ? OR bo.kommentar LIKE ?)";
-                $params[] = '%' . $search . '%';
-                $params[] = '%' . $search . '%';
+                $escapedSearch = addcslashes($search, '%_\\');
+                $params[] = '%' . $escapedSearch . '%';
+                $params[] = '%' . $escapedSearch . '%';
             }
 
             $stmt = $this->pdo->prepare(

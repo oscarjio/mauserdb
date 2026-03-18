@@ -101,7 +101,7 @@ class AuditController {
             }
             if ($userFilter) {
                 $where[]  = '`user` LIKE ?';
-                $params[] = '%' . $userFilter . '%';
+                $params[] = '%' . addcslashes($userFilter, '%_\\') . '%';
             }
             if ($entityFilter) {
                 $where[]  = 'entity_type = ?';
@@ -109,7 +109,7 @@ class AuditController {
             }
             if ($searchText !== '') {
                 $where[]  = '(action LIKE ? OR `user` LIKE ? OR description LIKE ? OR entity_type LIKE ?)';
-                $like     = '%' . $searchText . '%';
+                $like     = '%' . addcslashes($searchText, '%_\\') . '%';
                 $params[] = $like;
                 $params[] = $like;
                 $params[] = $like;
