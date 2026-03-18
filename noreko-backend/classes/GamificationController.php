@@ -241,7 +241,7 @@ class GamificationController {
             return [];
         }
 
-        $dagCount = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
         $skiftSek = $dagCount * 8 * 3600;
 
         $result = [];
@@ -357,13 +357,13 @@ class GamificationController {
                     break;
                 }
                 if ($prevDate === null) {
-                    $daysDiff = (int)((strtotime(date('Y-m-d')) - strtotime($currentDate)) / 86400);
+                    $daysDiff = (int)(new \DateTime($currentDate))->diff(new \DateTime(date('Y-m-d')))->days;
                     if ($daysDiff > 1) {
                         break;
                     }
                     $streak = 1;
                 } else {
-                    $gap = (int)round((strtotime($prevDate) - strtotime($currentDate)) / 86400);
+                    $gap = (int)(new \DateTime($currentDate))->diff(new \DateTime($prevDate))->days;
                     if ($gap === 1) {
                         $streak++;
                     } else {
@@ -481,7 +481,7 @@ class GamificationController {
                 if ($prevDate === null) {
                     $currentStreak = 1;
                 } else {
-                    $diff = round((strtotime($prevDate) - strtotime($d)) / 86400);
+                    $diff = (new \DateTime($d))->diff(new \DateTime($prevDate))->days;
                     if ($diff === 1) {
                         $currentStreak++;
                     } else {

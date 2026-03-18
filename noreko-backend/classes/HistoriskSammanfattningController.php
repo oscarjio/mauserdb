@@ -195,7 +195,7 @@ class HistoriskSammanfattningController {
         $kvalFaktor     = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
         $oee = $tillganglighet * $prestanda * $kvalFaktor;
 
-        $dagCount = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
         $snittIbcPerDag = $dagCount > 0 ? round($ibcOk / $dagCount, 1) : 0;
 
         // Stopptid

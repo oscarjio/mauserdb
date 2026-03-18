@@ -372,7 +372,14 @@ class LeveransplaneringController {
                     $config
                 );
                 $forsenad = $beraknat > $order['onskat_leveransdatum'];
-                $dagarKvar = max(0, (int)((strtotime($order['onskat_leveransdatum']) - strtotime(date('Y-m-d'))) / 86400));
+                $diffKvar = (new \DateTime(date('Y-m-d')))->diff(new \DateTime($order['onskat_leveransdatum']));
+                $dagarKvar = max(0, $diffKvar->invert ? 0 : $diffKvar->days);
+
+                $dagarForsenad = 0;
+                if ($forsenad) {
+                    $diffForsenad = (new \DateTime($order['onskat_leveransdatum']))->diff(new \DateTime($beraknat));
+                    $dagarForsenad = max(0, $diffForsenad->invert ? 0 : $diffForsenad->days);
+                }
 
                 $prognos[] = [
                     'id'                     => (int)$order['id'],
@@ -382,9 +389,7 @@ class LeveransplaneringController {
                     'beraknat_leveransdatum' => $beraknat,
                     'dagar_kvar'             => $dagarKvar,
                     'forsenad'               => $forsenad,
-                    'dagar_forsenad'         => $forsenad
-                        ? max(0, (int)((strtotime($beraknat) - strtotime($order['onskat_leveransdatum'])) / 86400))
-                        : 0,
+                    'dagar_forsenad'         => $dagarForsenad,
                     'prioritet'              => (int)$order['prioritet'],
                 ];
             }

@@ -425,8 +425,8 @@ class SkiftrapportExportController {
             return;
         }
 
-        // Max 31 dagars span
-        $diffDays = (int)((strtotime($end) - strtotime($start)) / 86400) + 1;
+        // Max 31 dagars span (DateTime::diff ar DST-sakert)
+        $diffDays = (int)(new \DateTime($start))->diff(new \DateTime($end))->days + 1;
         if ($diffDays < 1 || $diffDays > 31) {
             $this->sendError('Datumintervallet måste vara 1–31 dagar.');
             return;

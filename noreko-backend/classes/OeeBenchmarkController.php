@@ -133,9 +133,7 @@ class OeeBenchmarkController {
         $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid = antal dagar i perioden × 8 tim (en normalarbetsdag).
-        $fromTs    = strtotime($fromDate);
-        $toTs      = strtotime($toDate);
-        $dagCount  = max(1, (int)(($toTs - $fromTs) / 86400) + 1);
+        $dagCount  = max(1, (int)(new \DateTime($fromDate))->diff(new \DateTime($toDate))->days + 1);
         $schemaSek = $dagCount * 8 * 3600; // 8 tim/dag
 
         // Stopptid = schemad tid − drifttid (aldrig negativt)

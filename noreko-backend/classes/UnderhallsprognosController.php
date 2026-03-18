@@ -97,10 +97,12 @@ class UnderhallsprognosController {
      */
     private function dagarKvar(?string $nextDatum): ?int {
         if ($nextDatum === null) return null;
-        $now  = time();
-        $next = strtotime($nextDatum);
-        if ($next === false) return null;
-        return (int)round(($next - $now) / 86400);
+        try {
+            $diff = (new \DateTime('today'))->diff(new \DateTime($nextDatum));
+            return $diff->invert ? -$diff->days : $diff->days;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -121,7 +123,11 @@ class UnderhallsprognosController {
      */
     private function beraknaProgress(?string $senasteUnderhall, int $intervallDagar): float {
         if ($senasteUnderhall === null) return 100.0;
-        $elapsed = (time() - strtotime($senasteUnderhall)) / 86400;
+        try {
+            $elapsed = (new \DateTime($senasteUnderhall))->diff(new \DateTime('today'))->days;
+        } catch (\Exception $e) {
+            return 100.0;
+        }
         $pct = ($elapsed / max(1, $intervallDagar)) * 100;
         return min(round($pct, 1), 100.0);
     }

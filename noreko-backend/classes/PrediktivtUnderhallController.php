@@ -278,13 +278,13 @@ class PrediktivtUnderhallController {
                     if ($antalStopp >= 2) {
                         $intervals = [];
                         for ($i = 1; $i < $antalStopp; $i++) {
-                            $diff = round((strtotime($stoppDagar[$i]) - strtotime($stoppDagar[$i - 1])) / 86400);
+                            $diff = (new \DateTime($stoppDagar[$i - 1]))->diff(new \DateTime($stoppDagar[$i]))->days;
                             $intervals[] = $diff;
                         }
                         $mtbfDagar = round(array_sum($intervals) / count($intervals), 1);
                     } elseif ($antalStopp === 1) {
                         // Bara ett stopp — MTBF ar tiden sedan det stoppet
-                        $mtbfDagar = round((strtotime($toDate) - strtotime($stoppDagar[0])) / 86400, 1);
+                        $mtbfDagar = (float)(new \DateTime($stoppDagar[0]))->diff(new \DateTime($toDate))->days;
                     } else {
                         $mtbfDagar = 90; // Inget stopp pa 90 dagar
                     }
@@ -292,7 +292,7 @@ class PrediktivtUnderhallController {
                     // Dagar sedan senaste stopp
                     $senasteStopp = !empty($stoppDagar) ? end($stoppDagar) : null;
                     $dagarSedanStopp = $senasteStopp
-                        ? round((strtotime($toDate) - strtotime($senasteStopp)) / 86400)
+                        ? (int)(new \DateTime($senasteStopp))->diff(new \DateTime($toDate))->days
                         : 90;
 
                     // Riskbedomning
@@ -368,7 +368,7 @@ class PrediktivtUnderhallController {
 
                 $senaste = !empty($stoppDagar) ? end($stoppDagar) : null;
                 $dagarSedan = $senaste
-                    ? round((strtotime($toDate) - strtotime($senaste)) / 86400)
+                    ? (int)(new \DateTime($senaste))->diff(new \DateTime($toDate))->days
                     : 90;
 
                 for ($sid = 1; $sid <= 8; $sid++) {

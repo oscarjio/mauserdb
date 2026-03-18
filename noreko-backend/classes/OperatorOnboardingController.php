@@ -262,7 +262,7 @@ class OperatorOnboardingController {
                 if ($firstDate < $cutoffDate) continue;
 
                 $name = $opNames[$opNum] ?? "Operatör #{$opNum}";
-                $daysSinceFirst = (int)((strtotime('today') - strtotime($firstDate)) / 86400);
+                $daysSinceFirst = (int)(new \DateTime($firstDate))->diff(new \DateTime('today'))->days;
                 $isNy = $daysSinceFirst < 90;
                 $veckorAktiv = max(1, (int)ceil($daysSinceFirst / 7));
 

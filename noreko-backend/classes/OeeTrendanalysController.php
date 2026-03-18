@@ -136,7 +136,7 @@ class OeeTrendanalysController {
         $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid
-        $dagCount  = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount  = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
         $schemaSek = $dagCount * 8 * 3600;
         $stopptidSek = max(0, $schemaSek - $drifttidSek);
 
@@ -185,7 +185,7 @@ class OeeTrendanalysController {
      */
     private function calcOeePerStation(string $from, string $to): array {
         $stationer = $this->getStationer();
-        $dagCount  = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount  = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
 
         // Hamta IBC-data per station via kumulativa PLC-fält
         $sqlIbc = "

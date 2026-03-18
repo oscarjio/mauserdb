@@ -1,3 +1,47 @@
+## 2026-03-18 Session #169 Worker A — PHP file traversal + date/time DST + SQL transaction audit — 27 buggar fixade
+
+### Uppgift 1: PHP file path traversal audit — 0 buggar hittade
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for filuppladdning, export, download och filsokvagar.
+Alla file_get_contents-anrop anvander antingen php://input (JSON-body) eller __DIR__-relativa hardkodade migrationsfiler.
+Inga filnamn fran user input anvands utan sanering. Ingen file_put_contents/fopen/readfile med osaniterad input hittades.
+
+### Uppgift 2: PHP date/time DST-osakra /86400-berakningar — 27 buggar fixade
+
+Granskade ALLA PHP-controllers for datum/tid-problem. Hittade 25 instanser dar (strtotime($a) - strtotime($b)) / 86400 anvandes for att berakna dagsskillnader. Denna metod ar felaktig vid DST-overganger (23h- eller 25h-dagar) och kan ge off-by-one-fel. Ersatte alla med DateTime::diff() som ar DST-sakert.
+
+**Bugg 1-4: GamificationController.php** — 4 /86400-berakningar for dagCount (leaderboard), daysDiff (streak-start), gap (streak-fortsattning), diff (badge-streak). Alla ersatta med DateTime::diff()->days.
+
+**Bugg 5: SkiftrapportExportController.php** — 1 /86400-berakning for diffDays (multi-dag spann). Ersatt med DateTime::diff()->days.
+
+**Bugg 6-8: MaskinunderhallController.php** — 3 /86400-berakningar for dagarKvar (sammanfattning + lista) och dagarSedan/dagarKvar (detalj). Ersatta med DateTime::diff() med invert-hantering for negativa varden.
+
+**Bugg 9: OperatorOnboardingController.php** — 1 /86400-berakning for daysSinceFirst. Ersatt med DateTime::diff()->days.
+
+**Bugg 10-11: LeveransplaneringController.php** — 2 /86400-berakningar for dagarKvar och dagarForsenad. Ersatta med DateTime::diff() med invert-hantering.
+
+**Bugg 12-13: OeeTrendanalysController.php** — 2 /86400-berakningar for dagCount (total OEE + per station). Ersatta med DateTime::diff()->days.
+
+**Bugg 14: OeeBenchmarkController.php** — 1 /86400-berakning for dagCount. Tog bort onodiga strtotime-variabler, ersatt med DateTime::diff()->days.
+
+**Bugg 15: OeeWaterfallController.php** — 1 /86400-berakning for dagCount. Tog bort onodiga strtotime-variabler, ersatt med DateTime::diff()->days.
+
+**Bugg 16-17: OperatorRankingController.php** — 2 /86400-berakningar for dagCount (estimateArbetsTimmar + calcRanking). Ersatta med DateTime::diff()->days.
+
+**Bugg 18: HistoriskSammanfattningController.php** — 1 /86400-berakning for dagCount. Ersatt med DateTime::diff()->days.
+
+**Bugg 19: StatistikDashboardController.php** — 1 /86400-berakning for days (IBC/h fallback). Ersatt med DateTime::diff()->days.
+
+**Bugg 20-23: PrediktivtUnderhallController.php** — 4 /86400-berakningar for MTBF-intervall, MTBF fran enstaka stopp, dagarSedanStopp (per station + fallback). Ersatta med DateTime::diff()->days.
+
+**Bugg 24-25: UnderhallsprognosController.php** — 2 /86400-berakningar for dagarKvar() och beraknaProgress(). Ersatta med DateTime::diff()->days med felhantering.
+
+**Bugg 26-27: CertificationController.php** — 2 /86400-berakningar for daysUntil (certifikats utgangsdatum). Ersatta med DateTime::diff() med invert-hantering och try/catch.
+
+### Uppgift 3: PHP SQL transaction completeness audit — 0 buggar hittade
+
+Granskade ALLA 27 PHP-controllers som anvander beginTransaction(). Alla har korrekt rollBack() i catch-block med inTransaction()-check. Granskade aven filer med INSERT/UPDATE for att hitta multi-table writes utan transaktion — alla multi-table writes anvander redan transaktioner.
+
 ## 2026-03-18 Session #169 Worker B — Angular memory leak re-audit + accessibility audit — 10 buggar fixade
 
 ### Audit 1: Angular memory leak re-audit — 0 buggar hittade

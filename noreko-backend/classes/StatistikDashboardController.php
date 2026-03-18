@@ -202,7 +202,7 @@ class StatistikDashboardController {
                 return round($totalIbc / $driftH, 2);
             }
             // Fallback: anta 16h per dag
-            $days = (int)ceil((strtotime($toDate) - strtotime($fromDate)) / 86400) + 1;
+            $days = (int)(new \DateTime($fromDate))->diff(new \DateTime($toDate))->days + 1;
             $antsDagar = max(1, $days);
             $h = $antsDagar * self::PLANERAD_DRIFTTID_H;
             return $h > 0 ? round($totalIbc / $h, 2) : 0.0;

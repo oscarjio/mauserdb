@@ -135,9 +135,11 @@ class CertificationController {
                 $opNum = (int)$row['op_number'];
                 $daysUntil = null;
                 if ($row['expires_date']) {
-                    $expiresTs = strtotime($row['expires_date']);
-                    if ($expiresTs !== false) {
-                        $daysUntil = (int)round(($expiresTs - time()) / 86400);
+                    try {
+                        $diff = (new \DateTime('today'))->diff(new \DateTime($row['expires_date']));
+                        $daysUntil = $diff->invert ? -$diff->days : $diff->days;
+                    } catch (\Exception $e) {
+                        // Ogiltigt datum — ignorera
                     }
                 }
 
@@ -222,9 +224,11 @@ class CertificationController {
                 if (!isset($certIndex[$key])) {
                     $daysUntil = null;
                     if ($cert['expires_date']) {
-                        $expiresTs = strtotime($cert['expires_date']);
-                        if ($expiresTs !== false) {
-                            $daysUntil = (int)round(($expiresTs - time()) / 86400);
+                        try {
+                            $diff = (new \DateTime('today'))->diff(new \DateTime($cert['expires_date']));
+                            $daysUntil = $diff->invert ? -$diff->days : $diff->days;
+                        } catch (\Exception $e) {
+                            // Ogiltigt datum — ignorera
                         }
                     }
 

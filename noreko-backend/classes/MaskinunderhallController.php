@@ -167,7 +167,8 @@ class MaskinunderhallController {
             foreach ($rows as $r) {
                 $nastaDatum = $this->beraknaNastaDatum($r);
                 if ($nastaDatum) {
-                    $dagarKvar = (int)floor((strtotime($nastaDatum) - strtotime($today)) / 86400);
+                    $diff = (new \DateTime($today))->diff(new \DateTime($nastaDatum));
+                    $dagarKvar = $diff->invert ? -$diff->days : $diff->days;
                     if ($dagarKvar <= 0) {
                         $forsenade++;
                     } elseif ($dagarKvar <= 7) {
@@ -225,7 +226,8 @@ class MaskinunderhallController {
                 $nastaDatum = $this->beraknaNastaDatum($r);
                 $dagarKvar = null;
                 if ($nastaDatum) {
-                    $dagarKvar = (int)floor((strtotime($nastaDatum) - strtotime($today)) / 86400);
+                    $diff = (new \DateTime($today))->diff(new \DateTime($nastaDatum));
+                    $dagarKvar = $diff->invert ? -$diff->days : $diff->days;
                 }
                 $status = $this->beraknaStatus($dagarKvar);
 
@@ -349,10 +351,11 @@ class MaskinunderhallController {
                 $nastaDatum = $this->beraknaNastaDatum($r);
 
                 if ($r['senaste_service']) {
-                    $dagarSedan = (int)floor((strtotime($today) - strtotime($r['senaste_service'])) / 86400);
+                    $dagarSedan = (int)(new \DateTime($r['senaste_service']))->diff(new \DateTime($today))->days;
                 }
                 if ($nastaDatum) {
-                    $dagarKvar = (int)floor((strtotime($nastaDatum) - strtotime($today)) / 86400);
+                    $diff = (new \DateTime($today))->diff(new \DateTime($nastaDatum));
+                    $dagarKvar = $diff->invert ? -$diff->days : $diff->days;
                 }
 
                 $status = $this->beraknaStatus($dagarKvar);

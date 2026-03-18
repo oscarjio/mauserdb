@@ -257,7 +257,7 @@ class OperatorRankingController {
      * Estimeras fran forsta till sista IBC, men max 8h/dag.
      */
     private function estimateArbetsTimmar(array $opData, string $from, string $to): float {
-        $dagCount = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
         // Anta 8 timmars skift. Om vi har IBC-data, estimera antal aktiva dagar.
         $ibcPerDag = $opData['total_ibc'] / $dagCount;
         // Om operatoren producerar IBC antas hen vara aktiv. Begr ca antal dagar.
@@ -276,7 +276,7 @@ class OperatorRankingController {
             return [];
         }
 
-        $dagCount = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
+        $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
         $skiftSek = $dagCount * 8 * 3600; // 8h per dag
 
         // Berakna snitt IBC/h for alla

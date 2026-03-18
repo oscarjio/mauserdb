@@ -98,9 +98,7 @@ class OeeWaterfallController {
     }
 
     private function calcOeeSegments(string $fromDate, string $toDate): array {
-        $fromTs   = strtotime($fromDate);
-        $toTs     = strtotime($toDate);
-        $dagCount = max(1, (int)(($toTs - $fromTs) / 86400) + 1);
+        $dagCount = max(1, (int)(new \DateTime($fromDate))->diff(new \DateTime($toDate))->days + 1);
 
         // -- Total tillgänglig tid (planerad drifttid) --
         $totalTillgangligSek = (int)round($dagCount * self::TILLGANGLIG_TID_PER_DAG_H * 3600);
