@@ -1,3 +1,32 @@
+## 2026-03-18 Session #163 Worker A — PHP buggjakt (2 audits: numeric overflow, LIKE injection)
+
+### Audit 1: PHP numeric overflow audit — 2 buggar fixade
+Granskade systematiskt ALLA PHP-filer i noreko-backend/classes/ for:
+- intval() pa stora tal (>2^31), float-precision, division by zero, felaktig typecasting, NULL-kolumner.
+
+**Alla intval()-anrop**: Anvands enbart pa sma numeriska varden (IDs, days, counts) — inga overflow-risker.
+**Float-precision**: Inga `==`-jamforelser pa floats hittade. Alla anvander `round()` korrekt.
+**Division by zero**: Granskade ~80+ divisionsstallen. De flesta har korrekta guards (`> 0 ?`, `max(1, ...)`, early return).
+
+Buggar fixade:
+1. **MaskinOeeController.php rad 181**: `$planerad` (fran DB) kunde vara 0, anvandes som divisor pa rad 195. Fix: `if ($planerad <= 0) continue;` fore loop-kroppen.
+2. **ProduktionsPrognosController.php rad 235**: `$shiftDuration` (end - start) kunde vara 0 om skift-start == slut. Fix: ternary guard `$shiftDuration > 0 ? ... : 0.0`.
+
+### Audit 2: PHP SQL LIKE/REGEXP injection audit — 3 buggar fixade
+Granskade alla LIKE-anvandningar i noreko-backend/classes/. De flesta ar `SHOW TABLES LIKE '...'` (hardkodade strangvarden) eller `SHOW COLUMNS LIKE '...'` — inga problem.
+
+**Inga REGEXP/RLIKE-anvandningar** i hela kodbasen.
+**Ingen befintlig addcslashes()-anvandning** — saknas helt.
+
+Buggar fixade:
+3. **AuditController.php rad 104**: `$userFilter` fran `$_GET['user']` anvandes direkt i `LIKE '%...'%` utan att escapa LIKE-wildcards. Fix: `addcslashes($userFilter, '%_\\')`.
+4. **AuditController.php rad 112**: `$searchText` fran `$_GET['search']` anvandes direkt i 4 LIKE-klausuler. Fix: `addcslashes($searchText, '%_\\')`.
+5. **BatchSparningController.php rad 418**: `$search` fran `$_GET['search']` anvandes direkt i 2 LIKE-klausuler. Fix: `addcslashes($search, '%_\\')`.
+
+**Filer andrade**: MaskinOeeController.php, ProduktionsPrognosController.php, AuditController.php, BatchSparningController.php
+
+---
+
 ## 2026-03-18 Session #163 Worker B — Angular buggjakt (2 audits: memory leak, route guard)
 
 ### Audit 1: Angular memory leak audit — 0 buggar
