@@ -24,8 +24,6 @@ class DagligSammanfattningController {
 
     // Ideal cykeltid (sekunder) — branschriktmärke
     private const IDEAL_CYCLE_SEC   = 120;
-    // Planerad arbetstid per skift (8 timmar i minuter)
-    private const SKIFT_MIN         = 480;
     // IBC/h mål
     private const MAL_IBC_PER_TIMME = 30.0;
     // OEE-gränser
@@ -508,7 +506,7 @@ class DagligSammanfattningController {
     /**
      * Hämta KPI för senaste/pågående skift.
      */
-    private function getSenasteSkift(string $date, array $skiften): array {
+    private function getSenasteSkift(string $_date, array $skiften): array {
         if (empty($skiften)) {
             return ['har_data' => false];
         }

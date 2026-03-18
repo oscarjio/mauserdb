@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #171)*
+*Senast uppdaterad: 2026-03-18 (session #172)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -76,24 +76,25 @@ Session #168: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). Response consist
 Session #169: BUGGJAKT — 37 buggar (27 Worker A + 10 Worker B). DST-sakra dagberakningar (strtotime/86400 -> DateTime::diff) i 14 controllers (Worker A) + accessibility aria-labels pa 10 icon-only knappar (Worker B).
 Session #170: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error boundaries (31 tysta catch-block + 4 felaktiga success:true), input validation (1 session read_and_close), session security (2 timeout-buggar). Angular HTTP/routing redan korrekt.
 Session #171: BUGGJAKT — 268 buggar (42 Worker A + 226 Worker B). CORS/preflight (3), logging consistency (39), JSON response (0). Form validation (63), chart destroy (163).
+Session #172: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). File upload (0, ingen kod), SQL optimization (8: 3 SELECT*, 3 N+1, 2 index). Unsubscribe (7), template type-safety (40).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #172+):
-- [ ] PHP file upload security audit
-- [ ] Angular unsubscribe audit
-- [ ] PHP SQL query optimization
-- [ ] Angular template type-safety
+### Kvarstaende buggjakt-items (session #173+):
 - [ ] PHP rate limiting audit
+- [ ] Angular lazy-loading completeness
+- [ ] PHP error response standardization
+- [ ] Angular accessibility audit
+- [ ] PHP session security audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #170 (klar)
-Worker A: 34 buggar — 31 error boundary (4 kritiska catch-block returnerade success:true vid DB-fel i Klassificeringslinje/Saglinje, 27 tysta catch utan error_log i 5 controllers), 1 input validation (NewsController read_and_close pa POST), 2 session security (hardkodat timeout + private const).
-Worker B: 0 buggar — alla 675+ HTTP-anrop har timeout/catchError/retry. Alla 160+ routes anvander loadComponent lazy-loading.
 
 ### 2026-03-18 — Session #171 (klar)
 Worker A: 42 buggar — 3 CORS/preflight (saknade headers i login.php, admin.php + saknad Authorization i api.php), 39 logging (18 trasiga format, 20 saknade auth-loggningar, ~55 inkonsistenta format standardiserade), 0 JSON response (redan konsekvent).
 Worker B: 226 buggar — 63 form validation (44 saknade min/max, 7 saknade maxlength, 4 formulär utan validity check i 28 filer), 163 chart destroy (163 new Chart() utan destroy-before-recreate guard i 102 filer).
+
+### 2026-03-18 — Session #172 (klar)
+Worker A: 8 buggar — 0 file upload (ingen filuppladdningskod existerar), 3 SELECT* -> specifika kolumner (StoppageController, SkiftplaneringController), 3 N+1-queries fixade (DagligSammanfattning, Underhallslogg, ProduktionsPrognos), 2 index-migration (5 datumkolumner).
+Worker B: 47 buggar — 7 unsubscribe (auth.service nested subscribe->switchMap, alerts.service complete(), toast.service setTimeout tracking + complete()), 40 template type-safety (safe navigation ?. + null-coalescing i 5 templates + 2 TS-filer).
