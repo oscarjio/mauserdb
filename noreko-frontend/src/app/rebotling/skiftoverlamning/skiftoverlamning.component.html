@@ -100,7 +100,7 @@
              [style.width.%]="(checklistaCount / 6) * 100"></div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.rengoring = !checklista.rengoring">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.rengoring" tabindex="0" (click)="checklista.rengoring = !checklista.rengoring" (keydown.enter)="checklista.rengoring = !checklista.rengoring" (keydown.space)="checklista.rengoring = !checklista.rengoring; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.rengoring"
                  (change)="checklista.rengoring = !checklista.rengoring" (click)="$event.stopPropagation()">
@@ -110,7 +110,7 @@
         </div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.verktyg = !checklista.verktyg">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.verktyg" tabindex="0" (click)="checklista.verktyg = !checklista.verktyg" (keydown.enter)="checklista.verktyg = !checklista.verktyg" (keydown.space)="checklista.verktyg = !checklista.verktyg; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.verktyg"
                  (change)="checklista.verktyg = !checklista.verktyg" (click)="$event.stopPropagation()">
@@ -120,7 +120,7 @@
         </div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.kemikalier = !checklista.kemikalier">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.kemikalier" tabindex="0" (click)="checklista.kemikalier = !checklista.kemikalier" (keydown.enter)="checklista.kemikalier = !checklista.kemikalier" (keydown.space)="checklista.kemikalier = !checklista.kemikalier; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.kemikalier"
                  (change)="checklista.kemikalier = !checklista.kemikalier" (click)="$event.stopPropagation()">
@@ -130,7 +130,7 @@
         </div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.avvikelser = !checklista.avvikelser">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.avvikelser" tabindex="0" (click)="checklista.avvikelser = !checklista.avvikelser" (keydown.enter)="checklista.avvikelser = !checklista.avvikelser" (keydown.space)="checklista.avvikelser = !checklista.avvikelser; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.avvikelser"
                  (change)="checklista.avvikelser = !checklista.avvikelser" (click)="$event.stopPropagation()">
@@ -140,7 +140,7 @@
         </div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.sakerhet = !checklista.sakerhet">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.sakerhet" tabindex="0" (click)="checklista.sakerhet = !checklista.sakerhet" (keydown.enter)="checklista.sakerhet = !checklista.sakerhet" (keydown.space)="checklista.sakerhet = !checklista.sakerhet; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.sakerhet"
                  (change)="checklista.sakerhet = !checklista.sakerhet" (click)="$event.stopPropagation()">
@@ -150,7 +150,7 @@
         </div>
       </div>
 
-      <div class="checklista-item mb-2" (click)="checklista.material = !checklista.material">
+      <div class="checklista-item mb-2" role="checkbox" [attr.aria-checked]="checklista.material" tabindex="0" (click)="checklista.material = !checklista.material" (keydown.enter)="checklista.material = !checklista.material" (keydown.space)="checklista.material = !checklista.material; $event.preventDefault()">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" [checked]="checklista.material"
                  (change)="checklista.material = !checklista.material" (click)="$event.stopPropagation()">
@@ -245,7 +245,7 @@
     <div class="card-body p-0" *ngIf="historikItems.length > 0">
       <div *ngFor="let item of historikItems; trackBy: trackByIndex" class="historik-row">
         <div class="d-flex justify-content-between align-items-center p-3 clickable-row"
-             (click)="toggleHistorikItem(item.id)">
+             role="button" tabindex="0" (click)="toggleHistorikItem(item.id)" (keydown.enter)="toggleHistorikItem(item.id)" (keydown.space)="toggleHistorikItem(item.id); $event.preventDefault()" [attr.aria-expanded]="expandedItemId === item.id">
           <div class="d-flex align-items-center gap-3 flex-wrap">
             <span class="badge" [ngClass]="skiftBadgeClass(item.skift_typ)">{{ skiftLabel(item.skift_typ) }}</span>
             <span class="text-light">{{ formatDate(item.skift_datum) }}</span>

@@ -18,7 +18,8 @@
       class="form-control form-control-sm date-input"
       [(ngModel)]="selectedDate"
       (change)="onDateChange()"
-      [max]="todayStr()" />
+      [max]="todayStr()"
+      aria-label="Valj datum for tidslinje" />
     <button
       class="btn btn-outline-secondary btn-sm nav-btn"
       (click)="nextDay()"
@@ -137,7 +138,12 @@
           [style.background-color]="segmentColor(seg.type)"
           [class.selected]="selectedSegment === seg"
           [title]="seg.type"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="segmentTypeLabel(seg.type) + ' ' + formatTime(seg.start) + ' - ' + formatTime(seg.end)"
           (click)="onSegmentClick(seg)"
+          (keydown.enter)="onSegmentClick(seg)"
+          (keydown.space)="onSegmentClick(seg); $event.preventDefault()"
           (mouseenter)="onSegmentMouseEnter(seg, $event)"
           (mousemove)="onSegmentMouseMove($event)"
           (mouseleave)="onSegmentMouseLeave()">
@@ -252,12 +258,12 @@
       <table class="table table-dark table-hover table-sm">
         <thead>
           <tr>
-            <th>Typ</th>
-            <th>Start</th>
-            <th>Slut</th>
-            <th>Längd</th>
-            <th>Stopporsak</th>
-            <th>Operatör</th>
+            <th scope="col">Typ</th>
+            <th scope="col">Start</th>
+            <th scope="col">Slut</th>
+            <th scope="col">Längd</th>
+            <th scope="col">Stopporsak</th>
+            <th scope="col">Operatör</th>
           </tr>
         </thead>
         <tbody>
@@ -265,6 +271,8 @@
             *ngFor="let seg of cachedVisibleSegments; trackBy: trackByIndex"
             [class.table-active]="selectedSegment === seg"
             (click)="onSegmentClick(seg)"
+            (keydown.enter)="onSegmentClick(seg)"
+            tabindex="0"
             style="cursor: pointer;">
             <td>
               <span class="type-badge" [style.background-color]="segmentColor(seg.type) + '33'"

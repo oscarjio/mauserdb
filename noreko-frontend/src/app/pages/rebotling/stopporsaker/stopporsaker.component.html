@@ -122,12 +122,12 @@
           <table class="table table-sm mb-0">
             <thead>
               <tr>
-                <th>Orsak</th>
-                <th class="text-end">Antal</th>
-                <th class="text-end">Total tid</th>
-                <th class="text-end">Snitt</th>
-                <th class="text-end">Andel</th>
-                <th class="text-end">Trend</th>
+                <th scope="col">Orsak</th>
+                <th scope="col" class="text-end">Antal</th>
+                <th scope="col" class="text-end">Total tid</th>
+                <th scope="col" class="text-end">Snitt</th>
+                <th scope="col" class="text-end">Andel</th>
+                <th scope="col" class="text-end">Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -172,7 +172,7 @@
 
         <div *ngIf="!loadingDetaljer && detaljerData?.detaljer?.length">
           <div *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackById">
-            <div class="detail-row d-flex align-items-center justify-content-between" (click)="toggleDetail(d.id)">
+            <div class="detail-row d-flex align-items-center justify-content-between" role="button" tabindex="0" (click)="toggleDetail(d.id)" (keydown.enter)="toggleDetail(d.id)" (keydown.space)="toggleDetail(d.id); $event.preventDefault()" [attr.aria-expanded]="expandedDetailId === d.id">
               <div class="d-flex align-items-center gap-3">
                 <span style="font-size:1.2rem">{{ d.ikon }}</span>
                 <div>

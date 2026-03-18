@@ -56,7 +56,7 @@
     </div>
 
     <!-- Lagg-till dialog (overlay) -->
-    <div class="add-dialog-overlay" *ngIf="showAddDialog" (click)="closeAddDialog()">
+    <div class="add-dialog-overlay" *ngIf="showAddDialog" (click)="closeAddDialog()" (keydown.escape)="closeAddDialog()" role="dialog" aria-modal="true" aria-label="Lagg till favorit">
       <div class="add-dialog" (click)="$event.stopPropagation()">
         <div class="add-dialog-header">
           <h5><i class="fas fa-plus-circle me-2"></i>Lagg till favorit</h5>
@@ -66,7 +66,7 @@
           <input type="text" class="form-control form-control-sm" placeholder="Sok bland sidor..." [(ngModel)]="searchQuery" aria-label="Sok bland sidor">
         </div>
         <div class="add-dialog-list">
-          <div class="add-page-item" *ngFor="let page of filteredPages; trackBy: trackByIndex" (click)="addFavorit(page)">
+          <div class="add-page-item" *ngFor="let page of filteredPages; trackBy: trackByIndex" role="button" tabindex="0" (click)="addFavorit(page)" (keydown.enter)="addFavorit(page)" (keydown.space)="addFavorit(page); $event.preventDefault()">
             <i [class]="page.icon + ' me-2'" [style.color]="page.color"></i>
             <span>{{ page.label }}</span>
             <small class="text-muted ms-auto">{{ page.route }}</small>

@@ -155,7 +155,9 @@
 
           <!-- Loading -->
           <div *ngIf="!stoppNu" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status"></div>
+            <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status">
+              <span class="visually-hidden">Laddar...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -189,7 +191,9 @@
               <small style="color:#a0aec0;">Inga operatorer har producerat idag annu</small>
             </div>
             <div *ngIf="!topOperatorer" class="text-center py-4">
-              <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status"></div>
+              <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status">
+                <span class="visually-hidden">Laddar...</span>
+              </div>
             </div>
           </ng-template>
         </div>

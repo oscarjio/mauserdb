@@ -128,8 +128,8 @@
         <table class="table table-dark heatmap-table">
           <thead>
             <tr>
-              <th class="station-header">Station</th>
-              <th *ngFor="let orsak of heatmapOrsaker; trackBy: trackByIndex" class="orsak-header">{{ orsak }}</th>
+              <th scope="col" class="station-header">Station</th>
+              <th scope="col" *ngFor="let orsak of heatmapOrsaker; trackBy: trackByIndex" class="orsak-header">{{ orsak }}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,9 +184,9 @@
         <table class="table table-dark table-sm trend-summary-table">
           <thead>
             <tr>
-              <th>Station</th>
-              <th class="text-end">Totalt stopp</th>
-              <th class="text-end">Snitt/vecka</th>
+              <th scope="col">Station</th>
+              <th scope="col" class="text-end">Totalt stopp</th>
+              <th scope="col" class="text-end">Snitt/vecka</th>
             </tr>
           </thead>
           <tbody>
