@@ -7,16 +7,14 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP date/time edge case audit** — 7 strtotime + 2 DateTime + 1 preg_match (session #156)
-- [x] **Angular memory leak audit** — 15 setTimeout guards i 12 komponenter (session #156)
-- [x] **PHP file path traversal audit** — alla sokvagar sakra, inga fixar kravdes (session #156)
-- [x] **PHP transaction consistency audit** — 3 transaction wraps (session #156)
-- [x] **Angular form reset audit** — alla formuler redan korrekta (session #156)
-- [ ] **PHP SQL ORDER BY injection audit** — verifiera att ORDER BY-kolumner whitelist-valideras
-- [ ] **Angular route param validation audit** — verifiera att route params valideras fore anvandning
-- [ ] **PHP error response format audit** — verifiera konsekvent JSON-felformat i alla controllers
-- [ ] **Angular loading state audit** — verifiera att alla HTTP-anrop visar laddningsindikator
-- [ ] **PHP unused method audit** — identifiera och ta bort oanvanda metoder i controllers
+- [ ] **PHP SQL ORDER BY injection audit** — verifiera att ORDER BY-kolumner whitelist-valideras (Worker A #157)
+- [ ] **Angular route param validation audit** — verifiera att route params valideras fore anvandning (Worker B #157)
+- [ ] **PHP error response format audit** — verifiera konsekvent JSON-felformat i alla controllers (Worker A #157)
+- [ ] **Angular loading state audit** — verifiera att alla HTTP-anrop visar laddningsindikator (Worker B #157)
+- [ ] **PHP unused method audit** — identifiera och ta bort oanvanda metoder i controllers (Worker A #157)
+- [ ] **Angular HTTP retry/timeout audit** — verifiera att alla HTTP-anrop har timeout och retry-logik
+- [ ] **PHP input sanitization audit** — verifiera att all anvandarinput saneras (trim, strip_tags, etc)
+- [ ] **Angular change detection audit** — granska OnPush-strategi och markForCheck-anvandning
 
 ## Parkerade features (ta inte dessa nu)
 
