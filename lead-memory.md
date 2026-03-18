@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #154)*
+*Senast uppdaterad: 2026-03-18 (session #155)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -81,23 +81,20 @@ Session #151: BUGGJAKT — 16 buggar (6 Worker A + 10 Worker B). Unused vars (3)
 Session #152: BUGGJAKT — 59 buggar (22 Worker A + 37 Worker B). Transaction wrapping (19 i 9 controllers), edge case null-guards (3) + catchError audit (37 i 8 komponenter). Memory leak OK, template type safety OK.
 Session #153: BUGGJAKT — 119 buggar (62 Worker A + 57 Worker B). DateTime timezone (26 i 5 controllers), in_array strict (32 i 22 controllers), json_decode null-safety (4) + duplicate imports (57 i 57 filer). File upload OK (inga uploads), retry OK, route guards OK.
 Session #154: BUGGJAKT — 61 buggar (8 Worker A + 53 Worker B). Response headers OK (globalt i api.php), SQL column fixes (rebotling_log->stoppage_log/rebotling_ibc), unused vars (4) + form validation (20 i 10 komponenter), template !.->?. (33 i 3 komponenter).
+Session #155: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). error_log OK, integer casting OK, 8 json_decode null-safety + HTTP errors redan svenska, 47 trackByIndex->trackById (32 komponenter).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP error_log consistency audit — format, inga var_dump/print_r
-- [ ] Angular HTTP error message audit — felmeddelanden pa svenska
-- [ ] PHP integer casting audit — (int) casts pa query params
-- [ ] PHP array key existence audit — isset/array_key_exists fore access
-- [ ] Angular change detection audit — OnPush candidates, trackBy i ngFor
+- [ ] PHP date/time edge case audit — strtotime/DateTime med ogiltiga indata
+- [ ] Angular memory leak audit — chart.destroy(), clearInterval, unsubscribe
+- [ ] PHP file path traversal audit — filsokvagar via user input
+- [ ] PHP transaction consistency audit — multi-query med transactions
+- [ ] Angular form reset audit — rensa state efter submit/cancel
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #152 (klar)
-Worker A: 22 buggar — 19 transaction wrapping (9 controllers), 3 edge case null-guards.
-Worker B: 37 buggar — 37 catchError guards (8 komponenter). Memory leak OK, template type safety OK.
 
 ### 2026-03-18 — Session #153 (klar)
 Worker A: 62 buggar — 26 DateTime explicit timezone (5 controllers), 32 in_array strict mode (22 controllers), 4 json_decode null-safety (BonusAdmin). File upload audit: inga uploads finns.
@@ -106,3 +103,7 @@ Worker B: 57 buggar — 57 duplicate rxjs-imports sammanfogade (55 filer dubbla 
 ### 2026-03-18 — Session #154 (klar)
 Worker A: 8 buggar — Response headers OK (globalt), 4 SQL column fixes (rebotling_log existerar ej, fixat i 2 controllers), 4 unused vars (ForstaTimmeAnalys, ProduktionsPrognos, Skiftjamforelse, AuthHelper/Login).
 Worker B: 53 buggar — 20 form validation (felmeddelanden pa svenska i 10 komponenter), 33 template expression !.->?. (gamification, operator-ranking, statistik-dashboard).
+
+### 2026-03-18 — Session #155 (klar)
+Worker A: 8 buggar — error_log consistency OK (inga var_dump/print_r), integer casting OK (alla params korrekt), 8 json_decode null-safety (AlertsController, ProduktionsTaktController, BonusAdminController).
+Worker B: 47 buggar — HTTP felmeddelanden redan pa svenska (0 fix), 47 trackByIndex->trackById/trackByDatum/etc i 32 komponenter. Build OK.
