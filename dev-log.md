@@ -1,3 +1,29 @@
+## 2026-03-18 Session #162 Worker A — PHP buggjakt (2 audits: session/cookie, file I/O)
+
+### Audit 1: PHP session/cookie audit — 0 buggar
+Granskade samtliga 117+ PHP-filer i noreko-backend/classes/ + 8 filer i noreko-backend/:
+- **session_start()**: Alla anrop ar skyddade med `if (session_status() === PHP_SESSION_NONE)`. Korrekt.
+- **Cookie-flaggor**: api.php sattar session_set_cookie_params med Secure (dynamiskt baserat pa HTTPS), HttpOnly=true, SameSite=Lax, lifetime=28800 (8h). Korrekt.
+- **Session fixation**: session_regenerate_id(true) anropas efter lyckad login i LoginController. session.use_strict_mode=1, session.use_only_cookies=1, session.use_trans_sid=0 satts i api.php. Korrekt.
+- **Session timeout**: AuthHelper::SESSION_TIMEOUT = 28800s (8h), kontrolleras i checkSessionTimeout(). StatusController kollar manuellt mot 28800. session.gc_maxlifetime=28800. Konsekvent.
+- **CSRF-tokens**: Anvands ej — API:et ar REST/JSON med session-cookies + SameSite=Lax, vilket ger tillrackligt CSRF-skydd for samma-site-requests. Acceptabelt for denna applikation.
+- **Logout**: session_unset() + session_destroy() + radering av session-cookie med korrekta flaggor. Korrekt.
+
+### Audit 2: PHP file I/O audit — 13 buggar fixade
+Granskade samtliga PHP-filer for fil-I/O-operationer:
+- **file_get_contents('php://input')**: ~90 forekomster — alla anvands korrekt for att lasa JSON POST-body. Ingen path traversal-risk.
+- **file_get_contents(__DIR__ + migration)**: 12 forekomster i 10 controllers — alla anvander `__DIR__`-baserade sokvagar (inga anvandardata i filsokvagen, ingen path traversal-risk). Alla hade `if ($sql)` men INGEN loggade nar file_get_contents returnerade false. Fixat: lagt till explicit `if ($sql === false)` med error_log() i alla 12 forekomster.
+- **VpnController debug-info-laca**: `raw_output_full` och `welcome_preview` exponerade ratt VPN management interface-output till API-klienten. Fixat: borttaget raw_output_full och welcome_preview fran debug-svaret, lagt till error_log() for serverside-loggning istallet.
+- **fopen/fwrite/fclose**: VpnController (socket I/O) — korrekt felhantering med @fwrite + false-check + @fclose. BonusAdminController och TidrapportController — fopen('php://output') for CSV-export — korrekt.
+- **Temporara filer**: Inga tmpfile()/tempnam()-anrop hittade. Korrekt.
+- **Filrattigheter**: Inga chmod()/chown()/mkdir()-anrop hittade. Korrekt.
+- **update-weather.php**: file_get_contents med @-suppression + false-check + Exception. Korrekt.
+
+### Sammanfattning
+- **Buggar fixade**: 13 (1 info-lacka i VpnController, 12 saknad error_log vid misslyckad migration file_get_contents)
+- **Filer andrade**: VpnController.php, OperatorsbonusController.php, SkiftplaneringController.php, UnderhallsloggController.php, KapacitetsplaneringController.php, BatchSparningController.php, MaskinunderhallController.php, ProduktionsSlaController.php, ProduktionskostnadController.php, KvalitetscertifikatController.php, SkiftoverlamningController.php (3 st)
+- **Session/cookie-hantering**: Valfungerande — inga buggar hittade
+
 ## 2026-03-18 Session #161 Worker A — PHP buggjakt (3 audits: error logging, CORS/headers, response format)
 
 ### Audit 1: PHP error logging audit — 4 buggar fixade
