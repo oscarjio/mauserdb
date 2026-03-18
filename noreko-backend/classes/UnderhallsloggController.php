@@ -394,28 +394,38 @@ class UnderhallsloggController {
     private function getManadsChart(): void {
         try {
             $months = max(1, min(12, (int)($_GET['months'] ?? 6)));
-            $labels   = [];
-            $planerat = [];
+
+            // EN query med GROUP BY istallet for N queries i loop (N+1 fix)
+            $startDate = date('Y-m-01', strtotime("-" . ($months - 1) . " months"));
+            $endDate   = date('Y-m-t 23:59:59');
+
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    DATE_FORMAT(datum, '%Y-%m') AS manad,
+                    COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS p,
+                    COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS o
+                 FROM rebotling_underhallslogg
+                 WHERE datum >= ? AND datum <= ?
+                 GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                 ORDER BY manad ASC"
+            );
+            $stmt->execute([$startDate, $endDate]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Bygg komplett serie med alla manader (inklusive tomma)
+            $dataByMonth = [];
+            foreach ($rows as $row) {
+                $dataByMonth[$row['manad']] = $row;
+            }
+
+            $labels    = [];
+            $planerat  = [];
             $oplanerat = [];
-
             for ($i = $months - 1; $i >= 0; $i--) {
-                $start = date('Y-m-01', strtotime("-{$i} months"));
-                $end   = date('Y-m-t 23:59:59', strtotime($start));
-                $label = date('Y-m', strtotime($start));
-
-                $stmt = $this->pdo->prepare(
-                    "SELECT
-                        COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS p,
-                        COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS o
-                     FROM rebotling_underhallslogg
-                     WHERE datum >= ? AND datum <= ?"
-                );
-                $stmt->execute([$start, $end]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
+                $label = date('Y-m', strtotime("-{$i} months"));
                 $labels[]    = $label;
-                $planerat[]  = (int)$row['p'];
-                $oplanerat[] = (int)$row['o'];
+                $planerat[]  = (int)($dataByMonth[$label]['p'] ?? 0);
+                $oplanerat[] = (int)($dataByMonth[$label]['o'] ?? 0);
             }
 
             $this->sendSuccess([

@@ -287,25 +287,54 @@ class ProduktionsPrognosController {
 
         if (empty($windows)) return null;
 
+        // EN query med CASE/SUM istallet for N queries i loop (N+1 fix)
+        // Bygg UNION ALL av skiftfonstren som en enda range-query
         $totalIbc  = 0;
         $totalShifts = 0;
 
-        foreach ($windows as [$wStart, $wEnd]) {
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS cnt
+        try {
+            // Skapa CASE-uttryck for att raakna IBC per skiftfonster
+            $caseParts = [];
+            $params = [];
+            foreach ($windows as $i => [$wStart, $wEnd]) {
+                $caseParts[] = "WHEN {$ibcCol} >= :ws{$i} AND {$ibcCol} < :we{$i} THEN {$i}";
+                $params[":ws{$i}"] = $wStart;
+                $params[":we{$i}"] = $wEnd;
+            }
+            $caseExpr = implode(' ', $caseParts);
+
+            // Minsta start och storsta slut for WHERE-filter
+            $globalStart = $windows[0][0];
+            $globalEnd   = $windows[count($windows) - 1][1];
+            foreach ($windows as [$ws, $we]) {
+                if ($ws < $globalStart) $globalStart = $ws;
+                if ($we > $globalEnd)   $globalEnd   = $we;
+            }
+            $params[':gstart'] = $globalStart;
+            $params[':gend']   = $globalEnd;
+
+            $stmt = $this->pdo->prepare("
+                SELECT shift_idx, COUNT(*) AS cnt
+                FROM (
+                    SELECT CASE {$caseExpr} ELSE NULL END AS shift_idx
                     FROM rebotling_ibc
-                    WHERE {$ibcCol} >= :ws AND {$ibcCol} < :we
-                ");
-                $stmt->execute([':ws' => $wStart, ':we' => $wEnd]);
-                $cnt = (int)($stmt->fetchColumn() ?: 0);
+                    WHERE {$ibcCol} >= :gstart AND {$ibcCol} < :gend
+                ) sub
+                WHERE shift_idx IS NOT NULL
+                GROUP BY shift_idx
+            ");
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            foreach ($rows as $row) {
+                $cnt = (int)$row['cnt'];
                 if ($cnt > 0) {
                     $totalIbc    += $cnt;
                     $totalShifts++;
                 }
-            } catch (\PDOException $e) {
-                error_log('ProduktionsPrognosController::getHistoricalAvgRate: ' . $e->getMessage());
             }
+        } catch (\PDOException $e) {
+            error_log('ProduktionsPrognosController::getHistoricalAvgRate: ' . $e->getMessage());
         }
 
         if ($totalShifts === 0) return null;
@@ -358,29 +387,57 @@ class ProduktionsPrognosController {
             $day->modify('-1 day');
         }
 
-        // Hämta IBC-räkningar for varje fönster tills vi har $limit
-        foreach ($allWindows as $w) {
-            if ($found >= $limit) break;
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS cnt
-                    FROM rebotling_ibc
-                    WHERE {$ibcCol} >= :ws AND {$ibcCol} < :we
-                ");
-                $stmt->execute([':ws' => $w['start'], ':we' => $w['end']]);
-                $cnt = (int)($stmt->fetchColumn() ?: 0);
+        // Hamta IBC-rakningar for alla fonster i EN query (N+1 fix)
+        // Begransar till $limit fonster fore query
+        $windowsToQuery = array_slice($allWindows, 0, $limit);
 
-                // Ta med alla skift (även tomma — kan visa att linjen stod)
-                $taktPerTimme = round($cnt / 8.0, 1);
-                $history[] = [
-                    'skift_namn'     => $w['namn'],
-                    'skift_start'    => $w['start'],
-                    'skift_slut'     => $w['end'],
-                    'datum'          => $w['date'],
-                    'ibc_totalt'     => $cnt,
-                    'takt_per_timme' => $taktPerTimme,
-                ];
-                $found++;
+        if (!empty($windowsToQuery)) {
+            try {
+                $caseParts = [];
+                $params = [];
+                $globalStart = $windowsToQuery[0]['start'];
+                $globalEnd   = $windowsToQuery[0]['end'];
+
+                foreach ($windowsToQuery as $i => $w) {
+                    $caseParts[] = "WHEN {$ibcCol} >= :ws{$i} AND {$ibcCol} < :we{$i} THEN {$i}";
+                    $params[":ws{$i}"] = $w['start'];
+                    $params[":we{$i}"] = $w['end'];
+                    if ($w['start'] < $globalStart) $globalStart = $w['start'];
+                    if ($w['end'] > $globalEnd)     $globalEnd   = $w['end'];
+                }
+                $params[':gstart'] = $globalStart;
+                $params[':gend']   = $globalEnd;
+                $caseExpr = implode(' ', $caseParts);
+
+                $stmt = $this->pdo->prepare("
+                    SELECT shift_idx, COUNT(*) AS cnt
+                    FROM (
+                        SELECT CASE {$caseExpr} ELSE NULL END AS shift_idx
+                        FROM rebotling_ibc
+                        WHERE {$ibcCol} >= :gstart AND {$ibcCol} < :gend
+                    ) sub
+                    WHERE shift_idx IS NOT NULL
+                    GROUP BY shift_idx
+                ");
+                $stmt->execute($params);
+                $countsByIdx = [];
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $countsByIdx[(int)$row['shift_idx']] = (int)$row['cnt'];
+                }
+
+                foreach ($windowsToQuery as $i => $w) {
+                    $cnt = $countsByIdx[$i] ?? 0;
+                    $taktPerTimme = round($cnt / 8.0, 1);
+                    $history[] = [
+                        'skift_namn'     => $w['namn'],
+                        'skift_start'    => $w['start'],
+                        'skift_slut'     => $w['end'],
+                        'datum'          => $w['date'],
+                        'ibc_totalt'     => $cnt,
+                        'takt_per_timme' => $taktPerTimme,
+                    ];
+                    $found++;
+                }
             } catch (\PDOException $e) {
                 error_log('ProduktionsPrognosController::getShiftHistory: ' . $e->getMessage());
             }

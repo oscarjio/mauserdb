@@ -469,21 +469,28 @@ class DagligSammanfattningController {
      * Hämta veckosnitt (senaste 5 motsvarande veckodagar exklusive idag).
      */
     private function getVeckosnitt(string $date): array {
-        $snittPoints = [];
-        // Hämta senaste 5 veckorna
+        // Samla alla 5 datum och gor EN query istallet for 5 separata (N+1 fix)
+        $dates = [];
         for ($w = 1; $w <= 5; $w++) {
-            $d = date('Y-m-d', strtotime($date . " -{$w} weeks"));
-            $s = $this->pdo->prepare(
-                "SELECT SUM(max_ok) AS ibc FROM (
-                    SELECT MAX(ibc_ok) AS max_ok
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) t"
-            );
-            $s->execute([$d]);
-            $row = $s->fetch(PDO::FETCH_ASSOC);
+            $dates[] = date('Y-m-d', strtotime($date . " -{$w} weeks"));
+        }
+        $placeholders = implode(',', array_fill(0, count($dates), '?'));
+
+        $s = $this->pdo->prepare(
+            "SELECT dag, SUM(max_ok) AS ibc FROM (
+                SELECT DATE(datum) AS dag, MAX(ibc_ok) AS max_ok
+                FROM rebotling_ibc
+                WHERE DATE(datum) IN ({$placeholders})
+                GROUP BY DATE(datum), skiftraknare
+                HAVING COUNT(*) > 1
+             ) t
+             GROUP BY dag"
+        );
+        $s->execute($dates);
+        $rows = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        $snittPoints = [];
+        foreach ($rows as $row) {
             $val = (int)($row['ibc'] ?? 0);
             if ($val > 0) $snittPoints[] = $val;
         }

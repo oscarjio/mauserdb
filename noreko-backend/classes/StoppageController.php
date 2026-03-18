@@ -144,7 +144,7 @@ class StoppageController {
 
     private function getReasons() {
         try {
-            $stmt = $this->pdo->query("SELECT * FROM stoppage_reasons WHERE active = 1 ORDER BY sort_order, name");
+            $stmt = $this->pdo->query("SELECT id, code, name, category, color, sort_order FROM stoppage_reasons WHERE active = 1 ORDER BY sort_order, name");
             echo json_encode([
                 'success' => true,
                 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
@@ -165,7 +165,9 @@ class StoppageController {
             $dateFilter = $this->getDateFilter($period);
 
             $stmt = $this->pdo->prepare("
-                SELECT s.*, r.code as reason_code, r.name as reason_name,
+                SELECT s.id, s.line, s.reason_id, s.start_time, s.end_time,
+                       s.duration_minutes, s.comment, s.user_id, s.created_at,
+                       r.code as reason_code, r.name as reason_name,
                        r.category, r.color, u.username as user_name
                 FROM stoppage_log s
                 JOIN stoppage_reasons r ON s.reason_id = r.id

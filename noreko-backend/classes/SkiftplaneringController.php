@@ -413,7 +413,7 @@ class SkiftplaneringController {
         try {
             // Hämta config
             $cfgStmt = $this->pdo->prepare(
-                "SELECT * FROM skift_konfiguration WHERE skift_typ = ?"
+                "SELECT skift_typ, start_tid, slut_tid, min_bemanning, max_bemanning FROM skift_konfiguration WHERE skift_typ = ?"
             );
             $cfgStmt->execute([$shift]);
             $config = $cfgStmt->fetch(\PDO::FETCH_ASSOC);
