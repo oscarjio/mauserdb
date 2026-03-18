@@ -7,17 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP error logging consistency** — 15 fixar (session #150)
-- [x] **PHP unused variables cleanup** — 6 unused $e fixade (session #150)
-- [x] **PHP input validation audit** — 7 trim()-fixar (session #150)
-- [x] **Angular lazy loading audit** — OK, alla routes lazy-loaded korrekt (session #150)
-- [x] **Angular unused imports cleanup** — OK, alla imports anvands (session #150)
-- [x] **Angular template accessibility** — 49 fixar i 12 filer (session #150)
-- [ ] **Angular error state UI audit** — visa felmeddelanden i template vid HTTP-fel
-- [ ] **PHP unused vars kvar** — $ignored (RebotlingController:2789), $opRows (RebotlingAnalyticsController:6671/6673), $dtEx (NewsController:579), $multiplier (BonusAdminController:1795)
-- [ ] **PHP response format audit** — granska att alla controllers returnerar konsekvent JSON-format
-- [ ] **Angular form validation audit** — granska alla formulär for saknad validering, min/max, required
-- [ ] **PHP SQL query audit** — granska komplexa queries for korrekthet, saknade JOINs, felaktiga GROUP BY
+- [x] **Angular error state UI audit** — 7 fixar i maskin-oee, stopptidsanalys, rebotling-sammanfattning, stationsdetalj (session #151)
+- [x] **PHP unused vars kvar** — 3 fixade (non-capturing catch), $opRows var false positive (session #151)
+- [x] **PHP response format audit** — alla controllers redan konsekvent JSON-format (session #151)
+- [x] **Angular form validation audit** — alla formular redan korrekta (session #151)
+- [x] **PHP SQL query audit** — 3 fixar i WeeklyReportController: kritisk JOIN-bugg, felaktig kolumn (session #151)
+- [ ] **PHP transaction audit** — granska INSERT/UPDATE utan transaktioner i multi-step operations
+- [ ] **Angular memory leak audit** — granska charts och polling for saknade unsubscribe/destroy
+- [ ] **PHP edge case audit** — boundary conditions, tomma resultat, null-hantering
+- [ ] **Angular template type safety audit** — granska templates for implicit any, felaktiga typer
+- [ ] **PHP date/time audit** — granska DateTime-hantering i alla controllers, timezone-konsistens
 
 ## Parkerade features (ta inte dessa nu)
 
