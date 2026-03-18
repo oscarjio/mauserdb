@@ -1,3 +1,54 @@
+## 2026-03-18 Session #161 Worker A — PHP buggjakt (3 audits: error logging, CORS/headers, response format)
+
+### Audit 1: PHP error logging audit — 4 buggar fixade
+Granskade samtliga 117 PHP-filer i noreko-backend/classes/ + 4 filer i noreko-backend/:
+- **Catch-block utan error_log()**: Hittade ~85 catch-block utan error_log(). Majoriteten (ca 80) ar intentionellt tysta: "tabell kanske inte finns"-patterns for optional table lookups, DateTime-fallbacks, och inner transaction catch+rethrow. Dessa ar korrekta defensiva patterns.
+- **VpnController::disconnectClient**: 3 felfall saknade error_log() helt — socket-anslutningsfel, fwrite-misslyckande, och misslyckat disconnect-svar. Fixat: lagt till error_log() i alla 3 block.
+- **VpnController::getVpnStatus**: Exponerade intern info ($errstr, $errno, server.conf-sokvag) till klienten. Fixat: flyttat detaljer till error_log(), generiskt felmeddelande till klient.
+- **VpnController::disconnectClient**: Exponerade ratt VPN management interface-svar till klienten (potentiellt intern info). Fixat: generiskt felmeddelande till klient, detaljer till error_log().
+- **update-weather.php**: PDO-konstruktorn stod utanfor try/catch — ohanterad PDOException vid DB-anslutning kunde exponera stack trace med credentials. Fixat: wrappat i try/catch med error_log() och generiskt JSON-svar.
+- **trigger_error()**: Inga forekomster hittade — bra.
+- **@ error suppression**: Bara @fsockopen i VpnController (nodig for socket-hantering) och @ini_set i api.php (nodig for runtime-konfiguration). Acceptabelt.
+
+### Audit 2: PHP CORS/headers audit — 1 bugg fixad
+Granskade api.php, login.php, admin.php, .htaccess, update-weather.php:
+- **api.php**: Komplett CORS-hantering med dynamisk origin-validering, preflight OPTIONS med 204, alla sakerhetshuvuden (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, HSTS, Cache-Control: no-store). Korrekt.
+- **login.php/admin.php**: Legacy stubs med korrekta headers och 410 Gone. Korrekt.
+- **.htaccess**: Satter session-livslangd och doljer PHP-version. Korrekt.
+- **CSV-exporter**: BonusAdminController, TidrapportController, RebotlingAnalyticsController overrider Content-Type till text/csv — korrekt since header() ersatter befintlig header. Cache-Control fran api.php (no-store) galler fortfarande — lampligt for CSV-nedladdningar.
+- **HTML-endpoint**: RebotlingAnalyticsController::getShiftPdfSummary overrider Content-Type till text/html — korrekt.
+- **VpnController::getVpnStatus**: Saknade http_response_code vid socket-anslutningsfel — svaret hade success:false men HTTP 200. Fixat: lagt till http_response_code(502).
+- **Inkonsekvent header-sattning mellan controllers**: Alla controllers arver headers fran api.php — ingen controller satter egna CORS-headers. Konsekvent.
+
+### Audit 3: PHP response format audit — 5 buggar fixade
+Granskade samtliga 117 PHP-filer for JSON-responsformat:
+- **Konsekvent format**: Majoriteten av controllers anvander sendSuccess/sendError-helpers som returnerar {success:true/false, data/error:..., timestamp:...}. Aldre controllers (Rebotling*, Operator*, Profil*, etc.) anvander direkt echo json_encode med samma struktur. Konsekvent overlag.
+- **LoginController rad 58**: Anvande 'message' istallet for 'error' key vid rate-limit-svar (HTTP 429 + success:false). Inkonsekvent med alla andra felresponser som anvander 'error'-key. Fixat: andrat till 'error'.
+- **VpnController::disconnectClient**: Anvande 'message' istallet for 'error' key vid alla felfall. Fixat: andrat till 'error' for felfall, behaller 'message' for framgangsfall (korrekt).
+- **Saknade HTTP-statuskoder**: Hittade 40 fall dar success:false returneras med HTTP 200 (inga felkoder). Fixade de mest kritiska:
+  - OperatorDashboardController: 5 st 'Saknar op-parameter' -> lagt till http_response_code(400)
+  - RebotlingController: 5 st valideringsfel (datumformat, op_id, manadsformat) -> lagt till http_response_code(400/404)
+  - RebotlingAnalyticsController: 1 st 'Tabellerna finns inte' -> lagt till http_response_code(404)
+  - RebotlingAdminController: 1 st 'Ingen IBC-data' -> lagt till http_response_code(404)
+- **echo utanfor json_encode**: Bara CSV-exporter (BOM + CSV-data) och HTML-endpoint — korrekta, Content-Type overridas.
+- **Saknad exit/die efter error**: Alla felresponser foljs av return, exit, eller stangande klammer-bracket. Inga fall dar exekveringen fortsatter efter felsvar.
+
+### Sammanfattning
+- **Granskade**: 117 PHP-filer i classes/, 4 PHP-filer i noreko-backend/, .htaccess
+- **Buggar fixade**: 10 (4 error logging, 1 CORS/headers, 5 response format)
+  1. VpnController: exponerad intern info ($errstr/$errno/server.conf) -> error_log + generiskt meddelande
+  2. VpnController: 3 saknade error_log() vid socket-fel
+  3. VpnController: saknad http_response_code(502) vid socket-anslutningsfel
+  4. VpnController: inkonsekvent 'message' -> 'error' key
+  5. LoginController: inkonsekvent 'message' -> 'error' key vid rate-limit
+  6. OperatorDashboardController: 5x saknad http_response_code(400)
+  7. RebotlingController: 5x saknad http_response_code(400/404)
+  8. RebotlingAnalyticsController: 1x saknad http_response_code(404)
+  9. RebotlingAdminController: 1x saknad http_response_code(404)
+  10. update-weather.php: ohanterad PDOException -> try/catch med error_log
+
+---
+
 ## 2026-03-18 Session #161 Worker B — Angular buggjakt (3 audits: change detection, observable completion, i18n)
 
 ### Audit 1: Angular change detection audit — 1 bugg fixad
