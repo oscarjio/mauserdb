@@ -1,3 +1,37 @@
+## 2026-03-18 Session #160 Worker A — PHP buggjakt (3 audits: SQL edge cases, date/time, array access)
+
+### Audit 1: PHP SQL query edge case audit — 0 buggar
+Granskade samtliga 117 PHP-filer i noreko-backend/classes/ for SQL-relaterade edge cases:
+- **Prepared statements**: Alla SQL-fragor anvander prepared statements med parameter-binding (? eller :named). Inga SQL-injektionspunkter hittades.
+- **LIMIT/OFFSET-validering**: Alla LIMIT-parametrar fran $_GET valideras med max()/min() (t.ex. max(1, min(200, (int)$_GET['limit']))). Inga obegransade LIMIT-varden.
+- **String-interpolation i SQL**: Nagra fall av {$variable} i SQL (t.ex. $ibcCol, $groupExpr, $orderExpr, $placeholders, $whereSql) — alla ar internt genererade fran whitelists eller hardkodade varden, aldrig direkt fran anvandarinput.
+- **BonusController datumfilter**: Tva fall av string-konkatenering i SQL ("DATE(datum) BETWEEN '" . $start . "' AND '" . $end . "'") men bada ar validerade med preg_match('/^\d{4}-\d{2}-\d{2}$/') — ingen injektion mojlig (kommenterat i koden).
+- **NULL-hantering**: COALESCE() anvands konsekvent i aggregeringsfragor. IS NULL anvands korrekt dar det behovs.
+- **GROUP BY**: Alla GROUP BY-fragor har korrekta kolumner som matchar SELECT-listan.
+- **Division by zero i SQL**: NULLIF() anvands korrekt for att undvika division med noll i SQL.
+
+### Audit 2: PHP date/time parsing audit — 0 buggar
+Granskade all anvandning av strtotime(), DateTime, date() i samtliga 117 filer:
+- **strtotime() pa anvandarinput**: Alla anvandarinput-datum valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/') INNAN de skickas till strtotime(). Manga anvander strtotime() enbart pa internt genererade datum (t.ex. date('Y-m-d', strtotime("-{$days} days"))).
+- **new DateTime() utan try/catch**: Alla DateTime-konstruktorer som tar anvandarinput ar antingen (a) inne i try/catch-block, eller (b) tar varden som redan ar regex-validerade och inne i try/catch (t.ex. WeeklyReportController, ShiftPlanController, ForstaTimmeAnalysController).
+- **strtotime() false-check**: Manga anvandningar av strtotime() pa DB-varden (t.ex. $row['datum']) som garanterat ar giltiga datum. Dar anvandarinput ar involverat valideras formatet forst. NewsController har explicit false-fallback: strtotime($row['event_datum']) ?: time().
+- **Tidszoner**: DateTimeZone('Europe/Stockholm') anvands konsekvent vid DateTime-skapande. Inga hardkodade tidszon-antaganden.
+- **Datumformat**: date('Y-m-d') anvands konsekvent overallt — matchar DB-formatet.
+
+### Audit 3: PHP array access audit — 0 buggar
+Granskade all array-access i samtliga 117 filer:
+- **json_decode utan null-check**: ~37 forekomster av json_decode(file_get_contents('php://input'), true) utan ?? [] — men ALLA kontrolleras omedelbart med !is_array($data) / !$data / !$body innan nagon array-access sker.
+- **json_decode fran DB-kolumner**: Alla fall kontrolleras med !empty() eller is_array() innan anvandning (t.ex. SkiftoverlamningController, RebotlingAdminController, DashboardLayoutController).
+- **$result[0] utan tom-array-check**: ~30 forekomster av [0]-access — ALLA ar antingen (a) inne i !empty() / count() > 0-guard, (b) pa SUM/COUNT-resultat som alltid returnerar en rad, eller (c) anvander ?? 0 fallback.
+- **foreach pa potentiellt null/non-array**: Alla foreach-loopar itererar over fetchAll()-resultat (alltid array), internt byggda arrayer, eller ar gardade med !empty()-checks.
+- **array_merge pa null**: Alla array_merge()-anrop anvander garanterat icke-null arrayer (antingen defaults eller is_array()-gardade json_decode-resultat).
+- **$_SESSION-access**: Alla controllers kontrollerar empty($_SESSION['user_id']) och returnerar tidigt med 401 innan session-varden anvands.
+
+### Sammanfattning
+Kodbasen ar exceptionellt val underhallen. Alla tre audit-omraden visade konsekvent defensiv programmering: prepared statements, input-validering, null-coalescing, try/catch, och whitelisting. Inga buggar hittades att fixa.
+
+---
+
 ## 2026-03-18 Session #160 Worker B — Angular buggjakt (3 audits: template null-safety, HTTP interceptor, router guards)
 
 ### Audit 1: Angular template null-safety audit — 0 buggar
