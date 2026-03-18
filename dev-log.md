@@ -1,3 +1,42 @@
+## 2026-03-18 Session #162 Worker B — Angular buggjakt (2 audits: form validation, HTTP retry/timeout)
+
+### Audit 1: Angular form validation audit — 0 buggar
+Granskade samtliga formulärkomponenter i noreko-frontend/src/app/:
+- **login.ts**: Korrekt — ngModel med required/minlength/maxlength, disabled-check på submit-knapp, svenska felmeddelanden, timeout+catchError+takeUntil
+- **register.ts + register.html**: Korrekt — lösenordsvalidering (längd/bokstav/siffra/match), e-postvalidering, kontrollkod required, submit disabled-check, svenska feedback
+- **create-user.ts + create-user.html**: Korrekt — isPasswordValid/isEmailValid getters, canSubmit guard, ngForm ref, svenska meddelanden
+- **maintenance-form.component.ts**: Korrekt — inline template med required, min/max på numeriska fält (0-14400 min, 0-99999999 kr), manuell validering i saveEntry(), svenska felmeddelanden
+- **stopporsak-registrering.ts + .html**: Korrekt — kategoribaserat flöde, kommentar maxlength=500, submitting-guard, svenska meddelanden
+- **operators.html, users.html, bonus-admin.html, rebotling-admin.ts**: Granskade — alla har korrekt validering och svenska meddelanden
+- **Alla ngFor-direktiv**: Samtliga har trackBy (trackByIndex, trackById, trackByNamn)
+
+### Audit 2: Angular HTTP retry/timeout audit — 3 buggar fixade
+
+**Bugg 1 (operator-dashboard.ts rad 711,746,755,763)**: 4 HTTP GET-anrop saknade `{ withCredentials: true }` — autentiseringscookies skickades inte, vilket kunde orsaka 401-fel.
+- FIX: Lade till `{ withCredentials: true }` på alla 4 anrop.
+
+**Bugg 2 (operator-dashboard.ts rad 721,733)**: Felmeddelanden använde HTML-entiteter (`&auml;`) i TypeScript-strängar istället för riktiga svenska tecken. Angular interpolation (`{{ }}`) renderar inte HTML-entiteter, så användaren såg den råa strängen `Kunde inte h&auml;mta data`.
+- FIX: Ersatte `h&auml;mta` med `hämta` i båda felmeddelanden.
+
+**Bugg 3 (news.ts rad 262-263)**: HTTP GET för nyheter/events saknade `{ withCredentials: true }` — autentiseringscookies skickades inte.
+- FIX: Lade till `{ withCredentials: true }`.
+
+**Övriga granskade och OK:**
+- Alla 90+ services (services/*.service.ts, rebotling/*.service.ts): Samtliga HTTP-anrop har timeout (5000-15000ms) och catchError
+- error.interceptor.ts: Korrekt retry-strategi (1 retry vid status 0/502/503/504 med 1s delay), 401-hantering med session cleanup
+- auth.service.ts: Korrekt polling med interval/Subscription, retry(1), timeout(8000), catchError
+- alerts.service.ts: Korrekt polling med timer+switchMap+takeUntil, timeout(10000)
+- Alla komponenter med setInterval har clearInterval i ngOnDestroy
+- Alla komponenter med subscribe har takeUntil(destroy$) + destroy$.next() i ngOnDestroy
+- setTimeout-anrop (för chart-rendering) kontrollerar destroy$.closed — korrekt
+- Inga subscription-läckor identifierade (exkl. *-live-komponenter som ej granskades per regel 1)
+
+### Sammanfattning
+- **Audit 1 (form validation)**: 0 buggar — alla formulär har korrekt validering, disable-check, och svenska meddelanden
+- **Audit 2 (HTTP retry/timeout)**: 3 buggar fixade — saknade withCredentials (5 anrop) och HTML-entiteter i felmeddelanden (2 strängar)
+- Totalt: **3 buggar fixade**
+- Byggverifiering: `npx ng build` lyckades utan fel
+
 ## 2026-03-18 Session #162 Worker A — PHP buggjakt (2 audits: session/cookie, file I/O)
 
 ### Audit 1: PHP session/cookie audit — 0 buggar

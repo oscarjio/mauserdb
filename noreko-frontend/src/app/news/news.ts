@@ -260,7 +260,8 @@ export class News implements OnInit, OnDestroy {
     this.isFetchingEvents = true;
 
     this.http.get<{ success: boolean; events: NewsEvent[] }>(
-      `${this.apiBase}?action=news&run=events&antal=15`
+      `${this.apiBase}?action=news&run=events&antal=15`,
+      { withCredentials: true }
     ).pipe(
       timeout(8000),
       catchError(() => of(null)),
