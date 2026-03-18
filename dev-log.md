@@ -1,3 +1,73 @@
+## 2026-03-18 Session #158 Worker A — 78 buggar fixade (XSS htmlspecialchars + input sanitization)
+
+### Del 1: PHP input sanitization audit — 78 buggar fixade
+Granskade ALLA 117 PHP-controllers i noreko-backend/classes/ systematiskt.
+
+#### XSS: htmlspecialchars() saknade ENT_QUOTES + UTF-8 — 75 buggar
+72 controllers anvande htmlspecialchars($var) utan ENT_QUOTES och 'UTF-8'-parametrar.
+Default-flaggorna i PHP escapar INTE single quotes, vilket kan leda till XSS.
+Alla 75 forekomster fixade till htmlspecialchars($var, ENT_QUOTES, 'UTF-8').
+
+Paverkade controllers (72 st):
+AlarmHistorikController, AlertsController, AvvikelselarmController, BonusController,
+CykeltidHeatmapController, DagligBriefingController, DagligSammanfattningController,
+DashboardLayoutController, DrifttidsTimelineController, EffektivitetController,
+FavoriterController, FeedbackAnalysController, FeedbackController,
+ForstaTimmeAnalysController, GamificationController, HeatmapController,
+HistoriskProduktionController, HistoriskSammanfattningController,
+KapacitetsplaneringController, KassationsDrilldownController,
+KassationsanalysController, KassationskvotAlarmController,
+KassationsorsakController, KassationsorsakPerStationController,
+KvalitetsTrendbrottController, KvalitetscertifikatController,
+KvalitetstrendController, KvalitetstrendanalysController,
+LeveransplaneringController, MalhistorikController, MaskinDrifttidController,
+MaskinOeeController, MaskinhistorikController, MinDagController,
+MorgonrapportController, MyStatsController, OeeBenchmarkController,
+OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController,
+OperatorJamforelseController, OperatorOnboardingController,
+OperatorRankingController, OperatorsPrestandaController,
+OperatorsbonusController, OperatorsportalController, ParetoController,
+PrediktivtUnderhallController, ProduktTypEffektivitetController,
+ProduktionsDashboardController, ProduktionsPrognosController,
+ProduktionsTaktController, ProduktionseffektivitetController,
+ProduktionsflodeController, ProduktionskalenderController,
+ProduktionsmalController, RankingHistorikController,
+RebotlingAnalyticsController, RebotlingSammanfattningController,
+RebotlingStationsdetaljController, SkiftjamforelseController,
+SkiftrapportExportController, StatistikDashboardController,
+StatistikOverblickController, StopporsakController,
+StopporsakOperatorController, StopporsakTrendController,
+StopptidsanalysController, TidrapportController,
+UnderhallsprognosController, UtnyttjandegradController,
+VdDashboardController, VeckorapportController
+
+#### Input sanitization — 3 buggar i LeveransplaneringController
+- kundnamn: saknade strip_tags() + langdbegransning → fixat med mb_substr(strip_tags(trim(...)), 0, 200)
+- notering: saknade strip_tags() + langdbegransning → fixat med mb_substr(strip_tags(trim(...)), 0, 1000)
+- bestDatum/onskDatum: saknade datumformatvalidering → fixat med preg_match YYYY-MM-DD
+
+#### Input sanitization — 1 bugg i CertificationController
+- notes-falt saknade langdbegransning → fixat med mb_substr(..., 0, 1000)
+
+#### Input sanitization — 1 bugg i ShiftPlanController
+- note-falt saknade langdbegransning → fixat med mb_substr(..., 0, 500)
+
+### Del 2: Ovrig buggjakt — inga ytterligare problem
+- Division by zero: Alla divisioner har > 0 guards (100+ forekomster granskade)
+- json_decode null-check: Alla json_decode(file_get_contents('php://input')) har is_array/$data-check
+- Tom catch-block: Inga tomma catch-block hittades — alla loggar med error_log()
+- Hardkodade credentials: Inga — VpnController laddar fran config-fil
+- SQL injection: Alla queries anvander prepared statements med parametrar
+- Race conditions: Transaktioner med FOR UPDATE anvands korrekt
+
+### Del 3: PHP error message language audit — inga ytterligare problem
+Alla felmeddelanden i alla controllers ar pa svenska.
+(VeckotrendController + BonusAdminController fixades redan i session #157)
+
+Filer (75 st): Se git diff for komplett lista.
+
+---
+
 ## 2026-03-18 Session #157 Worker A — 22 buggar fixade (XSS + engelska felmeddelanden)
 
 ### Uppgift 1: PHP SQL ORDER BY injection audit — 0 fixar
