@@ -1,3 +1,45 @@
+## 2026-03-18 Session #150 Worker A — 28 buggar fixade (error logging, unused vars, input validation)
+### Uppgift: PHP buggjakt — error logging consistency, unused variables cleanup, input validation audit
+
+**Del 1 — Error logging consistency (15 buggar fixade i 11 filer):**
+Systematisk granskning av alla error_log() i noreko-backend/classes/ for inkonsekvent format.
+
+- `ProduktionsDashboardController.php` — 9 error_log: kortnamn `ProduktionsDashboard::` fixat till `ProduktionsDashboardController::`
+- `RebotlingSammanfattningController.php` — 4 error_log: kortnamn `RebotlingSammanfattning::` fixat till `RebotlingSammanfattningController::`
+- `KassationsorsakPerStationController.php` — 4 error_log: kortnamn `KassationsorsakPerStation::` fixat till `KassationsorsakPerStationController::`
+- `StatusController.php` — 1 error_log: `StatusController::fel:` fixat till `StatusController::handle —`
+- `NewsController.php` — 8 error_log i getEvents(): saknade method-kontext (`manual news:`, `rekordag:` etc fixat till `getEvents — ...`)
+- `VeckotrendController.php` — 2 error_log: `error:` suffix fixat till `—` format, saknad logg tillagd i fallback-catch
+- `WeeklyReportController.php` — 2 error_log: `error:` suffix fixat till `—` format
+- `ProfileController.php` — 2 error_log: `error:` suffix fixat till `—` format
+- `BonusAdminController.php` — 16 error_log: `error:` och `failed:` suffix fixat till `—` format
+- `BonusController.php` — 17 error_log: `error:` suffix fixat till `—` format
+- `AuditController.php` — 1 error_log: `failed:` suffix fixat till `—` format
+
+**Del 2 — Unused $e in catch blocks (6 buggar fixade i 6 filer):**
+Lade till error_log() i catch-block dar $e fangades men aldrig anvandes.
+
+- `ShiftHandoverController.php` — catch i timeAgo(): $e oanvand, error_log tillagd
+- `StoppageController.php` — catch i createStoppage(): $e oanvand vid ogiltigt datum, error_log tillagd
+- `RebotlingController.php` — catch i getPeriodicData(): $e oanvand vid ogiltigt datum, error_log tillagd
+- `BonusController.php` — catch i buildDateFilter(): $e oanvand vid ogiltigt datum, error_log tillagd
+- `RebotlingAnalyticsController.php` — 2 catch-block: $e oanvand vid ogiltigt datum (getPeriodicData, getHourlyBreakdown, calcDailyStreak), error_log tillagd
+
+**Del 3 — Input validation / trim() (7 buggar fixade i 7 filer):**
+Lade till saknad trim() pa $_GET-parametrar som anvands direkt.
+
+- `RebotlingTrendanalysController.php` — `$run` saknade trim()
+- `StatusController.php` — `$run` saknade trim()
+- `VDVeckorapportController.php` — `$run` saknade trim()
+- `RuntimeController.php` — `$line` (3 stallen) och `$period` saknade trim()
+- `MaintenanceController.php` — `$line`, `$status`, `$fromDate` saknade trim()
+- `UnderhallsloggController.php` — `$typ` saknade trim()
+- `ShiftPlanController.php` — `$dateParam` och `$weekStartParam` saknade trim()
+- `WeeklyReportController.php` — `$weekStartParam` och `$weekParam` saknade trim()
+- `RebotlingAnalyticsController.php` — `$date` och `$week` saknade trim()
+
+---
+
 ## 2026-03-17 Session #149 Worker B — 145 buggar fixade (HTTP timeout/catchError audit)
 ### Uppgift: Memory leak audit + HTTP retry/timeout audit for alla Angular-komponenter
 Systematisk granskning av alla Angular-komponenter i noreko-frontend/src/app/pages/rebotling/ for saknad timeout() och catchError() pa HTTP-anrop.

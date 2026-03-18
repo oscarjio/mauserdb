@@ -52,7 +52,7 @@ class WeeklyReportController {
     // -------------------------------------------------------------------------
     private function getWeekCompare(): void {
         try {
-            $weekStartParam = $_GET['week_start'] ?? '';
+            $weekStartParam = trim($_GET['week_start'] ?? '');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStartParam)) {
                 $this->sendError('Ogiltigt week_start-format (YYYY-MM-DD)', 400);
                 return;
@@ -104,7 +104,7 @@ class WeeklyReportController {
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log("WeeklyReportController::getWeekCompare error: " . $e->getMessage());
+            error_log("WeeklyReportController::getWeekCompare — " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }
@@ -258,7 +258,7 @@ class WeeklyReportController {
     private function getSummary(): void {
         try {
             // Parsa veckoparameter
-            $weekParam = $_GET['week'] ?? '';
+            $weekParam = trim($_GET['week'] ?? '');
             if (preg_match('/^(\d{4})-W(\d{2})$/', $weekParam, $m)) {
                 $year = intval($m[1]);
                 $week = intval($m[2]);
@@ -455,7 +455,7 @@ class WeeklyReportController {
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log("WeeklyReportController::getSummary error: " . $e->getMessage());
+            error_log("WeeklyReportController::getSummary — " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }

@@ -64,9 +64,9 @@ class MaintenanceController {
 
     private function listEntries(): void {
         try {
-            $line     = $_GET['line'] ?? null;
-            $status   = $_GET['status'] ?? null;
-            $fromDate = $_GET['from_date'] ?? null;
+            $line     = isset($_GET['line']) ? trim($_GET['line']) : null;
+            $status   = isset($_GET['status']) ? trim($_GET['status']) : null;
+            $fromDate = isset($_GET['from_date']) ? trim($_GET['from_date']) : null;
 
             // Validera filter-värden
             if ($line !== null && !in_array($line, self::VALID_LINES, true)) {

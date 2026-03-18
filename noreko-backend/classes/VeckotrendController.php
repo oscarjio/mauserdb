@@ -79,6 +79,7 @@ class VeckotrendController {
                 }
             } catch (Exception $e) {
                 // Kolumnen kanske inte finns — försök med alternativ beräkning
+                error_log('VeckotrendController::getWeeklyKpis — drifttid primär query misslyckades, försöker fallback: ' . $e->getMessage());
                 try {
                     $stmtDrift2 = $this->pdo->prepare("
                         SELECT
@@ -104,7 +105,7 @@ class VeckotrendController {
                     }
                 } catch (Exception $e2) {
                     // Tabellen saknas eller annan struktur — lämna tomt
-                    error_log('VeckotrendController::drifttid fallback failed: ' . $e2->getMessage());
+                    error_log('VeckotrendController::getWeeklyKpis — drifttid fallback misslyckades: ' . $e2->getMessage());
                 }
             }
 
@@ -214,7 +215,7 @@ class VeckotrendController {
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log('VeckotrendController::getWeeklyKpis error: ' . $e->getMessage());
+            error_log('VeckotrendController::getWeeklyKpis — ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel vid hämtning av vecko-KPI'], JSON_UNESCAPED_UNICODE);
         }

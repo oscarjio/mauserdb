@@ -271,7 +271,7 @@ class ProduktionsDashboardController {
             $ibcOkIdag = (int)($radIdag['ok_antal'] ?? 0);
             $ibcIdag   = $ibcOkIdag + (int)($radIdag['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::oversikt idag: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::oversikt idag: ' . $e->getMessage());
             $ibcIdag = 0; $ibcOkIdag = 0;
         }
 
@@ -294,7 +294,7 @@ class ProduktionsDashboardController {
             $radIgar = $stmt->fetch(\PDO::FETCH_ASSOC);
             $ibcIgar = (int)($radIgar['ok_antal'] ?? 0) + (int)($radIgar['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::oversikt igar: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::oversikt igar: ' . $e->getMessage());
             $ibcIgar = 0;
         }
 
@@ -342,7 +342,7 @@ class ProduktionsDashboardController {
             $stmtAktiva->execute();
             $aktivaStationer = (int)($stmtAktiva->fetchColumn() ?? 0);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::oversikt aktiva: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::oversikt aktiva: ' . $e->getMessage());
             $aktivaStationer = 0;
         }
 
@@ -356,7 +356,7 @@ class ProduktionsDashboardController {
             ");
             $totalStationer = (int)($stmtTot->fetchColumn() ?? 0);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::oversikt totalStationer: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::oversikt totalStationer: ' . $e->getMessage());
             $totalStationer = 0;
         }
 
@@ -437,7 +437,7 @@ class ProduktionsDashboardController {
                 $radDag = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $total = (int)($radDag['ok_antal'] ?? 0) + (int)($radDag['ej_ok_antal'] ?? 0);
             } catch (\PDOException $e) {
-                error_log('ProduktionsDashboard::vecko-produktion: ' . $e->getMessage());
+                error_log('ProduktionsDashboardController::vecko-produktion: ' . $e->getMessage());
                 $total = 0;
             }
 
@@ -511,7 +511,7 @@ class ProduktionsDashboardController {
             ");
             $stationer = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::stationer-status stationer: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::stationer-status stationer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationer');
             return;
         }
@@ -544,7 +544,7 @@ class ProduktionsDashboardController {
                 $stmt->execute([':station' => $station, ':idag' => $idag]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
             } catch (\PDOException $e) {
-                error_log('ProduktionsDashboard::stationer-status idag: ' . $e->getMessage());
+                error_log('ProduktionsDashboardController::stationer-status idag: ' . $e->getMessage());
                 $rad = ['total' => 0, 'ok_antal' => 0, 'senaste_datum' => null];
             }
 
@@ -625,7 +625,7 @@ class ProduktionsDashboardController {
                 'antal' => count($alarm),
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::senaste-alarm: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::senaste-alarm: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta alarm');
         }
     }
@@ -666,7 +666,7 @@ class ProduktionsDashboardController {
                 'antal' => count($ibc),
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboard::senaste-ibc: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::senaste-ibc: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta senaste IBC');
         }
     }

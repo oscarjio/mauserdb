@@ -90,6 +90,7 @@ class ShiftHandoverController {
         try {
             $created = new DateTime($createdAt, $tz);
         } catch (Exception $e) {
+            error_log('ShiftHandoverController::timeAgo — ogiltigt datum: ' . $e->getMessage());
             return 'Okänt datum';
         }
         $diff    = $now->getTimestamp() - $created->getTimestamp();

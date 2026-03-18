@@ -282,6 +282,7 @@ class StoppageController {
                     $start = new DateTime($startTime, $tz);
                     $end = new DateTime($endTime, $tz);
                 } catch (Exception $e) {
+                    error_log('StoppageController::createStoppage — ogiltigt datumvärde: ' . $e->getMessage());
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
                     return;

@@ -80,7 +80,7 @@ class ShiftPlanController {
     // -----------------------------------------------------------------------
 
     private function getWeek() {
-        $dateParam = $_GET['date'] ?? '';
+        $dateParam = trim($_GET['date'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateParam)) {
             $dateParam = date('Y-m-d');
         }
@@ -163,7 +163,7 @@ class ShiftPlanController {
     // -----------------------------------------------------------------------
 
     private function getWeekView() {
-        $weekStartParam = $_GET['week_start'] ?? '';
+        $weekStartParam = trim($_GET['week_start'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStartParam)) {
             $weekStartParam = date('Y-m-d');
         }

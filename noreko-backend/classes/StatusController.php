@@ -3,7 +3,7 @@ require_once __DIR__ . '/AuthHelper.php';
 
 class StatusController {
     public function handle() {
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         // ============================================================
         // GET ?action=status&run=all-lines
@@ -74,7 +74,7 @@ class StatusController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('StatusController::fel: ' . $e->getMessage());
+            error_log('StatusController::handle — ' . $e->getMessage());
             echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
         }
     }

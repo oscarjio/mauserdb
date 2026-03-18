@@ -9,7 +9,7 @@ class RebotlingTrendanalysController {
     }
 
     public function handle(): void {
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
         switch ($run) {
             case 'trender':
                 $this->trender();

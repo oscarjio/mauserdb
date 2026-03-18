@@ -47,7 +47,7 @@ class RuntimeController {
      */
     private function registerBreakFromShelly() {
         try {
-            $line = $_GET['line'] ?? null;
+            $line = isset($_GET['line']) ? trim($_GET['line']) : null;
             $rast = isset($_GET['rast']) ? (int)$_GET['rast'] : null;
 
             if (!$line || $rast === null) {
@@ -176,7 +176,7 @@ class RuntimeController {
      */
     private function getTodayBreakTime() {
         try {
-            $line = $_GET['line'] ?? null;
+            $line = isset($_GET['line']) ? trim($_GET['line']) : null;
 
             if (!$line) {
                 http_response_code(400);
@@ -221,8 +221,8 @@ class RuntimeController {
      */
     private function getBreakStats() {
         try {
-            $line = $_GET['line'] ?? null;
-            $period = $_GET['period'] ?? 'today';
+            $line = isset($_GET['line']) ? trim($_GET['line']) : null;
+            $period = trim($_GET['period'] ?? 'today');
 
             if (!$line) {
                 http_response_code(400);

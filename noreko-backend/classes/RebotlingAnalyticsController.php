@@ -490,6 +490,7 @@ class RebotlingAnalyticsController {
                 $startDt = new DateTime($fromDate);
                 $endDt   = new DateTime($toDate);
             } catch (Exception $e) {
+                error_log('RebotlingAnalyticsController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -1430,6 +1431,7 @@ class RebotlingAnalyticsController {
             $startDt = new DateTime($startDate);
             $endDt   = new DateTime($endDate);
         } catch (Exception $e) {
+            error_log('RebotlingAnalyticsController::getHourlyBreakdown — ogiltigt datumvärde: ' . $e->getMessage());
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
             return;
@@ -1678,7 +1680,7 @@ class RebotlingAnalyticsController {
     // =========================================================
 
     public function getDayDetail() {
-        $date = $_GET['date'] ?? '';
+        $date = trim($_GET['date'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
@@ -5587,7 +5589,7 @@ HTML;
      */
 
     public function getWeeklySummaryEmail(): void {
-        $week = $_GET['week'] ?? '';
+        $week = trim($_GET['week'] ?? '');
         if (empty($week)) {
             // Default: förra veckan
             $dt = new DateTime('last monday', new DateTimeZone('Europe/Stockholm'));
@@ -6284,6 +6286,7 @@ HTML;
         try {
             $date = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
         } catch (Exception $e) {
+            error_log('RebotlingAnalyticsController::calcDailyStreak — ogiltigt datum: ' . $e->getMessage());
             return 0;
         }
         $date->modify('-1 day'); // Börja med igår

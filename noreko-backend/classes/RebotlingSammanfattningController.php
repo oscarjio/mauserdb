@@ -106,7 +106,7 @@ class RebotlingSammanfattningController {
                     $dagensProduktion = $dagensOk + $dagensEjOk;
                 }
             } catch (\PDOException $e) {
-                error_log('RebotlingSammanfattning::overview produktion: ' . $e->getMessage());
+                error_log('RebotlingSammanfattningController::overview produktion: ' . $e->getMessage());
             }
 
             // 2) Kassation %
@@ -129,7 +129,7 @@ class RebotlingSammanfattningController {
                         $oee = round((float)$val, 1);
                     }
                 } catch (\PDOException $e) {
-                    error_log('RebotlingSammanfattning::overview OEE: ' . $e->getMessage());
+                    error_log('RebotlingSammanfattningController::overview OEE: ' . $e->getMessage());
                 }
             }
 
@@ -150,7 +150,7 @@ class RebotlingSammanfattningController {
                         $drifttidPct = round(((float)$row['total_drift'] / (float)$row['total_planerad']) * 100, 1);
                     }
                 } catch (\PDOException $e) {
-                    error_log('RebotlingSammanfattning::overview drifttid: ' . $e->getMessage());
+                    error_log('RebotlingSammanfattningController::overview drifttid: ' . $e->getMessage());
                 }
             }
 
@@ -180,7 +180,7 @@ class RebotlingSammanfattningController {
                         ];
                     }
                 } catch (\PDOException $e) {
-                    error_log('RebotlingSammanfattning::overview larm: ' . $e->getMessage());
+                    error_log('RebotlingSammanfattningController::overview larm: ' . $e->getMessage());
                 }
             }
 

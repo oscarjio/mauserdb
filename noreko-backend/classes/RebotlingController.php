@@ -1398,6 +1398,7 @@ class RebotlingController {
                 $startDt = new DateTime($fromDate);
                 $endDt   = new DateTime($toDate);
             } catch (Exception $e) {
+                error_log('RebotlingController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
                 return;
             }

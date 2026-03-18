@@ -303,7 +303,7 @@ class AuditLogger {
                 $_SERVER['REMOTE_ADDR'] ?? null
             ]);
         } catch (PDOException $e) {
-            error_log('AuditController::log failed: ' . $e->getMessage());
+            error_log('AuditController::log — audit logging misslyckades: ' . $e->getMessage());
         }
     }
 }

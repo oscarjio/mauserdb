@@ -611,7 +611,7 @@ class UnderhallsloggController {
     private function getList() {
         try {
             $days     = max(1, min(365, intval($_GET['days'] ?? 30)));
-            $typ      = $_GET['type'] ?? 'all';
+            $typ      = trim($_GET['type'] ?? 'all');
             $kategori = trim($_GET['category'] ?? 'all');
 
             $where = ["u.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)"];

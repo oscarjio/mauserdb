@@ -108,7 +108,7 @@ class KassationsorsakPerStationController {
                 'ej_ok'  => (int)($row['total_ej_ok'] ?? 0),
             ];
         } catch (\PDOException $e) {
-            error_log('KassationsorsakPerStation::getKassationData: ' . $e->getMessage());
+            error_log('KassationsorsakPerStationController::getKassationData: ' . $e->getMessage());
             return ['ok' => 0, 'ej_ok' => 0];
         }
     }
@@ -299,7 +299,7 @@ class KassationsorsakPerStationController {
                     ];
                 }
             } catch (\PDOException $e) {
-                error_log('KassationsorsakPerStation::getTopOrsaker: ' . $e->getMessage());
+                error_log('KassationsorsakPerStationController::getTopOrsaker: ' . $e->getMessage());
             }
         }
 
@@ -400,7 +400,7 @@ class KassationsorsakPerStationController {
                 'series'    => $series,
             ]);
         } catch (\PDOException $e) {
-            error_log('KassationsorsakPerStation::getTrend: ' . $e->getMessage());
+            error_log('KassationsorsakPerStationController::getTrend: ' . $e->getMessage());
             $this->sendError('Databasfel vid trendhämtning', 500);
         }
     }
@@ -449,7 +449,7 @@ class KassationsorsakPerStationController {
                     $topOrsak = $row['orsak'];
                 }
             } catch (\PDOException $e) {
-                error_log('KassationsorsakPerStation::getDetaljer topOrsak: ' . $e->getMessage());
+                error_log('KassationsorsakPerStationController::getDetaljer topOrsak: ' . $e->getMessage());
             }
         }
 

@@ -50,7 +50,7 @@ class VDVeckorapportController {
             return;
         }
 
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
         switch ($run) {
             case 'kpi-jamforelse':
                 $this->kpiJamforelse();
