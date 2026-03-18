@@ -1,3 +1,40 @@
+## 2026-03-18 Session #159 Worker B — Angular buggjakt (3 audits: memory leaks, form validation, error display)
+
+### Audit 1: Angular memory leak audit — 0 buggar
+Granskade alla komponenter i noreko-frontend/src/app/ for memory leaks:
+- **Chart.js**: 110+ filer med new Chart() — alla har matchande .destroy() i ngOnDestroy. OK.
+- **addEventListener**: 5 filer anvander document.addEventListener — alla har removeEventListener i ngOnDestroy. OK.
+- **window.addEventListener**: 0 forekomster. OK.
+- **ResizeObserver/MutationObserver**: 0 forekomster. OK.
+- **rxjs fromEvent**: 0 forekomster. OK.
+- **rxjs interval/timer**: 4 forekomster — alla har takeUntil(this.destroy$). OK.
+- Session #158 verifierade subscribe/setInterval/setTimeout — inga nya problem hittade.
+
+### Audit 2: Angular form validation audit — 0 buggar
+Granskade alla formular i noreko-frontend/src/app/:
+- register, create-user: required + minlength + maxlength + password/email-validering. OK.
+- maintenance-form: required + min/max + felmeddelanden pa svenska. Submit disabled nar ogiltigt. OK.
+- service-intervals: required + min-validering + felmeddelanden pa svenska. OK.
+- batch-sparning, leveransplanering, kapacitetsplanering, kassationskvot-alarm: korrekt validering. OK.
+- stoppage-log: required + submit disabled nar ogiltigt. OK.
+- rebotling-skiftrapport: inline editing med min="0" pa nummerfallt. OK.
+- Alla formular har felmeddelanden pa svenska. Inga [(ngModel)] utan validering pa kritiska falt.
+
+### Audit 3: Angular error display audit — 2 buggar fixade
+Granskade alla catchError-block och loading-states:
+1. **produktionspuls.ts**: loading=true aterstalldes ALDRIG vid API-fel — oandlig spinner.
+   catchError returnerade of(null), men loading=false var inne i if(res?.success)-blocket.
+   Fixat: loading=false satter alltid + error-property + felmeddelande i HTML-template.
+2. **maintenance-list.component.ts**: onDeleteEntry visade INGET felmeddelande vid misslyckad borttagning.
+   catchError returnerade of(null), men else-branch saknades helt.
+   Fixat: deleteError-property + alert i template nar borttagning misslyckas.
+
+OBS: Globala error.interceptor.ts visar toast for HTTP-fel (401, 403, 404, 500, natverksfel) pa svenska.
+Timeout-catchErrors i services ar avsiktliga for polling/bakgrundsladdningar — inte buggar.
+De flesta komponenter hanterar null-svar fran services korrekt med error/empty states.
+
+---
+
 ## 2026-03-18 Session #159 Worker A — PHP buggjakt (3 audits: division-by-zero, file upload, auth)
 
 ### Audit 1: PHP division by zero — 0 buggar
