@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #168):
-- [x] **PHP response consistency audit** — 1 bugg: AuditController felformat (Worker A)
-- [x] **PHP error logging completeness audit** — 4 buggar: VDVeckorapport 3x + RebotlingAdmin (Worker A)
-- [x] **PHP integer overflow/type coercion audit** — 3 buggar: float === 0.0 i 5 controllers (Worker A)
-- [x] **Angular HTTP error message audit** — 4 buggar: saknad felvisning i 4 komponenter (Worker B)
-- [x] **Angular form reset/dirty state audit** — 1 bugg: produktionsmal formreset (Worker B)
+### Klart (session #169):
+- [x] **PHP file path traversal audit** — 0 buggar, redan sakert (Worker A)
+- [x] **PHP date/time edge case audit** — 27 DST-buggar fixade i 14 controllers (Worker A)
+- [x] **PHP SQL transaction completeness audit** — 0 buggar, redan korrekt (Worker A)
+- [x] **Angular memory leak re-audit** — 0 buggar, alla komponenter korrekta (Worker B)
+- [x] **Angular accessibility audit** — 10 saknade aria-labels fixade (Worker B)
 
-### Nasta buggjakt-items (session #169+):
-- [ ] **PHP file path traversal audit** — saknad validering av filnamn/sokvagar i upload/export
-- [ ] **Angular memory leak re-audit** — nya komponenter sedan session #166
-- [ ] **PHP date/time edge case audit** — timezone-hantering, DST-overgangsproblem
-- [ ] **Angular accessibility audit** — saknade aria-labels, keyboard navigation
-- [ ] **PHP SQL transaction completeness audit** — multi-table writes utan transaktion
+### Nasta buggjakt-items (session #170+):
+- [ ] **PHP error boundary audit** — set_error_handler, register_shutdown_function, fatala fel
+- [ ] **Angular HTTP retry/timeout audit** — saknad timeout pa HTTP-anrop, retry-logik
+- [ ] **PHP input validation completeness** — POST/GET-parametrar utan filter_input/validering
+- [ ] **Angular route lazy-loading audit** — stora bundles som borde lazy-loadas
+- [ ] **PHP session security audit** — session fixation, regenerate_id, cookie flags
 
 ## Parkerade features (ta inte dessa nu)
 
