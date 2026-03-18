@@ -109,8 +109,11 @@ class ProduktionskostnadController {
                    AND table_name = 'produktionskostnad_config'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_produktionskostnad.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_produktionskostnad.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('ProduktionskostnadController::ensureTables: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

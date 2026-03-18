@@ -195,12 +195,12 @@ class VpnController {
             if (empty($clients)) {
                 $debug = [
                     'raw_output_length' => strlen($fullOutput),
-                    'raw_output_full' => $fullOutput, // Full output för att se exakt vad som kommer
                     'has_client_list' => strpos($fullOutput, 'CLIENT_LIST') !== false,
                     'has_routing_table' => strpos($fullOutput, 'ROUTING_TABLE') !== false,
                     'lines_count' => substr_count($fullOutput, "\n"),
-                    'welcome_preview' => substr($welcome, 0, 200)
                 ];
+                // Logga rå-output till server-loggen (inte till klienten) för felsökning
+                error_log('VpnController: inga klienter hittades — raw_output_length=' . strlen($fullOutput));
             }
             
             $totalTime = round((microtime(true) - $startTime) * 1000, 2);

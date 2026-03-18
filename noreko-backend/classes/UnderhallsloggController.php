@@ -145,8 +145,11 @@ class UnderhallsloggController {
                    AND table_name = 'rebotling_underhallslogg'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_underhallslogg.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-13_underhallslogg.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('UnderhallsloggController::ensureRebotlingTable: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

@@ -93,8 +93,11 @@ class SkiftplaneringController {
                    AND table_name = 'skift_konfiguration'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_skiftplanering.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_skiftplanering.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('SkiftplaneringController::ensureTables: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

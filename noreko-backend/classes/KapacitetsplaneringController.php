@@ -95,8 +95,11 @@ class KapacitetsplaneringController {
                    AND table_name = 'kapacitet_config'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_kapacitet_config.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-13_kapacitet_config.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('KapacitetsplaneringController::ensureConfigTable: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

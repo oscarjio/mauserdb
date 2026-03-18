@@ -100,8 +100,11 @@ class BatchSparningController {
                    AND table_name = 'batch_order'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_batch_sparning.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_batch_sparning.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('BatchSparningController::ensureTables: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

@@ -112,8 +112,11 @@ class OperatorsbonusController {
                    AND table_name = 'bonus_konfiguration'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_operatorsbonus.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_operatorsbonus.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('OperatorsbonusController::ensureTables: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

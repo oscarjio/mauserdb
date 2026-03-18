@@ -138,8 +138,11 @@ class SkiftoverlamningController {
                    AND table_name = 'skiftoverlamning_logg'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_skiftoverlamning.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_skiftoverlamning.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('SkiftoverlamningController::ensureTable: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }
@@ -157,8 +160,11 @@ class SkiftoverlamningController {
                    AND column_name = 'checklista_json'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_skiftoverlamning_checklista.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-13_skiftoverlamning_checklista.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('SkiftoverlamningController::ensureNewColumns: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }
@@ -1040,8 +1046,11 @@ class SkiftoverlamningController {
                    AND table_name = 'rebotling_skiftoverlamning'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_skiftoverlamning.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-13_skiftoverlamning.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('SkiftoverlamningController::ensureProtokollTable: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }

@@ -119,8 +119,11 @@ class KvalitetscertifikatController {
                    AND table_name = 'kvalitetscertifikat'"
             )->fetchColumn();
             if (!$check) {
-                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-12_kvalitetscertifikat.sql');
-                if ($sql) {
+                $migrationPath = __DIR__ . '/../migrations/2026-03-12_kvalitetscertifikat.sql';
+                $sql = file_get_contents($migrationPath);
+                if ($sql === false) {
+                    error_log('KvalitetscertifikatController::ensureTables: kunde inte läsa migrationsfil: ' . $migrationPath);
+                } elseif ($sql) {
                     $this->pdo->exec($sql);
                 }
             }
