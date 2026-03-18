@@ -7,18 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #164):
-- [x] **PHP error response consistency audit** — 33 buggar fixade: saknade http_response_code i 5 controllers (Worker A)
-- [x] **Angular template accessibility audit** — 15 buggar fixade: keyboard, ARIA, table scope (Worker B)
-- [x] **PHP race condition audit** — 2 buggar fixade: RuntimeController + TvattlinjeController (Worker A)
-- [x] **Angular lazy loading audit** — 0 buggar, alla routes korrekt lazy-loaded (Worker B)
+### Klart (session #165):
+- [x] **PHP input length/boundary audit** — 15 buggar fixade: VARCHAR-overflow, negativa tal, array-storlek (Worker A)
+- [x] **PHP date/timezone consistency audit** — 0 buggar, redan konsekvent (Worker A)
+- [x] **PHP logging completeness audit** — 6 buggar fixade: saknad error_log, sakerhetsloggning (Worker A)
+- [x] **Angular HTTP retry/timeout audit** — 95 buggar fixade: retry(1) pa GET i 95 services (Worker B)
+- [x] **Angular form validation audit** — 6 buggar fixade: saknade required, disabled submit (Worker B)
 
-### Nasta buggjakt-items (session #165+):
-- [ ] **PHP input length/boundary audit** — max-langd pa textfalt, overflow i VARCHAR-kolumner
-- [ ] **Angular HTTP retry/timeout audit** — saknade timeout, retry-logik, offline-hantering
-- [ ] **PHP date/timezone consistency audit** — blandade date()-format, saknad timezone-config
-- [ ] **Angular form validation audit** — saknad client-side validering, missmatch med backend
-- [ ] **PHP logging completeness audit** — saknade error_log vid catch-block, ohandlade exceptions
+### Nasta buggjakt-items (session #166+):
+- [ ] **PHP file upload validation audit** — MIME-type kontroll, filstorlek, path traversal
+- [ ] **Angular memory leak deep audit** — chart-objekt, event listeners, window-events
+- [ ] **PHP SQL query optimization audit** — N+1 queries, saknade index, onodiga JOINs
+- [ ] **Angular error boundary audit** — saknade ErrorHandler, ohandlade promise-rejections
+- [ ] **PHP CORS/security headers audit** — saknade Content-Security-Policy, X-Frame-Options
 
 ## Parkerade features (ta inte dessa nu)
 

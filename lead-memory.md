@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #164)*
+*Senast uppdaterad: 2026-03-18 (session #165)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -69,23 +69,20 @@ Session #161: BUGGJAKT — 11 buggar (10 Worker A + 1 Worker B). Error logging, 
 Session #162: BUGGJAKT — 16 buggar (13 Worker A + 3 Worker B). File I/O error logging, VPN info leak + withCredentials, HTML-entiteter.
 Session #163: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Division by zero guards + LIKE injection escaping. Angular memory leaks + route guards OK.
 Session #164: BUGGJAKT — 50 buggar (35 Worker A + 15 Worker B). HTTP-statuskoder + race conditions + accessibility (keyboard, ARIA, table scope).
+Session #165: BUGGJAKT — 122 buggar (21 Worker A + 101 Worker B). Input length/boundary + logging completeness + HTTP retry + form validation.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #165+):
-- [ ] PHP input length/boundary audit
-- [ ] Angular HTTP retry/timeout audit
-- [ ] PHP date/timezone consistency audit
-- [ ] Angular form validation audit
-- [ ] PHP logging completeness audit
+### Kvarstaende buggjakt-items (session #166+):
+- [ ] PHP file upload validation audit
+- [ ] Angular memory leak deep audit
+- [ ] PHP SQL query optimization audit
+- [ ] Angular error boundary audit
+- [ ] PHP CORS/security headers audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #162 (klar)
-Worker A: 13 buggar — 0 session/cookie (allt korrekt), 13 file I/O (1 VPN info leak, 12 saknad error_log vid file_get_contents).
-Worker B: 3 buggar — 0 form validation (allt korrekt), 3 HTTP (2 saknade withCredentials, 1 HTML-entiteter i felmeddelanden).
 
 ### 2026-03-18 — Session #163 (klar)
 Worker A: 5 buggar — 2 numeric overflow (division by zero i MaskinOee + ProduktionsPrognos), 3 LIKE injection (AuditController + BatchSparning).
@@ -94,3 +91,7 @@ Worker B: 0 buggar — memory leak audit OK (alla cleanup-monster korrekta), rou
 ### 2026-03-18 — Session #164 (klar)
 Worker A: 35 buggar — 33 error response consistency (saknade http_response_code i 5 controllers), 2 race conditions (RuntimeController + TvattlinjeController).
 Worker B: 15 buggar — 15 template accessibility (7 keyboard, 2 ARIA, 6 table scope), 0 lazy loading (alla routes korrekt lazy-loaded).
+
+### 2026-03-18 — Session #165 (klar)
+Worker A: 21 buggar — 15 input length/boundary (VARCHAR-overflow, negativa tal i 10 controllers), 0 date/timezone (redan konsekvent), 6 logging (saknad error_log + sakerhetsloggning).
+Worker B: 101 buggar — 95 HTTP retry (retry(1) pa GET i 95 services), 6 form validation (saknade required + disabled submit i 4 komponenter).
