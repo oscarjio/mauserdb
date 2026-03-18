@@ -322,16 +322,16 @@
           Sida {{ tabell.page }} av {{ tabell.total_pages }}
         </span>
         <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(1)" [disabled]="tabell.page <= 1">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(1)" [disabled]="tabell.page <= 1" aria-label="Forsta sidan">
             <i class="fas fa-angle-double-left"></i>
           </button>
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1" aria-label="Foregaende sida">
             <i class="fas fa-angle-left"></i>
           </button>
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Nasta sida">
             <i class="fas fa-angle-right"></i>
           </button>
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.total_pages)" [disabled]="tabell.page >= tabell.total_pages">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.total_pages)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Sista sidan">
             <i class="fas fa-angle-double-right"></i>
           </button>
         </div>

@@ -154,11 +154,13 @@
             <td>
               <div class="btn-group btn-group-sm">
                 <button class="btn btn-outline-success btn-sm" title="Markera levererad"
+                        aria-label="Markera levererad"
                         *ngIf="order.status !== 'levererad'"
                         (click)="updateStatus(order.id, 'levererad')">
                   <i class="fas fa-check"></i>
                 </button>
                 <button class="btn btn-outline-info btn-sm" title="Satt i produktion"
+                        aria-label="Satt i produktion"
                         *ngIf="order.status === 'planerad'"
                         (click)="updateStatus(order.id, 'i_produktion')">
                   <i class="fas fa-play"></i>

@@ -19,7 +19,7 @@
              aria-label="Valj specifikt datum"
              [(ngModel)]="specifiktDatum"
              (ngModelChange)="onDatumChange()" />
-      <button class="btn btn-sm btn-outline-secondary" (click)="printReport()" title="Skriv ut">
+      <button class="btn btn-sm btn-outline-secondary" (click)="printReport()" title="Skriv ut" aria-label="Skriv ut rapport">
         <i class="fas fa-print"></i>
       </button>
     </div>

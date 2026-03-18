@@ -10,7 +10,7 @@
 
   <!-- Datumväljare -->
   <div class="date-bar">
-    <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="prevDay()" title="Föregående dag">
+    <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="prevDay()" title="Föregående dag" aria-label="Foregaende dag">
       <i class="fas fa-chevron-left"></i>
     </button>
     <input
@@ -24,7 +24,8 @@
       class="btn btn-outline-secondary btn-sm nav-btn"
       (click)="nextDay()"
       [disabled]="isToday"
-      title="Nästa dag">
+      title="Nästa dag"
+      aria-label="Nasta dag">
       <i class="fas fa-chevron-right"></i>
     </button>
     <span class="date-display">{{ formatDisplayDate(selectedDate) }}</span>
