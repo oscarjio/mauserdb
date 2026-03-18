@@ -1,3 +1,46 @@
+## 2026-03-18 Session #170 Worker A — PHP error boundaries + input validation + session security — 34 buggar fixade
+
+### Uppgift 1: PHP error boundary audit — 31 buggar fixade
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (utom plcbackend/) for:
+- Catch-block som svaljer fel tyst (catch utan loggning eller respons)
+- Yttre catch-block som returnerar success:true vid databasfel (dold felinformation)
+
+Hittade och fixade:
+- **KlassificeringslinjeController**: 8 tysta catch-block med error_log tillagd (getSystemStatus, getTodaySnapshot, getLiveStats, getReport, getOeeTrend). 2 yttre catch-block i getReport/getOeeTrend som returnerade `success: true` + HTTP 200 vid databasfel — fixade till `success: false` + HTTP 500.
+- **SaglinjeController**: 4 tysta catch-block med error_log tillagd (getSystemStatus, getTodaySnapshot). 2 yttre catch-block i getReport/getOeeTrend som returnerade `success: true` + HTTP 200 vid databasfel — fixade till `success: false` + HTTP 500.
+- **TvattlinjeController**: 11 tysta catch-block i getSystemStatus, getTodaySnapshot (plc, ibc, dagmal, isRunning, takt) fixade med error_log.
+- **StatusController**: 2 tysta catch-block (cykel_tid, OEE) fixade med error_log.
+- **RebotlingController**: 2 tysta catch-block (exception table, settings) fixade med error_log.
+
+De 4 kritiska buggarna (success:true vid error) kunde orsaka att frontenden visar "inga data" istallet for felmeddelande vid databasfel, vilket forsvagar felsokning avsevart.
+
+### Uppgift 2: PHP input validation completeness — 1 bugg fixad
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for:
+- POST/GET-parametrar utan validering
+- SQL-parametrar utan prepared statements
+- Saknad typkontroll/tom-strang-kontroll
+
+Resultat: Kodbasen ar remarkabelt valsanerad. Alla SQL-fragor anvander prepared statements. Datumparametrar valideras med preg_match i praktiskt taget alla controllers. Input saniteras med strip_tags, intval, max/min etc.
+
+Hittade och fixade:
+- **NewsController::requireAdmin()**: Anvande `session_start(['read_and_close' => true])` aven for POST-anrop (create/update/delete). Detta gor sessionen skrivskyddad, vilket kan orsaka problem om session-data behover uppdateras under anropet. Fixade: anvander nu `read_and_close` endast for GET, vanlig `session_start()` for POST.
+
+### Uppgift 3: PHP session security audit — 2 buggar fixade
+
+Granskade noreko-backend/ for sessionshantering. Resultat:
+- **session_regenerate_id(true)**: Anropas korrekt vid inloggning (LoginController rad 93). OK.
+- **Cookie-flaggor**: Konfigureras korrekt i api.php (HttpOnly, Secure baserat pa HTTPS, SameSite=Lax, lifetime=28800). OK.
+- **session.use_strict_mode=1**: Satt i api.php — skyddar mot session fixation. OK.
+- **session.use_only_cookies=1 + use_trans_sid=0**: Satt i api.php — forhindrar session-ID i URL. OK.
+- **Session timeout**: AuthHelper::checkSessionTimeout() finns men anropas aldrig direkt — istallet har StatusController inline-logik for timeout-check. Fungerar men anvande hardkodat varde.
+- **session_destroy()**: Anropas korrekt vid utloggning (LoginController::logout) + radering av session-cookie. OK.
+
+Hittade och fixade:
+- **AuthHelper::SESSION_TIMEOUT**: Var `private const` — andra klasser kunde inte ateranvanda den. Andrad till `public const`.
+- **StatusController**: Session-timeout anvande hardkodat varde `28800` istallet for `AuthHelper::SESSION_TIMEOUT`. Fixade till att anvanda konstanten for centraliserad konfiguration.
+
 ## 2026-03-18 Session #170 Worker B — Angular HTTP retry/timeout audit + route lazy-loading audit — 0 buggar fixade
 
 ### Uppgift 1: Angular HTTP retry/timeout audit — 0 buggar hittade
