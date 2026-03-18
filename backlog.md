@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP error logging audit** — 10 buggar (Worker A #161)
-- [x] **Angular change detection audit** — 1 bugg (Worker B #161)
-- [x] **PHP CORS/headers audit** — inkluderad i error logging (Worker A #161)
-- [x] **Angular observable completion audit** — 0 buggar (Worker B #161)
-- [x] **PHP response format audit** — inkluderad i error logging (Worker A #161)
-- [x] **Angular i18n/hardcoded strings audit** — 0 buggar (Worker B #161)
+- [x] **PHP session/cookie audit** — 0 buggar, allt korrekt (Worker A #162)
+- [x] **Angular form validation audit** — 0 buggar, allt korrekt (Worker B #162)
+- [x] **PHP file I/O audit** — 13 buggar fixade (Worker A #162)
+- [x] **Angular HTTP retry/timeout audit** — 3 buggar fixade (Worker B #162)
 
-### Nasta buggjakt-items (session #162+):
-- [ ] **PHP session/cookie audit** — session_start, cookie-flaggor, session fixation
-- [ ] **Angular form validation audit** — saknad validering, felaktig error display
-- [ ] **PHP file I/O audit** — file_get_contents/file_put_contents felhantering, filsokvagar
-- [ ] **Angular HTTP retry/timeout audit** — saknade timeouts, retry-strategier
+### Nasta buggjakt-items (session #163+):
 - [ ] **PHP numeric overflow audit** — intval pa stora tal, float-precision i berakningar
+- [ ] **Angular memory leak audit** — detached DOM-noder, chart-instanser, event listeners
+- [ ] **PHP SQL LIKE/REGEXP injection audit** — LIKE-wildcards, unsanitized REGEXP
+- [ ] **Angular route guard audit** — saknade guards, felaktig redirect-logik
+- [ ] **PHP error response consistency audit** — alla felfall ska ha korrekt HTTP-statuskod
+- [ ] **Angular template accessibility audit** — aria-labels, keyboard navigation, focus management
 
 ## Parkerade features (ta inte dessa nu)
 
