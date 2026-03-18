@@ -7,18 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #167):
-- [x] **PHP SQL query optimization audit** — 9 buggar: 7 SELECT * + 2 N+1 queries (Worker A)
-- [x] **PHP session/auth edge cases audit** — 3 buggar: inactive login + missing auth (Worker A)
-- [x] **Angular template null-safety audit** — 3 buggar: slice/ngFor null-guards (Worker B)
-- [x] **Angular route guard edge cases** — 0 buggar, solid implementation (Worker B)
+### Klart (session #168):
+- [x] **PHP response consistency audit** — 1 bugg: AuditController felformat (Worker A)
+- [x] **PHP error logging completeness audit** — 4 buggar: VDVeckorapport 3x + RebotlingAdmin (Worker A)
+- [x] **PHP integer overflow/type coercion audit** — 3 buggar: float === 0.0 i 5 controllers (Worker A)
+- [x] **Angular HTTP error message audit** — 4 buggar: saknad felvisning i 4 komponenter (Worker B)
+- [x] **Angular form reset/dirty state audit** — 1 bugg: produktionsmal formreset (Worker B)
 
-### Nasta buggjakt-items (session #168+):
-- [ ] **PHP response consistency audit** — saknade Content-Type headers, inkonsekvent JSON-format
-- [ ] **PHP error logging completeness audit** — saknad error_log i catch-blocks, inkonsekvent loggformat
-- [ ] **Angular HTTP error message audit** — felmeddelanden som visas for anvandare vid API-fel
-- [ ] **PHP integer overflow/type coercion audit** — intval() pa stora tal, float-jamforelser
-- [ ] **Angular form reset/dirty state audit** — formularsidor som inte aterställer state korrekt
+### Nasta buggjakt-items (session #169+):
+- [ ] **PHP file path traversal audit** — saknad validering av filnamn/sokvagar i upload/export
+- [ ] **Angular memory leak re-audit** — nya komponenter sedan session #166
+- [ ] **PHP date/time edge case audit** — timezone-hantering, DST-overgangsproblem
+- [ ] **Angular accessibility audit** — saknade aria-labels, keyboard navigation
+- [ ] **PHP SQL transaction completeness audit** — multi-table writes utan transaktion
 
 ## Parkerade features (ta inte dessa nu)
 

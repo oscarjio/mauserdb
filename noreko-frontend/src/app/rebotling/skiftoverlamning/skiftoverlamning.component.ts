@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import {
   SkiftoverlamningProtokollService,
@@ -54,7 +53,6 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
 
   constructor(
     private svc: SkiftoverlamningProtokollService,
-    private auth: AuthService,
     private toast: ToastService
   ) {}
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #167)*
+*Senast uppdaterad: 2026-03-18 (session #168)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -72,24 +72,25 @@ Session #164: BUGGJAKT — 50 buggar (35 Worker A + 15 Worker B). HTTP-statuskod
 Session #165: BUGGJAKT — 122 buggar (21 Worker A + 101 Worker B). Input length/boundary + logging completeness + HTTP retry + form validation.
 Session #166: BUGGJAKT — 9 buggar (7 Worker A + 2 Worker B). CORS/security headers + CSV filename injection + pdf-export error handling.
 Session #167: BUGGJAKT — 15 buggar (12 Worker A + 3 Worker B). SQL optimization (SELECT *, N+1) + auth edge cases (inactive login, missing auth) + template null-safety.
+Session #168: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). Response consistency + error logging + float comparison (Worker A) + HTTP error messages + form dirty state (Worker B).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #168+):
-- [ ] PHP response consistency audit
-- [ ] PHP error logging completeness audit
-- [ ] Angular HTTP error message audit
-- [ ] PHP integer overflow/type coercion audit
-- [ ] Angular form reset/dirty state audit
+### Kvarstaende buggjakt-items (session #169+):
+- [ ] PHP file path traversal audit
+- [ ] Angular memory leak re-audit (nya komponenter sedan #166)
+- [ ] PHP date/time edge case audit (timezone, DST)
+- [ ] Angular accessibility audit (aria-labels, keyboard nav)
+- [ ] PHP SQL transaction completeness audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #166 (klar)
-Worker A: 7 buggar — 0 file upload (inga uploads i projektet), 7 CORS/security (CSP + HSTS + XSS-protection i api/login/admin/update-weather + 3 CSV filename injection).
-Worker B: 2 buggar — 0 memory leaks (alla 41 components OK), 2 error boundary (saknad catch i pdf-export component + service).
 
 ### 2026-03-18 — Session #167 (klar)
 Worker A: 12 buggar — 9 SQL optimization (7 SELECT * ersatta med specifika kolumner, 2 N+1 queries eliminerade i Gamification+OperatorRanking), 3 auth edge cases (inaktiva anvandare kunde logga in, registerBreak() utan auth, leveransplanering utan admin-check).
 Worker B: 3 buggar — 3 template null-safety (slice pa undefined i statistik-dashboard, ngFor utan null-guard i vd-veckorapport + vd-dashboard), 0 route guard (solid implementation med APP_INITIALIZER + initialized$ + sessionStorage cache).
+
+### 2026-03-18 — Session #168 (klar)
+Worker A: 8 buggar — 1 response consistency (AuditController felformat), 4 error logging (VDVeckorapport 3x + RebotlingAdmin DB health), 3 float comparison (=== 0.0 pa beraknade medelvarden i 5 controllers).
+Worker B: 5 buggar — 4 HTTP error messages (skiftoverlamning, kvalitetscertifikat, avvikelselarm, operatorsbonus saknade felvisning), 1 form dirty state (produktionsmal formreset efter sparning).
