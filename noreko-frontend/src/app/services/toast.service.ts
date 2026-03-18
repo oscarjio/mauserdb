@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 export interface Toast {
@@ -9,10 +9,17 @@ export interface Toast {
 }
 
 @Injectable({ providedIn: 'root' })
-export class ToastService {
+export class ToastService implements OnDestroy {
   private nextId = 0;
   private toasts: Toast[] = [];
+  private timers = new Map<number, ReturnType<typeof setTimeout>>();
   toasts$ = new BehaviorSubject<Toast[]>([]);
+
+  ngOnDestroy(): void {
+    this.timers.forEach(t => clearTimeout(t));
+    this.timers.clear();
+    this.toasts$.complete();
+  }
 
   show(message: string, type: Toast['type'] = 'info', duration = 5000): void {
     const toast: Toast = { id: this.nextId++, message, type, duration };
@@ -20,7 +27,8 @@ export class ToastService {
     this.toasts$.next([...this.toasts]);
 
     if (duration > 0) {
-      setTimeout(() => this.dismiss(toast.id), duration);
+      const timer = setTimeout(() => this.dismiss(toast.id), duration);
+      this.timers.set(toast.id, timer);
     }
   }
 
@@ -37,6 +45,11 @@ export class ToastService {
   }
 
   dismiss(id: number): void {
+    const timer = this.timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(id);
+    }
     this.toasts = this.toasts.filter(t => t.id !== id);
     this.toasts$.next([...this.toasts]);
   }

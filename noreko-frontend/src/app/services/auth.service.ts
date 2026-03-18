@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subscription, interval, of, Observable } from 'rxjs';
-import { timeout, catchError, retry, tap, map } from 'rxjs/operators';
+import { timeout, catchError, retry, tap, map, switchMap } from 'rxjs/operators';
 
 export interface AuthUser {
   id: number;
@@ -23,6 +23,7 @@ export class AuthService {
   initialized$ = new BehaviorSubject<boolean>(false);
 
   private pollSub: Subscription | null = null;
+  private logoutSub: Subscription | null = null;
   private router = inject(Router);
 
   constructor(private http: HttpClient) {
@@ -47,7 +48,9 @@ export class AuthService {
   /** Starta status-polling (anropas vid konstruktion och kan återstartas efter login). */
   private startPolling(): void {
     this.stopPolling();
-    this.pollSub = interval(60000).subscribe(() => this.fetchStatus().subscribe());
+    this.pollSub = interval(60000).pipe(
+      switchMap(() => this.fetchStatus())
+    ).subscribe();
   }
 
   /** Stoppa status-polling (anropas vid logout). */
@@ -92,7 +95,8 @@ export class AuthService {
     this.loggedIn$.next(false);
     this.user$.next(null);
 
-    this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).pipe(
+    this.logoutSub?.unsubscribe();
+    this.logoutSub = this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).pipe(
       timeout(8000),
       catchError(() => of(null))
     ).subscribe(() => {

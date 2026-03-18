@@ -368,15 +368,17 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     window.print();
   }
 
-  deltaClass(val: number): string {
-    if (val > 0) return 'text-success';
-    if (val < 0) return 'text-danger';
+  deltaClass(val: number | undefined | null): string {
+    const v = val ?? 0;
+    if (v > 0) return 'text-success';
+    if (v < 0) return 'text-danger';
     return 'text-warning';
   }
 
-  deltaIcon(val: number): string {
-    if (val > 0) return 'bi bi-arrow-up-short';
-    if (val < 0) return 'bi bi-arrow-down-short';
+  deltaIcon(val: number | undefined | null): string {
+    const v = val ?? 0;
+    if (v > 0) return 'bi bi-arrow-up-short';
+    if (v < 0) return 'bi bi-arrow-down-short';
     return 'bi bi-dash';
   }
 
@@ -392,12 +394,12 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     return 'text-warning';
   }
 
-  formatNum(val: number): string {
-    return val.toLocaleString('sv-SE');
+  formatNum(val: number | undefined | null): string {
+    return (val ?? 0).toLocaleString('sv-SE');
   }
 
-  abs(val: number): number {
-    return Math.abs(val);
+  abs(val: number | undefined | null): number {
+    return Math.abs(val ?? 0);
   }
   trackByIndex(index: number): number { return index; }
   trackById(index: number, item: any): any { return item?.id ?? item?.user_id ?? index; }

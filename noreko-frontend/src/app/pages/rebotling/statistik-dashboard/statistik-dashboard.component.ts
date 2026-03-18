@@ -324,26 +324,34 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     }
   }
 
-  getDiffClass(current: number, previous: number, invertiert = false): string {
-    if (current === previous) return 'text-muted';
-    const better = invertiert ? current < previous : current > previous;
+  getDiffClass(current: number | undefined | null, previous: number | undefined | null, invertiert = false): string {
+    const c = current ?? 0;
+    const p = previous ?? 0;
+    if (c === p) return 'text-muted';
+    const better = invertiert ? c < p : c > p;
     return better ? 'text-success' : 'text-danger';
   }
 
-  getDiffIcon(current: number, previous: number, invertiert = false): string {
-    if (current === previous) return 'fas fa-minus';
-    const better = invertiert ? current < previous : current > previous;
+  getDiffIcon(current: number | undefined | null, previous: number | undefined | null, invertiert = false): string {
+    const c = current ?? 0;
+    const p = previous ?? 0;
+    if (c === p) return 'fas fa-minus';
+    const better = invertiert ? c < p : c > p;
     return better ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
   }
 
-  getDiffValue(current: number, previous: number): string {
-    const diff = current - previous;
+  getDiffValue(current: number | undefined | null, previous: number | undefined | null): string {
+    const c = current ?? 0;
+    const p = previous ?? 0;
+    const diff = c - p;
     return diff >= 0 ? `+${diff}` : `${diff}`;
   }
 
-  getDiffPct(current: number, previous: number): string {
-    if (previous === 0) return '';
-    const diff = ((current - previous) / previous * 100);
+  getDiffPct(current: number | undefined | null, previous: number | undefined | null): string {
+    const c = current ?? 0;
+    const p = previous ?? 0;
+    if (p === 0) return '';
+    const diff = ((c - p) / p * 100);
     return diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
   }
 

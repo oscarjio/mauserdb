@@ -69,10 +69,10 @@
         </div>
         <div class="kpi-content">
           <div class="kpi-label">IBC producerade idag</div>
-          <div class="kpi-value">{{ summary.idag.total }}</div>
-          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag.total, summary.igar.total)">
-            <i [class]="getDiffIcon(summary.idag.total, summary.igar.total) + ' me-1'"></i>
-            {{ getDiffValue(summary.idag.total, summary.igar.total) }} vs igår ({{ summary.igar.total }})
+          <div class="kpi-value">{{ summary.idag?.total }}</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag?.total, summary.igar?.total)">
+            <i [class]="getDiffIcon(summary.idag?.total, summary.igar?.total) + ' me-1'"></i>
+            {{ getDiffValue(summary.idag?.total, summary.igar?.total) }} vs igår ({{ summary.igar?.total }})
           </div>
         </div>
       </div>
@@ -86,10 +86,10 @@
         </div>
         <div class="kpi-content">
           <div class="kpi-label">IBC denna vecka</div>
-          <div class="kpi-value">{{ summary.denna_vecka.total }}</div>
-          <div class="kpi-diff" [ngClass]="getDiffClass(summary.denna_vecka.total, summary.forra_veckan.total)">
-            <i [class]="getDiffIcon(summary.denna_vecka.total, summary.forra_veckan.total) + ' me-1'"></i>
-            {{ getDiffPct(summary.denna_vecka.total, summary.forra_veckan.total) }} vs förra veckan
+          <div class="kpi-value">{{ summary.denna_vecka?.total }}</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.denna_vecka?.total, summary.forra_veckan?.total)">
+            <i [class]="getDiffIcon(summary.denna_vecka?.total, summary.forra_veckan?.total) + ' me-1'"></i>
+            {{ getDiffPct(summary.denna_vecka?.total, summary.forra_veckan?.total) }} vs förra veckan
           </div>
         </div>
       </div>
@@ -103,10 +103,10 @@
         </div>
         <div class="kpi-content">
           <div class="kpi-label">Kassationsgrad idag</div>
-          <div class="kpi-value">{{ summary.idag.kassation_pct }}%</div>
-          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag.kassation_pct, summary.igar.kassation_pct, true)">
-            <i [class]="getDiffIcon(summary.idag.kassation_pct, summary.igar.kassation_pct, true) + ' me-1'"></i>
-            Igår: {{ summary.igar.kassation_pct }}% — mål &lt;{{ summary.mal_kassation }}%
+          <div class="kpi-value">{{ summary.idag?.kassation_pct }}%</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag?.kassation_pct, summary.igar?.kassation_pct, true)">
+            <i [class]="getDiffIcon(summary.idag?.kassation_pct, summary.igar?.kassation_pct, true) + ' me-1'"></i>
+            Igår: {{ summary.igar?.kassation_pct }}% — mål &lt;{{ summary.mal_kassation }}%
           </div>
         </div>
       </div>
@@ -120,9 +120,9 @@
         </div>
         <div class="kpi-content">
           <div class="kpi-label">Drifttid idag</div>
-          <div class="kpi-value">{{ summary.idag.drifttid_pct }}%</div>
+          <div class="kpi-value">{{ summary.idag?.drifttid_pct }}%</div>
           <div class="kpi-diff text-muted">
-            {{ summary.idag.drifttid_h }}h av {{ summary.planerad_drift_h }}h planerat
+            {{ summary.idag?.drifttid_h }}h av {{ summary.planerad_drift_h }}h planerat
           </div>
         </div>
       </div>

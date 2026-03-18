@@ -96,6 +96,8 @@ export class AlertsService implements OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.activeAlerts$.complete();
+    this.activeCount$.complete();
   }
 
   // ----------------------------------------------------------------

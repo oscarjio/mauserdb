@@ -299,8 +299,8 @@
             <div *ngIf="!loadingTrender && trenderData">
 
               <!-- Trend-indikatorer -->
-              <div class="row g-3 mb-3">
-                <div class="col-6">
+              <div class="row g-3 mb-3" *ngIf="trenderData.trender">
+                <div class="col-6" *ngIf="trenderData.trender.produktion">
                   <div class="trend-kort p-3 rounded">
                     <div class="text-muted small mb-1">Produktionstrend (7d)</div>
                     <div class="fs-5 fw-bold"
@@ -313,7 +313,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-6">
+                <div class="col-6" *ngIf="trenderData.trender.kassation">
                   <div class="trend-kort p-3 rounded">
                     <div class="text-muted small mb-1">Kassationstrend (7d)</div>
                     <div class="fs-5 fw-bold"
