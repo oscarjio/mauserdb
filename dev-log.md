@@ -1,3 +1,47 @@
+## 2026-03-18 Session #156 Worker A — 10 buggar fixade (strtotime false-check + DateTime try/catch + transaktioner)
+
+### Uppgift 1: PHP date/time edge case audit — 7 fixar
+Granskade alla PHP-controllers i noreko-backend/classes/ for strtotime() och new DateTime() anrop.
+- 6 controllers anvande strtotime() pa anvandardatum utan === false check. Fixade med fallback till default-period vid false:
+  - OperatorsbonusController.php (getHistorik)
+  - UnderhallsloggController.php (getList)
+  - AuditController.php (handle)
+  - BatchSparningController.php (getBatchHistory)
+  - ProduktionskostnadController.php (getKostnadsTrend)
+  - SkiftoverlamningController.php (getHistorik)
+  - TidrapportController.php (getDateRange)
+- HistoriskProduktionController.php: new DateTime() pa anvandardatum utan try/catch — lade till try/catch med fallback
+- RuntimeController.php: new DateTime() pa DB-datum i loop utan try/catch — wrappade i try/catch
+- SkiftrapportController.php: $_GET['datum'] anvandes med bara substr() utan format-validering — lade till preg_match
+
+### Uppgift 2: PHP file path traversal audit — 0 fixar
+Granskade alla PHP-controllers for filoperationer (fopen, file_get_contents, file_put_contents, include, require, readfile, etc.).
+- Alla file_get_contents-anrop anvander php://input (saker)
+- Alla fopen-anrop anvander php://output (saker)
+- Alla include/require anvander __DIR__-baserade sokvagar (saker)
+- Inga path traversal-sarbarheter hittades
+
+### Uppgift 3: PHP transaction consistency audit — 3 fixar
+Granskade alla PHP-controllers for multi-write-operationer utan transaktioner.
+- ProduktionsmalController.php::sparaMal: 5 INSERT-loopar for weekday goals utan transaktion — wrappade i beginTransaction/commit/rollBack
+- ProduktionsSlaController.php::setGoal: UPDATE + INSERT utan transaktion — wrappade i beginTransaction/commit/rollBack
+- BonusAdminController.php::saveSimulatorParams: INSERT IGNORE + UPDATE utan transaktion — wrappade i beginTransaction/commit/rollBack
+
+Filer:
+- noreko-backend/classes/OperatorsbonusController.php
+- noreko-backend/classes/UnderhallsloggController.php
+- noreko-backend/classes/AuditController.php
+- noreko-backend/classes/HistoriskProduktionController.php
+- noreko-backend/classes/RuntimeController.php
+- noreko-backend/classes/ProduktionsSlaController.php
+- noreko-backend/classes/ProduktionsmalController.php
+- noreko-backend/classes/BonusAdminController.php
+- noreko-backend/classes/BatchSparningController.php
+- noreko-backend/classes/ProduktionskostnadController.php
+- noreko-backend/classes/SkiftoverlamningController.php
+- noreko-backend/classes/TidrapportController.php
+- noreko-backend/classes/SkiftrapportController.php
+
 ## 2026-03-18 Session #155 Worker B — 47 buggar fixade (trackBy index till id i 32 komponenter)
 
 ### Uppgift 1: Angular HTTP error message audit — 0 fixar

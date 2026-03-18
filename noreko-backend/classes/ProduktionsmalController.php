@@ -824,7 +824,8 @@ class ProduktionsmalController {
             $userId = $_SESSION['user_id'] ?? null;
 
             if ($typ === 'dag') {
-                // Uppdatera rebotling_weekday_goals for alla vardagar
+                // Uppdatera rebotling_weekday_goals for alla vardagar — wrappa i transaktion
+                $this->pdo->beginTransaction();
                 $stmt = $this->pdo->prepare("
                     INSERT INTO rebotling_weekday_goals (weekday, daily_goal)
                     VALUES (:wd, :goal)
@@ -834,6 +835,7 @@ class ProduktionsmalController {
                 for ($d = 1; $d <= 5; $d++) {
                     $stmt->execute([':wd' => $d, ':goal' => $antal, ':goal2' => $antal]);
                 }
+                $this->pdo->commit();
 
                 $this->sendSuccess([
                     'meddelande' => 'Dagsmal uppdaterat till ' . $antal . ' IBC for alla vardagar.',
@@ -871,6 +873,9 @@ class ProduktionsmalController {
                 ]);
             }
         } catch (\Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('ProduktionsmalController::sparaMal: ' . $e->getMessage());
             $this->sendError('Kunde inte spara malet', 500);
         }

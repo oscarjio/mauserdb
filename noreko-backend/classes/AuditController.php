@@ -74,9 +74,16 @@ class AuditController {
                 }
                 // Begränsa till max 365 dagar
                 if ($dateEnd !== null) {
-                    $diffDays = (int)((strtotime($dateEnd) - strtotime($dateStart)) / 86400);
-                    if ($diffDays > 365) {
-                        $dateStart = date('Y-m-d 00:00:00', strtotime($dateEnd . ' -365 days'));
+                    $endTs = strtotime($dateEnd);
+                    $startTs = strtotime($dateStart);
+                    if ($endTs === false || $startTs === false) {
+                        $dateStart = date('Y-m-d 00:00:00', strtotime('-30 days'));
+                        $dateEnd   = date('Y-m-d 23:59:59');
+                    } else {
+                        $diffDays = (int)(($endTs - $startTs) / 86400);
+                        if ($diffDays > 365) {
+                            $dateStart = date('Y-m-d 00:00:00', strtotime($dateEnd . ' -365 days'));
+                        }
                     }
                 }
             }

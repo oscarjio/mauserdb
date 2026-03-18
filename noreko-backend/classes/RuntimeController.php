@@ -311,45 +311,50 @@ class RuntimeController {
         $tz = new DateTimeZone('Europe/Stockholm');
         $now = new DateTime('now', $tz);
 
-        foreach ($entries as $entry) {
-            $entryTime = new DateTime($entry['datum'], $tz);
-            $isOnBreak = (bool)($entry['rast_status'] ?? false);
-            
-            // Om rasten startar (rast_status=1) och vi inte redan räknar en period
-            if ($isOnBreak && $lastBreakStart === null) {
-                $lastBreakStart = $entryTime;
+        try {
+            foreach ($entries as $entry) {
+                $entryTime = new DateTime($entry['datum'], $tz);
+                $isOnBreak = (bool)($entry['rast_status'] ?? false);
+
+                // Om rasten startar (rast_status=1) och vi inte redan räknar en period
+                if ($isOnBreak && $lastBreakStart === null) {
+                    $lastBreakStart = $entryTime;
+                }
+                // Om rasten slutar (rast_status=0) och vi räknar en period
+                elseif (!$isOnBreak && $lastBreakStart !== null) {
+                    $diff = $lastBreakStart->diff($entryTime);
+                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalBreakMinutes += $periodMinutes;
+                    $lastBreakStart = null;
+                }
             }
-            // Om rasten slutar (rast_status=0) och vi räknar en period
-            elseif (!$isOnBreak && $lastBreakStart !== null) {
-                $diff = $lastBreakStart->diff($entryTime);
-                $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                $totalBreakMinutes += $periodMinutes;
-                $lastBreakStart = null;
+
+            // Om rasten fortfarande pågår (senaste entry är rast_status=1)
+            if ($lastBreakStart !== null) {
+                $lastEntryTime = new DateTime($entries[count($entries) - 1]['datum'], $tz);
+
+                // För "today": räkna till nu
+                // För andra perioder: räkna bara till senaste entry
+                if ($period === 'today') {
+                    // Räkna från rast-start till senaste entry
+                    $diff = $lastBreakStart->diff($lastEntryTime);
+                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalBreakMinutes += $periodMinutes;
+
+                    // Lägg till tiden från senaste entry till nu
+                    $diffSinceLast = $lastEntryTime->diff($now);
+                    $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                    $totalBreakMinutes += $minutesSinceLastUpdate;
+                } else {
+                    // För längre perioder, räkna bara till senaste entry
+                    $diff = $lastBreakStart->diff($lastEntryTime);
+                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalBreakMinutes += $periodMinutes;
+                }
             }
-        }
-        
-        // Om rasten fortfarande pågår (senaste entry är rast_status=1)
-        if ($lastBreakStart !== null) {
-            $lastEntryTime = new DateTime($entries[count($entries) - 1]['datum'], $tz);
-            
-            // För "today": räkna till nu
-            // För andra perioder: räkna bara till senaste entry
-            if ($period === 'today') {
-                // Räkna från rast-start till senaste entry
-                $diff = $lastBreakStart->diff($lastEntryTime);
-                $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                $totalBreakMinutes += $periodMinutes;
-                
-                // Lägg till tiden från senaste entry till nu
-                $diffSinceLast = $lastEntryTime->diff($now);
-                $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
-                $totalBreakMinutes += $minutesSinceLastUpdate;
-            } else {
-                // För längre perioder, räkna bara till senaste entry
-                $diff = $lastBreakStart->diff($lastEntryTime);
-                $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                $totalBreakMinutes += $periodMinutes;
-            }
+        } catch (\Exception $e) {
+            error_log('RuntimeController::calculateBreakMinutes: ogiltigt datum i DB — ' . $e->getMessage());
+            return 0;
         }
 
         return $totalBreakMinutes;

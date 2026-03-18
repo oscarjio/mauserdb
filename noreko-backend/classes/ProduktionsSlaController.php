@@ -569,6 +569,8 @@ class ProduktionsSlaController {
         }
 
         try {
+            $this->pdo->beginTransaction();
+
             // Avsluta eventuellt tidigare aktivt mål av samma typ
             $this->pdo->prepare(
                 "UPDATE produktions_mal
@@ -589,11 +591,16 @@ class ProduktionsSlaController {
             $stmt->execute([$malTyp, $targetIbc, $targetKass, $giltigFrom, $this->currentUserId()]);
             $newId = (int)$this->pdo->lastInsertId();
 
+            $this->pdo->commit();
+
             $this->sendSuccess([
                 'id'      => $newId,
                 'message' => 'Mål sparat',
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('ProduktionsSlaController::setGoal: ' . $e->getMessage());
             $this->sendError('Kunde inte spara mål', 500);
         }

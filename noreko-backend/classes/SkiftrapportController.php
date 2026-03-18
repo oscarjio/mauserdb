@@ -573,6 +573,9 @@ class SkiftrapportController {
 
             // Hämta start- och stopptid för skiftet från rebotling_ibc
             $datum = isset($_GET['datum']) ? substr($_GET['datum'], 0, 10) : null;
+            if ($datum !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+                $datum = null;
+            }
             $skiftTider = $this->getSkiftTider($usedSkiftraknare, $datum);
 
             $response = [

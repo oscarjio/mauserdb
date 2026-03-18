@@ -505,9 +505,16 @@ class ProduktionskostnadController {
                 [$from, $to] = [$to, $from];
             }
             // Begränsa till max 365 dagar
-            $diffDays = (int)((strtotime($to) - strtotime($from)) / 86400);
-            if ($diffDays > 365) {
-                $from = date('Y-m-d', strtotime($to . ' -365 days'));
+            $toTs = strtotime($to);
+            $fromTs = strtotime($from);
+            if ($toTs === false || $fromTs === false) {
+                $from = (new \DateTime())->modify('-30 days')->format('Y-m-d');
+                $to   = date('Y-m-d');
+            } else {
+                $diffDays = (int)(($toTs - $fromTs) / 86400);
+                if ($diffDays > 365) {
+                    $from = date('Y-m-d', strtotime($to . ' -365 days'));
+                }
             }
 
             $perDag    = $this->getProductionPerDay($from, $to);

@@ -1757,24 +1757,25 @@ class BonusAdminController {
             $updates[] = 'updated_by = :updated_by';
             $params['updated_by'] = $_SESSION['username'] ?? 'admin';
 
-            $setClause = implode(', ', $updates);
-            $stmt = $this->pdo->prepare("
-                INSERT INTO bonus_config (id, $setClause)
-                VALUES (:id, " . implode(', ', array_map(fn($k) => ":$k", array_keys(array_diff_key($params, ['id' => null])))) . ")
-                ON DUPLICATE KEY UPDATE $setClause
-            ");
-            // Enklare approach: UPDATE, INSERT om 0 rader
+            // Wrappa INSERT IGNORE + UPDATE i transaktion
+            $this->pdo->beginTransaction();
+
             $this->pdo->prepare("INSERT IGNORE INTO bonus_config (id) VALUES (1)")->execute();
             $updateKeys = array_map(fn($k) => "$k = :$k", array_keys(array_diff_key($params, ['id' => null])));
             $updateClause = implode(', ', $updateKeys);
             $stmt = $this->pdo->prepare("UPDATE bonus_config SET $updateClause WHERE id = 1");
             $stmt->execute(array_diff_key($params, ['id' => null]));
 
+            $this->pdo->commit();
+
             $this->logAudit('save_simulator_params', 'config', 1, null, $input);
 
             $this->sendSuccess(['message' => 'Parametrar sparade', 'uppdaterat' => count($updates) - 1]);
 
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('BonusAdminController::saveSimulatorParams — ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }

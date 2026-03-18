@@ -69,8 +69,14 @@ class HistoriskProduktionController {
             if ($from > $to) {
                 [$from, $to] = [$to, $from];
             }
-            $dt1 = new \DateTime($from);
-            $dt2 = new \DateTime($to);
+            try {
+                $dt1 = new \DateTime($from);
+                $dt2 = new \DateTime($to);
+            } catch (\Exception $e) {
+                // Ogiltigt datum trots korrekt format — fallback till default
+                $days = 30;
+                return [date('Y-m-d', strtotime('-29 days')), date('Y-m-d'), $days];
+            }
             $days = (int)$dt1->diff($dt2)->days + 1;
             // Begränsa till max 365 dagar
             if ($days > 365) {
