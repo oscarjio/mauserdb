@@ -281,6 +281,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
       }
     });
 
+    if (this.dayDetailChart) { (this.dayDetailChart as any).destroy(); }
     this.dayDetailChart = new Chart(canvas, {
       type: 'bar',
       data: {

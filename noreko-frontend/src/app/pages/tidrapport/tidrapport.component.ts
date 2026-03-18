@@ -243,6 +243,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
       barPercentage: 0.8,
     }));
 
+    if (this.veckoChart) { (this.veckoChart as any).destroy(); }
     this.veckoChart = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets },

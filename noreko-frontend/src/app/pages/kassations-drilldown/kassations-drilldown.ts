@@ -204,6 +204,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
       return colors[i % colors.length];
     });
 
+    if (this.reasonChart) { (this.reasonChart as any).destroy(); }
     this.reasonChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -266,6 +267,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
     const grads  = this.trendData.map(t => t.kassationsgrad);
     const kass   = this.trendData.map(t => t.kasserade);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       data: {
         labels,

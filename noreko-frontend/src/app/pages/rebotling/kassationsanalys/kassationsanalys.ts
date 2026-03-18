@@ -232,6 +232,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     const values = top.map(o => o.antal);
     const cumPct = top.map(o => o.kumulativ_pct);
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -344,6 +345,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
       return l;
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: { labels: shortLabels, datasets: chartDatasets },

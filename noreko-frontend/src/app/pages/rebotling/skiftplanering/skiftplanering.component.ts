@@ -286,6 +286,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     const grades = this.capacityData.map(d => d.bemanningsgrad);
     const colors = grades.map(g => g >= 100 ? '#48bb78' : g >= 75 ? '#ecc94b' : '#e53e3e');
 
+    if (this.capacityChart) { (this.capacityChart as any).destroy(); }
     this.capacityChart = new Chart(canvas, {
       type: 'bar',
       data: {

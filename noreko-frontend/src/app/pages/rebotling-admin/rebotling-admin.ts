@@ -723,6 +723,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
     const baselineData = baseline != null ? weeks.map(() => baseline) : [];
 
+    if (this.maintenanceChart) { (this.maintenanceChart as any).destroy(); }
     this.maintenanceChart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -1018,6 +1019,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       });
     }
 
+    if (this.goalHistoryChart) { (this.goalHistoryChart as any).destroy(); }
     this.goalHistoryChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

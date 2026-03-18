@@ -173,6 +173,7 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
     const glidande = trend.map(r => r.moving_avg_7d);
     const snittLinje = trend.map(() => snitt_30d);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

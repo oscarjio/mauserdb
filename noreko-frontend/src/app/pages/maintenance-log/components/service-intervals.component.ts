@@ -156,7 +156,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
                 <label class="form-label form-label-dark">Intervall (IBC) *</label>
                 <input type="number" class="form-control form-control-dark"
                        [(ngModel)]="serviceForm.intervall_ibc" name="intervall_ibc" #intervallCtrl="ngModel"
-                       placeholder="5000" min="1" required />
+                       placeholder="5000" min="1" max="999999" required />
                 <div class="form-text text-muted">Service var X:e IBC</div>
                 <div class="text-danger small mt-1" *ngIf="intervallCtrl.invalid && intervallCtrl.touched">
                   Intervall måste vara minst 1.
@@ -166,7 +166,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
                 <label class="form-label form-label-dark">Senaste service IBC-räknare</label>
                 <input type="number" class="form-control form-control-dark"
                        [(ngModel)]="serviceForm.senaste_service_ibc" name="senaste_service_ibc"
-                       placeholder="0" min="0" />
+                       placeholder="0" min="0" max="9999999" />
               </div>
               <div class="col-12">
                 <label class="form-label form-label-dark">Senaste servicedatum</label>

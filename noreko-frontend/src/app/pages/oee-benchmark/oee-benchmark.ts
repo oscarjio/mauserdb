@@ -176,6 +176,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     const rest  = Math.max(0, 100 - pct);
     const color = this.getGaugeColor(pct);
 
+    if (this.gaugeChart) { (this.gaugeChart as any).destroy(); }
     this.gaugeChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -214,6 +215,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     const wcLine    = this.trendData.trend.map(() => this.trendData!.world_class_pct);
     const typLine   = this.trendData.trend.map(() => this.trendData!.typical_pct);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

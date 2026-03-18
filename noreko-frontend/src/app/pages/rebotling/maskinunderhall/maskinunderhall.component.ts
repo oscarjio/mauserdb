@@ -341,6 +341,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     // Normal del (grön): min(dagar_sedan, intervall)
     const normalDel = this.timelineItems.map(i => Math.min(i.dagar_sedan ?? 0, i.intervall));
 
+    if (this.timelineChart) { (this.timelineChart as any).destroy(); }
     this.timelineChart = new Chart(canvas, {
       type: 'bar',
       data: {

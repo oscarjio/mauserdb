@@ -223,6 +223,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     const ma7Data = this.trendData.trend.map(p => p.oee_ma7);
     const ibcData = this.trendData.trend.map(p => p.ibc_ok);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -302,6 +303,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     const barData = this.stopporsaker.map(s => s.total_h);
     const lineData = this.stopporsaker.map(s => s.cumulative_pct);
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(canvas, {
       type: 'bar',
       data: {

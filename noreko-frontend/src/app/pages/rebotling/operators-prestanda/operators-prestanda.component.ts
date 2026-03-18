@@ -398,6 +398,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     const medCykeltid = this.medelCykeltid;
     const medKval     = this.medelKvalitet;
 
+    if (this.scatterChart) { (this.scatterChart as any).destroy(); }
     this.scatterChart = new Chart(canvas, {
       type: 'scatter',
       data: { datasets },
@@ -520,6 +521,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     const ibcOk     = this.detaljDaglig.map(d => d.ibc_ok);
     const kassation = this.detaljDaglig.map(d => d.kassationsgrad);
 
+    if (this.detaljChart) { (this.detaljChart as any).destroy(); }
     this.detaljChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -588,6 +590,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
     const ibc    = this.utvecklingData.map(v => v.har_data ? v.total_ibc : null);
     const kass   = this.utvecklingData.map(v => v.har_data ? v.kassationsgrad : null);
 
+    if (this.utvecklingChart) { (this.utvecklingChart as any).destroy(); }
     this.utvecklingChart = new Chart(canvas, {
       type: 'line',
       data: {

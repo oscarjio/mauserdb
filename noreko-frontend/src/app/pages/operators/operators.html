@@ -35,7 +35,7 @@
       <i class="fas fa-user-plus me-2 text-success"></i>Ny operatör
     </div>
     <div class="ops-card-body">
-      <form (ngSubmit)="createOperator()" class="row g-2 align-items-end">
+      <form #formRef="ngForm" (ngSubmit)="createOperator()" class="row g-2 align-items-end">
         <div class="col-md-4">
           <label class="form-label">Namn</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
@@ -44,7 +44,7 @@
         <div class="col-md-2">
           <label class="form-label">PLC-nummer</label>
           <input class="form-control form-control-sm" [(ngModel)]="addForm.number"
-                 name="add-number" placeholder="T.ex. 101" type="number" min="1" required />
+                 name="add-number" placeholder="T.ex. 101" type="number" min="1" required  max="99999" />
         </div>
         <div class="col-auto">
           <button class="btn btn-success btn-sm" type="submit" [disabled]="!addForm.name.trim() || !addForm.number || addForm.number <= 0">
@@ -408,7 +408,7 @@
               </tr>
               <tr *ngIf="expanded[op.id]" class="edit-row">
                 <td colspan="7">
-                  <form (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
+                  <form #formRef="ngForm" (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
                     <div class="col-md-4">
                       <label class="form-label">Namn</label>
                       <input type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
@@ -417,7 +417,7 @@
                     <div class="col-md-2">
                       <label class="form-label">PLC-nummer</label>
                       <input class="form-control form-control-sm" [(ngModel)]="op.number"
-                             [name]="'number-' + op.id" type="number" min="1" required />
+                             [name]="'number-' + op.id" type="number" min="1" required  max="99999" />
                     </div>
                     <div class="col-auto">
                       <button class="btn btn-success btn-sm" type="submit" [disabled]="!op.name?.trim() || !op.number || op.number <= 0">

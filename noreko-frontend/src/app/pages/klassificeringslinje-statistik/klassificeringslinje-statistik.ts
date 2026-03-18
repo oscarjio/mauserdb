@@ -307,6 +307,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     const qualities = data.map(r => r.totalt > 0 ? Math.round((r.antal_ok / r.totalt) * 100) : 0);
     const ctx = this.qualityChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
+    if (this.qualityChart) { (this.qualityChart as any).destroy(); }
     this.qualityChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -363,6 +364,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     const ejOkData = sorted.map(([, v]) => v.ejOk);
     const ctx = this.monthlyChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
+    if (this.monthlyChart) { (this.monthlyChart as any).destroy(); }
     this.monthlyChart = new Chart(ctx, {
       type: 'bar',
       data: {

@@ -262,6 +262,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     const items = this.poangfordelningData.chart_data;
     const labels = items.map(i => i.operator_namn);
 
+    if (this.poangChart) { (this.poangChart as any).destroy(); }
     this.poangChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -347,6 +348,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       borderWidth: 2,
     }));
 
+    if (this.historikChart) { (this.historikChart as any).destroy(); }
     this.historikChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

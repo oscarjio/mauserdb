@@ -54,6 +54,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
     const labels = ['Tillganglighet', 'Prestanda', 'Kvalitet', 'OEE'];
     const achieved = [avail, perf, qual, oee];
     const losses = [100 - avail, 100 - perf, 100 - qual, 100 - oee];
+    if (this.oeeWaterfallChart) { (this.oeeWaterfallChart as any).destroy(); }
     this.oeeWaterfallChart = new Chart(canvas, {
       type: 'bar',
       data: {

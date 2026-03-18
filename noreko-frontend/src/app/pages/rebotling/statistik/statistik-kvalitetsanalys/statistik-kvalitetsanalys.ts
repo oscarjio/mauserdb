@@ -66,6 +66,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
     const labels = this.rejectionTrendData.map(d => d.datum.substring(5));
     const dailyData = this.rejectionTrendData.map(d => d.kvalitet_pct);
     const rollingData = this.rejectionTrendData.map(d => d.glidande_snitt);
+    if (this.rejectionTrendChart) { (this.rejectionTrendChart as any).destroy(); }
     this.rejectionTrendChart = new Chart(canvas, { type: 'line', data: { labels, datasets: [
       { label: 'Daglig kvalitet %', data: dailyData, borderColor: 'rgba(66,153,225,0.9)', backgroundColor: 'rgba(66,153,225,0.08)', tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, spanGaps: true, yAxisID: 'y' },
       { label: '7-dagars glidande snitt', data: rollingData, borderColor: 'rgba(72,187,120,1)', backgroundColor: 'transparent', tension: 0.4, pointRadius: 1, borderWidth: 3, borderDash: [8,4], fill: false, spanGaps: true, yAxisID: 'y' },
@@ -84,6 +85,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
     if (!canvas || !this.rejectionParetoData.length || !this.rejectionHasParetoData) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.rejectionParetoData.map(p => p.namn); const values = this.rejectionParetoData.map(p => p.antal); const kumulativ = this.rejectionParetoData.map(p => p.kumulativ_pct); const maxVal = Math.max(...values, 1);
+    if (this.rejectionParetoChart) { (this.rejectionParetoChart as any).destroy(); }
     this.rejectionParetoChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
       { label: 'Antal kassationer', data: values, backgroundColor: values.map((v: number) => { const intensity = v/maxVal; if (intensity >= 0.8) return 'rgba(252,129,129,0.85)'; if (intensity >= 0.4) return 'rgba(237,137,54,0.75)'; return 'rgba(74,85,104,0.7)'; }), borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderRadius: 4, yAxisID: 'y' },
       { label: 'Kumulativ %', data: kumulativ, type: 'line' as any, borderColor: '#ed8936', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#ed8936', tension: 0.2, yAxisID: 'yRight' }

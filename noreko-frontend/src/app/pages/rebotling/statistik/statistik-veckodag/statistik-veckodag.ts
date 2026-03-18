@@ -73,6 +73,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
       'rgba(66,153,225,0.65)'
     );
 
+    if (this.weekdayChart) { (this.weekdayChart as any).destroy(); }
     this.weekdayChart = new Chart(ctx as any, {
       type: 'bar',
       data: {

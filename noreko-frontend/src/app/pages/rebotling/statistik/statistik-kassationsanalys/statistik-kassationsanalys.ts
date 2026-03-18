@@ -186,6 +186,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
       return `${parts[2]}/${parts[1]}`;
     });
 
+    if (this.stackedChart) { (this.stackedChart as any).destroy(); }
     this.stackedChart = new Chart(ctx, {
       type: 'bar',
       data: {

@@ -399,6 +399,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
       }]
     };
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(ctx, config);
   }
 

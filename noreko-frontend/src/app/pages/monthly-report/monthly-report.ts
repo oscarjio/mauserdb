@@ -428,6 +428,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     // Dagsmål-linje (konstant)
     const goalLine = days.map(() => dailyGoal);
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(ctx, {
       type: 'bar',
       data: {

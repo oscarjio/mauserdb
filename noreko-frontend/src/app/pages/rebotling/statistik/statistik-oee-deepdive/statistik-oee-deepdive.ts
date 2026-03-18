@@ -124,6 +124,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
       }));
     const combinedAnnotations = [...this.chartAnnotations, ...productionEventAnnotations];
 
+    if (this.oeeTrendChart) { (this.oeeTrendChart as any).destroy(); }
     this.oeeTrendChart = new Chart(canvas, {
       type: 'line',
       data: {

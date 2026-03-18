@@ -232,6 +232,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     const kval    = this.trendData.map(d => d.kvalitet_pct);
     const ibcData = this.trendData.map(d => d.total_ibc);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {

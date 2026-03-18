@@ -43,11 +43,11 @@
           </div>
           <div class="text-center">
             <small class="text-muted d-block">Malvarde</small>
-            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;" />
+            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;"  max="99999" />
           </div>
           <div class="text-center">
             <small class="text-muted d-block">Max bonus (kr)</small>
-            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;" />
+            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;"  max="99999" />
           </div>
         </div>
       </div>

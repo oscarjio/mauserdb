@@ -209,6 +209,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
     const ibcValues = sorted.map(r => r.ibc_ok);
     const cykeltidValues = sorted.map(r => r.cykeltid ?? 0);
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(canvas, {
       type: 'bar',
       data: {

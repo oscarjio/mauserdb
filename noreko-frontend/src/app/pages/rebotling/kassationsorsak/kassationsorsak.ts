@@ -224,6 +224,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     const colors   = stationer.map(s => STATION_COLORS[s.id] ?? '#a0aec0');
     const snittArr = stationer.map(() => snitt_per_station);
 
+    if (this.stapelChart) { (this.stapelChart as any).destroy(); }
     this.stapelChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -294,6 +295,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     const orsaker = this.topOrsaker.orsaker.filter(o => o.antal > 0);
     if (orsaker.length === 0) return;
 
+    if (this.orsakChart) { (this.orsakChart as any).destroy(); }
     this.orsakChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -361,6 +363,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
       spanGaps: true,
     }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {

@@ -640,6 +640,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     const colors = values.map(v => v >= snitt ? 'rgba(72,187,120,0.85)' : 'rgba(252,129,129,0.85)');
     const borders = values.map(v => v >= snitt ? '#48bb78' : '#fc8181');
 
+    if (this.monthlyChart) { (this.monthlyChart as any).destroy(); }
     this.monthlyChart = new Chart(this.monthlyChartRef.nativeElement, {
       type: 'bar',
       data: {
@@ -731,6 +732,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       };
     });
 
+    if (this.yearlyChart) { (this.yearlyChart as any).destroy(); }
     this.yearlyChart = new Chart(this.yearlyChartRef.nativeElement, {
       type: 'line',
       data: {

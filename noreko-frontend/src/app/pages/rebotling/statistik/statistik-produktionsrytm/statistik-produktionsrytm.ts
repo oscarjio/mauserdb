@@ -33,6 +33,7 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
     if (!canvas || !this.hourlyRhythm.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.hourlyRhythm.map(h => h.label); const values = this.hourlyRhythm.map(h => h.avg_ibc_h); const maxVal = Math.max(...values);
+    if (this.hourlyRhythmChart) { (this.hourlyRhythmChart as any).destroy(); }
     this.hourlyRhythmChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Snitt IBC/h', data: values,
       backgroundColor: values.map((v: number) => { if (maxVal === 0) return 'rgba(74,85,104,0.6)'; const intensity = v / maxVal; if (intensity >= 0.85) return 'rgba(72,187,120,0.8)'; if (intensity >= 0.6) return 'rgba(237,137,54,0.8)'; return 'rgba(252,129,129,0.8)'; }),
       borderWidth: 0, borderRadius: 4 }] },

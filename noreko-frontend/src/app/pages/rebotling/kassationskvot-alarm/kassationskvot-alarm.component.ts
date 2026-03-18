@@ -247,6 +247,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
       return '#68d391';
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {

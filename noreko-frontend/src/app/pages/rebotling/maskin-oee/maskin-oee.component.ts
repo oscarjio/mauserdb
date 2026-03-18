@@ -282,6 +282,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
     const tData  = items.map(m => m.avg_t);
     const pData  = items.map(m => m.avg_p);
     const kData  = items.map(m => m.avg_k);
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -378,6 +379,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
       pointHoverRadius: 0,
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels: dates, datasets },

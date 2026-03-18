@@ -227,14 +227,14 @@
               <label class="form-label fw-semibold">
                 <i class="fas fa-box me-1 text-info"></i>Dagsmål – standard (IBC/dag)
               </label>
-              <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" min="1" />
+              <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" min="1"  max="99999" />
               <div class="form-text">Fallback om inget veckodagsmål är satt</div>
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-tachometer-alt me-1 text-warning"></i>Timmål (IBC/h) standard
               </label>
-              <input type="number" class="form-control" [(ngModel)]="settings.hourlyTarget" min="1" />
+              <input type="number" class="form-control" [(ngModel)]="settings.hourlyTarget" min="1"  max="99999" />
               <div class="form-text">Används om produkt saknar cykeltid</div>
             </div>
             <div class="col-12 col-md-4">
@@ -320,7 +320,7 @@
             <div class="d-flex align-items-center gap-2">
               <label class="form-label mb-0 small fw-semibold">Sätt alla till:</label>
               <input type="number" class="form-control form-control-sm weekday-input" style="width:90px;"
-                [(ngModel)]="quickSetValue" min="0" step="10" placeholder="IBC" />
+                [(ngModel)]="quickSetValue" min="0" step="10" placeholder="IBC"  max="99999" />
               <button class="btn btn-sm btn-outline-warning" (click)="setAllWeekdayGoals()">
                 <i class="fas fa-magic me-1"></i>Applicera
               </button>
@@ -349,7 +349,7 @@
                   <span *ngIf="isToday(goal.weekday)" class="badge bg-info badge-today ms-1">Idag</span>
                 </div>
                 <input type="number" class="form-control form-control-sm weekday-input"
-                  [(ngModel)]="goal.daily_goal" min="0" step="10" />
+                  [(ngModel)]="goal.daily_goal" min="0" step="10"  max="99999" />
                 <div class="weekday-sub text-muted">IBC</div>
               </div>
             </div>

@@ -987,6 +987,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       v >= avg ? 'rgb(72, 187, 120)' : 'rgb(229, 100, 62)'
     );
 
+    if (this.weeklyChart) { (this.weeklyChart as any).destroy(); }
     this.weeklyChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -1112,6 +1113,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     const labels = recent.map((h: any) => h.datum?.substring(5) || '');
     const bonusData = recent.map((h: any) => h.kpis?.bonus ?? 0);
 
+    if (this.historyChart) { (this.historyChart as any).destroy(); }
     this.historyChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -1159,6 +1161,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       return +(window.reduce((a: number, b: number) => a + b, 0) / window.length).toFixed(1);
     });
 
+    if (this.ibcTrendChart) { (this.ibcTrendChart as any).destroy(); }
     this.ibcTrendChart = new Chart(canvas, {
       type: 'line',
       data: {

@@ -281,6 +281,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     const values = items.map(m => m.total_min);
     const colors = items.map((_, i) => MASKIN_COLORS[i % MASKIN_COLORS.length]);
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -352,6 +353,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         tension: 0.3,
       }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels: dates, datasets },
@@ -398,6 +400,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     const values = items.map(m => m.total_min);
     const colors = items.map((_, i) => MASKIN_COLORS[i % MASKIN_COLORS.length]);
 
+    if (this.doughnutChart) { (this.doughnutChart as any).destroy(); }
     this.doughnutChart = new Chart(canvas, {
       type: 'doughnut',
       data: {

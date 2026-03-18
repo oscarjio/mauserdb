@@ -363,7 +363,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label" for="batchKommentar">Kommentar</label>
-          <textarea id="batchKommentar" class="form-control dark-input" [(ngModel)]="createComment" name="kommentar" rows="3" placeholder="Valfri kommentar..."></textarea>
+          <textarea id="batchKommentar" class="form-control dark-input" [(ngModel)]="createComment" name="kommentar" rows="3" placeholder="Valfri kommentar..." maxlength="2000"></textarea>
         </div>
 
         <div class="alert alert-success py-2" *ngIf="createMessage">{{ createMessage }}</div>

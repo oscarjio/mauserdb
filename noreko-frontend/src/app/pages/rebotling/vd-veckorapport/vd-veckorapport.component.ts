@@ -237,6 +237,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     const ibc     = daglig.map(d => d.ibc);
     const kassation = daglig.map(d => d.kassation);
 
+    if (this.dagligChart) { (this.dagligChart as any).destroy(); }
     this.dagligChart = new Chart(canvas, {
       type: 'bar',
       data: {

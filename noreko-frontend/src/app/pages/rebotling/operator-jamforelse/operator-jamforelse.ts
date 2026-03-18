@@ -293,6 +293,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
       };
     });
 
+    if (this.lineChart) { (this.lineChart as any).destroy(); }
     this.lineChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },
@@ -373,6 +374,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
       };
     });
 
+    if (this.radarChart) { (this.radarChart as any).destroy(); }
     this.radarChart = new Chart(canvas, {
       type: 'radar',
       data: { labels: kpiLabels, datasets },

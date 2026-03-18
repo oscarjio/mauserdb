@@ -290,6 +290,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       });
     }
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },
@@ -352,6 +353,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     // Fullfyll historiskData med null for prediktionsdagar
     pred.forEach(() => historiskData.push(null));
 
+    if (this.prediktionChart) { (this.prediktionChart as any).destroy(); }
     this.prediktionChart = new Chart(canvas, {
       type: 'line',
       data: {

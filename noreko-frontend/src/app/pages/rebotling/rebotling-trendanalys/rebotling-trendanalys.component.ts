@@ -494,6 +494,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
       }
     }
 
+    if (this.huvudChart) { (this.huvudChart as any).destroy(); }
     this.huvudChart = new Chart(ctx, {
       type: 'line',
       data: { labels: allLabels, datasets },

@@ -159,6 +159,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
 
     const { labels, datasets } = this.timelineData;
 
+    if (this.timelineChart) { (this.timelineChart as any).destroy(); }
     this.timelineChart = new Chart(ctx, {
       type: 'bar',
       data: {

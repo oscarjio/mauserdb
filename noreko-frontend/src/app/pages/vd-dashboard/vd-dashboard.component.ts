@@ -260,6 +260,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
       return '#fc8181';
     });
 
+    if (this.stationChart) { (this.stationChart as any).destroy(); }
     this.stationChart = new Chart(canvas, {
       type: 'bar',
       data: {

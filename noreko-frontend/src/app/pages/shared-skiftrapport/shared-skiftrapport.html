@@ -366,7 +366,7 @@
                           [class.text-warning]="config.themeColor === 'warning'"
                           [class.text-success]="config.themeColor === 'success'">Redigera</span>
                       </div>
-                      <form (ngSubmit)="saveReport(report)">
+                      <form #formRef="ngForm" (ngSubmit)="saveReport(report)">
                         <div class="row g-2 align-items-end">
                           <div class="col-md-2">
                             <label class="form-label small">Datum</label>
@@ -376,11 +376,11 @@
                           </div>
                           <div class="col-md-2">
                             <label class="form-label small">Antal OK</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0" />
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0"  max="99999" />
                           </div>
                           <div class="col-md-2">
                             <label class="form-label small">Antal ej OK</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0" />
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0"  max="99999" />
                           </div>
                           <div class="col-md-4">
                             <label class="form-label small">Kommentar</label>
@@ -391,7 +391,7 @@
                               [class.btn-primary]="config.themeColor === 'primary'"
                               [class.btn-warning]="config.themeColor === 'warning'"
                               [class.btn-success]="config.themeColor === 'success'"
-                              [class.text-dark]="config.themeColor === 'warning'">
+                              [class.text-dark]="config.themeColor === 'warning'" [disabled]="formRef.invalid">
                               <i class="fas fa-save me-1"></i>Spara
                             </button>
                           </div>

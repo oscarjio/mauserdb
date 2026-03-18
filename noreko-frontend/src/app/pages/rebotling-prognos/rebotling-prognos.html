@@ -9,7 +9,7 @@
     <div class="col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Mål-IBC (antal)</label>
-        <input type="number" class="form-control bg-dark text-light border-secondary" [(ngModel)]="targetIbc" min="1" (change)="calculate()">
+        <input type="number" class="form-control bg-dark text-light border-secondary" [(ngModel)]="targetIbc" min="1" (change)="calculate()" max="99999">
       </div>
     </div>
     <div class="col-md-3">

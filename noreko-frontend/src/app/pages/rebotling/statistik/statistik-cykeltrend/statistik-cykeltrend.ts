@@ -179,6 +179,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
 
     const cycleAnnotations = [...this.chartAnnotations, ...cycleProductionEventAnnotations, ...manualChartAnnotations];
 
+    if (this.cycleTrendChart) { (this.cycleTrendChart as any).destroy(); }
     this.cycleTrendChart = new Chart(canvas, {
       type: 'bar',
       data: {

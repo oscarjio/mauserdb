@@ -147,6 +147,7 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
       malValues.push(sistaAndring.nytt_mal);
     }
 
+    if (this.tidslinjeChart) { (this.tidslinjeChart as any).destroy(); }
     this.tidslinjeChart = new Chart(canvas, {
       type: 'line',
       data: {

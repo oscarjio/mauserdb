@@ -350,6 +350,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     const intercept = denom !== 0 ? (sumY - slope * sumX) / n : (n > 0 ? sumY / n : 0);
     const trendData = data.map((_, i) => +(slope * i + intercept).toFixed(1));
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {

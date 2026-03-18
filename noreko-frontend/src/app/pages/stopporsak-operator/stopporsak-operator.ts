@@ -213,6 +213,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
       o.hog_stopptid ? '#fc8181' : '#4299e1'
     );
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -292,6 +293,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
 
     const top = this.reasonsSummary.orsaker.slice(0, 10);
 
+    if (this.donutChart) { (this.donutChart as any).destroy(); }
     this.donutChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -342,6 +344,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
 
     const orsaker = this.detailData.orsaker.slice(0, 10);
 
+    if (this.detailChart) { (this.detailChart as any).destroy(); }
     this.detailChart = new Chart(canvas, {
       type: 'doughnut',
       data: {

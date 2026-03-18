@@ -72,6 +72,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
     const lclArr  = points.map(() => this.spcLCL);
     const meanArr = points.map(() => this.spcMean);
 
+    if (this.spcChart) { (this.spcChart as any).destroy(); }
     this.spcChart = new Chart(canvas, {
       type: 'line',
       data: {

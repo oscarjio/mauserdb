@@ -291,7 +291,7 @@
           <textarea id="serviceBeskrivning" class="form-control form-control-dark" rows="3"
                     [(ngModel)]="addServiceForm.beskrivning"
                     name="beskrivning"
-                    placeholder="Vad utfördes..."></textarea>
+                    placeholder="Vad utfördes..." maxlength="2000"></textarea>
         </div>
         <div class="mb-3">
           <label class="form-label" for="serviceUtfortAv">Utfört av</label>
@@ -345,7 +345,7 @@
           <textarea id="maskinBeskrivning" class="form-control form-control-dark" rows="2"
                     [(ngModel)]="addMachineForm.beskrivning"
                     name="beskrivning"
-                    placeholder="Kort beskrivning av maskinen..."></textarea>
+                    placeholder="Kort beskrivning av maskinen..." maxlength="2000"></textarea>
         </div>
         <div class="mb-3">
           <label class="form-label" for="maskinIntervall">Serviceintervall (dagar) <span class="text-danger">*</span></label>

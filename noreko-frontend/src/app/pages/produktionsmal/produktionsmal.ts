@@ -167,6 +167,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
 
     const mainColor = procent >= 90 ? '#48bb78' : procent >= 70 ? '#ecc94b' : '#fc5c65';
 
+    if (this.doughnutChart) { (this.doughnutChart as any).destroy(); }
     this.doughnutChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -240,6 +241,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
 
     const barColors = values.map(v => v >= malPerDag ? '#48bb78' : '#fc8181');
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(ctx, {
       type: 'bar',
       data: {

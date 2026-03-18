@@ -143,6 +143,7 @@ export class ParetoPage implements OnInit, OnDestroy {
     // Streckad 80%-linje som annotation (via dataset pa hojd 80)
     const line80 = new Array(labels.length).fill(80);
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(ctx, {
       data: {
         labels,

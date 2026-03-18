@@ -55,6 +55,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
     if (!canvas || !this.kassationPareto.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.kassationPareto.map(p => p.namn); const values = this.kassationPareto.map(p => p.antal); const kumulativ = this.kassationPareto.map(p => p.kumulativ_pct); const maxVal = Math.max(...values, 1);
+    if (this.kassationParetoChart) { (this.kassationParetoChart as any).destroy(); }
     this.kassationParetoChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
       { label: 'Antal kassationer', data: values, backgroundColor: values.map((v: number) => { const intensity = v/maxVal; if (intensity >= 0.8) return 'rgba(252,129,129,0.85)'; if (intensity >= 0.4) return 'rgba(237,137,54,0.75)'; return 'rgba(74,85,104,0.7)'; }),
         borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderRadius: 4, yAxisID: 'y' },

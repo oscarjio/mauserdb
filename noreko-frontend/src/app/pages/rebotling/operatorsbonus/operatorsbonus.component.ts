@@ -322,6 +322,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     const narvData = this.operatorer.map(o => o.bonus_narvaro);
     const teamData = this.operatorer.map(o => o.bonus_team);
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {

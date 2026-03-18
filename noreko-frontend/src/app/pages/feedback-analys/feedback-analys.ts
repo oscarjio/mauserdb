@@ -183,6 +183,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     const stamningar  = this.trendData.trend.map((p: TrendPunkt) => p.snitt_stamning);
     const avgLine     = this.trendData.trend.map(() => this.trendData!.avg_total ?? 0);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

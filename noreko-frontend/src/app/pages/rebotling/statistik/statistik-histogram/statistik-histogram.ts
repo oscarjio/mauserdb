@@ -65,6 +65,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
     const labels = this.histogramBuckets.map(b => b.label);
     const counts = this.histogramBuckets.map(b => b.count);
 
+    if (this.histogramChart) { (this.histogramChart as any).destroy(); }
     this.histogramChart = new Chart(canvas, {
       type: 'bar',
       data: {

@@ -263,6 +263,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
         spanGaps: true,
       }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

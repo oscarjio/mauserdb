@@ -261,6 +261,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     const antal = items.map(i => i.antal);
     const kumulativ = items.map(i => i.kumulativ_pct);
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -337,6 +338,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     const labels = items.map(s => s.station_namn);
     const data = items.map(s => s.total_min);
 
+    if (this.stationChart) { (this.stationChart as any).destroy(); }
     this.stationChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -387,6 +389,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       return dt.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

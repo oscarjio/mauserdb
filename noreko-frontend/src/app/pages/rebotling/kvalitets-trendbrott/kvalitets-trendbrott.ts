@@ -164,6 +164,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
       return d.avvikelse_typ === 'hög' ? '#e53e3e' : '#38a169';
     });
 
+    if (this.trendbrottChart) { (this.trendbrottChart as any).destroy(); }
     this.trendbrottChart = new Chart(canvas, {
       type: 'line',
       data: {

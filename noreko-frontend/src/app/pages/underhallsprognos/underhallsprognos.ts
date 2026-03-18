@@ -177,6 +177,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
       return '#26de81';
     });
 
+    if (this.timelineChart) { (this.timelineChart as any).destroy(); }
     this.timelineChart = new Chart(canvas, {
       type: 'bar',
       data: {

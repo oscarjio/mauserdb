@@ -313,6 +313,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
       borderDash: [3, 3],
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },
@@ -416,6 +417,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     const opKval  = tidslinje.map(r => r.kvalitet_pct);
     const teamKval = tidslinje.map(r => r.team_kvalitet);
 
+    if (this.detailChart) { (this.detailChart as any).destroy(); }
     this.detailChart = new Chart(canvas, {
       type: 'line',
       data: {

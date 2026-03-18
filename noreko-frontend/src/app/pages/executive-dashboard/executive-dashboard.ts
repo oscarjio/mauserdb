@@ -459,6 +459,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     const colors = days.map(d => d.ibc >= target ? '#48bb78' : '#e53e3e');
     const dimColors = days.map(d => d.ibc >= target ? 'rgba(72,187,120,0.75)' : 'rgba(229,62,62,0.75)');
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -604,6 +605,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     });
     const data = sorted.map(d => +d.snitt);
 
+    if (this.moodChart) { (this.moodChart as any).destroy(); }
     this.moodChart = new Chart(canvas, {
       type: 'line',
       data: {

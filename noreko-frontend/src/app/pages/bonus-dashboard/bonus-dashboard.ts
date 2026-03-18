@@ -396,6 +396,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (!ctx) return;
 
     const kpis = this.operatorData.kpis;
+    if (this.kpiRadarChart) { (this.kpiRadarChart as any).destroy(); }
     this.kpiRadarChart = new Chart(canvas, {
       type: 'radar',
       data: {
@@ -434,6 +435,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (!ctx) return;
 
     const chartData = this.operatorKPIData.chart_data;
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -538,6 +540,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       });
     }
 
+    if (this.weekTrendChart) { (this.weekTrendChart as any).destroy(); }
     this.weekTrendChart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -608,9 +611,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.operatorData = null;
     this.operatorKPIData = null;
     this.searchOperatorId = '';
-    try { if (this.trendChart) { this.trendChart.destroy(); } } catch (e) {}
+    try { if (this.trendChart) { (this.trendChart as any).destroy(); } } catch (e) {}
     this.trendChart = null;
-    try { if (this.kpiRadarChart) { this.kpiRadarChart.destroy(); } } catch (e) {}
+    try { if (this.kpiRadarChart) { (this.kpiRadarChart as any).destroy(); } } catch (e) {}
     this.kpiRadarChart = null;
   }
 
@@ -671,6 +674,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     const recent = this.shifts.slice(-12);
     const labels = recent.map(s => '#' + s.shift_number + ' (' + (s.shift_start?.substring(5, 10) || '') + ')');
 
+    if (this.shiftCompareChart) { (this.shiftCompareChart as any).destroy(); }
     this.shiftCompareChart = new Chart(canvas, {
       type: 'bar',
       data: {

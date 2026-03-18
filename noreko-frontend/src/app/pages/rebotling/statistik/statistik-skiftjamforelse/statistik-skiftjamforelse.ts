@@ -111,6 +111,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
       this.natt.ibc_per_h ?? 0
     ];
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -204,6 +205,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
       nattColor = '#c4b5fd';
     }
 
+    if (this.lineChart) { (this.lineChart as any).destroy(); }
     this.lineChart = new Chart(canvas, {
       type: 'line',
       data: {

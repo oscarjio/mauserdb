@@ -537,6 +537,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
       : 0;
     const avgLine = data.map(() => avgVal);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

@@ -290,6 +290,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
     const ctx = this.monthlyChartRef.nativeElement.getContext('2d')!;
 
+    if (this.monthlyChartInstance) { (this.monthlyChartInstance as any).destroy(); }
     this.monthlyChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {

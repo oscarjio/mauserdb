@@ -93,8 +93,8 @@
     <div class="card-body">
       <div class="row g-3">
         <div class="col-md-2"><label class="form-label">Datum</label><input type="date" class="form-control" [(ngModel)]="newReport.datum" /></div>
-        <div class="col-md-2"><label class="form-label">Antal OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0" /></div>
-        <div class="col-md-2"><label class="form-label">Antal ej OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0" /></div>
+        <div class="col-md-2"><label class="form-label">Antal OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0"  max="99999" /></div>
+        <div class="col-md-2"><label class="form-label">Antal ej OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0"  max="99999" /></div>
         <div class="col-md-5"><label class="form-label">Kommentar</label><input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." /></div>
         <div class="col-md-1 d-flex align-items-end"><button class="btn btn-success w-100" (click)="addReport()"><i class="fas fa-plus"></i></button></div>
       </div>
@@ -171,13 +171,13 @@
                     <div class="mb-3" *ngIf="report.kommentar"><i class="fas fa-comment text-muted me-2"></i><span class="text-light">{{ report.kommentar }}</span></div>
                     <div *ngIf="canEdit(report)" class="border-top border-secondary pt-3">
                       <div class="d-flex align-items-center mb-2"><i class="fas fa-edit text-success me-2"></i><span class="text-success fw-semibold">Redigera</span></div>
-                      <form (ngSubmit)="saveReport(report)">
+                      <form #formRef="ngForm" (ngSubmit)="saveReport(report)">
                         <div class="row g-2 align-items-end">
                           <div class="col-md-2"><label class="form-label small">Datum</label><input type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" name="datum-{{report.id}}" /></div>
-                          <div class="col-md-2"><label class="form-label small">Antal OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0" /></div>
-                          <div class="col-md-2"><label class="form-label small">Antal ej OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0" /></div>
+                          <div class="col-md-2"><label class="form-label small">Antal OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0"  max="99999" /></div>
+                          <div class="col-md-2"><label class="form-label small">Antal ej OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0"  max="99999" /></div>
                           <div class="col-md-4"><label class="form-label small">Kommentar</label><input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" /></div>
-                          <div class="col-md-2"><button class="btn btn-success btn-sm w-100" type="submit"><i class="fas fa-save me-1"></i>Spara</button></div>
+                          <div class="col-md-2"><button class="btn btn-success btn-sm w-100" type="submit" [disabled]="formRef.invalid"><i class="fas fa-save me-1"></i>Spara</button></div>
                         </div>
                       </form>
                     </div>

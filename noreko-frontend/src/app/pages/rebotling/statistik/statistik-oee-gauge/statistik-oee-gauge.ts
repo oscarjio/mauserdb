@@ -94,6 +94,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
     const color = this.getOeeColor(oee);
     const remaining = Math.max(100 - oee, 0);
 
+    if (this.gaugeChart) { (this.gaugeChart as any).destroy(); }
     this.gaugeChart = new Chart(canvas, {
       type: 'doughnut',
       data: {

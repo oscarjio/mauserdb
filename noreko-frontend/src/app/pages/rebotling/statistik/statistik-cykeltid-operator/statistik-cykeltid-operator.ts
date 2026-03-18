@@ -128,6 +128,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
       }
     };
 
+    if (this.cycleByOpChart) { (this.cycleByOpChart as any).destroy(); }
     this.cycleByOpChart = new Chart(canvas, {
       type: 'bar',
       data: {

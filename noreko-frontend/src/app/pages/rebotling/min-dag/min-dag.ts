@@ -188,6 +188,7 @@ export class MinDagPage implements OnInit, OnDestroy {
       },
     };
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(canvas, config);
   }
 

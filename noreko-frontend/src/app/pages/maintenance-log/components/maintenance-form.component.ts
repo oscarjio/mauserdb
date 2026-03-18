@@ -81,7 +81,7 @@ import { localDateStr } from '../../../utils/date-utils';
               <div class="col-12">
                 <label class="form-label form-label-dark">Beskrivning</label>
                 <textarea class="form-control form-control-dark" [(ngModel)]="form.description"
-                          name="description" rows="3"
+                          name="description" rows="3" maxlength="2000"
                           placeholder="Detaljerad beskrivning, orsak, åtgärd..."></textarea>
               </div>
 

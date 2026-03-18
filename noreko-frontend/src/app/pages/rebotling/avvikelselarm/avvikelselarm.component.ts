@@ -231,6 +231,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
       borderRadius: 3,
     }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'bar',
       data: { labels: dates, datasets },

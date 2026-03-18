@@ -1267,6 +1267,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         });
       }
 
+      if (this.productionChart) { (this.productionChart as any).destroy(); }
       this.productionChart = new Chart(ctx, {
         type: 'line',
         data: {

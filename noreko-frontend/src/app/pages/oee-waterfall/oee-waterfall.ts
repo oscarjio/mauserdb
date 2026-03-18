@@ -134,6 +134,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
     const colors = this.segments.map(s => s.farg + 'cc'); // lite transparens
     const borders = this.segments.map(s => s.farg);
 
+    if (this.waterfallChart) { (this.waterfallChart as any).destroy(); }
     this.waterfallChart = new Chart(ctx, {
       type: 'bar',
       data: {

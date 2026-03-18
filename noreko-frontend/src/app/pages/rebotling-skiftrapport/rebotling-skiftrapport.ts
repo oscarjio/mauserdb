@@ -1567,6 +1567,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const trendValues = allHours.map((h: number) => trendMap[h] ?? null);
     const avgValues   = allHours.map((h: number) => avgMap[h]   ?? null);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvasEl, {
       type: 'line',
       data: {

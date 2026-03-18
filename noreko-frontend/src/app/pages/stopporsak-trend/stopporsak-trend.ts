@@ -217,6 +217,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
       };
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'bar',
       data: { labels, datasets },
@@ -290,6 +291,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     const idx   = this.weeklyData?.top_reasons.indexOf(reason) ?? 0;
     const color = this.COLORS[Math.max(0, idx) % this.COLORS.length];
 
+    if (this.detailChart) { (this.detailChart as any).destroy(); }
     this.detailChart = new Chart(canvas, {
       type: 'line',
       data: {

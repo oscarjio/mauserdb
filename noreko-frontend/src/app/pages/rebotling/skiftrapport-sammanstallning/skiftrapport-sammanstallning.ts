@@ -156,6 +156,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     const kassData = skiften.map(s => s.kasserade);
     const bgColors = skiften.map(s => this.skiftFarger[s.skift] || '#4fd1c5');
 
+    if (this.skiftChart) { (this.skiftChart as any).destroy(); }
     this.skiftChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -220,6 +221,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     const kvallOee = dagdata.map(d => d.kvall_oee_pct);
     const nattOee = dagdata.map(d => d.natt_oee_pct);
 
+    if (this.jamforelseChart) { (this.jamforelseChart as any).destroy(); }
     this.jamforelseChart = new Chart(ctx, {
       type: 'line',
       data: {

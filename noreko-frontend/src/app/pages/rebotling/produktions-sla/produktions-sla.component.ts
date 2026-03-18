@@ -225,6 +225,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     const remaining = Math.max(0, 100 - pct);
     const color = pct >= 100 ? '#48bb78' : pct >= 80 ? '#ecc94b' : '#e53e3e';
 
+    if (this.gaugeChart) { (this.gaugeChart as any).destroy(); }
     this.gaugeChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -264,6 +265,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     const target = this.weekly.dagligt_target;
     const colors = days.map(d => d.over_mal ? '#48bb78' : '#e53e3e');
 
+    if (this.weeklyChart) { (this.weeklyChart as any).destroy(); }
     this.weeklyChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -326,6 +328,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
       trendLine.push(Math.round(sum / 7 * 10) / 10);
     }
 
+    if (this.historyChart) { (this.historyChart as any).destroy(); }
     this.historyChart = new Chart(canvas, {
       type: 'line',
       data: {

@@ -59,6 +59,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
     const dailyData = this.qualityTrendData.map(d => d.quality_pct);
     const rollingData = this.qualityTrendData.map(d => d.rolling_avg);
     const targetLine = this.qualityTrendData.map(() => 90);
+    if (this.qualityTrendChart) { (this.qualityTrendChart as any).destroy(); }
     this.qualityTrendChart = new Chart(canvas, {
       type: 'line',
       data: {

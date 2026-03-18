@@ -217,6 +217,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
 
     const barColors = data.utfall.map((u, i) => u >= data.mal[i] ? '#48bb78' : '#fc8181');
 
+    if (this.veckoChart) { (this.veckoChart as any).destroy(); }
     this.veckoChart = new Chart(ctx, {
       type: 'bar',
       data: {

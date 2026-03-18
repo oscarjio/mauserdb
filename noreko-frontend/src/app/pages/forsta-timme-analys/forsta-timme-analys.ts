@@ -148,6 +148,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
     const labels = this.analys.interval_labels ?? ['0-10', '10-20', '20-30', '30-40', '40-50', '50-60'];
     const avgData = this.analys.avg_kurva ?? [];
 
+    if (this.rampupChart) { (this.rampupChart as any).destroy(); }
     this.rampupChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -216,6 +217,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
     const minVals = this.trendData.map(t => t.min_tid);
     const maxVals = this.trendData.map(t => t.max_tid);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'bar',
       data: {

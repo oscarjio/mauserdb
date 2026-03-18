@@ -726,6 +726,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     const planData = this.hourlyTodayData.map(d => d.plan_kumulativ);
     const faktiskData = this.hourlyTodayData.map(d => d.faktisk_kumulativ);
 
+    if (this.cumulativeChart) { (this.cumulativeChart as any).destroy(); }
     this.cumulativeChart = new Chart(ctx, {
       type: 'line',
       data: {

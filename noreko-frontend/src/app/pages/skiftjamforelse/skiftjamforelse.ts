@@ -146,6 +146,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
 
     const toArr = (r: any) => [r.tillganglighet, r.prestanda, r.kvalitet, r.volym, r.stabilitet];
 
+    if (this.radarChart) { (this.radarChart as any).destroy(); }
     this.radarChart = new Chart(canvas, {
       type: 'radar',
       data: {
@@ -215,6 +216,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       return `${d.getDate()}/${d.getMonth() + 1}`;
     });
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

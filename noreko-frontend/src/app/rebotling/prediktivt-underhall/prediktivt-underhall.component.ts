@@ -252,6 +252,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
       fill: false,
     }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

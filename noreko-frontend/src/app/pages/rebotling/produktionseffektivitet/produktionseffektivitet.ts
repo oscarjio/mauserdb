@@ -253,6 +253,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
       return '#fc8181';
     });
 
+    if (this.lineChart) { (this.lineChart as any).destroy(); }
     this.lineChart = new Chart(canvas, {
       type: 'line',
       data: {

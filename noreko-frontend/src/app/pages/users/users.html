@@ -163,7 +163,7 @@
                     <td colspan="8">
                       <div class="card border-primary">
                         <div class="card-body">
-                          <form (ngSubmit)="saveUser(user)" class="edit-form">
+                          <form #formRef="ngForm" (ngSubmit)="saveUser(user)" class="edit-form">
                             <div class="row g-2 align-items-end">
                               <div class="col-md-2">
                                 <label class="form-label">Användarnamn</label>

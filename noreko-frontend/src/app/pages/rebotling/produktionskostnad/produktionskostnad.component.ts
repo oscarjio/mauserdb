@@ -263,6 +263,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     const values  = [bd.energi, bd.bemanning, bd.material, bd.kassation, bd.overhead];
     const colors  = ['#4299e1', '#48bb78', '#ecc94b', '#e53e3e', '#a0aec0'];
 
+    if (this.doughnutChart) { (this.doughnutChart as any).destroy(); }
     this.doughnutChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
@@ -310,6 +311,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     const values = td.trend.map(d => d.kostnad_per_ibc);
     const snitt  = td.snitt;
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {
@@ -379,6 +381,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       return palette[i % palette.length];
     });
 
+    if (this.shiftChart) { (this.shiftChart as any).destroy(); }
     this.shiftChart = new Chart(canvas, {
       type: 'bar',
       data: {

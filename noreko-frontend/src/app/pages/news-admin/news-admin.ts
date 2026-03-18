@@ -67,6 +67,7 @@ interface NewsItem {
                 [(ngModel)]="form.content"
                 rows="4"
                 placeholder="Ange innehåll..."
+                maxlength="5000"
               ></textarea>
             </div>
 

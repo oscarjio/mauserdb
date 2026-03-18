@@ -198,6 +198,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     const kassData  = daily.map(d => d.kassation_pct);
     const snittLine = daily.map(() => this.trendData!.snitt_ibc_dag);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: {

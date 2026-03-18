@@ -847,6 +847,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
       fill: false,
     }));
 
+    if (this.weekChart) { (this.weekChart as any).destroy(); }
     this.weekChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

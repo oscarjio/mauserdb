@@ -70,6 +70,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
       return `${weekdays[wdIdx]} ${d.date.substring(5)}`;
     });
 
+    if (this.weekComparisonChart) { (this.weekComparisonChart as any).destroy(); }
     this.weekComparisonChart = new Chart(canvas, {
       type: 'bar',
       data: {

@@ -308,6 +308,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     const avgSek = this.dayPattern.map(p => p.avg_sek);
     const antal = this.dayPattern.map(p => p.antal);
 
+    if (this.patternChart) { (this.patternChart as any).destroy(); }
     this.patternChart = new Chart(canvas, {
       type: 'line',
       data: {

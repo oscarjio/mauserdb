@@ -816,7 +816,7 @@
                             <i class="fas fa-edit text-primary me-2"></i>
                             <span class="text-primary fw-semibold">Redigera</span>
                           </div>
-                          <form (ngSubmit)="saveReport(report)" class="edit-form">
+                          <form #formRef="ngForm" (ngSubmit)="saveReport(report)" class="edit-form">
                             <div class="row g-2 align-items-end">
                               <div class="col-md-2">
                                 <label class="form-label small">Datum</label>
@@ -834,18 +834,18 @@
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label small">IBC OK</label>
-                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" name="ibc_ok-{{report.id}}" min="0" />
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" name="ibc_ok-{{report.id}}" min="0"  max="99999" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label small">Bur ej OK</label>
-                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" name="bur_ej_ok-{{report.id}}" min="0" />
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" name="bur_ej_ok-{{report.id}}" min="0"  max="99999" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label small">IBC ej OK</label>
-                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" name="ibc_ej_ok-{{report.id}}" min="0" />
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" name="ibc_ej_ok-{{report.id}}" min="0"  max="99999" />
                               </div>
                               <div class="col-md-1">
-                                <button class="btn btn-success btn-sm w-100" type="submit">
+                                <button class="btn btn-success btn-sm w-100" type="submit" [disabled]="formRef.invalid">
                                   <i class="fas fa-save me-1"></i>Spara
                                 </button>
                               </div>

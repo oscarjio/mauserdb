@@ -246,6 +246,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     const dataItems = this.orsaker.filter(o => o.antal > 0);
     if (!dataItems.length) return;
 
+    if (this.donutChart) { (this.donutChart as any).destroy(); }
     this.donutChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -295,6 +296,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
 
     const maxVal = Math.max(...top10.map(o => o.antal), 1);
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -413,6 +415,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
       fill: false
     }));
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets },

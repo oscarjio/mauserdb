@@ -122,6 +122,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(ctx, {
       type: 'line',
       data: {

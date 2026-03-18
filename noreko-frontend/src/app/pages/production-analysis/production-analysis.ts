@@ -307,6 +307,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     const values = data.map(d => d.bonus_avg);
     const colors = values.map(v => v >= 90 ? 'rgba(72,187,120,0.8)' : v >= 70 ? 'rgba(236,201,75,0.8)' : 'rgba(229,62,62,0.8)');
 
+    if (this.rankingChart) { (this.rankingChart as any).destroy(); }
     this.rankingChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -354,6 +355,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       };
     }).filter(Boolean);
 
+    if (this.radarChart) { (this.radarChart as any).destroy(); }
     this.radarChart = new Chart(canvas, {
       type: 'radar',
       data: {
@@ -681,6 +683,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     });
 
     const shifts = this.allShifts; // Capture for closure
+    if (this.bubbleChart) { (this.bubbleChart as any).destroy(); }
     this.bubbleChart = new Chart(canvas, {
       type: 'bubble',
       data: {
@@ -849,6 +852,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       stack: 'dag'
     }));
 
+    if (this.stoppageDailyChart) { (this.stoppageDailyChart as any).destroy(); }
     this.stoppageDailyChart = new Chart(canvas, {
       type: 'bar',
       data: { labels, datasets },
@@ -994,6 +998,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     const ibcValues = this.bestShifts.map(s => s.ibc_ok);
     const kvalValues = this.bestShifts.map(s => s.kvalitet_pct);
 
+    if (this.bestShiftsChart) { (this.bestShiftsChart as any).destroy(); }
     this.bestShiftsChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -1203,6 +1208,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     // Referenslinje 80% som annotation-dataset (horisontell linje)
     const eightyLine = this.paretoData.map(() => 80);
 
+    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(canvas, {
       type: 'bar',
       data: {

@@ -279,6 +279,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
       });
     }
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },

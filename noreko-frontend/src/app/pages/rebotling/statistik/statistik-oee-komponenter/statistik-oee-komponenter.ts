@@ -40,6 +40,7 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
     if (!canvas || this.oeeComponentsData.length === 0) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.oeeComponentsData.map(d => { const p = d.datum.split('-'); return p[2]+'/'+p[1]; });
+    if (this.oeeComponentsChart) { (this.oeeComponentsChart as any).destroy(); }
     this.oeeComponentsChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [
       { label: 'Tillganglighet %', data: this.oeeComponentsData.map(d => d.tillganglighet), borderColor: 'rgba(72,187,120,1)', backgroundColor: 'rgba(72,187,120,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },
       { label: 'Kvalitet %', data: this.oeeComponentsData.map(d => d.kvalitet), borderColor: 'rgba(99,179,237,1)', backgroundColor: 'rgba(99,179,237,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },

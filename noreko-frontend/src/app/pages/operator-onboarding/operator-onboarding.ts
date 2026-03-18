@@ -163,6 +163,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
 
     const teamSnitt = this.curveData.team_snitt_ibc_h;
 
+    if (this.curveChart) { (this.curveChart as any).destroy(); }
     this.curveChart = new Chart(canvas, {
       type: 'line',
       data: {

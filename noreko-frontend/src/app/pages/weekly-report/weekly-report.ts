@@ -1296,6 +1296,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
 
     const goalLine = daily.map(() => dagmal);
 
+    if (this.chart) { (this.chart as any).destroy(); }
     this.chart = new Chart(ctx, {
       type: 'bar',
       data: {

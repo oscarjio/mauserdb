@@ -230,6 +230,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     const ejOkData  = series.map(s => s.ibc_ej_ok);
     const totalData = series.map(s => s.total);
 
+    if (this.productionChart) { (this.productionChart as any).destroy(); }
     this.productionChart = new Chart(canvas, {
       type: 'line',
       data: {

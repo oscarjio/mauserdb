@@ -753,6 +753,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       topHours.includes(h.timme) ? '#ef4444' : 'rgba(100,116,139,0.8)'
     );
 
+    if (this.hourlyChart) { (this.hourlyChart as any).destroy(); }
     this.hourlyChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -888,6 +889,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     const items = this.monthlyStopItems;
     const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
 
+    if (this.monthlyStopChart) { (this.monthlyStopChart as any).destroy(); }
     this.monthlyStopChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -1015,6 +1017,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       minuteData.push(found ? Number(found.total_minutes) : 0);
     }
 
+    if (this.weekly14Chart) { (this.weekly14Chart as any).destroy(); }
     this.weekly14Chart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -1175,6 +1178,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       }
     };
 
+    if (this.paretoDetailChart) { (this.paretoDetailChart as any).destroy(); }
     this.paretoDetailChart = new Chart(canvas, {
       type: 'bar',
       plugins: [refLine80Plugin],

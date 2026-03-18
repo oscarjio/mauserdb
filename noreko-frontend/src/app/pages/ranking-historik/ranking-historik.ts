@@ -185,6 +185,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
       Math.max(...o.trend.map(t => t.rank ?? 0))
     ), 5);
 
+    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels, datasets },
@@ -256,6 +257,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
       5
     );
 
+    if (this.h2hChart) { (this.h2hChart as any).destroy(); }
     this.h2hChart = new Chart(canvas, {
       type: 'line',
       data: {

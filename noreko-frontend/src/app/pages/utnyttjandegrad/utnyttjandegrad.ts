@@ -187,6 +187,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     const stopptid  = rows.map(r => r.stopptid_h);
     const okandTid  = rows.map(r => r.okand_tid_h);
 
+    if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -283,6 +284,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
 
     if (forluster.length === 0) return;
 
+    if (this.doughnutChart) { (this.doughnutChart as any).destroy(); }
     this.doughnutChart = new Chart(canvas, {
       type: 'doughnut',
       data: {

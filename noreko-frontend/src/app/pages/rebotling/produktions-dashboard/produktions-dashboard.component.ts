@@ -238,6 +238,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
       });
     }
 
+    if (this.prodChart) { (this.prodChart as any).destroy(); }
     this.prodChart = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets },
@@ -292,6 +293,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
     const prest  = this.veckoOee.map(d => d.prestanda_pct);
     const kval   = this.veckoOee.map(d => d.kvalitet_pct);
 
+    if (this.oeeChart) { (this.oeeChart as any).destroy(); }
     this.oeeChart = new Chart(ctx, {
       type: 'line',
       data: {

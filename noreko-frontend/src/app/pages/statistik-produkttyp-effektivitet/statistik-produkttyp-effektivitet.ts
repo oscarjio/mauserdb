@@ -233,6 +233,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
       .filter(p => p.ibc_per_timme !== null)
       .sort((a, b) => (a.ibc_per_timme ?? 0) - (b.ibc_per_timme ?? 0));
 
+    if (this.ibcPerTimmeChart) { (this.ibcPerTimmeChart as any).destroy(); }
     this.ibcPerTimmeChart = new Chart(el, {
       type: 'bar',
       data: {

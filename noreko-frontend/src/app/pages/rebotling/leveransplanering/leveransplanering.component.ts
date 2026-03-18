@@ -320,6 +320,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       g.forsenad ? '#fc8181' : '#63b3ed'
     );
 
+    if (this.ganttChart) { (this.ganttChart as any).destroy(); }
     this.ganttChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -390,6 +391,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
     const dates = this.kapacitetData.dates;
     const shortDates = dates.map(d => d.substring(5)); // MM-DD
 
+    if (this.kapacitetChart) { (this.kapacitetChart as any).destroy(); }
     this.kapacitetChart = new Chart(canvas, {
       type: 'line',
       data: {
