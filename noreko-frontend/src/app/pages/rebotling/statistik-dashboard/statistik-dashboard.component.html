@@ -143,7 +143,7 @@
             Ingen data
           </div>
           <div class="kpi-diff text-muted" *ngIf="summary.aktiv_operator">
-            Senaste registrering: {{ summary.aktiv_operator?.senaste_datum | slice:0:10 }}
+            Senaste registrering: {{ (summary.aktiv_operator?.senaste_datum ?? '') | slice:0:10 }}
           </div>
         </div>
       </div>

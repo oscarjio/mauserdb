@@ -136,7 +136,7 @@
           <!-- Aktiva stopp -->
           <div *ngIf="stoppNu && !stoppNu.allt_kor">
             <div class="alert py-2 px-3 mb-2" style="background:rgba(252,129,129,0.15); border:1px solid #fc8181; border-radius:8px;"
-                 *ngFor="let stopp of stoppNu.aktiva_stopp; trackBy: trackById">
+                 *ngFor="let stopp of stoppNu.aktiva_stopp ?? []; trackBy: trackById">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <i class="bi bi-stop-circle-fill me-1" style="color:#fc8181"></i>
@@ -148,7 +148,7 @@
               </div>
               <small style="color:#e2e8f0;">{{ stopp.orsak }}</small>
             </div>
-            <div *ngIf="stoppNu.aktiva_stopp.length === 0" class="text-center py-3">
+            <div *ngIf="(stoppNu.aktiva_stopp ?? []).length === 0" class="text-center py-3">
               <small style="color:#a0aec0;">Inga registrerade stopp, men kontrollera stationer</small>
             </div>
           </div>
