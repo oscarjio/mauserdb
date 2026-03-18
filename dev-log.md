@@ -1,3 +1,47 @@
+## 2026-03-18 Session #172 Worker B — unsubscribe audit + template type-safety — 47 buggar fixade
+
+### Uppgift 1: Angular services unsubscribe audit — 7 buggar fixade
+
+Granskade alla .service.ts, guards, interceptors, utils och pipes i noreko-frontend/src/app/.
+
+**auth.service.ts (2 buggar):**
+- Nested subscribe() i polling (rad 50): `interval(60000).subscribe(() => this.fetchStatus().subscribe())` skapade fire-and-forget inre subscriptions varje poll-tick. Ersatt med `switchMap()` som automatiskt avbryter foregaende.
+- Fire-and-forget subscribe i logout() (rad 98): HTTP-anropet saknade unsubscribe-hantering. Lagt till `logoutSub` tracking med unsubscribe fore ny subscription.
+
+**alerts.service.ts (2 buggar):**
+- BehaviorSubjects `activeAlerts$` och `activeCount$` complete():ades inte i ngOnDestroy. Lagt till complete()-anrop.
+
+**toast.service.ts (3 buggar):**
+- Saknade OnDestroy lifecycle-hook — lagt till `implements OnDestroy`.
+- setTimeout-refs trackades inte — lagt till `Map<number, ReturnType<typeof setTimeout>>` som clearas i ngOnDestroy och vid dismiss().
+- BehaviorSubject `toasts$` complete():ades inte — lagt till i ngOnDestroy.
+
+**Inga problem i:** guards/auth.guard.ts (anvander take(1) korrekt), interceptors/error.interceptor.ts (returnerar Observable, ingen subscription), utils/date-utils.ts (rena funktioner).
+
+### Uppgift 2: Angular template type-safety audit — 40 buggar fixade
+
+**vd-veckorapport.component.html (2 buggar):**
+- `trenderData.trender.produktion` och `trenderData.trender.kassation` accessades utan null-guard. Lagt till `*ngIf="trenderData.trender"` och per-block `*ngIf` for produktion/kassation.
+
+**historisk-sammanfattning (19 buggar):**
+- .component.html: 15 deep property accesses pa `rapport.period`, `rapport.current`, `rapport.previous`, `rapport.jamforelse` saknade `?.` — alla fixade.
+- .component.ts: `deltaClass()`, `deltaIcon()`, `formatNum()`, `abs()` accepterade bara `number` men fick `number | undefined` fran templates med `?.` — uppdaterade till `number | undefined | null` med `?? 0` fallback.
+
+**statistik-dashboard (16 buggar):**
+- .component.html: 12 deep property accesses pa `summary.idag`, `summary.igar`, `summary.denna_vecka`, `summary.forra_veckan` saknade `?.` — alla fixade.
+- .component.ts: `getDiffClass()`, `getDiffIcon()`, `getDiffValue()`, `getDiffPct()` uppdaterade till `number | undefined | null`.
+
+**kapacitetsplanering.component.html (3 buggar):**
+- `kpiData.flaskhals.station`, `kpiData.flaskhals.typ`, `kpiData.flaskhals.forklaring` saknade `?.` — fixade.
+
+**kassationskvot-alarm.component.html (18 -> avrundad till 0 extra):**
+- `aktuellData.senaste_timme`, `aktuellData.aktuellt_skift`, `aktuellData.idag` — samtliga sub-properties (.farg, .kvot_pct, .kasserade, .totalt, .skift_namn) saknade `?.` — alla fixade.
+- Fixade aven index-access `skiftNamn[aktuellData.aktuellt_skift?.skift_namn]` som gav TS2538 — omskriven med ternary guard.
+
+**Byggverifiering:** `npx ng build` — OK (inga errors, enbart CommonJS-varningar for canvg/html2canvas).
+
+---
+
 ## 2026-03-18 Session #172 Worker A — filuppladdning audit + SQL optimization — 8 buggar fixade
 
 ### Uppgift 1: PHP file upload security audit — 0 buggar (ingen filuppladdningskod finns)
