@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #152)*
+*Senast uppdaterad: 2026-03-18 (session #154)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -80,23 +80,20 @@ Session #150: BUGGJAKT — 77 buggar (28 Worker A + 49 Worker B). Error logging 
 Session #151: BUGGJAKT — 16 buggar (6 Worker A + 10 Worker B). Unused vars (3), kritisk JOIN-bugg operators.id->number (1), SQL kolumn-fix (2) + error state UI (7 komponenter), catchError guards (6 subscribe). Response format OK, form validation OK.
 Session #152: BUGGJAKT — 59 buggar (22 Worker A + 37 Worker B). Transaction wrapping (19 i 9 controllers), edge case null-guards (3) + catchError audit (37 i 8 komponenter). Memory leak OK, template type safety OK.
 Session #153: BUGGJAKT — 119 buggar (62 Worker A + 57 Worker B). DateTime timezone (26 i 5 controllers), in_array strict (32 i 22 controllers), json_decode null-safety (4) + duplicate imports (57 i 57 filer). File upload OK (inga uploads), retry OK, route guards OK.
+Session #154: BUGGJAKT — 61 buggar (8 Worker A + 53 Worker B). Response headers OK (globalt i api.php), SQL column fixes (rebotling_log->stoppage_log/rebotling_ibc), unused vars (4) + form validation (20 i 10 komponenter), template !.->?. (33 i 3 komponenter).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP response header audit — Content-Type, charset, cache headers
-- [ ] Angular form validation audit — required, min/max, felmeddelanden
-- [ ] PHP SQL column name audit — SELECT-kolumner vs DB-schema
-- [ ] PHP unused variable cleanup — diagnostics visar 7+ oanvanda variabler
-- [ ] Angular template expression audit — nullable, async pipe, safe navigation
+- [ ] PHP error_log consistency audit — format, inga var_dump/print_r
+- [ ] Angular HTTP error message audit — felmeddelanden pa svenska
+- [ ] PHP integer casting audit — (int) casts pa query params
+- [ ] PHP array key existence audit — isset/array_key_exists fore access
+- [ ] Angular change detection audit — OnPush candidates, trackBy i ngFor
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #151 (klar)
-Worker A: 6 buggar — 3 unused vars (non-capturing catch), 3 SQL-fixar i WeeklyReportController (kritisk JOIN operators.id->number, borttagen o.initialer, PHP-berakning av initialer). Response format audit: alla OK.
-Worker B: 10 buggar — 7 error state UI (maskin-oee, stopptidsanalys, rebotling-sammanfattning), 6 catchError-guards i stationsdetalj. Form validation audit: alla OK.
 
 ### 2026-03-18 — Session #152 (klar)
 Worker A: 22 buggar — 19 transaction wrapping (9 controllers), 3 edge case null-guards.
@@ -105,3 +102,7 @@ Worker B: 37 buggar — 37 catchError guards (8 komponenter). Memory leak OK, te
 ### 2026-03-18 — Session #153 (klar)
 Worker A: 62 buggar — 26 DateTime explicit timezone (5 controllers), 32 in_array strict mode (22 controllers), 4 json_decode null-safety (BonusAdmin). File upload audit: inga uploads finns.
 Worker B: 57 buggar — 57 duplicate rxjs-imports sammanfogade (55 filer dubbla rxjs + 2 andra). HTTP retry OK, route guards OK.
+
+### 2026-03-18 — Session #154 (klar)
+Worker A: 8 buggar — Response headers OK (globalt), 4 SQL column fixes (rebotling_log existerar ej, fixat i 2 controllers), 4 unused vars (ForstaTimmeAnalys, ProduktionsPrognos, Skiftjamforelse, AuthHelper/Login).
+Worker B: 53 buggar — 20 form validation (felmeddelanden pa svenska i 10 komponenter), 33 template expression !.->?. (gamification, operator-ranking, statistik-dashboard).
