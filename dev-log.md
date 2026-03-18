@@ -1,3 +1,28 @@
+## 2026-03-18 Session #158 Worker B — HTTP timeout/retry audit + change detection audit
+
+### Del 1: Angular HTTP retry/timeout audit — 1 bugg fixad
+Granskade ALLA 132 filer med HTTP-anrop i noreko-frontend/src/app/.
+
+- **alerts.service.ts**: 6 HTTP-metoder hade timeout(10_000) men saknade catchError().
+  Fixat: alla 6 metoder har nu timeout(10_000), catchError(() => of(null)).
+- Alla ovriga 96 services + 35 sidor/komponenter hade redan korrekt timeout() + catchError().
+- Error interceptor (error.interceptor.ts) har retry(1) for 502/503/504 med 1s delay + globala felmeddelanden pa svenska.
+- Inga HTTP-anrop saknade timeout — alla hade korrekt pipe-ordning (timeout fore catchError).
+
+### Del 2: Angular change detection audit — inga buggar
+- Ingen komponent anvander ChangeDetectionStrategy.OnPush — hela projektet anvander default CD konsekvent.
+- Ingen ChangeDetectorRef anvands. Ingen @Input() muteras direkt (4 komponenter med @Input granskade).
+- Ingen async pipe anvands — projektet anvander konsekvent subscribe+property-pattern som fungerar med default CD.
+- Ingen risk for ExpressionChangedAfterItHasBeenCheckedError identifierad.
+
+### Del 3: Subscription-lackor (verifiering) — inga buggar
+- Alla subscribe()-anrop har takeUntil(this.destroy$) eller Subscription.unsubscribe() i ngOnDestroy.
+- Alla setInterval korrekt clearade i ngOnDestroy (141 filer granskade — alla false positives var typeof-deklarationer).
+- Alla setTimeout ar korta one-shot (100ms chartrender) med if(!this.destroy$.closed)-guard — session #156 pattern korrekt tillampad.
+- Inga komponenter med subscribe() saknar OnDestroy.
+
+---
+
 ## 2026-03-18 Session #158 Worker A — 78 buggar fixade (XSS htmlspecialchars + input sanitization)
 
 ### Del 1: PHP input sanitization audit — 78 buggar fixade
