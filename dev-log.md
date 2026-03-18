@@ -1,3 +1,26 @@
+## 2026-03-18 Session #157 Worker B — 1 bugg fixad (loading state + route param audit)
+
+### Uppgift 1: Angular route param validation audit — 0 fixar
+Granskade ALLA 5 komponenter som anvander ActivatedRoute (exkl. livesidor):
+- operator-detail: paramMap.get('id') valideras med isNaN(+id) — OK
+- stoppage-log: queryParams['linje'] valideras mot whitelist, maskin begransas till 100 tecken — OK
+- tvattlinje-statistik: queryParams view/year/month valideras med whitelist + parseInt + range check — OK
+- rebotling-statistik: queryParams view/year/month valideras identiskt — OK
+- login: returnUrl valideras mot open redirect (starsWith '/' && !startsWith '//') — OK
+Inga fixar kravdes.
+
+### Uppgift 2: Angular loading state audit — 1 fix
+Granskade ALLA komponenter med HTTP/service-anrop (exkl. livesidor):
+- 150+ komponenter granskade
+- Alla utom 1 har korrekt isLoading/xxxLoading-flagga + spinner i template
+- PROBLEM: produktionspuls-widget saknade isLoading-flagga och laddningsindikator
+  - Widgeten visade inget alls medan data laddades
+  - Fix: la till isLoading=true, satts till false i subscribe, la till spinner i template
+- maintenance-form granskades — har redan isSaving med spinner for sparning (korrekt for formularkompontent)
+
+Filer:
+- noreko-frontend/src/app/pages/rebotling/produktionspuls/produktionspuls-widget.ts
+
 ## 2026-03-18 Session #156 Worker B — 15 buggar fixade (setTimeout destroy$-guard)
 
 ### Uppgift 1: Angular memory leak audit — 15 fixar

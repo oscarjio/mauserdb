@@ -10,7 +10,17 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="puls-widget" *ngIf="items.length > 0">
+    <div class="puls-widget" *ngIf="isLoading">
+      <div class="puls-widget-header">
+        <span class="puls-widget-title">
+          <i class="fas fa-heartbeat text-danger me-1"></i>Produktionspuls
+        </span>
+      </div>
+      <div class="text-center py-2" style="color:#a0aec0;font-size:0.8rem;">
+        <i class="fas fa-circle-notch fa-spin me-1"></i>Laddar pulsdata...
+      </div>
+    </div>
+    <div class="puls-widget" *ngIf="!isLoading && items.length > 0">
       <div class="puls-widget-header">
         <span class="puls-widget-title">
           <i class="fas fa-heartbeat text-danger me-1"></i>Produktionspuls
@@ -156,6 +166,7 @@ export class ProduktionspulsWidget implements OnInit, OnDestroy {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   items: PulsItem[] = [];
+  isLoading = true;
   paused = false;
 
   constructor(private pulsService: ProduktionspulsService) {}
@@ -177,6 +188,7 @@ export class ProduktionspulsWidget implements OnInit, OnDestroy {
     this.pulsService.getLatest(30).pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.isLoading = false;
       if (res?.success && Array.isArray(res.data)) {
         this.items = res.data;
       }
