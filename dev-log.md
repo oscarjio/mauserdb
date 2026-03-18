@@ -1,3 +1,45 @@
+## 2026-03-18 Session #171 Worker A — CORS/preflight + logging consistency + JSON response — 42 buggar fixade
+
+### Uppgift 1: PHP CORS/preflight audit — 3 buggar fixade
+
+Granskade api.php, login.php, admin.php for CORS-hantering.
+
+- **login.php** (legacy stub): Saknade CORS-headers och OPTIONS-preflight helt. Browsers preflight-requests misslyckades, vilket hindrade Angular fran att lasa 410-felmeddelandet. Fixat med samma CORS-logik som api.php.
+- **admin.php** (legacy stub): Samma problem som login.php. Fixat.
+- **api.php**: Access-Control-Allow-Headers saknade `Authorization`. Lagt till.
+
+### Uppgift 2: PHP logging consistency audit — 39 buggar fixade
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for inkonsistent och saknad loggning.
+
+**18 trasiga error_log-format fixade** (`::inte ...` -> korrekt `::methodNamn:`):
+- RebotlingAdminController (3): `::inte hamta admin-installningar`, `::inte logga mal-historik`, `::inte spara installningar`
+- AdminController (1): `::inte uppdatera status (toggleActive)`
+- SkiftrapportController (7): `::inte hamta skiftrapporter`, `::inte skapa skiftrapport`, `::inte ta bort skiftrapport/er`, `::inte uppdatera status/skiftrapport`
+- TvattlinjeController (6): `::inte hamta vaderdata/statistik/status/admin-installningar`, `::inte spara installningar`
+- MaskinDrifttidController (1): Fel klassnamn (`MaskinDrifttid::` -> `MaskinDrifttidController::`)
+
+**20 saknade error_log vid auth-fel (403/401/429) tillagda:**
+- LoginController: Rate limit, misslyckad inloggning, inaktiverat konto
+- ProfileController: Rate limit for losenordsbyte, felaktigt losenord
+- RegisterController: Rate limit for registrering
+- AdminController, OperatorController, FeedbackController, SkiftrapportController, MaintenanceController, OperatorCompareController, FeatureFlagController, NewsController, CertificationController (x2), AuditController, UnderhallsloggController, ShiftHandoverController, StoppageController: Obehorigforsok (403) loggas nu med user_id och roll
+
+**~55 inkonsistenta em-dash-format standardiserade till kolon-format:**
+- BonusAdminController (14), BonusController (18), NewsController (10), DashboardLayoutController (2), FeedbackController (3), WeeklyReportController (2), VeckotrendController (3), StatusController (1), ProfileController (2)
+
+### Uppgift 3: PHP JSON response consistency — 0 buggar
+
+Granskade ALLA PHP-controllers. Alla anvander redan konsekvent `{'success': true/false, ...}` wrapper med korrekta HTTP-statuskoder och `JSON_UNESCAPED_UNICODE`. Ingen atgard beholds.
+
+### Filer andrade (28):
+- noreko-backend/api.php
+- noreko-backend/login.php
+- noreko-backend/admin.php
+- noreko-backend/classes/AdminController.php, AuditController.php, BonusAdminController.php, BonusController.php, CertificationController.php, DashboardLayoutController.php, FeatureFlagController.php, FeedbackController.php, LoginController.php, MaintenanceController.php, MaskinDrifttidController.php, NewsController.php, OperatorCompareController.php, OperatorController.php, ProfileController.php, RebotlingAdminController.php, RegisterController.php, ShiftHandoverController.php, SkiftrapportController.php, StatusController.php, StoppageController.php, TvattlinjeController.php, UnderhallsloggController.php, VeckotrendController.php, WeeklyReportController.php
+
+---
+
 ## 2026-03-18 Session #170 Worker A — PHP error boundaries + input validation + session security — 34 buggar fixade
 
 ### Uppgift 1: PHP error boundary audit — 31 buggar fixade
