@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #170)*
+*Senast uppdaterad: 2026-03-18 (session #171)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,24 +75,25 @@ Session #167: BUGGJAKT — 15 buggar (12 Worker A + 3 Worker B). SQL optimizatio
 Session #168: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). Response consistency + error logging + float comparison (Worker A) + HTTP error messages + form dirty state (Worker B).
 Session #169: BUGGJAKT — 37 buggar (27 Worker A + 10 Worker B). DST-sakra dagberakningar (strtotime/86400 -> DateTime::diff) i 14 controllers (Worker A) + accessibility aria-labels pa 10 icon-only knappar (Worker B).
 Session #170: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error boundaries (31 tysta catch-block + 4 felaktiga success:true), input validation (1 session read_and_close), session security (2 timeout-buggar). Angular HTTP/routing redan korrekt.
+Session #171: BUGGJAKT — 268 buggar (42 Worker A + 226 Worker B). CORS/preflight (3), logging consistency (39), JSON response (0). Form validation (63), chart destroy (163).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #171+):
-- [ ] PHP CORS/preflight audit
-- [ ] Angular form validation audit
-- [ ] PHP logging consistency audit
-- [ ] Angular chart destroy audit
-- [ ] PHP JSON response consistency
+### Kvarstaende buggjakt-items (session #172+):
+- [ ] PHP file upload security audit
+- [ ] Angular unsubscribe audit
+- [ ] PHP SQL query optimization
+- [ ] Angular template type-safety
+- [ ] PHP rate limiting audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #169 (klar)
-Worker A: 27 buggar — 0 file path traversal (redan sakert), 27 DST-buggar (strtotime/86400 ersatt med DateTime::diff()->days i 14 controllers: Gamification 4x, PrediktivtUnderhall 4x, Maskinunderhall 3x, m.fl.), 0 SQL transaction (redan korrekt).
-Worker B: 10 buggar — 0 memory leaks (alla komponenter korrekt hanterade), 10 accessibility (saknade aria-labels pa icon-only knappar i historisk-produktion 4x, drifttids-timeline 2x, leveransplanering 2x, daglig-briefing 1x, kvalitetscertifikat 1x).
 
 ### 2026-03-18 — Session #170 (klar)
 Worker A: 34 buggar — 31 error boundary (4 kritiska catch-block returnerade success:true vid DB-fel i Klassificeringslinje/Saglinje, 27 tysta catch utan error_log i 5 controllers), 1 input validation (NewsController read_and_close pa POST), 2 session security (hardkodat timeout + private const).
 Worker B: 0 buggar — alla 675+ HTTP-anrop har timeout/catchError/retry. Alla 160+ routes anvander loadComponent lazy-loading.
+
+### 2026-03-18 — Session #171 (klar)
+Worker A: 42 buggar — 3 CORS/preflight (saknade headers i login.php, admin.php + saknad Authorization i api.php), 39 logging (18 trasiga format, 20 saknade auth-loggningar, ~55 inkonsistenta format standardiserade), 0 JSON response (redan konsekvent).
+Worker B: 226 buggar — 63 form validation (44 saknade min/max, 7 saknade maxlength, 4 formulär utan validity check i 28 filer), 163 chart destroy (163 new Chart() utan destroy-before-recreate guard i 102 filer).
