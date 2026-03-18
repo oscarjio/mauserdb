@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../utils/date-utils';
 import {
@@ -146,7 +146,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
     this.errorSammanfattning = false;
-    this.svc.getSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSammanfattning().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
       this.isFetching = false;
       if (res?.success) {
@@ -160,7 +160,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadStationer(): void {
     this.loadingStationer = true;
     this.errorStationer = false;
-    this.svc.getPerStation(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPerStation(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingStationer = false;
       if (res?.success) {
         this.stationerData = res.data;
@@ -177,7 +177,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadTrend(): void {
     this.loadingTrend = true;
     this.errorTrend = false;
-    this.svc.getTrend(this.period, this.selectedStation ?? undefined).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTrend(this.period, this.selectedStation ?? undefined).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
@@ -192,7 +192,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadFlaskhalsar(): void {
     this.loadingFlaskhalsar = true;
     this.errorFlaskhalsar = false;
-    this.svc.getFlaskhalsar(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getFlaskhalsar(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingFlaskhalsar = false;
       if (res?.success) {
         this.flaskhalserData = res.data;
@@ -205,7 +205,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadJamforelse(): void {
     this.loadingJamforelse = true;
     this.errorJamforelse = false;
-    this.svc.getJamforelse(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getJamforelse(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingJamforelse = false;
       if (res?.success) {
         this.jamforelseData = res.data;
@@ -218,7 +218,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private loadPrediktion(): void {
     this.loadingPrediktion = true;
     this.errorPrediktion = false;
-    this.svc.getPrediktion().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPrediktion().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPrediktion = false;
       if (res?.success) {
         this.prediktionData = res.data;

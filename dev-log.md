@@ -1,3 +1,40 @@
+## 2026-03-18 Session #152 Worker B — 37 buggar fixade (catchError audit)
+### Uppgift: Angular buggjakt — memory leak audit + template type safety audit
+
+**Del 1 — Memory leak audit (0 nya buggar — redan korrekt):**
+Granskade samtliga ~37 komponenter i noreko-frontend/src/app/pages/ (exkl. live-sidor) for:
+- Chart.js-instanser: Alla komponenter har chart.destroy() i ngOnDestroy — OK
+- setInterval/setTimeout: Alla har clearInterval/clearTimeout i ngOnDestroy — OK
+- Subscriptions: Alla anvander takeUntil(this.destroy$) — OK
+- addEventListener: Ingen komponent anvander addEventListener — OK
+- Polling: Alla interval/setInterval-anrop stoppas via destroy$ eller clearInterval — OK
+
+**Del 2 — catchError audit (37 fixar):**
+Granskade alla subscribe()-anrop och hittade 37 st som saknade catchError i pipe-kedjan.
+Vid natverksfel/500 stannar loading-spinner for evigt och isFetching-guard blockerar framtida anrop.
+
+- `kassationskvot-alarm.component.ts`: 7 subscribe utan catchError — lade till catchError(() => of(null)) (getAktuellKvot, getAlarmHistorik, getTimvisTrend, getPerSkift, getTopOrsaker, sparaTroskel + import)
+- `tidrapport.component.ts`: 4 subscribe utan catchError — lade till catchError(() => of(null)) (getSammanfattning, getPerOperator, getVeckodata, getDetaljer + import)
+- `oee-trendanalys.component.ts`: 6 subscribe utan catchError — lade till catchError(() => of(null)) (getSammanfattning, getPerStation, getTrend, getFlaskhalsar, getJamforelse, getPrediktion + import)
+- `operator-ranking.component.ts`: 7 subscribe utan catchError — lade till catchError(() => of(null)) (getSammanfattning, getTopplista, getRanking, getPoangfordelning, getHistorik, getMvp + import)
+- `historisk-sammanfattning.component.ts`: 6 subscribe utan catchError — lade till catchError(() => of(null)) (getPerioder, getRapport, getTrend, getOperatorer, getStationer, getStopporsaker + import)
+- `drifttids-timeline.component.ts`: 2 subscribe utan catchError — lade till catchError(() => of(null)) (getDaySummary, getDayTimeline + import)
+- `batch-sparning.component.ts`: 3 subscribe utan catchError — lade till catchError(() => of(null)) (getBatchDetail, completeBatch, createBatch)
+- `maskinunderhall.component.ts`: 2 subscribe utan catchError — lade till catchError(() => of(null)) (addService, addMachine)
+
+**Del 3 — Template type safety audit (0 nya buggar):**
+Granskade alla HTML-templates for:
+- *ngFor utan trackBy: Alla har trackBy — OK
+- Osaker property access: Alla nestade properties ar inuti *ngIf-guards — OK
+- Felaktiga pipe-anvandningar: Alla number-pipes appliceras pa numeriska varden — OK
+- ngClass/ngStyle: Inga felaktiga uttryck — OK
+
+**Sammanfattning:**
+- 37 komponenter granskade (TS + HTML)
+- 8 komponenter fixade med catchError
+- 37 subscribe-anrop fixade
+- Bygge OK (inga kompileringsfel)
+
 ## 2026-03-18 Session #152 Worker A — 22 buggar fixade (transaction + edge case audit)
 ### Uppgift: PHP buggjakt — transaction audit + edge case audit
 

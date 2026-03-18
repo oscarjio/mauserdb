@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../utils/date-utils';
 import {
@@ -163,7 +163,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
     this.errorSammanfattning = false;
-    this.svc.getSammanfattning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSammanfattning(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
       this.isFetching = false;
       if (res?.success) {
@@ -177,7 +177,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadTopplista(): void {
     this.loadingTopplista = true;
     this.errorTopplista = false;
-    this.svc.getTopplista(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTopplista(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTopplista = false;
       if (res?.success) {
         this.topplistaData = res.data;
@@ -190,7 +190,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadRanking(): void {
     this.loadingRanking = true;
     this.errorRanking = false;
-    this.svc.getRanking(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getRanking(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingRanking = false;
       if (res?.success) {
         this.rankingData = res.data;
@@ -203,7 +203,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadPoangfordelning(): void {
     this.loadingPoangfordelning = true;
     this.errorPoangfordelning = false;
-    this.svc.getPoangfordelning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPoangfordelning(this.period).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPoangfordelning = false;
       if (res?.success) {
         this.poangfordelningData = res.data;
@@ -218,7 +218,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadHistorik(): void {
     this.loadingHistorik = true;
     this.errorHistorik = false;
-    this.svc.getHistorik().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getHistorik().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingHistorik = false;
       if (res?.success) {
         this.historikData = res.data;
@@ -233,7 +233,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadMvp(): void {
     this.loadingMvp = true;
     this.errorMvp = false;
-    this.svc.getMvp(this.mvpTyp).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getMvp(this.mvpTyp).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingMvp = false;
       if (res?.success) {
         this.mvpData = res.data;

@@ -262,6 +262,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     this.serviceError = '';
 
     this.svc.addService(this.addServiceForm).pipe(
+      catchError(() => of(null)),
       takeUntil(this.destroy$),
     ).subscribe((res: any) => {
       this.savingService = false;
@@ -304,6 +305,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     this.maskinError = '';
 
     this.svc.addMachine(this.addMachineForm).pipe(
+      catchError(() => of(null)),
       takeUntil(this.destroy$),
     ).subscribe((res: any) => {
       this.savingMachine = false;

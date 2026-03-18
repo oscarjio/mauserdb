@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, interval, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationskvotAlarmService,
@@ -107,7 +107,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.loadingAktuell = true;
     this.errorAktuell = false;
     this.svc.getAktuellKvot()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingAktuell = false;
         this.isFetchingAktuell = false;
@@ -130,7 +130,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.loadingHistorik = true;
     this.errorHistorik = false;
     this.svc.getAlarmHistorik(30)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingHistorik = false;
         this.isFetchingHistorik = false;
@@ -148,7 +148,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.loadingTrend = true;
     this.errorTrend = false;
     this.svc.getTimvisTrend()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         this.isFetchingTrend = false;
@@ -167,7 +167,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.loadingPerSkift = true;
     this.errorPerSkift = false;
     this.svc.getPerSkift()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingPerSkift = false;
         this.isFetchingPerSkift = false;
@@ -183,7 +183,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.loadingOrsaker = true;
     this.errorOrsaker = false;
     this.svc.getTopOrsaker(30)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOrsaker = false;
         if (res?.success) {
@@ -209,7 +209,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     }
     this.sparaTroskelLoading = true;
     this.svc.sparaTroskel(v, a)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sparaTroskelLoading = false;
         if (res?.success) {
