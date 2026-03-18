@@ -14,7 +14,7 @@ class AuthHelper {
     /**
      * Verify password using bcrypt.
      */
-    public static function verifyPassword(string $password, string $storedHash, ?PDO $pdo = null, ?int $userId = null): bool {
+    public static function verifyPassword(string $password, string $storedHash): bool {
         return password_verify($password, $storedHash);
     }
 

@@ -453,7 +453,7 @@ class SkiftplaneringController {
             // Faktisk produktion (om det finns data för detta datum/skift)
             $faktiskProduktion = null;
             try {
-                // Försök hämta från rebotling_log för skiftets tider
+                // Försök hämta från rebotling_ibc för skiftets tider
                 $startTid = $config['start_tid'];
                 $slutTid  = $config['slut_tid'];
 
@@ -467,12 +467,12 @@ class SkiftplaneringController {
                 }
 
                 $prodStmt = $this->pdo->prepare(
-                    "SELECT COUNT(*) FROM rebotling_log WHERE timestamp BETWEEN ? AND ?"
+                    "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
                 );
                 $prodStmt->execute([$fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();
             } catch (\PDOException $e) {
-                error_log('SkiftplaneringController::getShiftDetail rebotling_log: ' . $e->getMessage());
+                error_log('SkiftplaneringController::getShiftDetail rebotling_ibc: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -649,14 +649,14 @@ class SkiftplaneringController {
             try {
                 $ibcStmt = $this->pdo->query(
                     "SELECT COUNT(*) / (GREATEST(TIMESTAMPDIFF(HOUR,
-                        MIN(timestamp), MAX(timestamp)), 1))
-                     FROM rebotling_log
-                     WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                        MIN(datum), MAX(datum)), 1))
+                     FROM rebotling_ibc
+                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
                 );
                 $val = (float)$ibcStmt->fetchColumn();
                 if ($val > 0) $ibcPerH = round($val, 1);
             } catch (\PDOException $e) {
-                error_log('SkiftplaneringController::getCapacity rebotling_log: ' . $e->getMessage());
+                error_log('SkiftplaneringController::getCapacity rebotling_ibc: ' . $e->getMessage());
             }
 
             $this->sendSuccess([

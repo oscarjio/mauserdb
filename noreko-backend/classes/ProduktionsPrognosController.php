@@ -323,7 +323,6 @@ class ProduktionsPrognosController {
         $now   = new \DateTime();
         $limit = 10;
         $found = 0;
-        $cur   = clone $now;
         $maxDays = 30; // sök max 30 dagar bakåt
 
         // Generera alla skiftfönster bakåt i tid

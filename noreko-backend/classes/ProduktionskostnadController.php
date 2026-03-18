@@ -198,14 +198,15 @@ class ProduktionskostnadController {
     }
 
     /**
-     * Hämta stopptid (minuter) för ett datumintervall från rebotling_log.
+     * Hämta stopptid (minuter) för ett datumintervall från stoppage_log.
      */
     private function getStopptidMinuter(string $fromDate, string $toDate): float {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT COALESCE(SUM(duration_minutes), 0) AS total_stopp
-                FROM rebotling_log
-                WHERE DATE(start_time) BETWEEN :from_date AND :to_date
+                FROM stoppage_log
+                WHERE line = 'rebotling'
+                  AND DATE(start_time) BETWEEN :from_date AND :to_date
                   AND duration_minutes IS NOT NULL
                   AND duration_minutes > 0
             ");
@@ -227,8 +228,9 @@ class ProduktionskostnadController {
                 SELECT
                     DATE(start_time) AS dag,
                     COALESCE(SUM(duration_minutes), 0) AS stopp_minuter
-                FROM rebotling_log
-                WHERE DATE(start_time) BETWEEN :from_date AND :to_date
+                FROM stoppage_log
+                WHERE line = 'rebotling'
+                  AND DATE(start_time) BETWEEN :from_date AND :to_date
                   AND duration_minutes IS NOT NULL
                   AND duration_minutes > 0
                 GROUP BY DATE(start_time)

@@ -1,3 +1,40 @@
+## 2026-03-18 Session #154 Worker A — 8 buggar fixade (response headers + SQL columns + unused vars)
+
+### Uppgift 1: PHP response header audit — 0 fixar (redan korrekt)
+Granskade alla 100+ PHP-controllers i noreko-backend/classes/.
+- api.php sattar redan `Content-Type: application/json; charset=utf-8` och `Cache-Control: no-store` globalt (rad 54+60).
+- Inga controllers overskriver Content-Type felaktigt — bara CSV-export (BonusAdminController, TidrapportController, RebotlingAnalyticsController) och HTML-export (RebotlingAnalyticsController) sattar egna headers, vilket ar korrekt.
+- `http_response_code()` anvands konsekvent for felkoder.
+- Inga saknade cache headers — api.php hanterar globalt.
+
+### Uppgift 2: PHP SQL column name audit — 4 fixar
+Hittade referens till icke-existerande tabell `rebotling_log` i 2 controllers:
+
+1. **ProduktionskostnadController.php** (2 fixar):
+   - `getStopptidMinuter()`: `FROM rebotling_log` -> `FROM stoppage_log WHERE line = 'rebotling'`
+   - `getStopptidPerDay()`: `FROM rebotling_log` -> `FROM stoppage_log WHERE line = 'rebotling'`
+   - Kolumnerna `start_time` och `duration_minutes` matchar `stoppage_log`-schemat.
+
+2. **SkiftplaneringController.php** (2 fixar):
+   - `getShiftDetail()`: `FROM rebotling_log WHERE timestamp` -> `FROM rebotling_ibc WHERE datum`
+   - `getCapacity()`: `FROM rebotling_log WHERE timestamp` -> `FROM rebotling_ibc WHERE datum`
+   - Tabellen `rebotling_log` existerar inte i nagon migration.
+
+### Uppgift 3: PHP unused variable cleanup — 4 fixar
+1. **ForstaTimmeAnalysController.php:339**: `$shiftName` loop-nyckel i `foreach` anvandes aldrig i loop-kroppen — borttagen.
+2. **ProduktionsPrognosController.php:326**: `$cur = clone $now` tilldelad men aldrig anvand (ersatt av `$day` pa rad 332) — borttagen.
+3. **SkiftjamforelseController.php:444**: `$today = date('Y-m-d')` tilldelad men aldrig anvand i `trend()` — borttagen.
+4. **AuthHelper.php:17 + LoginController.php:68**: `$pdo` och `$userId` parametrar i `verifyPassword()` anvandes aldrig (kvarlevor fran sha1->bcrypt migration) — borttagna fran bade metod-signatur och anrop.
+
+Fixade filer:
+- noreko-backend/classes/ProduktionskostnadController.php
+- noreko-backend/classes/SkiftplaneringController.php
+- noreko-backend/classes/ForstaTimmeAnalysController.php
+- noreko-backend/classes/ProduktionsPrognosController.php
+- noreko-backend/classes/SkiftjamforelseController.php
+- noreko-backend/classes/AuthHelper.php
+- noreko-backend/classes/LoginController.php
+
 ## 2026-03-18 Session #153 Worker B — 57 buggar fixade (retry audit + route guard + duplicate imports)
 ### Uppgift 1: Angular HTTP retry audit — 0 fixar (dokumentation)
 Granskade alla 92+ services i noreko-frontend/src/app/services/.

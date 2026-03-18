@@ -65,7 +65,7 @@ class LoginController {
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user && AuthHelper::verifyPassword($password, $user['password'], $pdo, $user['id'])) {
+            if ($user && AuthHelper::verifyPassword($password, $user['password'])) {
                 AuthHelper::clearAttempts($pdo, $ip);
                 AuthHelper::recordAttempt($pdo, $ip, $username, true);
 

@@ -441,7 +441,6 @@ class SkiftjamforelseController {
     private function trend(): void {
         try {
             $days  = $this->getDays();
-            $today = date('Y-m-d');
 
             $trendPoints = [];
 

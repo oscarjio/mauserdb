@@ -336,7 +336,7 @@ class ForstaTimmeAnalysController {
 
                 // Genomsnittlig tid till forsta IBC for alla skift denna dag
                 $skiftTider = [];
-                foreach (self::SHIFT_STARTS as $shiftName => $startTime) {
+                foreach (self::SHIFT_STARTS as $startTime) {
                     $startTs      = strtotime($dateStr . ' ' . $startTime . ':00');
                     $firstHourEnd = $startTs + 3600;
 
