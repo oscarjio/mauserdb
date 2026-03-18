@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #149)*
+*Senast uppdaterad: 2026-03-18 (session #150)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -76,28 +76,29 @@ Session #146: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL injection f
 Session #147: BUGGJAKT — 10 buggar (Worker A). Rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
 Session #148: BUGGJAKT — 21 buggar (14 Worker A + 7 Worker B). Transaction consistency (4 controllers), json_decode null-safety (10 fix) + unused FormsModule imports (5), form validation (2).
 Session #149: BUGGJAKT — 161 buggar (16 Worker A + 145 Worker B). File I/O guards (2), DateTime try/catch (12), json_decode null-safety (4) + HTTP timeout/catchError (145 i 31 komponenter). Memory leak audit OK.
+Session #150: BUGGJAKT — 77 buggar (28 Worker A + 49 Worker B). Error logging consistency (15), unused $e (6), input validation trim (7) + template accessibility (49 aria-labels/roles i 12 filer). Lazy loading OK, unused imports OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] Angular lazy loading performance — bundle-storlekar, onodiga imports
-- [ ] PHP error logging consistency
-- [ ] Angular template accessibility
-- [ ] Angular unused imports cleanup (diagnostics-varningar kvar)
-- [ ] PHP unused variables cleanup ($e, $opRows etc)
+- [ ] Angular error state UI audit — felmeddelanden i templates
+- [ ] PHP unused vars kvar — $ignored, $opRows, $dtEx, $multiplier (diagnostik-varningar)
+- [ ] PHP response format audit — konsekvent JSON-format
+- [ ] Angular form validation audit
+- [ ] PHP SQL query audit — komplexa queries
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #147 (klar)
-Worker A: 10 buggar — rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
-Worker B: ej kord.
-
 ### 2026-03-17 — Session #148 (klar)
-Worker A: 14 buggar — 4 transaction consistency (KvalitetscertifikatController, RebotlingAdminController x3, OperatorController), 10 json_decode null-safety.
-Worker B: 7 buggar — 5 unused FormsModule imports, 2 form validation (avvikelselarm min, batch-sparning max).
+Worker A: 14 buggar — 4 transaction consistency, 10 json_decode null-safety.
+Worker B: 7 buggar — 5 unused FormsModule imports, 2 form validation.
 
 ### 2026-03-17 — Session #149 (klar)
-Worker A: 16 buggar — 2 file I/O (VpnController fwrite), 12 DateTime try/catch (6 controllers), 4 json_decode null-safety (4 controllers).
-Worker B: 145 buggar — 145 HTTP timeout/catchError i 31 komponenter. Memory leak audit: alla OK (Chart.js destroy, clearInterval, takeUntil).
+Worker A: 16 buggar — 2 file I/O, 12 DateTime try/catch, 4 json_decode null-safety.
+Worker B: 145 buggar — 145 HTTP timeout/catchError i 31 komponenter. Memory leak audit OK.
+
+### 2026-03-18 — Session #150 (klar)
+Worker A: 28 buggar — 15 error logging consistency (11 filer), 6 unused $e (catch-block), 7 input validation trim.
+Worker B: 49 buggar — 49 template accessibility (aria-labels, aria-live, role=progressbar i 12 filer). Lazy loading OK, unused imports OK.
