@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #155)*
+*Senast uppdaterad: 2026-03-18 (session #156)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -82,28 +82,31 @@ Session #152: BUGGJAKT — 59 buggar (22 Worker A + 37 Worker B). Transaction wr
 Session #153: BUGGJAKT — 119 buggar (62 Worker A + 57 Worker B). DateTime timezone (26 i 5 controllers), in_array strict (32 i 22 controllers), json_decode null-safety (4) + duplicate imports (57 i 57 filer). File upload OK (inga uploads), retry OK, route guards OK.
 Session #154: BUGGJAKT — 61 buggar (8 Worker A + 53 Worker B). Response headers OK (globalt i api.php), SQL column fixes (rebotling_log->stoppage_log/rebotling_ibc), unused vars (4) + form validation (20 i 10 komponenter), template !.->?. (33 i 3 komponenter).
 Session #155: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). error_log OK, integer casting OK, 8 json_decode null-safety + HTTP errors redan svenska, 47 trackByIndex->trackById (32 komponenter).
+Session #156: BUGGJAKT — 25 buggar (10 Worker A + 15 Worker B). strtotime false-check (7 controllers), DateTime try/catch (2), transaction wrapping (3), file path traversal OK + 15 setTimeout destroy$-guards (12 komponenter), form reset OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP date/time edge case audit — strtotime/DateTime med ogiltiga indata
-- [ ] Angular memory leak audit — chart.destroy(), clearInterval, unsubscribe
-- [ ] PHP file path traversal audit — filsokvagar via user input
-- [ ] PHP transaction consistency audit — multi-query med transactions
-- [ ] Angular form reset audit — rensa state efter submit/cancel
+- [x] PHP date/time edge case audit — 7 strtotime + 2 DateTime + 1 preg_match (session #156)
+- [x] Angular memory leak audit — 15 setTimeout guards (session #156)
+- [x] PHP file path traversal audit — alla sokvagar sakra (session #156)
+- [x] PHP transaction consistency audit — 3 transaction wraps (session #156)
+- [x] Angular form reset audit — alla formuler redan korrekta (session #156)
+- [ ] PHP SQL ORDER BY injection audit — verifiera kolumn-whitelist
+- [ ] Angular route param validation audit — validera route params
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-18 — Session #153 (klar)
-Worker A: 62 buggar — 26 DateTime explicit timezone (5 controllers), 32 in_array strict mode (22 controllers), 4 json_decode null-safety (BonusAdmin). File upload audit: inga uploads finns.
-Worker B: 57 buggar — 57 duplicate rxjs-imports sammanfogade (55 filer dubbla rxjs + 2 andra). HTTP retry OK, route guards OK.
-
 ### 2026-03-18 — Session #154 (klar)
-Worker A: 8 buggar — Response headers OK (globalt), 4 SQL column fixes (rebotling_log existerar ej, fixat i 2 controllers), 4 unused vars (ForstaTimmeAnalys, ProduktionsPrognos, Skiftjamforelse, AuthHelper/Login).
-Worker B: 53 buggar — 20 form validation (felmeddelanden pa svenska i 10 komponenter), 33 template expression !.->?. (gamification, operator-ranking, statistik-dashboard).
+Worker A: 8 buggar — Response headers OK (globalt), 4 SQL column fixes, 4 unused vars.
+Worker B: 53 buggar — 20 form validation, 33 template !.->?..
 
 ### 2026-03-18 — Session #155 (klar)
-Worker A: 8 buggar — error_log consistency OK (inga var_dump/print_r), integer casting OK (alla params korrekt), 8 json_decode null-safety (AlertsController, ProduktionsTaktController, BonusAdminController).
-Worker B: 47 buggar — HTTP felmeddelanden redan pa svenska (0 fix), 47 trackByIndex->trackById/trackByDatum/etc i 32 komponenter. Build OK.
+Worker A: 8 buggar — error_log OK, integer casting OK, 8 json_decode null-safety.
+Worker B: 47 buggar — HTTP errors redan svenska, 47 trackByIndex->trackById (32 komponenter).
+
+### 2026-03-18 — Session #156 (klar)
+Worker A: 10 buggar — 7 strtotime false-check (7 controllers), 2 DateTime try/catch, 1 preg_match validation, file path traversal OK, 3 transaction wraps (ProduktionsmalController, ProduktionsSlaController, BonusAdminController).
+Worker B: 15 buggar — 15 setTimeout utan destroy$-guard (12 komponenter), form reset OK. Build OK.

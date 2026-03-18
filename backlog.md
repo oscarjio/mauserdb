@@ -7,16 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP error_log consistency audit** — redan konsekvent format, inga var_dump/print_r (session #155)
-- [x] **Angular HTTP error message audit** — alla felmeddelanden redan pa svenska (session #155)
-- [x] **PHP integer casting audit** — alla params redan korrekt castade (session #155)
-- [x] **PHP array key existence audit** — 8 json_decode null-safety fixar (session #155)
-- [x] **Angular change detection audit** — 47 trackByIndex->trackById i 32 komponenter (session #155)
-- [ ] **PHP date/time edge case audit** — strtotime/DateTime med ogiltiga indata, saknade try/catch
-- [ ] **Angular memory leak audit** — chart.destroy(), clearInterval, unsubscribe i alla komponenter
-- [ ] **PHP file path traversal audit** — verifiera att filsokvagar inte kan manipuleras via user input
-- [ ] **PHP transaction consistency audit** — verifiera att alla multi-query-operationer anvander transactions
-- [ ] **Angular form reset audit** — formuler som inte rensar state efter submit/cancel
+- [x] **PHP date/time edge case audit** — 7 strtotime + 2 DateTime + 1 preg_match (session #156)
+- [x] **Angular memory leak audit** — 15 setTimeout guards i 12 komponenter (session #156)
+- [x] **PHP file path traversal audit** — alla sokvagar sakra, inga fixar kravdes (session #156)
+- [x] **PHP transaction consistency audit** — 3 transaction wraps (session #156)
+- [x] **Angular form reset audit** — alla formuler redan korrekta (session #156)
+- [ ] **PHP SQL ORDER BY injection audit** — verifiera att ORDER BY-kolumner whitelist-valideras
+- [ ] **Angular route param validation audit** — verifiera att route params valideras fore anvandning
+- [ ] **PHP error response format audit** — verifiera konsekvent JSON-felformat i alla controllers
+- [ ] **Angular loading state audit** — verifiera att alla HTTP-anrop visar laddningsindikator
+- [ ] **PHP unused method audit** — identifiera och ta bort oanvanda metoder i controllers
 
 ## Parkerade features (ta inte dessa nu)
 
