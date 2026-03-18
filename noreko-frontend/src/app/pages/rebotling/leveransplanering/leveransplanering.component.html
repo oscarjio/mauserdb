@@ -222,11 +222,17 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label" for="orderKundnamn">Kundnamn *</label>
-              <input type="text" id="orderKundnamn" class="form-control" [(ngModel)]="newOrder.kundnamn" name="kundnamn" placeholder="T.ex. BASF Ludwigshafen" required maxlength="200" aria-required="true">
+              <input type="text" id="orderKundnamn" class="form-control" [(ngModel)]="newOrder.kundnamn" name="kundnamn" #kundnamnCtrl="ngModel" placeholder="T.ex. BASF Ludwigshafen" required maxlength="200" aria-required="true">
+              <div class="text-danger small mt-1" *ngIf="kundnamnCtrl.invalid && kundnamnCtrl.touched">
+                Kundnamn krävs.
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label" for="orderAntalIbc">Antal IBC *</label>
-              <input type="number" id="orderAntalIbc" class="form-control" [(ngModel)]="newOrder.antal_ibc" name="antal_ibc" min="1" max="999999" required aria-required="true">
+              <input type="number" id="orderAntalIbc" class="form-control" [(ngModel)]="newOrder.antal_ibc" name="antal_ibc" #antalIbcCtrl="ngModel" min="1" max="999999" required aria-required="true">
+              <div class="text-danger small mt-1" *ngIf="antalIbcCtrl.invalid && antalIbcCtrl.touched">
+                Ange antal IBC (minst 1).
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label" for="orderPrioritet">Prioritet (1-10)</label>
@@ -238,7 +244,10 @@
             </div>
             <div class="col-md-6">
               <label class="form-label" for="orderLeveransdatum">Onskat leveransdatum *</label>
-              <input type="date" id="orderLeveransdatum" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" required aria-required="true">
+              <input type="date" id="orderLeveransdatum" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" #levDatumCtrl="ngModel" required aria-required="true">
+              <div class="text-danger small mt-1" *ngIf="levDatumCtrl.invalid && levDatumCtrl.touched">
+                Önskat leveransdatum krävs.
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label" for="orderNotering">Notering</label>

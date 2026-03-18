@@ -259,16 +259,22 @@
           <label class="form-label" for="serviceMaskinId">Maskin <span class="text-danger">*</span></label>
           <select id="serviceMaskinId" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.maskin_id"
-                  name="maskin_id" required aria-required="true">
+                  name="maskin_id" #maskinIdCtrl="ngModel" required aria-required="true">
             <option [value]="0" disabled>Välj maskin...</option>
             <option *ngFor="let m of maskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
           </select>
+          <div class="text-danger small mt-1" *ngIf="maskinIdCtrl.touched && !addServiceForm.maskin_id">
+            Välj en maskin.
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label" for="serviceDatum">Servicedatum <span class="text-danger">*</span></label>
           <input type="date" id="serviceDatum" class="form-control form-control-dark"
                  [(ngModel)]="addServiceForm.service_datum"
-                 name="service_datum" required aria-required="true" />
+                 name="service_datum" #serviceDatumCtrl="ngModel" required aria-required="true" />
+          <div class="text-danger small mt-1" *ngIf="serviceDatumCtrl.invalid && serviceDatumCtrl.touched">
+            Servicedatum krävs.
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label" for="serviceTyp">Servicetyp</label>
@@ -328,8 +334,11 @@
           <label class="form-label" for="maskinNamn">Namn <span class="text-danger">*</span></label>
           <input type="text" id="maskinNamn" class="form-control form-control-dark"
                  [(ngModel)]="addMachineForm.namn"
-                 name="namn" required aria-required="true"
+                 name="namn" #maskinNamnCtrl="ngModel" required aria-required="true"
                  placeholder="T.ex. Tvättmaskin 2..." />
+          <div class="text-danger small mt-1" *ngIf="maskinNamnCtrl.invalid && maskinNamnCtrl.touched">
+            Maskinnamn krävs.
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label" for="maskinBeskrivning">Beskrivning</label>
@@ -342,9 +351,12 @@
           <label class="form-label" for="maskinIntervall">Serviceintervall (dagar) <span class="text-danger">*</span></label>
           <input type="number" id="maskinIntervall" class="form-control form-control-dark"
                  [(ngModel)]="addMachineForm.service_intervall_dagar"
-                 name="service_intervall_dagar"
+                 name="service_intervall_dagar" #intervallDagarCtrl="ngModel"
                  min="1" max="3650" required aria-required="true" />
           <small class="text-muted">Antal dagar mellan planerade serviceinsatser.</small>
+          <div class="text-danger small mt-1" *ngIf="intervallDagarCtrl.invalid && intervallDagarCtrl.touched">
+            Ange ett serviceintervall (1-3650 dagar).
+          </div>
         </div>
         <div class="alert alert-success py-2" *ngIf="maskinMessage">{{ maskinMessage }}</div>
         <div class="alert alert-danger py-2" *ngIf="maskinError">{{ maskinError }}</div>

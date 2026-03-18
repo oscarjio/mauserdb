@@ -276,8 +276,11 @@
         <span class="ms-2 small">{{ kvitteraLarm.meddelande }}</span>
       </div>
       <div class="mb-3">
-        <label class="form-label small text-muted">Ditt namn</label>
-        <input type="text" class="form-control form-control-sm" [(ngModel)]="kvitteraNamn" placeholder="Fornamn Efternamn">
+        <label class="form-label small text-muted">Ditt namn *</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="kvitteraNamn" name="kvitteraNamn" #kvitteraNamnCtrl="ngModel" placeholder="Fornamn Efternamn" required>
+        <div class="text-danger small mt-1" *ngIf="kvitteraNamnCtrl.invalid && kvitteraNamnCtrl.touched">
+          Namn krävs för att kvittera.
+        </div>
       </div>
       <div class="mb-3">
         <label class="form-label small text-muted">Kommentar (valfritt)</label>

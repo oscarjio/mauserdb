@@ -253,9 +253,13 @@
           </select>
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label text-muted small">Antal IBC</label>
+          <label class="form-label text-muted small">Antal IBC *</label>
           <input type="number" class="form-control form-control-dark"
-                 [(ngModel)]="formAntal" placeholder="t.ex. 120" min="1" max="99999">
+                 [(ngModel)]="formAntal" name="formAntal" #formAntalCtrl="ngModel"
+                 placeholder="t.ex. 120" min="1" max="99999" required>
+          <div class="text-danger small mt-1" *ngIf="formAntalCtrl.invalid && formAntalCtrl.touched">
+            Ange ett giltigt antal (minst 1).
+          </div>
         </div>
         <div class="col-12 col-md-3">
           <button class="btn btn-success w-100"

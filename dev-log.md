@@ -1,3 +1,24 @@
+## 2026-03-18 Session #154 Worker B — 53 buggar fixade (form validation + template expressions)
+
+### Uppgift 1: Angular form validation audit — 20 fixar
+Granskade alla Angular-komponenter med formuler (template-driven forms med ngModel).
+- maintenance-form: Lade till per-falt felmeddelanden for titel och starttid (2 fix)
+- service-intervals: Lade till felmeddelanden for maskinnamn och intervall (2 fix)
+- produktionsmal: Lade till required + felmeddelande for antal IBC (1 fix)
+- kapacitetsplanering: Lade till required + felmeddelanden for orderbehov, prognos-timmar, prognos-operatorer (3 fix)
+- maskinunderhall: Lade till felmeddelanden for maskin-valj, servicedatum, maskinnamn, serviceintervall (4 fix)
+- leveransplanering: Lade till felmeddelanden for kundnamn, antal IBC, leveransdatum (3 fix)
+- batch-sparning: Lade till felmeddelanden for batch-nummer och planerat antal, fixade labels med * (2 fix)
+- kassationskvot-alarm: Lade till felmeddelanden for varnings- och alarmtrosklar (2 fix)
+- avvikelselarm: Lade till required + felmeddelande for kvitteringsnamn (1 fix)
+Alla felmeddelanden ar pa svenska.
+
+### Uppgift 2: Angular template expression audit — 33 fixar
+Granskade alla templates (.component.html) utom livesidor.
+- gamification.component.html: Ersatte 12 st leaderboardData!.leaderboard[N].prop med safe navigation (?.) + 3 st ?? '' fallback for getInitials() (15 fix)
+- operator-ranking.component.html: Ersatte 12 st topplistaData!.topplista[N].prop med safe navigation (?.) + 3 st ?? '' fallback for getInitials() + fixade mvpData!.mvp!.streak (16 fix)
+- statistik-dashboard.component.html: Fixade 2 st nullable uttryck utan ?. (aktiv_operator.operator_name, aktiv_operator.senaste_datum) + 1 st row.basta_operator?.operator_name (3 fix, varav 1 defensiv)
+
 ## 2026-03-18 Session #154 Worker A — 8 buggar fixade (response headers + SQL columns + unused vars)
 
 ### Uppgift 1: PHP response header audit — 0 fixar (redan korrekt)

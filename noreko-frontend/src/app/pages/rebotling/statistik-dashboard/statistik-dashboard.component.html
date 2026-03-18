@@ -137,13 +137,13 @@
         <div class="kpi-content">
           <div class="kpi-label">Aktiv operatör just nu</div>
           <div class="kpi-value kpi-value-sm" *ngIf="summary.aktiv_operator">
-            {{ summary.aktiv_operator.operator_name }}
+            {{ summary.aktiv_operator?.operator_name }}
           </div>
           <div class="kpi-value kpi-value-sm text-muted" *ngIf="!summary.aktiv_operator">
             Ingen data
           </div>
           <div class="kpi-diff text-muted" *ngIf="summary.aktiv_operator">
-            Senaste registrering: {{ summary.aktiv_operator.senaste_datum | slice:0:10 }}
+            Senaste registrering: {{ summary.aktiv_operator?.senaste_datum | slice:0:10 }}
           </div>
         </div>
       </div>
@@ -320,7 +320,7 @@
               <td class="text-end">{{ row.ibc_per_h }}</td>
               <td>
                 <span *ngIf="row.basta_operator" class="operator-chip">
-                  <i class="fas fa-user me-1"></i>{{ row.basta_operator.operator_name }}
+                  <i class="fas fa-user me-1"></i>{{ row.basta_operator?.operator_name }}
                 </span>
                 <span *ngIf="!row.basta_operator" class="text-muted">—</span>
               </td>

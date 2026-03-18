@@ -69,9 +69,12 @@ import { localDateStr } from '../../../utils/date-utils';
               <div class="col-12">
                 <label class="form-label form-label-dark">Titel *</label>
                 <input type="text" class="form-control form-control-dark"
-                       [(ngModel)]="form.title" name="title"
+                       [(ngModel)]="form.title" name="title" #titleCtrl="ngModel"
                        placeholder="Kortfattad beskrivning av underhållet"
                        maxlength="150" required />
+                <div class="text-danger small mt-1" *ngIf="titleCtrl.invalid && titleCtrl.touched">
+                  Titel krävs.
+                </div>
               </div>
 
               <!-- Beskrivning -->
@@ -86,7 +89,10 @@ import { localDateStr } from '../../../utils/date-utils';
               <div class="col-12 col-md-6">
                 <label class="form-label form-label-dark">Starttid *</label>
                 <input type="datetime-local" class="form-control form-control-dark"
-                       [(ngModel)]="form.start_time" name="start_time" required />
+                       [(ngModel)]="form.start_time" name="start_time" #startTimeCtrl="ngModel" required />
+                <div class="text-danger small mt-1" *ngIf="startTimeCtrl.invalid && startTimeCtrl.touched">
+                  Starttid krävs.
+                </div>
               </div>
 
               <!-- Varaktighet -->

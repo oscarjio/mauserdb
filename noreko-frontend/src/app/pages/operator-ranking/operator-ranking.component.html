@@ -26,12 +26,12 @@
           </div>
           <div class="podium-rank">#2</div>
           <div class="podium-avatar" style="border-color:#C0C0C0; background:rgba(192,192,192,0.15)">
-            {{ getInitials(topplistaData!.topplista[1].operator_namn) }}
+            {{ getInitials(topplistaData?.topplista?.[1]?.operator_namn ?? '') }}
           </div>
-          <div class="podium-name">{{ topplistaData!.topplista[1].operator_namn }}</div>
-          <div class="podium-poang">{{ topplistaData!.topplista[1].total_poang }}</div>
+          <div class="podium-name">{{ topplistaData?.topplista?.[1]?.operator_namn }}</div>
+          <div class="podium-poang">{{ topplistaData?.topplista?.[1]?.total_poang }}</div>
           <div class="podium-label">poang</div>
-          <div class="podium-ibc">{{ topplistaData!.topplista[1].total_ibc }} IBC</div>
+          <div class="podium-ibc">{{ topplistaData?.topplista?.[1]?.total_ibc }} IBC</div>
         </div>
       </div>
       <!-- Guld - plats 1 -->
@@ -42,12 +42,12 @@
           </div>
           <div class="podium-rank">#1</div>
           <div class="podium-avatar podium-avatar-gold" style="border-color:#FFD700; background:rgba(255,215,0,0.15)">
-            {{ getInitials(topplistaData!.topplista[0].operator_namn) }}
+            {{ getInitials(topplistaData?.topplista?.[0]?.operator_namn ?? '') }}
           </div>
-          <div class="podium-name">{{ topplistaData!.topplista[0].operator_namn }}</div>
-          <div class="podium-poang podium-poang-gold">{{ topplistaData!.topplista[0].total_poang }}</div>
+          <div class="podium-name">{{ topplistaData?.topplista?.[0]?.operator_namn }}</div>
+          <div class="podium-poang podium-poang-gold">{{ topplistaData?.topplista?.[0]?.total_poang }}</div>
           <div class="podium-label">poang</div>
-          <div class="podium-ibc">{{ topplistaData!.topplista[0].total_ibc }} IBC</div>
+          <div class="podium-ibc">{{ topplistaData?.topplista?.[0]?.total_ibc }} IBC</div>
         </div>
       </div>
       <!-- Brons - plats 3 -->
@@ -58,12 +58,12 @@
           </div>
           <div class="podium-rank">#3</div>
           <div class="podium-avatar" style="border-color:#CD7F32; background:rgba(205,127,50,0.15)">
-            {{ getInitials(topplistaData!.topplista[2].operator_namn) }}
+            {{ getInitials(topplistaData?.topplista?.[2]?.operator_namn ?? '') }}
           </div>
-          <div class="podium-name">{{ topplistaData!.topplista[2].operator_namn }}</div>
-          <div class="podium-poang">{{ topplistaData!.topplista[2].total_poang }}</div>
+          <div class="podium-name">{{ topplistaData?.topplista?.[2]?.operator_namn }}</div>
+          <div class="podium-poang">{{ topplistaData?.topplista?.[2]?.total_poang }}</div>
           <div class="podium-label">poang</div>
-          <div class="podium-ibc">{{ topplistaData!.topplista[2].total_ibc }} IBC</div>
+          <div class="podium-ibc">{{ topplistaData?.topplista?.[2]?.total_ibc }} IBC</div>
         </div>
       </div>
     </div>
@@ -151,7 +151,7 @@
                 <span class="mvp-stat-label">kvalitet</span>
               </div>
               <div class="mvp-stat" *ngIf="(mvpData?.mvp?.streak ?? 0) > 0">
-                <span class="mvp-stat-value">{{ mvpData!.mvp!.streak }}d</span>
+                <span class="mvp-stat-value">{{ mvpData?.mvp?.streak }}d</span>
                 <span class="mvp-stat-label">streak</span>
               </div>
             </div>

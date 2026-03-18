@@ -237,12 +237,15 @@
     <div class="kp-card-body">
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-6 col-lg-4">
-          <label class="form-label text-light small">Orderbehov (antal IBC)</label>
+          <label class="form-label text-light small">Orderbehov (antal IBC) *</label>
           <div class="input-group input-group-sm">
-            <input type="number" class="form-control kp-input" [(ngModel)]="orderbehovInput" min="1" max="99999">
-            <button class="btn btn-info" (click)="uppdateraBemanning()">
+            <input type="number" class="form-control kp-input" [(ngModel)]="orderbehovInput" name="orderbehov" #orderbehovCtrl="ngModel" min="1" max="99999" required>
+            <button class="btn btn-info" (click)="uppdateraBemanning()" [disabled]="!orderbehovInput || orderbehovInput < 1">
               <i class="fas fa-calculator me-1"></i>Berakna
             </button>
+          </div>
+          <div class="text-danger small mt-1" *ngIf="orderbehovCtrl.invalid && orderbehovCtrl.touched">
+            Ange ett orderbehov (minst 1 IBC).
           </div>
         </div>
       </div>
@@ -380,12 +383,18 @@
 
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-4">
-          <label class="form-label text-light small">Antal timmar</label>
-          <input type="number" class="form-control kp-input" [(ngModel)]="prognosTimmar" min="1" max="24">
+          <label class="form-label text-light small">Antal timmar *</label>
+          <input type="number" class="form-control kp-input" [(ngModel)]="prognosTimmar" name="prognosTimmar" #progTimCtrl="ngModel" min="1" max="24" required>
+          <div class="text-danger small mt-1" *ngIf="progTimCtrl.invalid && progTimCtrl.touched">
+            Ange antal timmar (1-24).
+          </div>
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label text-light small">Antal operatorer</label>
-          <input type="number" class="form-control kp-input" [(ngModel)]="prognosOperatorer" min="1" max="50">
+          <label class="form-label text-light small">Antal operatorer *</label>
+          <input type="number" class="form-control kp-input" [(ngModel)]="prognosOperatorer" name="prognosOperatorer" #progOpCtrl="ngModel" min="1" max="50" required>
+          <div class="text-danger small mt-1" *ngIf="progOpCtrl.invalid && progOpCtrl.touched">
+            Ange antal operatorer (1-50).
+          </div>
         </div>
         <div class="col-12 col-md-4 d-flex align-items-end">
           <button class="btn btn-info w-100" (click)="beraknaPrognos()">

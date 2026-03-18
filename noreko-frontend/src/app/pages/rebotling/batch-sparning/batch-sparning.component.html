@@ -348,12 +348,18 @@
 
       <form (ngSubmit)="submitCreateBatch()">
         <div class="mb-3">
-          <label class="form-label" for="batchNummer">Batch-nummer</label>
-          <input type="text" id="batchNummer" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" required placeholder="T.ex. BATCH-2026-0312" aria-required="true">
+          <label class="form-label" for="batchNummer">Batch-nummer *</label>
+          <input type="text" id="batchNummer" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" #batchNumCtrl="ngModel" required placeholder="T.ex. BATCH-2026-0312" aria-required="true">
+          <div class="text-danger small mt-1" *ngIf="batchNumCtrl.invalid && batchNumCtrl.touched">
+            Batch-nummer krävs.
+          </div>
         </div>
         <div class="mb-3">
-          <label class="form-label" for="planeratAntal">Planerat antal IBC</label>
-          <input type="number" id="planeratAntal" class="form-control dark-input" [(ngModel)]="createForm.planerat_antal" name="planerat_antal" min="1" max="99999" required aria-required="true">
+          <label class="form-label" for="planeratAntal">Planerat antal IBC *</label>
+          <input type="number" id="planeratAntal" class="form-control dark-input" [(ngModel)]="createForm.planerat_antal" name="planerat_antal" #planeratCtrl="ngModel" min="1" max="99999" required aria-required="true">
+          <div class="text-danger small mt-1" *ngIf="planeratCtrl.invalid && planeratCtrl.touched">
+            Ange planerat antal (minst 1).
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label" for="batchKommentar">Kommentar</label>

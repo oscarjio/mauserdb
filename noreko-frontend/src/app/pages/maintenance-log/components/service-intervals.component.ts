@@ -146,15 +146,21 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
               <div class="col-12">
                 <label class="form-label form-label-dark">Maskinnamn *</label>
                 <input type="text" class="form-control form-control-dark"
-                       [(ngModel)]="serviceForm.maskin_namn" name="maskin_namn"
+                       [(ngModel)]="serviceForm.maskin_namn" name="maskin_namn" #maskinNamnCtrl="ngModel"
                        placeholder="t.ex. Rebotling-linje 1" maxlength="100" required />
+                <div class="text-danger small mt-1" *ngIf="maskinNamnCtrl.invalid && maskinNamnCtrl.touched">
+                  Maskinnamn krävs.
+                </div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label form-label-dark">Intervall (IBC) *</label>
                 <input type="number" class="form-control form-control-dark"
-                       [(ngModel)]="serviceForm.intervall_ibc" name="intervall_ibc"
+                       [(ngModel)]="serviceForm.intervall_ibc" name="intervall_ibc" #intervallCtrl="ngModel"
                        placeholder="5000" min="1" required />
                 <div class="form-text text-muted">Service var X:e IBC</div>
+                <div class="text-danger small mt-1" *ngIf="intervallCtrl.invalid && intervallCtrl.touched">
+                  Intervall måste vara minst 1.
+                </div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label form-label-dark">Senaste service IBC-räknare</label>

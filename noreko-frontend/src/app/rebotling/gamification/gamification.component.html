@@ -42,12 +42,12 @@
             <div class="podium-medal"><i class="fas fa-medal" style="color:#C0C0C0; font-size:1.5rem"></i></div>
             <div class="podium-rank">#2</div>
             <div class="podium-avatar" style="border-color:#C0C0C0; background:rgba(192,192,192,0.15)">
-              {{ getInitials(leaderboardData!.leaderboard[1].operator_namn) }}
+              {{ getInitials(leaderboardData?.leaderboard?.[1]?.operator_namn ?? '') }}
             </div>
-            <div class="podium-name">{{ leaderboardData!.leaderboard[1].operator_namn }}</div>
-            <div class="podium-poang">{{ leaderboardData!.leaderboard[1].total_poang }}</div>
+            <div class="podium-name">{{ leaderboardData?.leaderboard?.[1]?.operator_namn }}</div>
+            <div class="podium-poang">{{ leaderboardData?.leaderboard?.[1]?.total_poang }}</div>
             <div class="podium-label">poang</div>
-            <div class="podium-ibc">{{ leaderboardData!.leaderboard[1].total_ibc }} IBC</div>
+            <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[1]?.total_ibc }} IBC</div>
           </div>
         </div>
         <!-- Guld -->
@@ -56,12 +56,12 @@
             <div class="podium-medal"><i class="fas fa-crown" style="color:#FFD700; font-size:2rem"></i></div>
             <div class="podium-rank">#1</div>
             <div class="podium-avatar podium-avatar-gold" style="border-color:#FFD700; background:rgba(255,215,0,0.15)">
-              {{ getInitials(leaderboardData!.leaderboard[0].operator_namn) }}
+              {{ getInitials(leaderboardData?.leaderboard?.[0]?.operator_namn ?? '') }}
             </div>
-            <div class="podium-name">{{ leaderboardData!.leaderboard[0].operator_namn }}</div>
-            <div class="podium-poang podium-poang-gold">{{ leaderboardData!.leaderboard[0].total_poang }}</div>
+            <div class="podium-name">{{ leaderboardData?.leaderboard?.[0]?.operator_namn }}</div>
+            <div class="podium-poang podium-poang-gold">{{ leaderboardData?.leaderboard?.[0]?.total_poang }}</div>
             <div class="podium-label">poang</div>
-            <div class="podium-ibc">{{ leaderboardData!.leaderboard[0].total_ibc }} IBC</div>
+            <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[0]?.total_ibc }} IBC</div>
           </div>
         </div>
         <!-- Brons -->
@@ -70,12 +70,12 @@
             <div class="podium-medal"><i class="fas fa-medal" style="color:#CD7F32; font-size:1.5rem"></i></div>
             <div class="podium-rank">#3</div>
             <div class="podium-avatar" style="border-color:#CD7F32; background:rgba(205,127,50,0.15)">
-              {{ getInitials(leaderboardData!.leaderboard[2].operator_namn) }}
+              {{ getInitials(leaderboardData?.leaderboard?.[2]?.operator_namn ?? '') }}
             </div>
-            <div class="podium-name">{{ leaderboardData!.leaderboard[2].operator_namn }}</div>
-            <div class="podium-poang">{{ leaderboardData!.leaderboard[2].total_poang }}</div>
+            <div class="podium-name">{{ leaderboardData?.leaderboard?.[2]?.operator_namn }}</div>
+            <div class="podium-poang">{{ leaderboardData?.leaderboard?.[2]?.total_poang }}</div>
             <div class="podium-label">poang</div>
-            <div class="podium-ibc">{{ leaderboardData!.leaderboard[2].total_ibc }} IBC</div>
+            <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[2]?.total_ibc }} IBC</div>
           </div>
         </div>
       </div>
