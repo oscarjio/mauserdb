@@ -1,3 +1,39 @@
+## 2026-03-18 Session #161 Worker B — Angular buggjakt (3 audits: change detection, observable completion, i18n)
+
+### Audit 1: Angular change detection audit — 1 bugg fixad
+Granskade samtliga 41 Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live):
+- **ChangeDetectionStrategy.OnPush**: Ingen komponent anvander OnPush — men kodbasen anvander standalone-komponenter med manuell state-hantering (boolean-flaggor for loading/error) och Chart.js DOM-manipulation. OnPush skulle krava omstrukturering till observables/signals. Befintlig arkitektur ar konsekvent och fungerar korrekt.
+- **Tunga berakningar i templates**: Inga tunga berakningar hittades i templates — helper-metoder ar latta (string-formattering, farg-lookup). Manga komponenter cachar beraknade listor i properties (t.ex. cachedSortedEquipmentStats, cachedFilteredRanking, sortedRanking).
+- ***ngFor utan trackBy**: Hittade 1 fall i skiftrapport-sammanstallning.html (rad 243) — inline static array saknade trackBy. Fixat med trackByIndex.
+- **Onodig mutation**: Inga mutable array-uppdateringar hittades — komponenter anvander spread operator ([...array]) for sortering och immutable patterns for data-uppdatering.
+- **Frekventa DOM-uppdateringar**: Alla polling-komponenter anvander debounce-guards (isFetching-flaggor) for att undvika dubbla requests.
+
+### Audit 2: Angular observable completion audit — 0 buggar
+Granskade samtliga 41 komponenter + 96 services:
+- **takeUntil(this.destroy$)**: Alla 41 komponenter med subscribe() anvander takeUntil(this.destroy$) eller manuell unsubscribe(). Alla har OnDestroy med destroy$.next()/complete().
+- **interval/timer**: 5 anvandningar hittade — alla har takeUntil(this.destroy$) eller manuell unsubscribe via Subscription. auth.service.ts anvander pollSub.unsubscribe(). alerts.service.ts anvander timer med takeUntil(this.destroy$).
+- **forkJoin**: 2 anvandningar (vd-dashboard, produktions-dashboard) — bada med HTTP-observables som naturligt completar + catchError. Korrekt.
+- **combineLatest**: 1 anvandning i auth.guard.ts — med take(1), korrekt.
+- **setInterval/setTimeout**: Alla clearas i ngOnDestroy. Alla setTimeout-callbacks gardar med !this.destroy$.closed.
+- **Chart.js**: Alla chart-instanser destroyas i ngOnDestroy.
+
+### Audit 3: Angular i18n/hardcoded strings audit — 0 buggar
+Granskade samtliga HTML-templates och .ts-filer:
+- **Loading-text**: Alla anvander "Laddar..." (svenska). Inga "Loading..." hittade.
+- **Felmeddelanden**: Alla pa svenska — "Kunde inte hamta...", "Natverksfel", etc. Inga engelska felmeddelanden i UI-text.
+- **Knapptexter**: Alla pa svenska — "Spara", "Avbryt", "Ta bort", "Redigera", "Uppdatera", "Stang". Inga engelska knapptexter.
+- **Placeholder-text**: Alla pa svenska — "Valfri kommentar...", "Sok bland funktioner...", etc.
+- **title/aria-label**: Alla pa svenska — "Exportera till CSV", "Skriv ut", "Stang panel", etc.
+- **"OK"**: Anvands som universell term (identisk pa svenska/engelska) — acceptabelt.
+- **console.log/error**: Engelska meddelanden i console — OK enligt reglerna.
+
+### Sammanfattning
+- **Granskade**: 41 komponenter, 96 services, ~37 HTML-templates
+- **Buggar fixade**: 1 (ngFor utan trackBy i skiftrapport-sammanstallning.html)
+- **Kodbasen ar valskriven**: Konsekvent anvandning av destroy$/takeUntil, trackBy pa alla ngFor, alla UI-strangar pa svenska, korrekt cleanup i ngOnDestroy.
+
+---
+
 ## 2026-03-18 Session #160 Worker A — PHP buggjakt (3 audits: SQL edge cases, date/time, array access)
 
 ### Audit 1: PHP SQL query edge case audit — 0 buggar
