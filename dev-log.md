@@ -1,3 +1,38 @@
+## 2026-03-18 Session #164 Worker B — Angular buggjakt (2 audits: template accessibility, lazy loading)
+
+### Audit 1: Angular template accessibility audit — 15 buggar fixade
+Granskade alla Angular-komponentmallar i noreko-frontend/src/app/ (utom rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Klickbara element utan tangentbordsstod (keyboard accessibility):**
+1. **skiftoverlamning.component.html** — 6 checklista-divs med (click) saknade role="checkbox", tabindex, keydown.enter/space. Fix: lade till ARIA-attribut och keyboard-handlers.
+2. **skiftoverlamning.component.html** — historik-rad (clickable-row) saknade role="button", tabindex, keydown, aria-expanded. Fix: tillagt.
+3. **stopporsaker.component.html** — detail-row div saknade keyboard-stod. Fix: role="button", tabindex, keydown, aria-expanded.
+4. **favoriter.html** — add-page-item divs saknade keyboard-stod. Fix: role="button", tabindex, keydown.
+5. **favoriter.html** — add-dialog overlay saknade role="dialog", aria-modal, keydown.escape. Fix: tillagt.
+6. **drifttids-timeline.component.html** — timeline-segment divs saknade keyboard-stod och aria-label. Fix: role="button", tabindex, aria-label, keydown.
+7. **drifttids-timeline.component.html** — tabellrader med (click) saknade tabindex och keydown. Fix: tillagt.
+
+**Saknade aria-attribut:**
+8. **drifttids-timeline.component.html** — date-input saknade aria-label. Fix: aria-label="Valj datum for tidslinje".
+9. **vd-dashboard.component.html** — 2 spinners saknade visually-hidden text. Fix: tillagt.
+
+**Tabeller utan scope="col" pa th-element (13 tabeller i 11 filer):**
+10-15. gamification.component.html, daglig-briefing.component.html, prediktivt-underhall.component.html (2 tabeller), tidrapport.component.html (2 tabeller), operator-ranking.component.html, oee-trendanalys.component.html (2 tabeller), stopporsaker.component.html, drifttids-timeline.component.html, historisk-sammanfattning.component.html (3 tabeller), effektivitet.html, alarm-historik.html, feature-flag-admin.html — alla fick scope="col".
+
+### Audit 2: Angular lazy loading audit — 0 buggar
+Granskade app.routes.ts och app.config.ts:
+- **Alla 80+ routes** anvander loadComponent() med dynamisk import (lazy loading). Korrekt.
+- **PreloadAllModules** preload-strategi ar konfigurerad i app.config.ts. Korrekt.
+- **Layout** ar enda eagerly importerade komponenten (app-shell). Korrekt.
+- **Inga felaktiga sokvagar** — alla loadComponent-importer pekar pa existerande filer.
+- **Inga circular dependencies** i route-konfigurationen.
+- **Route guards** (authGuard, adminGuard) korrekt applicerade.
+- Inga routing-mismatchar hittade.
+
+**Filer andrade**: skiftoverlamning.component.html, stopporsaker.component.html, favoriter.html, drifttids-timeline.component.html, vd-dashboard.component.html, gamification.component.html, daglig-briefing.component.html, prediktivt-underhall.component.html, tidrapport.component.html, operator-ranking.component.html, oee-trendanalys.component.html, historisk-sammanfattning.component.html, effektivitet.html, alarm-historik.html, feature-flag-admin.html
+
+---
+
 ## 2026-03-18 Session #163 Worker A — PHP buggjakt (2 audits: numeric overflow, LIKE injection)
 
 ### Audit 1: PHP numeric overflow audit — 2 buggar fixade
