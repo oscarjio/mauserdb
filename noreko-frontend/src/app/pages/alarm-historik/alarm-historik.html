@@ -19,7 +19,9 @@
           class="btn btn-sm"
           [class.btn-primary]="days === d"
           [class.btn-outline-secondary]="days !== d"
-          (click)="onDaysChange(d)">
+          (click)="onDaysChange(d)"
+          [attr.aria-label]="'Visa ' + (d === 7 ? '7 dagar' : d === 30 ? '30 dagar' : '90 dagar')"
+          [attr.aria-pressed]="days === d">
           {{ d === 7 ? '7 dagar' : d === 30 ? '30 dagar' : '90 dagar' }}
         </button>
       </div>
@@ -28,7 +30,7 @@
     <!-- Severity-filter -->
     <div class="filter-group">
       <label class="filter-label">Allvarlighetsgrad</label>
-      <select class="form-select form-select-sm" [(ngModel)]="filterSeverity" (change)="onFilterChange()">
+      <select class="form-select form-select-sm" [(ngModel)]="filterSeverity" (change)="onFilterChange()" aria-label="Filtrera allvarlighetsgrad">
         <option value="all">Alla</option>
         <option value="critical">Kritiska</option>
         <option value="warning">Varningar</option>
@@ -39,7 +41,7 @@
     <!-- Typ-filter -->
     <div class="filter-group">
       <label class="filter-label">Larmtyp</label>
-      <select class="form-select form-select-sm" [(ngModel)]="filterTyp" (change)="onFilterChange()">
+      <select class="form-select form-select-sm" [(ngModel)]="filterTyp" (change)="onFilterChange()" aria-label="Filtrera larmtyp">
         <option value="all">Alla typer</option>
         <option *ngFor="let t of typOptionsForFilter; trackBy: trackByIndex" [value]="t">{{ t }}</option>
       </select>

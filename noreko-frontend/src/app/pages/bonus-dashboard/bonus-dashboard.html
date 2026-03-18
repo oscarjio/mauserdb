@@ -8,13 +8,13 @@
         <small class="text-muted">Realtidsöversikt av operatörsbonus</small>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <select class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+        <select class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()" aria-label="Valj tidsperiod">
           <option value="today">Idag</option>
           <option value="week">Senaste 7 dagar</option>
           <option value="month">Senaste 30 dagar</option>
           <option value="year">Senaste året</option>
         </select>
-        <button class="btn btn-sm btn-outline-info" (click)="toggleTeamView()">
+        <button class="btn btn-sm btn-outline-info" (click)="toggleTeamView()" aria-label="Visa eller dolj skiftdata">
           <i class="fas fa-users me-1"></i>{{ showTeamView ? 'Dölj skift' : 'Visa skift' }}
         </button>
       </div>
@@ -107,7 +107,7 @@
         <i class="fas fa-chart-line me-2 text-info"></i>Veckans IBC/h-trend
         <small class="text-muted ms-2 fw-normal" style="font-size:0.75rem;">(Per operatör, måndag–idag)</small>
       </h5>
-      <button class="btn btn-sm btn-outline-secondary" (click)="loadWeekTrend()" title="Uppdatera">
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadWeekTrend()" title="Uppdatera" aria-label="Uppdatera veckotrend">
         <i class="fas fa-sync-alt"></i>
       </button>
     </div>
@@ -137,11 +137,11 @@
       <h5 class="card-title"><i class="fas fa-search me-2"></i>Sök operatör</h5>
       <div class="input-group">
         <input type="text" class="form-control" placeholder="Ange operatör-ID..."
-               [(ngModel)]="searchOperatorId" (keyup.enter)="searchOperator()">
-        <button class="btn btn-info" (click)="searchOperator()" [disabled]="!searchOperatorId.trim() || searchLoading">
+               [(ngModel)]="searchOperatorId" (keyup.enter)="searchOperator()" aria-label="Sok operator med ID">
+        <button class="btn btn-info" (click)="searchOperator()" [disabled]="!searchOperatorId.trim() || searchLoading" aria-label="Sok operator">
           <i class="fas" [class.fa-search]="!searchLoading" [class.fa-spinner]="searchLoading" [class.fa-spin]="searchLoading"></i> Sök
         </button>
-        <button class="btn btn-outline-secondary" *ngIf="operatorData" (click)="clearOperatorSearch()">
+        <button class="btn btn-outline-secondary" *ngIf="operatorData" (click)="clearOperatorSearch()" aria-label="Rensa operatorssokning">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -362,11 +362,11 @@
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <!-- Period-jämförelseknapp -->
         <div class="period-toggle-group">
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'today'" (click)="selectedPeriod='today'; onPeriodChange()">Idag</button>
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()">Denna vecka</button>
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()">Denna månad</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'today'" (click)="selectedPeriod='today'; onPeriodChange()" aria-label="Visa ranking for idag" [attr.aria-pressed]="selectedPeriod === 'today'">Idag</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()" aria-label="Visa ranking for denna vecka" [attr.aria-pressed]="selectedPeriod === 'week'">Denna vecka</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()" aria-label="Visa ranking for denna manad" [attr.aria-pressed]="selectedPeriod === 'month'">Denna månad</button>
         </div>
-        <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="cachedActiveRanking.length > 0" title="Exportera ranking till CSV">
+        <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="cachedActiveRanking.length > 0" title="Exportera ranking till CSV" aria-label="Exportera ranking till CSV">
           <i class="fas fa-download me-1"></i>CSV
         </button>
       </div>

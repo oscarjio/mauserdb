@@ -16,8 +16,9 @@
             type="text"
             class="form-control hub-search"
             placeholder="Sök bland funktioner..."
-            [(ngModel)]="searchQuery" />
-          <button class="hub-search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">
+            [(ngModel)]="searchQuery"
+            aria-label="Sok bland funktioner" />
+          <button class="hub-search-clear" *ngIf="searchQuery" (click)="searchQuery = ''" aria-label="Rensa sokning">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -29,13 +30,15 @@
       <div class="hub-tabs">
         <button class="hub-tab"
                 [class.active]="activeTab === 'all'"
-                (click)="setTab('all')">
+                (click)="setTab('all')"
+                [attr.aria-pressed]="activeTab === 'all'">
           <i class="fas fa-border-all me-1"></i>Alla
           <span class="hub-tab-badge">{{ totalVisible }}</span>
         </button>
         <button class="hub-tab"
                 [class.active]="activeTab === 'favorites'"
-                (click)="setTab('favorites')">
+                (click)="setTab('favorites')"
+                [attr.aria-pressed]="activeTab === 'favorites'">
           <i class="fas fa-star me-1" style="color:#ecc94b"></i>Favoriter
           <span class="hub-tab-badge" *ngIf="favCount > 0">{{ favCount }}</span>
         </button>
@@ -65,7 +68,9 @@
             <button class="hub-fav-btn"
                     [class.active]="isFav(item.route)"
                     (click)="toggleFavorite(item.route, $event)"
-                    title="Favoritmarkera">
+                    title="Favoritmarkera"
+                    [attr.aria-label]="'Favoritmarkera ' + item.label"
+                    [attr.aria-pressed]="isFav(item.route)">
               <i [class]="isFav(item.route) ? 'fas fa-star' : 'far fa-star'"></i>
             </button>
             <div class="hub-card-icon">

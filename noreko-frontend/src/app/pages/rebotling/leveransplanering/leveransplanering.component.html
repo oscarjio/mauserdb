@@ -6,10 +6,10 @@
       <i class="fas fa-truck-loading me-2" style="color:#63b3ed"></i>Leveransplanering
     </h2>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-      <button class="btn btn-sm btn-outline-info" (click)="showNewOrderModal = true">
+      <button class="btn btn-sm btn-outline-info" (click)="showNewOrderModal = true" aria-label="Skapa ny kundorder">
         <i class="fas fa-plus me-1"></i>Ny order
       </button>
-      <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" [disabled]="loading">
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" [disabled]="loading" aria-label="Uppdatera leveransdata">
         <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Uppdatera
       </button>
     </div>
@@ -211,7 +211,7 @@
   </div>
 
   <!-- NY ORDER MODAL -->
-  <div class="modal fade show d-block" tabindex="-1" *ngIf="showNewOrderModal" style="background:rgba(0,0,0,0.6)">
+  <div class="modal fade show d-block" tabindex="-1" *ngIf="showNewOrderModal" style="background:rgba(0,0,0,0.6)" role="dialog" aria-modal="true" aria-label="Ny kundorder">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -221,28 +221,28 @@
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Kundnamn *</label>
-              <input type="text" class="form-control" [(ngModel)]="newOrder.kundnamn" name="kundnamn" placeholder="T.ex. BASF Ludwigshafen" required maxlength="200">
+              <label class="form-label" for="orderKundnamn">Kundnamn *</label>
+              <input type="text" id="orderKundnamn" class="form-control" [(ngModel)]="newOrder.kundnamn" name="kundnamn" placeholder="T.ex. BASF Ludwigshafen" required maxlength="200" aria-required="true">
             </div>
             <div class="col-md-3">
-              <label class="form-label">Antal IBC *</label>
-              <input type="number" class="form-control" [(ngModel)]="newOrder.antal_ibc" name="antal_ibc" min="1" max="999999" required>
+              <label class="form-label" for="orderAntalIbc">Antal IBC *</label>
+              <input type="number" id="orderAntalIbc" class="form-control" [(ngModel)]="newOrder.antal_ibc" name="antal_ibc" min="1" max="999999" required aria-required="true">
             </div>
             <div class="col-md-3">
-              <label class="form-label">Prioritet (1-10)</label>
-              <input type="number" class="form-control" [(ngModel)]="newOrder.prioritet" name="prioritet" min="1" max="10">
+              <label class="form-label" for="orderPrioritet">Prioritet (1-10)</label>
+              <input type="number" id="orderPrioritet" class="form-control" [(ngModel)]="newOrder.prioritet" name="prioritet" min="1" max="10">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Bestallningsdatum</label>
-              <input type="date" class="form-control" [(ngModel)]="newOrder.bestallningsdatum" name="bestallningsdatum">
+              <label class="form-label" for="orderBestallning">Bestallningsdatum</label>
+              <input type="date" id="orderBestallning" class="form-control" [(ngModel)]="newOrder.bestallningsdatum" name="bestallningsdatum">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Onskat leveransdatum *</label>
-              <input type="date" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" required>
+              <label class="form-label" for="orderLeveransdatum">Onskat leveransdatum *</label>
+              <input type="date" id="orderLeveransdatum" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" required aria-required="true">
             </div>
             <div class="col-12">
-              <label class="form-label">Notering</label>
-              <textarea class="form-control" rows="2" [(ngModel)]="newOrder.notering" name="notering" placeholder="Valfri notering..." maxlength="1000"></textarea>
+              <label class="form-label" for="orderNotering">Notering</label>
+              <textarea id="orderNotering" class="form-control" rows="2" [(ngModel)]="newOrder.notering" name="notering" placeholder="Valfri notering..." maxlength="1000"></textarea>
             </div>
           </div>
           <div class="alert alert-danger mt-3 py-2" *ngIf="newOrderError">{{ newOrderError }}</div>

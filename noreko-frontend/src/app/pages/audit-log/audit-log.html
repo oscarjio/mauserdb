@@ -17,7 +17,7 @@
             <small class="text-muted">Spåra alla admin-ändringar i systemet</small>
           </div>
           <div class="header-actions">
-            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" [disabled]="exportingAll || logs.length === 0" title="Exportera filtrerad vy som CSV">
+            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" [disabled]="exportingAll || logs.length === 0" title="Exportera filtrerad vy som CSV" aria-label="Exportera revisionslogg till CSV">
               <span *ngIf="!exportingAll"><i class="fas fa-download me-1"></i>Exportera CSV</span>
               <span *ngIf="exportingAll"><i class="fas fa-spinner fa-spin me-1"></i>Exporterar...</span>
             </button>
@@ -45,7 +45,7 @@
           <!-- Action dropdown (dynamic) -->
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-tag me-1"></i>Åtgärdstyp</label>
-            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()">
+            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()" aria-label="Filtrera atgardstyp">
               <option value="">Alla åtgärder</option>
               <ng-container *ngIf="availableActions.length > 0; else staticOptions">
                 <option *ngFor="let a of availableActions; trackBy: trackByIndex" [value]="a">{{ getActionLabel(a) }}</option>
@@ -75,7 +75,7 @@
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-user me-1"></i>Användare</label>
             <input type="text" class="form-control form-control-sm filter-input"
-                   placeholder="Filtrera användare..."
+                   placeholder="Filtrera användare..." aria-label="Filtrera pa anvandare"
                    [(ngModel)]="filterUser" (keyup.enter)="onFilterChange()" (blur)="onFilterChange()">
           </div>
 
@@ -83,7 +83,7 @@
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-calendar me-1"></i>Period</label>
             <div class="d-flex gap-1 align-items-center">
-              <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()" [disabled]="showDateRange">
+              <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()" [disabled]="showDateRange" aria-label="Valj tidsperiod">
                 <option value="today">Idag</option>
                 <option value="week">Senaste 7 dagar</option>
                 <option value="month">Senaste 30 dagar</option>
@@ -92,7 +92,7 @@
               <button class="btn btn-sm"
                       [class.btn-outline-info]="!showDateRange"
                       [class.btn-info]="showDateRange"
-                      (click)="toggleDateRange()" title="Anpassat datumintervall">
+                      (click)="toggleDateRange()" title="Anpassat datumintervall" aria-label="Visa anpassat datumintervall">
                 <i class="fas fa-calendar-alt"></i>
               </button>
             </div>
@@ -104,12 +104,12 @@
           <div class="filter-group">
             <label class="filter-label">Från datum</label>
             <input type="date" class="form-control form-control-sm filter-input"
-                   [(ngModel)]="fromDate" (change)="onFilterChange()">
+                   [(ngModel)]="fromDate" (change)="onFilterChange()" aria-label="Fran datum">
           </div>
           <div class="filter-group">
             <label class="filter-label">Till datum</label>
             <input type="date" class="form-control form-control-sm filter-input"
-                   [(ngModel)]="toDate" (change)="onFilterChange()">
+                   [(ngModel)]="toDate" (change)="onFilterChange()" aria-label="Till datum">
           </div>
           <div class="filter-result-note" *ngIf="totalCount > 0">
             <i class="fas fa-info-circle me-1"></i>{{ totalCount }} poster matchar filtret

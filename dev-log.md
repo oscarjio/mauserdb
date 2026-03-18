@@ -1,3 +1,34 @@
+## 2026-03-18 Session #150 Worker B — 49 buggar fixade (accessibility audit, aria-labels, aria-live)
+### Uppgift: Angular buggjakt — lazy loading audit, unused imports cleanup, template accessibility
+
+**Del 1 — Angular lazy loading audit (0 buggar — redan korrekt):**
+Alla routes i app.routes.ts anvander redan loadComponent() (standalone lazy loading).
+Inga SharedModule-problem — projektet ar modulefritt med standalone components.
+PreloadAllModules ar konfigurerat i app.config.ts — acceptabel design for detta produktionssystem.
+
+**Del 2 — Unused imports cleanup (0 buggar — redan rent):**
+Systematisk genomgang av alla ~90 TypeScript-filer i pages/ (exkl. live-sidor).
+Kontrollerade rxjs-imports (of, timeout, catchError, Subject, forkJoin, etc) och Angular-imports
+(OnInit, OnDestroy, ViewChild, CommonModule, FormsModule, etc). Alla imports anvands korrekt.
+
+**Del 3 — Template accessibility (49 buggar fixade i 12 filer):**
+Systematisk genomgang av alla HTML-templates i pages/ for saknade aria-attribut.
+
+- `executive-dashboard.html` — 7 fixar: aria-label pa knappar (Uppdatera, Skriv ut, Forhandsgranska, Skicka veckorapport, Forsok igen), aria-label pa vecko-input, role=progressbar pa progress-bar
+- `bonus-dashboard.html` — 9 fixar: aria-label pa select (period), knappar (teamvy, uppdatera, sok, rensa, CSV-export), input (sok operator), aria-pressed pa 3 period-toggle-knappar
+- `alarm-historik.html` — 3 fixar: aria-label/aria-pressed pa periodknappar, aria-label pa severity-select och typ-select
+- `audit-log.html` — 7 fixar: aria-label pa export-knapp, atgardstyp-select, anvandare-input, period-select, datumintervall-knapp, 2 datum-inputs
+- `favoriter.html` — 6 fixar: aria-label pa lagg-till-knapp, flytta upp/ner/ta bort-knappar, stang-knapp, sok-input
+- `feature-flag-admin.html` — 4 fixar: aria-label pa 2 spara-knappar, dynamisk aria-label pa checkbox och roll-select
+- `funktionshub.html` — 5 fixar: aria-label pa sok-input och rensa-knapp, aria-pressed pa flik-knappar, dynamisk aria-label/aria-pressed pa favorit-knappar
+- `leveransplanering.component.html` — 2 fixar: aria-label pa ny order-knapp och uppdatera-knapp
+- `maskinunderhall.component.html` — 2 fixar: aria-label pa registrera service och ny maskin-knappar
+- `produktions-dashboard.component.html` — 2 fixar: aria-live="polite" pa laddningsindikator, aria-live="assertive" pa felmeddelande
+- `stopporsaker.component.html` — 1 fix: aria-live="assertive" pa felmeddelande
+- `vd-dashboard.component.html` — 1 fix: aria-live="assertive" pa felmeddelande
+
+Bygget (npx ng build) lyckas utan fel. Endast CommonJS-varningar fran canvg/html2canvas (tredjepartsberoenden).
+
 ## 2026-03-18 Session #150 Worker A — 28 buggar fixade (error logging, unused vars, input validation)
 ### Uppgift: PHP buggjakt — error logging consistency, unused variables cleanup, input validation audit
 

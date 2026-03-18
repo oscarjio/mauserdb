@@ -27,10 +27,10 @@
   </div>
 
   <!-- Felmeddelande -->
-  <div *ngIf="errorMessage && !oversikt" class="text-center py-5">
+  <div *ngIf="errorMessage && !oversikt" class="text-center py-5" aria-live="assertive">
     <i class="bi bi-exclamation-triangle" style="font-size:2.5rem; color:#fc8181;"></i>
     <p class="mt-3" style="color:#fc8181;">{{ errorMessage }}</p>
-    <button class="btn btn-sm" style="background:#2d3748; color:#e2e8f0; border:1px solid #4a5568;" (click)="loadAll()">
+    <button class="btn btn-sm" style="background:#2d3748; color:#e2e8f0; border:1px solid #4a5568;" (click)="loadAll()" aria-label="Forsok ladda data igen">
       <i class="bi bi-arrow-repeat me-1"></i>Forsok igen
     </button>
   </div>
@@ -100,7 +100,9 @@
       </div>
       <div style="background:#1a202c; border-radius:8px; height:28px; overflow:hidden;">
         <div [style.width]="getMalBarWidth()" [style.background]="getMalBarColor()"
-             style="height:100%; border-radius:8px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:center;">
+             style="height:100%; border-radius:8px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:center;"
+             role="progressbar" [attr.aria-valuenow]="oversikt.mal_procent" aria-valuemin="0" aria-valuemax="100"
+             [attr.aria-label]="'Maluppfyllnad ' + oversikt.mal_procent + '%'">
           <span style="color:#1a202c; font-weight:700; font-size:0.8rem;" *ngIf="oversikt.mal_procent >= 15">
             {{ oversikt.mal_procent }}%
           </span>

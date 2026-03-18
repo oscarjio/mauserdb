@@ -2,7 +2,7 @@
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="page-title"><i class="fas fa-star me-2" style="color:#ecc94b"></i>Mina favoriter</h1>
-      <button class="btn btn-primary btn-sm" (click)="openAddDialog()">
+      <button class="btn btn-primary btn-sm" (click)="openAddDialog()" aria-label="Lagg till ny favoritsida">
         <i class="fas fa-plus me-1"></i>Lagg till sida
       </button>
     </div>
@@ -41,13 +41,13 @@
             </a>
           </div>
           <div class="favorit-card-actions">
-            <button class="btn btn-sm btn-outline-secondary" (click)="moveUp(i)" [disabled]="i === 0" title="Flytta upp">
+            <button class="btn btn-sm btn-outline-secondary" (click)="moveUp(i)" [disabled]="i === 0" title="Flytta upp" aria-label="Flytta upp">
               <i class="fas fa-arrow-up"></i>
             </button>
-            <button class="btn btn-sm btn-outline-secondary" (click)="moveDown(i)" [disabled]="i === favoriter.length - 1" title="Flytta ner">
+            <button class="btn btn-sm btn-outline-secondary" (click)="moveDown(i)" [disabled]="i === favoriter.length - 1" title="Flytta ner" aria-label="Flytta ner">
               <i class="fas fa-arrow-down"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="removeFavorit(fav)" title="Ta bort">
+            <button class="btn btn-sm btn-outline-danger" (click)="removeFavorit(fav)" title="Ta bort" aria-label="Ta bort favorit">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -60,10 +60,10 @@
       <div class="add-dialog" (click)="$event.stopPropagation()">
         <div class="add-dialog-header">
           <h5><i class="fas fa-plus-circle me-2"></i>Lagg till favorit</h5>
-          <button class="btn-close btn-close-white" (click)="closeAddDialog()"></button>
+          <button class="btn-close btn-close-white" (click)="closeAddDialog()" aria-label="Stang dialog"></button>
         </div>
         <div class="add-dialog-search">
-          <input type="text" class="form-control form-control-sm" placeholder="Sok bland sidor..." [(ngModel)]="searchQuery">
+          <input type="text" class="form-control form-control-sm" placeholder="Sok bland sidor..." [(ngModel)]="searchQuery" aria-label="Sok bland sidor">
         </div>
         <div class="add-dialog-list">
           <div class="add-page-item" *ngFor="let page of filteredPages; trackBy: trackByIndex" (click)="addFavorit(page)">

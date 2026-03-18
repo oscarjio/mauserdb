@@ -105,7 +105,12 @@
         <div class="pd-progress-bar">
           <div class="pd-progress-fill"
                [style.width.%]="oversikt.drifttid_pct"
-               [style.background]="drifttidFarg(oversikt.drifttid_pct)">
+               [style.background]="drifttidFarg(oversikt.drifttid_pct)"
+               role="progressbar"
+               [attr.aria-valuenow]="oversikt.drifttid_pct"
+               aria-valuemin="0"
+               aria-valuemax="100"
+               [attr.aria-label]="'Drifttid ' + oversikt.drifttid_pct + '%'">
           </div>
         </div>
       </div>
@@ -146,12 +151,12 @@
   </div>
 
   <!-- Loading / Error for KPI -->
-  <div class="pd-loading-row" *ngIf="loadingOversikt">
+  <div class="pd-loading-row" *ngIf="loadingOversikt" aria-live="polite">
     <span class="pd-spinner"></span> Laddar KPI:er...
   </div>
-  <div class="pd-error-row" *ngIf="errorOversikt">
+  <div class="pd-error-row" *ngIf="errorOversikt" aria-live="assertive">
     <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda oversiktsdata.
-    <button class="pd-retry-btn" (click)="laddaOversikt()">Forsok igen</button>
+    <button class="pd-retry-btn" (click)="laddaOversikt()" aria-label="Forsok ladda oversiktsdata igen">Forsok igen</button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════

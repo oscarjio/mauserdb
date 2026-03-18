@@ -9,7 +9,9 @@
       <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
               class="period-btn"
               [class.active]="period === p.days"
-              (click)="setPeriod(p.days)">
+              (click)="setPeriod(p.days)"
+              [attr.aria-label]="'Visa period ' + p.label"
+              [attr.aria-pressed]="period === p.days">
         {{ p.label }}
       </button>
     </div>
@@ -65,7 +67,7 @@
     </div>
   </div>
 
-  <div *ngIf="errorSammanfattning" class="error-msg mb-3">
+  <div *ngIf="errorSammanfattning" class="error-msg mb-3" aria-live="assertive">
     <i class="fas fa-exclamation-circle me-1"></i> Kunde inte ladda sammanfattning. Kontrollera inloggning.
   </div>
 

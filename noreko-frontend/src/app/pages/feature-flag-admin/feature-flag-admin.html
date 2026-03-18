@@ -5,7 +5,7 @@
       <p class="text-muted-custom">Hantera vilka funktioner som är synliga och vilken rollnivå som krävs.</p>
     </div>
     <div class="col-auto d-flex align-items-center">
-      <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()">
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara feature flag-andringar">
         <i class="fas fa-save me-1"></i>{{ saving ? 'Sparar...' : 'Spara ändringar' }}
       </button>
     </div>
@@ -47,7 +47,7 @@
               <td>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" [(ngModel)]="flag.enabled"
-                         [id]="'ff-' + flag.id">
+                         [id]="'ff-' + flag.id" [attr.aria-label]="'Aktivera ' + flag.label">
                 </div>
               </td>
               <td>
@@ -57,7 +57,7 @@
                 <code class="feature-key">{{ flag.feature_key }}</code>
               </td>
               <td>
-                <select class="form-select form-select-sm role-select" [(ngModel)]="flag.min_role">
+                <select class="form-select form-select-sm role-select" [(ngModel)]="flag.min_role" [attr.aria-label]="'Minsta roll for ' + flag.label">
                   <option *ngFor="let r of roles; trackBy: trackByIndex" [value]="r">{{ roleLabel(r) }}</option>
                 </select>
               </td>
@@ -69,7 +69,7 @@
   </div>
 
   <div class="text-end mt-3" *ngIf="!loading && groups.length > 0">
-    <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()">
+    <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara feature flag-andringar">
       <i class="fas fa-save me-1"></i>{{ saving ? 'Sparar...' : 'Spara ändringar' }}
     </button>
   </div>

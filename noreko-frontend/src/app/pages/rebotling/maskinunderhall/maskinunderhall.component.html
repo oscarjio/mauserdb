@@ -6,10 +6,10 @@
       <i class="fas fa-wrench me-2" style="color:#68d391"></i>Maskinunderhåll
     </h2>
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-sm btn-success" (click)="openAddServiceModal()">
+      <button class="btn btn-sm btn-success" (click)="openAddServiceModal()" aria-label="Registrera ny service">
         <i class="fas fa-plus me-1"></i>Registrera service
       </button>
-      <button class="btn btn-sm btn-outline-info" (click)="openAddMachineModal()">
+      <button class="btn btn-sm btn-outline-info" (click)="openAddMachineModal()" aria-label="Lagg till ny maskin">
         <i class="fas fa-cogs me-1"></i>Ny maskin
       </button>
     </div>
@@ -72,7 +72,8 @@
         <label class="text-light mb-0 small">Filtrera:</label>
         <select class="form-select form-select-sm filter-select"
                 [(ngModel)]="statusFilter"
-                (ngModelChange)="onStatusFilter()">
+                (ngModelChange)="onStatusFilter()"
+                aria-label="Filtrera maskinstatus">
           <option value="alla">Alla</option>
           <option value="gron">Grona (OK)</option>
           <option value="gul">Gula (Snart)</option>
@@ -141,7 +142,7 @@
               <td>
                 <button class="btn btn-xs btn-outline-success"
                         (click)="$event.stopPropagation(); openAddServiceModal(m)"
-                        title="Registrera service">
+                        title="Registrera service" aria-label="Registrera service">
                   <i class="fas fa-plus"></i>
                 </button>
               </td>
@@ -154,7 +155,7 @@
                     <h6 class="mb-0">
                       <i class="fas fa-history me-2 text-info"></i>Servicehistorik — {{ m.namn }}
                     </h6>
-                    <button class="btn btn-xs btn-outline-secondary" (click)="closeHistory()">
+                    <button class="btn btn-xs btn-outline-secondary" (click)="closeHistory()" aria-label="Stang historik">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
@@ -253,25 +254,25 @@
       <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddServiceModal()"></button>
     </div>
     <div class="modal-body-custom">
-      <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm" novalidate>
+      <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm">
         <div class="mb-3">
-          <label class="form-label">Maskin <span class="text-danger">*</span></label>
-          <select class="form-select form-select-dark"
+          <label class="form-label" for="serviceMaskinId">Maskin <span class="text-danger">*</span></label>
+          <select id="serviceMaskinId" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.maskin_id"
-                  name="maskin_id" required>
+                  name="maskin_id" required aria-required="true">
             <option [value]="0" disabled>Välj maskin...</option>
             <option *ngFor="let m of maskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
           </select>
         </div>
         <div class="mb-3">
-          <label class="form-label">Servicedatum <span class="text-danger">*</span></label>
-          <input type="date" class="form-control form-control-dark"
+          <label class="form-label" for="serviceDatum">Servicedatum <span class="text-danger">*</span></label>
+          <input type="date" id="serviceDatum" class="form-control form-control-dark"
                  [(ngModel)]="addServiceForm.service_datum"
-                 name="service_datum" required />
+                 name="service_datum" required aria-required="true" />
         </div>
         <div class="mb-3">
-          <label class="form-label">Servicetyp</label>
-          <select class="form-select form-select-dark"
+          <label class="form-label" for="serviceTyp">Servicetyp</label>
+          <select id="serviceTyp" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.service_typ"
                   name="service_typ">
             <option value="planerat">Planerat</option>
@@ -280,22 +281,22 @@
           </select>
         </div>
         <div class="mb-3">
-          <label class="form-label">Beskrivning</label>
-          <textarea class="form-control form-control-dark" rows="3"
+          <label class="form-label" for="serviceBeskrivning">Beskrivning</label>
+          <textarea id="serviceBeskrivning" class="form-control form-control-dark" rows="3"
                     [(ngModel)]="addServiceForm.beskrivning"
                     name="beskrivning"
                     placeholder="Vad utfördes..."></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label">Utfört av</label>
-          <input type="text" class="form-control form-control-dark"
+          <label class="form-label" for="serviceUtfortAv">Utfört av</label>
+          <input type="text" id="serviceUtfortAv" class="form-control form-control-dark"
                  [(ngModel)]="addServiceForm.utfort_av"
                  name="utfort_av"
                  placeholder="Namn..." />
         </div>
         <div class="mb-3">
-          <label class="form-label">Nästa planerad service (valfritt)</label>
-          <input type="date" class="form-control form-control-dark"
+          <label class="form-label" for="serviceNastaPlanerad">Nästa planerad service (valfritt)</label>
+          <input type="date" id="serviceNastaPlanerad" class="form-control form-control-dark"
                  [(ngModel)]="addServiceForm.nasta_planerad_datum"
                  name="nasta_planerad_datum" />
           <small class="text-muted">Lämna tomt för automatisk beräkning baserat på serviceintervall.</small>
@@ -322,27 +323,27 @@
       <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddMachineModal()"></button>
     </div>
     <div class="modal-body-custom">
-      <form (ngSubmit)="submitAddMachine()" novalidate>
+      <form (ngSubmit)="submitAddMachine()">
         <div class="mb-3">
-          <label class="form-label">Namn <span class="text-danger">*</span></label>
-          <input type="text" class="form-control form-control-dark"
+          <label class="form-label" for="maskinNamn">Namn <span class="text-danger">*</span></label>
+          <input type="text" id="maskinNamn" class="form-control form-control-dark"
                  [(ngModel)]="addMachineForm.namn"
-                 name="namn" required
+                 name="namn" required aria-required="true"
                  placeholder="T.ex. Tvättmaskin 2..." />
         </div>
         <div class="mb-3">
-          <label class="form-label">Beskrivning</label>
-          <textarea class="form-control form-control-dark" rows="2"
+          <label class="form-label" for="maskinBeskrivning">Beskrivning</label>
+          <textarea id="maskinBeskrivning" class="form-control form-control-dark" rows="2"
                     [(ngModel)]="addMachineForm.beskrivning"
                     name="beskrivning"
                     placeholder="Kort beskrivning av maskinen..."></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label">Serviceintervall (dagar) <span class="text-danger">*</span></label>
-          <input type="number" class="form-control form-control-dark"
+          <label class="form-label" for="maskinIntervall">Serviceintervall (dagar) <span class="text-danger">*</span></label>
+          <input type="number" id="maskinIntervall" class="form-control form-control-dark"
                  [(ngModel)]="addMachineForm.service_intervall_dagar"
                  name="service_intervall_dagar"
-                 min="1" max="3650" required />
+                 min="1" max="3650" required aria-required="true" />
           <small class="text-muted">Antal dagar mellan planerade serviceinsatser.</small>
         </div>
         <div class="alert alert-success py-2" *ngIf="maskinMessage">{{ maskinMessage }}</div>
