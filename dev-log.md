@@ -1,3 +1,31 @@
+## 2026-03-18 Session #164 Worker A — PHP buggjakt (2 audits: error response consistency, race condition)
+
+### Audit 1: PHP error response consistency audit — 33 buggar fixade
+Granskade systematiskt ALLA PHP-controllers i noreko-backend/classes/ for felfall som returnerar HTTP 200 istallet for ratt felkod.
+
+**Granskade utan problem (redan korrekta)**:
+LoginController, RegisterController, ProfileController, AdminController, FavoriterController, FeatureFlagController, FeedbackController, HistorikController, StatusController, NarvaroController, DashboardLayoutController, ParetoController, StopporsakRegistreringController, ShiftHandoverController, CertificationController, WeeklyReportController, UnderhallsloggController, MaintenanceController, OperatorCompareController, AuditController, BatchSparningController, SkiftplaneringController, SkiftoverlamningController, VeckotrendController, ProduktionsflodeController.
+
+**Buggar fixade**:
+1. **KlassificeringslinjeController.php** — 8x saknad http_response_code: getSettings(500), setSettings(500), getSystemStatus(500), getWeekdayGoals(500), setWeekdayGoals(500), getTodaySnapshot(500), getLiveStats(500), getReport datumvalidering(400).
+2. **SaglinjeController.php** — 9x saknad http_response_code: getSettings(500), setSettings(500), getSystemStatus(500), getWeekdayGoals(500), setWeekdayGoals(500), getTodaySnapshot(500), getRunningStatus(500), getLiveStats(500), getStatistics(500), getReport datumvalidering(400).
+3. **TvattlinjeController.php** — 14x saknad http_response_code: getSettings(500), setSettings(500), getSystemStatus(500), getTodaySnapshot(500), getAlertThresholds(500), saveAlertThresholds(500), getWeekdayGoals(500), setWeekdayGoals(500), getLiveStats(500), getRunningStatus(500), getAdminSettings(500), saveAdminSettings catch(500) + validering(400), getStatistics(500), getReport datumvalidering(400).
+4. **VpnController.php** — 2x saknad http_response_code: disconnectClient-anroparen satte inte HTTP-statuskod vid fel(502), getVpnStatus fwrite-fel(502).
+
+### Audit 2: PHP race condition audit — 2 buggar fixade
+Granskade systematiskt ALLA PHP-controllers for read-modify-write utan locking, SELECT+UPDATE/INSERT utan transaction (TOCTOU), filoperationer utan flock.
+
+**Granskade utan problem (redan korrekta)**:
+RegisterController (FOR UPDATE i transaktion), AdminController (FOR UPDATE i alla mutationer), FavoriterController (FOR UPDATE for sort_order), FeedbackController (FOR UPDATE for double-submit), StopporsakRegistreringController (FOR UPDATE for endStop), ProfileController (transaktion), FeatureFlagController (bulkUpdate i transaktion), SkiftplaneringController (transaktion), BatchSparningController (transaktion), LoginController, StatusController (read-only), alla GET-only controllers.
+
+**Buggar fixade**:
+1. **RuntimeController.php registerBreakFromShelly()** — SELECT senaste rast_status + INSERT utan transaktion. Concurrent Shelly-webhooks kunde se samma senaste status och bada infoga. Fix: wrappat i BEGIN TRANSACTION + SELECT ... FOR UPDATE + COMMIT.
+2. **TvattlinjeController.php saveAdminSettings()** — SELECT COUNT(*) + if/UPDATE/else/INSERT utan transaktion (TOCTOU). Concurrent admin-sparningar kunde bada se COUNT=0 och forsoka INSERT, eller bada se COUNT>0 men lasa stale data. Fix: ersatt med INSERT ... ON DUPLICATE KEY UPDATE (atomart).
+
+**Filer andrade**: KlassificeringslinjeController.php, SaglinjeController.php, TvattlinjeController.php, VpnController.php, RuntimeController.php
+
+---
+
 ## 2026-03-18 Session #164 Worker B — Angular buggjakt (2 audits: template accessibility, lazy loading)
 
 ### Audit 1: Angular template accessibility audit — 15 buggar fixade
