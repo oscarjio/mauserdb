@@ -852,9 +852,9 @@ class RebotlingController {
                 $rs = null;
                 foreach ($rast_events as $ev) {
                     if ((int)$ev['rast_status'] === 1) {
-                        $rs = new DateTime($ev['datum']);
+                        $rs = new DateTime($ev['datum'], new DateTimeZone('Europe/Stockholm'));
                     } elseif ((int)$ev['rast_status'] === 0 && $rs !== null) {
-                        $d = $rs->diff(new DateTime($ev['datum']));
+                        $d = $rs->diff(new DateTime($ev['datum'], new DateTimeZone('Europe/Stockholm')));
                         $totalRastMinutes += ($d->days * 1440) + ($d->h * 60) + $d->i + ($d->s / 60);
                         $rs = null;
                     }
@@ -901,7 +901,7 @@ class RebotlingController {
                 $lastRunningStart = null;
                 
                 foreach ($onoff_events as $event) {
-                    $eventTime = new DateTime($event['datum']);
+                    $eventTime = new DateTime($event['datum'], new DateTimeZone('Europe/Stockholm'));
                     $isRunning = (bool)($event['running'] ?? false);
                     
                     if ($isRunning && $lastRunningStart === null) {
@@ -916,7 +916,7 @@ class RebotlingController {
                 
                 // Om maskinen fortfarande kör vid slutet av perioden
                 if ($lastRunningStart !== null) {
-                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum']);
+                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                     $diff = $lastRunningStart->diff($lastEventTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $totalRuntimeMinutes += $periodMinutes;
@@ -926,8 +926,8 @@ class RebotlingController {
             // Alternativ beräkning: Om vi inte fick runtime från events men har cykler,
             // uppskatta runtime från första till sista cykeln
             if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
-                $firstCycle = new DateTime($cycles[0]['datum']);
-                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
+                $firstCycle = new DateTime($cycles[0]['datum'], new DateTimeZone('Europe/Stockholm'));
+                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $diff = $firstCycle->diff($lastCycle);
                 $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
             }
@@ -1021,9 +1021,9 @@ class RebotlingController {
                 $rastStart = null;
                 foreach ($rast_events as $ev) {
                     if ((int)$ev['rast_status'] === 1 && $rastStart === null) {
-                        $rastStart = new DateTime($ev['datum_full']);
+                        $rastStart = new DateTime($ev['datum_full'], new DateTimeZone('Europe/Stockholm'));
                     } elseif ((int)$ev['rast_status'] === 0 && $rastStart !== null) {
-                        $end = new DateTime($ev['datum_full']);
+                        $end = new DateTime($ev['datum_full'], new DateTimeZone('Europe/Stockholm'));
                         $diff = $rastStart->diff($end);
                         $rast_total_min += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                         $rastStart = null;
@@ -1395,8 +1395,8 @@ class RebotlingController {
             }
             // Begränsa till max 365 dagar
             try {
-                $startDt = new DateTime($fromDate);
-                $endDt   = new DateTime($toDate);
+                $startDt = new DateTime($fromDate, new DateTimeZone('Europe/Stockholm'));
+                $endDt   = new DateTime($toDate, new DateTimeZone('Europe/Stockholm'));
             } catch (Exception $e) {
                 error_log('RebotlingController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);

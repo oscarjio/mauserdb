@@ -554,7 +554,7 @@ class ProduktionsSlaController {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
         $malTyp = trim($data['mal_typ'] ?? '');
-        if (!in_array($malTyp, ['dagligt', 'veckovist'])) {
+        if (!in_array($malTyp, ['dagligt', 'veckovist'], true)) {
             $this->sendError('mal_typ måste vara "dagligt" eller "veckovist"');
             return;
         }

@@ -481,7 +481,7 @@ class RebotlingAdminController {
                 // Validera tidsformat
                 if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $start)) continue;
                 if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $end))   continue;
-                if (in_array($name, ['förmiddag', 'eftermiddag', 'natt'])) {
+                if (in_array($name, ['förmiddag', 'eftermiddag', 'natt'], true)) {
                     $stmt->execute([$start, $end, $enabled, $name]);
                 }
             }

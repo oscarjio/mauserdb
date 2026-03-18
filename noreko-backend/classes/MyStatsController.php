@@ -60,7 +60,7 @@ class MyStatsController {
 
     private function getPeriod(): int {
         $p = intval($_GET['period'] ?? 30);
-        return in_array($p, [7, 30, 90]) ? $p : 30;
+        return in_array($p, [7, 30, 90], true) ? $p : 30;
     }
 
     private function getOperatorNumber(): ?int {

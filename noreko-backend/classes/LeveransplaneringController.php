@@ -87,7 +87,7 @@ class LeveransplaneringController {
     private function isWorkday(string $date, array $underhallsdagar): bool {
         $dow = (int)date('N', strtotime($date)); // 1=mon, 7=sun
         if ($dow >= 6) return false; // helg
-        if (in_array($date, $underhallsdagar)) return false;
+        if (in_array($date, $underhallsdagar, true)) return false;
         return true;
     }
 
@@ -232,7 +232,7 @@ class LeveransplaneringController {
             foreach ($rows as $row) {
                 $displayStatus = $row['status'];
                 // Berakna om i tid eller forsenad dynamiskt
-                if (in_array($row['status'], ['planerad', 'i_produktion'])) {
+                if (in_array($row['status'], ['planerad', 'i_produktion'], true)) {
                     if ($row['beraknat_leveransdatum'] && $row['beraknat_leveransdatum'] > $row['onskat_leveransdatum']) {
                         $displayStatus = 'forsenad';
                     }
@@ -533,7 +533,7 @@ class LeveransplaneringController {
             $id     = (int)($input['id'] ?? 0);
             $status = trim($input['status'] ?? '');
 
-            if (!$id || !in_array($status, ['planerad','i_produktion','levererad','forsenad'])) {
+            if (!$id || !in_array($status, ['planerad','i_produktion','levererad','forsenad'], true)) {
                 $this->sendError('Ogiltigt id eller status');
                 return;
             }

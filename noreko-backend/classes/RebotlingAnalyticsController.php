@@ -487,8 +487,8 @@ class RebotlingAnalyticsController {
             }
             // Begränsa till max 365 dagar för att förhindra timeout/memory exhaustion
             try {
-                $startDt = new DateTime($fromDate);
-                $endDt   = new DateTime($toDate);
+                $startDt = new DateTime($fromDate, new DateTimeZone('Europe/Stockholm'));
+                $endDt   = new DateTime($toDate, new DateTimeZone('Europe/Stockholm'));
             } catch (Exception $e) {
                 error_log('RebotlingAnalyticsController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
                 http_response_code(400);
@@ -1428,8 +1428,8 @@ class RebotlingAnalyticsController {
 
         // Begränsa datumintervall till max 365 dagar
         try {
-            $startDt = new DateTime($startDate);
-            $endDt   = new DateTime($endDate);
+            $startDt = new DateTime($startDate, new DateTimeZone('Europe/Stockholm'));
+            $endDt   = new DateTime($endDate, new DateTimeZone('Europe/Stockholm'));
         } catch (Exception $e) {
             error_log('RebotlingAnalyticsController::getHourlyBreakdown — ogiltigt datumvärde: ' . $e->getMessage());
             http_response_code(400);
@@ -1644,7 +1644,7 @@ class RebotlingAnalyticsController {
                 if ($ibc <= 0) continue; // hoppa över nolldagar
 
                 // Bestäm dagsmål: ISO-veckodag 1=Måndag ... 7=Söndag
-                $dt      = new DateTime($dateStr);
+                $dt      = new DateTime($dateStr, new DateTimeZone('Europe/Stockholm'));
                 $wday    = (int)$dt->format('N'); // 1=Mån, 7=Sön
                 $goal    = isset($weekdayGoals[$wday]) ? $weekdayGoals[$wday] : $defaultGoal;
 
@@ -6019,7 +6019,7 @@ HTML;
     public function getRealtimeOee() {
         $period = $_GET['period'] ?? 'today';
         $allowed = ['today', '7d', '30d'];
-        if (!in_array($period, $allowed)) $period = 'today';
+        if (!in_array($period, $allowed, true)) $period = 'today';
 
         try {
             // Bestäm datumfilter

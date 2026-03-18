@@ -647,7 +647,7 @@ class GamificationController {
             $earnedIds = array_column($earned, 'id');
             $badgesWithStatus = [];
             foreach ($allBadges as $b) {
-                $isEarned = in_array($b['id'], $earnedIds);
+                $isEarned = in_array($b['id'], $earnedIds, true);
                 $earnedData = null;
                 if ($isEarned) {
                     foreach ($earned as $e) {

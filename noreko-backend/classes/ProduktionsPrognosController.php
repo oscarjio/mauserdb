@@ -71,7 +71,7 @@ class ProduktionsPrognosController {
     private function getIbcTimestampColumn(): string {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(\PDO::FETCH_COLUMN);
-            return in_array('timestamp', $cols) ? 'timestamp' : 'datum';
+            return in_array('timestamp', $cols, true) ? 'timestamp' : 'datum';
         } catch (\Exception $e) {
             error_log('ProduktionsPrognosController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';

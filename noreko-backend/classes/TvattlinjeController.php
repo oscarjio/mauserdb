@@ -142,7 +142,7 @@ class TvattlinjeController {
                 if (!isset($data[$key])) continue;
                 $value = trim($data[$key]);
                 // Validera tidsfält
-                if (in_array($key, ['skift_start', 'skift_slut'])) {
+                if (in_array($key, ['skift_start', 'skift_slut'], true)) {
                     if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value)) continue;
                 } else {
                     $value = (string)max(0, intval($value));
@@ -826,7 +826,7 @@ class TvattlinjeController {
                 $lastRunningStart = null;
 
                 foreach ($onoff_events as $event) {
-                    $eventTime = new DateTime($event['datum']);
+                    $eventTime = new DateTime($event['datum'], new DateTimeZone('Europe/Stockholm'));
                     $isRunning = (bool)($event['running'] ?? false);
 
                     if ($isRunning && $lastRunningStart === null) {
@@ -840,7 +840,7 @@ class TvattlinjeController {
                 }
 
                 if ($lastRunningStart !== null) {
-                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum']);
+                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                     $diff = $lastRunningStart->diff($lastEventTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $totalRuntimeMinutes += $periodMinutes;
@@ -848,8 +848,8 @@ class TvattlinjeController {
             }
 
             if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
-                $firstCycle = new DateTime($cycles[0]['datum']);
-                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
+                $firstCycle = new DateTime($cycles[0]['datum'], new DateTimeZone('Europe/Stockholm'));
+                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $diff = $firstCycle->diff($lastCycle);
                 $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
             }

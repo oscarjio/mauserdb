@@ -55,7 +55,7 @@ class ForstaTimmeAnalysController {
 
     private function getPeriodDays(): int {
         $period = intval($_GET['period'] ?? 30);
-        if (!in_array($period, [7, 30, 90])) $period = 30;
+        if (!in_array($period, [7, 30, 90], true)) $period = 30;
         return $period;
     }
 
@@ -83,7 +83,7 @@ class ForstaTimmeAnalysController {
     private function getIbcTimestampColumn(): string {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(PDO::FETCH_COLUMN);
-            return in_array('timestamp', $cols) ? 'timestamp' : 'datum';
+            return in_array('timestamp', $cols, true) ? 'timestamp' : 'datum';
         } catch (\Exception $e) {
             error_log('ForstaTimmeAnalysController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';
@@ -96,15 +96,16 @@ class ForstaTimmeAnalysController {
      */
     private function generateShiftStarts(string $fromDate, string $toDate): array {
         $shifts = [];
-        $current = new DateTime($fromDate);
-        $end = new DateTime($toDate);
+        $tz = new DateTimeZone('Europe/Stockholm');
+        $current = new DateTime($fromDate, $tz);
+        $end = new DateTime($toDate, $tz);
         $end->modify('+1 day');
 
         while ($current <= $end) {
             $dateStr = $current->format('Y-m-d');
 
             foreach (self::SHIFT_STARTS as $shiftName => $startTime) {
-                $shiftStart = new DateTime($dateStr . ' ' . $startTime . ':00');
+                $shiftStart = new DateTime($dateStr . ' ' . $startTime . ':00', $tz);
 
                 // Slutet av skiftet = 8 timmar senare
                 $shiftEnd = clone $shiftStart;
@@ -321,8 +322,8 @@ class ForstaTimmeAnalysController {
         $trendData = [];
 
         // Iterera dagar i perioden
-        $currentDate = new DateTime($fromDate);
-        $endDate     = new DateTime($toDate);
+        $currentDate = new DateTime($fromDate, new DateTimeZone('Europe/Stockholm'));
+        $endDate     = new DateTime($toDate, new DateTimeZone('Europe/Stockholm'));
 
         while ($currentDate <= $endDate) {
             $dateStr    = $currentDate->format('Y-m-d');

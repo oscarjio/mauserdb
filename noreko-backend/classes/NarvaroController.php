@@ -101,7 +101,7 @@ class NarvaroController {
                         ];
                     }
                     $operatorData[$opId][$dag]['ibc'] += $ibcOk;
-                    if (!in_array($skift, $operatorData[$opId][$dag]['shifts'])) {
+                    if (!in_array($skift, $operatorData[$opId][$dag]['shifts'], true)) {
                         $operatorData[$opId][$dag]['shifts'][] = $skift;
                     }
                     if ($cycleTimeSek > 0) {

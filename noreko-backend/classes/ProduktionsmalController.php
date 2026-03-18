@@ -301,7 +301,7 @@ class ProduktionsmalController {
         $startdatum = trim($input['startdatum'] ?? '');
 
         // Validering
-        if (!in_array($typ, ['dag', 'vecka', 'manad'])) {
+        if (!in_array($typ, ['dag', 'vecka', 'manad'], true)) {
             $this->sendError('Ogiltig typ. Anvand "dag", "vecka" eller "manad".');
             return;
         }
@@ -565,7 +565,7 @@ class ProduktionsmalController {
             // Fyll i saknade skift med 0
             $skiftNr = array_column($skift, 'skift_nr');
             foreach ([1, 2, 3] as $nr) {
-                if (!in_array($nr, $skiftNr)) {
+                if (!in_array($nr, $skiftNr, true)) {
                     $skift[] = [
                         'skift_nr'   => $nr,
                         'skift_namn' => self::SKIFT_NAMN[$nr],
@@ -730,7 +730,7 @@ class ProduktionsmalController {
             // Fyll i stationer som saknar data med 0
             $befintliga = array_column($stationer, 'station_id');
             foreach (self::STATIONER as $id => $namn) {
-                if (!in_array($id, $befintliga)) {
+                if (!in_array($id, $befintliga, true)) {
                     $stationer[] = [
                         'station_id'   => $id,
                         'station_namn' => $namn,
@@ -811,7 +811,7 @@ class ProduktionsmalController {
         $antal = (int)($input['antal'] ?? 0);
         $giltigFran = trim($input['giltig_fran'] ?? date('Y-m-d'));
 
-        if (!in_array($typ, ['dag', 'vecka'])) {
+        if (!in_array($typ, ['dag', 'vecka'], true)) {
             $this->sendError('Ogiltig typ. Anvand "dag" eller "vecka".');
             return;
         }

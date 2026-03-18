@@ -215,7 +215,7 @@ class KvalitetscertifikatController {
             $where  = '1=1';
             $params = [];
 
-            if ($status && in_array($status, ['godkand', 'underkand', 'ej_bedomd'])) {
+            if ($status && in_array($status, ['godkand', 'underkand', 'ej_bedomd'], true)) {
                 $where .= ' AND status = :status';
                 $params[':status'] = $status;
             }
@@ -451,7 +451,7 @@ class KvalitetscertifikatController {
             return;
         }
 
-        if (!in_array($status, ['godkand', 'underkand'])) {
+        if (!in_array($status, ['godkand', 'underkand'], true)) {
             $this->sendError('Status maste vara godkand eller underkand');
             return;
         }

@@ -565,7 +565,7 @@ class ShiftPlanController {
         }
 
         try {
-            $dt = new DateTime($targetStart);
+            $dt = new DateTime($targetStart, new DateTimeZone('Europe/Stockholm'));
         } catch (Exception) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
@@ -612,7 +612,7 @@ class ShiftPlanController {
 
                 $copied = 0;
                 foreach ($rows as $row) {
-                    $origDate = new DateTime($row['datum']);
+                    $origDate = new DateTime($row['datum'], new DateTimeZone('Europe/Stockholm'));
                     $origDate->modify('+7 days');
                     $newDatum = $origDate->format('Y-m-d');
 

@@ -301,11 +301,11 @@ class AvvikelselarmController {
         $where  = "WHERE DATE(tidsstampel) BETWEEN :from_date AND :to_date";
         $params = [':from_date' => $fromDate, ':to_date' => $toDate];
 
-        if ($typFilter && in_array($typFilter, ['oee','kassation','produktionstakt','maskinstopp','produktionsmal'])) {
+        if ($typFilter && in_array($typFilter, ['oee','kassation','produktionstakt','maskinstopp','produktionsmal'], true)) {
             $where .= " AND typ = :typ";
             $params[':typ'] = $typFilter;
         }
-        if ($gradFilter && in_array($gradFilter, ['kritisk','varning','info'])) {
+        if ($gradFilter && in_array($gradFilter, ['kritisk','varning','info'], true)) {
             $where .= " AND allvarlighetsgrad = :grad";
             $params[':grad'] = $gradFilter;
         }

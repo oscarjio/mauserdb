@@ -1,3 +1,47 @@
+## 2026-03-18 Session #153 Worker A — 62 buggar fixade (date/time + null safety audit)
+### Uppgift 1: PHP date/time audit — 26 fixar
+Granskade alla PHP-controllers i noreko-backend/classes/ for DateTime-problem.
+Hittade 26 st `new DateTime()` utan explicit timezone — lade till `new DateTimeZone('Europe/Stockholm')`.
+
+Fixade filer:
+- `RebotlingController.php`: 10 fixar (rad 855, 857, 904, 919, 929, 930, 1024, 1026, 1398, 1399)
+- `TvattlinjeController.php`: 4 fixar (rad 829, 843, 851, 852)
+- `ForstaTimmeAnalysController.php`: 5 fixar (rad 99, 100, 107, 324, 325)
+- `RebotlingAnalyticsController.php`: 5 fixar (rad 490, 491, 1431, 1432, 1647)
+- `ShiftPlanController.php`: 2 fixar (rad 568, 615)
+
+### Uppgift 2: PHP file upload audit — 0 fixar
+Granskade alla PHP-controllers — inga `$_FILES`, `move_uploaded_file` eller `tmp_name` anvandningar hittades. Inga file upload-problem att atgarda.
+
+### Uppgift 3: PHP array/null safety audit — 36 fixar
+**in_array utan strict mode (32 fixar):**
+Lade till tredje parametern `true` pa samtliga in_array-anrop som saknade den:
+- `ForstaTimmeAnalysController.php`: 2 fixar
+- `NarvaroController.php`: 1 fix
+- `StatistikOverblickController.php`: 1 fix
+- `ProduktionseffektivitetController.php`: 2 fixar
+- `MyStatsController.php`: 1 fix
+- `KassationsanalysController.php`: 4 fixar
+- `BonusAdminController.php`: 1 fix
+- `GamificationController.php`: 1 fix
+- `ProduktionsmalController.php`: 4 fixar
+- `KvalitetscertifikatController.php`: 2 fixar
+- `ProduktionskostnadController.php`: 1 fix
+- `ProduktionsSlaController.php`: 1 fix
+- `AvvikelselarmController.php`: 2 fixar
+- `RebotlingAdminController.php`: 1 fix
+- `ProduktionsPrognosController.php`: 1 fix
+- `LeveransplaneringController.php`: 3 fixar
+- `SaglinjeController.php`: 1 fix
+- `KlassificeringslinjeController.php`: 1 fix
+- `TvattlinjeController.php`: 1 fix
+- `RebotlingAnalyticsController.php`: 1 fix
+
+**json_decode utan null-check (4 fixar):**
+- `BonusAdminController.php`: 4 fixar — json_decode pa DB-kolumner (weights_foodgrade, weights_nonun, weights_tvattade, tier_multipliers) saknade `?? []` fallback
+
+---
+
 ## 2026-03-18 Session #152 Worker B — 37 buggar fixade (catchError audit)
 ### Uppgift: Angular buggjakt — memory leak audit + template type safety audit
 

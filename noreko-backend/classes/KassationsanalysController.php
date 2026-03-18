@@ -565,7 +565,7 @@ class KassationsanalysController {
                             $op['op3_namn'] ?? null,
                         ]);
                         foreach ($names as $n) {
-                            if (!in_array($n, $skiftOpMap[$sk])) {
+                            if (!in_array($n, $skiftOpMap[$sk], true)) {
                                 $skiftOpMap[$sk][] = $n;
                             }
                         }
@@ -895,7 +895,7 @@ class KassationsanalysController {
                         $names = array_filter([$op['op1'], $op['op2'], $op['op3']]);
                         if (!isset($opMap[$sk])) $opMap[$sk] = [];
                         foreach ($names as $n) {
-                            if (!in_array($n, $opMap[$sk])) $opMap[$sk][] = $n;
+                            if (!in_array($n, $opMap[$sk], true)) $opMap[$sk][] = $n;
                         }
                     }
                 } catch (\PDOException $e) {
@@ -940,7 +940,7 @@ class KassationsanalysController {
             $allOps = [];
             foreach ($opMap as $ops) {
                 foreach ($ops as $n) {
-                    if (!in_array($n, $allOps)) $allOps[] = $n;
+                    if (!in_array($n, $allOps, true)) $allOps[] = $n;
                 }
             }
             sort($allOps);
@@ -1478,7 +1478,7 @@ class KassationsanalysController {
                     foreach ($stmtOrsak->fetchAll(\PDO::FETCH_ASSOC) as $or) {
                         $sk = (int)$or['skiftraknare'];
                         if (!isset($orsakMap[$sk])) $orsakMap[$sk] = [];
-                        if ($or['orsak_namn'] && !in_array($or['orsak_namn'], $orsakMap[$sk])) {
+                        if ($or['orsak_namn'] && !in_array($or['orsak_namn'], $orsakMap[$sk], true)) {
                             $orsakMap[$sk][] = $or['orsak_namn'];
                         }
                     }

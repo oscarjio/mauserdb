@@ -51,7 +51,7 @@ class StatistikOverblickController {
 
     private function getMonths(): int {
         $m = intval($_GET['months'] ?? 3);
-        if (!in_array($m, [3, 6, 12])) $m = 3;
+        if (!in_array($m, [3, 6, 12], true)) $m = 3;
         return $m;
     }
 

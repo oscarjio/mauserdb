@@ -175,10 +175,10 @@ class BonusAdminController {
                 ];
             } else {
                 // Decode JSON fields
-                $config['weights_foodgrade'] = json_decode($config['weights_foodgrade'], true);
-                $config['weights_nonun'] = json_decode($config['weights_nonun'], true);
-                $config['weights_tvattade'] = json_decode($config['weights_tvattade'], true);
-                $config['tier_multipliers'] = json_decode($config['tier_multipliers'], true);
+                $config['weights_foodgrade'] = json_decode($config['weights_foodgrade'], true) ?? [];
+                $config['weights_nonun'] = json_decode($config['weights_nonun'], true) ?? [];
+                $config['weights_tvattade'] = json_decode($config['weights_tvattade'], true) ?? [];
+                $config['tier_multipliers'] = json_decode($config['tier_multipliers'], true) ?? [];
             }
 
             $this->sendSuccess($config);
@@ -1581,7 +1581,7 @@ class BonusAdminController {
             foreach ($rows as $row) {
                 $opId = (int)$row['op_id'];
                 $produkt = (int)($row['produkt'] ?: 1);
-                if (!in_array($produkt, [1, 4, 5])) $produkt = 1;
+                if (!in_array($produkt, [1, 4, 5], true)) $produkt = 1;
 
                 $ibcOk    = (int)$row['shift_ibc_ok'];
                 $ibcEjOk  = (int)$row['shift_ibc_ej_ok'];

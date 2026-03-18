@@ -117,7 +117,7 @@ class SaglinjeController {
             foreach ($allowed as $key) {
                 if (!isset($data[$key])) continue;
                 $value = trim($data[$key]);
-                if (in_array($key, ['skift_start', 'skift_slut'])) {
+                if (in_array($key, ['skift_start', 'skift_slut'], true)) {
                     if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value)) continue;
                 } else {
                     $value = (string)max(0, intval($value));

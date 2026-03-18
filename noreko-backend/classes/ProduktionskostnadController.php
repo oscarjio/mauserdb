@@ -693,7 +693,7 @@ class ProduktionskostnadController {
             $updated = 0;
             foreach ($data as $item) {
                 $faktor = trim($item['faktor'] ?? '');
-                if (!in_array($faktor, $validFaktorer)) continue;
+                if (!in_array($faktor, $validFaktorer, true)) continue;
 
                 $varde = max(0.0, (float)($item['varde'] ?? 0));
                 $enhet = $this->defaultConfig[$faktor]['enhet'];
