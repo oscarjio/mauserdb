@@ -37,7 +37,7 @@ class MinDagController {
             case 'today-summary':  $this->getTodaySummary();  break;
             case 'cycle-trend':    $this->getCycleTrend();    break;
             case 'goals-progress': $this->getGoalsProgress(); break;
-            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

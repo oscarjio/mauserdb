@@ -50,7 +50,7 @@ class MyStatsController {
             case 'my-stats':        $this->getMyStats();        break;
             case 'my-trend':        $this->getMyTrend();        break;
             case 'my-achievements': $this->getMyAchievements(); break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

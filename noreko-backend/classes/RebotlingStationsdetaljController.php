@@ -50,7 +50,7 @@ class RebotlingStationsdetaljController {
             case 'oee-trend':     $this->getOeeTrend();      break;
             case 'realtid-oee':   $this->getRealtidOee();    break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

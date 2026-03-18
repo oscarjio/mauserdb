@@ -62,7 +62,7 @@ class KapacitetsplaneringController {
             case 'prognos':              $this->getPrognos();               break;
             case 'config':               $this->getConfig();                break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

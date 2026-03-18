@@ -41,7 +41,7 @@ class OeeJamforelseController {
         switch ($run) {
             case 'weekly-oee': $this->getWeeklyOee(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

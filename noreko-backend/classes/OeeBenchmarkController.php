@@ -54,7 +54,7 @@ class OeeBenchmarkController {
             case 'benchmark':   $this->getBenchmark();   break;
             case 'trend':       $this->getTrend();       break;
             case 'breakdown':   $this->getBreakdown();   break;
-            default:            $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:            $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

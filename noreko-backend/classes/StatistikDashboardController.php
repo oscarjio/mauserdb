@@ -47,7 +47,7 @@ class StatistikDashboardController {
             case 'daily-table':       $this->getDailyTable();        break;
             case 'status-indicator':  $this->getStatusIndicator();   break;
             default:
-                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run));
+                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

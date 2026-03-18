@@ -51,7 +51,7 @@ class KassationsorsakPerStationController {
             case 'trend':       $this->getTrend();      break;
             case 'detaljer':    $this->getDetaljer();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

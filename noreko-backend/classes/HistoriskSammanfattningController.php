@@ -45,7 +45,7 @@ class HistoriskSammanfattningController {
             case 'operatorer':   $this->operatorer();   break;
             case 'stationer':    $this->stationer();    break;
             case 'stopporsaker': $this->stopporsaker(); break;
-            default:             $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:             $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

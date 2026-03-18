@@ -39,7 +39,7 @@ class HistoriskProduktionController {
             case 'jamforelse':            $this->getJamforelse();          break;
             case 'detalj-tabell':         $this->getDetaljTabell();        break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

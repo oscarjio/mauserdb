@@ -45,7 +45,7 @@ class KvalitetscertifikatController {
                 case 'kriterier':   $this->getKriterier();   break;
                 case 'statistik':   $this->getStatistik();   break;
                 default:
-                    $this->sendError('Okand run-parameter: ' . htmlspecialchars($run), 404);
+                    $this->sendError('Okand run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'), 404);
             }
             return;
         }

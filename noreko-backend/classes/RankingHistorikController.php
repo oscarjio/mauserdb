@@ -34,7 +34,7 @@ class RankingHistorikController {
             case 'weekly-rankings': $this->getWeeklyRankings(); break;
             case 'ranking-changes': $this->getRankingChanges(); break;
             case 'streak-data':     $this->getStreakData();     break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

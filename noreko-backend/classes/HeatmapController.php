@@ -34,7 +34,7 @@ class HeatmapController {
             case 'heatmap-data': $this->getHeatmapData(); break;
             case 'summary':      $this->getSummary();     break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

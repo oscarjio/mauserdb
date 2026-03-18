@@ -52,7 +52,7 @@ class MaskinDrifttidController {
             case 'dag-detalj': $this->getDagDetalj();  break;
             case 'stationer':  $this->getStationer();  break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

@@ -294,7 +294,7 @@ class CertificationController {
         $certDate    = trim($data['certified_date']  ?? '');
         $expiresDate = isset($data['expires_date'])  && $data['expires_date'] !== ''
                            ? trim($data['expires_date']) : null;
-        $notes       = isset($data['notes']) ? strip_tags(trim($data['notes'])) : null;
+        $notes       = isset($data['notes']) ? mb_substr(strip_tags(trim($data['notes'])), 0, 1000) : null;
 
         $allowedLines = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje'];
 

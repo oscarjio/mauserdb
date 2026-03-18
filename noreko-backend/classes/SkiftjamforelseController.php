@@ -58,7 +58,7 @@ class SkiftjamforelseController {
             case 'shift-trend':      $this->trend();          break;
             case 'shift-operators':  $this->bestPractices();  break;
             default:
-                $this->sendError('Ogiltig run: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

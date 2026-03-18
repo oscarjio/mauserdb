@@ -55,7 +55,7 @@ class PrediktivtUnderhallController {
             case 'trender':           $this->getTrender();           break;
             case 'rekommendationer':  $this->getRekommendationer();  break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

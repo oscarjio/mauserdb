@@ -64,7 +64,7 @@ class EffektivitetController {
             case 'summary':  $this->getSummary(); break;
             case 'by-shift': $this->getByShift(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

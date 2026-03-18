@@ -39,7 +39,7 @@ class FavoriterController {
             case 'add':     $this->addFavorit();      break;
             case 'remove':  $this->removeFavorit();   break;
             case 'reorder': $this->reorderFavoriter(); break;
-            default:        $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:        $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

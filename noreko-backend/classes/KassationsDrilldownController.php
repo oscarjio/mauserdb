@@ -37,7 +37,7 @@ class KassationsDrilldownController {
             case 'overview':       $this->getOverview();      break;
             case 'reason-detail':  $this->getReasonDetail();  break;
             case 'trend':          $this->getTrend();         break;
-            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

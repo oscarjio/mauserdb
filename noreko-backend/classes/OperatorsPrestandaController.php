@@ -63,7 +63,7 @@ class OperatorsPrestandaController {
             case 'teamjamforelse':  $this->getTeamjamforelse();  break;
             case 'utveckling':      $this->getUtveckling();      break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

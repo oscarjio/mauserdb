@@ -54,7 +54,7 @@ class DagligSammanfattningController {
             case 'daily-summary': $this->getDailySummary(); break;
             case 'comparison':    $this->getComparison();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

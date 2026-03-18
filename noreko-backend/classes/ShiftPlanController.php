@@ -506,7 +506,7 @@ class ShiftPlanController {
         $datum    = $data['datum']    ?? '';
         $skiftNr  = isset($data['skift_nr'])   ? intval($data['skift_nr'])   : 0;
         $opNumber = isset($data['op_number'])  ? intval($data['op_number'])  : 0;
-        $note     = isset($data['note'])       ? strip_tags(trim($data['note']))         : null;
+        $note     = isset($data['note'])       ? mb_substr(strip_tags(trim($data['note'])), 0, 500)  : null;
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);

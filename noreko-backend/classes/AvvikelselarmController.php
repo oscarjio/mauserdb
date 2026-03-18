@@ -42,7 +42,7 @@ class AvvikelselarmController {
             case 'uppdatera-regel':  $this->uppdateraRegel();    break;
             case 'trend':            $this->getTrend();          break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

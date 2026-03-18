@@ -59,7 +59,7 @@ class MorgonrapportController {
         switch ($run) {
             case 'rapport': $this->getRapport(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

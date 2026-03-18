@@ -52,7 +52,7 @@ class StopporsakOperatorController {
             case 'operator-detail': $this->getOperatorDetail(); break;
             case 'reasons-summary': $this->getReasonsSummary(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

@@ -53,7 +53,7 @@ class KassationsanalysController {
             case 'per-station':    $this->getPerStation();     break;
             case 'per-operator':   $this->getPerOperator();    break;
             case 'detaljer':       $this->getDetaljer();       break;
-            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

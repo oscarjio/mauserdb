@@ -47,7 +47,7 @@ class LeveransplaneringController {
             case 'skapa-order':      $this->skapaOrder();         break;
             case 'uppdatera-order':  $this->uppdateraOrder();     break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 
@@ -467,15 +467,24 @@ class LeveransplaneringController {
                 return;
             }
 
-            $kundnamn   = trim($input['kundnamn'] ?? '');
+            $kundnamn   = mb_substr(strip_tags(trim($input['kundnamn'] ?? '')), 0, 200);
             $antalIbc   = max(1, (int)($input['antal_ibc'] ?? 0));
-            $bestDatum  = $input['bestallningsdatum'] ?? date('Y-m-d');
-            $onskDatum  = $input['onskat_leveransdatum'] ?? '';
+            $bestDatum  = trim($input['bestallningsdatum'] ?? date('Y-m-d'));
+            $onskDatum  = trim($input['onskat_leveransdatum'] ?? '');
             $prioritet  = max(1, min(10, (int)($input['prioritet'] ?? 5)));
-            $notering   = trim($input['notering'] ?? '');
+            $notering   = mb_substr(strip_tags(trim($input['notering'] ?? '')), 0, 1000);
 
             if (!$kundnamn || !$onskDatum) {
                 $this->sendError('Kundnamn och onskat leveransdatum kravs');
+                return;
+            }
+
+            // Validera datumformat
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $bestDatum)) {
+                $bestDatum = date('Y-m-d');
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $onskDatum)) {
+                $this->sendError('Ogiltigt datumformat for onskat leveransdatum (YYYY-MM-DD kravs)');
                 return;
             }
 

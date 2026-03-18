@@ -41,7 +41,7 @@ class StatistikOverblickController {
             case 'produktion':  $this->getProduktion();  break;
             case 'oee':         $this->getOee();         break;
             case 'kassation':   $this->getKassation();   break;
-            default:            $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:            $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

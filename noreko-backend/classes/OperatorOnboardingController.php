@@ -48,7 +48,7 @@ class OperatorOnboardingController {
             case 'operator-curve':  $this->getOperatorCurve();  break;
             case 'team-stats':      $this->getTeamStats();      break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

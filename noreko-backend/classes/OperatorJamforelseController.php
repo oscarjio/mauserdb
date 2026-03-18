@@ -49,7 +49,7 @@ class OperatorJamforelseController {
             case 'compare':         $this->getCompare();         break;
             case 'compare-trend':   $this->getCompareTrend();    break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

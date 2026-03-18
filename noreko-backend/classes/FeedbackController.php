@@ -55,7 +55,7 @@ class FeedbackController {
             case 'summary':    $this->summary();   break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig action: ' . htmlspecialchars($run)], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig action: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')], JSON_UNESCAPED_UNICODE);
         }
     }
 

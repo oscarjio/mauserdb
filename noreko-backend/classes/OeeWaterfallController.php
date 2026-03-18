@@ -47,7 +47,7 @@ class OeeWaterfallController {
             case 'waterfall-data': $this->getWaterfallData(); break;
             case 'summary':        $this->getSummary();       break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

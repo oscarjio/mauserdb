@@ -39,7 +39,7 @@ class CykeltidHeatmapController {
             case 'heatmap':          $this->getHeatmap();        break;
             case 'day-pattern':      $this->getDayPattern();     break;
             case 'operator-detail':  $this->getOperatorDetail(); break;
-            default:                 $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                 $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

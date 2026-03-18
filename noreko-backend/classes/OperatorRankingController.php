@@ -48,7 +48,7 @@ class OperatorRankingController {
             case 'poangfordelning': $this->poangfordelning(); break;
             case 'historik':        $this->historik();        break;
             case 'mvp':             $this->mvp();             break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

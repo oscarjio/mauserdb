@@ -58,7 +58,7 @@ class UtnyttjandegradController {
             case 'daily':   $this->getDaily();   break;
             case 'losses':  $this->getLosses();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

@@ -57,7 +57,7 @@ class KassationskvotAlarmController {
             case 'timvis-trend':   $this->getTimvisTrend();    break;
             case 'per-skift':      $this->getPerSkift();       break;
             case 'top-orsaker':    $this->getTopOrsaker();     break;
-            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

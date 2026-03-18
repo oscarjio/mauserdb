@@ -50,7 +50,7 @@ class MaskinhistorikController {
             case 'station-stopp':     $this->getStationStopp();    break;
             case 'jamforelse':        $this->getJamforelse();      break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

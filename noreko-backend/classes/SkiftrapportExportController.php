@@ -38,7 +38,7 @@ class SkiftrapportExportController {
             case 'report-data': $this->getReportData(); break;
             case 'multi-day':   $this->getMultiDay();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
                 break;
         }
     }

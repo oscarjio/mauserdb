@@ -40,7 +40,7 @@ class MalhistorikController {
             case 'goal-history': $this->getGoalHistory(); break;
             case 'goal-impact':  $this->getGoalImpact();  break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

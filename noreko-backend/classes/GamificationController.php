@@ -44,7 +44,7 @@ class GamificationController {
             case 'badges':       $this->badges();       break;
             case 'min-profil':   $this->minProfil();    break;
             case 'overview':     $this->overview();     break;
-            default:             $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:             $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

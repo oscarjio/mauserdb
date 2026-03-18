@@ -54,7 +54,7 @@ class ProduktionsflodeController {
             case 'flode-data':       $this->getFlodeData();       break;
             case 'station-detaljer': $this->getStationDetaljer(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

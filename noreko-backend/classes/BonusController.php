@@ -43,7 +43,7 @@ class BonusController {
         if ($method === 'POST') {
             switch ($run) {
                 case 'simulate': $this->simulate(); break;
-                default: $this->sendError('Ogiltig POST-action: ' . htmlspecialchars($run));
+                default: $this->sendError('Ogiltig POST-action: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
             }
             return;
         }
@@ -70,7 +70,7 @@ class BonusController {
             case 'ranking-position':  $this->getRankingPosition();   break;
             case 'achievements':      $this->getAchievements();      break;
             case 'peer-ranking':      $this->getPeerRanking();       break;
-            default: $this->sendError('Ogiltig action: ' . htmlspecialchars($run));
+            default: $this->sendError('Ogiltig action: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

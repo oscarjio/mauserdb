@@ -4571,7 +4571,7 @@ class RebotlingAnalyticsController {
         foreach ($rows as $r) {
             $opNames = array_filter([$r['op1_name'] ?? '', $r['op2_name'] ?? '', $r['op3_name'] ?? '']);
             $rowsHtml .= '<tr>'
-                . '<td>' . htmlspecialchars($r['product_name'] ?? '–') . '</td>'
+                . '<td>' . htmlspecialchars($r['product_name'] ?? '–', ENT_QUOTES, 'UTF-8') . '</td>'
                 . '<td style="text-align:right;">' . (int)($r['ibc_ok'] ?? 0) . '</td>'
                 . '<td style="text-align:right;">' . (int)($r['bur_ej_ok'] ?? 0) . '</td>'
                 . '<td style="text-align:right;">' . (int)($r['ibc_ej_ok'] ?? 0) . '</td>'
@@ -5700,9 +5700,9 @@ HTML;
      */
 
     private function buildWeeklySummaryHtml(array $s): string {
-        $week     = htmlspecialchars($s['week']);
-        $startD   = htmlspecialchars($s['start_date']);
-        $endD     = htmlspecialchars($s['end_date']);
+        $week     = htmlspecialchars($s['week'], ENT_QUOTES, 'UTF-8');
+        $startD   = htmlspecialchars($s['start_date'], ENT_QUOTES, 'UTF-8');
+        $endD     = htmlspecialchars($s['end_date'], ENT_QUOTES, 'UTF-8');
         $totalIbc = (int)$s['total_ibc'];
         $prevIbc  = (int)$s['prev_ibc'];
         $diffPct  = (float)$s['ibc_diff_pct'];
@@ -5710,8 +5710,8 @@ HTML;
         $oeeDiff  = (float)$s['oee_diff'];
         $oeeTrend = $s['oee_trend'];
         $kvalitet = (float)$s['kvalitet'];
-        $drifttid = htmlspecialchars($s['drifttid']);
-        $stopptid = htmlspecialchars($s['stopptid']);
+        $drifttid = htmlspecialchars($s['drifttid'], ENT_QUOTES, 'UTF-8');
+        $stopptid = htmlspecialchars($s['stopptid'], ENT_QUOTES, 'UTF-8');
         $skift    = (int)$s['antal_skift'];
 
         // Trendpilar
@@ -5724,8 +5724,8 @@ HTML;
         $kvalColor = $kvalitet >= 95 ? '#38a169' : ($kvalitet >= 85 ? '#d69e2e' : '#e53e3e');
 
         // Bästa/sämsta dag
-        $bestDayText = $s['best_day'] ? htmlspecialchars($s['best_day']['date']) . ' (' . (int)$s['best_day']['ibc'] . ' IBC)' : 'Ingen data';
-        $worstDayText = $s['worst_day'] ? htmlspecialchars($s['worst_day']['date']) . ' (' . (int)$s['worst_day']['ibc'] . ' IBC)' : 'Ingen data';
+        $bestDayText = $s['best_day'] ? htmlspecialchars($s['best_day']['date'], ENT_QUOTES, 'UTF-8') . ' (' . (int)$s['best_day']['ibc'] . ' IBC)' : 'Ingen data';
+        $worstDayText = $s['worst_day'] ? htmlspecialchars($s['worst_day']['date'], ENT_QUOTES, 'UTF-8') . ' (' . (int)$s['worst_day']['ibc'] . ' IBC)' : 'Ingen data';
 
         // Operatörstabell
         $opsHtml = '';
@@ -5735,11 +5735,11 @@ HTML;
             $tierColor = $op['bonus_tier'] === 'Guld' ? '#d69e2e' : ($op['bonus_tier'] === 'Silver' ? '#718096' : ($op['bonus_tier'] === 'Brons' ? '#c05621' : '#a0aec0'));
             $qColor = $op['kvalitet'] >= 95 ? '#38a169' : ($op['kvalitet'] >= 85 ? '#d69e2e' : '#e53e3e');
             $opsHtml .= '<tr style="background:' . $bgColor . ';">'
-                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#2d3748;">' . htmlspecialchars($op['name']) . '</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#2d3748;">' . htmlspecialchars($op['name'], ENT_QUOTES, 'UTF-8') . '</td>'
                 . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:#2d3748;">' . $op['ibc_total'] . '</td>'
                 . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:700; color:#2d3748;">' . $op['ibc_h'] . '</td>'
                 . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:' . $qColor . ';">' . $op['kvalitet'] . '%</td>'
-                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:' . $tierColor . '; font-weight:700;">' . htmlspecialchars($op['bonus_tier']) . '</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:' . $tierColor . '; font-weight:700;">' . htmlspecialchars($op['bonus_tier'], ENT_QUOTES, 'UTF-8') . '</td>'
                 . '</tr>';
             $i++;
         }
@@ -5752,7 +5752,7 @@ HTML;
                 $stH = floor($st['total_min'] / 60);
                 $stM = $st['total_min'] % 60;
                 $stopsHtml .= '<tr style="background:' . $stBg . ';">'
-                    . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; color:#2d3748;">' . htmlspecialchars($st['orsak']) . '</td>'
+                    . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; color:#2d3748;">' . htmlspecialchars($st['orsak'], ENT_QUOTES, 'UTF-8') . '</td>'
                     . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:#2d3748;">' . $st['antal'] . '</td>'
                     . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:700; color:#e53e3e;">' . $stH . ':' . str_pad($stM, 2, '0', STR_PAD_LEFT) . '</td>'
                     . '</tr>';

@@ -33,7 +33,7 @@ class ProduktionsTaktController {
             case 'get-target':     $this->getTarget();        break;
             case 'set-target':     $this->setTarget();        break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

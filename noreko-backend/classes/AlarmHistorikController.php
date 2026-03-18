@@ -41,7 +41,7 @@ class AlarmHistorikController {
             case 'summary':  $this->getSummary();  break;
             case 'timeline': $this->getTimeline(); break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

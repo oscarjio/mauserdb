@@ -50,7 +50,7 @@ class KassationsorsakController {
             case 'per-operator':  $this->getPerOperator();  break;
             case 'per-shift':     $this->getPerShift();     break;
             case 'drilldown':     $this->getDrilldown();    break;
-            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

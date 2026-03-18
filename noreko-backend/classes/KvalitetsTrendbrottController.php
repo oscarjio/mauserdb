@@ -42,7 +42,7 @@ class KvalitetsTrendbrottController {
             case 'alerts':        $this->getAlerts();       break;
             case 'daily-detail':  $this->getDailyDetail();  break;
             default:
-                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run));
+                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

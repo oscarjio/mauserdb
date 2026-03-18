@@ -45,7 +45,7 @@ class OperatorsportalController {
             case 'my-stats': $this->getMyStats((int)$opId);  break;
             case 'my-trend': $this->getMyTrend((int)$opId);  break;
             case 'my-bonus': $this->getMyBonus((int)$opId);  break;
-            default:         $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:         $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

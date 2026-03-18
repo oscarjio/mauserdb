@@ -52,7 +52,7 @@ class UnderhallsprognosController {
             case 'schedule':  $this->getSchedule();  break;
             case 'history':   $this->getHistory();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

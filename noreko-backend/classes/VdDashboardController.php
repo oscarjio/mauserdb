@@ -42,7 +42,7 @@ class VdDashboardController {
             case 'station-oee':     $this->stationOee();     break;
             case 'veckotrend':      $this->veckotrend();     break;
             case 'skiftstatus':     $this->skiftstatus();    break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

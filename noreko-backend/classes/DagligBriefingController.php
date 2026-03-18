@@ -46,7 +46,7 @@ class DagligBriefingController {
             case 'stationsstatus':  $this->stationsstatus();  break;
             case 'veckotrend':      $this->veckotrend();      break;
             case 'bemanning':       $this->bemanning();       break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

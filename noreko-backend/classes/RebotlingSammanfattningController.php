@@ -35,7 +35,7 @@ class RebotlingSammanfattningController {
             case 'produktion-7d':  $this->getProduktion7d();  break;
             case 'maskin-status':  $this->getMaskinStatus();   break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

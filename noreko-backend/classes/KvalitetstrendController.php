@@ -55,7 +55,7 @@ class KvalitetstrendController {
             case 'operators':        $this->getOperators();       break;
             case 'operator-detail':  $this->getOperatorDetail();  break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

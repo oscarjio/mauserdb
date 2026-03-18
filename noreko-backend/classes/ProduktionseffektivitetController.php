@@ -34,7 +34,7 @@ class ProduktionseffektivitetController {
             case 'hourly-heatmap':  $this->getHourlyHeatmap();  break;
             case 'hourly-summary':  $this->getHourlySummary();  break;
             case 'peak-analysis':   $this->getPeakAnalysis();   break;
-            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 

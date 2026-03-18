@@ -40,7 +40,7 @@ class DrifttidsTimelineController {
             case 'timeline-data': $this->getTimelineData(); break;
             case 'summary':       $this->getSummary();      break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 

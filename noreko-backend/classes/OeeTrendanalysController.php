@@ -49,7 +49,7 @@ class OeeTrendanalysController {
             case 'flaskhalsar':    $this->flaskhalsar();    break;
             case 'jamforelse':     $this->jamforelse();     break;
             case 'prediktion':     $this->prediktion();     break;
-            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
+            default:               $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')); break;
         }
     }
 
