@@ -610,6 +610,8 @@ class OperatorsbonusController {
         $userId = $this->currentUserId();
 
         try {
+            $this->pdo->beginTransaction();
+
             $stmt = $this->pdo->prepare(
                 "UPDATE bonus_konfiguration
                  SET vikt = :vikt, mal_varde = :mal_varde, max_bonus_kr = :max_bonus_kr, updated_by = :updated_by
@@ -635,11 +637,15 @@ class OperatorsbonusController {
                 $updated++;
             }
 
+            $this->pdo->commit();
             $this->sendSuccess([
                 'message' => "Konfiguration uppdaterad ({$updated} faktorer)",
                 'updated' => $updated,
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('OperatorsbonusController::sparaKonfiguration: ' . $e->getMessage());
             $this->sendError('Kunde inte spara konfiguration', 500);
         }

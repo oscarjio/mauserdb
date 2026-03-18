@@ -583,6 +583,9 @@ class BonusAdminController {
 
             $stmt->execute();
             $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$stats) {
+                $stats = ['total_cycles' => 0, 'unique_operators' => 0, 'avg_bonus' => 0, 'max_bonus' => 0, 'min_bonus' => 0, 'high_performers' => 0];
+            }
 
             // Trend (compare last 30 days vs previous 30 days)
             $stmt = $this->pdo->prepare("
@@ -605,8 +608,8 @@ class BonusAdminController {
             $stmt->execute();
             $trend = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $trend_pct = $trend['previous_avg'] > 0
-                ? round((($trend['recent_avg'] - $trend['previous_avg']) / $trend['previous_avg']) * 100, 2)
+            $trend_pct = ($trend && (float)($trend['previous_avg'] ?? 0) > 0)
+                ? round((((float)($trend['recent_avg'] ?? 0) - (float)$trend['previous_avg']) / (float)$trend['previous_avg']) * 100, 2)
                 : 0;
 
             $total_cycles = (int)$stats['total_cycles'];

@@ -299,6 +299,8 @@ class AlertsController {
         $userId     = (int)$_SESSION['user_id'];
 
         try {
+            $this->pdo->beginTransaction();
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO alert_settings (type, threshold_value, enabled, updated_by)
                 VALUES (:type, :threshold, :enabled, :uid)
@@ -321,8 +323,12 @@ class AlertsController {
                 ]);
             }
 
+            $this->pdo->commit();
             $this->sendSuccess(['saved' => true]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('AlertsController::saveSettings: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }

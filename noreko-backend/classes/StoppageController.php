@@ -302,6 +302,8 @@ class StoppageController {
 
             $userId = (int)$_SESSION['user_id'];
 
+            $this->pdo->beginTransaction();
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO stoppage_log (line, reason_id, start_time, end_time, duration_minutes, comment, user_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -311,12 +313,17 @@ class StoppageController {
             $newId = (int)$this->pdo->lastInsertId();
             AuditLogger::log($this->pdo, 'create_stoppage', 'stoppage_log', $newId,
                 "Skapad: line=$line, reason_id=$reasonId, start=$startTime");
+
+            $this->pdo->commit();
             echo json_encode([
                 'success' => true,
                 'message' => 'Stoppost registrerad',
                 'id' => $newId
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('StoppageController::createStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera stoppost'], JSON_UNESCAPED_UNICODE);
@@ -392,12 +399,18 @@ class StoppageController {
 
             $params[] = $id;
             $sql = 'UPDATE stoppage_log SET ' . implode(', ', $fields) . ' WHERE id = ?';
+
+            $this->pdo->beginTransaction();
             $this->pdo->prepare($sql)->execute($params);
 
             AuditLogger::log($this->pdo, 'update_stoppage', 'stoppage_log', $id,
                 'Uppdaterad: fields=' . implode(',', array_map(fn($f) => strtok($f, ' '), $fields)));
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Stoppost uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('StoppageController::updateStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera stoppost'], JSON_UNESCAPED_UNICODE);
@@ -415,10 +428,15 @@ class StoppageController {
 
             $this->checkAccess($id);
 
+            $this->pdo->beginTransaction();
             $this->pdo->prepare("DELETE FROM stoppage_log WHERE id = ?")->execute([$id]);
             AuditLogger::log($this->pdo, 'delete_stoppage', 'stoppage_log', $id, 'Stoppost borttagen');
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Stoppost borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('StoppageController::deleteStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort stoppost'], JSON_UNESCAPED_UNICODE);

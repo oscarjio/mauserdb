@@ -654,6 +654,8 @@ class MaintenanceController {
                 return;
             }
 
+            $this->pdo->beginTransaction();
+
             // Hämta aktuell total IBC
             $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc");
             $currentIbc = (int)$ibcStmt->fetchColumn();
@@ -669,15 +671,20 @@ class MaintenanceController {
             ]);
 
             if ($stmt->rowCount() === 0) {
+                $this->pdo->rollBack();
                 $this->sendError('Serviceintervall hittades inte', 404);
                 return;
             }
 
+            $this->pdo->commit();
             echo json_encode([
                 'success' => true,
                 'message' => 'Serviceräknare nollställd'
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('MaintenanceController::resetServiceCounter: ' . $e->getMessage());
             $this->sendError('Kunde inte nollställa serviceräknare', 500);
         }

@@ -556,6 +556,8 @@ class LeveransplaneringController {
 
     private function ensureTables(): void {
         try {
+            $this->pdo->beginTransaction();
+
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS `kundordrar` (
                     `id`                     INT AUTO_INCREMENT PRIMARY KEY,
@@ -608,7 +610,12 @@ class LeveransplaneringController {
                     ('Solvay Belgium',        100, '2026-03-09', '2026-04-10', '2026-04-09', 'planerad',      2, 'Ny kund, viktig forsta leverans')
                 ");
             }
+
+            $this->pdo->commit();
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('LeveransplaneringController::ensureTables: ' . $e->getMessage());
         }
     }

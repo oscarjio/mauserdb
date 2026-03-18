@@ -189,6 +189,7 @@ class LineSkiftrapportController {
             $kommentar   = strip_tags(trim($data['kommentar'] ?? '')) ?: null;
             $user_id     = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("
                 INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -197,8 +198,12 @@ class LineSkiftrapportController {
             $newId = (int)$this->pdo->lastInsertId();
             AuditLogger::log($this->pdo, 'create_rapport', $table, $newId,
                 "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt");
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Rapport skapad', 'id' => $newId], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::createReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte skapa rapport'], JSON_UNESCAPED_UNICODE);
@@ -264,12 +269,17 @@ class LineSkiftrapportController {
 
             $params[] = $id;
             $sql = "UPDATE `$table` SET " . implode(', ', $fields) . " WHERE id = ?";
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             AuditLogger::log($this->pdo, 'update_rapport', $table, $id,
                 'Rapport uppdaterad');
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Rapport uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::updateReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera rapport'], JSON_UNESCAPED_UNICODE);
@@ -284,12 +294,17 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("DELETE FROM `$table` WHERE id = ?");
             $stmt->execute([$id]);
             AuditLogger::log($this->pdo, 'delete_rapport', $table, $id,
                 'Rapport borttagen');
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Rapport borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::deleteReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort rapport'], JSON_UNESCAPED_UNICODE);
@@ -305,11 +320,16 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE `$table` SET inlagd = ? WHERE id = ?");
             $stmt->execute([$inlagd, $id]);
             AuditLogger::log($this->pdo, 'update_inlagd', $table, $id, 'inlagd=' . $inlagd);
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'inlagd' => $inlagd], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::updateInlagd($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
@@ -331,12 +351,17 @@ class LineSkiftrapportController {
                 return;
             }
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("DELETE FROM `$table` WHERE id IN ($placeholders)");
             $stmt->execute(array_values($ids));
             AuditLogger::log($this->pdo, 'bulk_delete_rapport', $table, null,
                 count($ids) . ' rapporter borttagna (ID: ' . implode(', ', $ids) . ')');
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) borttagna'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::bulkDelete($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort rapporter'], JSON_UNESCAPED_UNICODE);
@@ -360,12 +385,17 @@ class LineSkiftrapportController {
             }
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $params = array_merge([$inlagd], $ids);
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE `$table` SET inlagd = ? WHERE id IN ($placeholders)");
             $stmt->execute($params);
             AuditLogger::log($this->pdo, 'bulk_update_inlagd', $table, null,
                 count($ids) . ' rader, inlagd=' . $inlagd . ', ids=' . implode(',', $ids));
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) uppdaterade'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("LineSkiftrapportController::bulkUpdateInlagd($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);

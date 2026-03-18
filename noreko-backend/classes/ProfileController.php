@@ -137,6 +137,8 @@ class ProfileController {
         }
 
         try {
+            $pdo->beginTransaction();
+
             $params[] = $user['id'];
             $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
             $updateStmt = $pdo->prepare($sql);
@@ -145,9 +147,17 @@ class ProfileController {
             AuditLogger::log($pdo, 'update_profile', 'users', (int)$user['id'],
                 'Profil uppdaterad: ' . implode(', ', $changedFields));
 
+            $pdo->commit();
+
             $stmt = $pdo->prepare("SELECT id, username, email, admin, operator_id FROM users WHERE id = ?");
             $stmt->execute([$user['id']]);
             $updatedUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$updatedUser) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Kunde inte verifiera uppdaterad profil.'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
 
             $_SESSION['username'] = $updatedUser['username'];
             $_SESSION['email'] = $updatedUser['email'];
@@ -166,10 +176,16 @@ class ProfileController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('ProfileController::update — ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('ProfileController::update — ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);

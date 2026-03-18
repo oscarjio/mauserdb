@@ -103,14 +103,16 @@ class RebotlingProductController {
         }
 
         try {
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_products (name, cycle_time_minutes) VALUES (?, ?)");
             $stmt->execute([$name, $cycleTime]);
-            
+
             $productId = $this->pdo->lastInsertId();
             $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
             $safeCycle = (float)$data['cycle_time_minutes'];
             AuditLogger::log($this->pdo, 'product_create', 'rebotling_products', (int)$productId,
                 "Skapad: name={$safeName}, cycle_time={$safeCycle}");
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
@@ -122,6 +124,9 @@ class RebotlingProductController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingProductController::createProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -156,14 +161,16 @@ class RebotlingProductController {
         }
 
         try {
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE rebotling_products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
             $stmt->execute([$name, $cycleTime, $id]);
-            
+
             if ($stmt->rowCount() > 0) {
                 $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
                 $safeCycle = (float)$data['cycle_time_minutes'];
                 AuditLogger::log($this->pdo, 'product_update', 'rebotling_products', (int)$data['id'],
                     "Uppdaterad: name={$safeName}, cycle_time={$safeCycle}");
+                $this->pdo->commit();
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt uppdaterad',
@@ -174,6 +181,7 @@ class RebotlingProductController {
                     ]
                 ], JSON_UNESCAPED_UNICODE);
             } else {
+                $this->pdo->rollBack();
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
@@ -181,6 +189,9 @@ class RebotlingProductController {
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingProductController::updateProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -205,18 +216,21 @@ class RebotlingProductController {
         $id = (int)$data['id'];
 
         try {
-            // Hard delete - ta bort raden från databasen
+            $this->pdo->beginTransaction();
+            // Hard delete - ta bort raden fran databasen
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_products WHERE id = ?");
             $stmt->execute([$id]);
-            
+
             if ($stmt->rowCount() > 0) {
                 AuditLogger::log($this->pdo, 'product_delete', 'rebotling_products', $id,
                     'Produkt borttagen');
+                $this->pdo->commit();
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt borttagen'
                 ], JSON_UNESCAPED_UNICODE);
             } else {
+                $this->pdo->rollBack();
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
@@ -224,6 +238,9 @@ class RebotlingProductController {
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('RebotlingProductController::deleteProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([

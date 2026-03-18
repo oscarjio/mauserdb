@@ -1,3 +1,49 @@
+## 2026-03-18 Session #152 Worker A — 22 buggar fixade (transaction + edge case audit)
+### Uppgift: PHP buggjakt — transaction audit + edge case audit
+
+**Del 1 — PHP transaction audit (19 fixar):**
+Granskade alla INSERT/UPDATE/DELETE-operationer i noreko-backend/classes/ som gor FLERA databasskrivningar utan transaction. Wrappade multi-step operations i PDO transactions med try/catch/rollback.
+
+- `AlertsController.php`: saveSettings() — loop med INSERT ON DUPLICATE KEY UPDATE for 3 typer wrappat i transaction (1 fix)
+- `OperatorsbonusController.php`: sparaKonfiguration() — loop med UPDATE for 4 faktorer wrappat i transaction (1 fix)
+- `ProfileController.php`: handle() POST — UPDATE users + AuditLogger::log wrappat i transaction (1 fix)
+- `StoppageController.php`: createStoppage() — INSERT + AuditLog wrappat i transaction (1 fix)
+- `StoppageController.php`: updateStoppage() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `StoppageController.php`: deleteStoppage() — DELETE + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: createReport() — INSERT + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: updateReport() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: deleteReport() — DELETE + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: updateInlagd() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: bulkDelete() — DELETE + AuditLog wrappat i transaction (1 fix)
+- `LineSkiftrapportController.php`: bulkUpdateInlagd() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `LeveransplaneringController.php`: ensureTables() — CREATE TABLE + seed INSERTs wrappat i transaction (1 fix)
+- `MaintenanceController.php`: resetServiceCounter() — SELECT IBC + UPDATE service_intervals wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: createSkiftrapport() — INSERT + AuditLog wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: deleteSkiftrapport() — DELETE + AuditLog wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: bulkDelete() — DELETE + AuditLog wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: updateInlagd() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: bulkUpdateInlagd() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `SkiftrapportController.php`: updateSkiftrapport() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `RebotlingProductController.php`: createProduct() — INSERT + AuditLog wrappat i transaction (1 fix)
+- `RebotlingProductController.php`: updateProduct() — UPDATE + AuditLog wrappat i transaction (1 fix)
+- `RebotlingProductController.php`: deleteProduct() — DELETE + AuditLog wrappat i transaction (1 fix)
+
+**Del 2 — PHP edge case audit (3 fixar):**
+Granskade controllers for saknad hantering av tomma resultat, division by zero, array access utan kontroll.
+
+- `ProfileController.php`: fetch() efter UPDATE anvandes utan null-check — lade till guard mot null (1 fix)
+- `BonusAdminController.php`: $trend fran fetch() anvandes utan null-check pa $trend['previous_avg'] — lade till null-safe access (1 fix)
+- `BonusAdminController.php`: $stats fran fetch() kunde vara false — lade till fallback-defaults (1 fix)
+
+**Granskade men redan korrekt:**
+- ParetoController: Division med $totalMinutes skyddat av early return (line 165)
+- OperatorsPrestandaController: calcOee/calcMedelCykeltid har $drifttidMin <= 0 guards
+- VdDashboardController: alla divisioner har > 0 guards
+- ProduktionsDashboardController: PLANERAD_DAG_SEK ar konstant (86400), aldrig 0
+- SkiftrapportController: alla OEE/kassations-berakningar har $total > 0 guards
+- MaskinOeeController/KassationsorsakController: [0]-access skyddat av count/empty-check
+- Alla fetchColumn()-anvandningar castar med (int) vilket ger 0 for false/null
+
 ## 2026-03-18 Session #151 Worker B — 10 buggar fixade (error state UI, catchError)
 ### Uppgift: Angular buggjakt — error state UI audit, form validation audit
 

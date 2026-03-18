@@ -249,6 +249,7 @@ class SkiftrapportController {
             if ($product_id !== null && $product_id <= 0) $product_id = null;
             $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$datum, $ibc_ok, $bur_ej_ok, $ibc_ej_ok, $totalt, $product_id, $user_id]);
             $newId = (int)$this->pdo->lastInsertId();
@@ -256,6 +257,7 @@ class SkiftrapportController {
             AuditLogger::log($this->pdo, 'create_skiftrapport', 'rebotling_skiftrapport', $newId,
                 'Skapad: datum=' . $datum . ', ibc_ok=' . $ibc_ok . ', totalt=' . $totalt,
                 null, ['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok, 'totalt' => $totalt]);
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
@@ -263,6 +265,9 @@ class SkiftrapportController {
                 'id' => $newId
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte skapa skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -281,17 +286,22 @@ class SkiftrapportController {
                 return;
             }
 
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_skiftrapport WHERE id = ?");
             $stmt->execute([$id]);
 
             AuditLogger::log($this->pdo, 'delete_skiftrapport', 'rebotling_skiftrapport', $id,
                 'Skiftrapport borttagen');
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport borttagen'
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte ta bort skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -317,17 +327,22 @@ class SkiftrapportController {
 
             $ids = array_map('intval', $ids);
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_skiftrapport WHERE id IN ($placeholders)");
             $stmt->execute($ids);
 
             AuditLogger::log($this->pdo, 'bulk_delete_skiftrapport', 'rebotling_skiftrapport', null,
                 count($ids) . ' skiftrapporter borttagna (ID: ' . implode(', ', $ids) . ')');
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
                 'message' => count($ids) . ' skiftrapport(er) borttagna'
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte ta bort skiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -348,10 +363,12 @@ class SkiftrapportController {
                 return;
             }
 
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id = ?");
             $stmt->execute([$inlagd, $id]);
             AuditLogger::log($this->pdo, 'update_inlagd', 'rebotling_skiftrapport', $id,
                 'inlagd=' . $inlagd);
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
@@ -359,6 +376,9 @@ class SkiftrapportController {
                 'inlagd' => $inlagd
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte uppdatera status (updateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -387,10 +407,12 @@ class SkiftrapportController {
             $ids = array_map('intval', $ids);
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $params = array_merge([$inlagd], $ids);
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id IN ($placeholders)");
             $stmt->execute($params);
             AuditLogger::log($this->pdo, 'bulk_update_inlagd', 'rebotling_skiftrapport', null,
                 count($ids) . ' rader, inlagd=' . $inlagd . ', ids=' . implode(',', $ids));
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
@@ -398,6 +420,9 @@ class SkiftrapportController {
                 'inlagd' => $inlagd
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte uppdatera status (bulkUpdateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -480,18 +505,23 @@ class SkiftrapportController {
             
             $params[] = $id;
             $sql = 'UPDATE rebotling_skiftrapport SET ' . implode(', ', $fields) . ' WHERE id = ?';
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
 
             AuditLogger::log($this->pdo, 'update_skiftrapport', 'rebotling_skiftrapport', $id,
                 'Skiftrapport uppdaterad',
                 null, array_filter(['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok]));
+            $this->pdo->commit();
 
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport uppdaterad'
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftrapportController::inte uppdatera skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
