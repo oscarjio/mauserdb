@@ -1,3 +1,33 @@
+## 2026-03-18 Session #169 Worker B — Angular memory leak re-audit + accessibility audit — 10 buggar fixade
+
+### Audit 1: Angular memory leak re-audit — 0 buggar hittade
+
+Granskade ALLA Angular components i noreko-frontend/src/app/ (utom *-live-komponenter) for:
+- subscribe() utan takeUntil(this.destroy$) eller unsubscribe i ngOnDestroy
+- setInterval/setTimeout utan clearInterval/clearTimeout i ngOnDestroy
+- EventListener som inte tas bort
+- Chart-instanser som inte destroyas
+- Komponenter som saknar implements OnDestroy
+- BehaviorSubject/Subject som aldrig complete()s
+
+Resultat: Alla 42 granskade komponent-filer hanterar livscykeln korrekt. Inga nya lacker sedan session #166.
+
+### Audit 2: Angular accessibility audit — 10 buggar fixade
+
+Granskade ALLA Angular templates (.component.html) i noreko-frontend/src/app/ (utom *-live-komponenter).
+
+**Bugg 1-4: historisk-produktion.component.html** — 4 icon-only pagineringsknappar (forsta sida, foregaende sida, nasta sida, sista sidan) saknade aria-label. Lade till aria-label pa samtliga.
+
+**Bugg 5-6: drifttids-timeline.component.html** — 2 icon-only datumnavigationsknappar (foregaende dag, nasta dag) hade title men saknade aria-label. Lade till aria-label.
+
+**Bugg 7-8: leveransplanering.component.html** — 2 icon-only statusandringsknappar (markera levererad, satt i produktion) hade title men saknade aria-label. Lade till aria-label.
+
+**Bugg 9: daglig-briefing.component.html** — 1 icon-only utskriftsknapp hade title men saknade aria-label. Lade till aria-label="Skriv ut rapport".
+
+**Bugg 10: kvalitetscertifikat.component.html** — 1 icon-only utskriftsknapp hade title men saknade aria-label. Lade till aria-label="Skriv ut certifikat".
+
+Ovriga accessibility-aspekter (scope pa th, labels pa formular, alt-text, role-attribut) var redan korrekt implementerade i samtliga granskade templates.
+
 ## 2026-03-18 Session #168 Worker B — Angular HTTP error message + form reset/dirty state audit — 5 buggar fixade
 
 ### Audit 1: Angular HTTP error message audit — 4 buggar fixade
