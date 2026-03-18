@@ -1,3 +1,23 @@
+## 2026-03-18 Session #170 Worker B — Angular HTTP retry/timeout audit + route lazy-loading audit — 0 buggar fixade
+
+### Uppgift 1: Angular HTTP retry/timeout audit — 0 buggar hittade
+
+Granskade ALLA 96 Angular services (92 i services/, 4 i rebotling/) och ALLA sidokomponenter som gor HTTP-anrop direkt (675+ anrop totalt) i noreko-frontend/src/app/ (utom *-live-komponenter) for:
+- HTTP-anrop (this.http.get/post/put/delete) som saknar timeout()
+- HTTP-anrop som saknar catchError() eller felhantering
+- HTTP-anrop som borde ha retry() men saknar det (GET-anrop for datahamtning)
+- Polling med setInterval som saknar timeout pa HTTP-anropen inuti
+
+Resultat: Alla 96 services har korrekt timeout() (8000-20000ms), catchError(() => of(null)) och retry(1) pa GET-anrop. Alla komponent-filer med direkta HTTP-anrop (operator-dashboard, news, login, register, rebotling-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, shift-plan, shift-handover, bonus-admin, news-admin, vpn-admin, certifications, andon, feature-flag-admin, maintenance-log, rebotling-skiftrapport, my-bonus, executive-dashboard, operator-detail, operator-attendance, monthly-report, live-ranking, statistik-komponenter m.fl.) har alla timeout() + catchError() + takeUntil(destroy$). Polling-intervaller (setInterval) delegerar till services med timeout/catchError och rensas korrekt med clearInterval i ngOnDestroy.
+
+### Uppgift 2: Angular route lazy-loading audit — 0 buggar hittade
+
+Granskade noreko-frontend/src/app/app.routes.ts for:
+- Routes som laddar komponenter direkt (component: XxxComponent) istallet for lazy-loading (loadComponent/loadChildren)
+- Stora feature-moduler som inte lazy-loadas korrekt
+
+Resultat: Alla 160+ child routes anvander loadComponent med dynamisk import() for korrekt lazy-loading. Enda component:-anvandningen ar rot-Layout-komponenten som ar korrekt — den ar skalet som omsluter alla sidor och ska inte lazy-loadas. Inga modules (loadChildren) anvands da projektet ar byggt med standalone components. Ingen atgard kravs.
+
 ## 2026-03-18 Session #169 Worker A — PHP file traversal + date/time DST + SQL transaction audit — 27 buggar fixade
 
 ### Uppgift 1: PHP file path traversal audit — 0 buggar hittade
