@@ -9,7 +9,7 @@ class AuthHelper {
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_MINUTES = 15;
     /** Session timeout i sekunder (8 timmar — matchar session.gc_maxlifetime i api.php) */
-    private const SESSION_TIMEOUT = 28800;
+    public const SESSION_TIMEOUT = 28800;
 
     /**
      * Verify password using bcrypt.

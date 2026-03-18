@@ -29,10 +29,10 @@ class StatusController {
             return;
         }
 
-        // Kontrollera session-timeout (inaktivitet).
+        // Kontrollera session-timeout (inaktivitet) via AuthHelper-konstanten.
         // Sessionen öppnades med read_and_close ovan, så vi kan inte skriva last_activity här.
         // Istället kollar vi bara — om den har gått ut, förstör sessionen och returnera utloggad.
-        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 28800) {
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > AuthHelper::SESSION_TIMEOUT) {
             // Sessionen har gått ut — öppna den igen i skrivbart läge för att förstöra den
             session_start();
             session_unset();
@@ -158,14 +158,14 @@ class StatusController {
                                     "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
                                 )->fetchColumn();
                                 if ($cRow > 0) $snittCykel = (float)$cRow;
-                            } catch (Exception) { /* ignorera */ }
+                            } catch (Exception $e) { error_log('StatusController: ' . $e->getMessage()); }
                             $maxMojlig = $prodTid / $snittCykel;
                             if ($maxMojlig > 0) {
                                 $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                             }
                         }
                     }
-                } catch (Exception) { /* ignorera OEE-fel */ }
+                } catch (Exception $e) { error_log('StatusController OEE: ' . $e->getMessage()); }
 
                 $lines[] = [
                     'id'              => 'rebotling',

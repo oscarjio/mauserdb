@@ -154,14 +154,14 @@ class KlassificeringslinjeController {
                     $diff          = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
-            } catch (\Exception $e) { /* ignorera — tabellen kanske inte finns */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getSystemStatus plc: ' . $e->getMessage()); }
 
             // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM klassificeringslinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
 
             // Databas OK
             $dbStatus = 'ok';
@@ -275,7 +275,7 @@ class KlassificeringslinjeController {
                 ");
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $ibcIdag = max(0, (int)($row['ibc_idag'] ?? 0));
-            } catch (\Exception $e) { /* tabell kanske inte finns */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getTodaySnapshot ibc: ' . $e->getMessage()); }
 
             // Senaste PLC-record — kontrollera om linjen kör
             $isRunning = false;
@@ -288,7 +288,7 @@ class KlassificeringslinjeController {
                     $diffMin = ($now->getTimestamp() - $lastDt->getTimestamp()) / 60;
                     $isRunning = ($diffMin < 15);
                 }
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getTodaySnapshot plc: ' . $e->getMessage()); }
 
             // Dagsmål från settings
             $dagmal = 0;
@@ -296,7 +296,7 @@ class KlassificeringslinjeController {
                 $this->ensureSettingsTable();
                 $val = $this->pdo->query("SELECT value FROM klassificeringslinje_settings WHERE setting = 'dagmal'")->fetchColumn();
                 $dagmal = (int)($val ?? 0);
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
 
             // Tomt om ingen data idag
             if ($ibcIdag === 0 && !$isRunning) {
@@ -346,13 +346,13 @@ class KlassificeringslinjeController {
             try {
                 $settings  = $this->pdo->query("SELECT setting, value FROM klassificeringslinje_settings")->fetchAll(\PDO::FETCH_KEY_PAIR);
                 $ibcTarget = (int)($settings['dagmal'] ?? 120);
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getLiveStats settings: ' . $e->getMessage()); }
 
             try {
                 $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM klassificeringslinje_ibc WHERE DATE(datum) = CURDATE()");
                 $stmt->execute();
                 $ibcToday = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getLiveStats ibc: ' . $e->getMessage()); }
 
             echo json_encode([
                 'success' => true,
@@ -430,7 +430,7 @@ class KlassificeringslinjeController {
                 ");
                 $stmt->execute(['datum' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) { /* tabell finns kanske inte */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getReport rows: ' . $e->getMessage()); }
 
             $prevDatum = date('Y-m-d', strtotime($datum . ' -1 day'));
             $prevRows  = [];
@@ -511,17 +511,10 @@ class KlassificeringslinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('KlassificeringslinjeController::getReport: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
-                'success' => true,
-                'empty'   => true,
-                'message' => 'Linjen ej i drift',
-                'datum'   => $datum,
-                'data'    => [
-                    'total_ibc' => 0, 'total_ok' => 0, 'total_ej_ok' => 0,
-                    'kvalitet_pct' => 0, 'runtime_minutes' => 0,
-                    'ibc_per_hour' => 0, 'delta_ibc' => 0, 'prev_ibc' => 0,
-                    'skift_count' => 0, 'skift_data' => [],
-                ],
+                'success' => false,
+                'error'   => 'Kunde inte hämta rapport',
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -551,7 +544,7 @@ class KlassificeringslinjeController {
                 ");
                 $stmt->execute(['dagar' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) { /* tabell finns kanske inte */ }
+            } catch (\Exception $e) { error_log('KlassificeringslinjeController::getOeeTrend: ' . $e->getMessage()); }
 
             if (empty($rows)) {
                 echo json_encode([
@@ -614,15 +607,10 @@ class KlassificeringslinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('KlassificeringslinjeController::getOeeTrend: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
-                'success' => true,
-                'empty'   => true,
-                'message' => 'Linjen ej i drift',
-                'data'    => [],
-                'summary' => [
-                    'total_ibc' => 0, 'snitt_per_dag' => 0,
-                    'snitt_oee_pct' => 0, 'basta_dag' => null, 'basta_ibc' => 0,
-                ],
+                'success' => false,
+                'error'   => 'Kunde inte hämta OEE-trend',
             ], JSON_UNESCAPED_UNICODE);
         }
     }

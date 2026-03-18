@@ -181,14 +181,14 @@ class TvattlinjeController {
                     $diff         = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
-            } catch (\Exception $e) { /* ignorera — tabellen kanske inte finns */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM tvattlinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Antal poster idag
             $posterIdag = 0;
@@ -196,7 +196,7 @@ class TvattlinjeController {
                 $posterIdag = (int)$this->pdo->query(
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
                 )->fetchColumn();
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Är linjen i drift? PLC-data < 15 min gammal
             $isRunning = ($plcAgeMinutes !== null && $plcAgeMinutes < 15);
@@ -247,7 +247,7 @@ class TvattlinjeController {
                 $ibcIdag = (int)$this->pdo->query(
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
                 )->fetchColumn();
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
             $dagmal = 80;
@@ -270,8 +270,8 @@ class TvattlinjeController {
                     if ($wgRow && (int)$wgRow['mal'] > 0) {
                         $dagmal = (int)$wgRow['mal'];
                     }
-                } catch (\Exception $e) { /* ignorera */ }
-            } catch (\Exception $e) { /* ignorera */ }
+                } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Linjen kör? (senaste PLC < 15 min gammal)
             $isRunning = false;
@@ -285,7 +285,7 @@ class TvattlinjeController {
                     $ageMin = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     $isRunning = ($ageMin < 15);
                 }
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Takt: IBC per timme senaste 2 timmar
             $taktPerTimme = 0.0;
@@ -294,7 +294,7 @@ class TvattlinjeController {
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
                 )->fetchColumn();
                 $taktPerTimme = round($cnt / 2.0, 1);
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Skiftlängd
             $skiftTimmar = 8.0;
@@ -313,7 +313,7 @@ class TvattlinjeController {
                 if ($slutDt > $startDt) {
                     $skiftTimmar = ($slutDt->getTimestamp() - $startDt->getTimestamp()) / 3600.0;
                 }
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
 
             // Prognos
             $shiftStart = new \DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
@@ -701,10 +701,10 @@ class TvattlinjeController {
 
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
-            } catch (\Exception $e) { /* Kolumn finns redan */ }
+            } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
-            } catch (\Exception $e) { /* Kolumn finns redan */ }
+            } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
 
             // Använd INSERT ... ON DUPLICATE KEY UPDATE för att undvika race condition
             // (concurrent requests som båda ser COUNT=0 och försöker INSERT)
@@ -739,10 +739,10 @@ class TvattlinjeController {
     private function loadSettings() {
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
-        } catch (\Exception $e) { /* Kolumn finns redan */ }
+        } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
-        } catch (\Exception $e) { /* Kolumn finns redan */ }
+        } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
 
         $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings ORDER BY id ASC LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);

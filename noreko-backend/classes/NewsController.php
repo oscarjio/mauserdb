@@ -28,7 +28,14 @@ class NewsController {
     }
 
     private function requireAdmin(): bool {
-        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (session_status() === PHP_SESSION_NONE) {
+            $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
