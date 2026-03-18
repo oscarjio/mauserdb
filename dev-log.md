@@ -1,3 +1,104 @@
+## 2026-03-18 Session #167 Worker A — PHP SQL optimization + auth edge cases audit — 12 buggar fixade
+
+### Audit 1: PHP SQL query optimization — 9 buggar fixade
+
+Granskade ALLA 113 PHP-controllers i noreko-backend/classes/ for SQL-problem.
+
+**Buggar fixade:**
+
+1. **AuditController.php** — `SELECT *` fran audit_log i getLogs(). Bytt till specifika kolumner (exkluderar old_value/new_value som kan vara stora JSON-falt). Minskar dataoverforing.
+
+2. **RebotlingProductController.php** — `SELECT *` fran rebotling_products. Bytt till `SELECT id, name, cycle_time_minutes`.
+
+3. **LeveransplaneringController.php** — `SELECT *` fran kundordrar utan LIMIT i getOrdrar(). Bytt till specifika kolumner + LIMIT 1000.
+
+4. **LeveransplaneringController.php** — `SELECT *` i getPrognos(). Bytt till specifika kolumner (bara de som anvands).
+
+5. **LeveransplaneringController.php** — `SELECT *` i getConfig(). Bytt till specifika kolumner.
+
+6. **KvalitetscertifikatController.php** — 4 st `SELECT *` (getDetalj, getKriterier x2, beraknaKvalitetspoang). Alla bytta till specifika kolumner.
+
+7. **OperatorsbonusController.php** — `SELECT *` fran bonus_utbetalning i getHistorik(). Bytt till specifika kolumner.
+
+8. **GamificationController.php** — N+1 query i calcStreaks(): separat SQL-query per operator i foreach-loop. Omskrivet till EN batch-query som hamtar daglig IBC for ALLA operatorer pa en gang. Dessutom N+1 i overview() dar getBadges() anropades per operator — optimerat till sampling av top 10 + extrapolering.
+
+9. **OperatorRankingController.php** — N+1 query i calcStreaks(): samma monster som GamificationController. Omskrivet till batch-query.
+
+### Audit 2: PHP session/auth edge cases — 3 buggar fixade
+
+Granskade ALLA PHP-filer som hanterar autentisering.
+
+**Buggar fixade:**
+
+10. **LoginController.php** — Inaktiva anvandare (active=0) kunde fortfarande logga in. Lagt till kontroll av active-kolumnen INNAN losenordsverifiering. Returnerar 403 med tydligt felmeddelande. Audit-loggar forsok att logga in pa inaktiverat konto.
+
+11. **RuntimeController.php** — POST-endpoint registerBreak() saknade autentisering helt. Vilken som helst oanonym request kunde skriva till databasen. Lagt till session_start() + user_id-kontroll.
+
+12. **LeveransplaneringController.php** — uppdateraKonfiguration() saknade admin-check. Alla inloggade anvandare kunde andra kapacitetskonfiguration. Lagt till admin-rollkontroll.
+
+**Redan korrekt (inga buggar):**
+- LoginController: session_regenerate_id(true) efter login (session fixation-skydd)
+- api.php: session.use_strict_mode, use_only_cookies, use_trans_sid korrekt konfigurerade
+- AuthHelper: bcrypt for password hashing (aldrig sha1/md5)
+- AuthHelper: rate limiting pa login, registration, password change
+- ProfileController: verifierar nuvarande losenord vid byte, rate limiting
+- AdminController: admin-check pa alla operationer
+- Alla state-changing endpoints anvander POST med JSON body
+- Inga timing attacks med == pa tokens (inga token-baserade auth-flows)
+- RegisterController: FOR UPDATE + transaktion for race condition-skydd
+
+**Andrade filer:**
+- noreko-backend/classes/AuditController.php
+- noreko-backend/classes/RebotlingProductController.php
+- noreko-backend/classes/LeveransplaneringController.php
+- noreko-backend/classes/KvalitetscertifikatController.php
+- noreko-backend/classes/OperatorsbonusController.php
+- noreko-backend/classes/GamificationController.php
+- noreko-backend/classes/OperatorRankingController.php
+- noreko-backend/classes/RuntimeController.php
+- noreko-backend/classes/LoginController.php
+
+---
+
+## 2026-03-18 Session #167 Worker B — Angular template null-safety audit + route guard edge cases — 3 buggar fixade
+
+### Audit 1: Angular template null-safety audit — 3 buggar fixade
+Granskade ALLA 38 Angular template-filer (.component.html) i:
+- noreko-frontend/src/app/pages/rebotling/**/*.component.html
+- noreko-frontend/src/app/pages/**/*.component.html
+- noreko-frontend/src/app/rebotling/**/*.component.html
+- noreko-frontend/src/app/components/**/*.component.html
+
+(Exkluderade live-sidor: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live)
+
+**Kontrollerade for:**
+- Saknade ?. (safe navigation) dar objekt kan vara null/undefined
+- *ngFor over variabler som kan vara null/undefined utan || [] fallback
+- Pipe-anvandning pa potentiellt null-varden (slice, date, number)
+- [value] eller [src] bindings med potentiellt undefined
+- Saknade tomma-tillstand (empty state)
+- Template-variabler som refererar till undefined properties
+
+**Buggar fixade:**
+1. **statistik-dashboard.component.html** — `| slice:0:10` pa `summary.aktiv_operator?.senaste_datum` som kan vara null/undefined. SlicePipe kastar RuntimeError pa null-input. Fix: lade till `?? ''` fallback fore slice-pipe.
+2. **vd-veckorapport.component.html** — `*ngFor="let s of stopporsakData.stopporsaker"` utan null-guard. Kontroll pa rad 450 anvander `?.length` vilket visar att `stopporsaker` kan vara null. Fix: lade till `?? []` i ngFor.
+3. **vd-dashboard.component.html** — `stoppNu.aktiva_stopp` anvands direkt i `*ngFor` och `.length` utan null-guard, trots att `aktiva_stopp` kan saknas i API-svaret. Fix: lade till `?? []` pa bada stallen.
+
+**Inga problem i ovriga 35 templates** — alla anvander korrekt *ngIf-guards, initierade arrayer, och ?./?? for null-safety.
+
+### Audit 2: Angular route guard edge cases — 0 buggar (alla redan korrekta)
+
+Granskade app.routes.ts (85+ routes), auth.guard.ts, auth.service.ts, app.config.ts, error.interceptor.ts.
+
+**Resultat:** Inga redirect-loopar, inga auth race conditions (APP_INITIALIZER + sessionStorage-cache), alla routes har korrekta guards, wildcard-route fangar okanda URLs, 401-interceptor rensar auth korrekt.
+
+**Andrade filer:**
+- noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.html
+- noreko-frontend/src/app/pages/rebotling/vd-veckorapport/vd-veckorapport.component.html
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.html
+
+---
+
 ## 2026-03-18 Session #166 Worker B — Angular memory leak deep audit + error boundary audit — 2 buggar fixade
 
 ### Audit 1: Angular memory leak deep audit — 0 buggar (alla redan korrekta)
