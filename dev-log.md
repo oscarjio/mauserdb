@@ -1,3 +1,34 @@
+## 2026-03-18 Session #172 Worker A — filuppladdning audit + SQL optimization — 8 buggar fixade
+
+### Uppgift 1: PHP file upload security audit — 0 buggar (ingen filuppladdningskod finns)
+
+Sokte igenom hela noreko-backend/ efter $_FILES, move_uploaded_file, file_put_contents, fopen, upload, multipart, tmp_name.
+Resultat: Ingen filuppladdningskod existerar i backend. De enda fopen-anropen ar for CSV-export till php://output (BonusAdminController rad 1819, TidrapportController rad 564) — dessa ar sakra.
+
+### Uppgift 2: PHP SQL query optimization audit — 8 buggar fixade
+
+**SELECT * ersatt med specifika kolumner (3 buggar):**
+- StoppageController.php rad 147: SELECT * FROM stoppage_reasons -> SELECT id, code, name, category, color, sort_order
+- StoppageController.php rad 168: SELECT s.* FROM stoppage_log -> explicita kolumner (id, line, reason_id, start_time, end_time, duration_minutes, comment, user_id, created_at)
+- SkiftplaneringController.php rad 416: SELECT * FROM skift_konfiguration -> SELECT skift_typ, start_tid, slut_tid, min_bemanning, max_bemanning
+
+Noterade att BonusAdminController (rad 151, 1518), RebotlingAdminController (rad 32), TvattlinjeController (rad 747) ocksa har SELECT * men dessa ar single-row config-tabeller (WHERE id = 1) dar hela raden behovs — lag risk, lamnades.
+
+**N+1 query-problem fixade (3 buggar):**
+- DagligSammanfattningController.php getVeckosnitt(): 5 separata queries i for-loop -> 1 query med IN() + GROUP BY
+- UnderhallsloggController.php getManadsChart(): 6-12 queries i for-loop -> 1 query med DATE_FORMAT GROUP BY
+- ProduktionsPrognosController.php getHistoricalAvgRate() + getShiftHistory(): 2 N+1-loopar med queries per skiftfonster -> 1 query vardera med CASE/SUM batch-approach
+
+Noterade aven N+1 i OperatorJamforelseController (2 queries per operator i foreach) men lastas ej da antalet operatorer ar litet (typiskt 2-3) och queryn ar komplex med 3x UNION ALL.
+
+**Index-migration for datumkolumner (2 buggar):**
+- Skapade migrations/2026-03-18_date_column_indexes.sql med index pa:
+  - rebotling_ibc.datum, rebotling_underhallslogg.datum, rebotling_skiftrapport.datum,
+    stopporsak_registreringar.start_time, kassationsorsak_registreringar.datum
+- Dokumenterade att DATE(datum) i WHERE-villkor (30+ forekomster) forhindrar index-anvandning och bor skrivas om till range-queries i framtida session
+
+---
+
 ## 2026-03-18 Session #171 Worker B — form validation + chart destroy audit — 226 buggar fixade
 
 ### Uppgift 1: Angular form validation audit — 63 buggar fixade i 28 filer
