@@ -7,20 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP SQL ORDER BY injection audit** — alla whitelist-validerade (session #157)
-- [x] **Angular route param validation audit** — alla validerade (session #157)
-- [x] **PHP error response format audit** — 2 XSS + 20 svenska (session #157)
-- [x] **Angular loading state audit** — 1 fix produktionspuls-widget (session #157)
-- [x] **PHP unused method audit** — inga oanvanda (session #157)
-- [x] **PHP input sanitization audit** — 75 ENT_QUOTES + 3 strip_tags/mb_substr (session #158)
-- [x] **Angular HTTP retry/timeout audit** — 6 catchError i alerts.service (session #158)
-- [x] **Angular change detection audit** — default CD, inga problem (session #158)
-- [ ] **PHP division by zero audit** — granska alla divisioner for zero-check
-- [ ] **Angular memory leak audit** — verifiera att alla subscriptions rensas korrekt
-- [ ] **PHP file upload validation audit** — verifiera filtyp, storlek, path traversal-skydd
-- [ ] **Angular form validation audit** — verifiera att alla formuler har korrekt validering
-- [ ] **PHP session/auth edge case audit** — granska auth-floden for edge cases
-- [ ] **Angular error display audit** — verifiera att felmeddelanden visas for anvandaren
+- [x] **PHP division by zero audit** — alla divisioner har zero-check, inga buggar (session #159)
+- [x] **Angular memory leak audit** — Chart.js, EventListener, rxjs alla OK (session #159)
+- [x] **PHP file upload validation audit** — inga fil-uploads i projektet (session #159)
+- [x] **Angular form validation audit** — alla formuler har korrekt validering (session #159)
+- [x] **PHP session/auth edge case audit** — 3 controllers saknade auth-check, fixade (session #159)
+- [x] **Angular error display audit** — 2 buggar fixade: loading state + delete error (session #159)
+- [ ] **PHP SQL query edge case audit** — granska komplexa SQL-fragor for NULL-hantering, LIMIT/OFFSET
+- [ ] **Angular template null-safety audit** — verifiera ?. och *ngIf-guards i templates
+- [ ] **PHP date/time parsing audit** — granska strtotime/DateTime for ogiltiga input
+- [ ] **Angular HTTP interceptor audit** — verifiera retry-logik, token refresh, error mapping
+- [ ] **PHP array access audit** — granska array-accesser utan isset/array_key_exists
+- [ ] **Angular router guard audit** — verifiera att auth-guards skyddar alla skyddade routes
 
 ## Parkerade features (ta inte dessa nu)
 

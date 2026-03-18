@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #158)*
+*Senast uppdaterad: 2026-03-18 (session #159)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -61,32 +61,32 @@ Session #105-#131: BUGGJAKT — ~700 buggar totalt. Se lead-memory-archive.md.
 Session #132-#154: BUGGJAKT — ~800+ buggar. Se lead-memory-archive.md.
 Session #155: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). json_decode null-safety + trackByIndex->trackById.
 Session #156: BUGGJAKT — 25 buggar (10 Worker A + 15 Worker B). strtotime false-check, DateTime try/catch, transaction wraps + setTimeout destroy$-guards.
-Session #157: BUGGJAKT — 23 buggar (22 Worker A + 1 Worker B). 2 XSS-fixar (htmlspecialchars), 20 svenska felmeddelanden (BonusAdminController) + 1 loading state fix (produktionspuls-widget). ORDER BY OK, route params OK, unused methods OK.
-Session #158: BUGGJAKT — 79 buggar (78 Worker A + 1 Worker B). 75 XSS ENT_QUOTES-fixar, 3 input sanitization (langdbegransning) + 6 catchError i alerts.service.ts. Change detection OK, subscriptions OK.
+Session #157: BUGGJAKT — 23 buggar (22 Worker A + 1 Worker B). XSS-fixar, svenska felmeddelanden + loading state fix.
+Session #158: BUGGJAKT — 79 buggar (78 Worker A + 1 Worker B). XSS ENT_QUOTES-fixar, input sanitization + catchError.
+Session #159: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). 3 saknade auth-checks (ProduktionsTakt, RebotlingTrendanalys, Veckotrend) + 2 error display (loading state + delete error).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] PHP input sanitization audit — 75 ENT_QUOTES + 3 langdbegransning (session #158)
-- [x] Angular HTTP retry/timeout audit — 6 catchError i alerts.service (session #158)
-- [x] Angular change detection audit — default CD konsekvent, inga problem (session #158)
-- [ ] PHP division by zero audit
-- [ ] Angular memory leak audit
-- [ ] PHP file upload validation audit
-- [ ] Angular form validation audit
+- [ ] PHP SQL query edge case audit — NULL-hantering, LIMIT/OFFSET
+- [ ] Angular template null-safety audit — ?. och *ngIf-guards
+- [ ] PHP date/time parsing audit — ogiltiga input
+- [ ] Angular HTTP interceptor audit — retry-logik, token refresh
+- [ ] PHP array access audit — isset/array_key_exists
+- [ ] Angular router guard audit — auth-guards pa skyddade routes
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-18 — Session #156 (klar)
-Worker A: 10 buggar — 7 strtotime false-check, 2 DateTime try/catch, 1 preg_match, 3 transaction wraps.
-Worker B: 15 buggar — 15 setTimeout destroy$-guards (12 komponenter), form reset OK.
-
 ### 2026-03-18 — Session #157 (klar)
-Worker A: 22 buggar — 2 XSS-fixar (htmlspecialchars i VeckotrendController + BonusAdminController), 20 engelska->svenska felmeddelanden (BonusAdminController). ORDER BY OK, unused methods OK.
+Worker A: 22 buggar — 2 XSS-fixar, 20 engelska->svenska felmeddelanden. ORDER BY OK, unused methods OK.
 Worker B: 1 bugg — loading state i produktionspuls-widget. Route params OK.
 
 ### 2026-03-18 — Session #158 (klar)
-Worker A: 78 buggar — 75 htmlspecialchars ENT_QUOTES+UTF-8 fixar (72 controllers), 3 input sanitization (strip_tags+mb_substr i Leveransplanering, Certification, ShiftPlan).
-Worker B: 1 bugg — 6 catchError saknade i alerts.service.ts. Change detection OK (default CD), subscriptions OK, setInterval/setTimeout OK.
+Worker A: 78 buggar — 75 htmlspecialchars ENT_QUOTES+UTF-8 fixar, 3 input sanitization.
+Worker B: 1 bugg — 6 catchError i alerts.service.ts. Change detection OK, subscriptions OK.
+
+### 2026-03-18 — Session #159 (klar)
+Worker A: 3 buggar — 3 controllers saknade auth-check (ProduktionsTaktController, RebotlingTrendanalysController, VeckotrendController). Division by zero OK, inga file uploads.
+Worker B: 2 buggar — loading state vid API-fel i produktionspuls + saknat delete-felmeddelande i maintenance-list. Memory leaks OK, form validation OK.
