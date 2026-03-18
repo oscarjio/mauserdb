@@ -85,7 +85,7 @@ class FeedbackController {
 
             echo json_encode(['success' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('FeedbackController::myHistory — ' . $e->getMessage());
+            error_log('FeedbackController::myHistory: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av historik'], JSON_UNESCAPED_UNICODE);
         }
@@ -96,6 +96,7 @@ class FeedbackController {
     // ================================================================
     private function summary(): void {
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            error_log('FeedbackController::summary: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
@@ -127,7 +128,7 @@ class FeedbackController {
                 'per_dag'      => $perDag,
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('FeedbackController::summary — ' . $e->getMessage());
+            error_log('FeedbackController::summary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av sammanfattning'], JSON_UNESCAPED_UNICODE);
         }
@@ -224,7 +225,7 @@ class FeedbackController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('FeedbackController::submit — ' . $e->getMessage());
+            error_log('FeedbackController::submit: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sparning av feedback'], JSON_UNESCAPED_UNICODE);
         }

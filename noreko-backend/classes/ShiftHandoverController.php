@@ -411,6 +411,7 @@ class ShiftHandoverController {
             $ownNote = ($row['created_by_user_id'] !== null && (int)$row['created_by_user_id'] === $userId);
 
             if (!$isAdmin && !$ownNote) {
+                error_log('ShiftHandoverController::deleteNote: Obehörig borttagning, user_id=' . $userId . ', note_id=' . $id);
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Du har inte behörighet att ta bort denna anteckning'], JSON_UNESCAPED_UNICODE);
                 return;

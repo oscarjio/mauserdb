@@ -720,6 +720,7 @@ class UnderhallsloggController {
         try {
             $role = $_SESSION['role'] ?? '';
             if ($role !== 'admin') {
+                error_log('UnderhallsloggController::deleteEntry: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . $role);
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Atkomst nekad — kraver admin'], JSON_UNESCAPED_UNICODE);
                 return;

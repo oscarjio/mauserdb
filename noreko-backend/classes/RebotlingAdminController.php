@@ -45,7 +45,7 @@ class RebotlingAdminController {
 
             echo json_encode(['success' => true, 'data' => $settings], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingAdminController::inte hämta admin-inställningar: ' . $e->getMessage());
+            error_log('RebotlingAdminController::getAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta admin-inställningar'], JSON_UNESCAPED_UNICODE);
         }
@@ -113,13 +113,13 @@ class RebotlingAdminController {
                     );
                     $logStmt->execute([intval($rebotlingTarget), $user]);
                 } catch (Exception $logEx) {
-                    error_log('RebotlingAdminController::inte logga mål-historik: ' . $logEx->getMessage());
+                    error_log('RebotlingAdminController::saveAdminSettings (goal history): ' . $logEx->getMessage());
                 }
             }
 
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingAdminController::inte spara inställningar: ' . $e->getMessage());
+            error_log('RebotlingAdminController::saveAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
         }

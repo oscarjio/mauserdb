@@ -20,6 +20,7 @@ class OperatorCompareController {
             session_start(['read_and_close' => true]);
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            error_log('OperatorCompareController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;

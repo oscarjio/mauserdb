@@ -96,6 +96,7 @@ class ProfileController {
             $pwChangeIp = 'pwchange:' . $ip;
             if (AuthHelper::isRateLimited($pdo, $pwChangeIp)) {
                 $remaining = AuthHelper::getLockoutRemaining($pdo, $pwChangeIp);
+                error_log('ProfileController::handle: Rate limit för lösenordsbyte, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', IP=' . $ip);
                 http_response_code(429);
                 echo json_encode([
                     'success' => false,
@@ -106,6 +107,7 @@ class ProfileController {
 
             if (!AuthHelper::verifyPassword($currentPassword, $user['password'])) {
                 AuthHelper::recordAttempt($pdo, $pwChangeIp, $user['username'], false);
+                error_log('ProfileController::handle: Felaktigt lösenord vid byte, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', username=' . ($user['username'] ?? 'unknown'));
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Nuvarande lösenord är felaktigt.'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -179,14 +181,14 @@ class ProfileController {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log('ProfileController::update — ' . $e->getMessage());
+            error_log('ProfileController::update: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log('ProfileController::update — ' . $e->getMessage());
+            error_log('ProfileController::update: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         }

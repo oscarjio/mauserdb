@@ -104,7 +104,7 @@ class WeeklyReportController {
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log("WeeklyReportController::getWeekCompare — " . $e->getMessage());
+            error_log("WeeklyReportController::getWeekCompare: " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }
@@ -462,7 +462,7 @@ class WeeklyReportController {
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log("WeeklyReportController::getSummary — " . $e->getMessage());
+            error_log("WeeklyReportController::getSummary: " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }

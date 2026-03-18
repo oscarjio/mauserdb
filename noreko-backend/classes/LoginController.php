@@ -52,6 +52,7 @@ class LoginController {
         // Rate limiting
         if (AuthHelper::isRateLimited($pdo, $ip)) {
             $remaining = AuthHelper::getLockoutRemaining($pdo, $ip);
+            error_log("LoginController::handle: Rate limit triggered for IP {$ip}, user '{$username}'");
             http_response_code(429);
             echo json_encode([
                 'success' => false,
@@ -70,6 +71,7 @@ class LoginController {
                 AuthHelper::recordAttempt($pdo, $ip, $username, false);
                 AuditLogger::log($pdo, 'login_blocked_inactive', 'user', (int)$user['id'],
                     "Inloggningsförsök till inaktiverat konto: {$username}");
+                error_log("LoginController::handle: Inloggningsförsök till inaktiverat konto '{$username}' från IP {$ip}");
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Kontot är inaktiverat. Kontakta administratören.'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -119,6 +121,7 @@ class LoginController {
                 }
 
                 AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
+                error_log("LoginController::handle: Misslyckat inloggningsförsök för '{$username}' från IP {$ip}");
 
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);

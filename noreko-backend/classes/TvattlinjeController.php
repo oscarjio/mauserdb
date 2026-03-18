@@ -590,7 +590,7 @@ class TvattlinjeController {
                     $utetemperatur = (float)$weatherData['utetemperatur'];
                 }
             } catch (Exception $e) {
-                error_log('TvattlinjeController::inte hämta väderdata: ' . $e->getMessage());
+                error_log('TvattlinjeController::getLiveStats (väderdata): ' . $e->getMessage());
             }
 
             $response = [
@@ -619,7 +619,7 @@ class TvattlinjeController {
             
             echo json_encode($response, JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
-            error_log('TvattlinjeController::inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
+            error_log('TvattlinjeController::getLiveStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -650,7 +650,7 @@ class TvattlinjeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('TvattlinjeController::inte hämta status (tvattlinje getRunningStatus): ' . $e->getMessage());
+            error_log('TvattlinjeController::getRunningStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -668,7 +668,7 @@ class TvattlinjeController {
                 'data' => $settings
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('TvattlinjeController::inte hämta admin-inställningar (tvattlinje): ' . $e->getMessage());
+            error_log('TvattlinjeController::getAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -727,7 +727,7 @@ class TvattlinjeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('TvattlinjeController::inte spara inställningar (tvattlinje): ' . $e->getMessage());
+            error_log('TvattlinjeController::saveAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -895,7 +895,7 @@ class TvattlinjeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('TvattlinjeController::inte hämta statistik (tvattlinje getStatistics): ' . $e->getMessage());
+            error_log('TvattlinjeController::getStatistics: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,

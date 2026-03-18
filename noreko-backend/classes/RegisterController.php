@@ -18,6 +18,7 @@ class RegisterController {
         $regIp = 'reg:' . $ip; // Prefix för att skilja från login-attempts
         if (AuthHelper::isRateLimited($pdo, $regIp)) {
             $remaining = AuthHelper::getLockoutRemaining($pdo, $regIp);
+            error_log("RegisterController::handle: Rate limit för registrering, IP={$ip}");
             http_response_code(429);
             echo json_encode([
                 'success' => false,

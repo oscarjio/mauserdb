@@ -35,6 +35,7 @@ class FeatureFlagController {
                 session_start();
             }
             if (!$this->isDeveloper()) {
+                error_log('FeatureFlagController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Kräver admin- eller developer-behörighet'], JSON_UNESCAPED_UNICODE);
                 return;

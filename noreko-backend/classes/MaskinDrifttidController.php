@@ -113,7 +113,7 @@ class MaskinDrifttidController {
             }
             return $result;
         } catch (\PDOException $e) {
-            error_log('MaskinDrifttid::fetchHourlyProduction: ' . $e->getMessage());
+            error_log('MaskinDrifttidController::fetchHourlyProduction: ' . $e->getMessage());
             return [];
         }
     }

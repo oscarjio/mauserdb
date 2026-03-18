@@ -90,6 +90,7 @@ class SkiftrapportController {
 
     private function checkAdmin() {
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            error_log('SkiftrapportController::checkAdmin: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet'], JSON_UNESCAPED_UNICODE);
             exit;
@@ -224,7 +225,7 @@ class SkiftrapportController {
                 'data' => $results
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('SkiftrapportController::inte hämta skiftrapporter: ' . $e->getMessage());
+            error_log('SkiftrapportController::getSkiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -268,7 +269,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte skapa skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::createSkiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -302,7 +303,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte ta bort skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::deleteSkiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -343,7 +344,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte ta bort skiftrapporter: ' . $e->getMessage());
+            error_log('SkiftrapportController::bulkDelete: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -379,7 +380,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte uppdatera status (updateInlagd): ' . $e->getMessage());
+            error_log('SkiftrapportController::updateInlagd: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -423,7 +424,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte uppdatera status (bulkUpdateInlagd): ' . $e->getMessage());
+            error_log('SkiftrapportController::bulkUpdateInlagd: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -522,7 +523,7 @@ class SkiftrapportController {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            error_log('SkiftrapportController::inte uppdatera skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::updateSkiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,

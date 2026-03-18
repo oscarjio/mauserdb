@@ -37,6 +37,7 @@ class NewsController {
             }
         }
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            error_log('NewsController::requireAdmin: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return false;
@@ -259,7 +260,7 @@ class NewsController {
                 ];
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — manuella nyheter: " . $e->getMessage());
+            error_log("NewsController::getEvents:manuella nyheter: " . $e->getMessage());
         }
 
         // 1. Rekordag — bästa produktionsdagen någonsin, om den inträffade de senaste 30 dagarna
@@ -296,7 +297,7 @@ class NewsController {
                 ];
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — rekordag: " . $e->getMessage());
+            error_log("NewsController::getEvents:rekordag: " . $e->getMessage());
         }
 
         // 2. Hög OEE-dag — OEE >= 90% de senaste 14 dagarna
@@ -338,7 +339,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — hog_oee: " . $e->getMessage());
+            error_log("NewsController::getEvents:hog_oee: " . $e->getMessage());
         }
 
         // 3. Certifieringar — nya de senaste 14 dagarna
@@ -374,7 +375,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — certifiering: " . $e->getMessage());
+            error_log("NewsController::getEvents:certifiering: " . $e->getMessage());
         }
 
         // 4. Skiftnotat med brådskande prioritet — senaste 3 dagarna
@@ -407,7 +408,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — urgent_note: " . $e->getMessage());
+            error_log("NewsController::getEvents:urgent_note: " . $e->getMessage());
         }
 
         // 5. Senaste produktionsdagar — alltid inkludera för att fylla upp flödet
@@ -440,7 +441,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — produktion: " . $e->getMessage());
+            error_log("NewsController::getEvents:produktion: " . $e->getMessage());
         }
 
         // 6. Produktionsrekord — dagens produktion slog bästa dagen senaste 30 dagarna
@@ -479,7 +480,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — produktionsrekord: " . $e->getMessage());
+            error_log("NewsController::getEvents:produktionsrekord: " . $e->getMessage());
         }
 
         // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
@@ -518,7 +519,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — oee_milstolpe: " . $e->getMessage());
+            error_log("NewsController::getEvents:oee_milstolpe: " . $e->getMessage());
         }
 
         // 8. Bonus-milstolpe — nya bonusutbetalningar senaste 14 dagarna
@@ -558,7 +559,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — bonus_milstolpe: " . $e->getMessage());
+            error_log("NewsController::getEvents:bonus_milstolpe: " . $e->getMessage());
         }
 
         // 9. Lång streak — operatörer med 5+ dagar i rad (beräknas i realtid)
@@ -608,7 +609,7 @@ class NewsController {
                 }
             }
         } catch (Exception $e) {
-            error_log("NewsController::getEvents — lang_streak: " . $e->getMessage());
+            error_log("NewsController::getEvents:lang_streak: " . $e->getMessage());
         }
 
         // Filtrera på kategori om angiven

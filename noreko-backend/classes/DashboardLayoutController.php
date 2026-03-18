@@ -124,7 +124,7 @@ class DashboardLayoutController {
                 ]);
             }
         } catch (\PDOException $e) {
-            error_log('DashboardLayoutController::getLayout — ' . $e->getMessage());
+            error_log('DashboardLayoutController::getLayout: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -179,7 +179,7 @@ class DashboardLayoutController {
                 'layout' => $cleaned,
             ]);
         } catch (\PDOException $e) {
-            error_log('DashboardLayoutController::saveLayout — ' . $e->getMessage());
+            error_log('DashboardLayoutController::saveLayout: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }

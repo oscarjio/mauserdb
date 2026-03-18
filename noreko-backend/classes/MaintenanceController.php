@@ -38,6 +38,7 @@ class MaintenanceController {
         }
 
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            error_log('MaintenanceController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;

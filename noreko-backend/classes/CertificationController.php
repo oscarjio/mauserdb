@@ -35,6 +35,7 @@ class CertificationController {
 
         if ($method === 'GET' && $run === 'expiry-count') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                error_log('CertificationController::handle: Obehörig åtkomst till expiry-count, user_id=' . ($_SESSION['user_id'] ?? 'none'));
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -46,6 +47,7 @@ class CertificationController {
         // POST-endpoints kräver admin
         if ($method === 'POST') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                error_log('CertificationController::handle: Obehörig POST-åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none'));
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                 return;

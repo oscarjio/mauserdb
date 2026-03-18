@@ -666,6 +666,7 @@ class StoppageController {
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row || (int)$row['user_id'] !== (int)$_SESSION['user_id']) {
+            error_log('StoppageController::checkAccess: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', stoppage_id=' . $id);
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             exit;
