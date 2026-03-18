@@ -32,6 +32,9 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   // Error states
   errorData = false;
+  errorOperatorer = false;
+  errorKonfig = false;
+  errorSimulering = false;
 
   // Data
   overview:    BonusOverviewData | null = null;
@@ -119,6 +122,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadOperatorer(): void {
     this.loadingOperatorer = true;
+    this.errorOperatorer = false;
     this.svc.getPerOperator(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOperatorer = false;
@@ -135,9 +139,11 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
               this.renderRadarChart();
             }
           }, 150);
+        } else {
+          this.errorOperatorer = true;
         }
       },
-      error: () => { this.loadingOperatorer = false; }
+      error: () => { this.loadingOperatorer = false; this.errorOperatorer = true; }
     });
   }
 
@@ -193,6 +199,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadKonfig(): void {
     this.loadingKonfig = true;
+    this.errorKonfig = false;
     this.svc.getKonfiguration().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingKonfig = false;
@@ -205,9 +212,11 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
             mal_varde: k.mal_varde,
             max_bonus_kr: k.max_bonus_kr,
           }));
+        } else {
+          this.errorKonfig = true;
         }
       },
-      error: () => { this.loadingKonfig = false; }
+      error: () => { this.loadingKonfig = false; this.errorKonfig = true; }
     });
   }
 
@@ -235,6 +244,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   runSimulering(): void {
     this.loadingSimulering = true;
+    this.errorSimulering = false;
     this.svc.getSimulering(this.simIbcPerTimme, this.simKvalitet, this.simNarvaro, this.simTeamMal)
       .pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
         next: res => {
@@ -242,9 +252,11 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.simulering = res.data;
             setTimeout(() => { if (!this.destroy$.closed) this.renderSimChart(); }, 100);
+          } else {
+            this.errorSimulering = true;
           }
         },
-        error: () => { this.loadingSimulering = false; }
+        error: () => { this.loadingSimulering = false; this.errorSimulering = true; }
       });
   }
 

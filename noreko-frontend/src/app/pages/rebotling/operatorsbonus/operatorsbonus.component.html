@@ -28,7 +28,12 @@
       <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
 
-    <div *ngIf="!loadingKonfig && konfigForm.length > 0">
+    <div *ngIf="!loadingKonfig && errorKonfig" class="text-center py-3" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda konfiguration.
+      <button class="btn btn-sm btn-outline-secondary ms-2" (click)="loadKonfig()">Forsok igen</button>
+    </div>
+
+    <div *ngIf="!loadingKonfig && !errorKonfig && konfigForm.length > 0">
       <div class="config-row" *ngFor="let item of konfigForm; let i = index; trackBy: trackByIndex">
         <span class="config-label">{{ faktorLabel(item.faktor) }}</span>
         <div class="d-flex gap-2 align-items-center">
@@ -146,10 +151,13 @@
         <div *ngIf="loadingOperatorer" class="loading-spinner">
           <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
         </div>
-        <div *ngIf="!loadingOperatorer && operatorer.length > 0" class="chart-container">
+        <div *ngIf="!loadingOperatorer && errorOperatorer" class="text-center py-3" style="color:#fc8181;">
+          <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda operatorsdata.
+        </div>
+        <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length > 0" class="chart-container">
           <canvas id="bonusBarChart"></canvas>
         </div>
-        <div *ngIf="!loadingOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
+        <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
           Inga operatorer med data.
         </div>
       </div>
@@ -200,7 +208,7 @@
       <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
 
-    <div *ngIf="!loadingOperatorer && operatorer.length > 0" style="overflow-x:auto;">
+    <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length > 0" style="overflow-x:auto;">
       <table class="table-dark-custom">
         <thead>
           <tr>
@@ -261,7 +269,7 @@
       </table>
     </div>
 
-    <div *ngIf="!loadingOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
+    <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
       Inga operatorer med data.
     </div>
   </div>
@@ -316,7 +324,11 @@
       </button>
     </div>
 
-    <div *ngIf="simulering" class="row g-3">
+    <div *ngIf="errorSimulering" class="text-center py-3" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2"></i>Simulering misslyckades. Forsok igen.
+    </div>
+
+    <div *ngIf="simulering && !errorSimulering" class="row g-3">
       <div class="col-12 col-md-4">
         <div class="chart-container-sm">
           <canvas id="simResultChart"></canvas>

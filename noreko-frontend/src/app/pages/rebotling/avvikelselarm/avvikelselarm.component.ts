@@ -60,6 +60,11 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   // Error states
   errorData = false;
+  errorAktiva = false;
+  errorHistorik = false;
+  errorRegler = false;
+  errorTrend = false;
+  kvitteraError = '';
 
   // Data
   overview: OverviewData | null = null;
@@ -143,19 +148,23 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadAktiva(): void {
     this.loadingAktiva = true;
+    this.errorAktiva = false;
     this.svc.getAktiva().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingAktiva = false;
         if (res?.success) {
           this.aktivaLarm = res.data.larm;
+        } else {
+          this.errorAktiva = true;
         }
       },
-      error: () => { this.loadingAktiva = false; }
+      error: () => { this.loadingAktiva = false; this.errorAktiva = true; }
     });
   }
 
   loadHistorik(): void {
     this.loadingHistorik = true;
+    this.errorHistorik = false;
     this.svc.getHistorik(this.period, this.filterTyp, this.filterGrad)
       .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
@@ -164,35 +173,43 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.historikData = res.data;
             this.rebuildSortedHistorik();
+          } else {
+            this.errorHistorik = true;
           }
         },
-        error: () => { this.loadingHistorik = false; }
+        error: () => { this.loadingHistorik = false; this.errorHistorik = true; }
       });
   }
 
   private loadRegler(): void {
     this.loadingRegler = true;
+    this.errorRegler = false;
     this.svc.getRegler().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingRegler = false;
         if (res?.success) {
           this.regler = res.data.regler;
+        } else {
+          this.errorRegler = true;
         }
       },
-      error: () => { this.loadingRegler = false; }
+      error: () => { this.loadingRegler = false; this.errorRegler = true; }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
+    this.errorTrend = false;
     this.svc.getTrend(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingTrend = false;
         if (res?.success) {
           setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
+        } else {
+          this.errorTrend = true;
         }
       },
-      error: () => { this.loadingTrend = false; }
+      error: () => { this.loadingTrend = false; this.errorTrend = true; }
     });
   }
 
@@ -264,6 +281,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   submitKvittera(): void {
     if (!this.kvitteraLarm || !this.kvitteraNamn.trim()) return;
     this.savingKvittera = true;
+    this.kvitteraError = '';
     this.svc.kvittera(this.kvitteraLarm.id, this.kvitteraNamn.trim(), this.kvitteraKommentar.trim())
       .pipe(timeout(15000), takeUntil(this.destroy$))
       .subscribe({
@@ -271,12 +289,15 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
           this.savingKvittera = false;
           if (res?.success) {
             this.kvitteraLarm = null;
+            this.kvitteraError = '';
             this.loadOverview();
             this.loadAktiva();
             this.loadHistorik();
+          } else {
+            this.kvitteraError = 'Kunde inte kvittera larmet';
           }
         },
-        error: () => { this.savingKvittera = false; }
+        error: () => { this.savingKvittera = false; this.kvitteraError = 'Kunde inte kvittera larmet'; }
       });
   }
 

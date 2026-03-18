@@ -188,6 +188,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.sparMeddelande = res.data.meddelande;
           this.sparFel = '';
+          this.formAntal = null;
           this.laddaAllt();
         } else {
           this.sparFel = res?.error || 'Kunde inte spara malet.';

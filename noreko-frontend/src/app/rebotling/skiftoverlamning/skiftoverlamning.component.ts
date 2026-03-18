@@ -184,7 +184,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
           this.selectedDetail = res.item;
         }
       },
-      error: () => { console.error('Kunde inte hamta detalj'); }
+      error: () => { this.toast.error('Kunde inte hamta detalj'); }
     });
   }
 

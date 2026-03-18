@@ -108,7 +108,10 @@
     <div *ngIf="loadingStatistik" class="loading-spinner">
       <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
-    <div *ngIf="!loadingStatistik && statistik.length > 0" class="chart-container">
+    <div *ngIf="!loadingStatistik && errorStatistik" class="text-center py-3" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda statistik.
+    </div>
+    <div *ngIf="!loadingStatistik && !errorStatistik && statistik.length > 0" class="chart-container">
       <canvas id="kvalitetChart"></canvas>
     </div>
     <div *ngIf="!loadingStatistik && statistik.length === 0" class="text-muted small py-3 text-center">
@@ -127,7 +130,12 @@
       <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
 
-    <div *ngIf="!loadingLista && certifikat.length > 0" style="overflow-x:auto;">
+    <div *ngIf="!loadingLista && errorLista" class="text-center py-3" style="color:#fc8181;">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda certifikatlistan.
+      <button class="btn btn-sm btn-outline-secondary ms-2" (click)="loadLista()">Forsok igen</button>
+    </div>
+
+    <div *ngIf="!loadingLista && !errorLista && certifikat.length > 0" style="overflow-x:auto;">
       <table class="table-dark-custom">
         <thead>
           <tr>
@@ -186,7 +194,7 @@
       </table>
     </div>
 
-    <div *ngIf="!loadingLista && certifikat.length === 0" class="text-muted small py-3 text-center">
+    <div *ngIf="!loadingLista && !errorLista && certifikat.length === 0" class="text-muted small py-3 text-center">
       Inga certifikat hittades.
     </div>
   </div>
@@ -213,7 +221,11 @@
         <div class="spinner-border text-info"></div>
       </div>
 
-      <div *ngIf="!loadingDetalj && selectedCert" class="cert-content" id="printable-cert">
+      <div *ngIf="!loadingDetalj && errorDetalj" class="text-center py-4" style="color:#fc8181;">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda certifikatdetaljer.
+      </div>
+
+      <div *ngIf="!loadingDetalj && !errorDetalj && selectedCert" class="cert-content" id="printable-cert">
         <!-- Certifikat-huvud -->
         <div class="cert-header-section">
           <div class="cert-company">Noreko / Mauser IBC-tvatteri</div>

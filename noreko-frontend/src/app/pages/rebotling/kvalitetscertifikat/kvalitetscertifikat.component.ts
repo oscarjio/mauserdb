@@ -33,6 +33,9 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   // Error states
   errorData = false;
+  errorLista = false;
+  errorDetalj = false;
+  errorStatistik = false;
 
   // Data
   overview: KvalitetOverviewData | null = null;
@@ -130,6 +133,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadLista(): void {
     this.loadingLista = true;
+    this.errorLista = false;
     const status = this.filterStatus || undefined;
     const period = this.filterPeriod || undefined;
     const opId   = this.filterOperator > 0 ? this.filterOperator : undefined;
@@ -141,9 +145,11 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
           this.certifikat = res.data.certifikat;
           this.operatorer = res.data.operatorer;
           this.sortCertifikat();
+        } else {
+          this.errorLista = true;
         }
       },
-      error: () => { this.loadingLista = false; }
+      error: () => { this.loadingLista = false; this.errorLista = true; }
     });
   }
 
@@ -193,15 +199,18 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadDetalj(id: number): void {
     this.loadingDetalj = true;
+    this.errorDetalj = false;
     this.svc.getDetalj(id).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingDetalj = false;
         if (res?.success) {
           this.selectedCert = res.data.certifikat as Certifikat;
           this.selectedKriterier = res.data.kriterier;
+        } else {
+          this.errorDetalj = true;
         }
       },
-      error: () => { this.loadingDetalj = false; }
+      error: () => { this.loadingDetalj = false; this.errorDetalj = true; }
     });
   }
 
@@ -299,15 +308,18 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadStatistik(): void {
     this.loadingStatistik = true;
+    this.errorStatistik = false;
     this.svc.getStatistik(30).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingStatistik = false;
         if (res?.success) {
           this.statistik = res.data;
           setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
+        } else {
+          this.errorStatistik = true;
         }
       },
-      error: () => { this.loadingStatistik = false; }
+      error: () => { this.loadingStatistik = false; this.errorStatistik = true; }
     });
   }
 
