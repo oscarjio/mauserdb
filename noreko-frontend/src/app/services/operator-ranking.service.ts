@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -104,41 +104,41 @@ export class OperatorRankingService {
     return this.http.get<ApiResponse<SammanfattningData>>(
       `${this.api}&run=sammanfattning&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRanking(period: string): Observable<ApiResponse<RankingData> | null> {
     return this.http.get<ApiResponse<RankingData>>(
       `${this.api}&run=ranking&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTopplista(period: string): Observable<ApiResponse<TopplistaData> | null> {
     return this.http.get<ApiResponse<TopplistaData>>(
       `${this.api}&run=topplista&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPoangfordelning(period: string): Observable<ApiResponse<PoangFordelningData> | null> {
     return this.http.get<ApiResponse<PoangFordelningData>>(
       `${this.api}&run=poangfordelning&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHistorik(): Observable<ApiResponse<HistorikData> | null> {
     return this.http.get<ApiResponse<HistorikData>>(
       `${this.api}&run=historik`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMvp(typ: string): Observable<ApiResponse<MvpData> | null> {
     return this.http.get<ApiResponse<MvpData>>(
       `${this.api}&run=mvp&typ=${typ}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

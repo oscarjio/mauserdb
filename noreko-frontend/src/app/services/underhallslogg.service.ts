@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // Legacy interfaces (backward compatibility)
@@ -88,7 +88,7 @@ export class UnderhallsloggService {
 
   getCategories(): Observable<{ success: boolean; data: UnderhallKategori[] }> {
     return this.http.get<any>(`${this.base}&run=categories`, { withCredentials: true })
-      .pipe(timeout(10000), catchError(() => of({ success: false, data: [] })));
+      .pipe(timeout(10000), retry(1), catchError(() => of({ success: false, data: [] })));
   }
 
   logUnderhall(data: {
@@ -113,14 +113,14 @@ export class UnderhallsloggService {
     return this.http.get<any>(
       `${this.base}&run=list&days=${days}&type=${encodeURIComponent(type)}&category=${encodeURIComponent(category)}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({ success: false, data: [] })));
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, data: [] })));
   }
 
   getStats(days: number = 30): Observable<{ success: boolean; data: UnderhallsStats | null }> {
     return this.http.get<any>(
       `${this.base}&run=stats&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({ success: false, data: null as UnderhallsStats | null })));
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, data: null as UnderhallsStats | null })));
   }
 
   deleteEntry(id: number): Observable<{ success: boolean; message: string }> {
@@ -137,7 +137,7 @@ export class UnderhallsloggService {
     return this.http.get<any>(
       `${this.base}&run=stationer`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({ success: false, stationer: [] })));
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, stationer: [] })));
   }
 
   getLista(filters: {
@@ -154,14 +154,14 @@ export class UnderhallsloggService {
     if (filters.to) url += `&to=${filters.to}`;
     if (filters.limit) url += `&limit=${filters.limit}`;
     return this.http.get<any>(url, { withCredentials: true })
-      .pipe(timeout(10000), catchError(() => of({ success: false, items: [], antal: 0 })));
+      .pipe(timeout(10000), retry(1), catchError(() => of({ success: false, items: [], antal: 0 })));
   }
 
   getSammanfattning(): Observable<{ success: boolean } & Sammanfattning> {
     return this.http.get<any>(
       `${this.base}&run=sammanfattning`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({
+    ).pipe(timeout(10000), retry(1), catchError(() => of({
       success: false,
       totalt_denna_manad: 0, total_tid_min: 0,
       planerat_antal: 0, oplanerat_antal: 0,
@@ -174,14 +174,14 @@ export class UnderhallsloggService {
     return this.http.get<any>(
       `${this.base}&run=per-station&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({ success: false, stationer: [], days })));
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, stationer: [], days })));
   }
 
   getManadsChart(months: number = 6): Observable<{ success: boolean } & ManadsChartData> {
     return this.http.get<any>(
       `${this.base}&run=manadschart&months=${months}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of({ success: false, labels: [], planerat: [], oplanerat: [] })));
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, labels: [], planerat: [], oplanerat: [] })));
   }
 
   skapa(data: {

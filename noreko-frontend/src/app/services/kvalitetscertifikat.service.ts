@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -114,7 +114,7 @@ export class KvalitetscertifikatService {
     return this.http.get<KvalitetOverviewResponse>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getLista(status?: string, period?: string, operatorId?: number): Observable<ListaResponse | null> {
@@ -124,14 +124,14 @@ export class KvalitetscertifikatService {
     if (operatorId) url += `&operator_id=${operatorId}`;
     return this.http.get<ListaResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetalj(id: number): Observable<DetaljResponse | null> {
     return this.http.get<DetaljResponse>(
       `${this.api}&run=detalj&id=${id}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   generera(data: {
@@ -168,7 +168,7 @@ export class KvalitetscertifikatService {
     return this.http.get<KriterierResponse>(
       `${this.api}&run=kriterier`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   uppdateraKriterier(items: any[]): Observable<any> {
@@ -186,6 +186,6 @@ export class KvalitetscertifikatService {
     return this.http.get<StatistikResponse>(
       `${this.api}&run=statistik&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 }

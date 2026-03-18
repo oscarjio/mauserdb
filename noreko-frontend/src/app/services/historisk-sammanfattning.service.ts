@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -189,41 +189,41 @@ export class HistoriskSammanfattningService {
     return this.http.get<PerioderResponse>(
       `${this.api}&run=perioder`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRapport(typ: string, period: string): Observable<RapportResponse | null> {
     return this.http.get<RapportResponse>(
       `${this.api}&run=rapport${this.params(typ, period)}`,
       { withCredentials: true }
-    ).pipe(timeout(20000), catchError(() => of(null)));
+    ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(typ: string, period: string): Observable<TrendResponse | null> {
     return this.http.get<TrendResponse>(
       `${this.api}&run=trend${this.params(typ, period)}`,
       { withCredentials: true }
-    ).pipe(timeout(20000), catchError(() => of(null)));
+    ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
   }
 
   getOperatorer(typ: string, period: string): Observable<OperatorerResponse | null> {
     return this.http.get<OperatorerResponse>(
       `${this.api}&run=operatorer${this.params(typ, period)}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStationer(typ: string, period: string): Observable<StationerResponse | null> {
     return this.http.get<StationerResponse>(
       `${this.api}&run=stationer${this.params(typ, period)}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStopporsaker(typ: string, period: string): Observable<StopporsakerResponse | null> {
     return this.http.get<StopporsakerResponse>(
       `${this.api}&run=stopporsaker${this.params(typ, period)}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

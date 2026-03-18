@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 
 const API = '/noreko-backend/api.php?action=skiftoverlamning';
 
@@ -93,6 +93,7 @@ export class SkiftoverlamningProtokollService {
   getSkiftdata(): Observable<SkiftdataResponse> {
     return this.http.get<SkiftdataResponse>(`${API}&run=skiftdata`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }
@@ -107,6 +108,7 @@ export class SkiftoverlamningProtokollService {
   getHistorik(limit: number = 10): Observable<HistorikResponse> {
     return this.http.get<HistorikResponse>(`${API}&run=protokoll-historik&limit=${limit}`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', items: [] } as HistorikResponse))
     );
   }
@@ -114,6 +116,7 @@ export class SkiftoverlamningProtokollService {
   getDetalj(id: number): Observable<DetaljResponse> {
     return this.http.get<DetaljResponse>(`${API}&run=protokoll-detalj&id=${id}`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }

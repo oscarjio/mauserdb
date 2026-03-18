@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface TrendbrottDailyItem {
@@ -109,20 +109,20 @@ export class KvalitetsTrendbrottService {
     return this.http.get<ApiResponse<TrendbrottOverviewData>>(
       `${this.baseUrl}&run=overview&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getAlerts(period: number): Observable<ApiResponse<TrendbrottAlertsData> | null> {
     return this.http.get<ApiResponse<TrendbrottAlertsData>>(
       `${this.baseUrl}&run=alerts&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDailyDetail(date: string): Observable<ApiResponse<TrendbrottDailyDetailData> | null> {
     return this.http.get<ApiResponse<TrendbrottDailyDetailData>>(
       `${this.baseUrl}&run=daily-detail&date=${date}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

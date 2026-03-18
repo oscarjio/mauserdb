@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -160,14 +160,14 @@ export class MaskinOeeService {
     return this.http.get<OeeOverviewResponse>(
       `${this.api}&run=overview&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerMaskin(period: string): Observable<OeePerMaskinResponse | null> {
     return this.http.get<OeePerMaskinResponse>(
       `${this.api}&run=per-maskin&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(period: string, maskinId: number = 0): Observable<OeeTrendResponse | null> {
@@ -175,14 +175,14 @@ export class MaskinOeeService {
     return this.http.get<OeeTrendResponse>(
       `${this.api}&run=trend&period=${period}${maskinParam}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBenchmark(period: string): Observable<OeeBenchmarkResponse | null> {
     return this.http.get<OeeBenchmarkResponse>(
       `${this.api}&run=benchmark&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetalj(period: string, maskinId: number = 0): Observable<OeeDetaljResponse | null> {
@@ -190,13 +190,13 @@ export class MaskinOeeService {
     return this.http.get<OeeDetaljResponse>(
       `${this.api}&run=detalj&period=${period}${maskinParam}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMaskiner(): Observable<MaskinerResponse | null> {
     return this.http.get<MaskinerResponse>(
       `${this.api}&run=maskiner`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -113,21 +113,21 @@ export class KassationskvotAlarmService {
     return this.http.get<ApiResponse<AktuellKvotData>>(
       `${this.api}&run=aktuell-kvot`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getAlarmHistorik(dagar: number = 30): Observable<ApiResponse<AlarmHistorikData> | null> {
     return this.http.get<ApiResponse<AlarmHistorikData>>(
       `${this.api}&run=alarm-historik&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTroskel(): Observable<ApiResponse<Troskel> | null> {
     return this.http.get<ApiResponse<Troskel>>(
       `${this.api}&run=troskel-hamta`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   sparaTroskel(varning_procent: number, alarm_procent: number): Observable<ApiResponse<Troskel> | null> {
@@ -142,20 +142,20 @@ export class KassationskvotAlarmService {
     return this.http.get<ApiResponse<TimvisTrendData>>(
       `${this.api}&run=timvis-trend`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getPerSkift(): Observable<ApiResponse<PerSkiftData> | null> {
     return this.http.get<ApiResponse<PerSkiftData>>(
       `${this.api}&run=per-skift`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTopOrsaker(dagar: number = 30): Observable<ApiResponse<TopOrsakerData> | null> {
     return this.http.get<ApiResponse<TopOrsakerData>>(
       `${this.api}&run=top-orsaker&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 }

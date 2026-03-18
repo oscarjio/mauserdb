@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -163,6 +163,7 @@ export class DagligSammanfattningService {
       { withCredentials: true }
     ).pipe(
       timeout(20000),
+      retry(1),
       catchError(() => of(null))
     );
   }
@@ -173,6 +174,7 @@ export class DagligSammanfattningService {
       { withCredentials: true }
     ).pipe(
       timeout(20000),
+      retry(1),
       catchError(() => of(null))
     );
   }

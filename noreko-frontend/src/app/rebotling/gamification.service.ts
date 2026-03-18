@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -101,27 +101,27 @@ export class GamificationService {
     return this.http.get<ApiResponse<LeaderboardData>>(
       `${this.api}&run=leaderboard&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBadges(operatorId: number): Observable<ApiResponse<BadgesData> | null> {
     return this.http.get<ApiResponse<BadgesData>>(
       `${this.api}&run=badges&operator_id=${operatorId}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinProfil(): Observable<ApiResponse<MinProfilData> | null> {
     return this.http.get<ApiResponse<MinProfilData>>(
       `${this.api}&run=min-profil`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOverview(): Observable<ApiResponse<OverviewData> | null> {
     return this.http.get<ApiResponse<OverviewData>>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

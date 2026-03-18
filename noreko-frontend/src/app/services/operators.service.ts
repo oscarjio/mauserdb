@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -12,7 +12,7 @@ export class OperatorsService {
 
   getOperators(): Observable<any> {
     return this.http.get<any>(this.apiUrl, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -42,25 +42,25 @@ export class OperatorsService {
 
   getStats(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}&run=stats`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getTrend(opNumber: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}&run=trend&op_number=${opNumber}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getPairs(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}&run=pairs`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getMachineCompatibility(days: number = 90): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}&run=machine-compatibility&days=${days}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 }

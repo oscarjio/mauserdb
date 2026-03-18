@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -139,41 +139,41 @@ export class ProduktionsDashboardService {
     return this.http.get<ApiResponse<OversiktData>>(
       `${this.api}&run=oversikt`,
       { withCredentials: true }
-    ).pipe(timeout(20000), catchError(() => of(null)));
+    ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
   }
 
   getVeckoProduktion(): Observable<ApiResponse<VeckoProduktionData> | null> {
     return this.http.get<ApiResponse<VeckoProduktionData>>(
       `${this.api}&run=vecko-produktion`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getVeckoOee(): Observable<ApiResponse<VeckoOeeData> | null> {
     return this.http.get<ApiResponse<VeckoOeeData>>(
       `${this.api}&run=vecko-oee`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStationerStatus(): Observable<ApiResponse<StationerStatusData> | null> {
     return this.http.get<ApiResponse<StationerStatusData>>(
       `${this.api}&run=stationer-status`,
       { withCredentials: true }
-    ).pipe(timeout(20000), catchError(() => of(null)));
+    ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
   }
 
   getSenasteAlarm(): Observable<ApiResponse<SenasteAlarmData> | null> {
     return this.http.get<ApiResponse<SenasteAlarmData>>(
       `${this.api}&run=senaste-alarm`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   getSenasteIbc(): Observable<ApiResponse<SenasteIbcData> | null> {
     return this.http.get<ApiResponse<SenasteIbcData>>(
       `${this.api}&run=senaste-ibc`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 }

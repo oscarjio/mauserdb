@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -122,21 +122,21 @@ export class TidrapportService {
     return this.http.get<SammanfattningResponse>(
       `${this.api}&run=sammanfattning${this.periodParams(period, from, to)}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerOperator(period: string, from?: string, to?: string): Observable<PerOperatorResponse | null> {
     return this.http.get<PerOperatorResponse>(
       `${this.api}&run=per-operator${this.periodParams(period, from, to)}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getVeckodata(veckor: number = 4): Observable<VeckodataResponse | null> {
     return this.http.get<VeckodataResponse>(
       `${this.api}&run=veckodata&veckor=${veckor}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetaljer(period: string, from?: string, to?: string, operatorId?: number): Observable<DetaljerResponse | null> {
@@ -145,7 +145,7 @@ export class TidrapportService {
       url += `&operator_id=${operatorId}`;
     }
     return this.http.get<DetaljerResponse>(url, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getExportCsvUrl(period: string, from?: string, to?: string, operatorId?: number): string {

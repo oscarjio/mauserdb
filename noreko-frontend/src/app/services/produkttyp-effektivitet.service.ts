@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ================================================================
@@ -105,20 +105,20 @@ export class ProduktTypEffektivitetService {
     return this.http.get<ProduktTypSummaryResponse>(
       `${this.api}&run=summary&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(days: number): Observable<ProduktTypTrendResponse | null> {
     return this.http.get<ProduktTypTrendResponse>(
       `${this.api}&run=trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getComparison(a: number, b: number, days: number): Observable<ProduktTypComparisonResponse | null> {
     return this.http.get<ProduktTypComparisonResponse>(
       `${this.api}&run=comparison&a=${a}&b=${b}&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -138,34 +138,34 @@ export class KvalitetstrendanalysService {
     return this.http.get<KtaOverviewResponse>(
       `${this.api}&run=overview&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerStationTrend(days: number): Observable<StationTrendResponse | null> {
     return this.http.get<StationTrendResponse>(
       `${this.api}&run=per-station-trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerOperator(days: number): Observable<PerOperatorResponse | null> {
     return this.http.get<PerOperatorResponse>(
       `${this.api}&run=per-operator&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getAlarm(days: number, warning: number, critical: number): Observable<AlarmResponse | null> {
     return this.http.get<AlarmResponse>(
       `${this.api}&run=alarm&days=${days}&warning=${warning}&critical=${critical}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHeatmap(days: number): Observable<HeatmapResponse | null> {
     return this.http.get<HeatmapResponse>(
       `${this.api}&run=heatmap&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

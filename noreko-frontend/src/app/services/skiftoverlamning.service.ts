@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 const API = `${environment.apiUrl}?action=skiftoverlamning`;
@@ -269,6 +269,7 @@ export class SkiftoverlamningService {
 
     return this.http.get<ListResponse>(`${API}&run=list`, { params, withCredentials: true }).pipe(
       timeout(15000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', items: [], total: 0, limit: 50, offset: 0 } as ListResponse))
     );
   }
@@ -276,6 +277,7 @@ export class SkiftoverlamningService {
   getDetail(id: number): Observable<DetailResponse> {
     return this.http.get<DetailResponse>(`${API}&run=detail&id=${id}`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }
@@ -283,6 +285,7 @@ export class SkiftoverlamningService {
   getShiftKpis(): Observable<ShiftKpisResponse> {
     return this.http.get<ShiftKpisResponse>(`${API}&run=shift-kpis`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', kpis: null } as ShiftKpisResponse))
     );
   }
@@ -290,6 +293,7 @@ export class SkiftoverlamningService {
   getSummary(): Observable<SummaryResponse> {
     return this.http.get<SummaryResponse>(`${API}&run=summary`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({
         success: false, error: 'Natverksfel',
         senaste_overlamning: null, antal_denna_vecka: 0,
@@ -302,6 +306,7 @@ export class SkiftoverlamningService {
   getOperators(): Observable<OperatorsResponse> {
     return this.http.get<OperatorsResponse>(`${API}&run=operators`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', operators: [] } as OperatorsResponse))
     );
   }
@@ -309,6 +314,7 @@ export class SkiftoverlamningService {
   getAktuelltSkift(): Observable<AktuelltSkiftResponse> {
     return this.http.get<AktuelltSkiftResponse>(`${API}&run=aktuellt-skift`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }
@@ -316,6 +322,7 @@ export class SkiftoverlamningService {
   getSkiftSammanfattning(): Observable<SkiftSammanfattningResponse> {
     return this.http.get<SkiftSammanfattningResponse>(`${API}&run=skift-sammanfattning`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }
@@ -323,6 +330,7 @@ export class SkiftoverlamningService {
   getOppnaProblem(): Observable<OppnaProblemResponse> {
     return this.http.get<OppnaProblemResponse>(`${API}&run=oppna-problem`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', problem: [], antal: 0 } as OppnaProblemResponse))
     );
   }
@@ -330,6 +338,7 @@ export class SkiftoverlamningService {
   getChecklista(): Observable<ChecklistaResponse> {
     return this.http.get<ChecklistaResponse>(`${API}&run=checklista`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', checklista: [] } as ChecklistaResponse))
     );
   }
@@ -337,6 +346,7 @@ export class SkiftoverlamningService {
   getHistorik(limit: number = 10): Observable<HistorikResponse> {
     return this.http.get<HistorikResponse>(`${API}&run=historik&limit=${limit}`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, error: 'Natverksfel', items: [] } as HistorikResponse))
     );
   }

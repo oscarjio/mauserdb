@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -130,28 +130,28 @@ export class VdVeckorapportService {
     return this.http.get<ApiResponse<KpiJamforelseData>>(
       `${this.api}&run=kpi-jamforelse`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTrenderAnomalier(): Observable<ApiResponse<TrenderAnomalierData> | null> {
     return this.http.get<ApiResponse<TrenderAnomalierData>>(
       `${this.api}&run=trender-anomalier`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTopBottomOperatorer(period = 7): Observable<ApiResponse<TopBottomData> | null> {
     return this.http.get<ApiResponse<TopBottomData>>(
       `${this.api}&run=top-bottom-operatorer&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStopporsaker(period = 7): Observable<ApiResponse<StopporsakerData> | null> {
     return this.http.get<ApiResponse<StopporsakerData>>(
       `${this.api}&run=stopporsaker&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getVeckaSammanfattning(vecka?: string): Observable<ApiResponse<VeckaSammanfattningData> | null> {
@@ -159,6 +159,6 @@ export class VdVeckorapportService {
     return this.http.get<ApiResponse<VeckaSammanfattningData>>(
       `${this.api}&run=vecka-sammanfattning${param}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 }

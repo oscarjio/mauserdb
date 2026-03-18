@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -114,14 +114,14 @@ export class AvvikelselarmService {
     return this.http.get<OverviewResponse>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getAktiva(): Observable<AktivaResponse | null> {
     return this.http.get<AktivaResponse>(
       `${this.api}&run=aktiva`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHistorik(period: string, typ: string = '', allvarlighetsgrad: string = ''): Observable<HistorikResponse | null> {
@@ -129,7 +129,7 @@ export class AvvikelselarmService {
     if (typ) url += `&typ=${typ}`;
     if (allvarlighetsgrad) url += `&allvarlighetsgrad=${allvarlighetsgrad}`;
     return this.http.get<HistorikResponse>(url, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   kvittera(larmId: number, kvitteradAv: string, kommentar: string): Observable<KvitteraResponse | null> {
@@ -144,7 +144,7 @@ export class AvvikelselarmService {
     return this.http.get<ReglerResponse>(
       `${this.api}&run=regler`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   uppdateraRegel(regelId: number, gransVarde?: number, aktiv?: boolean): Observable<UppdateraRegelResponse | null> {
@@ -162,6 +162,6 @@ export class AvvikelselarmService {
     return this.http.get<TrendResponse>(
       `${this.api}&run=trend&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

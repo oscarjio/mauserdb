@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -223,69 +223,69 @@ export class KapacitetsplaneringService {
     let url = `${this.api}&run=kpi`;
     if (periodFilter) url += `&period_filter=${periodFilter}`;
     return this.http.get<ApiResponse<KpiData>>(url, { withCredentials: true })
-      .pipe(timeout(30000), catchError(() => of(null)));
+      .pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getDagligKapacitet(period: number): Observable<ApiResponse<DagligKapacitetData> | null> {
     return this.http.get<ApiResponse<DagligKapacitetData>>(
       `${this.api}&run=daglig-kapacitet&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStationUtnyttjande(period: number, periodFilter?: string): Observable<ApiResponse<StationUtnyttjandeData> | null> {
     let url = `${this.api}&run=station-utnyttjande&period=${period}`;
     if (periodFilter) url += `&period_filter=${periodFilter}`;
     return this.http.get<ApiResponse<StationUtnyttjandeData>>(url, { withCredentials: true })
-      .pipe(timeout(30000), catchError(() => of(null)));
+      .pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStopporsaker(period: number): Observable<ApiResponse<StoppOrsakerData> | null> {
     return this.http.get<ApiResponse<StoppOrsakerData>>(
       `${this.api}&run=stopporsaker&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTidFordelning(period: number): Observable<ApiResponse<TidFordelningData> | null> {
     return this.http.get<ApiResponse<TidFordelningData>>(
       `${this.api}&run=tid-fordelning&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getVeckoOversikt(): Observable<ApiResponse<VeckoOversiktData> | null> {
     return this.http.get<ApiResponse<VeckoOversiktData>>(
       `${this.api}&run=vecko-oversikt`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getUtnyttjandegradTrend(period: number): Observable<ApiResponse<UtnyttjandegradTrendData> | null> {
     return this.http.get<ApiResponse<UtnyttjandegradTrendData>>(
       `${this.api}&run=utnyttjandegrad-trend&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getKapacitetstabell(periodFilter?: string): Observable<ApiResponse<KapacitetstabellData> | null> {
     let url = `${this.api}&run=kapacitetstabell`;
     if (periodFilter) url += `&period_filter=${periodFilter}`;
     return this.http.get<ApiResponse<KapacitetstabellData>>(url, { withCredentials: true })
-      .pipe(timeout(30000), catchError(() => of(null)));
+      .pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getBemanning(orderbehov: number, periodFilter?: string): Observable<ApiResponse<BemanningData> | null> {
     let url = `${this.api}&run=bemanning&orderbehov=${orderbehov}`;
     if (periodFilter) url += `&period_filter=${periodFilter}`;
     return this.http.get<ApiResponse<BemanningData>>(url, { withCredentials: true })
-      .pipe(timeout(30000), catchError(() => of(null)));
+      .pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getPrognos(timmar: number, operatorer: number): Observable<ApiResponse<PrognosData> | null> {
     return this.http.get<ApiResponse<PrognosData>>(
       `${this.api}&run=prognos&timmar=${timmar}&operatorer=${operatorer}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 }

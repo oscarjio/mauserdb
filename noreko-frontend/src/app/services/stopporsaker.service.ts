@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -151,41 +151,41 @@ export class StopporsakerService {
     return this.http.get<SammanfattningResponse>(
       `${this.api}&run=sammanfattning&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPareto(days: number): Observable<ParetoResponse | null> {
     return this.http.get<ParetoResponse>(
       `${this.api}&run=pareto&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerStation(days: number): Observable<PerStationResponse | null> {
     return this.http.get<PerStationResponse>(
       `${this.api}&run=per-station&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(days: number): Observable<TrendResponse | null> {
     return this.http.get<TrendResponse>(
       `${this.api}&run=trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOrsakerTabell(days: number): Observable<OrsakerTabellResponse | null> {
     return this.http.get<OrsakerTabellResponse>(
       `${this.api}&run=orsaker-tabell&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetaljer(days: number): Observable<DetaljerResponse | null> {
     return this.http.get<DetaljerResponse>(
       `${this.api}&run=detaljer&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

@@ -397,7 +397,7 @@
           </div>
         </div>
         <div class="col-12 col-md-4 d-flex align-items-end">
-          <button class="btn btn-info w-100" (click)="beraknaPrognos()">
+          <button class="btn btn-info w-100" (click)="beraknaPrognos()" [disabled]="!prognosTimmar || prognosTimmar < 1 || !prognosOperatorer || prognosOperatorer < 1">
             <i class="fas fa-play me-2"></i>Berakna prognos
           </button>
         </div>

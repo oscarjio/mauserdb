@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -134,35 +134,35 @@ export class LeveransplaneringService {
     return this.http.get<LeveransOverviewResponse>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOrdrar(status: string = 'alla', period: string = 'alla'): Observable<OrdrarResponse | null> {
     return this.http.get<OrdrarResponse>(
       `${this.api}&run=ordrar&status=${status}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKapacitet(days: number = 30): Observable<KapacitetResponse | null> {
     return this.http.get<KapacitetResponse>(
       `${this.api}&run=kapacitet&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPrognos(): Observable<PrognosResponse | null> {
     return this.http.get<PrognosResponse>(
       `${this.api}&run=prognos`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKonfiguration(): Observable<KonfigurationResponse | null> {
     return this.http.get<KonfigurationResponse>(
       `${this.api}&run=konfiguration`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   skapaOrder(order: any): Observable<SkapaOrderResponse | null> {

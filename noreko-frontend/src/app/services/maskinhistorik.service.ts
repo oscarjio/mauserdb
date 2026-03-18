@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -110,41 +110,41 @@ export class MaskinhistorikService {
     return this.http.get<ApiResponse<StationerData>>(
       `${this.api}&run=stationer`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStationKpi(station: string, period: number): Observable<ApiResponse<StationKpiData> | null> {
     return this.http.get<ApiResponse<StationKpiData>>(
       `${this.api}&run=station-kpi&station=${encodeURIComponent(station)}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStationDrifttid(station: string, period: number): Observable<ApiResponse<StationDrifttidData> | null> {
     return this.http.get<ApiResponse<StationDrifttidData>>(
       `${this.api}&run=station-drifttid&station=${encodeURIComponent(station)}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStationOeeTrend(station: string, period: number): Observable<ApiResponse<StationOeeTrendData> | null> {
     return this.http.get<ApiResponse<StationOeeTrendData>>(
       `${this.api}&run=station-oee-trend&station=${encodeURIComponent(station)}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getStationStopp(station: string, limit: number = 20): Observable<ApiResponse<StationStoppData> | null> {
     return this.http.get<ApiResponse<StationStoppData>>(
       `${this.api}&run=station-stopp&station=${encodeURIComponent(station)}&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getJamforelse(period: number): Observable<ApiResponse<JamforelseData> | null> {
     return this.http.get<ApiResponse<JamforelseData>>(
       `${this.api}&run=jamforelse&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 }

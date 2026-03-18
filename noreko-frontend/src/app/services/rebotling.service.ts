@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface RebotlingLiveStatsResponse {
@@ -100,35 +100,35 @@ export class RebotlingService {
     return this.http.get<RebotlingLiveStatsResponse>(
       `${environment.apiUrl}?action=rebotling`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRunningStatus(): Observable<any> {
     return this.http.get<LineStatusResponse>(
       `${environment.apiUrl}?action=rebotling&run=status`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDriftstoppStatus(): Observable<any> {
     return this.http.get<any>(
       `${environment.apiUrl}?action=rebotling&run=driftstopp`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRastStatus(): Observable<any> {
     return this.http.get<RastStatusResponse>(
       `${environment.apiUrl}?action=rebotling&run=rast`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStatistics(startDate: string, endDate: string): Observable<any> {
     return this.http.get<StatisticsResponse>(
       `${environment.apiUrl}?action=rebotling&run=statistics&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHeatmap(days: number = 30, fromDate?: string, toDate?: string): Observable<any> {
@@ -138,7 +138,7 @@ export class RebotlingService {
     } else {
       url = `${environment.apiUrl}?action=rebotling&run=heatmap&days=${days}`;
     }
-    return this.http.get<any>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<any>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getCycleTrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<any> {
@@ -148,14 +148,14 @@ export class RebotlingService {
     } else {
       url = `${environment.apiUrl}?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`;
     }
-    return this.http.get<CycleTrendResponse>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<CycleTrendResponse>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeekComparison(granularity: string = 'day'): Observable<any> {
     return this.http.get<WeekComparisonResponse>(
       `${environment.apiUrl}?action=rebotling&run=week-comparison&granularity=${granularity}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOEETrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<any> {
@@ -165,69 +165,69 @@ export class RebotlingService {
     } else {
       url = `${environment.apiUrl}?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`;
     }
-    return this.http.get<OEETrendResponse>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<OEETrendResponse>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBestShifts(limit: number = 10): Observable<any> {
     return this.http.get<BestShiftsResponse>(
       `${environment.apiUrl}?action=rebotling&run=best-shifts&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getExecDashboard(): Observable<any> {
     return this.http.get<ExecDashboardResponse>(
       `${environment.apiUrl}?action=rebotling&run=exec-dashboard`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOEE(period: string = 'today'): Observable<any> {
     return this.http.get<OEEResponse>(
       `${environment.apiUrl}?action=rebotling&run=oee&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getCycleHistogram(date: string): Observable<any> {
     return this.http.get<CycleHistogramResponse>(
       `${environment.apiUrl}?action=rebotling&run=cycle-histogram&date=${date}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getSPC(days: number = 7): Observable<any> {
     return this.http.get<SPCResponse>(
       `${environment.apiUrl}?action=rebotling&run=spc&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getCycleByOperator(startDate: string, endDate: string): Observable<any> {
     return this.http.get<CycleByOperatorResponse>(
       `${environment.apiUrl}?action=rebotling&run=cycle-by-operator&start_date=${startDate}&end_date=${endDate}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBenchmarking(): Observable<any> {
     return this.http.get<BenchmarkingResponse>(
       `${environment.apiUrl}?action=rebotling&run=benchmarking`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getAnnotations(startDate: string, endDate: string): Observable<any> {
     return this.http.get<AnnotationsResponse>(
       `${environment.apiUrl}?action=rebotling&run=annotations&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getManualAnnotations(startDate: string, endDate: string, typ?: string): Observable<any> {
     let url = `${environment.apiUrl}?action=rebotling&run=annotations-list&start=${startDate}&end=${endDate}`;
     if (typ) url += `&typ=${typ}`;
-    return this.http.get<ManualAnnotationsResponse>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<ManualAnnotationsResponse>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   createManualAnnotation(data: { datum: string; typ: string; titel: string; beskrivning: string }): Observable<any> {
@@ -257,28 +257,28 @@ export class RebotlingService {
     return this.http.get<QualityTrendResponse>(
       `${environment.apiUrl}?action=rebotling&run=quality-trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOeeWaterfall(days: number = 30): Observable<any> {
     return this.http.get<OeeWaterfallResponse>(
       `${environment.apiUrl}?action=rebotling&run=oee-waterfall&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeekdayStats(dagar: number = 90): Observable<any> {
     return this.http.get<WeekdayStatsResponse>(
       `${environment.apiUrl}?action=rebotling&run=weekday-stats&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getProductionEvents(start: string, end: string): Observable<any> {
     return this.http.get<ProductionEventsResponse>(
       `${environment.apiUrl}?action=rebotling&run=events&start=${start}&end=${end}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   addProductionEvent(event: { event_date: string; title: string; event_type: string; description: string }): Observable<any> {
@@ -308,42 +308,42 @@ export class RebotlingService {
     return this.http.get<StoppageAnalysisResponse>(
       `${environment.apiUrl}?action=rebotling&run=stoppage-analysis&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getParetoStoppage(days: number = 30): Observable<any> {
     return this.http.get<any>(
       `${environment.apiUrl}?action=rebotling&run=pareto-stoppage&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRealtimeOee(period: string = 'today'): Observable<any> {
     return this.http.get<RealtimeOeeResponse>(
       `${environment.apiUrl}?action=rebotling&run=realtime-oee&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStopCauseDrilldown(cause: string, days: number = 30): Observable<any> {
     return this.http.get<any>(
       `${environment.apiUrl}?action=rebotling&run=stop-cause-drilldown&cause=${encodeURIComponent(cause)}&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPersonalBests(): Observable<any> {
     return this.http.get<PersonalBestsResponse>(
       `${environment.apiUrl}?action=rebotling&run=personal-bests`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMonthlyLeaders(months: number = 12): Observable<any> {
     return this.http.get<MonthlyLeadersResponse>(
       `${environment.apiUrl}?action=rebotling&run=monthly-leaders&months=${months}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
 
@@ -351,56 +351,56 @@ export class RebotlingService {
     return this.http.get<any>(
       `${environment.apiUrl}?action=rebotling&run=hourly-rhythm&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHallOfFameDays(): Observable<any> {
     return this.http.get<HallOfFameDaysResponse>(
       `${environment.apiUrl}?action=rebotling&run=hall-of-fame`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRejectionAnalysis(days: number = 30): Observable<any> {
     return this.http.get<RejectionAnalysisResponse>(
       `${environment.apiUrl}?action=rebotling&run=rejection-analysis&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMaintenanceStats(): Observable<any> {
     return this.http.get<MaintenanceStatsResponse>(
       `${environment.apiUrl}?action=maintenance&run=stats`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getFeedbackSummary(): Observable<any> {
     return this.http.get<FeedbackSummaryResponse>(
       `${environment.apiUrl}?action=feedback&run=summary`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStaffingWarning(): Observable<any> {
     return this.http.get<StaffingWarningResponse>(
       `${environment.apiUrl}?action=rebotling&run=staffing-warning`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMonthlyStopSummary(month: string): Observable<any> {
     return this.http.get<MonthlyStopSummaryResponse>(
       `${environment.apiUrl}?action=rebotling&run=monthly-stop-summary&month=${month}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getProductionRate(): Observable<any> {
     return this.http.get<ProductionRateResponse>(
       `${environment.apiUrl}?action=rebotling&run=production-rate`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Alert Thresholds ----
@@ -425,7 +425,7 @@ export class RebotlingService {
     return this.http.get<WeeklySummaryResponse>(
       `${environment.apiUrl}?action=rebotling&run=weekly-summary-email&week=${week}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   sendWeeklySummary(week: string): Observable<any> {
@@ -442,7 +442,7 @@ export class RebotlingService {
     return this.http.get<MonthlyReportResponse>(
       `${environment.apiUrl}?action=rebotling&run=monthly-report&month=${m}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMonthCompare(year: number, month: number): Observable<any> {
@@ -450,14 +450,14 @@ export class RebotlingService {
     return this.http.get<MonthCompareResponse>(
       `${environment.apiUrl}?action=rebotling&run=month-compare&month=${m}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getProductionGoalProgress(period: string = 'today'): Observable<any> {
     return this.http.get<ProductionGoalProgressResponse>(
       `${environment.apiUrl}?action=rebotling&run=production-goal-progress&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   setProductionGoal(periodType: string, targetCount: number): Observable<any> {
@@ -472,14 +472,14 @@ export class RebotlingService {
     return this.http.get<ShiftDayNightResponse>(
       `${environment.apiUrl}?action=rebotling&run=shift-day-night&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMachineUptimeHeatmap(days: number = 7): Observable<any> {
     return this.http.get<UptimeHeatmapResponse>(
       `${environment.apiUrl}?action=rebotling&run=machine-uptime-heatmap&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Bonus-simulator ----
@@ -494,7 +494,7 @@ export class RebotlingService {
       url += `&max_bonus=${p.max_bonus}`;
       url += `&tier_95=${p.tier_95}&tier_90=${p.tier_90}&tier_80=${p.tier_80}&tier_70=${p.tier_70}&tier_0=${p.tier_0}`;
     }
-    return this.http.get<BonusSimulatorResponse>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<BonusSimulatorResponse>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   saveBonusSimulatorParams(payload: BonusSimulatorSavePayload): Observable<any> {
@@ -509,7 +509,7 @@ export class RebotlingService {
     return this.http.get<LeaderboardResponse>(
       `${environment.apiUrl}?action=rebotling&run=top-operators-leaderboard&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Min Dag-metoder ----
@@ -519,7 +519,7 @@ export class RebotlingService {
     return this.http.get<MinDagSummaryResponse>(
       `${environment.apiUrl}?action=min-dag&run=today-summary${opParam}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinDagCycleTrend(operatorId?: number): Observable<any> {
@@ -527,7 +527,7 @@ export class RebotlingService {
     return this.http.get<MinDagCycleTrendResponse>(
       `${environment.apiUrl}?action=min-dag&run=cycle-trend${opParam}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinDagGoalsProgress(operatorId?: number): Observable<any> {
@@ -535,42 +535,42 @@ export class RebotlingService {
     return this.http.get<MinDagGoalsProgressResponse>(
       `${environment.apiUrl}?action=min-dag&run=goals-progress${opParam}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeeklyKpis(): Observable<any> {
     return this.http.get<WeeklyKpisResponse>(
       `${environment.apiUrl}?action=rebotling&run=weekly-kpis`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsSummary(days: number): Observable<any> {
     return this.http.get<{ success: boolean; data: KassationsSummaryData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=summary&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsByCause(days: number): Observable<any> {
     return this.http.get<{ success: boolean; data: { days: number; from: string; to: string; total: number; orsaker: KassationOrsak[] } }>(
       `${environment.apiUrl}?action=kassationsanalys&run=by-cause&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsDailyStacked(days: number): Observable<any> {
     return this.http.get<{ success: boolean; data: KassationsDailyStackedData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=daily-stacked&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsDrilldown(cause: number, days: number): Observable<any> {
     return this.http.get<{ success: boolean; data: KassationsDrilldownData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=drilldown&cause=${cause}&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Kassationsanalys (utokade endpoints) ----
@@ -579,28 +579,28 @@ export class RebotlingService {
     return this.http.get<{ success: boolean; data: KassationsOverviewData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=overview&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsByPeriod(days: number, group: 'week' | 'month'): Observable<any> {
     return this.http.get<{ success: boolean; data: KassationsByPeriodData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=by-period&days=${days}&group=${group}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsDetails(days: number, orsak?: number, operator?: string): Observable<any> {
     let url = `${environment.apiUrl}?action=kassationsanalys&run=details&days=${days}`;
     if (orsak) url += `&orsak=${orsak}`;
     if (operator) url += `&operator=${encodeURIComponent(operator)}`;
-    return this.http.get<{ success: boolean; data: KassationsDetailsData }>(url, { withCredentials: true }).pipe(timeout(15000), catchError(() => of(null)));
+    return this.http.get<{ success: boolean; data: KassationsDetailsData }>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKassationsTrendRate(days: number): Observable<any> {
     return this.http.get<{ success: boolean; data: KassationsTrendRateData }>(
       `${environment.apiUrl}?action=kassationsanalys&run=trend-rate&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Dashboard Layout ----
@@ -609,7 +609,7 @@ export class RebotlingService {
     return this.http.get<DashboardLayoutResponse>(
       `${environment.apiUrl}?action=dashboard-layout&run=get-layout`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   saveDashboardLayout(widgets: DashboardWidgetEntry[]): Observable<any> {
@@ -624,7 +624,7 @@ export class RebotlingService {
     return this.http.get<DashboardAvailableWidgetsResponse>(
       `${environment.apiUrl}?action=dashboard-layout&run=available-widgets`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Operatörsjämförelse ----
@@ -633,7 +633,7 @@ export class RebotlingService {
     return this.http.get<OperatorsListResponse>(
       `${environment.apiUrl}?action=operator-jamforelse&run=operators-list`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   compareOperators(ids: number[], period: number): Observable<any> {
@@ -641,7 +641,7 @@ export class RebotlingService {
     return this.http.get<CompareResponse>(
       `${environment.apiUrl}?action=operator-jamforelse&run=compare&operators=${ops}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   compareOperatorsTrend(ids: number[], period: number): Observable<any> {
@@ -649,7 +649,7 @@ export class RebotlingService {
     return this.http.get<CompareTrendResponse>(
       `${environment.apiUrl}?action=operator-jamforelse&run=compare-trend&operators=${ops}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // ---- Produktionseffektivitet per timme ----
@@ -658,21 +658,21 @@ export class RebotlingService {
     return this.http.get<HourlyHeatmapResponse>(
       `${environment.apiUrl}?action=produktionseffektivitet&run=hourly-heatmap&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHourlySummary(period: number): Observable<any> {
     return this.http.get<HourlySummaryResponse>(
       `${environment.apiUrl}?action=produktionseffektivitet&run=hourly-summary&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPeakAnalysis(period: number): Observable<any> {
     return this.http.get<PeakAnalysisResponse>(
       `${environment.apiUrl}?action=produktionseffektivitet&run=peak-analysis&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -12,13 +12,13 @@ export class SkiftrapportService {
 
   getSkiftrapporter(): Observable<any> {
     return this.http.get<any>(this.api, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getProducts(): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}?action=rebotlingproduct`, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -83,7 +83,7 @@ export class SkiftrapportService {
     let url = `${this.api}&run=lopnummer&skiftraknare=${skiftraknare}`;
     if (datum) url += `&datum=${encodeURIComponent(datum)}`;
     return this.http.get<any>(url, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), retry(1), catchError(() => of(null))
     );
   }
 }

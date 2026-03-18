@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ====================================================
@@ -130,27 +130,27 @@ export class StatistikDashboardService {
     return this.http.get<ApiResponse<DashboardSummary>>(
       `${this.baseUrl}&run=summary`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getProductionTrend(period: number = 30): Observable<ApiResponse<ProductionTrendData> | null> {
     return this.http.get<ApiResponse<ProductionTrendData>>(
       `${this.baseUrl}&run=production-trend&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDailyTable(): Observable<ApiResponse<DailyTableData> | null> {
     return this.http.get<ApiResponse<DailyTableData>>(
       `${this.baseUrl}&run=daily-table`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStatusIndicator(): Observable<ApiResponse<StatusIndicator> | null> {
     return this.http.get<ApiResponse<StatusIndicator>>(
       `${this.baseUrl}&run=status-indicator`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, timer, catchError, of, switchMap, takeUntil, timeout } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, timer, catchError, of, switchMap, takeUntil, timeout, retry } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 // ================================================================
@@ -136,14 +136,14 @@ export class AlertsService implements OnDestroy {
     return this.http.get<ActiveAlertsResponse>(
       `${this.base}&run=active`,
       { withCredentials: true }
-    ).pipe(timeout(10_000), catchError(() => of(null)));
+    ).pipe(timeout(10_000), retry(1), catchError(() => of(null)));
   }
 
   getAlertHistory(days: number = 30): Observable<AlertHistoryResponse | null> {
     return this.http.get<AlertHistoryResponse>(
       `${this.base}&run=history&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(10_000), catchError(() => of(null)));
+    ).pipe(timeout(10_000), retry(1), catchError(() => of(null)));
   }
 
   acknowledgeAlert(id: number): Observable<any> {
@@ -158,7 +158,7 @@ export class AlertsService implements OnDestroy {
     return this.http.get<AlertSettingsResponse>(
       `${this.base}&run=settings`,
       { withCredentials: true }
-    ).pipe(timeout(10_000), catchError(() => of(null)));
+    ).pipe(timeout(10_000), retry(1), catchError(() => of(null)));
   }
 
   saveAlertSettings(settings: Partial<AlertSettings>): Observable<any> {
@@ -173,7 +173,7 @@ export class AlertsService implements OnDestroy {
     return this.http.get<AlertCheckResponse>(
       `${this.base}&run=check`,
       { withCredentials: true }
-    ).pipe(timeout(10_000), catchError(() => of(null)));
+    ).pipe(timeout(10_000), retry(1), catchError(() => of(null)));
   }
 
   // ----------------------------------------------------------------

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface StoppageReason {
@@ -65,19 +65,19 @@ export class StoppageService {
 
   getReasons(): Observable<{ success: boolean; data: StoppageReason[] } | null> {
     return this.http.get<{ success: boolean; data: StoppageReason[] }>(`${this.base}&run=reasons`, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), retry(1), catchError(() => of(null))
     );
   }
 
   getStoppages(line: string = 'rebotling', period: string = 'week'): Observable<{ success: boolean; data: StoppageEntry[] } | null> {
     return this.http.get<{ success: boolean; data: StoppageEntry[] }>(`${this.base}&line=${line}&period=${period}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getStats(line: string = 'rebotling', period: string = 'month'): Observable<{ success: boolean; data: StoppageStats } | null> {
     return this.http.get<{ success: boolean; data: StoppageStats }>(`${this.base}&run=stats&line=${line}&period=${period}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -101,19 +101,19 @@ export class StoppageService {
 
   getWeeklySummary(line: string = 'rebotling'): Observable<{ success: boolean; data: StoppageWeeklySummary } | null> {
     return this.http.get<{ success: boolean; data: StoppageWeeklySummary }>(`${this.base}&run=weekly_summary&line=${line}`, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), retry(1), catchError(() => of(null))
     );
   }
 
   getPareto(line: string = 'rebotling', dagar: number = 30): Observable<({ success: boolean } & ParetoData) | null> {
     return this.http.get<{ success: boolean } & ParetoData>(`${this.base}&run=pareto&line=${line}&dagar=${dagar}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
   getPatternAnalysis(line: string = 'rebotling', days: number = 30): Observable<any> {
     return this.http.get<any>(`${this.base}&run=pattern-analysis&line=${line}&days=${days}`, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 }

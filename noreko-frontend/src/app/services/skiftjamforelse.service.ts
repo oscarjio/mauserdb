@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -119,34 +119,34 @@ export class SkiftjamforelseService {
     return this.http.get<ApiResponse<SammanfattningData>>(
       `${this.api}&run=sammanfattning&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getJamforelse(days: number): Observable<ApiResponse<JamforelseData> | null> {
     return this.http.get<ApiResponse<JamforelseData>>(
       `${this.api}&run=jamforelse&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(days: number): Observable<ApiResponse<TrendData> | null> {
     return this.http.get<ApiResponse<TrendData>>(
       `${this.api}&run=trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBestPractices(days: number): Observable<ApiResponse<BestPracticesData> | null> {
     return this.http.get<ApiResponse<BestPracticesData>>(
       `${this.api}&run=best-practices&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetaljer(days: number): Observable<ApiResponse<DetaljerData> | null> {
     return this.http.get<ApiResponse<DetaljerData>>(
       `${this.api}&run=detaljer&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

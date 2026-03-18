@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -95,6 +95,7 @@ export class AlarmHistorikService {
     const url = `${this.api}&run=list&days=${days}&status=${encodeURIComponent(status)}&severity=${encodeURIComponent(severity)}&typ=${encodeURIComponent(typ)}`;
     return this.http.get<AlarmListResponse>(url, { withCredentials: true }).pipe(
       timeout(20000),
+      retry(1),
       catchError(() => of(null))
     );
   }
@@ -105,6 +106,7 @@ export class AlarmHistorikService {
       { withCredentials: true }
     ).pipe(
       timeout(20000),
+      retry(1),
       catchError(() => of(null))
     );
   }
@@ -115,6 +117,7 @@ export class AlarmHistorikService {
       { withCredentials: true }
     ).pipe(
       timeout(20000),
+      retry(1),
       catchError(() => of(null))
     );
   }

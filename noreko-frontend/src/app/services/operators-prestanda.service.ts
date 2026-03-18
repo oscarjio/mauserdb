@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -119,34 +119,34 @@ export class OperatorsPrestandaService {
     let url = `${this.api}&run=scatter-data&period=${period}`;
     if (skift && skift !== 'alla') url += `&skift=${skift}`;
     return this.http.get<ApiResponse<ScatterData>>(url, { withCredentials: true })
-      .pipe(timeout(30000), catchError(() => of(null)));
+      .pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getOperatorDetalj(id: number): Observable<ApiResponse<OperatorDetalj> | null> {
     return this.http.get<ApiResponse<OperatorDetalj>>(
       `${this.api}&run=operator-detalj&operator_id=${id}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getRanking(sortBy: string, period: number): Observable<ApiResponse<RankingData> | null> {
     return this.http.get<ApiResponse<RankingData>>(
       `${this.api}&run=ranking&sort_by=${sortBy}&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getTeamjamforelse(period: number): Observable<ApiResponse<TeamjamforelseData> | null> {
     return this.http.get<ApiResponse<TeamjamforelseData>>(
       `${this.api}&run=teamjamforelse&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 
   getUtveckling(id: number): Observable<ApiResponse<UtvecklingData> | null> {
     return this.http.get<ApiResponse<UtvecklingData>>(
       `${this.api}&run=utveckling&operator_id=${id}`,
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
   }
 }

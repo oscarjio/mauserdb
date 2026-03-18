@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -207,14 +207,14 @@ export class ProduktionsmalService {
     return this.http.get<ApiResponse<AktuelltMalData>>(
       `${this.api}&run=aktuellt-mal`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getProgress(): Observable<ApiResponse<ProgressData> | null> {
     return this.http.get<ApiResponse<ProgressData>>(
       `${this.api}&run=progress`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   sattMal(typ: string, antal: number, startdatum: string): Observable<ApiResponse<SattMalResponse> | null> {
@@ -229,7 +229,7 @@ export class ProduktionsmalService {
     return this.http.get<ApiResponse<MalHistorikData>>(
       `${this.api}&run=mal-historik&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // Produktionsmal-uppfoljning endpoints
@@ -237,42 +237,42 @@ export class ProduktionsmalService {
     return this.http.get<ApiResponse<SammanfattningData>>(
       `${this.api}&run=sammanfattning`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerSkift(): Observable<ApiResponse<PerSkiftData> | null> {
     return this.http.get<ApiResponse<PerSkiftData>>(
       `${this.api}&run=per-skift`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getVeckodata(weeks: number = 4): Observable<ApiResponse<VeckodataResponse> | null> {
     return this.http.get<ApiResponse<VeckodataResponse>>(
       `${this.api}&run=veckodata&weeks=${weeks}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHistorik(days: number = 30): Observable<ApiResponse<HistorikData> | null> {
     return this.http.get<ApiResponse<HistorikData>>(
       `${this.api}&run=historik&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerStation(): Observable<ApiResponse<PerStationData> | null> {
     return this.http.get<ApiResponse<PerStationData>>(
       `${this.api}&run=per-station`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHamtaMal(): Observable<ApiResponse<HamtaMalData> | null> {
     return this.http.get<ApiResponse<HamtaMalData>>(
       `${this.api}&run=hamta-mal`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   sparaMal(typ: string, antal: number, giltig_fran?: string): Observable<ApiResponse<SparaMalData> | null> {
@@ -288,20 +288,20 @@ export class ProduktionsmalService {
     return this.http.get<SummaryResponse>(
       `${this.api}&run=summary`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDaily(days: number): Observable<DailyResponse | null> {
     return this.http.get<DailyResponse>(
       `${this.api}&run=daily&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeekly(weeks: number): Observable<WeeklyResponse | null> {
     return this.http.get<WeeklyResponse>(
       `${this.api}&run=weekly&weeks=${weeks}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

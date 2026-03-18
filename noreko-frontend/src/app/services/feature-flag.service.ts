@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { of, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -34,6 +34,7 @@ export class FeatureFlagService {
         { withCredentials: true }
       ).pipe(
         timeout(8000),
+        retry(1),
         catchError(() => of(null))
       )
     ).then(res => {

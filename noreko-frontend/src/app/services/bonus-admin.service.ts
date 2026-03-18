@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface BonusConfigResponse {
@@ -83,7 +83,7 @@ export class BonusAdminService {
   getConfig(): Observable<BonusConfigResponse | null> {
     return this.http.get<BonusConfigResponse>(this.baseUrl + '&run=get_config', {
       withCredentials: true
-    }).pipe(timeout(10000), catchError(() => of(null)));
+    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   updateWeights(produkt: number, weights: { eff: number; prod: number; qual: number }): Observable<GenericResponse | null> {
@@ -102,7 +102,7 @@ export class BonusAdminService {
   getPeriods(): Observable<BonusPeriodsResponse | null> {
     return this.http.get<BonusPeriodsResponse>(this.baseUrl + '&run=get_periods', {
       withCredentials: true
-    }).pipe(timeout(10000), catchError(() => of(null)));
+    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   approveBonuses(period: string): Observable<GenericResponse | null> {
@@ -120,13 +120,13 @@ export class BonusAdminService {
     return this.http.get<GenericResponse>(
       this.baseUrl + '&run=export_report&period=' + encodeURIComponent(period) + '&format=json',
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getSystemStats(): Observable<BonusSystemStatsResponse | null> {
     return this.http.get<BonusSystemStatsResponse>(this.baseUrl + '&run=get_stats', {
       withCredentials: true
-    }).pipe(timeout(10000), catchError(() => of(null)));
+    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   setWeeklyGoal(weeklyGoal: number): Observable<GenericResponse | null> {
@@ -139,6 +139,6 @@ export class BonusAdminService {
     return this.http.get<OperatorForecastResponse>(
       this.baseUrl + '&run=operator_forecast&id=' + operatorId,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 }

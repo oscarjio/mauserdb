@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -118,34 +118,34 @@ export class KassationsorsakPerStationService {
     return this.http.get<ApiResponse<KassationOverview>>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerStation(dagar: number): Observable<ApiResponse<PerStationData> | null> {
     return this.http.get<ApiResponse<PerStationData>>(
       `${this.api}&run=per-station&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTopOrsaker(dagar: number, station?: string): Observable<ApiResponse<TopOrsakerData> | null> {
     let url = `${this.api}&run=top-orsaker&dagar=${dagar}`;
     if (station) url += `&station=${encodeURIComponent(station)}`;
     return this.http.get<ApiResponse<TopOrsakerData>>(url, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(dagar: number): Observable<ApiResponse<TrendData> | null> {
     return this.http.get<ApiResponse<TrendData>>(
       `${this.api}&run=trend&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDetaljer(dagar: number): Observable<ApiResponse<DetaljerData> | null> {
     return this.http.get<ApiResponse<DetaljerData>>(
       `${this.api}&run=detaljer&dagar=${dagar}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

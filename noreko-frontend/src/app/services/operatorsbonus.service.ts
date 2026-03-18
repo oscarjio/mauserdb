@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
@@ -122,21 +122,21 @@ export class OperatorsbonusService {
     return this.http.get<BonusOverviewResponse>(
       `${this.api}&run=overview&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getPerOperator(period: string = 'dag'): Observable<PerOperatorResponse | null> {
     return this.http.get<PerOperatorResponse>(
       `${this.api}&run=per-operator&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKonfiguration(): Observable<KonfigResponse | null> {
     return this.http.get<KonfigResponse>(
       `${this.api}&run=konfiguration`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   sparaKonfiguration(items: { faktor: string; vikt: number; mal_varde: number; max_bonus_kr: number }[]): Observable<any> {
@@ -157,13 +157,13 @@ export class OperatorsbonusService {
     if (to) url += `&to=${to}`;
     return this.http.get<HistorikResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 
   getSimulering(ibcPerTimme: number, kvalitet: number, narvaro: number, teamMal: number): Observable<SimuleringResponse | null> {
     return this.http.get<SimuleringResponse>(
       `${this.api}&run=simulering&ibc_per_timme=${ibcPerTimme}&kvalitet=${kvalitet}&narvaro=${narvaro}&team_mal=${teamMal}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)));
+    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
   }
 }

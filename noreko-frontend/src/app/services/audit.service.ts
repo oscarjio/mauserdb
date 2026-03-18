@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface AuditEntry {
@@ -53,6 +53,7 @@ export class AuditService {
     if (params.to_date)       url += `&to_date=${encodeURIComponent(params.to_date)}`;
     return this.http.get<any>(url, { withCredentials: true }).pipe(
       timeout(15000),
+      retry(1),
       catchError(() => of({ success: false, data: [], total: 0, page: 1, pages: 0, hasMore: false }))
     );
   }
@@ -60,6 +61,7 @@ export class AuditService {
   getStats(period: string = 'month'): Observable<{ success: boolean; data: AuditStats | null }> {
     return this.http.get<any>(`${this.base}&run=stats&period=${period}`, { withCredentials: true }).pipe(
       timeout(15000),
+      retry(1),
       catchError(() => of({ success: false, data: null as AuditStats | null }))
     );
   }
@@ -67,6 +69,7 @@ export class AuditService {
   getActions(): Observable<{ success: boolean; data: string[] }> {
     return this.http.get<any>(`${this.base}&run=actions`, { withCredentials: true }).pipe(
       timeout(10000),
+      retry(1),
       catchError(() => of({ success: false, data: [] }))
     );
   }
