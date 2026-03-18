@@ -16,12 +16,18 @@ export class PdfExportService {
       return;
     }
 
-    const canvas = await html2canvas(element, {
-      backgroundColor: '#1a202c',
-      scale: 1.5,
-      useCORS: true,
-      logging: false,
-    });
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await html2canvas(element, {
+        backgroundColor: '#1a202c',
+        scale: 1.5,
+        useCORS: true,
+        logging: false,
+      });
+    } catch (err) {
+      console.error('PdfExportService: html2canvas misslyckades:', err);
+      throw err;
+    }
 
     const imgWidth  = canvas.width;
     const imgHeight = canvas.height;

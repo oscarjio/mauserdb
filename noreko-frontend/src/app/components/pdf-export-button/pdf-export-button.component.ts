@@ -18,15 +18,21 @@ export class PdfExportButtonComponent {
 
   constructor(private pdfService: PdfExportService) {}
 
+  exportError = false;
+
   async exportPdf(): Promise<void> {
     if (this.isLoading || !this.targetElementId) return;
     this.isLoading = true;
+    this.exportError = false;
     try {
       await this.pdfService.exportToPdf(
         this.targetElementId,
         this.filename,
         this.title || undefined
       );
+    } catch (err) {
+      console.error('PDF-export misslyckades:', err);
+      this.exportError = true;
     } finally {
       this.isLoading = false;
     }
