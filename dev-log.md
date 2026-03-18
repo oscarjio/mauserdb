@@ -1,3 +1,35 @@
+## 2026-03-18 Session #160 Worker B — Angular buggjakt (3 audits: template null-safety, HTTP interceptor, router guards)
+
+### Audit 1: Angular template null-safety audit — 0 buggar
+Granskade samtliga ~95 HTML-templates i noreko-frontend/src/app/ (exklusive forbjudna: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- **Interpolation utan ?.**: Alla templates som visar data fran API-svar har *ngIf-guards pa parent-element (t.ex. *ngIf="!loading && !error && data"). Inga oguardade property-accesser hittades.
+- **Pipe pa null-varden (date, number)**: Alla forekomster av | date och | number ar antingen inom *ngIf-guard, har ternary-null-check (t.ex. orsak.senaste ? (orsak.senaste | date) : '-'), eller appliceras pa *ngIf-gardade block.
+- **ngFor utan tom-array-guard**: Alla *ngFor ar antingen pa arrayer som initialiseras som [] i komponenten, eller inom *ngIf-block som verifierar att parent-objektet existerar.
+- **[src]/[href]-bindings**: Endast 2 forekomster — bada korrekt gardade (*ngIf och statiska varden).
+- **Math i templates**: 9 komponenter anvander Math.min/max/round/abs i templates — alla har Math = Math; exponerat som klass-property. OK.
+- Kodbasen ar konsekvent och valmaintainad med loading/error/data-states i alla sidor.
+
+### Audit 2: Angular HTTP interceptor audit — 0 buggar
+Granskade error.interceptor.ts och auth.service.ts:
+- **Retry-logik**: 1 retry med 1s delay for natverksfel (status 0) och 502/503/504. Korrekt — ej retry pa klientfel (4xx). OK.
+- **Token refresh / 401**: Interceptorn anropar auth.clearSession() och navigerar till /login med returnUrl. Login-sidan validerar returnUrl mot open redirect (startsWith('/') && !startsWith('//')). OK.
+- **Error mapping**: Alla HTTP-statuskoder mappas till svenska felmeddelanden (0=natverk, 401=session, 403=behorighet, 404=ej hittad, 408=timeout, 429=throttle, 500+=server). OK.
+- **Timeout-hantering**: auth.service.ts har timeout(8000) pa fetchStatus och logout. Interceptorn har ingen global timeout (korrekt — latappar timeouts hanteras per-request). OK.
+- **Race conditions**: status-polling anvander subscribe inom interval — ej problematiskt da catchError returnerar of(null) och ej muterar auth-state vid transienta fel. Polling stoppas vid logout/clearSession. OK.
+- **APP_INITIALIZER**: Laddar auth-status och feature-flags parallellt med Promise.all innan routing startar — garanterar att guards har korrekt state. OK.
+
+### Audit 3: Angular router guard audit — 0 buggar
+Granskade auth.guard.ts (authGuard + adminGuard) och app.routes.ts (163 rader, ~100 routes):
+- **Skyddade routes**: Alla admin-routes (17 st under admin/) anvander adminGuard. Alla autentiserade routes (~60 st) anvander authGuard. OK.
+- **Publika routes**: 16 routes ar publika (login, register, about, contact, live-vyer, skiftrapporter, statistik, historik) — korrekt, dessa ska vara tillgangliga utan inloggning.
+- **Guard edge cases**: Bade authGuard och adminGuard vantar pa initialized$ (filter + take(1) + switchMap) innan de utvardera loggedIn$/user$ — forhindrar false redirects vid sidladdning. OK.
+- **Admin-guard**: Kontrollerar role === 'admin' || role === 'developer'. Omdirigerar ej inloggade till /login och inloggade utan behorighet till /. OK.
+- **Lazy-loaded routes**: Alla routes anvander loadComponent med lazy-loading — alla skyddade har matchande guard. OK.
+- **Route params**: admin/operator/:id validerar id med isNaN(+id) i komponenten. OK.
+- **Wildcard route**: ** fanger okanda routes och visar NotFoundPage. OK.
+
+---
+
 ## 2026-03-18 Session #159 Worker B — Angular buggjakt (3 audits: memory leaks, form validation, error display)
 
 ### Audit 1: Angular memory leak audit — 0 buggar
