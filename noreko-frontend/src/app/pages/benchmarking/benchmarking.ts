@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
 import {

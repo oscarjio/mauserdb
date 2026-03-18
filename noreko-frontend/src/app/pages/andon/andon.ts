@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { RebotlingService } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 

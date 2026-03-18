@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, interval } from 'rxjs';
+import { Subject, interval, of } from 'rxjs';
 import { takeUntil, catchError, timeout, startWith } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, RealtimeOeeResponse, RealtimeOeeData } from '../../../../services/rebotling.service';
 

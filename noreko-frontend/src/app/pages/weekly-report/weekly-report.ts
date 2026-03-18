@@ -8,9 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Chart, registerables } from 'chart.js';
 import { localDateStr } from '../../utils/date-utils';

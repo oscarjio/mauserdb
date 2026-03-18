@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
+import { Subject, interval, of } from 'rxjs';
 import { takeUntil, catchError, timeout, startWith } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, ProductionGoalProgressResponse } from '../../../../services/rebotling.service';
 import { AuthService } from '../../../../services/auth.service';

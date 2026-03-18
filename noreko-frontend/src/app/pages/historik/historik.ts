@@ -5,9 +5,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { environment } from '../../../environments/environment';

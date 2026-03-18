@@ -1,7 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
-import { catchError, of, switchMap, takeUntil, timeout } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, timer, catchError, of, switchMap, takeUntil, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 // ================================================================

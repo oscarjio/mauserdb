@@ -1,12 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, catchError, of, timeout } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService, AuthUser } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats, TeamStatsResponse } from '../../services/bonus.service';
 import { RebotlingService, BestShift, StoppageDayEntry, StoppageCategoryEntry, StoppageReasonEntry, RastStatusResponse, LineStatusResponse, RastEvent } from '../../services/rebotling.service';
-import { catchError, of, timeout } from 'rxjs';
 import { Chart, registerables, TooltipItem } from 'chart.js';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
 

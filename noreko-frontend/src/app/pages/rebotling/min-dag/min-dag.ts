@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin } from 'rxjs';
+import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import {
   RebotlingService,

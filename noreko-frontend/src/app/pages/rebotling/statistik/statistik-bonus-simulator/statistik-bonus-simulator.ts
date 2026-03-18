@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, debounceTime, timeout } from 'rxjs/operators';
-import { of, Subject as RxSubject } from 'rxjs';
 import {
   RebotlingService,
   BonusSimulatorParams,
@@ -21,7 +20,7 @@ import {
 })
 export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  private simulate$ = new RxSubject<void>();
+  private simulate$ = new Subject<void>();
 
   loading = false;
   saving = false;

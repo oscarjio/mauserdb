@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { SaglinjeService } from '../../services/saglinje.service';
