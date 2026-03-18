@@ -1,3 +1,54 @@
+## 2026-03-18 Session #157 Worker A — 22 buggar fixade (XSS + engelska felmeddelanden)
+
+### Uppgift 1: PHP SQL ORDER BY injection audit — 0 fixar
+Granskade ALLA 117 PHP-controllers i noreko-backend/classes/ for ORDER BY-satser med anvandardata:
+- Alla ORDER BY-satser anvander antingen hardkodade kolumnnamn eller whitelistade varden
+- HistoriskProduktionController: sort valideras med in_array whitelist, order valideras som ASC/DESC — OK
+- OperatorsPrestandaController: sort_by valideras med in_array whitelist — OK
+- RebotlingAdminController: sort_by valideras med in_array whitelist — OK
+- ForstaTimmeAnalysController: ibcCol kommer fran DB-schema-check (inte anvandardata) — OK
+- KassationsanalysController: orderExpr ar hardkodad baserat pa 'week'/'month' — OK
+- RuntimeController: line valideras med whitelist innan anvandning i tabellnamn — OK
+Inga fixar kravdes.
+
+### Uppgift 2: PHP error response format audit — 22 fixar
+Granskade ALLA controllers for konsekvent JSON-format {"success": false, "error": "..."}.
+- Alla controllers anvander konsekvent format — inga strukturella avvikelser
+- PROBLEM 1: VeckotrendController rad 16 — $run i felmeddelande utan htmlspecialchars() (XSS-risk)
+- PROBLEM 2: BonusAdminController rad 141 — $run i felmeddelande utan htmlspecialchars() (XSS-risk)
+- PROBLEM 3-22: BonusAdminController — 20 engelska felmeddelanden oversatta till svenska
+  - 'Unauthorized - Admin access required' → 'Admin-behorighet kravs'
+  - 9x 'POST required' → 'POST-metod kravs'
+  - 3x 'Invalid JSON input' → 'Ogiltigt JSON-format'
+  - 'Missing required fields' → 'Obligatoriska falt saknas'
+  - 'Invalid product ID format' → 'Ogiltigt produkt-ID-format'
+  - 'Missing weight components' → 'Viktkomponenter saknas'
+  - 'Weights must be numeric' → 'Vikter maste vara numeriska varden'
+  - 'Weights must be between 0 and 1' → 'Vikter maste vara mellan 0 och 1'
+  - 'Weights must sum to 1.0' → 'Vikterna maste summera till 1.0'
+  - 'Invalid product ID (must be 1, 4, or 5)' → 'Ogiltigt produkt-ID'
+  - 3x 'Database operation failed' → 'Databasfel'
+  - 'Missing targets field' → 'Faltet targets saknas'
+  - 'Targets must be numeric' → 'Malvarden maste vara numeriska'
+  - 'Targets must be between 1 and 100' → 'Malvarden maste vara mellan 1 och 100'
+  - 2x 'Invalid period format' → 'Ogiltigt periodformat'
+  - 'Invalid format (allowed: csv, json)' → 'Ogiltigt format'
+  - 'No data found for period' → 'Ingen data hittades for period' + htmlspecialchars
+  - 'Missing period field' → 'Faltet period saknas'
+  - 'No unapproved bonuses found' → 'Inga ej godkanda bonusar hittades' + htmlspecialchars
+  - 'Invalid JSON input' → 'Ogiltigt JSON-format'
+
+### Uppgift 3: PHP unused method audit — 0 fixar
+Granskade ALLA 117 controllers for oanvanda metoder (private, protected, public):
+- Alla privata metoder anropas inom sina respektive controllers
+- Alla publika metoder anvands via handle() eller fran andra controllers
+- 3 controllers (RebotlingAdminController, RebotlingAnalyticsController, VeckotrendController) ar inte direkt i api.php men anropas indirekt via RebotlingController
+Inga oanvanda metoder hittades.
+
+Filer:
+- noreko-backend/classes/VeckotrendController.php
+- noreko-backend/classes/BonusAdminController.php
+
 ## 2026-03-18 Session #157 Worker B — 1 bugg fixad (loading state + route param audit)
 
 ### Uppgift 1: Angular route param validation audit — 0 fixar

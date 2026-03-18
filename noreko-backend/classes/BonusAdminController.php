@@ -36,7 +36,7 @@ class BonusAdminController {
 
         // Admin-kontroll via session
         if (!$this->isAdmin()) {
-            $this->sendError('Unauthorized - Admin access required', 403);
+            $this->sendError('Admin-behörighet krävs', 403);
             return;
         }
 
@@ -46,14 +46,14 @@ class BonusAdminController {
                 break;
             case 'update_weights':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->updateWeights();
                 break;
             case 'set_targets':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->setTargets();
@@ -66,7 +66,7 @@ class BonusAdminController {
                 break;
             case 'approve_bonuses':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->approveBonuses();
@@ -76,7 +76,7 @@ class BonusAdminController {
                 break;
             case 'set_weekly_goal':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->setWeeklyGoal();
@@ -89,7 +89,7 @@ class BonusAdminController {
                 break;
             case 'setAmounts':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->setAmounts();
@@ -99,14 +99,14 @@ class BonusAdminController {
                 break;
             case 'record-payout':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->recordPayout();
                 break;
             case 'delete-payout':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->deletePayout();
@@ -119,7 +119,7 @@ class BonusAdminController {
                 break;
             case 'update-payout-status':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->updatePayoutStatus();
@@ -132,13 +132,13 @@ class BonusAdminController {
                 break;
             case 'save-simulator-params':
                 if ($method !== 'POST') {
-                    $this->sendError('POST required');
+                    $this->sendError('POST-metod krävs');
                     return;
                 }
                 $this->saveSimulatorParams();
                 break;
             default:
-                $this->sendError('Invalid action: ' . $run);
+                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
     }
 
@@ -198,18 +198,18 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Invalid JSON input: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
                 return;
             }
 
             if (!isset($input['produkt']) || !isset($input['weights'])) {
-                $this->sendError('Missing required fields: produkt, weights');
+                $this->sendError('Obligatoriska fält saknas: produkt, weights');
                 return;
             }
 
             $produkt = filter_var($input['produkt'], FILTER_VALIDATE_INT);
             if ($produkt === false) {
-                $this->sendError('Invalid product ID format');
+                $this->sendError('Ogiltigt produkt-ID-format');
                 return;
             }
 
@@ -217,7 +217,7 @@ class BonusAdminController {
 
             // Validate weights structure
             if (!isset($weights['eff']) || !isset($weights['prod']) || !isset($weights['qual'])) {
-                $this->sendError('Missing weight components (eff, prod, qual)');
+                $this->sendError('Viktkomponenter saknas (eff, prod, qual)');
                 return;
             }
 
@@ -227,19 +227,19 @@ class BonusAdminController {
             $qual = filter_var($weights['qual'], FILTER_VALIDATE_FLOAT);
 
             if ($eff === false || $prod === false || $qual === false) {
-                $this->sendError('Weights must be numeric values');
+                $this->sendError('Vikter måste vara numeriska värden');
                 return;
             }
 
             if ($eff < 0 || $eff > 1 || $prod < 0 || $prod > 1 || $qual < 0 || $qual > 1) {
-                $this->sendError('Weights must be between 0 and 1');
+                $this->sendError('Vikter måste vara mellan 0 och 1');
                 return;
             }
 
             // Validate weights sum to 1.0
             $sum = $eff + $prod + $qual;
             if (abs($sum - 1.0) > 0.001) {
-                $this->sendError('Weights must sum to 1.0 (currently: ' . round($sum, 3) . ')');
+                $this->sendError('Vikterna måste summera till 1.0 (nuvarande: ' . round($sum, 3) . ')');
                 return;
             }
 
@@ -251,7 +251,7 @@ class BonusAdminController {
             ];
 
             if (!isset($column_map[$produkt])) {
-                $this->sendError('Invalid product ID (must be 1, 4, or 5)');
+                $this->sendError('Ogiltigt produkt-ID (måste vara 1, 4 eller 5)');
                 return;
             }
 
@@ -288,7 +288,7 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdminController::updateWeights — ' . $e->getMessage());
-            $this->sendError('Database operation failed', 500);
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -301,12 +301,12 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Invalid JSON input: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
                 return;
             }
 
             if (!isset($input['targets'])) {
-                $this->sendError('Missing targets field');
+                $this->sendError('Fältet targets saknas');
                 return;
             }
 
@@ -318,7 +318,7 @@ class BonusAdminController {
             $tvattade = filter_var($targets['tvattade'] ?? 15.0, FILTER_VALIDATE_FLOAT);
 
             if ($foodgrade === false || $nonun === false || $tvattade === false) {
-                $this->sendError('Targets must be numeric values');
+                $this->sendError('Målvärden måste vara numeriska');
                 return;
             }
 
@@ -326,7 +326,7 @@ class BonusAdminController {
             if ($foodgrade < 1 || $foodgrade > 100 ||
                 $nonun < 1 || $nonun > 100 ||
                 $tvattade < 1 || $tvattade > 100) {
-                $this->sendError('Targets must be between 1 and 100 IBC/hour');
+                $this->sendError('Målvärden måste vara mellan 1 och 100 IBC/timme');
                 return;
             }
 
@@ -371,7 +371,7 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdminController::setTargets — ' . $e->getMessage());
-            $this->sendError('Database operation failed', 500);
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -431,14 +431,14 @@ class BonusAdminController {
 
         // Validate period format (YYYY-MM)
         if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
-            $this->sendError('Invalid period format (expected: YYYY-MM)');
+            $this->sendError('Ogiltigt periodformat (förväntat: YYYY-MM)');
             return;
         }
 
         // Validate format
         $allowed_formats = ['csv', 'json'];
         if (!in_array($format, $allowed_formats, true)) {
-            $this->sendError('Invalid format (allowed: csv, json)');
+            $this->sendError('Ogiltigt format (tillåtna: csv, json)');
             return;
         }
 
@@ -472,7 +472,7 @@ class BonusAdminController {
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($data)) {
-                $this->sendError('No data found for period: ' . $period, 404);
+                $this->sendError('Ingen data hittades för period: ' . htmlspecialchars($period, ENT_QUOTES, 'UTF-8'), 404);
                 return;
             }
 
@@ -486,7 +486,7 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdminController::exportReport — ' . $e->getMessage());
-            $this->sendError('Database operation failed', 500);
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -499,12 +499,12 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Invalid JSON input: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
                 return;
             }
 
             if (!isset($input['period'])) {
-                $this->sendError('Missing period field');
+                $this->sendError('Fältet period saknas');
                 return;
             }
 
@@ -512,7 +512,7 @@ class BonusAdminController {
 
             // Validate period format (YYYY-MM)
             if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
-                $this->sendError('Invalid period format (expected: YYYY-MM)');
+                $this->sendError('Ogiltigt periodformat (förväntat: YYYY-MM)');
                 return;
             }
 
@@ -539,7 +539,7 @@ class BonusAdminController {
             $affected = $stmt->rowCount();
 
             if ($affected === 0) {
-                $this->sendError('No unapproved bonuses found for period: ' . $period, 404);
+                $this->sendError('Inga ej godkända bonusar hittades för period: ' . htmlspecialchars($period, ENT_QUOTES, 'UTF-8'), 404);
                 return;
             }
 
@@ -558,7 +558,7 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdminController::approveBonuses — ' . $e->getMessage());
-            $this->sendError('Database operation failed', 500);
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -640,7 +640,7 @@ class BonusAdminController {
         try {
             $input = json_decode(file_get_contents('php://input'), true) ?? [];
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Invalid JSON input');
+                $this->sendError('Ogiltigt JSON-format');
                 return;
             }
             $goal = filter_var($input['weekly_goal'] ?? null, FILTER_VALIDATE_FLOAT);

@@ -13,7 +13,7 @@ class VeckotrendController {
             $this->getWeeklyKpis();
         } else {
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Okänd run: ' . $run], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Okänd run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')], JSON_UNESCAPED_UNICODE);
         }
     }
 
