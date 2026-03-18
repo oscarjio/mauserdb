@@ -1807,6 +1807,9 @@ class BonusAdminController {
     }
 
     private function exportCSV(array $data, string $filename) {
+        // Sanitize filename to prevent header injection
+        $filename = basename($filename);
+        $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 

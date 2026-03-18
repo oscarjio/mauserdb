@@ -305,8 +305,9 @@ class RebotlingAnalyticsController {
             }
 
             if ($format === 'csv') {
+                $safeStartDate = preg_replace('/[^0-9-]/', '', $startDate);
                 header('Content-Type: text/csv; charset=utf-8');
-                header('Content-Disposition: attachment; filename="produktionsrapport_rebotling_' . $startDate . '.csv"');
+                header('Content-Disposition: attachment; filename="produktionsrapport_rebotling_' . $safeStartDate . '.csv"');
                 // BOM for Excel
                 echo "\xEF\xBB\xBF";
                 echo "Datum;Cykler;IBC OK;IBC Ej OK;Bur Ej OK;Kvalitet %;Snitt cykeltid (min);Produktion %;Körtid (h);Starter;Stopp\n";

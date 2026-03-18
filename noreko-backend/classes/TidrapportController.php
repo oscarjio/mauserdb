@@ -554,9 +554,11 @@ class TidrapportController {
         try {
             $rows = $this->fetchSkiftData($fromDate, $toDate, $operatorFilter);
 
-            // Ändra content-type för CSV
+            // Ändra content-type för CSV — sanitera datumdelar i filnamnet
+            $safeFrom = preg_replace('/[^0-9-]/', '', $fromDate);
+            $safeTo   = preg_replace('/[^0-9-]/', '', $toDate);
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="tidrapport_' . $fromDate . '_' . $toDate . '.csv"');
+            header('Content-Disposition: attachment; filename="tidrapport_' . $safeFrom . '_' . $safeTo . '.csv"');
             header('Cache-Control: no-cache, no-store, must-revalidate');
 
             $output = fopen('php://output', 'w');

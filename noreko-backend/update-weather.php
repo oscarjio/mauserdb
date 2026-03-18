@@ -27,6 +27,18 @@ try {
 // Security headers
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+header('Cache-Control: no-store, no-cache, must-revalidate, private');
+header('Pragma: no-cache');
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+$isHttpsWeather = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                  (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+if ($isHttpsWeather) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+header_remove('X-Powered-By');
 
 // API URL för väderdata
 $apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=57.96&longitude=12.12&current=temperature_2m&temperature_unit=celsius&timezone=Europe/Stockholm';

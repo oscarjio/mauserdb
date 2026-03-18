@@ -59,6 +59,8 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 header('Cache-Control: no-store, no-cache, must-revalidate, private');
 header('Pragma: no-cache');
+// Content-Security-Policy — begränsa resursladdning till samma origin
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
 // Dölj PHP-version från response headers
 header_remove('X-Powered-By');
 // HSTS — tvinga HTTPS i 1 år (aktiveras bara om anslutningen redan är HTTPS)
