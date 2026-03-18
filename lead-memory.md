@@ -79,28 +79,29 @@ Session #149: BUGGJAKT — 161 buggar (16 Worker A + 145 Worker B). File I/O gua
 Session #150: BUGGJAKT — 77 buggar (28 Worker A + 49 Worker B). Error logging consistency (15), unused $e (6), input validation trim (7) + template accessibility (49 aria-labels/roles i 12 filer). Lazy loading OK, unused imports OK.
 Session #151: BUGGJAKT — 16 buggar (6 Worker A + 10 Worker B). Unused vars (3), kritisk JOIN-bugg operators.id->number (1), SQL kolumn-fix (2) + error state UI (7 komponenter), catchError guards (6 subscribe). Response format OK, form validation OK.
 Session #152: BUGGJAKT — 59 buggar (22 Worker A + 37 Worker B). Transaction wrapping (19 i 9 controllers), edge case null-guards (3) + catchError audit (37 i 8 komponenter). Memory leak OK, template type safety OK.
+Session #153: BUGGJAKT — 119 buggar (62 Worker A + 57 Worker B). DateTime timezone (26 i 5 controllers), in_array strict (32 i 22 controllers), json_decode null-safety (4) + duplicate imports (57 i 57 filer). File upload OK (inga uploads), retry OK, route guards OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP date/time audit — DateTime-hantering, timezone-konsistens
-- [ ] Angular HTTP retry audit — retry-logik, exponential backoff
-- [ ] PHP file upload audit — MIME-types, filstorlek, path traversal
-- [ ] Angular route guard audit — authGuard, rollbaserad access
-- [ ] Angular unused import cleanup — of, catchError imports som inte anvands langre
+- [ ] PHP response header audit — Content-Type, charset, cache headers
+- [ ] Angular form validation audit — required, min/max, felmeddelanden
+- [ ] PHP SQL column name audit — SELECT-kolumner vs DB-schema
+- [ ] PHP unused variable cleanup — diagnostics visar 7+ oanvanda variabler
+- [ ] Angular template expression audit — nullable, async pipe, safe navigation
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #150 (klar)
-Worker A: 28 buggar — 15 error logging consistency (11 filer), 6 unused $e (catch-block), 7 input validation trim.
-Worker B: 49 buggar — 49 template accessibility (aria-labels, aria-live, role=progressbar i 12 filer). Lazy loading OK, unused imports OK.
 
 ### 2026-03-18 — Session #151 (klar)
 Worker A: 6 buggar — 3 unused vars (non-capturing catch), 3 SQL-fixar i WeeklyReportController (kritisk JOIN operators.id->number, borttagen o.initialer, PHP-berakning av initialer). Response format audit: alla OK.
 Worker B: 10 buggar — 7 error state UI (maskin-oee, stopptidsanalys, rebotling-sammanfattning), 6 catchError-guards i stationsdetalj. Form validation audit: alla OK.
 
 ### 2026-03-18 — Session #152 (klar)
-Worker A: 22 buggar — 19 transaction wrapping (9 controllers: Alerts, Operatorsbonus, Profile, Stoppage, LineSkiftrapport, Leveransplanering, Maintenance, Skiftrapport, RebotlingProduct), 3 edge case null-guards (Profile, BonusAdmin fetch-resultat).
-Worker B: 37 buggar — 37 catchError guards (8 komponenter: kassationskvot-alarm, operator-ranking, oee-trendanalys, historisk-sammanfattning, tidrapport, batch-sparning, drifttids-timeline, maskinunderhall). Memory leak OK, template type safety OK.
+Worker A: 22 buggar — 19 transaction wrapping (9 controllers), 3 edge case null-guards.
+Worker B: 37 buggar — 37 catchError guards (8 komponenter). Memory leak OK, template type safety OK.
+
+### 2026-03-18 — Session #153 (klar)
+Worker A: 62 buggar — 26 DateTime explicit timezone (5 controllers), 32 in_array strict mode (22 controllers), 4 json_decode null-safety (BonusAdmin). File upload audit: inga uploads finns.
+Worker B: 57 buggar — 57 duplicate rxjs-imports sammanfogade (55 filer dubbla rxjs + 2 andra). HTTP retry OK, route guards OK.

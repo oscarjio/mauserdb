@@ -7,15 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP transaction audit** — 19 fixar i 9 controllers, beginTransaction/commit/rollBack (session #152)
-- [x] **Angular memory leak audit** — alla OK, inga lackor (session #152)
-- [x] **PHP edge case audit** — 3 fixar, fetch() null-check, division-by-zero guards (session #152)
-- [x] **Angular catchError audit** — 37 fixar i 8 komponenter, saknade catchError i subscribe (session #152)
-- [x] **Angular template type safety audit** — alla OK, trackBy+ngIf korrekt (session #152)
-- [ ] **PHP date/time audit** — granska DateTime-hantering i alla controllers, timezone-konsistens
-- [ ] **Angular HTTP retry audit** — granska retry-logik i services, exponential backoff, max retries
-- [ ] **PHP file upload audit** — validera MIME-types, filstorlek, path traversal i upload-endpoints
-- [ ] **Angular route guard audit** — verifiera att alla skyddade routes har authGuard, rollbaserad access
+- [x] **PHP date/time audit** — 26 fixar, explicit timezone i DateTime (session #153)
+- [x] **Angular HTTP retry audit** — alla OK, retry korrekt (session #153)
+- [x] **PHP file upload audit** — inga uploads finns, inget att fixa (session #153)
+- [x] **Angular route guard audit** — alla OK, authGuard/adminGuard korrekt (session #153)
+- [x] **Angular unused import cleanup** — 57 duplicate imports sammanfogade (session #153)
+- [ ] **PHP response header audit** — Content-Type konsistens, charset=utf-8, cache headers
+- [ ] **Angular form validation audit** — required-falts markering, min/max validators, felmeddelanden
+- [ ] **PHP SQL column name audit** — verifiera att alla SELECT-kolumner matchar DB-schema
+- [ ] **PHP unused variable cleanup** — ta bort oanvanda variabler (diagnostics visar 7+ st)
+- [ ] **Angular template expression audit** — nullable uttryck, async pipe, safe navigation
 
 ## Parkerade features (ta inte dessa nu)
 
