@@ -470,4 +470,6 @@ export class MaskinOeePage implements OnInit, OnDestroy {
     return opt?.label ?? '';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByMaskinId(index: number, item: any): any { return item?.maskin_id ?? item?.id ?? index; }
 }

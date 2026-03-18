@@ -307,7 +307,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of tableData.rows; trackBy: trackByIndex" [ngClass]="getRowClass(row)">
+            <tr *ngFor="let row of tableData.rows; trackBy: trackByDatum" [ngClass]="getRowClass(row)">
               <td>{{ formatDatum(row.datum) }}</td>
               <td class="text-end text-success">{{ row.ibc_ok }}</td>
               <td class="text-end text-danger">{{ row.ibc_ej_ok }}</td>

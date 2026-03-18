@@ -493,4 +493,6 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     return this.perMaskinData.maskiner.reduce((sum, m) => sum + m.antal_stopp, 0);
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByMaskinId(index: number, item: any): any { return item?.maskin_id ?? item?.id ?? index; }
 }

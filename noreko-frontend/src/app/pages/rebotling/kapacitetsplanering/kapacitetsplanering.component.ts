@@ -862,4 +862,5 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     return 'utnyttjande-lag';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? item?.station_id ?? index; }
 }

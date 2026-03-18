@@ -371,4 +371,5 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     return this.sortAsc ? 'fas fa-sort-up text-info' : 'fas fa-sort-down text-info';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

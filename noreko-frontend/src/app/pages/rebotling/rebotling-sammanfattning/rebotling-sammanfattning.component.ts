@@ -251,4 +251,5 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     return ts;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

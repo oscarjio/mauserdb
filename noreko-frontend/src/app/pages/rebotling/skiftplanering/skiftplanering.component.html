@@ -60,14 +60,14 @@
 
   <!-- Veckoväljare -->
   <div class="week-nav mb-3" *ngIf="!loadingSchedule">
-    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)">
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)" aria-label="Foregaende vecka">
       <i class="fas fa-chevron-left"></i>
     </button>
     <span class="week-label">
       Vecka {{ currentWeek }}
       <small class="text-muted ms-2">{{ monday }} - {{ sunday }}</small>
     </span>
-    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(1)">
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(1)" aria-label="Nasta vecka">
       <i class="fas fa-chevron-right"></i>
     </button>
   </div>
@@ -80,25 +80,25 @@
         <thead>
           <tr>
             <th class="skift-col">Skift</th>
-            <th *ngFor="let d of dagar; trackBy: trackByIndex" [class.today-col]="isToday(d.datum)">
+            <th *ngFor="let d of dagar; trackBy: trackByDatum" [class.today-col]="isToday(d.datum)">
               {{ d.dag_namn }}<br>
               <small>{{ d.datum | date:'MM-dd' }}</small>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of schema; trackBy: trackByIndex">
+          <tr *ngFor="let row of schema; trackBy: trackBySkift">
             <td class="skift-col">
               <strong>{{ skiftLabel(row.skift_typ) }}</strong>
               <br><small class="text-muted">Min: {{ row.min_bemanning }} / Max: {{ row.max_bemanning }}</small>
             </td>
-            <td *ngFor="let dag of row.dagar; trackBy: trackByIndex"
+            <td *ngFor="let dag of row.dagar; trackBy: trackByDatum"
                 [class]="cellStatusClass(dag.status)"
                 [class.today-col]="isToday(dag.datum)"
                 class="schedule-cell"
                 (click)="openShiftDetail(row.skift_typ, dag.datum)">
               <div class="cell-operators">
-                <span class="operator-tag" *ngFor="let op of dag.operatorer; trackBy: trackByIndex">
+                <span class="operator-tag" *ngFor="let op of dag.operatorer; trackBy: trackById">
                   {{ op.namn }}
                 </span>
               </div>
@@ -107,7 +107,8 @@
               </div>
               <button class="btn btn-xs btn-outline-success add-btn"
                       (click)="openAssignModal(row.skift_typ, dag.datum); $event.stopPropagation()"
-                      title="Lägg till operatör">
+                      title="Lägg till operatör"
+                      aria-label="Lagg till operator">
                 <i class="fas fa-plus"></i>
               </button>
             </td>
@@ -147,7 +148,7 @@
   </div>
 
   <!-- ===== Skiftdetalj (modal-liknande overlay) ===== -->
-  <div class="detail-overlay" *ngIf="shiftDetail || loadingDetail" (click)="closeDetail()">
+  <div class="detail-overlay" *ngIf="shiftDetail || loadingDetail" (click)="closeDetail()" role="dialog" aria-modal="true" aria-label="Skiftdetalj">
     <div class="detail-panel" (click)="$event.stopPropagation()">
 
       <!-- Loading -->
@@ -179,7 +180,7 @@
               {{ shiftDetail.antal_bemanning }} / {{ shiftDetail.min_bemanning }} operatörer
             </span>
           </div>
-          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()" aria-label="Stang detaljvy">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -225,12 +226,12 @@
           </div>
           <div class="list-group list-group-flush" *ngIf="shiftDetail.operatorer.length > 0">
             <div class="list-group-item d-flex justify-content-between align-items-center"
-                 *ngFor="let op of shiftDetail.operatorer; trackBy: trackByIndex">
+                 *ngFor="let op of shiftDetail.operatorer; trackBy: trackById">
               <span>
                 <i class="fas fa-user me-2 text-info"></i>{{ op.namn }}
               </span>
               <button class="btn btn-xs btn-outline-danger" (click)="removeOperator(op.schema_id)"
-                      title="Ta bort">
+                      title="Ta bort" aria-label="Ta bort operator">
                 <i class="fas fa-times"></i>
               </button>
             </div>
@@ -247,11 +248,11 @@
   </div>
 
   <!-- ===== Tilldela operatör-modal ===== -->
-  <div class="detail-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()">
+  <div class="detail-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()" role="dialog" aria-modal="true" aria-label="Tilldela operator">
     <div class="detail-panel" style="max-width:450px" (click)="$event.stopPropagation()">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>Tilldela operatör</h5>
-        <button class="btn btn-sm btn-outline-secondary" (click)="closeAssignModal()">
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeAssignModal()" aria-label="Stang dialog">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -262,10 +263,10 @@
       </p>
 
       <div class="mb-3" *ngIf="!loadingOperators">
-        <label class="form-label">Välj operatör</label>
-        <select class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp">
+        <label class="form-label" for="assignOpSelect">Välj operatör</label>
+        <select id="assignOpSelect" class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp" aria-label="Valj operator">
           <option [ngValue]="0" disabled>-- Välj operatör --</option>
-          <option *ngFor="let op of getAvailableOperators(); trackBy: trackByIndex" [ngValue]="op.id">
+          <option *ngFor="let op of getAvailableOperators(); trackBy: trackById" [ngValue]="op.id">
             {{ op.namn }}
           </option>
         </select>

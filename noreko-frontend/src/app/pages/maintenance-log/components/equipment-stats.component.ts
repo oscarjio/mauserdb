@@ -92,7 +92,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of cachedSortedEquipmentStats; trackBy: trackByIndex">
+              <tr *ngFor="let row of cachedSortedEquipmentStats; trackBy: trackByNamn">
                 <td class="fw-semibold">{{ row.namn }}</td>
                 <td>
                   <span class="badge kategori-badge" [class]="getKategoriBadgeClass(row.kategori)">
@@ -211,4 +211,5 @@ export class EquipmentStatsComponent implements OnDestroy {
     return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
   }
   trackByIndex(index: number): number { return index; }
+  trackByNamn(index: number, item: any): any { return item?.namn ?? index; }
 }

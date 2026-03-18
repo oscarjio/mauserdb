@@ -103,7 +103,7 @@
       <h5 class="card-title mb-3">
         <i class="fas fa-bell me-2" style="color:#fc8181"></i>Aktiva larm ({{ aktivaLarm.length }})
       </h5>
-      <div *ngFor="let larm of aktivaLarm; trackBy: trackByIndex"
+      <div *ngFor="let larm of aktivaLarm; trackBy: trackById"
            class="alarm-item"
            [ngClass]="larm.allvarlighetsgrad">
         <div class="d-flex justify-content-between align-items-start">
@@ -192,7 +192,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let larm of cachedSortedHistorik; trackBy: trackByIndex">
+            <tr *ngFor="let larm of cachedSortedHistorik; trackBy: trackById">
               <td class="small">{{ larm.tidsstampel }}</td>
               <td>
                 <span class="badge" [ngClass]="getBadgeClass(larm.allvarlighetsgrad)">
@@ -230,7 +230,7 @@
         <i class="fas fa-sliders-h me-2" style="color:#63b3ed"></i>Larmregler — Troeskelvarden
       </h5>
       <div class="row g-3">
-        <div class="col-12 col-md-6" *ngFor="let regel of regler; trackBy: trackByIndex">
+        <div class="col-12 col-md-6" *ngFor="let regel of regler; trackBy: trackById">
           <div class="regel-card">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <div>

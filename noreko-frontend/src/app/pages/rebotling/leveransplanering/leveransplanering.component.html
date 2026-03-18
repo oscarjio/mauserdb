@@ -131,7 +131,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let order of cachedSortedOrdrar; trackBy: trackByIndex">
+          <tr *ngFor="let order of cachedSortedOrdrar; trackBy: trackById">
             <td>
               <span class="prio-badge" [ngClass]="getPrioClass(order.prioritet)">{{ order.prioritet }}</span>
             </td>

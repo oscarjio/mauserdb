@@ -126,7 +126,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackByIndex">
+                <tr *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackById">
                   <td>
                     <i class="fas fa-user-circle me-1" style="color:#63b3ed"></i>
                     {{ op.namn }}
@@ -199,7 +199,7 @@
                     (change)="loadDetaljer()"
                     style="width:auto; min-width:150px">
               <option [ngValue]="0">Alla operatorer</option>
-              <option *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackByIndex" [ngValue]="op.user_id">
+              <option *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackById" [ngValue]="op.user_id">
                 {{ op.namn }}
               </option>
             </select>
@@ -229,7 +229,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackByIndex">
+                <tr *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackById">
                   <td>{{ formatDatum(d.datum) }}</td>
                   <td>
                     <i class="fas fa-user me-1" style="color:#63b3ed; font-size:0.75rem"></i>

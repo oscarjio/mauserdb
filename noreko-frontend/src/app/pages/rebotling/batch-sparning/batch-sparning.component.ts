@@ -326,4 +326,6 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     return m + ':' + String(sec).padStart(2, '0') + ' min';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByIbcNummer(index: number, item: any): any { return item?.ibc_nummer ?? index; }
 }

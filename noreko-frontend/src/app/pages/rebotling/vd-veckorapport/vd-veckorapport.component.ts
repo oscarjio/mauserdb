@@ -385,6 +385,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
   }
 
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }
 
 function round2(v: number): number {

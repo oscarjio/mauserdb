@@ -441,4 +441,5 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     return `${Math.floor(s / 60)}m ${s % 60}s`;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

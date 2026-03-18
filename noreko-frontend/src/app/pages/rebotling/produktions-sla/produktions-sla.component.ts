@@ -410,4 +410,5 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     }
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

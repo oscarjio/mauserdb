@@ -61,7 +61,7 @@ import { localDateStr } from '../../../utils/date-utils';
                 <label class="form-label form-label-dark">Utrustning</label>
                 <select class="form-select form-select-dark" [(ngModel)]="form.equipment" name="equipment">
                   <option value="">Välj utrustning</option>
-                  <option *ngFor="let eq of equipmentList; trackBy: trackByIndex" [value]="eq.namn">{{ eq.namn }} ({{ getKategoriLabel(eq.kategori) }})</option>
+                  <option *ngFor="let eq of equipmentList; trackBy: trackByNamn" [value]="eq.namn">{{ eq.namn }} ({{ getKategoriLabel(eq.kategori) }})</option>
                 </select>
               </div>
 
@@ -310,4 +310,6 @@ export class MaintenanceFormComponent implements OnDestroy {
       });
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByNamn(index: number, item: any): any { return item?.namn ?? index; }
 }

@@ -169,7 +169,7 @@
         <!-- Operatorval -->
         <div *ngIf="operatorer.length > 0" class="d-flex flex-wrap gap-1 mb-3">
           <button
-            *ngFor="let op of operatorer; trackBy: trackByIndex"
+            *ngFor="let op of operatorer; trackBy: trackByOperatorId"
             class="btn btn-sm"
             [class.btn-info]="selectedOperator?.operator_id === op.operator_id"
             [class.btn-outline-secondary]="selectedOperator?.operator_id !== op.operator_id"
@@ -226,7 +226,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let op of operatorer; trackBy: trackByIndex" (click)="selectOperator(op)" style="cursor:pointer;"
+          <tr *ngFor="let op of operatorer; trackBy: trackByOperatorId" (click)="selectOperator(op)" style="cursor:pointer;"
               [class.selected-row]="selectedOperator?.operator_id === op.operator_id">
             <td>
               <strong>{{ op.operator_namn }}</strong>

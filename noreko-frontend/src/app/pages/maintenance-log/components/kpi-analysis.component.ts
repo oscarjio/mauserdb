@@ -64,7 +64,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of kpiRows; trackBy: trackByIndex">
+              <tr *ngFor="let row of kpiRows; trackBy: trackByEquipment">
                 <td class="fw-semibold">{{ row.equipment }}</td>
                 <td class="text-end">
                   <span class="text-warning fw-bold">{{ row.antal_fel }}</span>
@@ -139,4 +139,5 @@ export class KpiAnalysisComponent implements OnDestroy {
     this.loadKpiData();
   }
   trackByIndex(index: number): number { return index; }
+  trackByEquipment(index: number, item: any): any { return item?.equipment ?? index; }
 }

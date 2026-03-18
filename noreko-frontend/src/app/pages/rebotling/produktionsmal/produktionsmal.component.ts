@@ -342,4 +342,5 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
     return station.antal > 0 ? '#4fd1c5' : '#4a5568';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

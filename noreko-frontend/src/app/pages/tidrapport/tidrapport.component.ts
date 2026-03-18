@@ -295,4 +295,5 @@ export class TidrapportPage implements OnInit, OnDestroy {
     });
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? item?.user_id ?? index; }
 }

@@ -112,7 +112,7 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let m of filteredMaskiner; trackBy: trackByIndex">
+          <ng-container *ngFor="let m of filteredMaskiner; trackBy: trackById">
             <!-- Maskinrad -->
             <tr [class]="getRowClass(m)" class="machine-row" (click)="selectMaskin(m)">
               <td>
@@ -184,7 +184,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr *ngFor="let h of historik; trackBy: trackByIndex">
+                          <tr *ngFor="let h of historik; trackBy: trackById">
                             <td>{{ h.service_datum }}</td>
                             <td>
                               <span [class]="getTypBadgeClass(h.service_typ)">
@@ -261,7 +261,7 @@
                   [(ngModel)]="addServiceForm.maskin_id"
                   name="maskin_id" #maskinIdCtrl="ngModel" required aria-required="true">
             <option [value]="0" disabled>Välj maskin...</option>
-            <option *ngFor="let m of maskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
+            <option *ngFor="let m of maskiner; trackBy: trackById" [value]="m.id">{{ m.namn }}</option>
           </select>
           <div class="text-danger small mt-1" *ngIf="maskinIdCtrl.touched && !addServiceForm.maskin_id">
             Välj en maskin.

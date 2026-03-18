@@ -84,7 +84,7 @@ import {
 
     <!-- Postlista -->
     <div class="entries-list" *ngIf="!isLoading && !loadError && entries.length > 0">
-      <div class="entry-card" *ngFor="let entry of entries; trackBy: trackByIndex"
+      <div class="entry-card" *ngFor="let entry of entries; trackBy: trackById"
            [class.entry-pagaende]="entry.status === 'pagaende'"
            [class.entry-akut]="entry.maintenance_type === 'akut'">
         <div class="entry-header">
@@ -301,4 +301,5 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
       });
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

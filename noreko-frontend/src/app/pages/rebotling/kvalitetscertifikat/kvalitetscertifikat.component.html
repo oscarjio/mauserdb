@@ -95,7 +95,7 @@
 
     <select class="filter-select" aria-label="Filtrera operator" [(ngModel)]="filterOperator" (change)="onFilterChange()">
       <option [ngValue]="0">Alla operatorer</option>
-      <option *ngFor="let op of operatorer; trackBy: trackByIndex" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
+      <option *ngFor="let op of operatorer; trackBy: trackByOperatorId" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
     </select>
   </div>
 
@@ -157,7 +157,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of certifikat; trackBy: trackByIndex">
+          <tr *ngFor="let c of certifikat; trackBy: trackById">
             <td><strong>{{ c.batch_nummer }}</strong></td>
             <td>{{ formatDate(c.datum) }}</td>
             <td>{{ c.operator_namn || '\u2014' }}</td>

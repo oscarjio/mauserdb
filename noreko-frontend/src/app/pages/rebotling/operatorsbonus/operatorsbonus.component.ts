@@ -427,4 +427,6 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     return labels[faktor] ?? faktor;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByOperatorId(index: number, item: any): any { return item?.operator_id ?? item?.id ?? index; }
 }

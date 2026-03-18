@@ -8,7 +8,7 @@
     <div class="d-flex gap-2 align-items-center">
       <select class="station-select" aria-label="Valj station" [(ngModel)]="selectedStation" (change)="onStationChange()">
         <option [ngValue]="null">Alla stationer</option>
-        <option *ngFor="let s of stationsLista; trackBy: trackByIndex" [ngValue]="s.station_id">{{ s.station_namn }}</option>
+        <option *ngFor="let s of stationsLista; trackBy: trackById" [ngValue]="s.station_id">{{ s.station_namn }}</option>
       </select>
       <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
               class="period-btn"
@@ -136,7 +136,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of stationerData?.stationer ?? []; trackBy: trackByIndex">
+              <tr *ngFor="let s of stationerData?.stationer ?? []; trackBy: trackById">
                 <td>
                   <span class="ranking-badge"
                         [class.ranking-1]="s.ranking === 1"
@@ -260,7 +260,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let j of jamforelseData?.stationer ?? []; trackBy: trackByIndex">
+              <tr *ngFor="let j of jamforelseData?.stationer ?? []; trackBy: trackById">
                 <td>{{ j.station_namn }}</td>
                 <td class="text-center"><strong>{{ j.period1_oee }}%</strong></td>
                 <td class="text-center">{{ j.period2_oee }}%</td>

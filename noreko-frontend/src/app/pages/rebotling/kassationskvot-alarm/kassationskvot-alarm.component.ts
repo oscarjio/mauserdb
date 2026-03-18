@@ -362,4 +362,5 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     return max > 0 ? Math.round((antal / max) * 100) : 0;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

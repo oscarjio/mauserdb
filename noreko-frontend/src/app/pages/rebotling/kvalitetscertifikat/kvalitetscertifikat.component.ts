@@ -429,4 +429,6 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     window.print();
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByOperatorId(index: number, item: any): any { return item?.operator_id ?? index; }
 }

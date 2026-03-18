@@ -258,4 +258,5 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     return 'text-danger';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

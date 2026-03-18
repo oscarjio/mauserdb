@@ -145,7 +145,7 @@
           Senaste larm
         </h5>
         <div *ngIf="!loadingOverview && overview && overview.senaste_larm.length > 0">
-          <div class="larm-item" *ngFor="let larm of overview.senaste_larm; trackBy: trackByIndex">
+          <div class="larm-item" *ngFor="let larm of overview.senaste_larm; trackBy: trackById">
             <div class="d-flex align-items-start gap-2">
               <i [class]="larmIcon(larm.allvarlighetsgrad)" [style.color]="larmColor(larm.allvarlighetsgrad)" style="margin-top:3px;"></i>
               <div class="flex-grow-1">
@@ -201,7 +201,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let m of maskinStatus.maskiner; trackBy: trackByIndex">
+              <tr *ngFor="let m of maskinStatus.maskiner; trackBy: trackById">
                 <td>
                   <span class="status-dot" [style.background]="statusColor(m.status)"></span>
                   <span class="status-text" [style.color]="statusColor(m.status)">{{ statusLabel(m.status) }}</span>

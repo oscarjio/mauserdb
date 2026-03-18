@@ -364,4 +364,5 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     return val.toFixed(1) + '%';
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

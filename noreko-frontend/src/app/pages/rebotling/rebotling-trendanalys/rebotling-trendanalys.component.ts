@@ -625,4 +625,5 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     return `V${rad.vecka} (${rad.from_datum.slice(5)} – ${rad.to_datum.slice(5)})`;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
 }

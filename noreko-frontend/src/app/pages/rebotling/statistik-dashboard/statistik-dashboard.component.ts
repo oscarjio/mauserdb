@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../../utils/date-utils';
 
@@ -376,4 +375,6 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     return `${dagar[d.getDay()]} ${datum}`;
   }
   trackByIndex(index: number): number { return index; }
+  trackById(index: number, item: any): any { return item?.id ?? index; }
+  trackByDatum(index: number, item: any): any { return item?.datum ?? index; }
 }

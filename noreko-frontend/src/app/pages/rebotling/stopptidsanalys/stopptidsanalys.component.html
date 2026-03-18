@@ -179,7 +179,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let m of perMaskinData?.maskiner ?? []; let i = index; trackBy: trackByIndex">
+          <tr *ngFor="let m of perMaskinData?.maskiner ?? []; let i = index; trackBy: trackByMaskinId">
             <td>
               <span class="color-dot" [style.background]="getMaskinColor(i)"></span>
               {{ m.maskin_namn }}
@@ -228,7 +228,7 @@
                 [(ngModel)]="maskinFilter"
                 (change)="onMaskinFilterChange()">
           <option [value]="0">Alla maskiner</option>
-          <option *ngFor="let m of allaMaskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
+          <option *ngFor="let m of allaMaskiner; trackBy: trackById" [value]="m.id">{{ m.namn }}</option>
         </select>
       </div>
     </div>
@@ -256,7 +256,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of cachedSortedStopp; trackBy: trackByIndex">
+          <tr *ngFor="let s of cachedSortedStopp; trackBy: trackById">
             <td class="text-nowrap">{{ s.startad_at | date:'yyyy-MM-dd HH:mm' }}</td>
             <td>{{ s.maskin_namn }}</td>
             <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(s.duration_min) }}</td>

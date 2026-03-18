@@ -171,7 +171,7 @@
         <div *ngIf="loadingDetaljer" class="text-center py-4"><span class="loading-spinner"></span></div>
 
         <div *ngIf="!loadingDetaljer && detaljerData?.detaljer?.length">
-          <div *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackByIndex">
+          <div *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackById">
             <div class="detail-row d-flex align-items-center justify-content-between" (click)="toggleDetail(d.id)">
               <div class="d-flex align-items-center gap-3">
                 <span style="font-size:1.2rem">{{ d.ikon }}</span>

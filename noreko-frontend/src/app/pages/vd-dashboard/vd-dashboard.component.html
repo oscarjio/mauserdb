@@ -136,7 +136,7 @@
           <!-- Aktiva stopp -->
           <div *ngIf="stoppNu && !stoppNu.allt_kor">
             <div class="alert py-2 px-3 mb-2" style="background:rgba(252,129,129,0.15); border:1px solid #fc8181; border-radius:8px;"
-                 *ngFor="let stopp of stoppNu.aktiva_stopp; trackBy: trackByIndex">
+                 *ngFor="let stopp of stoppNu.aktiva_stopp; trackBy: trackById">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <i class="bi bi-stop-circle-fill me-1" style="color:#fc8181"></i>
@@ -170,7 +170,7 @@
           </h6>
 
           <div *ngIf="topOperatorer?.top_operatorer?.length; else noOperators">
-            <div *ngFor="let op of topOperatorer?.top_operatorer; trackBy: trackByIndex" class="d-flex align-items-center py-2"
+            <div *ngFor="let op of topOperatorer?.top_operatorer; trackBy: trackById" class="d-flex align-items-center py-2"
                  [style.border-bottom]="op.rank < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none'">
               <div class="me-3 text-center" style="width:40px;">
                 <i [class]="getPodiumIcon(op.rank)" [style.color]="getPodiumColor(op.rank)" style="font-size:1.5rem;"></i>
