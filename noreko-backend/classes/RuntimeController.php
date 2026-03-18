@@ -70,47 +70,59 @@ class RuntimeController {
                 return;
             }
 
-            // Hämta senaste status för att undvika duplicering
+            // Hämta senaste status och infoga inom transaktion för att undvika race condition
+            // (concurrent Shelly-webhooks kan annars skapa dubbletter)
             $tableName = $line . '_runtime';
-            $stmt = $this->pdo->prepare("
-                SELECT rast_status 
-                FROM $tableName 
-                ORDER BY datum DESC 
-                LIMIT 1
-            ");
-            $stmt->execute();
-            $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            $lastStatus = $lastEntry ? (int)$lastEntry['rast_status'] : -1;
-
-            // Endast spara om status har ändrats
-            if ($lastStatus !== $rast) {
+            $this->pdo->beginTransaction();
+            try {
                 $stmt = $this->pdo->prepare("
-                    INSERT INTO $tableName (datum, rast_status) 
-                    VALUES (NOW(), ?)
+                    SELECT rast_status
+                    FROM $tableName
+                    ORDER BY datum DESC
+                    LIMIT 1
+                    FOR UPDATE
                 ");
-                $stmt->execute([$rast]);
+                $stmt->execute();
+                $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Rast-status registrerad',
-                    'data' => [
-                        'line' => $line,
-                        'rast_status' => $rast,
-                        'changed' => true
-                    ]
-                ], JSON_UNESCAPED_UNICODE);
-            } else {
-                // Status oförändrad, skippa
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Status oförändrad',
-                    'data' => [
-                        'line' => $line,
-                        'rast_status' => $rast,
-                        'changed' => false
-                    ]
-                ], JSON_UNESCAPED_UNICODE);
+                $lastStatus = $lastEntry ? (int)$lastEntry['rast_status'] : -1;
+
+                // Endast spara om status har ändrats
+                if ($lastStatus !== $rast) {
+                    $stmt = $this->pdo->prepare("
+                        INSERT INTO $tableName (datum, rast_status)
+                        VALUES (NOW(), ?)
+                    ");
+                    $stmt->execute([$rast]);
+                    $this->pdo->commit();
+
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Rast-status registrerad',
+                        'data' => [
+                            'line' => $line,
+                            'rast_status' => $rast,
+                            'changed' => true
+                        ]
+                    ], JSON_UNESCAPED_UNICODE);
+                } else {
+                    $this->pdo->commit();
+                    // Status oförändrad, skippa
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Status oförändrad',
+                        'data' => [
+                            'line' => $line,
+                            'rast_status' => $rast,
+                            'changed' => false
+                        ]
+                    ], JSON_UNESCAPED_UNICODE);
+                }
+            } catch (\Exception $innerE) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                throw $innerE;
             }
         } catch (Exception $e) {
             error_log('RuntimeController::registerBreakFromShelly: ' . $e->getMessage());

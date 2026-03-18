@@ -73,6 +73,9 @@ class VpnController {
             }
 
             $result = $this->disconnectClient($commonName);
+            if (!($result['success'] ?? false)) {
+                http_response_code(502);
+            }
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -162,6 +165,7 @@ class VpnController {
             $written = @fwrite($socket, "status\n");
             if ($written === false) {
                 @fclose($socket);
+                http_response_code(502);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Kunde inte skicka status-kommando till management interface',

@@ -123,6 +123,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getSettings: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -154,6 +155,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::setSettings: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -225,6 +227,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getSystemStatus: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -338,6 +341,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getTodaySnapshot: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -380,6 +384,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'data' => $thresholds], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getAlertThresholds: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -410,6 +415,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'message' => 'Alert-trösklar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::saveAlertThresholds: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara alert-trösklar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -441,6 +447,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getWeekdayGoals: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -473,6 +480,7 @@ class TvattlinjeController {
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::setWeekdayGoals: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -612,6 +620,7 @@ class TvattlinjeController {
             echo json_encode($response, JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
@@ -642,6 +651,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('TvattlinjeController::inte hämta status (tvattlinje getRunningStatus): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta status'
@@ -659,6 +669,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('TvattlinjeController::inte hämta admin-inställningar (tvattlinje): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta admin-inställningar'
@@ -676,6 +687,7 @@ class TvattlinjeController {
 
         try {
             if (!isset($data['antal_per_dag'])) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'antal_per_dag är obligatoriskt'
@@ -694,20 +706,14 @@ class TvattlinjeController {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
             } catch (\Exception $e) { /* Kolumn finns redan */ }
 
-            $stmt = $this->pdo->query("SELECT COUNT(*) FROM tvattlinje_settings");
-            $exists = $stmt->fetchColumn() > 0;
-
-            if ($exists) {
-                $stmt = $this->pdo->prepare(
-                    "UPDATE tvattlinje_settings SET antal_per_dag = ?, timtakt = ?, skiftlangd = ?, updated_at = NOW() WHERE id = 1"
-                );
-                $stmt->execute([$antal_per_dag, $timtakt, $skiftlangd]);
-            } else {
-                $stmt = $this->pdo->prepare(
-                    "INSERT INTO tvattlinje_settings (antal_per_dag, timtakt, skiftlangd) VALUES (?, ?, ?)"
-                );
-                $stmt->execute([$antal_per_dag, $timtakt, $skiftlangd]);
-            }
+            // Använd INSERT ... ON DUPLICATE KEY UPDATE för att undvika race condition
+            // (concurrent requests som båda ser COUNT=0 och försöker INSERT)
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO tvattlinje_settings (id, antal_per_dag, timtakt, skiftlangd)
+                 VALUES (1, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE antal_per_dag = VALUES(antal_per_dag), timtakt = VALUES(timtakt), skiftlangd = VALUES(skiftlangd), updated_at = NOW()"
+            );
+            $stmt->execute([$antal_per_dag, $timtakt, $skiftlangd]);
 
             AuditLogger::log($this->pdo, 'update_tvattlinje_settings', 'tvattlinje_settings', 1,
                 "antal_per_dag={$antal_per_dag} timtakt={$timtakt} skiftlangd={$skiftlangd}");
@@ -722,6 +728,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('TvattlinjeController::inte spara inställningar (tvattlinje): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte spara inställningar'
@@ -889,6 +896,7 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('TvattlinjeController::inte hämta statistik (tvattlinje getStatistics): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
@@ -905,6 +913,7 @@ class TvattlinjeController {
         $datum = $_GET['datum'] ?? date('Y-m-d');
         // Validera datumformat
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
             return;
         }
