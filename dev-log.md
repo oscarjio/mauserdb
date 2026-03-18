@@ -1,3 +1,31 @@
+## 2026-03-18 Session #151 Worker A — 6 buggar fixade (unused vars, SQL audit)
+### Uppgift: PHP buggjakt — unused vars, response format audit, SQL query audit
+
+**Del 1 — PHP unused vars (3 fixar):**
+- `RebotlingController.php` rad 2789: `$ignored` i catch-block — konverterad till PHP 8 non-capturing catch (`catch (\Exception)`)
+- `NewsController.php` rad 579: `$dtEx` i catch-block — konverterad till non-capturing catch
+- `BonusAdminController.php` rad 1795: `$multiplier` i getTierName() foreach — ersatt med `$_` (variabeln anvands aldrig, bara $threshold)
+- `$opRows` i RebotlingAnalyticsController.php rad 6673: INTE en bugg — anvands pa rad 6749 inuti closuren (`$opRows[$opId]`)
+
+**Del 2 — PHP response format audit (0 fixar — redan konsekvent):**
+Systematisk genomgang av alla ~100 controllers i noreko-backend/classes/.
+- Alla controllers anvander `['success' => true/false, ...]` format konsekvent
+- Inga `die()`/`exit()` anrop i controllers
+- `api.php` satter `Content-Type: application/json` centralt (rad 54)
+- CSV/HTML-exporter overrider Content-Type korrekt
+- Error-responses anvander `http_response_code()` + `['success' => false, 'error' => '...']`
+- Manga controllers anvander `sendSuccess()`/`sendError()` hjalp-metoder
+
+**Del 3 — PHP SQL query audit (3 fixar i WeeklyReportController.php):**
+Granskade alla JOIN-satser mot operators-tabellen i alla controllers.
+VIKTIGT: `rebotling_ibc.op1/op2/op3` = `operators.number` (INTE operators.id).
+`bonus_payouts.op_id` = `operators.id` (konfirmerat via listOperators-endpoint).
+
+- `WeeklyReportController.php` rad 230: **BUGG** — `JOIN operators o ON o.id = raw.op_id` andrad till `o.number = raw.op_id` (raw.op_id kommer fran rebotling_ibc.op1/op2/op3 som ar operators.number)
+- `WeeklyReportController.php` rad 201: **BUGG** — `o.initialer` kolumn existerar inte i operators-tabellen. Borttagen fran SQL SELECT.
+- `WeeklyReportController.php` rad 248: Initialer beraknas nu i PHP istallet (samma monster som BonusAdminController)
+- BonusAdminController rad 935/1168 och NewsController rad 528 (`o.id = bp.op_id`) ar KORREKTA — bonus_payouts.op_id lagrar operators.id
+
 ## 2026-03-18 Session #150 Worker B — 49 buggar fixade (accessibility audit, aria-labels, aria-live)
 ### Uppgift: Angular buggjakt — lazy loading audit, unused imports cleanup, template accessibility
 

@@ -1792,7 +1792,7 @@ class BonusAdminController {
     private function getTierName(float $base, array $tiers): string {
         $names = [95 => 'Outstanding', 90 => 'Excellent', 80 => 'God prestanda', 70 => 'Basbonus', 0 => 'Under förväntan'];
         krsort($tiers);
-        foreach ($tiers as $threshold => $multiplier) {
+        foreach ($tiers as $threshold => $_) {
             if ($base >= $threshold) return $names[$threshold] ?? 'Tier ' . $threshold;
         }
         return 'Under förväntan';

@@ -2786,7 +2786,7 @@ class RebotlingController {
                 if ($sr && isset($sr['min_operators'])) {
                     $minOps = max(1, (int)$sr['min_operators']);
                 }
-            } catch (\Exception $ignored) {
+            } catch (\Exception) {
                 // Kolumnen finns inte än — använd default
             }
 

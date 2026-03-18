@@ -198,7 +198,7 @@ class WeeklyReportController {
      */
     private function getOperatorOfWeek(string $fromDate, string $toDate): ?array {
         $sqlOp = "
-            SELECT op_id, o.name, o.initialer,
+            SELECT op_id, o.name,
                    SUM(delta_ok)                              AS total_ibc,
                    SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
                    SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS avg_quality_pct
@@ -227,7 +227,7 @@ class WeeklyReportController {
                 WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op3
             ) raw
-            JOIN operators o ON o.id = raw.op_id
+            JOIN operators o ON o.number = raw.op_id
             GROUP BY op_id
             ORDER BY total_ibc DESC
             LIMIT 1
@@ -242,10 +242,17 @@ class WeeklyReportController {
 
         if (!$op) return null;
 
+        // Beräkna initialer från namn (operators-tabellen saknar initialer-kolumn)
+        $words = preg_split('/\s+/', trim($op['name'] ?? ''));
+        $initials = '';
+        foreach ($words as $w) {
+            if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+        }
+
         return [
             'op_id'           => intval($op['op_id']),
             'namn'            => $op['name'],
-            'initialer'       => $op['initialer'] ?? '',
+            'initialer'       => $initials,
             'total_ibc'       => intval($op['total_ibc'] ?? 0),
             'avg_ibc_per_h'   => round(floatval($op['avg_ibc_per_h'] ?? 0), 1),
             'avg_quality_pct' => round(floatval($op['avg_quality_pct'] ?? 0), 1),

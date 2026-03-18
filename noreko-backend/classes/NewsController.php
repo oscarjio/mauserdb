@@ -576,7 +576,7 @@ class NewsController {
                 foreach ($dates as $ds) {
                     try {
                         $d = new \DateTime(trim($ds));
-                    } catch (\Exception $dtEx) {
+                    } catch (\Exception) {
                         break;
                     }
                     if ($prevDate !== null) {
