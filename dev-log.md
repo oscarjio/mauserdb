@@ -1,3 +1,27 @@
+## 2026-03-18 Session #153 Worker B — 57 buggar fixade (retry audit + route guard + duplicate imports)
+### Uppgift 1: Angular HTTP retry audit — 0 fixar (dokumentation)
+Granskade alla 92+ services i noreko-frontend/src/app/services/.
+- Enda service med retry: auth.service.ts — retry(1) med timeout(8000), korrekt implementerat.
+- Alla services anvander timeout() korrekt (8000ms-15000ms).
+- Ingen felaktig retry-logik hittades.
+
+### Uppgift 2: Angular route guard audit — 0 fixar (redan korrekt)
+Granskade app.routes.ts (163 rader, 80+ routes) och auth.guard.ts.
+- Alla skyddade routes har canActivate med authGuard eller adminGuard.
+- Admin-routes (oversikt, bonus-admin, vpn-admin, audit, etc.) har adminGuard.
+- Guards anvander korrekt Observable<boolean> via initialized$.pipe() + switchMap.
+- adminGuard tillater bade 'admin' och 'developer' roller.
+- Inga saknade guards hittades.
+
+### Uppgift 3: Duplicate imports cleanup — 57 fixar i 57 filer
+Hittade och sammanfogade dubbla rxjs-importer (samma modul importerad pa tva rader):
+- **55 filer**: `import { Subject } from 'rxjs'` + `import { of } from 'rxjs'` sammanfogade till `import { Subject, of } from 'rxjs'`
+- **operators.ts**: Dubbla `rxjs/operators`-importer sammanfogade
+- **statistik-bonus-simulator.ts**: `Subject as RxSubject` alias borttaget (anvander Subject direkt)
+- **alerts.service.ts**: Dubbla rxjs-importer (BehaviorSubject/Observable/Subject + catchError/of/switchMap) sammanfogade
+
+Bygge: OK (npx ng build — inga fel)
+
 ## 2026-03-18 Session #153 Worker A — 62 buggar fixade (date/time + null safety audit)
 ### Uppgift 1: PHP date/time audit — 26 fixar
 Granskade alla PHP-controllers i noreko-backend/classes/ for DateTime-problem.
