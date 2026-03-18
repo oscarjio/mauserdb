@@ -7,16 +7,15 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Angular error state UI audit** — 7 fixar i maskin-oee, stopptidsanalys, rebotling-sammanfattning, stationsdetalj (session #151)
-- [x] **PHP unused vars kvar** — 3 fixade (non-capturing catch), $opRows var false positive (session #151)
-- [x] **PHP response format audit** — alla controllers redan konsekvent JSON-format (session #151)
-- [x] **Angular form validation audit** — alla formular redan korrekta (session #151)
-- [x] **PHP SQL query audit** — 3 fixar i WeeklyReportController: kritisk JOIN-bugg, felaktig kolumn (session #151)
-- [ ] **PHP transaction audit** — granska INSERT/UPDATE utan transaktioner i multi-step operations
-- [ ] **Angular memory leak audit** — granska charts och polling for saknade unsubscribe/destroy
-- [ ] **PHP edge case audit** — boundary conditions, tomma resultat, null-hantering
-- [ ] **Angular template type safety audit** — granska templates for implicit any, felaktiga typer
+- [x] **PHP transaction audit** — 19 fixar i 9 controllers, beginTransaction/commit/rollBack (session #152)
+- [x] **Angular memory leak audit** — alla OK, inga lackor (session #152)
+- [x] **PHP edge case audit** — 3 fixar, fetch() null-check, division-by-zero guards (session #152)
+- [x] **Angular catchError audit** — 37 fixar i 8 komponenter, saknade catchError i subscribe (session #152)
+- [x] **Angular template type safety audit** — alla OK, trackBy+ngIf korrekt (session #152)
 - [ ] **PHP date/time audit** — granska DateTime-hantering i alla controllers, timezone-konsistens
+- [ ] **Angular HTTP retry audit** — granska retry-logik i services, exponential backoff, max retries
+- [ ] **PHP file upload audit** — validera MIME-types, filstorlek, path traversal i upload-endpoints
+- [ ] **Angular route guard audit** — verifiera att alla skyddade routes har authGuard, rollbaserad access
 
 ## Parkerade features (ta inte dessa nu)
 
