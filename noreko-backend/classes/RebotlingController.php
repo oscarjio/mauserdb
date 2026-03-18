@@ -1205,6 +1205,7 @@ class RebotlingController {
             $toDate   = isset($_GET['to_date'])   ? trim($_GET['to_date'])   : null;
             if ($fromDate && $toDate) {
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                    http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
@@ -1386,6 +1387,7 @@ class RebotlingController {
         if ($fromDate && $toDate) {
             // Validera datumformat
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -1399,6 +1401,7 @@ class RebotlingController {
                 $endDt   = new DateTime($toDate, new DateTimeZone('Europe/Stockholm'));
             } catch (Exception $e) {
                 error_log('RebotlingController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -2115,6 +2118,7 @@ class RebotlingController {
 
         $month = $_GET['month'] ?? date('Y-m');
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat'], JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -2314,6 +2318,7 @@ class RebotlingController {
         // Tillåtna veckovärden
         if (!in_array($weeks, [8, 16, 26], true)) $weeks = 8;
         if ($opId <= 0) {
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt op_id'], JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -2324,6 +2329,7 @@ class RebotlingController {
             $opStmt->execute([$opId]);
             $op = $opStmt->fetch(PDO::FETCH_ASSOC);
             if (!$op) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }

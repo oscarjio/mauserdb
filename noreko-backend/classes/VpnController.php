@@ -85,9 +85,10 @@ class VpnController {
         $socket = @fsockopen($this->managementHost, $this->managementPort, $errno, $errstr, 5);
 
         if (!$socket) {
+            error_log("VpnController::disconnectClient: fsockopen misslyckades — $errstr ($errno)");
             return [
                 'success' => false,
-                'message' => "Kunde inte ansluta till management interface ($errstr - $errno)."
+                'error' => 'Kunde inte ansluta till management interface.'
             ];
         }
 
@@ -99,9 +100,10 @@ class VpnController {
         $written = @fwrite($socket, "kill {$commonName}\n");
         if ($written === false) {
             @fclose($socket);
+            error_log('VpnController::disconnectClient: fwrite misslyckades');
             return [
                 'success' => false,
-                'message' => 'Kunde inte skicka kommando till management interface.'
+                'error' => 'Kunde inte skicka kommando till management interface.'
             ];
         }
         $response = $this->readUntilPrompt($socket, 2);
@@ -116,12 +118,13 @@ class VpnController {
 
         $cleanResponse = trim($response);
         if ($cleanResponse === '') {
-            $cleanResponse = 'Inget svar från management interface.';
+            $cleanResponse = 'Kunde inte koppla bort klienten.';
         }
+        error_log('VpnController::disconnectClient: misslyckades — ' . $cleanResponse);
 
         return [
             'success' => false,
-            'message' => $cleanResponse
+            'error' => 'Kunde inte koppla bort VPN-klienten.'
         ];
     }
 
@@ -136,10 +139,11 @@ class VpnController {
             $timings['connect'] = round((microtime(true) - $connectStart) * 1000, 2);
             
             if (!$socket) {
+                error_log("VpnController::getVpnStatus: fsockopen misslyckades — $errstr ($errno)");
+                http_response_code(502);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Kunde inte ansluta till OpenVPN management interface',
-                    'message' => "Fel: $errstr ($errno). Kontrollera att management interface är aktiverat i server.conf",
                     'timings' => $timings
                 ], JSON_UNESCAPED_UNICODE);
                 return;

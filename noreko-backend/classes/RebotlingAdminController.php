@@ -1111,6 +1111,7 @@ class RebotlingAdminController {
             $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
 
             if ($ibcIdag <= 0) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Ingen IBC-data för idag'], JSON_UNESCAPED_UNICODE);
                 return;
             }

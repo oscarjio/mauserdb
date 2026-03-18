@@ -55,7 +55,7 @@ class LoginController {
             http_response_code(429);
             echo json_encode([
                 'success' => false,
-                'message' => "För många inloggningsförsök. Försök igen om {$remaining} minuter."
+                'error' => "För många inloggningsförsök. Försök igen om {$remaining} minuter."
             ], JSON_UNESCAPED_UNICODE);
             return;
         }

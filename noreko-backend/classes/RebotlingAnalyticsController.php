@@ -3779,6 +3779,7 @@ class RebotlingAnalyticsController {
                    AND table_name IN ('stoppage_log','stoppage_reasons')"
             );
             if ((int)$check->fetchColumn() < 2) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Tabellerna finns inte.'], JSON_UNESCAPED_UNICODE);
                 return;
             }

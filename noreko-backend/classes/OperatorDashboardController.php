@@ -657,6 +657,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -731,6 +732,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -839,6 +841,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -993,6 +996,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
@@ -1055,6 +1059,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }

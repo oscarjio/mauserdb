@@ -12,9 +12,17 @@ if (!file_exists($dbConfig)) {
     exit;
 }
 $db = require $dbConfig;
-$pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-]);
+try {
+    $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+} catch (PDOException $e) {
+    error_log('[update-weather] Databasanslutning misslyckades: ' . $e->getMessage());
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 // Security headers
 header('X-Content-Type-Options: nosniff');
