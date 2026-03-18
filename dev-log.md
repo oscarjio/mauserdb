@@ -1,3 +1,33 @@
+## 2026-03-18 Session #155 Worker B — 47 buggar fixade (trackBy index till id i 32 komponenter)
+
+### Uppgift 1: Angular HTTP error message audit — 0 fixar
+Granskade alla 37 Angular-komponenter (exkl. livesidor) for engelska felmeddelanden.
+- Alla felmeddelanden i .component.ts och .component.html ar redan pa svenska
+- Inga alert() med engelska meddelanden hittades
+- Inga console.error utan anvandarvanning hittades
+- Alla catchError-block har korrekt felhantering med svenska meddelanden
+- Inga fixar kravdes
+
+### Uppgift 2: Angular change detection audit — 47 fixar
+Granskade alla Angular-komponenter for ngFor trackBy-problem.
+- Alla 100+ ngFor-loopar hade redan trackBy — inga saknades
+- PROBLEM: Alla anvande trackByIndex (trackar pa arrayindex istallet for unik identifierare)
+- 47 ngFor-loopar i 32 komponenter bytts fran trackByIndex till korrekta trackBy-funktioner:
+  - trackById: for objekt med .id (batchar, maskiner, larm, certifikat, ordrar, etc.)
+  - trackByDatum: for objekt med .datum (dagliga rader, skiftplanering dagar)
+  - trackByMaskinId: for objekt med .maskin_id (OEE per maskin, stopptid per maskin)
+  - trackByOperatorId: for objekt med .operator_id (operatorer i bonus/certifikat)
+  - trackBySkift: for skiftschema-rader
+  - trackByNamn/trackByEquipment: for utrustningsstatistik
+  - trackByIbcNummer: for IBC-listor i batchdetalj
+- Statiska listor (periodOptions, etc.) behallar trackByIndex (acceptabelt for icke-dynamisk data)
+- Bygget lyckat utan fel
+
+Filer (32 komponenter, 53 filer totalt):
+- noreko-frontend/src/app/pages/ — alla .component.ts och .component.html utom livesidor
+
+---
+
 ## 2026-03-18 Session #155 Worker A — 8 buggar fixade (json_decode null-safety)
 
 ### Uppgift 1: PHP error_log consistency audit — 0 fixar
