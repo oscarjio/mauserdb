@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #159)*
+*Senast uppdaterad: 2026-03-18 (session #160)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -64,24 +64,21 @@ Session #156: BUGGJAKT — 25 buggar (10 Worker A + 15 Worker B). strtotime fals
 Session #157: BUGGJAKT — 23 buggar (22 Worker A + 1 Worker B). XSS-fixar, svenska felmeddelanden + loading state fix.
 Session #158: BUGGJAKT — 79 buggar (78 Worker A + 1 Worker B). XSS ENT_QUOTES-fixar, input sanitization + catchError.
 Session #159: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). 3 saknade auth-checks (ProduktionsTakt, RebotlingTrendanalys, Veckotrend) + 2 error display (loading state + delete error).
+Session #160: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Alla 6 audits passerade rent: SQL edge cases, date/time, array access, template null-safety, HTTP interceptor, router guards.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP SQL query edge case audit — NULL-hantering, LIMIT/OFFSET
-- [ ] Angular template null-safety audit — ?. och *ngIf-guards
-- [ ] PHP date/time parsing audit — ogiltiga input
-- [ ] Angular HTTP interceptor audit — retry-logik, token refresh
-- [ ] PHP array access audit — isset/array_key_exists
-- [ ] Angular router guard audit — auth-guards pa skyddade routes
+- [ ] PHP error logging audit — saknade loggningar vid fel
+- [ ] Angular change detection audit — onPush, performance
+- [ ] PHP CORS/headers audit — Access-Control, Content-Type, Cache-Control
+- [ ] Angular observable completion audit — forkJoin/combineLatest
+- [ ] PHP response format audit — inkonsekvent JSON-format
+- [ ] Angular i18n/hardcoded strings audit — engelska strangar kvar
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #157 (klar)
-Worker A: 22 buggar — 2 XSS-fixar, 20 engelska->svenska felmeddelanden. ORDER BY OK, unused methods OK.
-Worker B: 1 bugg — loading state i produktionspuls-widget. Route params OK.
 
 ### 2026-03-18 — Session #158 (klar)
 Worker A: 78 buggar — 75 htmlspecialchars ENT_QUOTES+UTF-8 fixar, 3 input sanitization.
@@ -90,3 +87,7 @@ Worker B: 1 bugg — 6 catchError i alerts.service.ts. Change detection OK, subs
 ### 2026-03-18 — Session #159 (klar)
 Worker A: 3 buggar — 3 controllers saknade auth-check (ProduktionsTaktController, RebotlingTrendanalysController, VeckotrendController). Division by zero OK, inga file uploads.
 Worker B: 2 buggar — loading state vid API-fel i produktionspuls + saknat delete-felmeddelande i maintenance-list. Memory leaks OK, form validation OK.
+
+### 2026-03-18 — Session #160 (klar)
+Worker A: 0 buggar — SQL edge cases OK, date/time parsing OK, array access OK. 117 PHP-filer granskade.
+Worker B: 0 buggar — template null-safety OK, HTTP interceptor OK, router guards OK. ~95 templates granskade.
