@@ -1,3 +1,36 @@
+## 2026-03-18 Session #156 Worker B — 15 buggar fixade (setTimeout destroy$-guard)
+
+### Uppgift 1: Angular memory leak audit — 15 fixar
+Granskade ALLA Angular-komponenter (exkl. livesidor) for minneslakor:
+- Alla chart-instanser har korrekt chart.destroy() i ngOnDestroy
+- Alla setInterval har matchande clearInterval i ngOnDestroy
+- Alla subscribe() anvander takeUntil(this.destroy$)
+- Alla addEventListener har matchande removeEventListener
+- PROBLEM: 15 setTimeout-anrop saknade destroy$.closed-guard
+  - 1 reell bugg: operatorsbonus renderBarChart/renderRadarChart kunde koras pa forstord komponent
+  - 14 UI-feedback setTimeout (exportFeedback, settingsSaved, livePuls, pulseFirst, rateAnimating, formSuccess, saveSuccess, exportChartFeedback)
+- Alla 15 fixade med if (!this.destroy$.closed) guard
+
+### Uppgift 2: Angular form reset audit — 0 fixar
+Granskade ALLA komponenter med formular:
+- maintenance-form, service-intervals, news-admin, batch-sparning, maskinunderhall, stoppage-log, underhallslogg, skiftplanering, register, login — alla resetar korrekt
+- Inga fixar kravdes
+
+Filer:
+- noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.ts
+- noreko-frontend/src/app/pages/rebotling/alerts/alerts.ts
+- noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.ts
+- noreko-frontend/src/app/pages/rebotling/produktionstakt/produktionstakt.ts
+- noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-annotationer/statistik-annotationer.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-bonus-simulator/statistik-bonus-simulator.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-cykeltid-operator/statistik-cykeltid-operator.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-cykeltrend/statistik-cykeltrend.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-kvalitet-deepdive/statistik-kvalitet-deepdive.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-leaderboard/statistik-leaderboard.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-pareto-stopp/statistik-pareto-stopp.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-skiftrapport-operator/statistik-skiftrapport-operator.ts
+
 ## 2026-03-18 Session #156 Worker A — 10 buggar fixade (strtotime false-check + DateTime try/catch + transaktioner)
 
 ### Uppgift 1: PHP date/time edge case audit — 7 fixar
