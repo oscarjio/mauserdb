@@ -1,3 +1,33 @@
+## 2026-03-18 Session #171 Worker B — form validation + chart destroy audit — 226 buggar fixade
+
+### Uppgift 1: Angular form validation audit — 63 buggar fixade i 28 filer
+
+Granskade alla HTML-templates och inline templates i noreko-frontend/src/app/ (utom *-live-komponenter).
+
+**Numeriska input utan min/max-granser (44 buggar):**
+- menu.html, produktionskostnad, kvalitetscertifikat, produktions-sla, operatorsbonus, avvikelselarm, rebotling-admin, klassificeringslinje-admin, tvattlinje-skiftrapport, operators, saglinje-skiftrapport, bonus-admin, klassificeringslinje-skiftrapport, shared-skiftrapport, rebotling-prognos, skiftoverlamning, tvattlinje-admin, rebotling-skiftrapport, saglinje-admin, service-intervals (inline)
+- Lade till min="0" och/eller max="99999" pa alla
+
+**Textarea utan maxlength (7 buggar):**
+- kvalitetscertifikat, maskinunderhall (2st), batch-sparning, avvikelselarm, bonus-admin, certifications, news-admin (inline), maintenance-form (inline)
+- Lade till maxlength="2000" (eller 5000 for langre innehall)
+
+**Formullar med ngSubmit utan validitetskontroll (4 buggar):**
+- operators.html, stoppage-log.html, create-user.html, register.html
+- Lade till #formRef="ngForm" och [disabled]="formRef.invalid" pa submit-knappar
+
+### Uppgift 2: Angular chart destroy audit — 163 buggar fixade i 102 filer
+
+Granskade alla Chart.js-instanser i noreko-frontend/src/app/ (utom *-live-komponenter).
+
+**Destroy-before-recreate guard saknas (163 buggar):**
+Alla 102 filer med new Chart()-anrop saknade destroy-guard fore ateranvandning. Lade till:
+`if (this.chartProp) { (this.chartProp as any).destroy(); }` fore varje `this.chartProp = new Chart(...)`.
+
+Filer: alarm-historik, andon, benchmarking, bonus-dashboard (4st), cykeltid-heatmap, effektivitet, executive-dashboard (2st), feedback-analys, forsta-timme-analys, historik (2st), historisk-sammanfattning (2st), kassations-drilldown (2st), klassificeringslinje-statistik (2st), kvalitetstrend (2st), malhistorik, monthly-report, my-bonus (3st), oee-benchmark (2st), oee-trendanalys (2st), operator-compare, operator-dashboard, operator-onboarding, operator-personal-dashboard, operator-ranking (2st), operator-trend, pareto, production-analysis (6st), production-calendar, produktionsmal (2st), ranking-historik (2st), rebotling-admin (2st), rebotling-skiftrapport, avvikelselarm, batch-sparning, historisk-produktion, kapacitetsplanering (5st), kassationsanalys (2st), kassationskvot-alarm, kassationsorsak (3st), kassationsorsak-statistik (3st), kvalitets-trendbrott, kvalitetscertifikat, kvalitetstrendanalys, leveransplanering (2st), maskin-oee (2st), maskinhistorik (2st), maskinunderhall, min-dag, oee-jamforelse, operator-jamforelse (2st), operators-prestanda (3st), operatorsbonus, produktions-dashboard (2st), produktions-sla (3st), produktionseffektivitet, produktionskostnad (3st), produktionsmal, produktionstakt, rebotling-sammanfattning, rebotling-statistik, rebotling-trendanalys, skiftplanering, skiftrapport-sammanstallning, stationsdetalj, statistik-dashboard, 20+ statistik-sub-komponenter, stopporsaker (3st), stopptidsanalys (3st), vd-veckorapport, saglinje-statistik (2st), skiftjamforelse, statistik-produkttyp-effektivitet, stoppage-log (4st), stopporsak-operator (3st), stopporsak-trend (2st), tidrapport, tvattlinje-statistik, underhallsprognos, utnyttjandegrad (2st), vd-dashboard, weekly-report, prediktivt-underhall
+
+---
+
 ## 2026-03-18 Session #171 Worker A — CORS/preflight + logging consistency + JSON response — 42 buggar fixade
 
 ### Uppgift 1: PHP CORS/preflight audit — 3 buggar fixade
