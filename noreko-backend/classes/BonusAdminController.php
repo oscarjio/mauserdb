@@ -194,7 +194,7 @@ class BonusAdminController {
      */
     private function updateWeights() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -297,7 +297,7 @@ class BonusAdminController {
      */
     private function setTargets() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -495,7 +495,7 @@ class BonusAdminController {
      */
     private function approveBonuses() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -638,7 +638,7 @@ class BonusAdminController {
      */
     private function setWeeklyGoal() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $this->sendError('Invalid JSON input');
                 return;
@@ -788,7 +788,7 @@ class BonusAdminController {
      */
     private function setAmounts() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $this->sendError('Ogiltig JSON-data');
                 return;
@@ -1695,7 +1695,7 @@ class BonusAdminController {
      */
     private function saveSimulatorParams(): void {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $this->sendError('Ogiltigt JSON-format');
                 return;

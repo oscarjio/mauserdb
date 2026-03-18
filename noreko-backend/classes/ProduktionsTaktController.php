@@ -272,7 +272,7 @@ class ProduktionsTaktController {
             return;
         }
 
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $newTarget = isset($input['target']) ? (float)$input['target'] : null;
 
         if ($newTarget === null || $newTarget <= 0 || $newTarget > 100) {

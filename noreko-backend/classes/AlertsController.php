@@ -202,7 +202,7 @@ class AlertsController {
         // Stöd både GET-param och POST-body
         $id = (int)($_GET['id'] ?? 0);
         if ($id === 0) {
-            $body = json_decode(file_get_contents('php://input'), true);
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
             $id   = (int)($body['id'] ?? 0);
         }
 

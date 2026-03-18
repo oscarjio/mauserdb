@@ -1,3 +1,29 @@
+## 2026-03-18 Session #155 Worker A — 8 buggar fixade (json_decode null-safety)
+
+### Uppgift 1: PHP error_log consistency audit — 0 fixar
+Granskade samtliga PHP-controllers i noreko-backend/classes/ (100+ filer).
+- Inga var_dump() eller print_r() hittades i produktionskod
+- Inga felaktiga echo-debug-utskrifter hittades (alla echo ar json_encode, CSV-export, eller HTML-output)
+- error_log-formatet ar konsekvent overallt: ClassName::methodName: felmeddelande
+- Inga fixar kravdes
+
+### Uppgift 2: PHP integer casting audit — 0 fixar
+Granskade alla PHP-controllers for $_GET/$_POST query params anvanda i SQL.
+- Alla numeriska parametrar (id, page, limit, offset, days, dagar, antal) anvander intval() eller (int) cast med min/max-clamp
+- Alla ID-parametrar anvander intval() eller (int) cast
+- Alla datum-parametrar valideras med preg_match
+- Inga fixar kravdes — kodbasen ar val-hardad efter 154 tidigare sessioner
+
+### Uppgift 3: PHP array key existence audit — 8 fixar
+Granskade alla PHP-controllers for direkt array-access utan isset/null-check.
+- AlertsController.php: json_decode utan ?? [] — $body['id'] kunde orsaka TypeError vid malformed JSON (1 fix)
+- ProduktionsTaktController.php: json_decode utan ?? [] — isset($input['target']) kunde krascha vid null (1 fix)
+- BonusAdminController.php: 6 st json_decode utan ?? [] — accessade keys med isset/filter_var men $input kunde vara null vid edge-case JSON (6 fix)
+
+Alla fixar lagger till ?? [] efter json_decode(file_get_contents('php://input'), true) for att garantera att variabeln alltid ar en array, aven vid malformed eller null JSON-body.
+
+---
+
 ## 2026-03-18 Session #154 Worker B — 53 buggar fixade (form validation + template expressions)
 
 ### Uppgift 1: Angular form validation audit — 20 fixar
