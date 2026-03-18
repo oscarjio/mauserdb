@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #166):
-- [x] **PHP file upload validation audit** — 0 buggar, inga file uploads i projektet (Worker A)
-- [x] **PHP CORS/security headers audit** — 7 buggar fixade: CSP, HSTS, XSS-protection, CSV filename injection (Worker A)
-- [x] **Angular memory leak deep audit** — 0 buggar, alla chart/subscription cleanups korrekta (Worker B)
-- [x] **Angular error boundary audit** — 2 buggar fixade: saknad catch i pdf-export (Worker B)
+### Klart (session #167):
+- [x] **PHP SQL query optimization audit** — 9 buggar: 7 SELECT * + 2 N+1 queries (Worker A)
+- [x] **PHP session/auth edge cases audit** — 3 buggar: inactive login + missing auth (Worker A)
+- [x] **Angular template null-safety audit** — 3 buggar: slice/ngFor null-guards (Worker B)
+- [x] **Angular route guard edge cases** — 0 buggar, solid implementation (Worker B)
 
-### Nasta buggjakt-items (session #167+):
-- [ ] **PHP SQL query optimization audit** — N+1 queries, saknade index, onodiga JOINs
-- [ ] **PHP session/auth edge cases audit** — token expiry, concurrent login, session fixation
-- [ ] **Angular template null-safety audit** — saknade ?. operators, undefined i *ngFor
+### Nasta buggjakt-items (session #168+):
 - [ ] **PHP response consistency audit** — saknade Content-Type headers, inkonsekvent JSON-format
-- [ ] **Angular route guard edge cases** — redirect-loopar, auth-race vid page refresh
+- [ ] **PHP error logging completeness audit** — saknad error_log i catch-blocks, inkonsekvent loggformat
+- [ ] **Angular HTTP error message audit** — felmeddelanden som visas for anvandare vid API-fel
+- [ ] **PHP integer overflow/type coercion audit** — intval() pa stora tal, float-jamforelser
+- [ ] **Angular form reset/dirty state audit** — formularsidor som inte aterställer state korrekt
 
 ## Parkerade features (ta inte dessa nu)
 

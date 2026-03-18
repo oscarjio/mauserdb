@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #166)*
+*Senast uppdaterad: 2026-03-18 (session #167)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -71,28 +71,25 @@ Session #163: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Division by zero 
 Session #164: BUGGJAKT — 50 buggar (35 Worker A + 15 Worker B). HTTP-statuskoder + race conditions + accessibility (keyboard, ARIA, table scope).
 Session #165: BUGGJAKT — 122 buggar (21 Worker A + 101 Worker B). Input length/boundary + logging completeness + HTTP retry + form validation.
 Session #166: BUGGJAKT — 9 buggar (7 Worker A + 2 Worker B). CORS/security headers + CSV filename injection + pdf-export error handling.
+Session #167: BUGGJAKT — 15 buggar (12 Worker A + 3 Worker B). SQL optimization (SELECT *, N+1) + auth edge cases (inactive login, missing auth) + template null-safety.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #167+):
-- [ ] PHP SQL query optimization audit
-- [ ] PHP session/auth edge cases audit
-- [ ] Angular template null-safety audit
+### Kvarstaende buggjakt-items (session #168+):
 - [ ] PHP response consistency audit
-- [ ] Angular route guard edge cases
+- [ ] PHP error logging completeness audit
+- [ ] Angular HTTP error message audit
+- [ ] PHP integer overflow/type coercion audit
+- [ ] Angular form reset/dirty state audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #164 (klar)
-Worker A: 35 buggar — 33 error response consistency (saknade http_response_code i 5 controllers), 2 race conditions (RuntimeController + TvattlinjeController).
-Worker B: 15 buggar — 15 template accessibility (7 keyboard, 2 ARIA, 6 table scope), 0 lazy loading (alla routes korrekt lazy-loaded).
-
-### 2026-03-18 — Session #165 (klar)
-Worker A: 21 buggar — 15 input length/boundary (VARCHAR-overflow, negativa tal i 10 controllers), 0 date/timezone (redan konsekvent), 6 logging (saknad error_log + sakerhetsloggning).
-Worker B: 101 buggar — 95 HTTP retry (retry(1) pa GET i 95 services), 6 form validation (saknade required + disabled submit i 4 komponenter).
 
 ### 2026-03-18 — Session #166 (klar)
 Worker A: 7 buggar — 0 file upload (inga uploads i projektet), 7 CORS/security (CSP + HSTS + XSS-protection i api/login/admin/update-weather + 3 CSV filename injection).
 Worker B: 2 buggar — 0 memory leaks (alla 41 components OK), 2 error boundary (saknad catch i pdf-export component + service).
+
+### 2026-03-18 — Session #167 (klar)
+Worker A: 12 buggar — 9 SQL optimization (7 SELECT * ersatta med specifika kolumner, 2 N+1 queries eliminerade i Gamification+OperatorRanking), 3 auth edge cases (inaktiva anvandare kunde logga in, registerBreak() utan auth, leveransplanering utan admin-check).
+Worker B: 3 buggar — 3 template null-safety (slice pa undefined i statistik-dashboard, ngFor utan null-guard i vd-veckorapport + vd-dashboard), 0 route guard (solid implementation med APP_INITIALIZER + initialized$ + sessionStorage cache).
