@@ -71,8 +71,8 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
         // Pulsanimation om ny etta
         if (this.previousFirstId !== null && newFirstId !== null && newFirstId !== this.previousFirstId) {
           this.pulseFirst = false;
-          setTimeout(() => { this.pulseFirst = true; }, 50);
-          setTimeout(() => { this.pulseFirst = false; }, 2500);
+          setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = true; }, 50);
+          setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = false; }, 2500);
         }
 
         this.previousFirstId = newFirstId;

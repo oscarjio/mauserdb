@@ -223,7 +223,7 @@ export class AlertsPage implements OnInit, OnDestroy {
         this.savingSettings = false;
         if (res?.success) {
           this.settingsSaved = true;
-          setTimeout(() => (this.settingsSaved = false), 3000);
+          setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000);
         } else {
           this.settingsError = 'Kunde inte spara inställningar.';
         }

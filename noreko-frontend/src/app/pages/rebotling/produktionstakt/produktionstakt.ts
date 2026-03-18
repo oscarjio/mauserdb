@@ -86,7 +86,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
         // Trigger animation
         if (this.previousRate !== null && this.previousRate !== res.data.current_rate) {
           this.rateAnimating = true;
-          setTimeout(() => this.rateAnimating = false, 600);
+          setTimeout(() => { if (!this.destroy$.closed) this.rateAnimating = false; }, 600);
         }
       }
     });

@@ -186,7 +186,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
 
   private pulsera(): void {
     this.livePuls = true;
-    setTimeout(() => { this.livePuls = false; }, 800);
+    setTimeout(() => { if (!this.destroy$.closed) this.livePuls = false; }, 800);
   }
 
   // ============================================================

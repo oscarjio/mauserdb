@@ -130,8 +130,10 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
             this.selectedOperator = this.operatorer[0];
           }
           setTimeout(() => {
-            this.renderBarChart();
-            this.renderRadarChart();
+            if (!this.destroy$.closed) {
+              this.renderBarChart();
+              this.renderRadarChart();
+            }
           }, 150);
         }
       },

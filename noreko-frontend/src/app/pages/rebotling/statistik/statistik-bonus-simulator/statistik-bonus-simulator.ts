@@ -212,7 +212,7 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
         return;
       }
       this.saveSuccess = true;
-      setTimeout(() => { this.saveSuccess = false; }, 3000);
+      setTimeout(() => { if (!this.destroy$.closed) this.saveSuccess = false; }, 3000);
     });
   }
 

@@ -292,7 +292,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
       endDate: to
     });
     this.exportFeedback = true;
-    setTimeout(() => this.exportFeedback = false, 2000);
+    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
   }
 
   exportCSV(): void {

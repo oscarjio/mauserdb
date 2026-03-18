@@ -1993,7 +1993,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       chartName: 'Produktionsanalys - ' + periodLabel
     });
     this.exportChartFeedback = true;
-    setTimeout(() => this.exportChartFeedback = false, 2000);
+    setTimeout(() => { if (!this.destroy$.closed) this.exportChartFeedback = false; }, 2000);
   }
 
   exportCSV() {

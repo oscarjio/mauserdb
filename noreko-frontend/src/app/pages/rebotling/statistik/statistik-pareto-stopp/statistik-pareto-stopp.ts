@@ -415,7 +415,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
       endDate: fmt(endDate)
     });
     this.exportFeedback = true;
-    setTimeout(() => this.exportFeedback = false, 2000);
+    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
   }
 
   private truncateLabel(label: string, maxLen: number): string {

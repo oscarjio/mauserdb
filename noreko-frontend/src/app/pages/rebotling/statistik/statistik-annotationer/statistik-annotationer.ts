@@ -96,7 +96,7 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
         this.newTitel = '';
         this.newBeskrivning = '';
         this.loadAnnotations();
-        setTimeout(() => { this.formSuccess = null; }, 3000);
+        setTimeout(() => { if (!this.destroy$.closed) this.formSuccess = null; }, 3000);
       } else {
         this.formError = res?.error || 'Kunde inte spara';
       }
