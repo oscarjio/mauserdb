@@ -286,16 +286,23 @@ class AdminController {
             }
 
             // Validera email om angiven
-            if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if ($email && (strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress (max 255 tecken)'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Validera telefon om angiven
+            if ($phone !== null && strlen($phone) > 50) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Telefonnummer får vara max 50 tecken'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             // Validera lösenord om angivet
-            if ($password && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password))) {
+            if ($password && (strlen($password) < 8 || strlen($password) > 255 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password))) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Lösenord måste vara minst 8 tecken med bokstav och siffra'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Lösenord måste vara 8–255 tecken med bokstav och siffra'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 

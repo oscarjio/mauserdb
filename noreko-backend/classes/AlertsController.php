@@ -314,6 +314,11 @@ class AlertsController {
                 if (!isset($body[$type])) continue;
                 $cfg       = $body[$type];
                 $threshold = (float)($cfg['threshold_value'] ?? 0);
+                if ($threshold < 0 || $threshold > 99999) {
+                    $this->pdo->rollBack();
+                    $this->sendError("Tröskelvärde för $type måste vara 0–99999");
+                    return;
+                }
                 $enabled   = isset($cfg['enabled']) ? (int)(bool)$cfg['enabled'] : 1;
                 $stmt->execute([
                     'type'      => $type,
@@ -324,6 +329,7 @@ class AlertsController {
             }
 
             $this->pdo->commit();
+            error_log("AlertsController::saveSettings — uppdaterad av user_id=$userId: " . json_encode($body));
             $this->sendSuccess(['saved' => true]);
         } catch (\PDOException $e) {
             if ($this->pdo->inTransaction()) {

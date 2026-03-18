@@ -373,6 +373,13 @@ class AvvikelselarmController {
             $this->sendError('kvitterad_av kravs');
             return;
         }
+        // Begränsa längd för att undvika VARCHAR-overflow
+        if (mb_strlen($kvitteradAv) > 100) {
+            $kvitteradAv = mb_substr($kvitteradAv, 0, 100);
+        }
+        if (mb_strlen($kommentar) > 2000) {
+            $kommentar = mb_substr($kommentar, 0, 2000);
+        }
 
         try {
             $stmt = $this->pdo->prepare("
@@ -394,6 +401,7 @@ class AvvikelselarmController {
                 return;
             }
 
+            error_log("AvvikelselarmController::kvittera — larm_id=$larmId kvitterad_av=$kvitteradAv user_id=" . ($_SESSION['user_id'] ?? 'unknown'));
             $this->sendSuccess(['kvitterat' => true, 'larm_id' => $larmId]);
         } catch (\PDOException $e) {
             error_log('AvvikelselarmController::kvittera: ' . $e->getMessage());
@@ -478,10 +486,17 @@ class AvvikelselarmController {
                 return;
             }
 
+            // Begränsa grans_varde till rimligt intervall
+            if ($gransVarde !== null && ($gransVarde < 0 || $gransVarde > 99999)) {
+                $this->sendError('grans_varde maste vara mellan 0 och 99999');
+                return;
+            }
+
             $setStr = implode(', ', $sets);
             $stmt = $this->pdo->prepare("UPDATE larmregler SET {$setStr} WHERE id = :id");
             $stmt->execute($params);
 
+            error_log("AvvikelselarmController::uppdateraRegel — regel_id=$regelId, grans_varde=$gransVarde, aktiv=" . ($aktiv ? '1' : '0') . ", user_id=" . ($_SESSION['user_id'] ?? 'unknown'));
             $this->sendSuccess(['uppdaterad' => true, 'regel_id' => $regelId]);
         } catch (\PDOException $e) {
             error_log('AvvikelselarmController::uppdateraRegel: ' . $e->getMessage());

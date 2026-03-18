@@ -425,10 +425,14 @@ class LeveransplaneringController {
                 return;
             }
 
-            $kapPerDag = max(1, (int)($input['kapacitet_per_dag'] ?? 80));
+            $kapPerDag = max(1, min(99999, (int)($input['kapacitet_per_dag'] ?? 80)));
             $buffer    = max(0, min(50, (int)($input['buffer_procent'] ?? 10)));
             $underhall = $input['planerade_underhallsdagar'] ?? [];
             if (!is_array($underhall)) $underhall = [];
+            // Begränsa antal underhållsdagar för att undvika överdimensionerat JSON
+            if (count($underhall) > 365) {
+                $underhall = array_slice($underhall, 0, 365);
+            }
 
             $stmt = $this->pdo->prepare("
                 UPDATE produktionskapacitet_config

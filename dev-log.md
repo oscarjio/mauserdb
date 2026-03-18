@@ -1,3 +1,51 @@
+## 2026-03-18 Session #165 Worker A — PHP buggjakt (3 audits: input boundary, date/timezone, logging)
+
+### Audit 1: PHP input length/boundary audit — 15 buggar fixade
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for textfalt utan max-langd, numeriska falt utan min/max, och array-inputs utan storlek-kontroll.
+
+**Granskade utan problem (redan korrekta)**:
+RegisterController, LoginController, ProfileController, NewsController, FeedbackController, ShiftHandoverController, StoppageController, StopporsakRegistreringController, FavoriterController, DashboardLayoutController, ShiftPlanController, CertificationController, KassationskvotAlarmController, SkiftrapportController, BatchSparningController.
+
+**Buggar fixade**:
+1. **AvvikelselarmController.php kvittera()** — kvitterad_av (VARCHAR 100) och kommentar (TEXT) saknade max-langd-validering. Fix: mb_substr till 100 resp 2000.
+2. **AvvikelselarmController.php uppdateraRegel()** — grans_varde saknade min/max-kontroll. Fix: validering 0-99999.
+3. **LineSkiftrapportController.php createReport()** — antal_ok och antal_ej_ok saknade min/max (kunde vara negativa). Kommentar saknade langdbegransning. Fix: max(0, min(999999, ...)) + mb_substr 2000.
+4. **LineSkiftrapportController.php updateReport()** — samma problem for antal-falt och kommentar. Fix: samma.
+5. **MaintenanceController.php addEntry()** — description och performed_by saknade max-langd. Fix: mb_substr 2000 resp 100.
+6. **MaintenanceController.php updateEntry()** — description, performed_by saknade max-langd. duration_minutes, downtime_minutes saknade min/max (0-14400). cost_sek saknade min/max. Fix: alla begransade.
+7. **FeatureFlagController.php updateFlag()** — feature_key (VARCHAR 100) saknade langdvalidering. Fix: strlen > 100 check.
+8. **FeatureFlagController.php bulkUpdate()** — updates-array saknade storlek-kontroll. Fix: max 200 poster.
+9. **RebotlingProductController.php createProduct()** — name saknade max-langd och strip_tags. cycle_time saknade max. Fix: mb_strlen > 100, cycleTime > 9999.
+10. **RebotlingProductController.php updateProduct()** — samma problem. Fix: samma + strip_tags.
+11. **AdminController.php standard update** — email saknade max-langd (255), phone saknade max-langd (50), password saknade max-langd (255). Fix: tillagt.
+12. **LeveransplaneringController.php uppdateraKonfiguration()** — kapacitet_per_dag saknade max, underhallsdagar-array saknade storlek-kontroll. Fix: max 99999 + max 365 dagar.
+
+### Audit 2: PHP date/timezone consistency audit — 0 buggar (redan korrekt)
+Granskade ALLA PHP-controllers. Projektet ar konsekvent:
+- date_default_timezone_set('Europe/Stockholm') satts i api.php
+- Alla date()-anrop anvander Y-m-d eller Y-m-d H:i:s konsekvent
+- strtotime() pa user input valideras med preg_match
+- DateTime med user-input ar wrappade i try/catch
+- DateTimeZone('Europe/Stockholm') anvands konsekvent
+
+### Audit 3: PHP logging completeness audit — 6 buggar fixade
+Granskade ALLA PHP-controllers for catch utan error_log, felfall utan loggning, saknad loggning av sakerhetshandelser.
+
+**Granskade utan problem (redan korrekta)**:
+LoginController, AdminController, ProfileController, ShiftHandoverController, StoppageController, OperatorController, NewsController, FeedbackController, DashboardLayoutController, FavoriterController, SkiftrapportController, LineSkiftrapportController, MaintenanceController, BatchSparningController, StopporsakRegistreringController.
+
+**Buggar fixade**:
+1. **AvvikelselarmController.php kvittera()** — saknade loggning av kvitterings-handelse. Fix: error_log med larm_id, kvitterad_av, user_id.
+2. **AvvikelselarmController.php uppdateraRegel()** — saknade loggning av admin-andring av larmregler. Fix: error_log.
+3. **AlertsController.php saveSettings()** — saknade loggning av admin-andring + saknade threshold validation. Fix: error_log + range-check 0-99999.
+4. **CertificationController.php addCertification()** — saknade loggning av ny certifiering. Fix: error_log.
+5. **CertificationController.php revokeCertification()** — saknade loggning av aterkallad certifiering. Fix: error_log.
+6. **RegisterController.php** — duplicate key catch saknade loggning for overvakning. Fix: error_log.
+
+**Filer andrade**: AvvikelselarmController.php, LineSkiftrapportController.php, MaintenanceController.php, FeatureFlagController.php, RebotlingProductController.php, AdminController.php, LeveransplaneringController.php, AlertsController.php, CertificationController.php, RegisterController.php
+
+---
+
 ## 2026-03-18 Session #165 Worker B — Angular buggjakt (2 audits: HTTP retry/timeout, form validation)
 
 ### Audit 1: Angular HTTP retry/timeout audit — 95 buggar fixade

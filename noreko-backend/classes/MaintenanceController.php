@@ -190,6 +190,13 @@ class MaintenanceController {
                 $this->sendError('Kostnad måste vara 0–99 999 999 kr', 400);
                 return;
             }
+            // Begränsa textfält för att undvika VARCHAR/TEXT-overflow
+            if (mb_strlen($description) > 2000) {
+                $description = mb_substr($description, 0, 2000);
+            }
+            if (mb_strlen($performedBy) > 100) {
+                $performedBy = mb_substr($performedBy, 0, 100);
+            }
 
             // Normalisera datetime (T → mellanslag)
             $startTime = str_replace('T', ' ', substr($startTime, 0, 16)) . ':00';
@@ -273,8 +280,12 @@ class MaintenanceController {
                 $params[':maintenance_type'] = $data['maintenance_type'];
             }
             if (array_key_exists('description', $data)) {
+                $desc = strip_tags(trim($data['description'])) ?: null;
+                if ($desc !== null && mb_strlen($desc) > 2000) {
+                    $desc = mb_substr($desc, 0, 2000);
+                }
                 $fields[] = 'description = :description';
-                $params[':description'] = strip_tags(trim($data['description'])) ?: null;
+                $params[':description'] = $desc;
             }
             if (isset($data['start_time'])) {
                 $st = $data['start_time'];
@@ -287,17 +298,27 @@ class MaintenanceController {
             }
             if (array_key_exists('duration_minutes', $data)) {
                 $dur = $data['duration_minutes'];
+                $durVal = ($dur !== null && $dur !== '') ? max(0, min(14400, intval($dur))) : null;
                 $fields[] = 'duration_minutes = :duration_minutes';
-                $params[':duration_minutes'] = ($dur !== null && $dur !== '') ? intval($dur) : null;
+                $params[':duration_minutes'] = $durVal;
             }
             if (array_key_exists('performed_by', $data)) {
+                $pb = strip_tags(trim($data['performed_by'])) ?: null;
+                if ($pb !== null && mb_strlen($pb) > 100) {
+                    $pb = mb_substr($pb, 0, 100);
+                }
                 $fields[] = 'performed_by = :performed_by';
-                $params[':performed_by'] = strip_tags(trim($data['performed_by'])) ?: null;
+                $params[':performed_by'] = $pb;
             }
             if (array_key_exists('cost_sek', $data)) {
                 $cost = $data['cost_sek'];
+                $costVal = ($cost !== null && $cost !== '') ? floatval($cost) : null;
+                if ($costVal !== null && ($costVal < 0 || $costVal > 99999999)) {
+                    $this->sendError('Kostnad måste vara 0–99 999 999 kr', 400);
+                    return;
+                }
                 $fields[] = 'cost_sek = :cost_sek';
-                $params[':cost_sek'] = ($cost !== null && $cost !== '') ? floatval($cost) : null;
+                $params[':cost_sek'] = $costVal;
             }
             if (isset($data['status'])) {
                 if (!in_array($data['status'], self::VALID_STATUSES, true)) {
@@ -317,7 +338,7 @@ class MaintenanceController {
             if (array_key_exists('downtime_minutes', $data)) {
                 $dt = $data['downtime_minutes'];
                 $fields[] = 'downtime_minutes = :downtime_minutes';
-                $params[':downtime_minutes'] = ($dt !== null && $dt !== '') ? intval($dt) : 0;
+                $params[':downtime_minutes'] = ($dt !== null && $dt !== '') ? max(0, min(14400, intval($dt))) : 0;
             }
             if (array_key_exists('resolved', $data)) {
                 $fields[] = 'resolved = :resolved';

@@ -183,10 +183,13 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
-            $antal_ok    = intval($data['antal_ok'] ?? 0);
-            $antal_ej_ok = intval($data['antal_ej_ok'] ?? 0);
+            $antal_ok    = max(0, min(999999, intval($data['antal_ok'] ?? 0)));
+            $antal_ej_ok = max(0, min(999999, intval($data['antal_ej_ok'] ?? 0)));
             $totalt      = $antal_ok + $antal_ej_ok;
             $kommentar   = strip_tags(trim($data['kommentar'] ?? '')) ?: null;
+            if ($kommentar !== null && mb_strlen($kommentar) > 2000) {
+                $kommentar = mb_substr($kommentar, 0, 2000);
+            }
             $user_id     = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
             $this->pdo->beginTransaction();
@@ -234,15 +237,19 @@ class LineSkiftrapportController {
             }
             if (isset($data['antal_ok'])) {
                 $fields[] = 'antal_ok = ?';
-                $params[] = intval($data['antal_ok']);
+                $params[] = max(0, min(999999, intval($data['antal_ok'])));
             }
             if (isset($data['antal_ej_ok'])) {
                 $fields[] = 'antal_ej_ok = ?';
-                $params[] = intval($data['antal_ej_ok']);
+                $params[] = max(0, min(999999, intval($data['antal_ej_ok'])));
             }
             if (array_key_exists('kommentar', $data)) {
+                $kommentar = strip_tags(trim($data['kommentar'])) ?: null;
+                if ($kommentar !== null && mb_strlen($kommentar) > 2000) {
+                    $kommentar = mb_substr($kommentar, 0, 2000);
+                }
                 $fields[] = 'kommentar = ?';
-                $params[] = strip_tags(trim($data['kommentar'])) ?: null;
+                $params[] = $kommentar;
             }
 
             // Räkna om totalt om några av antal-fälten ändrats

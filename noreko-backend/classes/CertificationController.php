@@ -340,6 +340,7 @@ class CertificationController {
             $stmt->execute([$opNumber, $line, $certifiedBy, $certDate, $expiresDate, $notes ?: null]);
             $newId = (int)$this->pdo->lastInsertId();
 
+            error_log("CertificationController::addCertification — id=$newId, op_number=$opNumber, line=$line, certified_by=$certifiedBy");
             echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('CertificationController::addCertification: ' . $e->getMessage());
@@ -368,6 +369,7 @@ class CertificationController {
                 return;
             }
 
+            error_log("CertificationController::revokeCertification — id=$id, revoked_by=" . ($_SESSION['user_id'] ?? 'unknown'));
             echo json_encode(['success' => true, 'message' => 'Certifiering återkallad'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('CertificationController::revokeCertification: ' . $e->getMessage());

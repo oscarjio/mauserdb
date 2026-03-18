@@ -91,13 +91,29 @@ class RebotlingProductController {
             return;
         }
 
-        $name = trim($data['name']);
+        $name = strip_tags(trim($data['name']));
         $cycleTime = (float)$data['cycle_time_minutes'];
         if ($name === '' || $cycleTime <= 0) {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
                 'error' => 'Namn får inte vara tomt och cykeltid måste vara > 0'
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (mb_strlen($name) > 100) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Produktnamn får vara max 100 tecken'
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ($cycleTime > 9999) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Cykeltid får vara max 9999 minuter'
             ], JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -149,7 +165,7 @@ class RebotlingProductController {
         }
 
         $id = (int)$data['id'];
-        $name = trim($data['name']);
+        $name = strip_tags(trim($data['name']));
         $cycleTime = (float)$data['cycle_time_minutes'];
         if ($id <= 0 || $name === '' || $cycleTime <= 0) {
             http_response_code(400);
@@ -157,6 +173,16 @@ class RebotlingProductController {
                 'success' => false,
                 'error' => 'Ogiltigt ID, tomt namn eller ogiltig cykeltid'
             ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (mb_strlen($name) > 100) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Produktnamn får vara max 100 tecken'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ($cycleTime > 9999) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Cykeltid får vara max 9999 minuter'], JSON_UNESCAPED_UNICODE);
             return;
         }
 

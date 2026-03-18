@@ -134,6 +134,7 @@ class RegisterController {
             }
             // Hantera duplicate key-fel (extra säkerhet om UNIQUE constraint finns)
             if ((string)$e->getCode() === '23000') {
+                error_log('RegisterController::create_user — duplicate key for username: ' . $username);
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
                 return;

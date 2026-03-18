@@ -104,6 +104,12 @@ class FeatureFlagController {
         $minRole = trim($data['min_role'] ?? '');
         $validRoles = ['public', 'user', 'admin', 'developer'];
 
+        if (strlen($featureKey) > 100) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'feature_key får vara max 100 tecken'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         if ($featureKey === '' || !in_array($minRole, $validRoles, true)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltig feature_key eller min_role'], JSON_UNESCAPED_UNICODE);
@@ -135,6 +141,13 @@ class FeatureFlagController {
         if (!is_array($data) || !isset($data['updates']) || !is_array($data['updates'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltig JSON — förväntar { updates: [{feature_key, min_role}] }'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Begränsa array-storlek för att förhindra missbruk
+        if (count($data['updates']) > 200) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Max 200 uppdateringar per anrop'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
