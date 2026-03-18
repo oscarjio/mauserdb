@@ -561,7 +561,8 @@ class VDVeckorapportController {
                     'andel_pct' => $total > 0 ? round($tid / $total * 100, 1) : 0,
                 ];
             }, $rows);
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('VDVeckorapportController::hamtaStopporsaker: ' . $e->getMessage());
             return [];
         }
     }
@@ -706,7 +707,8 @@ class VDVeckorapportController {
                     'antal_skift'    => (int)$r['antal_skift'],
                 ];
             }, $rows);
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('VDVeckorapportController::hamtaOperatorsData: ' . $e->getMessage());
             return [];
         }
     }
@@ -764,7 +766,8 @@ class VDVeckorapportController {
                 }
             }
             return $anomalier;
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('VDVeckorapportController::beraknaAnomalierPeriod: ' . $e->getMessage());
             return [];
         }
     }
@@ -798,7 +801,7 @@ class VDVeckorapportController {
             $sumX2 += $i * $i;
         }
         $denom = $n * $sumX2 - $sumX * $sumX;
-        if ((float)$denom === 0.0) {
+        if (abs($denom) < 0.0001) {
             return ['slope' => 0, 'intercept' => $sumY / $n, 'r2' => 0];
         }
         $slope     = ($n * $sumXY - $sumX * $sumY) / $denom;

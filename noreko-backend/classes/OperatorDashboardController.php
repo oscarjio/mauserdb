@@ -352,7 +352,7 @@ class OperatorDashboardController {
                 $snittSen  = $sen3  / 3.0;
                 $snittForg = ($forg4 > 0) ? ($forg4 / 4.0) : 0;
 
-                if ((float)$snittForg === 0.0) {
+                if (abs($snittForg) < 0.0001) {
                     $trend = 'stabil';
                 } elseif ($snittSen > $snittForg * 1.05) {
                     $trend = 'upp';

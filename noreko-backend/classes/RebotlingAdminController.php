@@ -530,7 +530,8 @@ class RebotlingAdminController {
             $dbOk = true;
             try {
                 $this->pdo->query("SELECT 1");
-            } catch (Exception) {
+            } catch (Exception $e) {
+                error_log('RebotlingAdminController::systemStatus DB check failed: ' . $e->getMessage());
                 $dbOk = false;
             }
 

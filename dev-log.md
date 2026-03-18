@@ -1,3 +1,41 @@
+## 2026-03-18 Session #168 Worker A — PHP response consistency + error logging + type coercion audit — 8 buggar fixade
+
+### Audit 1: PHP response consistency — 1 bugg fixad
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for inkonsekvent JSON-format och saknade HTTP-statuskoder.
+
+**Buggar fixade:**
+
+1. **AuditController.php** — getActions() returnerade `'data' => []` istallet for `'error' => 'meddelande'` vid databasfel (HTTP 500). Alla andra endpoints anvander `'error'`-nyckel. Fixat till konsekvent error-format.
+
+### Audit 2: PHP error logging completeness — 4 buggar fixade
+
+Granskade ALLA catch-blocks i noreko-backend/classes/ for saknad error_log().
+
+**Buggar fixade:**
+
+2. **VDVeckorapportController.php** — hamtaStopporsaker() saknade error_log() i catch-block. DB-fel vid hamtning av stopporsaker till VD-veckorapport forsvann tyst. Lagt till error_log.
+
+3. **VDVeckorapportController.php** — hamtaOperatorsData() saknade error_log() i catch-block. DB-fel vid hamtning av operatorsdata till VD-veckorapport forsvann tyst. Lagt till error_log.
+
+4. **VDVeckorapportController.php** — beraknaAnomalierPeriod() saknade error_log() i catch-block. DB-fel vid anomalidetektering forsvann tyst. Lagt till error_log.
+
+5. **RebotlingAdminController.php** — systemStatus() DB health check saknade error_log() i catch-block. Om databasen var nere loggades inget — bara $dbOk=false returnerades. Lagt till error_log.
+
+### Audit 3: PHP type coercion — 3 buggar fixade
+
+Granskade ALLA PHP-controllers for float-jamforelser med === 0.0, intval() overflow, och division med noll.
+
+**Buggar fixade:**
+
+6. **VeckotrendController.php** — calcTrend() och calcChangePct() anvande `(float)$avgOlder === 0.0` for beraknade medelvardeskvotienter. Floating-point aritmetik kan ge smavarden som 1e-16 istallet for exakt 0.0, vilket leder till division-med-nara-noll. Andrat till `abs($x) < 0.0001`.
+
+7. **OeeTrendanalysController.php + VDVeckorapportController.php** — linjarRegression() anvande `(float)$denom === 0.0` for beraknad denominator (n*sumX2 - sumX*sumX). Andrat till `abs($denom) < 0.0001`.
+
+8. **KvalitetstrendController.php + OperatorDashboardController.php** — Trend-berakning anvande `(float)$avgOlder === 0.0` resp. `(float)$snittForg === 0.0` for beraknade kvoter. Andrat till `abs($x) < 0.0001`.
+
+---
+
 ## 2026-03-18 Session #167 Worker A — PHP SQL optimization + auth edge cases audit — 12 buggar fixade
 
 ### Audit 1: PHP SQL query optimization — 9 buggar fixade

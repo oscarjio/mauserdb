@@ -220,7 +220,7 @@ class AuditController {
         } catch (PDOException $e) {
             error_log('AuditController::getActions: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'data' => []], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta åtgärdstyper'], JSON_UNESCAPED_UNICODE);
         }
     }
 
