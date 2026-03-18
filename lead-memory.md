@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-18 (session #162)*
+*Senast uppdaterad: 2026-03-18 (session #163)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -67,22 +67,20 @@ Session #159: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). 3 saknade auth-ch
 Session #160: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Alla 6 audits passerade rent: SQL edge cases, date/time, array access, template null-safety, HTTP interceptor, router guards.
 Session #161: BUGGJAKT — 11 buggar (10 Worker A + 1 Worker B). Error logging, CORS, response format, trackBy.
 Session #162: BUGGJAKT — 16 buggar (13 Worker A + 3 Worker B). File I/O error logging, VPN info leak + withCredentials, HTML-entiteter.
+Session #163: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Division by zero guards + LIKE injection escaping. Angular memory leaks + route guards OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #163+):
-- [ ] PHP numeric overflow audit
-- [ ] Angular memory leak audit
-- [ ] PHP SQL LIKE/REGEXP injection audit
-- [ ] Angular route guard audit
+### Kvarstaende buggjakt-items (session #164+):
+- [ ] PHP error response consistency audit
+- [ ] Angular template accessibility audit
+- [ ] PHP race condition audit
+- [ ] Angular lazy loading audit
+- [ ] PHP input length/boundary audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #160 (klar)
-Worker A: 0 buggar — SQL edge cases OK, date/time parsing OK, array access OK. 117 PHP-filer granskade.
-Worker B: 0 buggar — template null-safety OK, HTTP interceptor OK, router guards OK. ~95 templates granskade.
 
 ### 2026-03-18 — Session #161 (klar)
 Worker A: 10 buggar — 4 error logging, 1 CORS, 5 response format.
@@ -91,3 +89,7 @@ Worker B: 1 bugg — saknad trackBy i skiftrapport-sammanstallning ngFor.
 ### 2026-03-18 — Session #162 (klar)
 Worker A: 13 buggar — 0 session/cookie (allt korrekt), 13 file I/O (1 VPN info leak, 12 saknad error_log vid file_get_contents).
 Worker B: 3 buggar — 0 form validation (allt korrekt), 3 HTTP (2 saknade withCredentials, 1 HTML-entiteter i felmeddelanden).
+
+### 2026-03-18 — Session #163 (klar)
+Worker A: 5 buggar — 2 numeric overflow (division by zero i MaskinOee + ProduktionsPrognos), 3 LIKE injection (AuditController + BatchSparning).
+Worker B: 0 buggar — memory leak audit OK (alla cleanup-monster korrekta), route guard audit OK (alla routes korrekt skyddade).

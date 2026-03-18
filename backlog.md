@@ -7,18 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP session/cookie audit** — 0 buggar, allt korrekt (Worker A #162)
-- [x] **Angular form validation audit** — 0 buggar, allt korrekt (Worker B #162)
-- [x] **PHP file I/O audit** — 13 buggar fixade (Worker A #162)
-- [x] **Angular HTTP retry/timeout audit** — 3 buggar fixade (Worker B #162)
+- [x] **PHP numeric overflow audit** — 2 buggar fixade: division by zero i MaskinOee + ProduktionsPrognos (Worker A #163)
+- [x] **Angular memory leak audit** — 0 buggar, alla cleanup-monster korrekta (Worker B #163)
+- [x] **PHP SQL LIKE/REGEXP injection audit** — 3 buggar fixade: LIKE-wildcards i AuditController + BatchSparning (Worker A #163)
+- [x] **Angular route guard audit** — 0 buggar, alla routes korrekt skyddade (Worker B #163)
 
-### Nasta buggjakt-items (session #163+):
-- [ ] **PHP numeric overflow audit** — intval pa stora tal, float-precision i berakningar
-- [ ] **Angular memory leak audit** — detached DOM-noder, chart-instanser, event listeners
-- [ ] **PHP SQL LIKE/REGEXP injection audit** — LIKE-wildcards, unsanitized REGEXP
-- [ ] **Angular route guard audit** — saknade guards, felaktig redirect-logik
+### Nasta buggjakt-items (session #164+):
 - [ ] **PHP error response consistency audit** — alla felfall ska ha korrekt HTTP-statuskod
 - [ ] **Angular template accessibility audit** — aria-labels, keyboard navigation, focus management
+- [ ] **PHP race condition audit** — concurrent requests, shared state, locking
+- [ ] **Angular lazy loading audit** — felaktiga chunk-boundaries, preload-strategi
+- [ ] **PHP input length/boundary audit** — max-langd pa textfalt, overflow i VARCHAR-kolumner
 
 ## Parkerade features (ta inte dessa nu)
 
