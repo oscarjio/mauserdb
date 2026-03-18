@@ -1,3 +1,41 @@
+## 2026-03-18 Session #163 Worker B — Angular buggjakt (2 audits: memory leak, route guard)
+
+### Audit 1: Angular memory leak audit — 0 buggar
+Granskade systematiskt ALLA komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live):
+
+**Chart.js-instanser**: Samtliga ~40+ komponenter med Chart.js har korrekt destroy i ngOnDestroy (try/catch-mönster). Kontrollerade: andon.ts, rebotling-admin.ts, produktions-dashboard, operatorsbonus, kapacitetsplanering, statistik-dashboard, vd-dashboard, statistik-overblick, historisk-sammanfattning, oee-trendanalys, operator-ranking, tidrapport, historisk-produktion, maskinhistorik, rebotling-trendanalys, vd-veckorapport, produktionsmal, kassationskvot-alarm, produktions-sla, produktionskostnad, rebotling-sammanfattning, stationsdetalj, stopporsaker, stopptidsanalys, maskin-oee, skiftplanering, leveransplanering, kvalitetscertifikat, avvikelselarm, maskinunderhall, batch-sparning, operators-prestanda, daglig-briefing, prediktivt-underhall.
+
+**addEventListener/removeEventListener**: 5 filer med document.addEventListener('visibilitychange') — alla har matchande removeEventListener i ngOnDestroy: tvattlinje-admin.ts, saglinje-admin.ts, rebotling-admin.ts, klassificeringslinje-admin.ts, andon.ts.
+
+**setInterval/clearInterval**: Samtliga 60+ filer med setInterval har matchande clearInterval i ngOnDestroy. Verifierat med automatisk scanning.
+
+**setTimeout utan clearTimeout**: ~50 filer har setTimeout utan clearTimeout, men alla anvander det korrekta monstret: one-shot `setTimeout(() => { if (!this.destroy$.closed) ... }, 0)` for chart-rendering. Dessa ar inte memory leaks — de ar korta deferred calls med destroy$-guard.
+
+**subscribe utan takeUntil**: Bara toast.ts (1 subscribe) — men den anvander explicit Subscription + unsubscribe() i ngOnDestroy, vilket ar korrekt alternativ.
+
+**ResizeObserver/MutationObserver/IntersectionObserver**: Inga funna i kodbasen.
+**window.addEventListener**: Inga funna utover document-lyssnarna ovan.
+
+### Audit 2: Angular route guard audit — 0 buggar
+Granskade app.routes.ts (163 rader) och guards/auth.guard.ts:
+
+**Guard-implementationer**:
+- authGuard: Korrekt — vantar pa initialized$ (filter+take), sedan loggedIn$ (take), returnerar true eller redirectar till /login med returnUrl. Inga oandliga loopar.
+- adminGuard: Korrekt — vantar pa initialized$, kombinerar loggedIn$+user$ med combineLatestWith, kontrollerar admin/developer-roll, redirectar korrekt (ej inloggad -> /login, inloggad ej admin -> /).
+
+**Route-skydd**:
+- 19 publika routes (news, login, register, about, contact, live-views, skiftrapporter, statistik, historik, 404) — korrekt utan guard
+- 60+ autentiserade routes — alla har canActivate: [authGuard]
+- 20+ admin-routes — alla har canActivate: [adminGuard]
+- Inga saknade guards pa skyddade routes
+
+**Redirect-logik**:
+- Login-sidan validerar returnUrl mot open redirect (maste borja med / och inte //). Korrekt.
+- Inga oandliga redirect-loopar — login/register ar publika sa guard triggar aldrig pa dem.
+- 404-route (path: '**') ar sist — korrekt wildcard-placering.
+
+**Lazy-loading**: Alla routes anvander loadComponent (standalone components) — ingen lazy-loaded module-inkonsistens.
+
 ## 2026-03-18 Session #162 Worker B — Angular buggjakt (2 audits: form validation, HTTP retry/timeout)
 
 ### Audit 1: Angular form validation audit — 0 buggar
