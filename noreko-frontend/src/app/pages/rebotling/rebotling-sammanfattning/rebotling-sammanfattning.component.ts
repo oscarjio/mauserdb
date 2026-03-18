@@ -31,6 +31,11 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
   private isFetchingGraph    = false;
   private isFetchingMaskiner = false;
 
+  // Error states
+  errorOverview = false;
+  errorGraph    = false;
+  errorMaskiner = false;
+
   // Data
   overview: SammanfattningOverview | null = null;
   produktion7d: Produktion7dData | null   = null;
@@ -73,12 +78,17 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     if (this.isFetchingOverview) return;
     this.isFetchingOverview = true;
     this.loadingOverview = true;
+    this.errorOverview = false;
     this.svc.getOverview()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         this.isFetchingOverview = false;
-        if (res?.success) this.overview = res.data;
+        if (res?.success) {
+          this.overview = res.data;
+        } else {
+          this.errorOverview = true;
+        }
       });
   }
 
@@ -86,6 +96,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     if (this.isFetchingGraph) return;
     this.isFetchingGraph = true;
     this.loadingGraph = true;
+    this.errorGraph = false;
     this.svc.getProduktion7d()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -94,6 +105,8 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.produktion7d = res.data;
           setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
+        } else {
+          this.errorGraph = true;
         }
       });
   }
@@ -102,12 +115,17 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     if (this.isFetchingMaskiner) return;
     this.isFetchingMaskiner = true;
     this.loadingMaskiner = true;
+    this.errorMaskiner = false;
     this.svc.getMaskinStatus()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingMaskiner = false;
         this.isFetchingMaskiner = false;
-        if (res?.success) this.maskinStatus = res.data;
+        if (res?.success) {
+          this.maskinStatus = res.data;
+        } else {
+          this.errorMaskiner = true;
+        }
       });
   }
 

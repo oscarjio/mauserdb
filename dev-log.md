@@ -1,3 +1,30 @@
+## 2026-03-18 Session #151 Worker B — 10 buggar fixade (error state UI, catchError)
+### Uppgift: Angular buggjakt — error state UI audit, form validation audit
+
+**Del 1 — Error state UI audit (10 fixar):**
+Granskade samtliga ~37 komponenter i noreko-frontend/src/app/pages/ (exkl. live-sidor).
+
+- `maskin-oee.component.ts`: console.error for maskinlista-laddningsfel ersatt med errorMaskiner-state + UI-varning i HTML (2 fixar: TS + HTML)
+- `stopptidsanalys.component.ts`: console.error for maskinlista-laddningsfel ersatt med errorMaskiner-state + UI-varning i HTML (2 fixar: TS + HTML)
+- `rebotling-sammanfattning.component.ts`: Lade till errorOverview/errorGraph/errorMaskiner states + satter dem vid misslyckade anrop (3 fixar i TS)
+- `rebotling-sammanfattning.component.html`: Lade till felmeddelande-div for overview, graf-felindikering, och forbattrad maskinstatusfel-visning (3 fixar i HTML)
+- `stationsdetalj.component.ts`: 6 subscribe()-anrop saknade catchError — lade till `catchError(() => of(null))` pa alla (timeout-fel kunde orsaka ohanterade fel och laddindikatorer som fastnar)
+
+**Del 2 — Form validation audit (0 fixar — redan korrekt):**
+Granskade alla formular i pages-komponenterna:
+- Alla <form>-baserade formular har required pa obligatoriska falt
+- Alla submit-knappar ar [disabled] nar formular ar ogiltigt eller laddar
+- Alla ngModel-bindningar inuti <form>-taggar har name-attribut
+- Alla fristaaende ngModel (utanfor <form>) behover inte name-attribut (korrekt Angular-beteende)
+- min/max/step/maxlength attribut finns dar de behovs
+- Felmeddelanden (sparFel, formError, etc.) visas korrekt med alert-danger
+
+**Sammanfattning:**
+- 37 komponenter granskade (TS + HTML)
+- 5 inline-template-komponenter (maintenance-log) granskade
+- Alla befintliga komponenter utom ovan namnda hade redan korrekt error-hantering
+- Bygge OK (inga kompileringsfel)
+
 ## 2026-03-18 Session #151 Worker A — 6 buggar fixade (unused vars, SQL audit)
 ### Uppgift: PHP buggjakt — unused vars, response format audit, SQL query audit
 

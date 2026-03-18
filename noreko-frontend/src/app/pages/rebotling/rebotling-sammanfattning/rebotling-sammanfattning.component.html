@@ -20,6 +20,12 @@
 
   <div id="rebotling-sammanfattning-content">
 
+  <!-- Felmeddelande overblick -->
+  <div *ngIf="errorOverview && !loadingOverview" class="alert alert-danger d-flex align-items-center mb-3" role="alert" style="background:#742a2a; border-color:#fc8181; color:#fed7d7;">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hamta produktionsdata. Kontrollera anslutningen och forsok igen.
+  </div>
+
   <!-- ========================================== -->
   <!-- KPI-kort (overst) -->
   <!-- ========================================== -->
@@ -119,11 +125,14 @@
           <i class="fas fa-chart-bar me-2" style="color:#4299e1;"></i>
           Produktion senaste 7 dagar
         </h5>
-        <div class="chart-container" *ngIf="!loadingGraph">
+        <div class="chart-container" *ngIf="!loadingGraph && !errorGraph">
           <canvas id="sammanfattningChart"></canvas>
         </div>
         <div class="text-center text-muted py-4" *ngIf="loadingGraph">
           <i class="fas fa-spinner fa-spin me-2"></i>Laddar graf...
+        </div>
+        <div class="text-center py-4" *ngIf="errorGraph && !loadingGraph" style="color:#fc8181;">
+          <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda produktionsgrafen.
         </div>
       </div>
     </div>
@@ -225,8 +234,8 @@
         <div class="text-center text-muted py-3" *ngIf="!loadingMaskiner && maskinStatus && maskinStatus.maskiner.length === 0">
           Ingen maskindata tillganglig
         </div>
-        <div class="text-center text-muted py-3" *ngIf="!loadingMaskiner && !maskinStatus">
-          Kunde inte ladda maskinstatus
+        <div class="text-center py-3" *ngIf="!loadingMaskiner && errorMaskiner" style="color:#fc8181;">
+          <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda maskinstatus
         </div>
         <div class="text-center text-muted py-3" *ngIf="loadingMaskiner">
           <i class="fas fa-spinner fa-spin me-2"></i>Laddar maskinstatus...

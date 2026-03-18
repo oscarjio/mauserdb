@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   RebotlingStationsdetaljService,
@@ -101,7 +101,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.loadingStationer = true;
     this.errorStationer   = false;
     this.svc.getStationer()
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
         if (res?.success) {
@@ -135,7 +135,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.loadingKpi = true;
     this.errorKpi   = false;
     this.svc.getKpiIdag(this.valdStation)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingKpi = false;
         if (res?.success) {
@@ -150,7 +150,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.loadingIbc = true;
     this.errorIbc   = false;
     this.svc.getSenasteIbc(this.valdStation, 25)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingIbc = false;
         if (res?.success) {
@@ -165,7 +165,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.loadingStopp = true;
     this.errorStopp   = false;
     this.svc.getStopphistorik(this.valdStation, 20)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStopp = false;
         if (res?.success) {
@@ -182,7 +182,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.trendData    = [];
     this.destroyCharts();
     this.svc.getOeeTrend(this.valdStation, this.trendDagar)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -198,7 +198,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     this.loadingRealtid = true;
     this.errorRealtid   = false;
     this.svc.getRealtidOee(this.valdStation)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingRealtid = false;
         if (res?.success) {

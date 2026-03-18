@@ -89,6 +89,11 @@
     <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda OEE-data.
   </div>
 
+  <!-- Error maskinlista -->
+  <div class="alert alert-warning" *ngIf="errorMaskiner" style="background:#744210; border-color:#ecc94b; color:#fefcbf;">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda maskinlistan. Filtreringsfunktionen kan vara begransad.
+  </div>
+
   <!-- OEE PER MASKIN — Gauge-kort med T/P/K progress bars -->
   <div class="chart-card mb-4" *ngIf="perMaskinData?.maskiner?.length">
     <h5 class="card-title mb-3">

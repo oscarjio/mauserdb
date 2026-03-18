@@ -54,6 +54,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
 
   // Error
   errorOverview = false;
+  errorMaskiner = false;
 
   // Data
   overview:      OverviewData | null    = null;
@@ -85,13 +86,16 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   constructor(private svc: StopptidsanalysService) {}
 
   ngOnInit(): void {
+    this.errorMaskiner = false;
     this.svc.getMaskiner().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         if (res?.success) {
           this.allaMaskiner = res.data.maskiner;
+        } else {
+          this.errorMaskiner = true;
         }
       },
-      error: () => { console.error('Kunde inte hamta maskinlista'); }
+      error: () => { this.errorMaskiner = true; }
     });
     this.loadAll();
     this.refreshTimer = setInterval(() => this.loadAll(), 60000);

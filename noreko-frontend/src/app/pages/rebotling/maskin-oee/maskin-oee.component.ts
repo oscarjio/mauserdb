@@ -57,6 +57,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
 
   // Error
   errorOverview = false;
+  errorMaskiner = false;
 
   // Data
   overview:       OeeOverviewData | null   = null;
@@ -87,13 +88,16 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   constructor(private svc: MaskinOeeService) {}
 
   ngOnInit(): void {
+    this.errorMaskiner = false;
     this.svc.getMaskiner().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
       next: res => {
         if (res?.success) {
           this.allaMaskiner = res.data.maskiner;
+        } else {
+          this.errorMaskiner = true;
         }
       },
-      error: () => { console.error('Kunde inte hamta maskinlista'); }
+      error: () => { this.errorMaskiner = true; }
     });
     this.loadAll();
     this.refreshTimer = setInterval(() => this.loadAll(), 60000);
