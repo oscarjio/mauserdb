@@ -1,3 +1,37 @@
+## 2026-03-18 Session #159 Worker A — PHP buggjakt (3 audits: division-by-zero, file upload, auth)
+
+### Audit 1: PHP division by zero — 0 buggar
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for divisioner (/, %, intdiv).
+- 100+ divisionspunkter identifierade och verifierade
+- Alla procent-berakningar, OEE-kalkyler, genomsnitt, ratio-berakningar har korrekt > 0-skydd
+- SQL-divisioner anvander NULLIF() korrekt
+- Inga oskyddade divisioner hittades — kodbasen ar val skyddad sedan tidigare audits
+
+### Audit 2: PHP file upload validation — 0 buggar (inga uploads)
+Sokte efter $_FILES, move_uploaded_file, tmp_name i hela noreko-backend.
+- INGA fil-upload-handlers hittades i nagon PHP-fil
+- Projektet hanterar inte filuppladdningar via PHP-backend — inga buggar att fixa
+
+### Audit 3: PHP session/auth edge case — 3 buggar fixade
+Granskade auth-floden i noreko-backend: AuthHelper (bcrypt OK, rate limiting OK, session timeout OK),
+LoginController (bcrypt OK, session fixation-skydd OK, prepared statements OK), alla controllers.
+
+3 controllers saknade auth-check men exponerar skyddsvard produktionsdata:
+1. **ProduktionsTaktController.php**: handle() saknade session_start + user_id-check.
+   Alla endpoints (current-rate, hourly-history, get-target) var oppna utan inloggning.
+   Fixat: lagt till session_start(['read_and_close' => true]) + empty($_SESSION['user_id'])-check.
+2. **RebotlingTrendanalysController.php**: handle() saknade all auth.
+   Exponerade trender, daglig historik, veckosammanfattning, anomalier, prognos utan inloggning.
+   Fixat: lagt till session_start + user_id-check med 401-svar.
+3. **VeckotrendController.php**: handle() saknade all auth.
+   Exponerade vecko-KPI-data utan inloggning.
+   Fixat: lagt till session_start + user_id-check med 401-svar.
+
+OBS: AndonController, HistorikController, RuntimeController ar medvetet publika (dokumenterat i kod).
+RegisterController ar medvetet oppen (registreringsendpoint).
+
+---
+
 ## 2026-03-18 Session #158 Worker B — HTTP timeout/retry audit + change detection audit
 
 ### Del 1: Angular HTTP retry/timeout audit — 1 bugg fixad

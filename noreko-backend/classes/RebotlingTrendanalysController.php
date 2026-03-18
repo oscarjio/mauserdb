@@ -9,6 +9,16 @@ class RebotlingTrendanalysController {
     }
 
     public function handle(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
+
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Inloggning kravs'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         $run = trim($_GET['run'] ?? '');
         switch ($run) {
             case 'trender':
