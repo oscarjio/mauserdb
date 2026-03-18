@@ -1,3 +1,44 @@
+## 2026-03-18 Session #166 Worker B — Angular memory leak deep audit + error boundary audit — 2 buggar fixade
+
+### Audit 1: Angular memory leak deep audit — 0 buggar (alla redan korrekta)
+Granskade ALLA 41 Angular component-filer i:
+- noreko-frontend/src/app/pages/rebotling/**/*.component.ts
+- noreko-frontend/src/app/pages/**/*.component.ts
+- noreko-frontend/src/app/rebotling/**/*.component.ts
+- noreko-frontend/src/app/components/**/*.component.ts
+
+**Kontrollerade for:**
+- Chart.js-objekt (new Chart) utan matchande chart?.destroy() i ngOnDestroy
+- window.addEventListener utan matchande removeEventListener
+- ResizeObserver/MutationObserver utan disconnect
+- document.addEventListener utan cleanup
+- fromEvent() utan takeUntil(destroy$)
+- Renderer2.listen() utan unlistenFn
+
+**Resultat**: Alla 32 komponenter med Chart.js har korrekt destroy i ngOnDestroy. Alla setInterval/setTimeout rensas korrekt. Inga window.addEventListener, ResizeObserver, MutationObserver, fromEvent eller Renderer2.listen hittades utan cleanup. Alla subscriptions anvander takeUntil(destroy$).
+
+### Audit 2: Angular error boundary audit — 2 buggar fixade
+
+Granskade ALLA 41 component-filer och 92+ service-filer for saknad felhantering.
+
+**Buggar fixade:**
+1. **pdf-export-button.component.ts** — async exportPdf() anvande try/finally utan catch. Om html2canvas eller jsPDF kastade undantag propagerades felet ohanterat. Fix: tillagd catch-block med console.error och exportError-state.
+2. **pdf-export.service.ts** — html2canvas-anropet (async) saknade try/catch. Fix: tillagd try/catch med tydlig fellogning och re-throw sa anroparen kan hantera felet.
+
+**Inga problem hittade i ovriga filer:**
+- Alla 92 services har catchError i pipe pa HTTP-anrop (lagt till av session #165)
+- Alla components anvander antingen catchError(() => of(null)) i pipe ELLER subscribe({next, error}) — bada monster ar korrekta
+- Inga HTTP-anrop direkt i components utan felhantering
+- Ingen retry(1) pa POST/PUT/DELETE (korrekt — retry pa mutationer ar farligt)
+- Alla POST-anrop i services har catchError
+- retry(1) ordningen ar korrekt overallt (timeout forst, sen retry, sen catchError)
+
+**Andrade filer:**
+- noreko-frontend/src/app/components/pdf-export-button/pdf-export-button.component.ts
+- noreko-frontend/src/app/services/pdf-export.service.ts
+
+---
+
 ## 2026-03-18 Session #166 Worker A — PHP security audit (file upload validation + CORS/security headers)
 
 ### Audit 1: PHP file upload validation audit — 0 buggar (inga uploads)
