@@ -5,7 +5,6 @@ import { takeUntil, catchError } from 'rxjs/operators';
 import {
   ProduktionsPrognosService,
   ForecastData,
-  ShiftHistorik,
   ShiftHistoryData,
 } from '../../services/produktionsprognos.service';
 import { parseLocalDate } from '../../utils/date-utils';

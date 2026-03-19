@@ -11,7 +11,6 @@ import {
   ShiftKpis,
   SenastOverlamning,
   PagaendeProblem,
-  OperatorOption,
   CreatePayload,
   ChecklistaItem,
   AktuelltSkiftResponse,
