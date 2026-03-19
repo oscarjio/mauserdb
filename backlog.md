@@ -7,18 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #187):
-- [ ] **PHP error response consistency audit** — granska felhantering i 16 controllers (Worker A)
-- [ ] **PHP controller return type consistency** — granska att alla endpoints returnerar JSON konsekvent (Worker A)
-- [ ] **Angular service HTTP error handling audit** — granska catchError/timeout i services (Worker B)
-- [ ] **Angular component null safety audit** — granska template-buggar i 13+ components (Worker B)
+### Pagaende (session #188):
+- [ ] **PHP deprecated function + null/array safety audit** — alla 33 controllers (Worker A)
+- [ ] **Angular data flow + race condition audit** — alla 38 components (Worker B)
 
-### Nasta buggjakt-items (session #188+):
+### Nasta buggjakt-items (session #189+):
 - [ ] **PHP file upload validation audit** — granska filuppladdning for saknad validering
-- [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
 - [ ] **Angular HTTP interceptor error handling** — granska centraliserad felhantering
-- [ ] **PHP deprecated function usage audit** — granska anvandning av deprecated PHP-funktioner
 - [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor (exec-dashboard, vd-dashboard)
+- [ ] **PHP session/cookie security audit** — granska session-hantering, cookie flags, CSRF
+- [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
 
 ## Parkerade features (ta inte dessa nu)
 
