@@ -7,9 +7,9 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #190):
-- [ ] **PHP file upload validation + session/cookie security audit** (Worker A)
-- [ ] **Angular HTTP interceptor + error handling audit** (Worker B)
+### Klart (session #190):
+- [x] **PHP file upload + session security audit** — 3 buggar fixade (Worker A)
+- [x] **Angular HTTP interceptor + error handling audit** — 5 buggar fixade (Worker B)
 
 ### Nasta buggjakt-items (session #191+):
 - [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor

@@ -79,7 +79,7 @@ Session #186: BUGGJAKT — 29 buggar (0 Worker A + 29 Worker B). Numeric input v
 Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response consistency (20: 2 RebotlingStationsdetalj 400->500, 6 UnderhallsloggController raw echo->helpers, 12 OperatorDashboardController raw echo->helpers). Content-Type headers (16: alla 16 controllers saknade application/json). Angular HTTP/null-safety (0, redan korrekt).
 Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/null (0, redan korrekt). Angular number pipe undefined (3: kassationskvot-alarm).
 Session #189: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). SQL query (3: station_id+GROUP BY i OeeTrendanalys+VdDashboard), try-catch (2: StatistikDashboard+Skiftplanering). setTimeout cleanup (1: daglig-briefing).
-Session #190: BUGGJAKT — pagaende. Worker A: PHP file upload+session security. Worker B: Angular HTTP interceptor+error handling.
+Session #190: BUGGJAKT — 8 buggar (3 Worker A + 5 Worker B). File upload (0, ingen kod), session timeout enforcement (3: checkSessionTimeout i 8 POST-controllers, last_activity-uppdatering, session write-mode). HTTP interceptor (0, redan korrekt), HTTP timeout (1: drifttids-timeline), error-flaggor (4: produktions-dashboard tyst felhantering).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -98,6 +98,6 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 Worker A: 4 buggar — SQL station_id saknas i OeeTrendanalys+VdDashboard (2), saknad DATE(datum) i GROUP BY (1), saknad try-catch i StatistikDashboard+Skiftplanering (2).
 Worker B: 1 bugg — setTimeout-lacka i daglig-briefing loadTrend() (1). Ovriga 10 komponenter redan korrekta.
 
-### 2026-03-19 — Session #190 (pagaende)
-Worker A: PHP file upload validation + session/cookie security audit.
-Worker B: Angular HTTP interceptor + error handling audit i 10 komponenter.
+### 2026-03-19 — Session #190 (klar)
+Worker A: 3 buggar — session timeout aldrig kontrollerad vid POST (8 controllers), StatusController uppdaterade aldrig last_activity, KvalitetscertifikatController session read_and_close for POST.
+Worker B: 5 buggar — drifttids-timeline saknade timeout (1), produktions-dashboard tyst felhantering i 3 metoder + missad catchError-gren i 2 metoder (4).
