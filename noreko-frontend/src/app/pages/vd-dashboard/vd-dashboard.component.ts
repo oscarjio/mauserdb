@@ -251,6 +251,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
     if (!canvas) return;
 
     this.stationChart?.destroy();
+    this.stationChart = null;
 
     const labels = this.stationOee.stationer.map(s => s.station_namn);
     const data = this.stationOee.stationer.map(s => s.oee_pct);
@@ -260,7 +261,6 @@ export class VdDashboardPage implements OnInit, OnDestroy {
       return '#fc8181';
     });
 
-    if (this.stationChart) { (this.stationChart as any).destroy(); }
     this.stationChart = new Chart(canvas, {
       type: 'bar',
       data: {

@@ -245,7 +245,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     const harMal = mal.some(v => v !== null);
 
-    if (this.kapacitetsChart) { (this.kapacitetsChart as any).destroy(); }
     this.kapacitetsChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -381,7 +380,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     });
     const utnyttjande = this.stationData.map(s => s.utnyttjande_pct);
 
-    if (this.stationChart) { (this.stationChart as any).destroy(); }
     this.stationChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -479,7 +477,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     const utnyttjande = this.trendData.map(d => d.utnyttjande_pct);
     const malLinje = this.trendData.map(() => this.trendMalPct);
 
-    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -596,7 +593,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
       'rgba(160, 174, 192, 0.7)',
     ];
 
-    if (this.stopporsakChart) { (this.stopporsakChart as any).destroy(); }
     this.stopporsakChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -666,7 +662,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     const idle      = this.tidFordelningData.map(d => d.idle_h);
     const stopp     = this.tidFordelningData.map(d => d.stopp_h);
 
-    if (this.tidFordelningChart) { (this.tidFordelningChart as any).destroy(); }
     this.tidFordelningChart = new Chart(ctx, {
       type: 'bar',
       data: {

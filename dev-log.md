@@ -1,3 +1,46 @@
+## 2026-03-19 Session #177 Worker B — Angular HTTP interceptor audit + chart memory audit — 3 buggar fixade
+
+### Uppgift 1: Angular HTTP interceptor audit — 0 buggar
+
+Granskade HTTP interceptor i `noreko-frontend/src/app/interceptors/error.interceptor.ts` och `app.config.ts`.
+
+**Metod:** Kontrollerade felhantering for 401/403/500/timeout/nätverksfel, redirect vid 401, rethrow-logik, withCredentials-hantering, och HTTP-anrop utanfor interceptorn.
+
+**Resultat:** Interceptorn ar korrekt implementerad — inga buggar:
+- Alle HTTP-fel hanteras: status 0 (nätverksfel), 401, 403, 404, 408, 429, 500+
+- 401 triggar `auth.clearSession()` + redirect till `/login` med `returnUrl` — korrekt
+- Alla fel reraisas med `throwError(() => error)` — komponenter kan reagera — korrekt
+- Interceptorn registreras globalt via `withInterceptors([errorInterceptor])` i `app.config.ts` — alla HTTP-anrop gar via den
+- `withCredentials: true` saknas pa manga anrop men ar INTE en bugg — alla URLs ar relativa (`/noreko-backend/api.php`) dvs same-origin, dar cookies skickas automatiskt
+- `retry`-logik for status 0/502/503/504 med 1s delay — korrekt
+- `X-Skip-Error-Toast`-header stods for att tysta toast vid specifika anrop — korrekt
+- `action=status`-polling hoppas over i toast-logiken — korrekt
+- `AuthService.fetchStatus()` har egen `catchError(() => of(null))` for att forhindra att polling-fel loggar ut anvandaren — korrekt
+
+### Uppgift 2: Angular chart memory audit — 3 buggar fixade
+
+Granskade ALLA 110 TypeScript-filer som anvander Chart.js (ca 130 `new Chart`-instanser totalt).
+
+**Metod:** Sokte systematiskt efter double-destroy-monster dar ett chart förstörs med `try { this.chart?.destroy() }` men referensen INTE nullas, varefter en andra `if (this.chart) { destroy() }`-kontroll gor att Chart.js destroy() anropas TVANGAR pa samma instans. Detta kan orsaka konsolvarningar och odefinierat beteende i Chart.js.
+
+**Bugg 1 — `saglinje-statistik.ts`:** `buildQualityChart()` och `buildMonthlyChart()` saknade `this.chart = null` efter forsta destroy, vilket gjorde att andra destroy-anropet faktiskt kördes pa den redan förstörda instansen.
+- Fix: Lade till `this.qualityChart = null` och `this.monthlyChart = null` efter forsta destroy i respektive metod.
+
+**Bugg 2 — `klassificeringslinje-statistik.ts`:** Exakt samma monster som Bugg 1 (identisk kodbas). `buildQualityChart()` och `buildMonthlyChart()` saknade null-tilldelning efter forsta destroy.
+- Fix: Samma fix som Bugg 1.
+
+**Bugg 3 — `prediktivt-underhall.component.ts`:** `buildTrendChart()` saknade `this.trendChart = null` efter forsta destroy, varefter `if (this.trendChart) { destroy() }` kördes pa den redan förstörda instansen.
+- Fix: Lade till `this.trendChart = null` efter forsta destroy.
+
+**Rensade död kod (ej aktiva buggar) i 24 filer:** I en mängd filer hittades monster dar `this.chart = null` REDAN gjordes efter forsta destroy, vilket innebar att den efterföljande `if (this.chart) { destroy() }`-kontrollen alltid var false (död kod). Rensade bort dessa döda kontroller for konsistens i:
+`vd-dashboard`, `statistik-produkttyp-effektivitet`, `operator-personal-dashboard`, `oee-jamforelse`, `kassationskvot-alarm`, `operator-jamforelse` (2 charts), `leveransplanering` (2 charts), `kassationsorsak-statistik` (3 charts), `kassationsorsak` (3 charts), `min-dag`, `skiftrapport-sammanstallning` (2 charts), `produktionstakt`, `produktionskostnad` (3 charts), `kvalitetscertifikat`, `maskinunderhall`, `kapacitetsplanering` (5 charts), `produktions-sla` (3 charts), `rebotling-statistik`, `batch-sparning`, `skiftplanering`, `rebotling-sammanfattning`, `historisk-produktion`, `operator-compare`, `produktionseffektivitet`.
+
+**Korrekt (inga buggar):**
+- Alla 110 filer har `ngOnDestroy` med `chart.destroy()` — inga glömda destroy
+- Alla setInterval/clearInterval-par ar korrekt implementerade i ngOnDestroy
+- Alla setTimeout-anrop har destroy$.closed-guard eller clearTimeout i ngOnDestroy
+- Inga chart-instanser aterscaps vid navigering utan att gamla destrueras forst
+
 ## 2026-03-19 Session #177 Worker A — PHP file permission audit + SQL injection re-audit — 0 buggar
 
 ### Uppgift 1: PHP file permission audit — 0 buggar

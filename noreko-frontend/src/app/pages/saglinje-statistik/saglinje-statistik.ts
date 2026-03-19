@@ -303,12 +303,12 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   private buildQualityChart() {
     if (!this.qualityChartRef?.nativeElement) return;
     try { this.qualityChart?.destroy(); } catch (e) {}
+    this.qualityChart = null;
     const data = this.filteredReports;
     const labels = data.map(r => (r.datum || '').substring(0, 10));
     const qualities = data.map(r => r.totalt > 0 ? Math.round((r.antal_ok / r.totalt) * 100) : 0);
     const ctx = this.qualityChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
-    if (this.qualityChart) { (this.qualityChart as any).destroy(); }
     this.qualityChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -350,6 +350,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   private buildMonthlyChart() {
     if (!this.monthlyChartRef?.nativeElement) return;
     try { this.monthlyChart?.destroy(); } catch (e) {}
+    this.monthlyChart = null;
     const data = this.filteredReports;
     const grouped = new Map<string, { ok: number; ejOk: number }>();
     for (const r of data) {
@@ -365,7 +366,6 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
     const ejOkData = sorted.map(([, v]) => v.ejOk);
     const ctx = this.monthlyChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
-    if (this.monthlyChart) { (this.monthlyChart as any).destroy(); }
     this.monthlyChart = new Chart(ctx, {
       type: 'bar',
       data: {

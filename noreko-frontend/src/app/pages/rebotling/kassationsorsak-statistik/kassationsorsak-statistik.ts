@@ -232,7 +232,6 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
 
     const self = this;
 
-    if (this.paretoChart) { (this.paretoChart as any).destroy(); }
     this.paretoChart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -325,7 +324,6 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
         tension: 0.3,
       }));
 
-    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
       type: 'line',
       data: { labels: dates, datasets },
@@ -363,7 +361,6 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     const labels = series.map(d => d.datum);
     const values = series.map(d => d.antal);
 
-    if (this.drilldownChart) { (this.drilldownChart as any).destroy(); }
     this.drilldownChart = new Chart(canvas, {
       type: 'bar',
       data: {

@@ -97,7 +97,6 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
     const kvalValues = veckodata.map(v => v.kvalitet_pct);
     const malArr = veckodata.map(() => mal_oee);
 
-    if (this.oeeChart) { (this.oeeChart as any).destroy(); }
     this.oeeChart = new Chart(ctx, {
       type: 'line',
       data: {

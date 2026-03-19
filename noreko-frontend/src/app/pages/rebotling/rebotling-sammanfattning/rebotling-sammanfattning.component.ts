@@ -144,7 +144,6 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     const okData   = series.map(s => s.ibc_ok);
     const ejOkData = series.map(s => s.ibc_ej_ok);
 
-    if (this.productionChart) { (this.productionChart as any).destroy(); }
     this.productionChart = new Chart(canvas, {
       type: 'bar',
       data: {

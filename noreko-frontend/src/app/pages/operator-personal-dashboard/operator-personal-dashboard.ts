@@ -259,7 +259,6 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
       return dt.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'numeric' });
     });
 
-    if (this.veckotrendChart) { (this.veckotrendChart as any).destroy(); }
     this.veckotrendChart = new Chart(ctx, {
       type: 'line',
       data: {

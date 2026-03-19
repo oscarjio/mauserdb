@@ -1243,7 +1243,6 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     const ctx = this.trendChartCanvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {

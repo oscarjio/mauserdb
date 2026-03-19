@@ -226,6 +226,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
 
   private buildIbcPerTimmeChart(): void {
     try { this.ibcPerTimmeChart?.destroy(); } catch (_) {}
+    this.ibcPerTimmeChart = null;
     const el = this.ibcPerTimmeChartRef?.nativeElement;
     if (!el || this.produkter.length === 0) return;
 
@@ -233,7 +234,6 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
       .filter(p => p.ibc_per_timme !== null)
       .sort((a, b) => (a.ibc_per_timme ?? 0) - (b.ibc_per_timme ?? 0));
 
-    if (this.ibcPerTimmeChart) { (this.ibcPerTimmeChart as any).destroy(); }
     this.ibcPerTimmeChart = new Chart(el, {
       type: 'bar',
       data: {

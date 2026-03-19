@@ -251,7 +251,6 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     const klara = this.activeBatches.map(b => b.antal_klara);
     const kvar = this.activeBatches.map(b => Math.max(0, b.planerat_antal - b.antal_klara));
 
-    if (this.progressChart) { (this.progressChart as any).destroy(); }
     this.progressChart = new Chart(canvas, {
       type: 'bar',
       data: {
