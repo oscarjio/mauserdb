@@ -188,7 +188,7 @@
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Nytt lösenord</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.password" name="password-{{user.id}}" placeholder="Lämna tomt för att behålla" type="password" />
+                                <input class="form-control form-control-sm" [(ngModel)]="user.password" name="password-{{user.id}}" placeholder="Lämna tomt för att behålla" type="password" maxlength="128" />
                               </div>
                               <div class="col-md-2">
                                 <button class="btn btn-success btn-sm w-100" type="submit" [disabled]="savingUser || !user.username?.trim()">

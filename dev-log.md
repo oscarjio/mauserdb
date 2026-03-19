@@ -1,3 +1,40 @@
+## 2026-03-19 Session #175 Worker B — Angular memory leak audit + form validation consistency — 3 buggar fixade
+
+### Uppgift 1: Angular memory leak audit — 0 buggar
+
+Granskade ALLA 42 Angular-komponenter (41 .component.ts + layout, menu, news, header, submenu, toast, pdf-export-button, produktionspuls, produktionspuls-widget) for minnesslackor.
+
+**Metod:** Systematisk sokning efter subscribe(), setInterval/setTimeout, new Chart(), addEventListener, ResizeObserver/MutationObserver/IntersectionObserver, WebSocket i alla komponent-filer. Korsrefererade mot ngOnDestroy, destroy$/takeUntil, clearInterval/clearTimeout, chart.destroy().
+
+**Resultat:** Samtliga komponenter ar redan korrekt implementerade:
+- Alla 41 filer med subscribe() har destroy$ + takeUntil + ngOnDestroy
+- Alla 34 filer med setInterval har matchande clearInterval i ngOnDestroy
+- setTimeout-anrop ar antingen fire-and-forget (kort delay) eller har clearTimeout
+- Alla 32 filer med new Chart() har matchande chart.destroy() i ngOnDestroy
+- Inga addEventListener, ResizeObserver, MutationObserver, IntersectionObserver eller WebSocket utan cleanup
+- Layout-komponenten anvander @HostListener (Angular hanterar cleanup automatiskt)
+- ToastComponent anvander manuell Subscription med unsubscribe() i ngOnDestroy — korrekt
+
+### Uppgift 2: Angular form validation consistency — 3 buggar fixade
+
+Granskade ALLA Angular-formular (template-driven) i 17 filer med <form>/ngSubmit for saknad client-side validering.
+
+**Bugg 1:** `menu/menu.html` — Profilformularets losenordsfalt saknade maxlength/minlength (login och register har maxlength="128" + minlength="8"). Lade till maxlength="128" pa alla 3 losenordsfalt, minlength="8" pa nytt losenord och bekrafta-falt, samt maxlength="255" pa e-postfaltet.
+
+**Bugg 2:** `pages/users/users.html` — Admin-redigeringsformularets losenordsfalt (rad 191) saknade maxlength. Lade till maxlength="128" for konsistens med login/register.
+
+**Bugg 3:** `pages/shared-skiftrapport/shared-skiftrapport.html` — Submit-knappens [disabled]-villkor kontrollerade bara datum, inte antal-faltens min/max-granser. Lade till validering av antal_ok/antal_ej_ok (0-9999). Samma fix i `pages/rebotling-skiftrapport/rebotling-skiftrapport.html` for ibc_ok-faltet.
+
+**Redan korrekt:**
+- batch-sparning: Alla falt har required, min/max, felmeddelanden, disabled submit
+- maskinunderhall: Alla 2 modaler har komplett validering med ngModel-refs och felmeddelanden
+- kassationskvot-alarm: Troskelformular har min/max/step/required + korsvalidering (varning < alarm)
+- maintenance-form: Komplett validering med required, min/max, felmeddelanden och TS-sidovalidering
+- service-intervals: Komplett validering med required, min/max, felmeddelanden
+- login/register/create-user: Alla har required, minlength, maxlength, disabled submit
+- operators: Korrekt required/min/max pa namn och PLC-nummer
+- stoppage-log: Korrekt required pa reason_id och start_time, maxlength pa kommentar
+
 ## 2026-03-19 Session #175 Worker A — PHP logging audit + file upload security — 13 buggar fixade
 
 ### Uppgift 1: PHP logging audit — 13 buggar fixade

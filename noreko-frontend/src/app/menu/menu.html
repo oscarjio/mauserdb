@@ -169,6 +169,7 @@
                   id="accountEmail"
                   name="accountEmail"
                   required
+                  maxlength="255"
                   [(ngModel)]="profileForm.email" />
               </div>
               <div class="mb-2">
@@ -192,6 +193,8 @@
                   class="form-control form-control-sm"
                   id="newPassword"
                   name="newPassword"
+                  minlength="8"
+                  maxlength="128"
                   [(ngModel)]="profileForm.newPassword" />
               </div>
               <div class="mb-2">
@@ -201,6 +204,8 @@
                   class="form-control form-control-sm"
                   id="confirmPassword"
                   name="confirmPassword"
+                  minlength="8"
+                  maxlength="128"
                   [(ngModel)]="profileForm.confirmPassword" />
               </div>
               <div class="mb-2">
@@ -210,6 +215,7 @@
                   class="form-control form-control-sm"
                   id="currentPassword"
                   name="currentPassword"
+                  maxlength="128"
                   [required]="(profileForm.newPassword.length || 0) > 0 || (profileForm.confirmPassword.length || 0) > 0"
                   [(ngModel)]="profileForm.currentPassword" />
                 <small class="text-muted d-block mt-1">Behövs bara vid byte av lösenord.</small>

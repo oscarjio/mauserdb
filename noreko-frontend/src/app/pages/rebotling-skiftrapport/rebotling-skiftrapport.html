@@ -105,7 +105,7 @@
             </div>
             <div class="col-md-1">
               <label class="form-label">&nbsp;</label>
-              <button class="btn btn-success w-100" (click)="addReport()" [disabled]="addingReport || !newReport.datum">
+              <button class="btn btn-success w-100" (click)="addReport()" [disabled]="addingReport || !newReport.datum || newReport.ibc_ok < 0 || newReport.ibc_ok > 9999">
                 <i class="fas" [class.fa-spinner]="addingReport" [class.fa-spin]="addingReport" [class.fa-plus]="!addingReport" [class.me-2]="!addingReport"></i>
                 <span *ngIf="!addingReport">Lägg till</span>
               </button>

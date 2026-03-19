@@ -155,7 +155,7 @@
             [class.btn-success]="config.themeColor === 'success'"
             [class.text-dark]="config.themeColor === 'warning'"
             (click)="addReport()"
-            [disabled]="addingReport || !newReport.datum">
+            [disabled]="addingReport || !newReport.datum || newReport.antal_ok < 0 || newReport.antal_ej_ok < 0 || newReport.antal_ok > 9999 || newReport.antal_ej_ok > 9999">
             <i class="fas" [class.fa-spinner]="addingReport" [class.fa-spin]="addingReport" [class.fa-plus]="!addingReport"></i>
           </button>
         </div>
