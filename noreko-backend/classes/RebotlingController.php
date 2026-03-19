@@ -501,7 +501,7 @@ class RebotlingController {
                 if ($exceptionRow) {
                     $rebotlingTarget = (int)$exceptionRow['justerat_mal'];
                 }
-            } catch (Exception $e) { error_log('RebotlingController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingController::getLiveStats undantag: ' . $e->getMessage()); }
 
             // Hämta senaste utetemperatur
             $utetemperatur = null;
@@ -1456,7 +1456,7 @@ class RebotlingController {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dailyGoal = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingController::getLiveRanking dagsMal: ' . $e->getMessage()); }
 
             $today = date('Y-m-d');
 

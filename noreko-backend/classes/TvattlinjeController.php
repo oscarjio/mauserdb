@@ -181,14 +181,14 @@ class TvattlinjeController {
                     $diff         = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus plcLastSeen: ' . $e->getMessage()); }
 
             // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM tvattlinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
 
             // Antal poster idag
             $posterIdag = 0;
@@ -196,7 +196,7 @@ class TvattlinjeController {
                 $posterIdag = (int)$this->pdo->query(
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
                 )->fetchColumn();
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus posterIdag: ' . $e->getMessage()); }
 
             // Är linjen i drift? PLC-data < 15 min gammal
             $isRunning = ($plcAgeMinutes !== null && $plcAgeMinutes < 15);
@@ -248,7 +248,7 @@ class TvattlinjeController {
                 $ibcIdag = (int)$this->pdo->query(
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
                 )->fetchColumn();
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
             // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
             $dagmal = 80;
@@ -271,8 +271,8 @@ class TvattlinjeController {
                     if ($wgRow && (int)$wgRow['mal'] > 0) {
                         $dagmal = (int)$wgRow['mal'];
                     }
-                } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+                } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
 
             // Linjen kör? (senaste PLC < 15 min gammal)
             $isRunning = false;
@@ -286,7 +286,7 @@ class TvattlinjeController {
                     $ageMin = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     $isRunning = ($ageMin < 15);
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
 
             // Takt: IBC per timme senaste 2 timmar
             $taktPerTimme = 0.0;
@@ -295,7 +295,7 @@ class TvattlinjeController {
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
                 )->fetchColumn();
                 $taktPerTimme = round($cnt / 2.0, 1);
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot taktPerTimme: ' . $e->getMessage()); }
 
             // Skiftlängd
             $skiftTimmar = 8.0;
@@ -314,7 +314,7 @@ class TvattlinjeController {
                 if ($slutDt > $startDt) {
                     $skiftTimmar = ($slutDt->getTimestamp() - $startDt->getTimestamp()) / 3600.0;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController: ' . $e->getMessage()); }
+            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot skiftTimmar: ' . $e->getMessage()); }
 
             // Prognos
             $shiftStart = new \DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);

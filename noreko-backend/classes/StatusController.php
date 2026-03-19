@@ -75,7 +75,8 @@ class StatusController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('StatusController::handle: ' . $e->getMessage());
-            echo json_encode(['success' => true, 'loggedIn' => false], JSON_UNESCAPED_UNICODE);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte kontrollera session'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -158,14 +159,14 @@ class StatusController {
                                     "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
                                 )->fetchColumn();
                                 if ($cRow > 0) $snittCykel = (float)$cRow;
-                            } catch (Exception $e) { error_log('StatusController: ' . $e->getMessage()); }
+                            } catch (Exception $e) { error_log('StatusController::getAllLinesStatus snittCykel: ' . $e->getMessage()); }
                             $maxMojlig = $prodTid / $snittCykel;
                             if ($maxMojlig > 0) {
                                 $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                             }
                         }
                     }
-                } catch (Exception $e) { error_log('StatusController OEE: ' . $e->getMessage()); }
+                } catch (Exception $e) { error_log('StatusController::getAllLinesStatus OEE: ' . $e->getMessage()); }
 
                 $lines[] = [
                     'id'              => 'rebotling',

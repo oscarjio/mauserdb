@@ -1,3 +1,50 @@
+## 2026-03-19 Session #183 Worker A — PHP header injection + JSON response + error_log format audit — 14 buggar fixade
+
+### Uppgift 1: PHP header injection audit — 0 buggar
+**Metod:** Granskat samtliga PHP-controllers i noreko-backend/classes/ (100+ filer). Sokt efter header(), setcookie(), Location:-redirects som anvander anvandardata.
+**Resultat:** Alla header()-anrop anvander korrekt sanitering:
+- BonusAdminController: filename saniteras med basename() + preg_replace
+- TidrapportController: datumvarden saniteras med preg_replace('/[^0-9-]/', '')
+- RebotlingAnalyticsController: datumvarden saniteras med preg_replace('/[^0-9-]/', '')
+- LoginController: setcookie() anvander session_get_cookie_params(), ingen anvandardata i cookie-varden
+- Inga Location:-redirects finns i nagon controller
+Inga buggar hittade.
+
+### Uppgift 2: PHP JSON response consistency audit — 1 bugg fixad
+
+1. **StatusController.php rad 78** — catch-blocket for DB-exception returnerade `success: true, loggedIn: false` nar databasen inte kunde nas. Detta ar felaktigt — ett databasfel ar inte samma sak som "ej inloggad". Frontenden kunde felaktigt tolka det som att anvandaren ar utloggad och redirecta till login-sidan nar problemet egentligen ar ett serverfel.
+   Fix: Andrade till `http_response_code(500)` + `success: false, error: 'Kunde inte kontrollera session'`.
+
+**Ovriga granskade controllers (inga buggar):** Alla controllers foljer konsistent JSON-format med `success: true/false`. Inga controllers laeker raa exception-meddelanden till klienten. Catch-block som saknar explicit JSON-svar ar inre try-catch (graceful degradation inom storre metoder), inte toppniva-felhanterare.
+
+### Uppgift 3: PHP error_log format consistency audit — 13 buggar fixade
+**Metod:** Granskat alla error_log()-anrop i noreko-backend/classes/. Korrekt format: `error_log('ControllerName::methodName context: ' . $e->getMessage())`. Hittade 13 anrop som saknade `::methodName`.
+
+**Buggar hittade och fixade:**
+
+1. **TvattlinjeController.php** — 3 error_log i getSystemStatus saknade `::getSystemStatus`:
+   - plcLastSeen (rad 184)
+   - losnummer (rad 191)
+   - posterIdag (rad 199)
+
+2. **TvattlinjeController.php** — 6 error_log i getTodaySnapshot saknade `::getTodaySnapshot`:
+   - ibcIdag (rad 251)
+   - weekdayGoal (rad 274)
+   - dagmal (rad 275)
+   - isRunning (rad 289)
+   - taktPerTimme (rad 298)
+   - skiftTimmar (rad 317)
+
+3. **StatusController.php** — 2 error_log i getAllLinesStatus saknade `::getAllLinesStatus`:
+   - snittCykel (rad 161)
+   - OEE (rad 168)
+
+4. **VpnController.php** — 1 error_log i getVpnStatus saknade `::getVpnStatus` (rad 207)
+
+5. **RebotlingController.php** — 2 error_log saknade `::methodName`:
+   - getLiveStats undantag (rad 504)
+   - getLiveRanking dagsMal (rad 1459)
+
 ## 2026-03-19 Session #182 Worker B — Angular HTTP retry/timeout audit + route guard audit — 5 buggar fixade
 
 ### Uppgift 1: Angular HTTP retry audit — 5 buggar fixade

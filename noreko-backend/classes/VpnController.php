@@ -204,7 +204,7 @@ class VpnController {
                     'lines_count' => substr_count($fullOutput, "\n"),
                 ];
                 // Logga rå-output till server-loggen (inte till klienten) för felsökning
-                error_log('VpnController: inga klienter hittades — raw_output_length=' . strlen($fullOutput));
+                error_log('VpnController::getVpnStatus: inga klienter hittades — raw_output_length=' . strlen($fullOutput));
             }
             
             $totalTime = round((microtime(true) - $startTime) * 1000, 2);
