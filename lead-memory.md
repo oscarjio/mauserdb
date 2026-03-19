@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #177)*
+*Senast uppdaterad: 2026-03-19 (session #178)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -82,23 +82,20 @@ Session #174: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Input validation 
 Session #175: BUGGJAKT — 16 buggar (13 Worker A + 3 Worker B). Logging audit (13 saknade error_log i catch-block), file upload (0, ingen kod). Memory leaks (0, redan korrekt), form validation (3).
 Session #176: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). CORS (0, redan korrekt), session handling (0, redan korrekt). Error boundaries (0, redan korrekt), pagination limits (3: operator-ranking, operatorsbonus, kvalitetscertifikat, alarm-historik).
 Session #177: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). File permissions (0, sakert), SQL injection (0, PDO genomgaende). HTTP interceptor (0, komplett). Chart double-destroy (3: saglinje-statistik, klassificeringslinje-statistik, prediktivt-underhall).
+Session #178: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Error response (3: engelska->svenska i BonusAdmin), date/timezone (0, DST-sakert), array key (0, alla skyddade). Form reset (0, korrekt), route params (0, validerade).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #178+):
-- [ ] PHP error response consistency
-- [ ] Angular form reset audit
-- [ ] PHP date/timezone edge cases
-- [ ] Angular route param validation
-- [ ] PHP array key existence
+### Kvarstaende buggjakt-items (session #179+):
+- [ ] PHP transaction rollback audit
+- [ ] Angular HTTP timeout audit
+- [ ] PHP numeric input validation
+- [ ] Angular error message display
+- [ ] PHP logging completeness
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #175 (klar)
-Worker A: 13 buggar — 13 saknade error_log() i catch-block (5 controllers).
-Worker B: 3 buggar — 3 form validation (maxlength/minlength + submit-disable).
 
 ### 2026-03-19 — Session #176 (klar)
 Worker A: 0 buggar — CORS whitelist-baserad (korrekt), session handling komplett (regenerate_id, timeout, cookie-flaggor, strict_mode).
@@ -107,3 +104,7 @@ Worker B: 3 buggar — 0 error boundaries (alla har catchError). 3 pagination li
 ### 2026-03-19 — Session #177 (klar)
 Worker A: 0 buggar — File permissions sakert (ingen diskskrivning, bara socket+CSV-output). SQL injection sakert (PDO prepared statements genomgaende).
 Worker B: 3 buggar — HTTP interceptor komplett (401/403/500/timeout/network). 3 chart double-destroy (saglinje-statistik, klassificeringslinje-statistik, prediktivt-underhall) + 24 filer dod kod rensad.
+
+### 2026-03-19 — Session #178 (klar)
+Worker A: 3 buggar — Error response consistency (3 engelska API-svar -> svenska i BonusAdminController). Date/timezone (0, alla DST-sakra). Array key existence (0, alla skyddade med ?? eller isset).
+Worker B: 0 buggar — Form reset (0, alla formular nollstalls korrekt efter submit). Route param validation (0, alla params valideras med parseInt+isNaN+whitelist).
