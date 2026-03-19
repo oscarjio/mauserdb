@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #176+):
-- [ ] **PHP CORS configuration review** — verifiera att CORS-headers ar korrekta och restriktiva
-- [ ] **PHP session handling audit** — session fixation, regenerate_id, timeout-hantering
-- [ ] **Angular error boundary audit** — saknade catchError i pipe chains, obehandlade promise rejections
-- [ ] **PHP pagination/limit audit** — endpoints utan LIMIT som kan returnera for mycket data
-- [ ] **Angular template accessibility** — saknade alt-texter, aria-attributes pa interaktiva element
+### Nasta buggjakt-items (session #177+):
+- [ ] **PHP file permission audit** — verifiera att filskrivning (loggar, uploads) anvander korrekta permissions
+- [ ] **PHP rate limiting review** — kontrollera att login/API-endpoints har brute-force-skydd
+- [ ] **Angular HTTP interceptor audit** — verifiera att alla HTTP-fel fangas korrekt globalt
+- [ ] **PHP SQL injection re-audit** — granska nyligen andrade controllers for osaker input-hantering
+- [ ] **Angular chart memory audit** — dubbelkolla att Chart.js-instanser destroyas korrekt vid snabb navigering
 
 ## Parkerade features (ta inte dessa nu)
 
