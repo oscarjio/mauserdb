@@ -150,8 +150,8 @@ export class OperatorsbonusService {
     );
   }
 
-  getHistorik(operatorId?: number, from?: string, to?: string): Observable<HistorikResponse | null> {
-    let url = `${this.api}&run=historik`;
+  getHistorik(operatorId?: number, from?: string, to?: string, limit: number = 200): Observable<HistorikResponse | null> {
+    let url = `${this.api}&run=historik&limit=${limit}`;
     if (operatorId) url += `&operator_id=${operatorId}`;
     if (from) url += `&from=${from}`;
     if (to) url += `&to=${to}`;

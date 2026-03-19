@@ -117,8 +117,8 @@ export class KvalitetscertifikatService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getLista(status?: string, period?: string, operatorId?: number): Observable<ListaResponse | null> {
-    let url = `${this.api}&run=lista`;
+  getLista(status?: string, period?: string, operatorId?: number, limit: number = 500): Observable<ListaResponse | null> {
+    let url = `${this.api}&run=lista&limit=${limit}`;
     if (status) url += `&status=${status}`;
     if (period) url += `&period=${period}`;
     if (operatorId) url += `&operator_id=${operatorId}`;

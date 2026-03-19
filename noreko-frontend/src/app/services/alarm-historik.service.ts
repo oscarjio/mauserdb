@@ -92,7 +92,7 @@ export class AlarmHistorikService {
     severity: string = 'all',
     typ: string = 'all'
   ): Observable<AlarmListResponse | null> {
-    const url = `${this.api}&run=list&days=${days}&status=${encodeURIComponent(status)}&severity=${encodeURIComponent(severity)}&typ=${encodeURIComponent(typ)}`;
+    const url = `${this.api}&run=list&days=${days}&limit=1000&status=${encodeURIComponent(status)}&severity=${encodeURIComponent(severity)}&typ=${encodeURIComponent(typ)}`;
     return this.http.get<AlarmListResponse>(url, { withCredentials: true }).pipe(
       timeout(20000),
       retry(1),

@@ -128,9 +128,9 @@ export class OperatorRankingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getHistorik(): Observable<ApiResponse<HistorikData> | null> {
+  getHistorik(days: number = 90): Observable<ApiResponse<HistorikData> | null> {
     return this.http.get<ApiResponse<HistorikData>>(
-      `${this.api}&run=historik`,
+      `${this.api}&run=historik&days=${days}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }

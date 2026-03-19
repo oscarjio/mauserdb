@@ -1,3 +1,45 @@
+## 2026-03-19 Session #176 Worker B — Angular error boundary + pagination/limit audit — 3 buggar
+
+### Uppgift 1: Angular error boundary audit — 0 buggar
+
+Granskade ALLA Angular services (92 st) och komponenter (130+ filer) for saknade error handlers.
+
+**Metod:** Systematisk sokning efter:
+- `this.http.get/post/put/delete` utan `catchError` i pipen
+- `.subscribe()` utan error-callback och utan `catchError` i pipen
+- `.pipe()` chains utan `catchError`
+
+**Resultat:** Inga saknade error boundaries hittade.
+- Alla 92 services i `/services/` har `catchError` med `of(null)` eller felfall-objekt pa ALLA HTTP-metoder
+- Alla 4 services i `/rebotling/` har `catchError` pa samtliga HTTP-metoder
+- Alla 34 sidor med direkta HTTP-anrop (ej via service) har `catchError` i pipen
+- Alla sidor som subscribar pa service-metoder ar skyddade av servicens `catchError` som returnerar `null`, och komponenterna kontrollerar `res?.success` korrekt
+- Monster `.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))` anvands konsekvent
+- Subscribe-anrop pa BehaviorSubjects (auth.loggedIn$, auth.user$) kraver ingen error-hantering — korrekt
+
+### Uppgift 2: Angular pagination/limit frontend audit — 3 buggar fixade
+
+Granskade alla Angular services och komponenter som hamtar data fran backend.
+
+**Metod:** Sokte efter services med `run=list`, `run=historik`, `run=lista` och liknande endpoints som saknade `limit`-parameter i URL:en.
+
+**Bugg 1:** `operator-ranking.service.ts` — `getHistorik()` hamtade ALL rankinghistorik utan tidsbegransning.
+- Fix: Lade till `days` parameter med default `90` och skickar `&days=${days}` till backend.
+
+**Bugg 2:** `operatorsbonus.service.ts` — `getHistorik()` hamtade ALL bonushistorik utan limit (from/to var optional).
+- Fix: Lade till `limit` parameter med default `200` och skickar `&limit=${limit}` till backend.
+
+**Bugg 3:** `kvalitetscertifikat.service.ts` — `getLista()` hamtade ALLA certifikat utan limit.
+- Fix: Lade till `limit` parameter med default `500` och skickar `&limit=${limit}` till backend.
+
+**Bonus:** `alarm-historik.service.ts` `getList()` — lade till `&limit=1000` i URL:en for att undvika obegraensad datahamtning vid 90 dagars filterperiod.
+
+**Ovriga observationer (inget att fixa):**
+- De flesta services anvander redan `days`/`period` parametrar som naturligt begransar datamangden
+- `underhallslogg.ts` skickar redan `limit: 50` vid anrop till `getLista()`
+- `skiftoverlamning.service.ts` `getHistorik()` har redan `limit` parameter (default 10)
+- Alla HTML-templates anvander `trackBy` for *ngFor — korrekt
+
 ## 2026-03-19 Session #176 Worker A — PHP CORS configuration review + session handling audit — 0 buggar
 
 ### Uppgift 1: PHP CORS configuration review — 0 buggar
