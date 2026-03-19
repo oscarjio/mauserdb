@@ -371,7 +371,8 @@ class DagligSammanfattningController {
                     'top3_orsaker'    => [],
                 ];
             }
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('DagligSammanfattningController::getStoppData: ' . $e->getMessage());
             return [
                 'har_data'        => false,
                 'total_stopp_min' => 0,

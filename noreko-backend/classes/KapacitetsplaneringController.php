@@ -182,7 +182,8 @@ class KapacitetsplaneringController {
             $stmt->execute([':datum' => $datum, ':datum2' => $datum]);
             $val = $stmt->fetchColumn();
             return $val !== false ? (int)$val : null;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getProduktionsmal: ' . $e->getMessage());
             return null;
         }
     }

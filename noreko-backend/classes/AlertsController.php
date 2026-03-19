@@ -508,8 +508,8 @@ class AlertsController {
             ");
             $stmt->execute(['mins' => $minMinutes]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException) {
-            // Tabellen kanske saknas
+        } catch (\PDOException $e) {
+            error_log('AlertsController::getLongRunningStoppage: ' . $e->getMessage());
             return [];
         }
     }
@@ -556,7 +556,8 @@ class AlertsController {
             ");
             $stmt->execute(['type' => $type, 'mins' => $withinMinutes]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('AlertsController::recentActiveAlertExists: ' . $e->getMessage());
             return false;
         }
     }

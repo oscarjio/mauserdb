@@ -372,8 +372,8 @@ class KvalitetscertifikatController {
             $kriterier = $this->pdo->query(
                 "SELECT id, namn, beskrivning, min_varde, max_varde, vikt, aktiv FROM kvalitetskriterier WHERE aktiv = 1"
             )->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\PDOException) {
-            // Fallback: enkel berakning
+        } catch (\PDOException $e) {
+            error_log('KvalitetscertifikatController::beraknaKvalitetspoang: ' . $e->getMessage());
             return $this->beraknaEnkelPoang($kassation, $cykeltid, $antalIbc);
         }
 

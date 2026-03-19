@@ -93,7 +93,8 @@ class MinDagController {
             $stmt->execute();
             $val = $stmt->fetchColumn();
             return $val !== false ? (int)$val : 200;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('MinDagController::getDailyGoal: ' . $e->getMessage());
             return 200;
         }
     }

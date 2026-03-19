@@ -79,8 +79,8 @@ class KvalitetstrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception) {
-            // Tabellen kanske inte finns
+        } catch (\Exception $e) {
+            error_log('KvalitetstrendanalysController::getStationer: ' . $e->getMessage());
         }
         return [
             ['id' => 1, 'namn' => 'Station 1'],
@@ -99,7 +99,8 @@ class KvalitetstrendanalysController {
                 $map[(int)$row['number']] = $row['name'];
             }
             return $map;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KvalitetstrendanalysController::getOperatorNames: ' . $e->getMessage());
             return [];
         }
     }

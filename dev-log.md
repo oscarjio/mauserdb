@@ -1,3 +1,52 @@
+## 2026-03-19 Session #180 Worker A — PHP logging + response code audit — 14 buggar fixade
+
+### Uppgift 1: PHP logging completeness audit — 14 buggar
+
+**Metod:** Granskade alla 117 PHP-controllers i noreko-backend/classes/ (utom plcbackend/). Anvande automatiserad sokning for att hitta catch-block utan error_log(), sedan manuell granskning for att skilja riktiga buggar fran legitima tysta catches (tableExists-prober, DateTime-fallbacks, transaction-rethrows).
+
+Totalt 68 catch-block utan error_log() hittade. Efter manuell granskning: 14 riktiga buggar (tysta catches som svaljde DB-fel utan loggning), resten var legitima tysta catches (tableExists, date parsing fallbacks, inner transaction rethrows).
+
+**Bugg 1 — GamificationController::getOperatorIbcData (rebotling_ibc):** PDOException svaljdes tyst med kommentaren "op columns might not exist". Lade till error_log med kontext.
+
+**Bugg 2 — GamificationController::getOperatorIbcData (rebotling_data fallback):** PDOException svaljdes tyst med kommentaren "ignorera". Lade till error_log med kontext.
+
+**Bugg 3 — GamificationController::getOperatorStopptid:** PDOException svaljdes tyst med kommentaren "Ignorera". Lade till error_log med kontext.
+
+**Bugg 4 — GamificationController::calcStreaks:** PDOException svaljdes tyst med kommentaren "Ignorera - streaks blir 0". Lade till error_log med kontext.
+
+**Bugg 5 — AlertsController::getLongRunningStoppage:** PDOException svaljdes tyst med kommentaren "Tabellen kanske saknas". Lade till error_log med kontext.
+
+**Bugg 6 — AlertsController::recentActiveAlertExists:** PDOException svaljdes tyst utan kommentar. Lade till error_log med kontext.
+
+**Bugg 7 — AndonController::getAndonDashboard (shift_plan):** Exception svaljdes tyst med kommentaren "shift_plan kanske inte finns - ignorera". Lade till error_log med kontext.
+
+**Bugg 8 — DagligSammanfattningController::getStoppData:** PDOException svaljdes tyst utan kommentar. Lade till error_log med kontext.
+
+**Bugg 9 — KvalitetscertifikatController::beraknaKvalitetspoang:** PDOException svaljdes tyst med fallback till enkel berakning. Lade till error_log med kontext.
+
+**Bugg 10 — KvalitetstrendanalysController::getStationer:** Exception svaljdes tyst med kommentaren "Tabellen kanske inte finns". Lade till error_log med kontext.
+
+**Bugg 11 — KvalitetstrendanalysController::getOperatorNames:** PDOException svaljdes tyst utan kommentar. Lade till error_log med kontext.
+
+**Bugg 12 — MinDagController::getDailyGoal:** PDOException svaljdes tyst utan kommentar. Lade till error_log med kontext.
+
+**Bugg 13 — MorgonrapportController::getDailyGoalForDate:** Exception svaljdes tyst utan kommentar. Lade till error_log med kontext.
+
+**Bugg 14 — Ytterligare 4 controllers:** RankingHistorikController::getOperatorNames, SkiftrapportController::buildSkiftKPIs (kassationsorsaker), VDVeckorapportController::getTopStopporsaker, KapacitetsplaneringController::getProduktionsmal — alla svaljde exceptions tyst. Lade till error_log med kontext i samtliga.
+
+### Uppgift 2: PHP response code audit — 0 buggar
+
+**Metod:** Granskade alla 117 PHP-controllers for:
+- echo json_encode med success:false och 'error' utan foregaende http_response_code() — 0 hittade
+- http_response_code(500) med success:true — 0 hittade
+- http_response_code(200) med success:false — 0 hittade
+- sendError()-metoder utan http_response_code — 0 hittade (alla har korrekt http_response_code($code))
+- Plain text echo utan json_encode for API-responses — 0 hittade (2 HTML-responses i RebotlingAnalyticsController ar korrekt Content-Type: text/html)
+
+**Resultat:** Alla error-responses i hela PHP-backend har korrekt http_response_code satt. Alla API-responses anvander konsekvent JSON-format. Inga buggar hittade.
+
+---
+
 ## 2026-03-19 Session #179 Worker B — HTTP timeout audit + felmeddelande-granskning — 4 buggar fixade
 
 ### Uppgift 1: Angular HTTP timeout audit — 1 bugg

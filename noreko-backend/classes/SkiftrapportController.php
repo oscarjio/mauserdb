@@ -969,8 +969,8 @@ class SkiftrapportController {
             ");
             $stmtK->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
             $topOrsaker = $stmtK->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\PDOException) {
-            // kassationsregistrering kanske inte finns
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::buildSkiftKPIs(kassationsorsaker): ' . $e->getMessage());
         }
 
         return [

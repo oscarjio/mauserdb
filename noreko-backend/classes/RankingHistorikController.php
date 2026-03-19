@@ -76,7 +76,8 @@ class RankingHistorikController {
                 $map[(int)$r['number']] = $r['name'];
             }
             return $map;
-        } catch (Exception) {
+        } catch (Exception $e) {
+            error_log('RankingHistorikController::getOperatorNames: ' . $e->getMessage());
             return [];
         }
     }

@@ -528,8 +528,8 @@ class VDVeckorapportController {
                     ];
                 }, $rows);
             }
-        } catch (\Exception) {
-            // Tabell kan saknas — returnera tom lista
+        } catch (\Exception $e) {
+            error_log('VDVeckorapportController::getTopStopporsaker: ' . $e->getMessage());
         }
 
         // Fallback: prova stopporsak_registreringar

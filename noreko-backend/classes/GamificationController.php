@@ -145,8 +145,8 @@ class GamificationController {
                     'ok_ibc'        => (int)$row['total_ibc'], // all counted as ok here
                 ];
             }
-        } catch (\PDOException) {
-            // op columns might not exist
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getOperatorIbcData(rebotling_ibc): ' . $e->getMessage());
         }
 
         // Fallback: rebotling_data
@@ -177,8 +177,8 @@ class GamificationController {
                         'ok_ibc'        => (int)$row['ok_ibc'],
                     ];
                 }
-            } catch (\PDOException) {
-                // ignorera
+            } catch (\PDOException $e) {
+                error_log('GamificationController::getOperatorIbcData(rebotling_data fallback): ' . $e->getMessage());
             }
         }
 
@@ -222,8 +222,8 @@ class GamificationController {
                     'antal_stopp'     => (int)$row['antal_stopp'],
                 ];
             }
-        } catch (\PDOException) {
-            // Ignorera
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getOperatorStopptid: ' . $e->getMessage());
         }
 
         return $result;
@@ -341,8 +341,8 @@ class GamificationController {
                     'ibc_count' => (int)$row['ibc_count'],
                 ];
             }
-        } catch (\PDOException) {
-            // Ignorera — streaks blir 0
+        } catch (\PDOException $e) {
+            error_log('GamificationController::calcStreaks: ' . $e->getMessage());
         }
 
         // Berakna streak per operator fran batch-data

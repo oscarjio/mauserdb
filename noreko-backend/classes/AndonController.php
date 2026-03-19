@@ -769,8 +769,8 @@ class AndonController {
                 if ($opRow && !empty($opRow['op_name'])) {
                     $operator = $opRow['op_name'];
                 }
-            } catch (\Exception) {
-                // shift_plan kanske inte finns — ignorera
+            } catch (\Exception $e) {
+                error_log('AndonController::getAndonDashboard(shift_plan): ' . $e->getMessage());
             }
 
             // ---- Sammanställ svar ----
