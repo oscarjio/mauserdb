@@ -1,3 +1,57 @@
+## 2026-03-19 Session #176 Worker A — PHP CORS configuration review + session handling audit — 0 buggar
+
+### Uppgift 1: PHP CORS configuration review — 0 buggar
+
+Granskade ALLA 3 PHP-filer som satter CORS-headers: `api.php`, `login.php`, `admin.php`.
+
+**Metod:** Sokte igenom hela noreko-backend/ efter Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Credentials, samt OPTIONS-hantering.
+
+**Resultat:** Samtliga CORS-konfigurationer ar redan korrekt implementerade:
+- Alla 3 filer anvander whitelist-baserad origin-kontroll (aldrig wildcard `*`)
+- `Access-Control-Allow-Credentials: true` satts BARA nar origin matchar whitelistan — korrekt (ingen * + credentials-kombination)
+- Preflight OPTIONS-requests returnerar HTTP 204 och exit — korrekt
+- CORS-headers ar konsistenta over alla tre filer (samma logik med allowedOrigins + cors_origins.php + automatisk subdomankontroll)
+- `login.php` och `admin.php` ar legacy-stubs (HTTP 410) men bevarar CORS for att preflight inte ska misslyckas — korrekt
+- Inga motstridig konfiguration (alla filer anvander identisk CORS-logik)
+- `update-weather.php` (cron-script) satter inga CORS-headers — korrekt, den ar inte avsedd for browser-anrop
+
+### Uppgift 2: PHP session handling audit — 0 buggar
+
+Granskade ALLA PHP-filer som anvander $_SESSION, session_start(), session_regenerate_id(), session_destroy(), session_unset(), session_set_cookie_params(). Totalt 80+ controllers och 3 entry points.
+
+**Metod:** Systematisk sokning efter session-relaterade funktionsanrop i hela noreko-backend/. Korsrefererade LoginController, AuthHelper, StatusController, ProfileController samt samtliga controllers for korrekt sessionshantering.
+
+**Resultat — session fixation:** Korrekt skyddad.
+- `LoginController` anropar `session_regenerate_id(true)` vid lyckad inloggning (rad 95) — korrekt
+- `api.php` satter `session.use_strict_mode=1` (avvisar oinitierade session-ID:n) — korrekt
+- `api.php` satter `session.use_only_cookies=1` och `session.use_trans_sid=0` (forhindrar session-ID i URL) — korrekt
+
+**Resultat — session timeout:** Korrekt implementerad.
+- `AuthHelper::SESSION_TIMEOUT = 28800` (8 timmar)
+- `api.php` satter `session.gc_maxlifetime=28800` — matchar
+- `StatusController` kontrollerar `$_SESSION['last_activity']` mot timeout och forstor sessionen vid utgangen tid
+- `AuthHelper::checkSessionTimeout()` finns som utility (anvands inte direkt, men timeout-logiken replikeras korrekt i StatusController)
+
+**Resultat — session cookie-flaggor:** Korrekt konfigurerade i `api.php` rad 78-85.
+- `httponly=true` — forhindrar JavaScript-atkomst
+- `secure=dynamisk` (true om HTTPS) — korrekt
+- `samesite=Lax` — skyddar mot CSRF
+- `lifetime=28800` — matchar SESSION_TIMEOUT
+- `login.php` och `admin.php` saknar session_set_cookie_params men dessa startar aldrig sessions (legacy-stubs) — ej bugg
+
+**Resultat — dubbla session_start():** Inga problem.
+- Samtliga controllers anvander `session_status() === PHP_SESSION_NONE` guard fore session_start() — korrekt
+- GET-requests anvander `session_start(['read_and_close' => true])` for att minimera lasfilen — korrekt
+- POST/PUT/DELETE-requests anvander `session_start()` (skrivbart) — korrekt
+
+**Resultat — session_destroy() cleanup:** Korrekt i LoginController.
+- `LoginController::logout()` gor `session_unset()` + `session_destroy()` + cookie-borttagning via `setcookie()` — komplett
+- `StatusController` och `ProfileController` gor `session_unset()` + `session_destroy()` utan explicit cookie-borttagning vid timeout/borttagen anvandare, men detta mitigeras av `session.use_strict_mode=1` som gor att PHP avvisar det gamla session-ID:t och genererar ett nytt — ej bugg
+
+**Resultat — RegisterController:** Startar aldrig session — korrekt (registrering skapar konto, inloggning gors separat)
+
+**Resultat — bcrypt:** Alla losenordshashar anvander `AuthHelper::hashPassword()` som anropar `password_hash($password, PASSWORD_BCRYPT)`. Verifiering via `password_verify()`. Inga sha1/md5-anrop.
+
 ## 2026-03-19 Session #175 Worker B — Angular memory leak audit + form validation consistency — 3 buggar fixade
 
 ### Uppgift 1: Angular memory leak audit — 0 buggar
