@@ -1,3 +1,22 @@
+## 2026-03-19 Session #193 Worker B — Angular HTTP + null safety audit — 4 buggar fixade
+
+Granskade 10 Angular-komponenter + deras HTML-templates for: HTTP-anrop utan felhantering, null/undefined safety, subscription-lackor, timer-lackor, felaktig error-display, type-safety.
+
+### Fixade buggar:
+
+1. **produktions-sla.component.ts** — Timer-lacka: `loadDailyProgress()` anropade `setTimeout()` utan att spara timer-referens. Timern kunde inte rengas i `ngOnDestroy`. Lagt till `gaugeChartTimer` falt + clearTimeout i ngOnDestroy.
+2. **produktions-sla.component.ts** — Timer-lacka: `loadWeeklyProgress()` anropade `setTimeout()` utan att spara timer-referens. Lagt till `weeklyChartTimer` falt + clearTimeout i ngOnDestroy.
+3. **produktions-sla.component.ts** — Timer-lacka: `loadHistory()` anropade `setTimeout()` utan att spara timer-referens. Lagt till `historyChartTimer` falt + clearTimeout i ngOnDestroy.
+4. **avvikelselarm.component.ts** — Timer-lacka: `loadTrend()` anropade `setTimeout()` utan att spara timer-referens. Lagt till `trendChartTimer` falt + clearTimeout i ngOnDestroy.
+
+### Noteringar (inga buggar):
+- produktionsflode, statistik-overblick, batch-sparning, maskinhistorik, leveransplanering, operatorsbonus, rebotling-sammanfattning, stopporsaker: Korrekt implementerade — alla har catchError/error-callback, takeUntil(destroy$), timer-cleanup i ngOnDestroy, null-safe template-bindningar med ?. och ??, felmeddelanden visas pa svenska.
+- Alla komponenter har korrekt OnInit/OnDestroy lifecycle med destroy$ Subject.
+- Alla HTTP-anrop har timeout(15000) + catchError eller error-callback i subscribe.
+- Alla interval/timeout-timers rensas korrekt i ngOnDestroy (efter fixarna ovan).
+
+---
+
 ## 2026-03-19 Session #192 Worker B — Angular form validation audit — 3 buggar fixade
 
 Granskade 14 Angular-komponenter med formular/user input for saknad eller felaktig validering:

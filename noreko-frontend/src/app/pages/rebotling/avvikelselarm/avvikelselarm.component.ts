@@ -91,6 +91,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   // Charts
   private trendChart: Chart | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Lifecycle
   private destroy$ = new Subject<void>();
@@ -111,6 +112,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
     }
+    if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
   }
@@ -204,7 +206,8 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
       next: res => {
         this.loadingTrend = false;
         if (res?.success) {
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
+          if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
         } else {
           this.errorTrend = true;
         }

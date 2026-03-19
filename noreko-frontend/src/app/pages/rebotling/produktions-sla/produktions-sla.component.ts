@@ -65,6 +65,9 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private gaugeChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private weeklyChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private historyChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: ProduktionsSlaService) {}
@@ -81,6 +84,9 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.gaugeChartTimer !== null) { clearTimeout(this.gaugeChartTimer); this.gaugeChartTimer = null; }
+    if (this.weeklyChartTimer !== null) { clearTimeout(this.weeklyChartTimer); this.weeklyChartTimer = null; }
+    if (this.historyChartTimer !== null) { clearTimeout(this.historyChartTimer); this.historyChartTimer = null; }
     this.destroyCharts();
   }
 
@@ -124,7 +130,8 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         this.loadingDaily = false;
         if (res?.success) {
           this.daily = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
+          if (this.gaugeChartTimer !== null) { clearTimeout(this.gaugeChartTimer); }
+          this.gaugeChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
         }
       },
       error: () => { this.loadingDaily = false; }
@@ -140,7 +147,8 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         this.loadingWeekly = false;
         if (res?.success) {
           this.weekly = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
+          if (this.weeklyChartTimer !== null) { clearTimeout(this.weeklyChartTimer); }
+          this.weeklyChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
         }
       },
       error: () => { this.loadingWeekly = false; }
@@ -156,7 +164,8 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         this.loadingHistory = false;
         if (res?.success) {
           this.historyData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
+          if (this.historyChartTimer !== null) { clearTimeout(this.historyChartTimer); }
+          this.historyChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
         }
       },
       error: () => { this.loadingHistory = false; }
