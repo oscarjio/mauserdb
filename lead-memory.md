@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #173)*
+*Senast uppdaterad: 2026-03-19 (session #174)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -78,23 +78,20 @@ Session #170: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error boundarie
 Session #171: BUGGJAKT — 268 buggar (42 Worker A + 226 Worker B). CORS/preflight (3), logging consistency (39), JSON response (0). Form validation (63), chart destroy (163).
 Session #172: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). File upload (0, ingen kod), SQL optimization (8: 3 SELECT*, 3 N+1, 2 index). Unsubscribe (7), template type-safety (40).
 Session #173: BUGGJAKT — 820 buggar (7 Worker A + 813 Worker B). Rate limiting (0, redan OK), error response (5: 4 $_POST->json_decode, 1 felaktigt success:true), session security (2: Content-Type headers). Lazy-loading (0, redan OK), accessibility (813: 11 aria-label, ~160 spinner role, 642 th scope).
+Session #174: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Input validation (3 stored XSS: strip_tags i AvvikelselarmController+RebotlingAdminController), SQL injection (0, redan prepared statements). HTTP retry (0, redan komplett), route guards (0, redan komplett).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #174+):
-- [ ] PHP input validation completeness
-- [ ] Angular HTTP error retry logic
-- [ ] PHP SQL injection review
-- [ ] Angular route guard completeness
+### Kvarstaende buggjakt-items (session #175+):
 - [ ] PHP logging audit
+- [ ] Angular memory leak audit
+- [ ] PHP file upload security
+- [ ] Angular form validation consistency
+- [ ] PHP CORS configuration review
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-18 — Session #171 (klar)
-Worker A: 42 buggar — 3 CORS/preflight, 39 logging consistency.
-Worker B: 226 buggar — 63 form validation, 163 chart destroy.
 
 ### 2026-03-18 — Session #172 (klar)
 Worker A: 8 buggar — 3 SELECT*, 3 N+1, 2 index-migration.
@@ -103,3 +100,7 @@ Worker B: 47 buggar — 7 unsubscribe, 40 template type-safety.
 ### 2026-03-19 — Session #173 (klar)
 Worker A: 7 buggar — 0 rate limiting (redan OK), 5 error response (4 $_POST->json_decode trasiga endpoints i RebotlingController+RebotlingAnalyticsController+CertificationController), 2 session security (Content-Type headers i update-weather.php).
 Worker B: 813 buggar — 0 lazy-loading (redan OK), 813 accessibility (11 aria-label pa icon-knappar, ~160 spinner role="status", 642 th scope="col" i 81 filer).
+
+### 2026-03-19 — Session #174 (klar)
+Worker A: 3 buggar — 3 stored XSS (strip_tags i AvvikelselarmController kvittera(), RebotlingAdminController saveGoalException()+saveMaintenanceLog()). SQL injection: 0 (redan prepared statements overallt).
+Worker B: 0 buggar — HTTP retry redan komplett (timeout+retry+catchError pa alla 508 anrop), route guards redan komplett (160 routes korrekt skyddade).
