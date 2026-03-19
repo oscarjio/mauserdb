@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #189)*
+*Senast uppdaterad: 2026-03-19 (session #190)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -79,24 +79,25 @@ Session #186: BUGGJAKT — 29 buggar (0 Worker A + 29 Worker B). Numeric input v
 Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response consistency (20: 2 RebotlingStationsdetalj 400->500, 6 UnderhallsloggController raw echo->helpers, 12 OperatorDashboardController raw echo->helpers). Content-Type headers (16: alla 16 controllers saknade application/json). Angular HTTP/null-safety (0, redan korrekt).
 Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/null (0, redan korrekt). Angular number pipe undefined (3: kassationskvot-alarm).
 Session #189: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). SQL query (3: station_id+GROUP BY i OeeTrendanalys+VdDashboard), try-catch (2: StatistikDashboard+Skiftplanering). setTimeout cleanup (1: daglig-briefing).
+Session #190: BUGGJAKT — pagaende. Worker A: PHP file upload+session security. Worker B: Angular HTTP interceptor+error handling.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #190+):
-- [ ] PHP file upload validation audit
-- [ ] Angular HTTP interceptor error handling
+### Kvarstaende buggjakt-items (session #191+):
 - [ ] Angular memory profiling — tunga sidor
-- [ ] PHP session/cookie security audit
 - [ ] Angular lazy-loading optimization audit
+- [ ] PHP SQL performance audit — SELECT *, N+1, index
+- [ ] PHP input validation audit — $_GET/$_POST sanitering
+- [ ] Angular chart cleanup audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #188 (klar)
-Worker A: 0 buggar — PHP deprecated/null redan korrekt.
-Worker B: 3 buggar — Angular number pipe pa undefined (3: kassationskvot-alarm).
 
 ### 2026-03-19 — Session #189 (klar)
 Worker A: 4 buggar — SQL station_id saknas i OeeTrendanalys+VdDashboard (2), saknad DATE(datum) i GROUP BY (1), saknad try-catch i StatistikDashboard+Skiftplanering (2).
 Worker B: 1 bugg — setTimeout-lacka i daglig-briefing loadTrend() (1). Ovriga 10 komponenter redan korrekta.
+
+### 2026-03-19 — Session #190 (pagaende)
+Worker A: PHP file upload validation + session/cookie security audit.
+Worker B: Angular HTTP interceptor + error handling audit i 10 komponenter.
