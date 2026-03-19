@@ -281,7 +281,7 @@ class BonusAdminController {
             ]);
 
             $this->sendSuccess([
-                'message' => 'Weights updated successfully',
+                'message' => 'Vikter uppdaterade',
                 'produkt' => $produkt,
                 'weights' => $weights_normalized
             ]);
@@ -361,7 +361,7 @@ class BonusAdminController {
             ]);
 
             $this->sendSuccess([
-                'message' => 'Productivity targets updated',
+                'message' => 'Produktivitetsmål uppdaterade',
                 'targets' => [
                     'foodgrade' => round($foodgrade, 2),
                     'nonun' => round($nonun, 2),
@@ -551,7 +551,7 @@ class BonusAdminController {
             ]);
 
             $this->sendSuccess([
-                'message' => 'Bonuses approved',
+                'message' => 'Bonusar godkända',
                 'period' => $period,
                 'cycles_approved' => $affected
             ]);

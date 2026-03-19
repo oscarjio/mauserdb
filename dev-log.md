@@ -1,3 +1,59 @@
+## 2026-03-19 Session #178 Worker A — PHP error response + date/timezone + array key audit — 3 buggar fixade
+
+### Uppgift 1: PHP error response consistency — 3 buggar fixade
+
+Granskade ALLA PHP-controllers i `noreko-backend/classes/` (exkl. `plcbackend/`).
+
+**Metod:** Sokte efter:
+- Endpoints som returnerar inkonsistenta JSON-svar (icke-JSON, HTML istallet for JSON, saknad Content-Type)
+- Catch-block som returnerar icke-JSON
+- Endpoints som returnerar `success: true` nar de faktiskt misslyckats
+- Inkonsistent felformat (`{error: ...}` vs `{success: false, message: ...}`)
+- Engelsk text i API-svar (brott mot regel 5 — all UI-text pa svenska)
+
+**Bugg 1, 2, 3 — `BonusAdminController.php` rad 284, 364, 554:** Tre engelska `message`-strangar i API-svar:
+- Rad 284: `'Weights updated successfully'` → fixad till `'Vikter uppdaterade'`
+- Rad 364: `'Productivity targets updated'` → fixad till `'Produktivitetsmål uppdaterade'`
+- Rad 554: `'Bonuses approved'` → fixad till `'Bonusar godkända'`
+
+**Korrekt (inga buggar):**
+- `api.php` rad 54 satter `Content-Type: application/json; charset=utf-8` globalt — galler for alla controllers
+- Alla controllers anvander `echo json_encode(... JSON_UNESCAPED_UNICODE)` konsekvent
+- Alla catch-block returnerar `{success: false, error: '...'}` med korrekt `http_response_code(5xx)`
+- Inget `{error: '...'}` utan `success`-nyckeln — konsistent felformat overallt
+- `TvattlinjeController::getReport()` catch returnerar `success: true, empty: true` — intentionellt, hanterar "linje ej i drift" (tabell kan saknas)
+- Alla controllers i `controllers/`-mappen ar proxy-filer som delegerar till `classes/`
+
+### Uppgift 2: PHP date/timezone edge cases — 0 buggar
+
+Granskade ALLA PHP-controllers for DST-relaterade datumproblem.
+
+**Metod:** Sokte efter `strtotime() + 86400`, `date()` utan timezone, datumbejakningar som antar 24h = 1 dag, saknad `date_default_timezone_set`.
+
+**Resultat:** Inga buggar.
+- `api.php` rad 6: `date_default_timezone_set('Europe/Stockholm')` — korrekt, galler for alla controllers
+- Inga `strtotime() + 86400`-monster kvar (session #169 fixade dem i 14 controllers)
+- `strtotime("-N days")` anvands i ~30 controllers — DST-saker (PHP:s datummotor hanterar DST korrekt)
+- `86400 * 5` i `RebotlingTrendanalysController.php:377` — statisk tidskonstant (432000 sek = planeringstid), ej datumkalkyl, ej DST-problem
+- `(int)(($toTs - $fromTs) / 86400)` i `OperatorsbonusController.php:679` — rangevalidering (max 365 dagar), maxavvikelse 1 dag vid DST-overgangen ar acceptabel for en valideringsgrans
+
+### Uppgift 3: PHP array key existence — 0 buggar
+
+Granskade ALLA PHP-controllers for osaker array-access pa `$_GET`/`$_POST`, DB-resultat och `json_decode`.
+
+**Metod:** Sokte efter `$_GET[...]` utan `??`/`isset`, `json_decode` utan null-kontroll, array-access pa potentiellt null/false fran DB.
+
+**Resultat:** Inga buggar.
+- Alla `$_GET`/`$_POST`-accesses anvander `?? 'default'` eller `isset()` fore access
+- Alla `json_decode(file_get_contents('php://input'), true)` foljs av `!is_array($data)` eller `?? []`-check
+- Alla `json_decode($row['kolumn'], true)` foljs av `is_array()`-kontroll fore array-access
+- Session #173 fixade 5 json_decode-buggar, session #174 fixade 3 strip_tags — inga liknande kvar
+- Inga unguarded `->fetch()[...]`-accesses
+
+**Totalt session #178 Worker A: 3 buggar fixade**
+
+---
+
 ## 2026-03-19 Session #178 Worker B — Angular form reset audit + route param validation — 0 buggar
 
 ### Uppgift 1: Angular form reset audit — 0 buggar
