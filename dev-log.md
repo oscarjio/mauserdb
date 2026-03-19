@@ -1,3 +1,80 @@
+## 2026-03-19 Session #181 Worker A — PHP SQL column name audit + input sanitization audit — 8 buggar fixade
+
+### Uppgift 1: PHP SQL column name audit — 0 buggar
+
+**Metod:** Systematiskt granskat alla 90+ PHP-controllers i noreko-backend/classes/.
+Extraherat alla tabellnamn fran INSTALL_ALL.sql + 2026-03-16 migrations och jamfort mot tabellreferenser i PHP-kod.
+Kontrollerat SELECT/WHERE/ORDER BY/GROUP BY/JOIN/INSERT/UPDATE kolumnreferenser.
+
+**Resultat:** Inga felaktiga kolumnnamn hittades. Alla SQL-fragor anvander korrekta kolumnnamn.
+- Alla tabeller som refereras i PHP existerar i migrations (inkl. PLC-tabeller fran 2026-03-16_fix_500_errors.sql)
+- Alla dynamiska kolumnnamn (ORDER BY, GROUP BY) anvander hardkodade SQL-uttryck, inte anvandardata
+- Alla table-name-interpoleringar valideras mot vitlistor (t.ex. LineSkiftrapportController)
+
+### Uppgift 2: PHP input sanitization audit — 8 buggar fixade
+
+**Metod:** Systematiskt granskat alla PHP-controllers for:
+- $_GET/$_POST utan validering
+- json_decode utan null-check
+- Strangvarden fran POST-body utan strip_tags (XSS-prevention)
+- Strangvarden utan mb_substr langdbegransning (DB overflow-prevention)
+- SQL injection via stranginterpolering
+
+**Buggar hittade och fixade:**
+
+1. **FavoriterController.php** — 4 POST-falt (route, label, icon, color) saknade strip_tags().
+   Anvandare kunde lagra HTML/script-taggar i favoriter-tabellen.
+   Fix: Lade till strip_tags() pa alla 4 falt.
+
+2. **FeatureFlagController.php** — 2 POST-falt (feature_key i updateFlag + bulkUpdate) saknade strip_tags().
+   Fix: Lade till strip_tags() pa bada.
+
+3. **KvalitetscertifikatController.php (generera)** — 2 POST-falt (batch_nummer, operator_namn) saknade strip_tags() + mb_substr().
+   Fix: Lade till strip_tags() + mb_substr(0, 100).
+
+4. **KvalitetscertifikatController.php (bedom)** — 1 POST-falt (kommentar) saknade strip_tags() + mb_substr().
+   Fix: Lade till strip_tags() + mb_substr(0, 1000).
+
+5. **KvalitetscertifikatController.php (uppdateraKriterier)** — 2 POST-falt (namn, beskrivning) i foreach-loop saknade strip_tags() + mb_substr().
+   Fix: Lade till strip_tags() + mb_substr(0, 100/500).
+
+6. **BonusAdminController.php (recordPayout)** — notes-falt saknade strip_tags() + mb_substr(); period_label anvande substr istallet for mb_substr.
+   Fix: Lade till strip_tags() + mb_substr(0, 2000) pa notes; andrade substr till mb_substr pa period_label.
+
+7. **MaskinunderhallController.php (addService)** — 2 POST-falt (beskrivning, utfort_av) saknade mb_substr() langdbegransning.
+   Fix: Lade till mb_substr(0, 2000) resp. mb_substr(0, 100).
+
+8. **RebotlingController.php (setSkiftKommentar)** — kommentar saknade trim() och mb_substr() langdbegransning.
+   Fix: Lade till trim() + mb_substr(0, 5000).
+
+9. **SkiftoverlamningController.php (createHandover)** — 5 POST-falt (problem_text, pagaende_arbete, instruktioner, kommentar, mal_nasta_skift) saknade mb_substr() langdbegransning.
+   Fix: Lade till mb_substr(0, 2000) resp. mb_substr(0, 500).
+
+### Ovriga observationer (ej buggar)
+
+- Alla json_decode-anrop har antingen `?? []` null-coalescing eller `!is_array($data)` check
+- Alla $_GET-parametrar for datum valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/')
+- Alla SQL-fragor anvander prepared statements (inga SQL injection-risker)
+- Alla losenord hashas med bcrypt via AuthHelper::hashPassword()
+- Alla datum-stranginterpoleringar i SQL ar forvaliderade med regex (t.ex. BonusController::getDateFilter)
+- Alla switch/dispatch pa $_GET['run'] anvander vitlistor eller explicit case-matchning
+
+### Sammanfattning
+- **0 SQL column name-buggar** (kodbasen ar korrekt)
+- **8 input sanitization-buggar fixade** i 7 PHP-filer (21 individuella falt)
+- Buggkategori: saknad strip_tags (XSS-prevention) och saknad mb_substr (langdbegransning)
+
+### Filer andrade
+- noreko-backend/classes/FavoriterController.php
+- noreko-backend/classes/FeatureFlagController.php
+- noreko-backend/classes/KvalitetscertifikatController.php
+- noreko-backend/classes/BonusAdminController.php
+- noreko-backend/classes/MaskinunderhallController.php
+- noreko-backend/classes/RebotlingController.php
+- noreko-backend/classes/SkiftoverlamningController.php
+
+---
+
 ## 2026-03-19 Session #181 Worker B — Angular error boundary audit + null-safety audit — 4 buggar fixade
 
 ### Uppgift 1: Angular error boundary audit — 4 buggar (saknad catchError i HTTP-anrop)

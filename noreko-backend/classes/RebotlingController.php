@@ -1635,7 +1635,7 @@ class RebotlingController {
 
         $datum     = $body['datum']     ?? '';
         $skiftNr   = intval($body['skift_nr'] ?? 0);
-        $kommentar = strip_tags($body['kommentar'] ?? '');
+        $kommentar = mb_substr(strip_tags(trim($body['kommentar'] ?? '')), 0, 5000);
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);

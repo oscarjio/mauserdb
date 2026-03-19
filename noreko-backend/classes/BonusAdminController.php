@@ -1051,8 +1051,8 @@ class BonusAdminController {
         $ibc_count      = isset($body['ibc_count'])      ? intval($body['ibc_count'])        : 0;
         $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? floatval($body['avg_ibc_per_h'])  : 0;
         $avg_quality_pct= isset($body['avg_quality_pct'])? floatval($body['avg_quality_pct']): 0;
-        $notes          = trim($body['notes'] ?? '');
-        $period_label   = substr(strip_tags(trim($body['period_label'] ?? '')), 0, 50);
+        $notes          = mb_substr(strip_tags(trim($body['notes'] ?? '')), 0, 2000);
+        $period_label   = mb_substr(strip_tags(trim($body['period_label'] ?? '')), 0, 50);
         $bonus_level_raw = $body['bonus_level'] ?? 'none';
         $allowed_levels  = ['none', 'bronze', 'silver', 'gold', 'platinum'];
         $bonus_level     = in_array($bonus_level_raw, $allowed_levels, true) ? $bonus_level_raw : 'none';

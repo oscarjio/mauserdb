@@ -101,7 +101,7 @@ class FeatureFlagController {
             return;
         }
 
-        $featureKey = trim($data['feature_key'] ?? '');
+        $featureKey = strip_tags(trim($data['feature_key'] ?? ''));
         $minRole = trim($data['min_role'] ?? '');
         $validRoles = ['public', 'user', 'admin', 'developer'];
 
@@ -160,7 +160,7 @@ class FeatureFlagController {
             $stmt = $this->pdo->prepare("UPDATE feature_flags SET min_role = ? WHERE feature_key = ?");
 
             foreach ($data['updates'] as $item) {
-                $key = trim($item['feature_key'] ?? '');
+                $key = strip_tags(trim($item['feature_key'] ?? ''));
                 $role = trim($item['min_role'] ?? '');
                 if ($key !== '' && in_array($role, $validRoles, true)) {
                     $stmt->execute([$role, $key]);

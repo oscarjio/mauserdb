@@ -408,8 +408,8 @@ class MaskinunderhallController {
             $serviceTyp = 'planerat';
         }
 
-        $beskrivning = isset($data['beskrivning']) ? strip_tags(trim($data['beskrivning'])) : null;
-        $utfortAv    = isset($data['utfort_av'])   ? strip_tags(trim($data['utfort_av']))   : $this->currentUsername();
+        $beskrivning = isset($data['beskrivning']) ? mb_substr(strip_tags(trim($data['beskrivning'])), 0, 2000) : null;
+        $utfortAv    = isset($data['utfort_av'])   ? mb_substr(strip_tags(trim($data['utfort_av'])), 0, 100)   : $this->currentUsername();
 
         $nastaPlanerad = trim($data['nasta_planerad_datum'] ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $nastaPlanerad)) {

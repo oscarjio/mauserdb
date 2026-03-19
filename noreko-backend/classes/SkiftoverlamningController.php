@@ -956,11 +956,11 @@ class SkiftoverlamningController {
         $stopptidMin = max(0, (int)($data['stopptid_min'] ?? 0));
         $kassationer = max(0, (int)($data['kassationer'] ?? 0));
 
-        $problemText    = isset($data['problem_text'])    ? strip_tags(trim($data['problem_text']))    : null;
-        $pagaendeArbete = isset($data['pagaende_arbete']) ? strip_tags(trim($data['pagaende_arbete'])) : null;
-        $instruktioner  = isset($data['instruktioner'])   ? strip_tags(trim($data['instruktioner']))   : null;
-        $kommentar      = isset($data['kommentar'])       ? strip_tags(trim($data['kommentar']))       : null;
-        $malNastaSkift  = isset($data['mal_nasta_skift']) ? strip_tags(trim($data['mal_nasta_skift'])) : null;
+        $problemText    = isset($data['problem_text'])    ? mb_substr(strip_tags(trim($data['problem_text'])), 0, 2000)    : null;
+        $pagaendeArbete = isset($data['pagaende_arbete']) ? mb_substr(strip_tags(trim($data['pagaende_arbete'])), 0, 2000) : null;
+        $instruktioner  = isset($data['instruktioner'])   ? mb_substr(strip_tags(trim($data['instruktioner'])), 0, 2000)   : null;
+        $kommentar      = isset($data['kommentar'])       ? mb_substr(strip_tags(trim($data['kommentar'])), 0, 2000)       : null;
+        $malNastaSkift  = isset($data['mal_nasta_skift']) ? mb_substr(strip_tags(trim($data['mal_nasta_skift'])), 0, 500)  : null;
 
         $harPagaende = !empty($data['har_pagaende_problem']) ? 1 : 0;
 

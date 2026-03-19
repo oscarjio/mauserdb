@@ -315,10 +315,10 @@ class KvalitetscertifikatController {
     private function generera(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        $batchNummer     = trim($data['batch_nummer'] ?? '');
+        $batchNummer     = mb_substr(strip_tags(trim($data['batch_nummer'] ?? '')), 0, 100);
         $datum           = trim($data['datum'] ?? date('Y-m-d'));
         $operatorId      = isset($data['operator_id']) ? (int)$data['operator_id'] : null;
-        $operatorNamn    = trim($data['operator_namn'] ?? '');
+        $operatorNamn    = mb_substr(strip_tags(trim($data['operator_namn'] ?? '')), 0, 100);
         $antalIbc        = max(0, (int)($data['antal_ibc'] ?? 0));
         $kassationPct    = max(0, min(100, (float)($data['kassation_procent'] ?? 0)));
         $cykeltidSnitt   = max(0, (float)($data['cykeltid_snitt'] ?? 0));
@@ -450,7 +450,7 @@ class KvalitetscertifikatController {
 
         $id        = isset($data['id']) ? (int)$data['id'] : 0;
         $status    = trim($data['status'] ?? '');
-        $kommentar = trim($data['kommentar'] ?? '');
+        $kommentar = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 1000);
 
         if ($id <= 0) {
             $this->sendError('Ogiltigt certifikat-ID');
@@ -541,8 +541,8 @@ class KvalitetscertifikatController {
 
                 $stmt->execute([
                     ':id'          => $id,
-                    ':namn'        => trim($item['namn'] ?? ''),
-                    ':beskrivning' => trim($item['beskrivning'] ?? ''),
+                    ':namn'        => mb_substr(strip_tags(trim($item['namn'] ?? '')), 0, 100),
+                    ':beskrivning' => mb_substr(strip_tags(trim($item['beskrivning'] ?? '')), 0, 500),
                     ':min_varde'   => isset($item['min_varde']) ? (float)$item['min_varde'] : null,
                     ':max_varde'   => isset($item['max_varde']) ? (float)$item['max_varde'] : null,
                     ':vikt'        => max(0, (float)($item['vikt'] ?? 1)),
