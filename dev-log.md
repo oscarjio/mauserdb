@@ -1,3 +1,22 @@
+## 2026-03-19 Session #192 Worker B — Angular form validation audit — 3 buggar fixade
+
+Granskade 14 Angular-komponenter med formular/user input for saknad eller felaktig validering:
+skiftplanering, produktionsmal, leveransplanering, batch-sparning, avvikelselarm, maintenance-form, tidrapport, kvalitetscertifikat, operatorsbonus, stopporsaker, produktions-sla, produktionskostnad, maskinunderhall, skiftoverlamning.
+
+### Fixade buggar:
+
+1. **kvalitetscertifikat.component.html** — `genAntalIbc` hade `min="0"` istallet for `min="1"`, tillat skapande av certifikat med 0 IBC. Andrat till `min="1"`.
+2. **kvalitetscertifikat.component.ts** — `submitGenerera()` saknade validering av `genAntalIbc >= 1` — kunde skicka API-anrop med 0 IBC. Lagt till valideringskontroll + felmeddelande.
+3. **maskinunderhall.component.html** — Service-modalens maskin-select anvande `[value]` istallet for `[ngValue]`, vilket gjorde att `maskin_id` skickades som string istallet for number till API:et. Andrat till `[ngValue]`.
+
+### Noteringar (inga buggar):
+- Alla ovriga komponenter validerar korrekt: submit-knappar ar [disabled] vid ogiltiga formular, min/max ar satta pa numeriska falt, felmeddelanden ar pa svenska, API-anrop kontrollerar valid data fore sanding.
+- Stopporsaker och tidrapport har inga formular (enbart filter/display) — inget att validera.
+- Skiftoverlamning validerar korrekt via `[disabled]="isSubmitting || !skiftdata"`.
+- Alla template-driven ngModel-inputs som behover validering har `#ref="ngModel"` med korrekt felmeddelande.
+
+---
+
 ## 2026-03-19 Session #192 Worker A — PHP SQL performance audit — 6 buggar fixade
 
 Granskade 18 PHP-controllers for SQL-prestandaproblem: SELECT *, N+1 queries, saknade LIMIT, ineffektiva subqueries.
