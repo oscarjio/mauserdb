@@ -149,13 +149,13 @@ class OeeTrendanalysController {
             SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
             FROM (
-                SELECT skiftraknare,
+                SELECT DATE(datum) AS dag, skiftraknare,
                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN :from AND :to
                   AND skiftraknare IS NOT NULL
-                GROUP BY skiftraknare
+                GROUP BY DATE(datum), skiftraknare
             ) sub
         ";
         $stmt = $this->pdo->prepare($sqlIbc);
@@ -189,29 +189,37 @@ class OeeTrendanalysController {
         $stationer = $this->getStationer();
         $dagCount  = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
 
-        // Hamta IBC-data per station via kumulativa PLC-fält
+        // Hamta IBC-data totalt (rebotling_ibc saknar station_id — fordela lika over stationer)
         $sqlIbc = "
             SELECT
-                COALESCE(station_id, 1) AS station_id,
-                SUM(shift_ok) AS ok_ibc,
-                SUM(shift_ej_ok) AS ej_ok_ibc
+                COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
             FROM (
-                SELECT station_id, skiftraknare,
+                SELECT DATE(datum) AS dag, skiftraknare,
                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN :from AND :to
                   AND skiftraknare IS NOT NULL
-                GROUP BY COALESCE(station_id, 1), skiftraknare
+                GROUP BY DATE(datum), skiftraknare
             ) sub
-            GROUP BY station_id
         ";
         $stmt = $this->pdo->prepare($sqlIbc);
         $stmt->execute([':from' => $from, ':to' => $to]);
+        $totalIbcRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        $totalOkIbc = (int)($totalIbcRow['ok_ibc'] ?? 0);
+        $totalEjOkIbc = (int)($totalIbcRow['ej_ok_ibc'] ?? 0);
+        $totalAllIbc = $totalOkIbc + $totalEjOkIbc;
+        // Fordela lika over stationer
+        $stationCount = max(1, count($stationer));
         $ibcByStation = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $row['total_ibc'] = (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
-            $ibcByStation[(int)$row['station_id']] = $row;
+        foreach ($stationer as $s) {
+            $sid = (int)$s['id'];
+            $ibcByStation[$sid] = [
+                'ok_ibc'    => (int)round($totalOkIbc / $stationCount),
+                'ej_ok_ibc' => (int)round($totalEjOkIbc / $stationCount),
+                'total_ibc' => (int)round($totalAllIbc / $stationCount),
+            ];
         }
 
         // Total drifttid (rebotling_onoff saknar station_id, dela lika)

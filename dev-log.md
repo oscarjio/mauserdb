@@ -1,3 +1,39 @@
+## 2026-03-19 Session #189 Worker A — PHP SQL query + try-catch audit — 4 buggar fixade
+
+### Uppgift 1: PHP SQL query correctness audit
+**Granskade controllers (11 st):**
+StatistikDashboardController, SkiftplaneringController, StopptidsanalysController, StopporsakController, ProduktionsmalController, OeeTrendanalysController, OperatorRankingController, VdDashboardController, HistoriskSammanfattningController, StatistikOverblickController, DagligBriefingController
+
+**Buggar fixade (2 st):**
+
+**Bugg 1 — OeeTrendanalysController.php `calcOeePerStation()` (rad 193-207):**
+SQL refererade `station_id` i `rebotling_ibc`, men den kolumnen existerar inte. Orsakade SQL-fel vid alla anrop till per-station OEE. Subqueryn saknade ocksa `DATE(datum)` i GROUP BY, vilket kollapsar data fran olika dagar med samma skiftraknare.
+Fix: Hamtar total IBC och fordelar lika over stationer, med korrekt GROUP BY DATE(datum), skiftraknare.
+
+**Bugg 2 — OeeTrendanalysController.php `calcOeeForPeriod()` (rad 152-158):**
+Subquery for IBC grupperade per skiftraknare utan DATE(datum). Eftersom skiftraknare aterstartar varje dag, kunde skift fran olika dagar med samma raknarvarde kollapsa till en rad (MAX tar hogsta fran alla dagar istallet for per dag).
+Fix: La till `DATE(datum) AS dag` i SELECT och `DATE(datum)` i GROUP BY.
+
+**Bugg 3 — VdDashboardController.php `stationOee()` (rad 444-465):**
+Samma problem som OeeTrendanalys: refererar `station_id` som inte finns i `rebotling_ibc`. Orsakade SQL-fel pa VD-dashboardens station-OEE-vy.
+Fix: Hamtar total IBC via korrekt subquery och fordelar lika over stationer.
+
+### Uppgift 2: PHP try-catch completeness audit
+
+**Bugg 4 — StatistikDashboardController.php `getDaySummary()` (rad 81-126):**
+Tva DB-queries helt utan try-catch. Om nagon query felar kastas ett ohanterat undantag utan error_log.
+Fix: Wrappat hela metoden i try-catch med error_log och returnerar nollvarden vid fel.
+
+**Extra fix — SkiftplaneringController.php `getShiftConfigs()` (rad 114-121):**
+DB-query utan try-catch. Om tabellen saknas eller fragan felar kastas ohanterat undantag.
+Fix: Wrappat i try-catch med error_log och returnerar tom array vid fel.
+
+**Filer andrade:**
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/OeeTrendanalysController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/VdDashboardController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/StatistikDashboardController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/SkiftplaneringController.php`
+
 ## 2026-03-19 Session #189 Worker B — Angular template null-safety + subscription audit — 1 bugg fixad
 
 ### Uppgift 1: Angular template type-safety + null-safety audit

@@ -79,50 +79,61 @@ class StatistikDashboardController {
      * Returnerar: ['ibc_ok' => X, 'ibc_ej_ok' => Y, 'total' => Z, 'kassation_pct' => W, 'drifttid_h' => D]
      */
     private function getDaySummary(string $fromDate, string $toDate): array {
-        $stmt = $this->pdo->prepare("
-            SELECT
-                COALESCE(SUM(shift_ok), 0)      AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0)   AS ibc_ej_ok,
-                COALESCE(SUM(shift_drift), 0)    AS drifttid_min
-            FROM (
+        try {
+            $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum)     AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                    0                            AS shift_drift
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                  AND skiftraknare IS NOT NULL
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
-        ");
-        $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    COALESCE(SUM(shift_ok), 0)      AS ibc_ok,
+                    COALESCE(SUM(shift_ej_ok), 0)   AS ibc_ej_ok,
+                    COALESCE(SUM(shift_drift), 0)    AS drifttid_min
+                FROM (
+                    SELECT
+                        DATE(datum)     AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
+                        0                            AS shift_drift
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        $ok    = (int)($row['ibc_ok']    ?? 0);
-        $ejOk  = (int)($row['ibc_ej_ok'] ?? 0);
-        $total = $ok + $ejOk;
-        $pct   = $total > 0 ? round($ejOk / $total * 100, 2) : 0.0;
+            $ok    = (int)($row['ibc_ok']    ?? 0);
+            $ejOk  = (int)($row['ibc_ej_ok'] ?? 0);
+            $total = $ok + $ejOk;
+            $pct   = $total > 0 ? round($ejOk / $total * 100, 2) : 0.0;
 
-        // Hämta drifttid från skiftrapport
-        $stmtDrift = $this->pdo->prepare("
-            SELECT COALESCE(SUM(drifttid), 0) AS tot_drift
-            FROM rebotling_skiftrapport
-            WHERE datum BETWEEN :from_date AND :to_date
-        ");
-        $stmtDrift->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-        $driftRow = $stmtDrift->fetch(\PDO::FETCH_ASSOC);
-        $drifttidMin = (int)($driftRow['tot_drift'] ?? 0);
-        $drifttidH   = round($drifttidMin / 60, 2);
+            // Hämta drifttid från skiftrapport
+            $stmtDrift = $this->pdo->prepare("
+                SELECT COALESCE(SUM(drifttid), 0) AS tot_drift
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from_date AND :to_date
+            ");
+            $stmtDrift->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $driftRow = $stmtDrift->fetch(\PDO::FETCH_ASSOC);
+            $drifttidMin = (int)($driftRow['tot_drift'] ?? 0);
+            $drifttidH   = round($drifttidMin / 60, 2);
 
-        return [
-            'ibc_ok'        => $ok,
-            'ibc_ej_ok'     => $ejOk,
-            'total'         => $total,
-            'kassation_pct' => $pct,
-            'drifttid_h'    => $drifttidH,
-        ];
+            return [
+                'ibc_ok'        => $ok,
+                'ibc_ej_ok'     => $ejOk,
+                'total'         => $total,
+                'kassation_pct' => $pct,
+                'drifttid_h'    => $drifttidH,
+            ];
+        } catch (\PDOException $e) {
+            error_log('StatistikDashboardController::getDaySummary: ' . $e->getMessage());
+            return [
+                'ibc_ok'        => 0,
+                'ibc_ej_ok'     => 0,
+                'total'         => 0,
+                'kassation_pct' => 0.0,
+                'drifttid_h'    => 0.0,
+            ];
+        }
     }
 
     /**

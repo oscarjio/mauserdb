@@ -112,12 +112,17 @@ class SkiftplaneringController {
      * Hämta alla skift-konfigurationer
      */
     private function getShiftConfigs(): array {
-        $stmt = $this->pdo->query(
-            "SELECT skift_typ, start_tid, slut_tid, min_bemanning, max_bemanning
-             FROM skift_konfiguration
-             ORDER BY FIELD(skift_typ, 'FM', 'EM', 'NATT')"
-        );
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->pdo->query(
+                "SELECT skift_typ, start_tid, slut_tid, min_bemanning, max_bemanning
+                 FROM skift_konfiguration
+                 ORDER BY FIELD(skift_typ, 'FM', 'EM', 'NATT')"
+            );
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('SkiftplaneringController::getShiftConfigs: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

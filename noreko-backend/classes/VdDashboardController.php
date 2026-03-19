@@ -438,30 +438,37 @@ class VdDashboardController {
             $stationer = $this->getStationer();
             $schemaSek = 8 * 3600;
 
-            // Hamta IBC per station
+            // Hamta IBC totalt (rebotling_ibc saknar station_id — fordela lika)
             $ibcByStation = [];
             try {
                 $sql = "
                     SELECT
-                        COALESCE(station_id, 1) AS station_id,
-                        COUNT(*) AS total_ibc,
-                        MAX(COALESCE(ibc_ok, 0)) AS ok_ibc,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS ej_ok_ibc
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = :today
-                      AND skiftraknare IS NOT NULL
-                    GROUP BY COALESCE(station_id, 1), skiftraknare
+                        COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                        COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = :today
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) sub
                 ";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today' => $today]);
-                // Aggregera per station (summera over skift)
-                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $sid = (int)$row['station_id'];
-                    if (!isset($ibcByStation[$sid])) {
-                        $ibcByStation[$sid] = ['total_ibc' => 0, 'ok_ibc' => 0];
-                    }
-                    $ibcByStation[$sid]['ok_ibc']    += (int)$row['ok_ibc'];
-                    $ibcByStation[$sid]['total_ibc'] += (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $totalOkIbc = (int)($row['ok_ibc'] ?? 0);
+                $totalEjOkIbc = (int)($row['ej_ok_ibc'] ?? 0);
+                $totalAllIbc = $totalOkIbc + $totalEjOkIbc;
+                // Fordela lika over stationer
+                $sc = max(1, count($stationer));
+                foreach ($stationer as $s) {
+                    $sid = (int)$s['id'];
+                    $ibcByStation[$sid] = [
+                        'ok_ibc'    => (int)round($totalOkIbc / $sc),
+                        'total_ibc' => (int)round($totalAllIbc / $sc),
+                    ];
                 }
             } catch (\Exception $e) {
                 error_log('VdDashboardController::stationOee (ibc): ' . $e->getMessage());
