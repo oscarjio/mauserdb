@@ -481,7 +481,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     this.http.get<any>(monthlyUrl).pipe(
       timeout(8000),
       catchError(err => {
-        console.error('Historik monthly error:', err);
+        console.error('Fel vid hämtning av månadsdata:', err);
         return of(null);
       }),
       takeUntil(this.destroy$)
@@ -503,7 +503,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     this.http.get<any>(yearlyUrl).pipe(
       timeout(8000),
       catchError(err => {
-        console.error('Historik yearly error:', err);
+        console.error('Fel vid hämtning av årsdata:', err);
         return of(null);
       }),
       takeUntil(this.destroy$)

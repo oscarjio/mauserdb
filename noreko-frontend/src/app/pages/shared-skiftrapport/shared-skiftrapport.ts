@@ -145,7 +145,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         timeout(8000),
         catchError(err => {
-          console.error('Fetch reports failed:', err);
+          console.error('Fel vid hämtning av rapporter:', err);
           return of({ success: false, message: 'Kunde inte hamta rapporter', data: [] });
         })
       )
@@ -178,7 +178,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.service.createReport(this.config.line, this.newReport)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-        console.error('Create report failed:', err);
+        console.error('Fel vid skapande av rapport:', err);
         return of({ success: false, message: 'Kunde inte skapa rapport' });
       }))
       .subscribe({
@@ -205,7 +205,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       antal_ej_ok: parseInt(report.antal_ej_ok, 10) || 0,
       kommentar: report.kommentar || ''
     }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-      console.error('Update report failed:', err);
+      console.error('Fel vid uppdatering av rapport:', err);
       return of({ success: false, message: 'Kunde inte uppdatera rapport' });
     })).subscribe({
       next: (res) => {
@@ -226,7 +226,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!confirm('Ta bort rapport?')) return;
     this.service.deleteReport(this.config.line, id)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-        console.error('Delete report failed:', err);
+        console.error('Fel vid borttagning av rapport:', err);
         return of({ success: false, message: 'Kunde inte ta bort rapport' });
       }))
       .subscribe({
@@ -247,7 +247,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!confirm(`Ta bort ${this.selectedIds.size} rapport(er)?`)) return;
     this.service.bulkDelete(this.config.line, Array.from(this.selectedIds))
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-        console.error('Bulk delete failed:', err);
+        console.error('Fel vid massborttagning:', err);
         return of({ success: false, message: 'Kunde inte ta bort rapporter' });
       }))
       .subscribe({
@@ -267,7 +267,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const v = !report.inlagd;
     this.service.updateInlagd(this.config.line, report.id, v)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-        console.error('Update inlagd failed:', err);
+        console.error('Fel vid uppdatering av inlagd-status:', err);
         return of({ success: false });
       }))
       .subscribe({
@@ -281,7 +281,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!this.selectedIds.size) { this.errorMessage = 'Inga rader valda'; return; }
     this.service.bulkUpdateInlagd(this.config.line, Array.from(this.selectedIds), inlagd)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
-        console.error('Bulk update inlagd failed:', err);
+        console.error('Fel vid massuppdatering av inlagd-status:', err);
         return of({ success: false });
       }))
       .subscribe({

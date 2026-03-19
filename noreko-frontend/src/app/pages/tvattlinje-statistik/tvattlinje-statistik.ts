@@ -943,7 +943,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                   : 'rgba(220, 53, 69, 0.25)';
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
               } catch (e) {
-                console.error('Background draw error:', e);
+                console.error('Fel vid bakgrundsritning:', e);
               }
             });
 
@@ -965,7 +965,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 ctx.fillStyle = 'rgba(0, 153, 255, 0.18)'; // ljusblå, transparent
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
               } catch (e) {
-                console.error('Selection preview draw error:', e);
+                console.error('Fel vid förhandsvisning av markering:', e);
               }
             }
           }
@@ -976,7 +976,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.attachChartSelectionHandlers(this.productionChart);
 
     } catch (error) {
-      console.error('❌ Chart creation error:', error);
+      console.error('Fel vid skapande av diagram:', error);
     }
   }
 

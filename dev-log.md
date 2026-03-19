@@ -1,3 +1,36 @@
+## 2026-03-19 Session #179 Worker B — HTTP timeout audit + felmeddelande-granskning — 4 buggar fixade
+
+### Uppgift 1: Angular HTTP timeout audit — 1 bugg
+
+**Metod:** Granskade alla 96 Angular services i `services/` och `rebotling/` samt alla page-components med direkta HTTP-anrop. Kontrollerade:
+- HTTP-anrop utan timeout — alla hade timeout (korrekt)
+- HTTP-anrop utan catchError — alla hade catchError (korrekt)
+- Polling-anrop dar timeout >= poll-intervall
+
+**Korrekt (inga buggar):**
+- Alla 92 services i `services/` har korrekt `pipe(timeout(...), retry(1), catchError(...))`
+- Alla 4 rebotling-services har korrekt timeout+catchError
+- Alla page-components med direkt-HTTP har timeout+catchError
+- andon.ts: 10s poll, 8s timeout (korrekt)
+- stopporsak-registrering.ts: 30s poll, 10s timeout (korrekt)
+
+**Bugg 1 — `news/news.ts`:** Polling var 5000ms med timeout(5000) — timeout lika lang som poll-intervall. Om en request tar exakt 5s hinner nasta poll starta innan timeout-error hanteras. Fixat till timeout(4000) for alla 6 HTTP-anrop i fetchAllData().
+
+### Uppgift 2: Angular error message display — 3 buggar
+
+**Metod:** Granskade alla components for:
+- errorMessage-property som saknas i template — inga hittade
+- console.error utan motsvarande anvandardisplay — 3 buggar hittade
+- Engelska felmeddelanden — 28 console.error-meddelanden pa engelska fixade till svenska
+
+**Bugg 2 — `skiftrapport-export/skiftrapport-export.ts`:** PDF-generering hade bara console.error vid fel, inget anvandardisplay. Lade till `pdfFel`-property och felmeddelande-div i template med dark theme-styling.
+
+**Bugg 3 — `pdf-export-button/pdf-export-button.component.html`:** Komponenten hade `exportError = true` vid fel men visade aldrig det i template. Lade till visuell felindikering (ikon + text "PDF-export misslyckades").
+
+**Bugg 4 — Engelska console.error i 7 filer:** 28 st console.error-meddelanden pa engelska oversatta till svenska i: shared-skiftrapport.ts (7 st), rebotling-skiftrapport.ts (13 st), historik.ts (2 st), register.ts (1 st), create-user.ts (1 st), login.ts (2 st), tvattlinje-statistik.ts (3 st).
+
+---
+
 ## 2026-03-19 Session #179 Worker A — PHP transaction rollback audit + numeric input validation — 4 buggar fixade
 
 ### Uppgift 1: PHP transaction rollback audit — 0 buggar

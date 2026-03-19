@@ -90,7 +90,7 @@ export class CreateUserPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
-        console.error('Create user request failed:', err);
+        console.error('Skapande av användare misslyckades:', err);
         this.isLoading = false;
         this.errorMessage = err?.error?.message || 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
         return of(null);

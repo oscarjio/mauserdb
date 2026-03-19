@@ -176,7 +176,7 @@ export class News implements OnInit, OnDestroy {
     // Rebotling
     pending += 2;
     this.rebotlingService.getLiveStats().pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: RebotlingLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
         this.rebotlingToday = res.data.ibcToday || 0;
@@ -188,7 +188,7 @@ export class News implements OnInit, OnDestroy {
     });
 
     this.rebotlingService.getRunningStatus().pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
         this.rebotlingStatus = res.data.running;
@@ -199,7 +199,7 @@ export class News implements OnInit, OnDestroy {
     // Tvättlinje
     pending += 2;
     this.tvattlinjeService.getLiveStats().pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: TvattlinjeLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
         this.tvattlinjeToday = res.data.ibcToday;
@@ -210,7 +210,7 @@ export class News implements OnInit, OnDestroy {
     });
 
     this.tvattlinjeService.getRunningStatus().pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
         this.tvattlinjeStatus = res.data.running;
@@ -221,7 +221,7 @@ export class News implements OnInit, OnDestroy {
     // Saglinje
     pending++;
     this.lineSkiftrapportService.getReports('saglinje').pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = localToday();
@@ -239,7 +239,7 @@ export class News implements OnInit, OnDestroy {
     // Klassificeringslinje
     pending++;
     this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(
-      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = localToday();

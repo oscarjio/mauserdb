@@ -102,7 +102,7 @@ export class RegisterPage implements OnDestroy {
       takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
-        console.error('Register request failed:', err);
+        console.error('Registrering misslyckades:', err);
         this.isLoading = false;
         this.errorMessage = err?.error?.message || 'Ett fel uppstod vid registrering. Försök igen senare.';
         return of(null);

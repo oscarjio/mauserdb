@@ -107,7 +107,7 @@ export class LoginPage implements OnDestroy {
       takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
-        console.error('Login request failed:', err);
+        console.error('Inloggning misslyckades:', err);
         this.error = err?.error?.message || 'Inloggningen misslyckades. Försök igen.';
         this.loading = false;
         return of(null);
@@ -129,7 +129,7 @@ export class LoginPage implements OnDestroy {
             takeUntil(this.destroy$),
             timeout(8000),
             catchError(err => {
-              console.error('Auth fetchStatus failed:', err);
+              console.error('Verifiering av inloggningsstatus misslyckades:', err);
               return of(null);
             })
           ).subscribe(); // bakgrundsverifiering

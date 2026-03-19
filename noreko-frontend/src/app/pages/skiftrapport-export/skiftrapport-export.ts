@@ -448,11 +448,15 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
     this.exporteraPdf(docDef, `veckorapport_${this.valtStartDatum}_${this.valtSlutDatum}.pdf`);
   }
 
+  pdfFel: string | null = null;
+
   private exporteraPdf(docDef: any, filnamn: string): void {
+    this.pdfFel = null;
     try {
       pdfMake.createPdf(docDef).download(filnamn);
     } catch (err) {
       console.error('PDF-generering misslyckades:', err);
+      this.pdfFel = 'PDF-generering misslyckades. Försök igen.';
     } finally {
       this.genererarPdf = false;
     }
