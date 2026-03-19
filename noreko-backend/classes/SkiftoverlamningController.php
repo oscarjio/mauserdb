@@ -122,11 +122,13 @@ class SkiftoverlamningController {
     // =========================================================================
 
     private function sendSuccess(array $data): void {
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 

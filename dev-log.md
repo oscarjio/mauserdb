@@ -1,3 +1,61 @@
+## 2026-03-19 Session #187 Worker A — PHP error response + return type audit — 32 buggar fixade
+
+### Uppgift 1: PHP error response consistency audit
+### Uppgift 2: PHP controller return type consistency audit
+
+**Metod:** Granskade alla 16 PHP-controller-implementationsfiler i noreko-backend/classes/ for:
+- Saknad http_response_code() i catch-block
+- Inkonsekvent HTTP-statuskod (400 istallet for 500 i DB-felfall)
+- Saknad Content-Type: application/json header i sendSuccess()/sendError()
+- Rå echo json_encode() istallet for helper-metoder i legacy-metoder
+- Felaktiga svenska felmeddelanden
+
+**Buggar fixade (32 st):**
+
+**Bug 1 — RebotlingStationsdetaljController.php (2 buggar):**
+- `getSenasteIbc()` catch: sendError saknade 500-statuskod (returnerade 400 vid DB-fel)
+- `getStopphistorik()` catch: sendError saknade 500-statuskod (returnerade 400 vid DB-fel)
+
+**Bug 2 — UnderhallsloggController.php (5 legacy-metoder omstrukturerade):**
+- `getCategories()`: anvande rå echo json_encode() utan helper, nu via sendSuccess()/sendError()
+- `logUnderhall()`: anvande rå echo json_encode() + inline http_response_code(), nu via helpers
+- `getList()`: anvande rå echo json_encode(), nu via sendSuccess()/sendError()
+- `getStats()`: anvande rå echo json_encode(), nu via sendSuccess()/sendError()
+- `deleteEntry()`: anvande rå echo json_encode() + inline http_response_code(), nu via helpers
+- handle() inline 401/400/405-svar: nu via sendError()
+
+**Bug 3 — OperatorDashboardController.php (inga helpers alls):**
+- Klassen saknade sendSuccess()/sendError() helper-metoder helt — alla 10 endpoints anvande rå echo
+- Lade till sendSuccess(array $data) och sendError(string $message, int $code = 400)
+- handle(): inline 405/401/400-svar nu via helpers
+- getToday(), getWeekly(), getHistory(), getSummary(), getOperatorer(),
+  getMinProduktion(), getMittTempo(), getMinBonus(), getMinaStopp(), getMinVeckotrend():
+  alla success echo + catch echo nu via helpers
+
+**Bug 4 — Saknad Content-Type: application/json header (alla 16 controllers):**
+Lade till `header('Content-Type: application/json; charset=utf-8')` i sendSuccess()/sendError()
+(eller sendJson() for StatistikDashboardController) i samtliga 16 filer:
+- StatistikDashboardController.php (sendJson + sendError)
+- SkiftplaneringController.php
+- StopptidsanalysController.php
+- RebotlingStationsdetaljController.php
+- SkiftoverlamningController.php
+- UnderhallsloggController.php
+- StopporsakController.php
+- ProduktionsmalController.php
+- OeeTrendanalysController.php
+- OperatorRankingController.php
+- VdDashboardController.php
+- HistoriskSammanfattningController.php
+- StatistikOverblickController.php
+- OperatorDashboardController.php
+- DagligBriefingController.php
+- SkiftjamforelseController.php
+
+**Bygget lyckades** utan kompileringsfel.
+
+---
+
 ## 2026-03-19 Session #187 Worker B — Angular HTTP error handling + null safety audit — 0 buggar
 
 ### Uppgift 1: HTTP error handling audit — alla *.service.ts — 0 buggar

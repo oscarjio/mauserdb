@@ -20,8 +20,7 @@ class OperatorDashboardController {
 
     public function handle() {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Endast GET tillåtet', 405);
             return;
         }
 
@@ -34,8 +33,7 @@ class OperatorDashboardController {
                 session_start(['read_and_close' => true]);
             }
             if (empty($_SESSION['user_id'])) {
-                http_response_code(401);
-                echo json_encode(['success' => false, 'error' => 'Inloggning krävs'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Inloggning krävs', 401);
                 return;
             }
         }
@@ -53,9 +51,23 @@ class OperatorDashboardController {
             case 'mina-stopp':       $this->getMinaStopp();        break;
             case 'min-veckotrend':   $this->getMinVeckotrend();    break;
             default:
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Okänd metod'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Okänd metod');
         }
+    }
+
+    // ================================================================
+    // HELPERS
+    // ================================================================
+
+    private function sendSuccess(array $data): void {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function sendError(string $message, int $code = 400): void {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     // ================================================================
@@ -142,7 +154,7 @@ class OperatorDashboardController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
-                echo json_encode([
+                $this->sendSuccess([
                     'success'         => true,
                     'datum'           => $today,
                     'operatorer'      => [],
@@ -150,7 +162,7 @@ class OperatorDashboardController {
                     'snitt_ibc_per_h' => 0,
                     'bast_namn'       => null,
                     'bast_ibc_per_h'  => 0,
-                ], JSON_UNESCAPED_UNICODE);
+                ]);
                 return;
             }
 
@@ -233,7 +245,7 @@ class OperatorDashboardController {
                 ? round($sumIbcPerH / $countWithRate, 1)
                 : 0;
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'         => true,
                 'datum'           => $today,
                 'operatorer'      => $operatorer,
@@ -241,11 +253,10 @@ class OperatorDashboardController {
                 'snitt_ibc_per_h' => $snittIbcPerH,
                 'bast_namn'       => $bastNamn ?: null,
                 'bast_ibc_per_h'  => $bastRate,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getToday: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatus'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta operatörsstatus', 500);
         }
     }
 
@@ -333,7 +344,7 @@ class OperatorDashboardController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
-                echo json_encode(['success' => true, 'operatorer' => []], JSON_UNESCAPED_UNICODE);
+                $this->sendSuccess(['success' => true, 'operatorer' => []]);
                 return;
             }
 
@@ -374,11 +385,10 @@ class OperatorDashboardController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'operatorer' => $operatorer, 'fran' => $sjuDagarSen, 'till' => $today], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['success' => true, 'operatorer' => $operatorer, 'fran' => $sjuDagarSen, 'till' => $today]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getWeekly: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckostats'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta veckostats', 500);
         }
     }
 
@@ -480,15 +490,14 @@ class OperatorDashboardController {
                 return array_sum($b['data']) - array_sum($a['data']);
             });
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'   => true,
                 'dates'     => $dates,
                 'operators' => $operators,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getHistory: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta historik'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta historik', 500);
         }
     }
 
@@ -594,7 +603,7 @@ class OperatorDashboardController {
             $stmtManad->execute([':month_a' => $monthStart, ':month_b' => $today]);
             $rowManad = $stmtManad->fetch(PDO::FETCH_ASSOC) ?: [];
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'                 => true,
                 'idag_total_ibc'          => (int)($rowIdag['total_ibc'] ?? 0),
                 'idag_snitt_ibc_per_h'    => (float)($rowIdag['snitt_ibc_per_h'] ?? 0),
@@ -603,11 +612,10 @@ class OperatorDashboardController {
                 'vecka_snitt_ibc_per_h'   => $veckaSnittIbcPerH,
                 'vecka_bast_operatör'     => $veckaBastNamn,
                 'manad_total_ibc'         => (int)($rowManad['total_ibc'] ?? 0),
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getSummary: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta sammanfattning'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
     }
 
@@ -641,11 +649,10 @@ class OperatorDashboardController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'operatorer' => $ops], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['success' => true, 'operatorer' => $ops]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getOperatorer: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta operatörer', 500);
         }
     }
 
@@ -657,8 +664,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Saknar op-parameter');
                 return;
             }
 
@@ -709,18 +715,17 @@ class OperatorDashboardController {
             $nameMap = $this->getNamnMap([$opNum]);
             $namn = $nameMap[$opNum] ?? ('Operatör #' . $opNum);
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'       => true,
                 'total_ibc'     => $totalIbc,
                 'operator_namn' => $namn,
                 'timmar'        => $timmar,
                 'ibc_per_timme' => $ibcPerTimme,
                 'datum'         => $today,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getMinProduktion: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktion'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta produktion', 500);
         }
     }
 
@@ -732,8 +737,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Saknar op-parameter');
                 return;
             }
 
@@ -812,18 +816,17 @@ class OperatorDashboardController {
             // Procent jämfört med snitt
             $procentVsSnitt = ($snittIbcPerH > 0) ? round(($myIbcPerH / $snittIbcPerH) * 100, 0) : 0;
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'          => true,
                 'min_ibc_per_h'    => $myIbcPerH,
                 'snitt_ibc_per_h'  => $snittIbcPerH,
                 'procent_vs_snitt' => $procentVsSnitt,
                 'antal_operatorer' => $countOps,
                 'datum'            => $today,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getMittTempo: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta tempo'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta tempo', 500);
         }
     }
 
@@ -841,8 +844,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Saknar op-parameter');
                 return;
             }
 
@@ -966,7 +968,7 @@ class OperatorDashboardController {
             $totalBonus = round($kvalitetsBonus + $tempoBonus + $stoppBonus, 1);
             $totalPoang = round($produktionsPoang + $totalBonus, 1);
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'            => true,
                 'total_poang'        => $totalPoang,
                 'produktions_poang'  => $produktionsPoang,
@@ -980,11 +982,10 @@ class OperatorDashboardController {
                 'snitt_ibc_per_h'    => round($avgIbcPerH, 1),
                 'antal_stopp'        => $antalStopp,
                 'datum'              => $today,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getMinBonus: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bonus'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta bonus', 500);
         }
     }
 
@@ -996,8 +997,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Saknar op-parameter');
                 return;
             }
 
@@ -1036,18 +1036,17 @@ class OperatorDashboardController {
                 error_log('OperatorDashboardController::getMinaStopp inner: ' . $e->getMessage());
             }
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success'        => true,
                 'stopp'          => $stopp,
                 'antal_stopp'    => count($stopp),
                 'total_stopptid_sek' => $totalSek,
                 'total_stopptid_min' => round($totalSek / 60, 1),
                 'datum'          => $today,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getMinaStopp: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopp'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta stopp', 500);
         }
     }
 
@@ -1059,8 +1058,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Saknar op-parameter');
                 return;
             }
 
@@ -1107,17 +1105,16 @@ class OperatorDashboardController {
                 $cur = strtotime('+1 day', $cur);
             }
 
-            echo json_encode([
+            $this->sendSuccess([
                 'success' => true,
                 'dates'   => $dates,
                 'values'  => $values,
                 'from'    => $fromDate,
                 'to'      => $today,
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (Exception $e) {
             error_log('OperatorDashboardController::getMinVeckotrend: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckotrend'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta veckotrend', 500);
         }
     }
 }

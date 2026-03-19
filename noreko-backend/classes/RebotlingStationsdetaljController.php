@@ -59,6 +59,7 @@ class RebotlingStationsdetaljController {
     // ================================================================
 
     private function sendSuccess(array $data): void {
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success'   => true,
             'data'      => $data,
@@ -68,6 +69,7 @@ class RebotlingStationsdetaljController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success'   => false,
             'error'     => $message,
@@ -278,7 +280,7 @@ class RebotlingStationsdetaljController {
             ]);
         } catch (\PDOException $e) {
             error_log('RebotlingStationsdetaljController::getSenasteIbc: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta IBC-data');
+            $this->sendError('Kunde inte hämta IBC-data', 500);
         }
     }
 
@@ -316,7 +318,7 @@ class RebotlingStationsdetaljController {
             ]);
         } catch (\PDOException $e) {
             error_log('RebotlingStationsdetaljController::getStopphistorik: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stopphistorik');
+            $this->sendError('Kunde inte hämta stopphistorik', 500);
         }
     }
 

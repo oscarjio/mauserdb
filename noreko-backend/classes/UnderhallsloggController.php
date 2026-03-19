@@ -50,8 +50,7 @@ class UnderhallsloggController {
 
         // Alla endpoints kraver inloggning
         if (empty($_SESSION['user_id'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Ej inloggad', 401);
             return;
         }
 
@@ -72,8 +71,7 @@ class UnderhallsloggController {
                 case 'stationer':      $this->getStationer();      return;
 
                 default:
-                    http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'Okand run-parameter'], JSON_UNESCAPED_UNICODE);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -85,14 +83,12 @@ class UnderhallsloggController {
                 case 'skapa':   $this->skapa();        return;
                 case 'ta-bort': $this->taBort();       return;
                 default:
-                    http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'Okand run-parameter'], JSON_UNESCAPED_UNICODE);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
 
-        http_response_code(405);
-        echo json_encode(['success' => false, 'error' => 'Ogiltig metod'], JSON_UNESCAPED_UNICODE);
+        $this->sendError('Ogiltig metod', 405);
     }
 
     // =========================================================================
@@ -167,11 +163,13 @@ class UnderhallsloggController {
     }
 
     private function sendSuccess(array $data): void {
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
@@ -559,25 +557,23 @@ class UnderhallsloggController {
     // Legacy endpoints (backward compatibility)
     // =========================================================================
 
-    private function getCategories() {
+    private function getCategories(): void {
         try {
             $stmt = $this->pdo->query(
                 "SELECT id, namn FROM underhall_kategorier WHERE aktiv = 1 ORDER BY id"
             );
-            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController::getCategories: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta kategorier'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta kategorier', 500);
         }
     }
 
-    private function logUnderhall() {
+    private function logUnderhall(): void {
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Ogiltig JSON-data');
                 return;
             }
 
@@ -588,20 +584,17 @@ class UnderhallsloggController {
             $maskin         = mb_substr(strip_tags(trim($data['maskin'] ?? 'Rebotling')), 0, 100);
 
             if (empty($kategori)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Kategori saknas'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Kategori saknas');
                 return;
             }
 
             if (!in_array($typ, ['planerat', 'oplanerat'], true)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig typ'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Ogiltig typ');
                 return;
             }
 
             if ($varaktighetMin <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Varaktighet maste vara storre an 0'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Varaktighet måste vara större än 0');
                 return;
             }
 
@@ -614,19 +607,14 @@ class UnderhallsloggController {
             $stmt->execute([$userId, $kategori, $typ, $varaktighetMin, $kommentar ?: null, $maskin ?: 'Rebotling']);
             $newId = (int)$this->pdo->lastInsertId();
 
-            echo json_encode([
-                'success' => true,
-                'message' => 'Underhall loggat',
-                'id'      => $newId,
-            ], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['message' => 'Underhall loggat', 'id' => $newId]);
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController::logUnderhall: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte logga underhall'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte logga underhall', 500);
         }
     }
 
-    private function getList() {
+    private function getList(): void {
         try {
             $days     = max(1, min(365, intval($_GET['days'] ?? 30)));
             $typ      = trim($_GET['type'] ?? 'all');
@@ -659,15 +647,14 @@ class UnderhallsloggController {
             $stmt->execute($params);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['data' => $rows]);
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController::getList: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta underhallslogg'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta underhållslogg', 500);
         }
     }
 
-    private function getStats() {
+    private function getStats(): void {
         try {
             $days = max(1, min(365, intval($_GET['days'] ?? 30)));
 
@@ -704,8 +691,7 @@ class UnderhallsloggController {
             $stmtKat->execute([$days]);
             $topKategorier = $stmtKat->fetchAll(\PDO::FETCH_ASSOC);
 
-            echo json_encode([
-                'success' => true,
+            $this->sendSuccess([
                 'data' => [
                     'totalt_antal'    => $totaltAntal,
                     'total_tid_min'   => $totalTidMin,
@@ -716,54 +702,48 @@ class UnderhallsloggController {
                     'oplanerat_pct'   => $oplaneratPct,
                     'top_kategorier'  => $topKategorier,
                 ],
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController::getStats: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta statistik'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte hämta statistik', 500);
         }
     }
 
-    private function deleteEntry() {
+    private function deleteEntry(): void {
         try {
             $role = $_SESSION['role'] ?? '';
             if ($role !== 'admin') {
                 error_log('UnderhallsloggController::deleteEntry: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . $role);
-                http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Atkomst nekad — kraver admin'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Åtkomst nekad — kräver admin', 403);
                 return;
             }
 
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Ogiltig JSON-data');
                 return;
             }
 
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Ogiltigt ID');
                 return;
             }
 
             $check = $this->pdo->prepare("SELECT id FROM underhallslogg WHERE id = ?");
             $check->execute([$id]);
             if (!$check->fetch()) {
-                http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Post hittades inte'], JSON_UNESCAPED_UNICODE);
+                $this->sendError('Post hittades inte', 404);
                 return;
             }
 
             $stmt = $this->pdo->prepare("DELETE FROM underhallslogg WHERE id = ?");
             $stmt->execute([$id]);
 
-            echo json_encode(['success' => true, 'message' => 'Post borttagen'], JSON_UNESCAPED_UNICODE);
+            $this->sendSuccess(['message' => 'Post borttagen']);
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController::deleteEntry: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort post'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Kunde inte ta bort post', 500);
         }
     }
 }
