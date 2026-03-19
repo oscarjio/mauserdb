@@ -362,8 +362,8 @@ class AvvikelselarmController {
 
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $larmId    = (int)($body['larm_id'] ?? 0);
-        $kommentar = trim($body['kommentar'] ?? '');
-        $kvitteradAv = trim($body['kvitterad_av'] ?? '');
+        $kommentar = strip_tags(trim($body['kommentar'] ?? ''));
+        $kvitteradAv = strip_tags(trim($body['kvitterad_av'] ?? ''));
 
         if ($larmId < 1) {
             $this->sendError('larm_id kravs');

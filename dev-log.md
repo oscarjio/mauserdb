@@ -1,3 +1,22 @@
+## 2026-03-19 Session #174 Worker A — PHP input validation + SQL injection review — 3 buggar fixade
+
+### Uppgift 1: PHP input validation completeness — 3 buggar fixade
+
+Granskade ALLA PHP-controllers i noreko-backend/ (117 filer, ~50 med POST/PUT-endpoints). De flesta controllers har redan utmarkt validering med prepared statements, strip_tags, langdkontroller och intervallvalidering.
+
+**Saknad strip_tags pa user-input som sparas i DB (3 buggar, 2 filer):**
+- `AvvikelselarmController.php`: kvittera() — `kvitterad_av` och `kommentar` sparades utan strip_tags (stored XSS-risk)
+- `RebotlingAdminController.php`: saveGoalException() — `orsak` sparades utan strip_tags
+- `RebotlingAdminController.php`: saveMaintenanceLog() — `actionText` sparades utan strip_tags
+
+### Uppgift 2: PHP SQL injection review — 0 buggar
+
+Granskade ALLA PHP-controllers for SQL injection-risker. Kodbasen anvander konsekvent prepared statements overallt. Dynamiska tabellnamn (LineSkiftrapportController, RuntimeController) anvander strikt whitelist-validering. ORDER BY/LIMIT med user-input anvander antingen whitelist-validering eller (int)-cast. Inga LIKE-klausuler med oescapad user-input hittades.
+
+**Filer andrade:** `noreko-backend/classes/AvvikelselarmController.php`, `noreko-backend/classes/RebotlingAdminController.php`
+
+---
+
 ## 2026-03-19 Session #173 Worker B — Angular accessibility audit — 813 buggar fixade
 
 ### Uppgift 1: Angular lazy-loading completeness audit — 0 buggar

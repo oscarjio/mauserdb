@@ -1170,7 +1170,7 @@ class RebotlingAdminController {
     public function saveMaintenanceLog(): void {
         try {
             $body = json_decode(file_get_contents('php://input'), true) ?? [];
-            $actionText = trim($body['action_text'] ?? '');
+            $actionText = strip_tags(trim($body['action_text'] ?? ''));
             if (strlen($actionText) === 0 || strlen($actionText) > 1000) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Åtgärdstext saknas eller är för lång (max 1000 tecken)'], JSON_UNESCAPED_UNICODE);
@@ -1263,7 +1263,7 @@ class RebotlingAdminController {
             echo json_encode(['success' => false, 'error' => 'Justerat mål måste vara mellan 1 och 9999'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        $orsak = isset($data['orsak']) ? mb_substr(trim((string)$data['orsak']), 0, 255) : null;
+        $orsak = isset($data['orsak']) ? mb_substr(strip_tags(trim((string)$data['orsak'])), 0, 255) : null;
         try {
             $userId = $_SESSION['user_id'] ?? null;
             $stmt = $this->pdo->prepare(
