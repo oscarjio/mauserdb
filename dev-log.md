@@ -1,3 +1,38 @@
+## 2026-03-19 Session #186 Worker A — PHP numeric input validation + SQL LIMIT/OFFSET injection audit — 0 buggar
+
+### Uppgift 1: PHP numeric input validation audit (A-M controllers) — 0 buggar
+
+**Metod:** Granskade alla 34 PHP-controllers A-M i noreko-backend/classes/ for numeriska inputs fran $_GET/$_POST som anvands i SQL-queries eller aritmetik utan validering (intval(), floatval(), (int), (float), is_numeric(), max/min-clamping).
+
+**Resultat:** Alla 34 kontrollerade controllers validerar numeriska inputs korrekt:
+- ID-parametrar: anvander intval() eller (int) cast (t.ex. BonusController rad 142, CykeltidHeatmapController rad 304, KassationsDrilldownController rad 192, MinDagController rad 53)
+- page/limit/offset-parametrar: anvander (int) cast + max/min clamping (t.ex. HistoriskProduktionController rad 380-381, FeedbackAnalysController rad 88-89, MaskinhistorikController rad 317)
+- days/period-parametrar: anvander intval() eller (int) + max/min clamping (t.ex. AlarmHistorikController rad 53, EffektivitetController rad 93, KapacitetsplaneringController rad 424)
+- Float-parametrar: anvander floatval() eller (float) cast (t.ex. KvalitetstrendanalysController rad 413-414, BonusAdminController rad 1474-1503)
+- Alla SQL-queries anvander prepared statements med parameter-binding, inte string-interpolation med user input
+
+**Granskade controllers (34 st):** AlarmHistorikController, AndonController, AvvikelselarmController, BonusController, BonusAdminController, CertificationController, CykeltidHeatmapController, DagligBriefingController, DagligSammanfattningController, DrifttidsTimelineController, EffektivitetController, FeedbackAnalysController, FeedbackController, ForstaTimmeAnalysController, GamificationController, HeatmapController, HistorikController, HistoriskProduktionController, HistoriskSammanfattningController, KapacitetsplaneringController, KassationsDrilldownController, KassationskvotAlarmController, KassationsorsakController, KassationsorsakPerStationController, KvalitetstrendController, KvalitetstrendanalysController, KvalitetsTrendbrottController, LeveransplaneringController, MalhistorikController, MaskinDrifttidController, MaskinhistorikController, MaskinOeeController, MinDagController, MorgonrapportController.
+
+### Uppgift 2: PHP SQL LIMIT/OFFSET injection audit (alla controllers A-Z) — 0 buggar
+
+**Metod:** Granskade ALLA PHP-controllers i noreko-backend/classes/ for LIMIT/OFFSET-anvandning. Kontrollerade fyra kategorier:
+1. String-interpolerade LIMIT/OFFSET (LIMIT {$var}) — alla har (int) cast
+2. Prepared statement named params (LIMIT :lim) — alla binds med PDO::PARAM_INT
+3. Prepared statement positional params (LIMIT ?) — alla far redan-castade int-varden
+4. Hardkodade LIMIT-varden (LIMIT 1, LIMIT 500 etc.) — inga problem
+
+**Resultat:** Alla 100+ LIMIT/OFFSET-anvandningar i codebasen ar sakra:
+- RebotlingAnalyticsController rad 3951: LIMIT {$limit} OFFSET {$offset} — $limit och $offset castas med (int) + max/min pa rad 3906-3907
+- AuditController rad 134: LIMIT (int)$limit OFFSET (int)$offset — explicit (int) cast vid interpolering
+- BonusController rad 323/391/673: LIMIT (int)$limit — explicit (int) cast
+- MaskinhistorikController rad 325: LIMIT :lim — bindValue med PDO::PARAM_INT
+- FeedbackAnalysController rad 125: LIMIT :lim OFFSET :off — bindValue med PDO::PARAM_INT
+- SkiftoverlamningController rad 525/644/1226: LIMIT :lim — bindValue med PDO::PARAM_INT
+- UnderhallsloggController rad 249: LIMIT ? — $limit ar (int)-castad
+- Alla ovriga LIMIT-varden ar hardkodade (LIMIT 1, LIMIT 5, LIMIT 500 etc.)
+
+---
+
 ## 2026-03-19 Session #185 Worker B — Angular template expression complexity + router subscription audit — 4 buggar fixade
 
 ### Uppgift 1: Angular template expression complexity audit — 4 buggar
