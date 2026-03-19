@@ -73,7 +73,7 @@
 
   <!-- Loading state -->
   <div class="text-center py-5" *ngIf="loadingOverview">
-    <div class="spinner-border text-info" role="status"></div>
+    <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     <p class="mt-2 text-muted">Laddar...</p>
   </div>
 
@@ -188,7 +188,7 @@
           </div>
         </div>
         <div class="card-body text-center" *ngIf="loadingDaily">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -210,7 +210,7 @@
           </div>
         </div>
         <div class="card-body text-center" *ngIf="loadingWeekly">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -243,7 +243,7 @@
       </div>
     </div>
     <div class="card-body text-center" *ngIf="loadingHistory">
-      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     </div>
   </div>
 

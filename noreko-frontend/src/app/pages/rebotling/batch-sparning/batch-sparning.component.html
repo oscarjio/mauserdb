@@ -44,7 +44,7 @@
 
   <!-- Loading KPI -->
   <div class="text-center py-3" *ngIf="loadingOverview">
-    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     <span class="ms-2 text-muted">Laddar KPI:er...</span>
   </div>
 
@@ -75,7 +75,7 @@
 
     <!-- Loading -->
     <div class="text-center py-3" *ngIf="loadingActive">
-      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
       <span class="ms-2 text-muted">Laddar aktiva batchar...</span>
     </div>
 
@@ -163,7 +163,7 @@
 
     <!-- Loading -->
     <div class="text-center py-3" *ngIf="loadingHistory">
-      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
       <span class="ms-2 text-muted">Laddar historik...</span>
     </div>
 
@@ -221,7 +221,7 @@
 
       <!-- Loading -->
       <div class="text-center py-5" *ngIf="loadingDetail && !selectedBatchDetail">
-        <div role="status" class="spinner-border text-info"></div>
+        <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
         <p class="mt-2 text-muted">Laddar batch-detaljer...</p>
       </div>
 

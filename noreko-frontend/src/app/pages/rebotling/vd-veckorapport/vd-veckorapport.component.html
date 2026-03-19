@@ -202,7 +202,7 @@
           class="btn btn-sm btn-success"
           (click)="genereraSammanfattning()"
           [disabled]="loadingSammanfattning">
-          <span *ngIf="loadingSammanfattning" role="status" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="loadingSammanfattning" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
           Generera utskriftsrapport
         </button>
       </div>
@@ -231,7 +231,7 @@
 
             <!-- Spinner -->
             <div *ngIf="loadingKpi" class="text-center py-4">
-              <div class="spinner-border text-info" role="status"></div>
+              <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
               <p class="text-muted mt-2 mb-0 small">Hämtar KPI-data...</p>
             </div>
 
@@ -288,7 +288,7 @@
           <div class="card-body">
 
             <div *ngIf="loadingTrender" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+              <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
               <span class="ms-2 text-muted small">Analyserar...</span>
             </div>
 
@@ -375,7 +375,7 @@
           <div class="card-body">
 
             <div *ngIf="loadingOperatorer" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+              <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
             </div>
 
             <div *ngIf="!loadingOperatorer && errorOperatorer" class="alert alert-danger mb-0">
@@ -438,7 +438,7 @@
           <div class="card-body">
 
             <div *ngIf="loadingStopp" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+              <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
             </div>
 
             <div *ngIf="!loadingStopp && errorStopp" class="alert alert-danger mb-0">

@@ -80,7 +80,7 @@
 
   <!-- Loading overview -->
   <div class="text-center py-4" *ngIf="loadingOverview">
-    <div class="spinner-border text-info" role="status"></div>
+    <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     <p class="mt-2 text-muted small">Laddar OEE-data...</p>
   </div>
 
@@ -148,7 +148,7 @@
 
   <!-- Loading per-maskin -->
   <div class="text-center py-4" *ngIf="loadingPerMaskin">
-    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
   </div>
 
   <!-- RAD: Stapeldiagram (stacked T/P/K) + Trenddiagram -->
@@ -162,7 +162,7 @@
           OEE per maskin — Jamforelse
         </h5>
         <div *ngIf="loadingBenchmark" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div class="chart-wrapper" *ngIf="!loadingBenchmark && benchmarkData?.benchmark?.length">
           <canvas id="oeeBarChart"></canvas>
@@ -195,7 +195,7 @@
           </div>
         </div>
         <div *ngIf="loadingTrend" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div class="chart-wrapper-tall" *ngIf="!loadingTrend && trendData?.dates?.length">
           <canvas id="oeeTrendChart"></canvas>
@@ -228,7 +228,7 @@
     </div>
 
     <div *ngIf="loadingDetalj" class="text-center py-4">
-      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div class="table-responsive" *ngIf="!loadingDetalj && perMaskinData?.maskiner?.length">

@@ -49,7 +49,7 @@
 
   <!-- Loading KPI -->
   <div class="text-center py-3" *ngIf="loadingOverview">
-    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     <span class="ms-2 text-muted">Laddar KPI:er...</span>
   </div>
 
@@ -125,7 +125,7 @@
 
   <!-- Loading schedule -->
   <div class="text-center py-3" *ngIf="loadingSchedule">
-    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     <span class="ms-2 text-muted">Laddar veckoschema...</span>
   </div>
 
@@ -153,7 +153,7 @@
 
       <!-- Loading -->
       <div class="text-center py-5" *ngIf="loadingDetail && !shiftDetail && !errorDetail">
-        <div role="status" class="spinner-border text-info"></div>
+        <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
         <p class="mt-2 text-muted">Laddar skiftdetaljer...</p>
       </div>
 
@@ -276,7 +276,7 @@
       </div>
 
       <div class="text-center py-2" *ngIf="loadingOperators">
-        <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         <span class="ms-2 text-muted">Laddar operatörer...</span>
       </div>
 

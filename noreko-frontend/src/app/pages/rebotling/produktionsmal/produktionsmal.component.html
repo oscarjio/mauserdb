@@ -23,7 +23,7 @@
           {{ formatNumber(sammanfattning?.dag_mal ?? 0) }}
         </div>
         <div *ngIf="sammanfattningLoading" class="text-center py-2">
-          <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+          <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
         <div class="kpi-unit">IBC</div>
       </div>
@@ -37,7 +37,7 @@
           {{ formatNumber(sammanfattning?.dag_utfall ?? 0) }}
         </div>
         <div *ngIf="sammanfattningLoading" class="text-center py-2">
-          <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+          <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
         <div class="kpi-unit">IBC</div>
       </div>
@@ -51,7 +51,7 @@
           {{ sammanfattning?.dag_uppfyllnad ?? 0 }}%
         </div>
         <div *ngIf="sammanfattningLoading" class="text-center py-2">
-          <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+          <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
         <div class="kpi-unit">
           <span *ngIf="sammanfattning?.dag_farg === 'gron'" style="color:#48bb78"><i class="fas fa-check-circle me-1"></i>Pa mal</span>
@@ -70,7 +70,7 @@
           {{ sammanfattning?.vecko_trend ?? 0 }}%
         </div>
         <div *ngIf="sammanfattningLoading" class="text-center py-2">
-          <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+          <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
         <div class="kpi-unit">vs forra veckan</div>
       </div>
@@ -91,7 +91,7 @@
       </h5>
 
       <div class="text-center py-3" *ngIf="skiftLoading">
-        <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+        <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         <span class="text-muted ms-2 small">Hamtar skiftdata...</span>
       </div>
 
@@ -132,7 +132,7 @@
       </h5>
 
       <div class="text-center py-3" *ngIf="veckoLoading">
-        <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+        <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         <span class="text-muted ms-2 small">Hamtar veckodata...</span>
       </div>
 
@@ -155,7 +155,7 @@
       </h5>
 
       <div class="text-center py-3" *ngIf="historikLoading">
-        <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+        <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="historikError && !historikLoading">
@@ -209,7 +209,7 @@
       </h5>
 
       <div class="text-center py-3" *ngIf="stationLoading">
-        <span role="status" class="spinner-border spinner-border-sm text-info"></span>
+        <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="stationError && !stationLoading">
@@ -265,7 +265,7 @@
           <button class="btn btn-success w-100"
                   [disabled]="sparLoading || !formAntal || formAntal <= 0"
                   (click)="sparaMal()">
-            <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"></span>
+            <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
             <i class="fas fa-save me-1" *ngIf="!sparLoading"></i>
             Spara mal
           </button>

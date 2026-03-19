@@ -25,7 +25,7 @@
     </div>
 
     <div *ngIf="loadingConfig" class="loading-spinner">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
     </div>
 
     <div *ngIf="!loadingConfig && configForm.length > 0">
@@ -43,7 +43,7 @@
 
       <div class="mt-3 d-flex gap-2 align-items-center">
         <button class="btn btn-sm btn-warning" (click)="submitConfig()" [disabled]="savingConfig">
-          <span *ngIf="savingConfig" role="status" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="savingConfig" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
           <i *ngIf="!savingConfig" class="fas fa-save me-1"></i>
           Spara konfiguration
         </button>
@@ -68,7 +68,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Kostnad/IBC idag</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value text-cost">{{ formatKrDecimal(overview?.kostnad_per_ibc_idag) }}</div>
@@ -82,7 +82,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Totalkostnad idag</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value">{{ formatKr(overview?.totalkostnad_idag) }}</div>
@@ -96,7 +96,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Kostnadstrend</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview && overview">
           <div class="kpi-value">
@@ -120,7 +120,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Kassationskostnad</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value text-cost-high">{{ formatKr(overview?.kassationskostnad_idag) }}</div>
@@ -153,7 +153,7 @@
         </div>
 
         <div *ngIf="loadingBreakdown" class="loading-spinner">
-          <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+          <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
         </div>
 
         <div *ngIf="!loadingBreakdown && breakdown">
@@ -232,7 +232,7 @@
         </div>
 
         <div *ngIf="loadingShift" class="loading-spinner">
-          <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+          <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
         </div>
 
         <div *ngIf="!loadingShift && shiftComp && shiftComp.skift.length > 0">
@@ -266,7 +266,7 @@
     </div>
 
     <div *ngIf="loadingTrend" class="loading-spinner">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar trend...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar trend...
     </div>
 
     <div *ngIf="!loadingTrend && trendData && trendData.trend.length > 0" class="chart-container">
@@ -297,7 +297,7 @@
     </div>
 
     <div *ngIf="loadingTable" class="loading-spinner">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar tabell...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar tabell...
     </div>
 
     <div *ngIf="!loadingTable && dailyTable">

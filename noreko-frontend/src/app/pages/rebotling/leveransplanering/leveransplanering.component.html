@@ -113,7 +113,7 @@
     </div>
 
     <div class="text-center py-3" *ngIf="loadingOrdrar">
-      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div class="table-responsive" *ngIf="!loadingOrdrar && ordrarData?.ordrar?.length">
@@ -189,7 +189,7 @@
     </h5>
 
     <div class="text-center py-3" *ngIf="loadingKapacitet">
-      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div class="chart-wrapper-gantt" *ngIf="!loadingKapacitet">
@@ -204,7 +204,7 @@
     </h5>
 
     <div class="text-center py-3" *ngIf="loadingKapacitet">
-      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div class="chart-wrapper" *ngIf="!loadingKapacitet">

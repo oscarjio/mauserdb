@@ -68,7 +68,7 @@
 
   <!-- Loading overview -->
   <div class="text-center py-4" *ngIf="loadingOverview">
-    <div class="spinner-border text-info" role="status"></div>
+    <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     <p class="mt-2 text-muted small">Laddar KPI-data...</p>
   </div>
 
@@ -94,7 +94,7 @@
           <small class="text-muted ms-2">sortering: storst forst</small>
         </h5>
         <div *ngIf="loadingPerMaskin" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div class="chart-wrapper" *ngIf="!loadingPerMaskin && perMaskinData?.maskiner?.length">
           <canvas id="barChart"></canvas>
@@ -114,7 +114,7 @@
           Stopptidsfordelning per maskin
         </h5>
         <div *ngIf="loadingFordelning" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div class="doughnut-wrapper" *ngIf="!loadingFordelning && fordelningData?.fordelning?.length">
           <canvas id="doughnutChart"></canvas>
@@ -148,7 +148,7 @@
       </div>
     </div>
     <div *ngIf="loadingTrend" class="text-center py-4">
-      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     </div>
     <div class="chart-wrapper-tall" *ngIf="!loadingTrend && trendData?.dates?.length">
       <canvas id="trendChart"></canvas>
@@ -234,7 +234,7 @@
     </div>
 
     <div *ngIf="loadingDetalj" class="text-center py-4">
-      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div class="table-responsive" *ngIf="!loadingDetalj && cachedSortedStopp.length">

@@ -1,3 +1,51 @@
+## 2026-03-19 Session #180 Worker B — Memory leak audit + loading state audit — 1 bugg (152 spinner-instanser fixade)
+
+### Uppgift 1: Angular memory leak audit — 0 buggar
+
+**Metod:** Granskade alla 37 Angular components i noreko-frontend/src/app/pages/ (utom rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Kontrollerade:
+- setInterval/setTimeout utan clearInterval/clearTimeout i ngOnDestroy
+- .subscribe() utan takeUntil(this.destroy$)
+- addEventListener utan removeEventListener
+- Chart.js-instanser utan chart.destroy()
+- Dynamiska DOM-element utan cleanup
+
+**Resultat:** Alla 37 granskade components har korrekt cleanup:
+- Alla har ngOnDestroy med destroy$.next() och destroy$.complete()
+- Alla subscriptions anvander takeUntil(this.destroy$)
+- Alla setInterval rensas med clearInterval i ngOnDestroy
+- Alla setTimeout som lagras i variabler rensas med clearTimeout i ngOnDestroy
+- Otrackade setTimeout-anrop skyddas med `if (!this.destroy$.closed)`-guard
+- Alla Chart.js-instanser forstors i ngOnDestroy (via chart.destroy())
+- Inga addEventListener eller dynamiska DOM-element utan cleanup
+
+### Uppgift 2: Angular loading state audit — 1 bugg (152 spinner-instanser i 25 filer)
+
+**Metod:** Granskade alla 37 components for:
+- HTTP-anrop utan loading-indikator
+- Loading-state som inte aterstalls vid error
+- Loading-indikatorer utan aria-label/visually-hidden for tillganglighet
+
+**Korrekt (inga buggar):**
+- Alla components med HTTP-anrop visar loading-indikatorer (spinner eller text)
+- Alla loading-states aterstalls korrekt vid error (bade via catchError-pattern och error-callbacks)
+
+**Bugg 1 — Saknad tillganglighet pa loading-spinners (152 instanser i 25 filer):**
+Loading-spinners saknade `<span class="visually-hidden">Laddar...</span>` for skarmslasare.
+Bade Bootstrap `spinner-border` och custom `loading-spinner` element fixades.
+
+Berorda filer:
+- drifttids-timeline (2), historisk-sammanfattning (4), oee-trendanalys (10),
+  operator-ranking (9), avvikelselarm (5), batch-sparning (4),
+  historisk-produktion (6), kapacitetsplanering (10), kvalitetscertifikat (9),
+  leveransplanering (3), maskinhistorik (6), maskin-oee (5),
+  maskinunderhall (4), operatorsbonus (9), operators-prestanda (4),
+  produktionsflode (7), produktionskostnad (10), produktionsmal (9),
+  produktions-sla (4), skiftplanering (4), stopporsaker (9),
+  stopptidsanalys (5), vd-veckorapport (5), statistik-overblick (3),
+  tidrapport (7)
+
+---
+
 ## 2026-03-19 Session #180 Worker A — PHP logging + response code audit — 14 buggar fixade
 
 ### Uppgift 1: PHP logging completeness audit — 14 buggar

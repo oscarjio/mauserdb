@@ -25,7 +25,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.antal_stopp }}
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning">
           <span [class.kpi-trend-up]="sammanfattning.trend_pct > 0"
                 [class.kpi-trend-down]="sammanfattning.trend_pct < 0">
@@ -41,7 +41,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.total_timmar }}h
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning">Senaste {{ sammanfattning.days }} dagar</div>
       </div>
     </div>
@@ -51,7 +51,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.snitt_min }} min
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub">Genomsnittlig varaktighet</div>
       </div>
     </div>
@@ -61,7 +61,7 @@
         <div class="kpi-value" style="font-size:1.1rem" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.vanligaste_orsak || 'Inga data' }}
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub">Mest frekventa stopporsak</div>
       </div>
     </div>
@@ -76,7 +76,7 @@
     <div class="col-lg-7">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Pareto-analys (80/20)</h6>
-        <div *ngIf="loadingPareto" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingPareto" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="chart-wrapper" *ngIf="!loadingPareto">
           <canvas id="paretoChart"></canvas>
         </div>
@@ -88,7 +88,7 @@
     <div class="col-lg-5">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-industry me-2"></i>Stopptid per station</h6>
-        <div *ngIf="loadingStation" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingStation" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="chart-wrapper" *ngIf="!loadingStation">
           <canvas id="stationChart"></canvas>
         </div>
@@ -104,7 +104,7 @@
     <div class="col-12">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-chart-line me-2"></i>Trend — antal stopp och stopptid per dag</h6>
-        <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="chart-wrapper" *ngIf="!loadingTrend">
           <canvas id="trendChart"></canvas>
         </div>
@@ -117,7 +117,7 @@
     <div class="col-12">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-table me-2"></i>Per stopporsak</h6>
-        <div *ngIf="loadingOrsaker" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingOrsaker" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="table-dark-custom" *ngIf="!loadingOrsaker && orsakerData?.orsaker?.length">
           <table class="table table-sm mb-0">
             <thead>
@@ -168,7 +168,7 @@
           <i class="fas fa-list me-2"></i>Senaste stopp
           <span *ngIf="detaljerData" style="color:#718096; font-weight:400; font-size:0.8rem"> ({{ detaljerData.total }} st)</span>
         </h6>
-        <div *ngIf="loadingDetaljer" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingDetaljer" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
 
         <div *ngIf="!loadingDetaljer && detaljerData?.detaljer?.length">
           <div *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackById">

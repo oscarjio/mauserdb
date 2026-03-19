@@ -64,7 +64,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.total_produktion ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.snitt_per_dag ?? 0 }} <small class="kpi-unit">IBC/dag</small>
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
             {{ overview?.basta_dag_antal ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
           <div class="kpi-sub" *ngIf="overview?.basta_dag">{{ formatDate(overview?.basta_dag ?? '') }}</div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -113,7 +113,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ formatPct(overview?.kassation_pct) }}
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -235,7 +235,7 @@
       Produktion {{ granularityLabel() }}
     </div>
     <div *ngIf="loadingGraph" class="text-center py-4">
-      <div role="status" class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
       <div class="text-muted mt-2">Laddar graf...</div>
     </div>
     <div class="chart-container" *ngIf="!loadingGraph">
@@ -258,7 +258,7 @@
     </div>
 
     <div *ngIf="loadingTable" class="text-center py-3">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
     </div>
 
     <div *ngIf="!loadingTable && tabell && tabell.rows.length > 0">

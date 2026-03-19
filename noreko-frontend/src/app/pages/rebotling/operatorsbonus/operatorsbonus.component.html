@@ -25,7 +25,7 @@
     </div>
 
     <div *ngIf="loadingKonfig" class="loading-spinner">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
     </div>
 
     <div *ngIf="!loadingKonfig && errorKonfig" class="text-center py-3" style="color:#fc8181;">
@@ -54,7 +54,7 @@
 
       <div class="mt-3 d-flex gap-2 align-items-center">
         <button class="btn btn-sm btn-warning" (click)="submitKonfig()" [disabled]="savingKonfig">
-          <span *ngIf="savingKonfig" role="status" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="savingKonfig" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
           <i *ngIf="!savingKonfig" class="fas fa-save me-1"></i>
           Spara konfiguration
         </button>
@@ -87,7 +87,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Snittbonus</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value text-bonus">{{ formatKr(overview?.snitt_bonus) }}</div>
@@ -101,7 +101,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Hogsta bonus</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value text-bonus-high">{{ formatKr(overview?.hogsta_bonus) }}</div>
@@ -115,7 +115,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Total utbetald</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value">{{ formatKr(overview?.total_utbetald) }}</div>
@@ -129,7 +129,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Kvalificerade operatorer</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
-          <div role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value" style="color:#48bb78;">{{ overview?.antal_kvalificerade ?? 0 }}</div>
@@ -149,7 +149,7 @@
           Bonus per operator — {{ periodLabel(period) }}
         </div>
         <div *ngIf="loadingOperatorer" class="loading-spinner">
-          <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+          <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
         </div>
         <div *ngIf="!loadingOperatorer && errorOperatorer" class="text-center py-3" style="color:#fc8181;">
           <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda operatorsdata.
@@ -205,7 +205,7 @@
     </div>
 
     <div *ngIf="loadingOperatorer" class="loading-spinner">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
     </div>
 
     <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length > 0" style="overflow-x:auto;">
@@ -318,7 +318,7 @@
 
     <div class="mb-3">
       <button class="btn btn-sm btn-info" (click)="runSimulering()" [disabled]="loadingSimulering">
-        <span *ngIf="loadingSimulering" role="status" class="spinner-border spinner-border-sm me-1"></span>
+        <span *ngIf="loadingSimulering" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
         <i *ngIf="!loadingSimulering" class="fas fa-play me-1"></i>
         Kor simulering
       </button>

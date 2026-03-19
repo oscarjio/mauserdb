@@ -38,7 +38,7 @@
        KPI-KORT (4 huvudkort)
        ============================================================ -->
   <div *ngIf="loadingKpi" class="kp-loading py-3 mb-4">
-    <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar KPI...
+    <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar KPI...
   </div>
   <div *ngIf="errorKpi && !loadingKpi" class="kp-error py-3 mb-4">
     <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda KPI-data
@@ -155,7 +155,7 @@
         </div>
         <div class="kp-card-body">
           <div *ngIf="loadingStation" class="kp-loading py-4">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorStation && !loadingStation" class="kp-error py-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stationsdata
@@ -187,7 +187,7 @@
         </div>
         <div class="kp-card-body">
           <div *ngIf="loadingStopporsaker" class="kp-loading py-4">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorStopporsaker && !loadingStopporsaker" class="kp-error py-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stopporsaker
@@ -216,7 +216,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingTrend" class="kp-loading py-4">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar trenddata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar trenddata...
       </div>
       <div *ngIf="errorTrend && !loadingTrend" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata
@@ -251,7 +251,7 @@
       </div>
 
       <div *ngIf="loadingBemanning" class="kp-loading py-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar bemanning...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beraknar bemanning...
       </div>
       <div *ngIf="errorBemanning && !loadingBemanning" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna bemanning
@@ -320,7 +320,7 @@
     </div>
     <div class="kp-card-body p-0">
       <div *ngIf="loadingTabell" class="kp-loading py-4 px-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetstabell...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar kapacitetstabell...
       </div>
       <div *ngIf="errorTabell && !loadingTabell" class="kp-error py-3 px-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kapacitetstabell
@@ -404,7 +404,7 @@
       </div>
 
       <div *ngIf="loadingPrognos" class="kp-loading py-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beraknar...
       </div>
       <div *ngIf="errorPrognos && !loadingPrognos" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna prognos
@@ -456,7 +456,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingDaglig" class="kp-loading py-4">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetsdata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar kapacitetsdata...
       </div>
       <div *ngIf="errorDaglig && !loadingDaglig" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kapacitetsdata
@@ -476,7 +476,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingTidFordelning" class="kp-loading py-4">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
       </div>
       <div *ngIf="errorTidFordelning && !loadingTidFordelning" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda tid-fordelning
@@ -496,7 +496,7 @@
     </div>
     <div class="kp-card-body p-0">
       <div *ngIf="loadingVecko" class="kp-loading py-4 px-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar veckodata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar veckodata...
       </div>
       <div *ngIf="errorVecko && !loadingVecko" class="kp-error py-3 px-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda veckodata

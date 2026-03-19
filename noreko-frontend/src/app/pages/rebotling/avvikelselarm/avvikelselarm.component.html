@@ -55,7 +55,7 @@
 
   <!-- Loading -->
   <div *ngIf="loadingOverview" class="text-center py-5">
-    <div class="spinner-border text-info spinner-border-sm" role="status"></div>
+    <div class="spinner-border text-info spinner-border-sm" role="status"><span class="visually-hidden">Laddar...</span></div>
     <span class="ms-2 text-muted">Laddar larmdata...</span>
   </div>
 
@@ -145,7 +145,7 @@
         <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>Larmtrend
       </h5>
       <div *ngIf="loadingTrend" class="text-center py-4">
-        <div role="status" class="spinner-border text-info spinner-border-sm"></div>
+        <div role="status" class="spinner-border text-info spinner-border-sm"><span class="visually-hidden">Laddar...</span></div>
       </div>
       <div *ngIf="!loadingTrend && errorTrend" class="text-center py-3" style="color:#fc8181;">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata.
@@ -179,7 +179,7 @@
     </div>
 
     <div *ngIf="loadingHistorik" class="text-center py-4">
-      <div role="status" class="spinner-border text-info spinner-border-sm"></div>
+      <div role="status" class="spinner-border text-info spinner-border-sm"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div *ngIf="!loadingHistorik && errorHistorik" class="text-center py-3" style="color:#fc8181;">
@@ -234,7 +234,7 @@
   <ng-container *ngIf="activeTab === 'regler'">
 
     <div *ngIf="loadingRegler" class="text-center py-4">
-      <div role="status" class="spinner-border text-info spinner-border-sm"></div>
+      <div role="status" class="spinner-border text-info spinner-border-sm"><span class="visually-hidden">Laddar...</span></div>
     </div>
 
     <div *ngIf="!loadingRegler && errorRegler" class="text-center py-3" style="color:#fc8181;">
@@ -308,7 +308,7 @@
       <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-sm btn-outline-secondary" (click)="closeKvittera()">Avbryt</button>
         <button class="btn btn-sm btn-success" [disabled]="!kvitteraNamn.trim() || savingKvittera" (click)="submitKvittera()">
-          <span *ngIf="savingKvittera" role="status" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="savingKvittera" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
           Kvittera
         </button>
       </div>

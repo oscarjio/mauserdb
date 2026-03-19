@@ -27,7 +27,7 @@
     </div>
     <div class="mh-card-body">
       <div *ngIf="loadingStationer" class="mh-loading">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Hamtar stationer...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Hamtar stationer...
       </div>
       <div *ngIf="!loadingStationer" class="d-flex flex-wrap gap-2">
         <button *ngFor="let s of stationer; trackBy: trackByIndex"
@@ -50,7 +50,7 @@
     </h5>
 
     <div *ngIf="loadingKpi" class="mh-loading py-4">
-      <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar KPI...
+      <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar KPI...
     </div>
     <div *ngIf="errorKpi && !loadingKpi" class="mh-error py-3">
       <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda KPI-data
@@ -124,7 +124,7 @@
         </div>
         <div class="mh-card-body">
           <div *ngIf="loadingDrifttid" class="mh-loading">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorDrifttid && !loadingDrifttid" class="mh-error">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda drifttid
@@ -145,7 +145,7 @@
         </div>
         <div class="mh-card-body">
           <div *ngIf="loadingOeeTrend" class="mh-loading">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorOeeTrend && !loadingOeeTrend" class="mh-error">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda OEE-trend
@@ -167,7 +167,7 @@
         </div>
         <div class="mh-card-body p-0">
           <div *ngIf="loadingStopp" class="mh-loading p-3">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorStopp && !loadingStopp" class="mh-error p-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stopphistorik
@@ -220,7 +220,7 @@
         </div>
         <div class="mh-card-body p-0">
           <div *ngIf="loadingJamforelse" class="mh-loading p-3">
-            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorJamforelse && !loadingJamforelse" class="mh-error p-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda jamforelsedata

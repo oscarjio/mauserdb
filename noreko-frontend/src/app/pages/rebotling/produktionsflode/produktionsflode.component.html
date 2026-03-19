@@ -53,7 +53,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.totalt_inkommande ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -69,7 +69,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.godkanda ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -85,7 +85,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.kasserade ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -101,7 +101,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ formatPct(overview?.genomstromning_pct) }}
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -117,7 +117,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview" style="font-size:1.1rem;">
             {{ overview?.flaskhals_station ?? '-' }}
           </div>
-          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
       </div>
     </div>
@@ -132,7 +132,7 @@
     </div>
 
     <div *ngIf="loadingFlode" class="text-center py-5">
-      <div role="status" class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
       <div class="text-muted mt-2">Laddar flodesdiagram...</div>
     </div>
 
@@ -243,7 +243,7 @@
     </div>
 
     <div *ngIf="loadingStationer" class="text-center py-3">
-      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
     </div>
 
     <div *ngIf="!loadingStationer && stationerData && stationerData.rows.length > 0">

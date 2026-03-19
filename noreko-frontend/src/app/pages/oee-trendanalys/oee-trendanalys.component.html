@@ -32,7 +32,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.oee_idag_pct }}%
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning">
           T: {{ sammanfattning.tillganglighet_idag_pct }}% | P: {{ sammanfattning.prestanda_idag_pct }}% | K: {{ sammanfattning.kvalitet_idag_pct }}%
         </div>
@@ -44,7 +44,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.oee_7d_pct }}%
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
       </div>
     </div>
     <div class="col-6 col-lg">
@@ -53,7 +53,7 @@
         <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
           {{ sammanfattning.oee_30d_pct }}%
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning">
           <span [class.kpi-trend-up]="sammanfattning.trend === 'up'"
                 [class.kpi-trend-down]="sammanfattning.trend === 'down'"
@@ -70,7 +70,7 @@
         <div class="kpi-value" style="font-size:1.1rem" *ngIf="!loadingSammanfattning && sammanfattning?.basta_station">
           {{ sammanfattning?.basta_station?.namn }}
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning?.basta_station" style="color:#68d391">
           {{ sammanfattning?.basta_station?.oee_pct }}% OEE
         </div>
@@ -83,7 +83,7 @@
         <div class="kpi-value" style="font-size:1.1rem" *ngIf="!loadingSammanfattning && sammanfattning?.samsta_station">
           {{ sammanfattning?.samsta_station?.namn }}
         </div>
-        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="kpi-sub" *ngIf="sammanfattning?.samsta_station" style="color:#fc8181">
           {{ sammanfattning?.samsta_station?.oee_pct }}% OEE
         </div>
@@ -102,7 +102,7 @@
             — Snitt: {{ trendData.avg_oee }}% | Max: {{ trendData.max_oee }}% | Min: {{ trendData.min_oee }}%
           </span>
         </h6>
-        <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorTrend && !loadingTrend" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda trenddata.
         </div>
@@ -118,7 +118,7 @@
     <div class="col-lg-7">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-industry me-2"></i>OEE per station</h6>
-        <div *ngIf="loadingStationer" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingStationer" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorStationer && !loadingStationer" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda stationsdata.
         </div>
@@ -191,7 +191,7 @@
     <div class="col-lg-5">
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Flaskhalsar</h6>
-        <div *ngIf="loadingFlaskhalsar" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingFlaskhalsar" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorFlaskhalsar && !loadingFlaskhalsar" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda flaskhalsar.
         </div>
@@ -244,7 +244,7 @@
             </span>
           </span>
         </h6>
-        <div *ngIf="loadingJamforelse" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingJamforelse" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorJamforelse && !loadingJamforelse" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda jamforelsedata.
         </div>
@@ -297,7 +297,7 @@
             — Trend: {{ getTrendText(prediktionData.trend) }} | R2: {{ prediktionData.r2 }}
           </span>
         </h6>
-        <div *ngIf="loadingPrediktion" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="loadingPrediktion" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorPrediktion && !loadingPrediktion" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda prediktionsdata.
         </div>

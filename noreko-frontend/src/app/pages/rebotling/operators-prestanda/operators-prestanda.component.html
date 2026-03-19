@@ -54,7 +54,7 @@
 
       @if (loadingScatter) {
         <div class="text-center py-5">
-          <div class="spinner-border text-info" role="status"></div>
+          <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
           <p class="mt-2 text-muted">Laddar scatter-data...</p>
         </div>
       } @else if (errorScatter) {
@@ -97,7 +97,7 @@
     <div class="card-body p-0">
       @if (loadingRanking) {
         <div class="text-center py-4">
-          <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
+          <div class="spinner-border text-warning spinner-border-sm" role="status"><span class="visually-hidden">Laddar...</span></div>
           <span class="ms-2 text-muted">Laddar ranking...</span>
         </div>
       } @else if (errorRanking) {
@@ -156,7 +156,7 @@
 
                         @if (loadingDetalj || loadingUtveckling) {
                           <div class="text-center py-3">
-                            <div class="spinner-border text-info spinner-border-sm" role="status"></div>
+                            <div class="spinner-border text-info spinner-border-sm" role="status"><span class="visually-hidden">Laddar...</span></div>
                             <span class="ms-2 text-muted">Laddar detaljer...</span>
                           </div>
                         } @else {
@@ -251,7 +251,7 @@
     <div class="card-body">
       @if (loadingTeam) {
         <div class="text-center py-4">
-          <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
+          <div class="spinner-border text-warning spinner-border-sm" role="status"><span class="visually-hidden">Laddar...</span></div>
           <span class="ms-2 text-muted">Laddar skiftdata...</span>
         </div>
       } @else if (errorTeam) {
