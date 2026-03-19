@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #179+):
-- [ ] **PHP transaction rollback audit** — granska att DB-transaktioner har korrekt rollback vid fel
-- [ ] **Angular HTTP timeout audit** — kontrollera att alla HTTP-anrop har rimlig timeout
-- [ ] **PHP numeric input validation** — granska att numeriska inputs (id, limit, offset) valideras som int
-- [ ] **Angular error message display** — kontrollera att felinformation visas korrekt for anvandaren
+### Nasta buggjakt-items (session #180+):
 - [ ] **PHP logging completeness** — granska att alla error-paths loggar tillrackligt for felsok
+- [ ] **Angular memory leak audit** — granska att alla subscriptions avregistreras i ngOnDestroy
+- [ ] **PHP response code audit** — granska att HTTP-statuskoder matchar faktiskt resultat (200 vs 404 vs 500)
+- [ ] **Angular loading state audit** — kontrollera att alla async-operationer visar loading-indikator
+- [ ] **PHP SQL column name audit** — granska att alla SQL-fragor refererar korrekta kolumnnamn
 
 ## Parkerade features (ta inte dessa nu)
 
