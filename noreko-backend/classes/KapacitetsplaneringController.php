@@ -444,34 +444,43 @@ class KapacitetsplaneringController {
             $snitt = 0.0;
         }
 
+        // Batch query: hämta produktion per dag i en enda query istället för N+1
+        $prodPerDag = [];
+        try {
+            $stmtBatch = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmtBatch->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            foreach ($stmtBatch->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $prodPerDag[$row['dag']] = $row;
+            }
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getDagligKapacitet (batch): ' . $e->getMessage());
+        }
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
+
+            $rad = $prodPerDag[$dagStr] ?? null;
+            $faktisk = $rad ? (int)($rad['ok_antal']) + (int)($rad['ej_ok_antal']) : 0;
+            $antalStationer = 1;
+
             $fromDt = $dagStr . ' 00:00:00';
             $toDt   = $dagStr . ' 23:59:59';
-
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                        COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
-                    FROM (
-                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                        FROM rebotling_ibc WHERE DATE(datum) = :dag
-                        GROUP BY skiftraknare
-                    ) AS per_skift
-                ");
-                $stmt->execute([':dag' => $dagStr]);
-                $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
-                $antalStationer = 1;
-            } catch (\PDOException $e) {
-                error_log('KapacitetsplaneringController::getDagligKapacitet (dag): ' . $e->getMessage());
-                $faktisk        = 0;
-                $antalStationer = 1;
-            }
-
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
             $teorMax     = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
             $mal         = $this->getProduktionsmal($dagStr);
@@ -696,6 +705,30 @@ class KapacitetsplaneringController {
         $today  = new \DateTime();
         $result = [];
 
+        // Batch query: hämta IBC-totaler per dag istället för N+1
+        $fromDateStr = (clone $today)->modify("-{$period} days")->format('Y-m-d');
+        $toDateStr   = $today->format('Y-m-d');
+        $ibcPerDag = [];
+        try {
+            $stmtBatch = $this->pdo->prepare("
+                SELECT dag, COALESCE(SUM(max_ok + max_ej_ok), 0) AS total
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
+            ");
+            $stmtBatch->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            foreach ($stmtBatch->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $ibcPerDag[$row['dag']] = (int)$row['total'];
+            }
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getTidFordelning (batch): ' . $e->getMessage());
+        }
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
@@ -706,21 +739,7 @@ class KapacitetsplaneringController {
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
             $planeradSek = self::PLANERAD_DRIFTTID_SEK;
 
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(max_ok + max_ej_ok), 0) AS total
-                    FROM (
-                        SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
-                        FROM rebotling_ibc WHERE DATE(datum) = :dag
-                        GROUP BY skiftraknare
-                    ) AS per_skift
-                ");
-                $stmt->execute([':dag' => $dagStr]);
-                $antalIbc = (int)($stmt->fetchColumn() ?? 0);
-            } catch (\PDOException $e) {
-                error_log('KapacitetsplaneringController::getTidFordelning (dag): ' . $e->getMessage());
-                $antalIbc = 0;
-            }
+            $antalIbc = $ibcPerDag[$dagStr] ?? 0;
 
             $produktivSek = min($drifttidSek, $antalIbc * self::OPTIMAL_CYKELTID_SEK);
             $stoppSek     = max(0, $planeradSek - $drifttidSek);
@@ -867,31 +886,41 @@ class KapacitetsplaneringController {
             $malPct = round($sumMal / count($config), 1);
         }
 
+        // Batch query: hämta produktion per dag istället för N+1
+        $fromDateStr = (clone $today)->modify("-{$period} days")->format('Y-m-d');
+        $toDateStr   = $today->format('Y-m-d');
+        $prodPerDag = [];
+        try {
+            $stmtBatch = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
+            ");
+            $stmtBatch->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            foreach ($stmtBatch->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $prodPerDag[$row['dag']] = $row;
+            }
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getUtnyttjandegradTrend (batch): ' . $e->getMessage());
+        }
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
 
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                        COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
-                    FROM (
-                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                        FROM rebotling_ibc WHERE DATE(datum) = :dag
-                        GROUP BY skiftraknare
-                    ) AS per_skift
-                ");
-                $stmt->execute([':dag' => $dagStr]);
-                $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
-                $antalStationer = 1;
-            } catch (\PDOException $e) {
-                error_log('KapacitetsplaneringController::getUtnyttjandegradTrend (dag): ' . $e->getMessage());
-                $faktisk        = 0;
-                $antalStationer = 1;
-            }
+            $rad = $prodPerDag[$dagStr] ?? null;
+            $faktisk = $rad ? (int)($rad['ok_antal']) + (int)($rad['ej_ok_antal']) : 0;
+            $antalStationer = 1;
 
             $teorMax = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
             $utnyttjande = $teorMax > 0 ? round($faktisk / $teorMax * 100, 1) : 0.0;

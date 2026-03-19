@@ -1,3 +1,23 @@
+## 2026-03-19 Session #192 Worker A — PHP SQL performance audit — 6 buggar fixade
+
+Granskade 18 PHP-controllers for SQL-prestandaproblem: SELECT *, N+1 queries, saknade LIMIT, ineffektiva subqueries.
+
+### Fixade buggar:
+
+1. **SkiftrapportController.php** — `getSkiftrapporter()` saknade LIMIT pa obegransad SELECT med 5 JOINs. Lade till LIMIT 1000.
+2. **KassationsDrilldownController.php** — `getReasonDetail()` saknade LIMIT pa detaljquery. Lade till LIMIT 500.
+3. **LineSkiftrapportController.php** — `getReports()` saknade LIMIT pa obegransad SELECT. Lade till LIMIT 1000.
+4. **KapacitetsplaneringController.php** — N+1 i `getDagligKapacitet()`: kordes 1 query per dag (upp till 365 queries). Refaktorerat till 1 batch-query + loop.
+5. **KapacitetsplaneringController.php** — N+1 i `getTidFordelning()`: kordes 1 query per dag (upp till 365 queries). Refaktorerat till 1 batch-query + loop.
+6. **KapacitetsplaneringController.php** — N+1 i `getUtnyttjandegradTrend()`: kordes 1 query per dag (upp till 365 queries). Refaktorerat till 1 batch-query + loop.
+
+### Noteringar:
+- Ingen SELECT * hittades i granskade filer.
+- SkiftrapportController har ytterligare N+1-monster i `getVeckosammanstallning()` och `getSkiftjamforelse()` som kor `calcSkiftData()` per skift per dag. Dessa kraver storre refaktorering (sammanfogning av onoff+ibc+kassation i batch) och lamnades for framtida session.
+- KapacitetsplaneringController har kvar N+1 for `getDrifttidSek()` och `getProduktionsmal()` per dag — dessa ar svara att batcha utan signifikant omskrivning.
+
+---
+
 ## 2026-03-19 Session #191 Worker B — Angular chart cleanup + memory leak audit — 0 buggar (kodbas ren)
 
 Genomforde djupgaende memory leak audit pa ALLA 108 komponenter som importerar Chart fran chart.js, samt 141 filer med setInterval/setTimeout och 169 filer med .subscribe().

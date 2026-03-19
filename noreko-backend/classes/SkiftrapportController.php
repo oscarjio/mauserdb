@@ -217,7 +217,8 @@ class SkiftrapportController {
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                ORDER BY s.datum DESC, s.id DESC");
+                ORDER BY s.datum DESC, s.id DESC
+                LIMIT 1000");
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             echo json_encode([

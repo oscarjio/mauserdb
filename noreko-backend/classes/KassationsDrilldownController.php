@@ -215,6 +215,7 @@ class KassationsDrilldownController {
                 WHERE kr.orsak_id = :reason_id
                   AND DATE(kr.datum) BETWEEN :from_date AND :to_date
                 ORDER BY kr.datum DESC, kr.created_at DESC
+                LIMIT 500
             ");
             $stmt->execute([
                 ':reason_id' => $reasonId,

@@ -164,6 +164,7 @@ class LineSkiftrapportController {
                 FROM `$table` r
                 LEFT JOIN users u ON r.user_id = u.id
                 ORDER BY r.datum DESC, r.id DESC
+                LIMIT 1000
             ");
             $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
