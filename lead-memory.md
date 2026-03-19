@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #191)*
+*Senast uppdaterad: 2026-03-19 (session #192)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -81,24 +81,25 @@ Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/nu
 Session #189: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). SQL query (3: station_id+GROUP BY i OeeTrendanalys+VdDashboard), try-catch (2: StatistikDashboard+Skiftplanering). setTimeout cleanup (1: daglig-briefing).
 Session #190: BUGGJAKT — 8 buggar (3 Worker A + 5 Worker B). File upload (0, ingen kod), session timeout enforcement (3: checkSessionTimeout i 8 POST-controllers, last_activity-uppdatering, session write-mode). HTTP interceptor (0, redan korrekt), HTTP timeout (1: drifttids-timeline), error-flaggor (4: produktions-dashboard tyst felhantering).
 Session #191: BUGGJAKT — 8 buggar (8 Worker A + 0 Worker B). Input validation (8: 4 json_decode $_POST-fallback, 2 svag null-check, 1 saknad datum-regex, 1 langdbegransningar). Chart cleanup (0, redan korrekt).
+Session #192: BUGGJAKT — 9 buggar (6 Worker A + 3 Worker B). SQL performance (6: 3 saknade LIMIT, 3 N+1->batch i KapacitetsplaneringController). Form validation (3: kvalitetscertifikat min=0->1 + submit-check, maskinunderhall [value]->[ngValue]).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #191+):
+### Kvarstaende buggjakt-items (session #192+):
 - [ ] Angular memory profiling — tunga sidor
 - [ ] Angular lazy-loading optimization audit
-- [ ] PHP SQL performance audit — SELECT *, N+1, index
-- [ ] PHP input validation audit — $_GET/$_POST sanitering
-- [ ] Angular chart cleanup audit
+- [ ] PHP error logging consistency — alla catch-block loggar korrekt
+- [ ] PHP date/time edge cases — timezone/DST-problem
+- [ ] Angular HTTP error handling audit — alla HTTP-anrop hanterar fel
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #190 (klar)
-Worker A: 3 buggar — session timeout aldrig kontrollerad vid POST (8 controllers), StatusController uppdaterade aldrig last_activity, KvalitetscertifikatController session read_and_close for POST.
-Worker B: 5 buggar — drifttids-timeline saknade timeout (1), produktions-dashboard tyst felhantering i 3 metoder + missad catchError-gren i 2 metoder (4).
 
 ### 2026-03-19 — Session #191 (klar)
 Worker A: 8 buggar — json_decode fallback till $_POST (4), svag null-check !$input (2), saknad datum-regex (1), saknade langdbegransningar (1).
 Worker B: 0 buggar — 108 Chart-instanser, 141 timer-filer, 169 subscribe-filer granskade. Kodbasen ren efter tidigare sessions.
+
+### 2026-03-19 — Session #192 (klar)
+Worker A: 6 buggar — 3 saknade LIMIT (SkiftrapportController, KassationsDrilldownController, LineSkiftrapportController), 3 N+1 queries i KapacitetsplaneringController (getDagligKapacitet, getTidFordelning, getUtnyttjandegradTrend: 365 queries->1 batch vardera).
+Worker B: 3 buggar — kvalitetscertifikat min=0->1 + saknad submit-validering (2), maskinunderhall [value]->[ngValue] typbevarande (1).

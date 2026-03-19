@@ -7,16 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #191):
-- [x] **PHP input validation audit** — 8 buggar fixade (Worker A)
-- [x] **Angular chart cleanup audit + memory leak hunting** — 0 buggar, kodbasen ren (Worker B)
+### Pagaende (session #192):
+- [ ] **PHP SQL performance audit** — SELECT *, N+1 queries, saknade LIMIT (Worker A)
+- [ ] **Angular form validation audit** — saknad validering, submit utan valid-check (Worker B)
 
-### Nasta buggjakt-items (session #192+):
+### Nasta buggjakt-items (session #193+):
 - [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor
 - [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
-- [ ] **PHP SQL performance audit** — granska fler controllers for SELECT *, N+1 queries, saknade index
 - [ ] **PHP error logging consistency** — sakerstall att alla catch-block loggar korrekt
-- [ ] **Angular form validation audit** — granska att alla formuler validerar input korrekt
+- [ ] **PHP date/time edge cases** — granska fler controllers for timezone/DST-problem
+- [ ] **Angular HTTP error handling audit** — granska att alla HTTP-anrop hanterar fel korrekt
 
 ## Parkerade features (ta inte dessa nu)
 
