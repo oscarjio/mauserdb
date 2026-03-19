@@ -1,3 +1,35 @@
+## 2026-03-19 Session #191 Worker A — PHP input validation audit — 8 buggar fixade
+
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for saknad input-validering. 80+ controllers genomsokta. Kodbas ar generellt valsakerhetad med prepared statements, regex-validering och whitelist-kontroller. Hittade och fixade 8 buggar:
+
+**Bugg 1-2 — RebotlingController: json_decode() ?? $_POST fallback:**
+Rad 1714 och 1758 anvande `?? $_POST` som fallback vid ogiltig JSON. Om json_decode misslyckas gar radata fran $_POST direkt in utan samma sanitering. Andrat till `?? []`.
+Fil: noreko-backend/classes/RebotlingController.php
+
+**Bugg 3-4 — RebotlingAnalyticsController: json_decode() ?? $_POST fallback:**
+Samma monster som ovan pa rad 5949 och 5999 (createAnnotation/deleteAnnotation). Andrat till `?? []`.
+Fil: noreko-backend/classes/RebotlingAnalyticsController.php
+
+**Bugg 5 — ProduktionsmalController: svag null-check efter json_decode:**
+Rad 293 och 804 anvande `!$input` som check. I PHP ar `![]` truthy, sa en tom men giltig JSON-array (`{}`) skulle felaktigt avvisas. Andrat till `!is_array($input)` for typsaker validering.
+Fil: noreko-backend/classes/ProduktionsmalController.php
+
+**Bugg 6 — LeveransplaneringController: svag null-check efter json_decode:**
+Rad 438, 484, 556 — samma `!$input` monster. Andrat till `!is_array($input)`.
+Fil: noreko-backend/classes/LeveransplaneringController.php
+
+**Bugg 7 — KvalitetscertifikatController: saknad datum-regex-validering:**
+`$datum` fran POST-data anvandes i prepared statement utan formatvalidering. Lade till `preg_match('/^\d{4}-\d{2}-\d{2}$/')` med fallback till `date('Y-m-d')`.
+Fil: noreko-backend/classes/KvalitetscertifikatController.php
+
+**Bugg 8 — Saknade langdbegransningar pa strangparametrar:**
+- AuditController: filter_action, filter_user, filter_entity (max 100), search (max 200)
+- BatchSparningController: search (max 200)
+- KassationsanalysController: operator (max 100)
+- RebotlingAnalyticsController: operator (max 100), cause (max 200)
+
+---
+
 ## 2026-03-19 Session #190 Worker B — Angular HTTP interceptor + error handling audit — 5 buggar fixade
 
 ### Del 1: Angular HTTP interceptor audit
