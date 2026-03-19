@@ -28,7 +28,7 @@
             <i class="fas fa-clock"></i>
           </div>
           <div class="kpi-label">Senaste timmen</div>
-          <div class="kpi-value">{{ aktuellData.senaste_timme?.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-value">{{ aktuellData.senaste_timme ? (aktuellData.senaste_timme.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
           <div class="kpi-sub">
             {{ aktuellData.senaste_timme?.kasserade }} kasserade / {{ aktuellData.senaste_timme?.totalt }} totalt
           </div>
@@ -47,7 +47,7 @@
             <i class="fas fa-user-clock"></i>
           </div>
           <div class="kpi-label">Aktuellt skift</div>
-          <div class="kpi-value">{{ aktuellData.aktuellt_skift?.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-value">{{ aktuellData.aktuellt_skift ? (aktuellData.aktuellt_skift.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
           <div class="kpi-sub">
             {{ (aktuellData.aktuellt_skift?.skift_namn ? skiftNamn[aktuellData.aktuellt_skift.skift_namn] : '') || aktuellData.aktuellt_skift?.skift_namn }}
           </div>
@@ -69,7 +69,7 @@
             <i class="fas fa-calendar-day"></i>
           </div>
           <div class="kpi-label">Idag</div>
-          <div class="kpi-value">{{ aktuellData.idag?.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-value">{{ aktuellData.idag ? (aktuellData.idag.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
           <div class="kpi-sub">
             {{ aktuellData.idag?.kasserade }} kasserade / {{ aktuellData.idag?.totalt }} totalt
           </div>

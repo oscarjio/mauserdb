@@ -1,3 +1,43 @@
+## 2026-03-19 Session #188 Worker B — Angular data flow + race condition audit — 3 buggar fixade
+
+### Uppgift 1: Race conditions och timing-buggar
+**Metod:** Granskade alla 42 Angular components (41 .ts + 41 .html) for:
+- setInterval utan destroy-skydd — alla clearInterval() i ngOnDestroy()
+- HTTP-anrop utan takeUntil(this.destroy$) — alla korrekt med takeUntil
+- ngOnChanges utan input-diffing — inga ngOnChanges alls i dessa komponenter
+- Chart-uppdateringar efter destroy — alla skyddade med `!this.destroy$.closed` i setTimeout
+- isFetching race condition — alla med catchError eller error-handler
+
+### Uppgift 2: Template data-binding buggar
+**Metod:** Granskade alla HTML-templates for null-unsafe bindings
+
+**Buggar fixade (3 st):**
+
+**Bug 1 — kassationskvot-alarm.component.html (rad 31):**
+`{{ aktuellData.senaste_timme?.kvot_pct | number:'1.1-2' }}%`
+→ `?.` returnerar `undefined` nar senaste_timme ar null, `| number` pipe kan ej hantera undefined
+→ Fix: `{{ aktuellData.senaste_timme ? (aktuellData.senaste_timme.kvot_pct | number:'1.1-2') + '%' : '—' }}`
+
+**Bug 2 — kassationskvot-alarm.component.html (rad 50):**
+`{{ aktuellData.aktuellt_skift?.kvot_pct | number:'1.1-2' }}%`
+→ Samma problem med optional chaining till number pipe
+→ Fix: `{{ aktuellData.aktuellt_skift ? (aktuellData.aktuellt_skift.kvot_pct | number:'1.1-2') + '%' : '—' }}`
+
+**Bug 3 — kassationskvot-alarm.component.html (rad 72):**
+`{{ aktuellData.idag?.kvot_pct | number:'1.1-2' }}%`
+→ Samma problem — idag ar optional sub-objekt som kan saknas tidigt pa dygnet
+→ Fix: `{{ aktuellData.idag ? (aktuellData.idag.kvot_pct | number:'1.1-2') + '%' : '—' }}`
+
+**Bekraftad ren granskning (inga buggar funna):**
+- Alla 42 komponenter har korrekt ngOnInit/ngOnDestroy lifecycle
+- Alla setInterval/setInterval ar clearade i ngOnDestroy
+- Alla HTTP-subscribe har takeUntil(this.destroy$)
+- Alla *ngFor har trackBy
+- Inga ngOnChanges utan input-diffing
+- chart-update setTimeout guards: alla har `!this.destroy$.closed` check
+
+---
+
 ## 2026-03-19 Session #188 Worker A — PHP deprecated function + null/array safety audit — 0 buggar fixade
 
 ### Uppgift 1: PHP deprecated function usage audit
