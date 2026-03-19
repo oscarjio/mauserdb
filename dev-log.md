@@ -1,3 +1,28 @@
+## 2026-03-19 Session #173 Worker B — Angular accessibility audit — 813 buggar fixade
+
+### Uppgift 1: Angular lazy-loading completeness audit — 0 buggar
+
+Granskade `app.routes.ts` — alla 150+ routes anvander `loadComponent` korrekt. Enda eager-loaded komponenten ar `Layout` (root wrapper), vilket ar korrekt. Inga feature-moduler importeras direkt. Alla standalone components lazy-loadas via dynamisk import.
+
+### Uppgift 2: Angular accessibility audit — 813 buggar fixade
+
+**Icon-only knappar utan aria-label (11 buggar, 3 filer):**
+- `saglinje-skiftrapport.html`: 4 knappar (lagg till, expandera, PDF, ta bort) — lade till aria-label + aria-expanded
+- `klassificeringslinje-skiftrapport.html`: 4 knappar (lagg till, expandera, PDF, ta bort) — lade till aria-label + aria-expanded
+- `rebotling-statistik.html`: 3 knappar (navigera fore/nasta period, rensa datumintervall) — lade till aria-label
+
+**Spinners utan role="status" (~160 buggar, 45 filer):**
+- Alla `spinner-border` element utan `role="status"` fick attributet tillagt
+- Skarmslasare kan nu annonsera laddningstillstand korrekt
+
+**Tabellheaders utan scope="col" (642 buggar, 64 filer):**
+- Alla `<th>` element utan `scope="col"` fick attributet tillagt
+- Forbattrar tabellnavigering for skarmslasare
+
+**Filer andrade:** 81 HTML-filer i `noreko-frontend/src/app/`
+
+---
+
 ## 2026-03-19 Session #173 Worker A — PHP rate limiting + error response + session security audit — 7 buggar fixade
 
 ### Uppgift 1: PHP rate limiting audit — 0 buggar (redan implementerat)
