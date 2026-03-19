@@ -7,16 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #193):
-- [x] **PHP error logging + edge case audit** — 5 buggar (Worker A)
-- [x] **Angular HTTP + null safety audit** — 4 buggar (Worker B)
+### Klart (session #194):
+- [x] **PHP date/time + deprecated audit** — 4 buggar (Worker A)
+- [x] **Angular strict template + lazy-loading audit** — 2 buggar (Worker B)
 
-### Nasta buggjakt-items (session #194+):
+### Nasta buggjakt-items (session #195+):
 - [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor
-- [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
-- [ ] **PHP date/time edge cases** — granska fler controllers for timezone/DST-problem
-- [ ] **PHP deprecated function audit** — granska for PHP 8.1+ deprecated patterns
-- [ ] **Angular template strict mode audit** — granska templates for strictTemplates-varningar
+- [ ] **PHP file I/O error handling** — granska controllers for saknad felhantering vid filoperationer
+- [ ] **Angular HTTP retry logic audit** — granska att retry/backoff ar korrekt implementerat
+- [ ] **PHP array key existence audit** — granska for saknade isset/array_key_exists-kontroller
+- [ ] **Angular change detection audit** — granska for onodiga renderingar, saknad OnPush
 
 ## Parkerade features (ta inte dessa nu)
 

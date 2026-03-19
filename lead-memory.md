@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #193)*
+*Senast uppdaterad: 2026-03-19 (session #194)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -83,24 +83,25 @@ Session #190: BUGGJAKT — 8 buggar (3 Worker A + 5 Worker B). File upload (0, i
 Session #191: BUGGJAKT — 8 buggar (8 Worker A + 0 Worker B). Input validation (8: 4 json_decode $_POST-fallback, 2 svag null-check, 1 saknad datum-regex, 1 langdbegransningar). Chart cleanup (0, redan korrekt).
 Session #192: BUGGJAKT — 9 buggar (6 Worker A + 3 Worker B). SQL performance (6: 3 saknade LIMIT, 3 N+1->batch i KapacitetsplaneringController). Form validation (3: kvalitetscertifikat min=0->1 + submit-check, maskinunderhall [value]->[ngValue]).
 Session #193: BUGGJAKT — 9 buggar (5 Worker A + 4 Worker B). Error logging (3: saknade try-catch i ProduktionsmalController+HistoriskSammanfattning), edge cases (2: ohanterad fallback i OperatorRanking, datum-validering i DagligBriefing). Timer-lackor (4: produktions-sla 3, avvikelselarm 1).
+Session #194: BUGGJAKT — 6 buggar (4 Worker A + 2 Worker B). Date/time (3: ProduktionskostnadController skottar, SkiftrapportController DST, DrifttidsTimelineController gap), DDL-transaktion (1: LeveransplaneringController). Dead-code (2: maskinhistorik Chart.destroy).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #193+):
+### Kvarstaende buggjakt-items (session #195+):
 - [ ] Angular memory profiling — tunga sidor
-- [ ] Angular lazy-loading optimization audit
-- [ ] PHP date/time edge cases — timezone/DST-problem
-- [ ] PHP deprecated function audit — PHP 8.1+ patterns
-- [ ] Angular template strict mode audit
+- [ ] PHP file I/O error handling
+- [ ] Angular HTTP retry logic audit
+- [ ] PHP array key existence audit
+- [ ] Angular change detection audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #192 (klar)
-Worker A: 6 buggar — 3 saknade LIMIT (SkiftrapportController, KassationsDrilldownController, LineSkiftrapportController), 3 N+1 queries i KapacitetsplaneringController (getDagligKapacitet, getTidFordelning, getUtnyttjandegradTrend: 365 queries->1 batch vardera).
-Worker B: 3 buggar — kvalitetscertifikat min=0->1 + saknad submit-validering (2), maskinunderhall [value]->[ngValue] typbevarande (1).
 
 ### 2026-03-19 — Session #193 (klar)
 Worker A: 5 buggar — saknade try-catch i ProduktionsmalController.getFactualIbcByDate (1), HistoriskSammanfattning.calcPeriodData+calcStationData (2), ohanterad fallback-query i OperatorRanking.historik (1), datum-validering i DagligBriefing.getDatum (1).
 Worker B: 4 buggar — produktions-sla 3 timer-lackor (gaugeChart/weeklyChart/historyChart setTimeout utan cleanup), avvikelselarm 1 timer-lacka (trendChart setTimeout utan cleanup).
+
+### 2026-03-19 — Session #194 (klar)
+Worker A: 4 buggar — ProduktionskostnadController strtotime -365 days->DateTime (skottar), SkiftrapportController strtotime+sekunder->DateTime::modify (DST), DrifttidsTimelineController 23:59:59->exklusiv ovre grans (1-sekunds gap), LeveransplaneringController DDL utanfor transaktion (implicit commit). Deprecated audit: inga fynd.
+Worker B: 2 buggar — maskinhistorik redundant dead-code Chart.destroy() i byggDrifttidChart + byggOeeChart. 4 av 7 komponenter existerade ej (driftstorning, energiforbrukning, kvalitetskontroll, linjebalansering). Lazy-loading: alla 90+ routes korrekt med loadComponent.
