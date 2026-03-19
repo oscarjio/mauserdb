@@ -2596,7 +2596,7 @@ class RebotlingController {
      */
 
     private function getKassationPareto() {
-        $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 30;
+        $days = isset($_GET['days']) ? max(1, min(365, (int)$_GET['days'])) : 30;
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
         $toDate   = date('Y-m-d');
 

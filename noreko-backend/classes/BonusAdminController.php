@@ -898,8 +898,8 @@ class BonusAdminController {
      */
     private function listPayouts(): void {
         try {
-            $year   = isset($_GET['year'])  ? intval($_GET['year'])  : intval(date('Y'));
-            $op_id  = isset($_GET['op_id']) ? intval($_GET['op_id']) : 0;
+            $year   = isset($_GET['year'])  ? max(2020, min(2099, intval($_GET['year'])))  : intval(date('Y'));
+            $op_id  = isset($_GET['op_id']) ? max(0, intval($_GET['op_id'])) : 0;
             $status = trim($_GET['status'] ?? '');
             $allowedStatuses = ['pending', 'approved', 'paid'];
 
@@ -1156,7 +1156,7 @@ class BonusAdminController {
      */
     private function getPayoutSummary(): void {
         try {
-            $year = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
+            $year = isset($_GET['year']) ? max(2020, min(2099, intval($_GET['year']))) : intval(date('Y'));
 
             $stmt = $this->pdo->prepare("
                 SELECT

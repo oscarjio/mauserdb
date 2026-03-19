@@ -169,7 +169,7 @@ class FeatureFlagController {
             }
 
             $this->pdo->commit();
-            echo json_encode(['success' => true, 'message' => "$updated feature flags uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'message' => "$updated funktionsflaggor uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

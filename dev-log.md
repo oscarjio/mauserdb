@@ -1,3 +1,39 @@
+## 2026-03-19 Session #179 Worker A — PHP transaction rollback audit + numeric input validation — 4 buggar fixade
+
+### Uppgift 1: PHP transaction rollback audit — 0 buggar
+
+Granskade ALLA PHP-controllers i `noreko-backend/classes/` (exkl. `plcbackend/`).
+
+**Metod:** Sokte efter:
+- beginTransaction() utan try/catch
+- try/catch utan rollback
+- rollback() utanfor aktiv transaktion (utan inTransaction()-guard)
+- Multiple INSERT/UPDATE utan transaktion
+
+**Korrekt (inga buggar):**
+- Alla 50 st beginTransaction()-anrop ar korrekt wrappade i try/catch
+- Alla catch-block anvander `if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }` — korrekt guard
+- Filer med transaktioner: RuntimeController, MaintenanceController, FeedbackController, FeatureFlagController, SkiftplaneringController, OperatorsbonusController, RebotlingProductController, StoppageController, ProfileController, RebotlingController, ProduktionsmalController, BatchSparningController, FavoriterController, LineSkiftrapportController, BonusAdminController, AdminController, LeveransplaneringController, RegisterController, RebotlingAdminController, SkiftrapportController, StopporsakRegistreringController, AlertsController, KvalitetscertifikatController, ProduktionsSlaController, OperatorController, ShiftPlanController, RebotlingAnalyticsController
+- Enstaka INSERT/UPDATE-operationer (DashboardLayoutController, NewsController, etc.) anvander korrekt inga transaktioner — de behovs inte for single-statement operations
+
+### Uppgift 2: PHP numeric input validation — 4 buggar fixade
+
+**Metod:** Sokte efter alla `$_GET`/`$_POST`-parametrar som anvands som numeriska varden (days, period, year, limit, offset, id) och kontrollerade att de valideras med bounds-check.
+
+**Bugg 1 — `RebotlingController.php` rad 2599:** `$days = max(1, (int)$_GET['days'])` saknade ovre grans — en anropare kan skicka `days=999999999` och fa en enorm SQL-fraga. Fixat till `max(1, min(365, ...))`.
+
+**Bugg 2 — `BonusAdminController.php` rad 901:** `$year = intval($_GET['year'])` saknade bounds-check — godtyckliga ar-varden (0, 99999, negativa) accepterades. Fixat till `max(2020, min(2099, ...))`.
+
+**Bugg 3 — `BonusAdminController.php` rad 1159:** Samma problem som bugg 2, i `getPayoutSummary()`. Fixat till `max(2020, min(2099, ...))`.
+
+**Bugg 4 — `FeatureFlagController.php` rad 172:** Engelsk text i API-svar: `"$updated feature flags uppdaterade"`. Fixat till `"$updated funktionsflaggor uppdaterade"` (svensk text enligt regel 5).
+
+**Korrekt (inga buggar):**
+- De flesta controllers anvander `in_array($p, [7, 30, 90], true)` for period-validering (whitelist) — korrekt
+- `max(X, min(Y, ...))` anvands konsekvent i MaskinhistorikController, KassationsanalysController, AuditController, ProduktionspulsController, UnderhallsloggController, KapacitetsplaneringController, m.fl.
+- ID-parametrar (operator_id, maskin_id, etc.) valideras med `> 0`-check — korrekt for databas-ID:n
+- `FeedbackAnalysController::getDays()`, `HeatmapController`, `AlarmHistorikController` har alla korrekt `max(1, min(365, ...))` for days
+
 ## 2026-03-19 Session #178 Worker A — PHP error response + date/timezone + array key audit — 3 buggar fixade
 
 ### Uppgift 1: PHP error response consistency — 3 buggar fixade
