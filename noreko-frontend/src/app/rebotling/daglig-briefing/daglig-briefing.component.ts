@@ -54,6 +54,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
 
   // Chart
   private trendChart: Chart | null = null;
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
@@ -72,6 +73,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
+    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
@@ -168,7 +170,8 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trend = res.data.trend;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
+        if (this.chartTimer) clearTimeout(this.chartTimer);
+        this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       } else if (res !== null) {
         this.errorTrend = true;
       }
