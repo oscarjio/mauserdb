@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #181)*
+*Senast uppdaterad: 2026-03-19 (session #182)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -59,55 +59,41 @@ Bug Hunts #1-#50 genomforda. Kodbasen har genomgatt systematisk granskning.
 Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#131: BUGGJAKT — ~700 buggar totalt. Se lead-memory-archive.md.
 Session #132-#154: BUGGJAKT — ~800+ buggar. Se lead-memory-archive.md.
-Session #155: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). json_decode null-safety + trackByIndex->trackById.
-Session #156: BUGGJAKT — 25 buggar (10 Worker A + 15 Worker B). strtotime false-check, DateTime try/catch, transaction wraps + setTimeout destroy$-guards.
-Session #157: BUGGJAKT — 23 buggar (22 Worker A + 1 Worker B). XSS-fixar, svenska felmeddelanden + loading state fix.
-Session #158: BUGGJAKT — 79 buggar (78 Worker A + 1 Worker B). XSS ENT_QUOTES-fixar, input sanitization + catchError.
-Session #159: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). 3 saknade auth-checks (ProduktionsTakt, RebotlingTrendanalys, Veckotrend) + 2 error display (loading state + delete error).
-Session #160: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Alla 6 audits passerade rent: SQL edge cases, date/time, array access, template null-safety, HTTP interceptor, router guards.
-Session #161: BUGGJAKT — 11 buggar (10 Worker A + 1 Worker B). Error logging, CORS, response format, trackBy.
-Session #162: BUGGJAKT — 16 buggar (13 Worker A + 3 Worker B). File I/O error logging, VPN info leak + withCredentials, HTML-entiteter.
-Session #163: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Division by zero guards + LIKE injection escaping. Angular memory leaks + route guards OK.
-Session #164: BUGGJAKT — 50 buggar (35 Worker A + 15 Worker B). HTTP-statuskoder + race conditions + accessibility (keyboard, ARIA, table scope).
-Session #165: BUGGJAKT — 122 buggar (21 Worker A + 101 Worker B). Input length/boundary + logging completeness + HTTP retry + form validation.
-Session #166: BUGGJAKT — 9 buggar (7 Worker A + 2 Worker B). CORS/security headers + CSV filename injection + pdf-export error handling.
-Session #167: BUGGJAKT — 15 buggar (12 Worker A + 3 Worker B). SQL optimization (SELECT *, N+1) + auth edge cases (inactive login, missing auth) + template null-safety.
-Session #168: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). Response consistency + error logging + float comparison (Worker A) + HTTP error messages + form dirty state (Worker B).
-Session #169: BUGGJAKT — 37 buggar (27 Worker A + 10 Worker B). DST-sakra dagberakningar (strtotime/86400 -> DateTime::diff) i 14 controllers (Worker A) + accessibility aria-labels pa 10 icon-only knappar (Worker B).
-Session #170: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error boundaries (31 tysta catch-block + 4 felaktiga success:true), input validation (1 session read_and_close), session security (2 timeout-buggar). Angular HTTP/routing redan korrekt.
+Session #155-#170: BUGGJAKT — ~500+ buggar. Se lead-memory-archive.md.
 Session #171: BUGGJAKT — 268 buggar (42 Worker A + 226 Worker B). CORS/preflight (3), logging consistency (39), JSON response (0). Form validation (63), chart destroy (163).
 Session #172: BUGGJAKT — 55 buggar (8 Worker A + 47 Worker B). File upload (0, ingen kod), SQL optimization (8: 3 SELECT*, 3 N+1, 2 index). Unsubscribe (7), template type-safety (40).
 Session #173: BUGGJAKT — 820 buggar (7 Worker A + 813 Worker B). Rate limiting (0, redan OK), error response (5: 4 $_POST->json_decode, 1 felaktigt success:true), session security (2: Content-Type headers). Lazy-loading (0, redan OK), accessibility (813: 11 aria-label, ~160 spinner role, 642 th scope).
 Session #174: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Input validation (3 stored XSS: strip_tags), SQL injection (0). HTTP retry (0), route guards (0).
 Session #175: BUGGJAKT — 16 buggar (13 Worker A + 3 Worker B). Logging audit (13 saknade error_log i catch-block), file upload (0, ingen kod). Memory leaks (0, redan korrekt), form validation (3).
-Session #176: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). CORS (0, redan korrekt), session handling (0, redan korrekt). Error boundaries (0, redan korrekt), pagination limits (3: operator-ranking, operatorsbonus, kvalitetscertifikat, alarm-historik).
-Session #177: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). File permissions (0, sakert), SQL injection (0, PDO genomgaende). HTTP interceptor (0, komplett). Chart double-destroy (3: saglinje-statistik, klassificeringslinje-statistik, prediktivt-underhall).
-Session #178: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Error response (3: engelska->svenska i BonusAdmin), date/timezone (0, DST-sakert), array key (0, alla skyddade). Form reset (0, korrekt), route params (0, validerade).
-Session #179: BUGGJAKT — 8 buggar (4 Worker A + 4 Worker B). Transaction rollback (0, alla korrekt), numeric input (4: 1 days utan ovre grans, 2 year utan bounds, 1 engelsk text). HTTP timeout (1: polling timeout=interval), error message display (3: 2 dolda felmeddelanden, 28 engelska console.error).
-Session #180: BUGGJAKT — 15 buggar (14 Worker A + 1 Worker B). Logging completeness (14 tysta catch-block i 12 controllers), response code audit (0, alla korrekt). Memory leaks (0, redan korrekt), loading state (1: 152 spinners saknade visually-hidden text i 25 filer).
-Session #181: BUGGJAKT — 12 buggar (8 Worker A + 4 Worker B). SQL column names (0, alla korrekt), input sanitization (8: strip_tags+mb_substr i 7 controllers). Error boundaries (4: 23 HTTP-anrop utan catchError i 4 components), template null-safety (0, redan korrekt).
+Session #176: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). CORS (0, redan korrekt), session handling (0, redan korrekt). Error boundaries (0, redan korrekt), pagination limits (3).
+Session #177: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). File permissions (0), SQL injection (0). HTTP interceptor (0). Chart double-destroy (3).
+Session #178: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Error response (3: engelska->svenska). Date/timezone (0), array key (0). Form reset (0), route params (0).
+Session #179: BUGGJAKT — 8 buggar (4 Worker A + 4 Worker B). Numeric input (4). HTTP timeout (1), error message display (3).
+Session #180: BUGGJAKT — 15 buggar (14 Worker A + 1 Worker B). Logging completeness (14). Loading state (1: 152 spinners).
+Session #181: BUGGJAKT — 12 buggar (8 Worker A + 4 Worker B). Input sanitization (8). Error boundaries (4).
+Session #182: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). DST date calc (8: 1 UnderhallsprognosController 86400->DateTime, 7 dagdiff-guards). HTTP retry/timeout (5: andon-board, produktionstakt, skiftjamforelse, produktionsmal, daglig-sammanfattning). File I/O (0), route guards (0).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #182+):
-- [ ] PHP date/timezone edge cases
-- [ ] PHP file_get_contents/fopen audit
-- [ ] Angular HTTP retry audit
-- [ ] PHP array access audit
-- [ ] Angular route guard audit
+### Kvarstaende buggjakt-items (session #183+):
+- [ ] PHP header injection audit
+- [ ] PHP JSON response consistency
+- [ ] Angular lazy-loading verification
+- [ ] PHP error_log format audit
+- [ ] Angular form accessibility audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-19 — Session #179 (klar)
-Worker A: 4 buggar — Transaction rollback (0, alla 27 controllers korrekt). Numeric input (4: 1 days utan ovre grans, 2 year utan bounds, 1 engelsk text).
-Worker B: 4 buggar — HTTP timeout (1: news polling timeout=interval fixat). Error message display (3: 2 dolda felmeddelanden, 28 engelska console.error).
-
 ### 2026-03-19 — Session #180 (klar)
 Worker A: 14 buggar — Logging completeness (14 tysta catch-block utan error_log i 12 controllers). Response code audit (0, alla korrekt).
-Worker B: 1 bugg — Memory leaks (0, alla korrekt). Loading state (1: 152 spinners saknade visually-hidden text for WCAG i 25 HTML-filer).
+Worker B: 1 bugg — Memory leaks (0, alla korrekt). Loading state (1: 152 spinners saknade visually-hidden text).
 
 ### 2026-03-19 — Session #181 (klar)
-Worker A: 8 buggar — SQL column names (0, alla korrekt). Input sanitization (8: saknad strip_tags+mb_substr i 7 controllers: FavoriterController, FeatureFlagController, KvalitetscertifikatController, BonusAdminController, MaskinunderhallController, RebotlingController, SkiftoverlamningController).
-Worker B: 4 buggar — Error boundaries (4: 23 HTTP-anrop utan catchError i underhallslogg, operatorsportal, produktionsprognos, skiftoverlamning). Template null-safety (0, redan korrekt).
+Worker A: 8 buggar — SQL column names (0, alla korrekt). Input sanitization (8: saknad strip_tags+mb_substr i 7 controllers).
+Worker B: 4 buggar — Error boundaries (4: 23 HTTP-anrop utan catchError i 4 components). Template null-safety (0).
+
+### 2026-03-19 — Session #182 (klar)
+Worker A: 8 buggar — DST date calc (8: 1 kritisk UnderhallsprognosController 86400->DateTime::modify, 7 dagdiff-guards strtotime->DateTime::diff i 7 controllers). File I/O (0, alla korrekt).
+Worker B: 5 buggar — HTTP retry/timeout (5: andon-board, produktionstakt, skiftjamforelse, produktionsmal, daglig-sammanfattning — lade till timeout(10000)+catchError+isFetching-guard). Route guards (0, alla korrekt).
