@@ -197,7 +197,7 @@
     </div>
     <div class="card-body p-3">
       <div class="text-center py-4" *ngIf="operatorsLoading">
-        <div class="spinner-border spinner-border-sm text-info"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-info"></div>
       </div>
       <div *ngIf="!operatorsLoading && operatorsData">
         <div class="chart-container">
@@ -243,21 +243,21 @@
     </div>
     <div class="card-body p-0">
       <div class="text-center py-4" *ngIf="operatorsLoading">
-        <div class="spinner-border spinner-border-sm text-info"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-info"></div>
       </div>
 
       <div class="table-responsive" *ngIf="!operatorsLoading && operatorsData">
         <table class="table kt-table mb-0">
           <thead>
             <tr>
-              <th>Operatör</th>
-              <th class="text-center">Senaste kval %</th>
-              <th class="text-center">Förändring</th>
-              <th class="text-center">Trend</th>
-              <th class="text-center">Status</th>
-              <th class="text-center">IBC totalt</th>
-              <th class="text-center">Larm</th>
-              <th></th>
+              <th scope="col">Operatör</th>
+              <th scope="col" class="text-center">Senaste kval %</th>
+              <th scope="col" class="text-center">Förändring</th>
+              <th scope="col" class="text-center">Trend</th>
+              <th scope="col" class="text-center">Status</th>
+              <th scope="col" class="text-center">IBC totalt</th>
+              <th scope="col" class="text-center">Larm</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -334,7 +334,7 @@
         <i class="fas fa-user me-2" style="color:#4299e1;"></i>
         Detaljvy:
         <strong *ngIf="detailData">{{ detailData.op_namn }}</strong>
-        <span class="spinner-border spinner-border-sm ms-2 text-muted" *ngIf="detailLoading"></span>
+        <span role="status" class="spinner-border spinner-border-sm ms-2 text-muted" *ngIf="detailLoading"></span>
       </span>
       <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
         <i class="fas fa-times me-1"></i>Stäng
@@ -397,13 +397,13 @@
         <table class="table kt-table-sm mb-0">
           <thead>
             <tr>
-              <th>Vecka</th>
-              <th class="text-center">IBC OK</th>
-              <th class="text-center">IBC ej OK</th>
-              <th class="text-center">Totalt</th>
-              <th class="text-center">Kvalitet %</th>
-              <th class="text-center">Teamsnitt %</th>
-              <th class="text-center">Vs team</th>
+              <th scope="col">Vecka</th>
+              <th scope="col" class="text-center">IBC OK</th>
+              <th scope="col" class="text-center">IBC ej OK</th>
+              <th scope="col" class="text-center">Totalt</th>
+              <th scope="col" class="text-center">Kvalitet %</th>
+              <th scope="col" class="text-center">Teamsnitt %</th>
+              <th scope="col" class="text-center">Vs team</th>
             </tr>
           </thead>
           <tbody>
@@ -433,7 +433,7 @@
       </div>
     </div>
     <div class="card-body text-center py-4" *ngIf="detailLoading">
-      <div class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"></div>
       <p class="text-muted mt-2">Hämtar detaljdata...</p>
     </div>
   </div>

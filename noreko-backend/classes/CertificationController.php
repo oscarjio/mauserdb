@@ -108,7 +108,8 @@ class CertificationController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('CertificationController::getExpiryCount: ' . $e->getMessage());
-            echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringsdata', 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
 

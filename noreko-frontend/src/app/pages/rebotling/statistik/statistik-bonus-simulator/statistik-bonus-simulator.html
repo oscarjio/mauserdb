@@ -159,7 +159,7 @@
         </div>
         <button class="btn btn-success w-100" [disabled]="!vikterGiltiga || saving || loading"
           (click)="sparaParametrar()">
-          <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+          <span role="status" class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
           Spara som ny konfiguration
         </button>
       </div>
@@ -198,14 +198,14 @@
           <table class="sim-table">
             <thead>
               <tr>
-                <th>Operatör</th>
-                <th>Prod.</th>
-                <th>Skift</th>
-                <th>Eff%</th>
-                <th>Kval%</th>
-                <th class="text-center">Nuv. bonus</th>
-                <th class="text-center">Sim. bonus</th>
-                <th class="text-center">Diff</th>
+                <th scope="col">Operatör</th>
+                <th scope="col">Prod.</th>
+                <th scope="col">Skift</th>
+                <th scope="col">Eff%</th>
+                <th scope="col">Kval%</th>
+                <th scope="col" class="text-center">Nuv. bonus</th>
+                <th scope="col" class="text-center">Sim. bonus</th>
+                <th scope="col" class="text-center">Diff</th>
               </tr>
             </thead>
             <tbody>

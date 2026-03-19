@@ -64,7 +64,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.total_produktion ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.snitt_per_dag ?? 0 }} <small class="kpi-unit">IBC/dag</small>
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
             {{ overview?.basta_dag_antal ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
           <div class="kpi-sub" *ngIf="overview?.basta_dag">{{ formatDate(overview?.basta_dag ?? '') }}</div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -113,7 +113,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ formatPct(overview?.kassation_pct) }}
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -235,7 +235,7 @@
       Produktion {{ granularityLabel() }}
     </div>
     <div *ngIf="loadingGraph" class="text-center py-4">
-      <div class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"></div>
       <div class="text-muted mt-2">Laddar graf...</div>
     </div>
     <div class="chart-container" *ngIf="!loadingGraph">
@@ -258,7 +258,7 @@
     </div>
 
     <div *ngIf="loadingTable" class="text-center py-3">
-      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
 
     <div *ngIf="!loadingTable && tabell && tabell.rows.length > 0">
@@ -283,19 +283,19 @@
         <table class="table table-dark table-hover table-sm mb-0">
           <thead>
             <tr>
-              <th class="sortable" (click)="sortBy('date')">
+              <th scope="col" class="sortable" (click)="sortBy('date')">
                 Datum <i [class]="sortIcon('date')"></i>
               </th>
-              <th class="sortable text-end" (click)="sortBy('ibc_ok')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ok')">
                 Godkanda <i [class]="sortIcon('ibc_ok')"></i>
               </th>
-              <th class="sortable text-end" (click)="sortBy('ibc_ej_ok')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ej_ok')">
                 Kasserade <i [class]="sortIcon('ibc_ej_ok')"></i>
               </th>
-              <th class="sortable text-end" (click)="sortBy('total')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('total')">
                 Totalt <i [class]="sortIcon('total')"></i>
               </th>
-              <th class="sortable text-end" (click)="sortBy('kassation_pct')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('kassation_pct')">
                 Kassation% <i [class]="sortIcon('kassation_pct')"></i>
               </th>
             </tr>

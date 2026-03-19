@@ -169,13 +169,13 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th>Maskin</th>
-            <th class="text-end">Total stopptid</th>
-            <th class="text-end">Antal stopp</th>
-            <th class="text-end">Snitt/stopp</th>
-            <th class="text-end">Langsta stopp</th>
-            <th class="text-end">Andel</th>
-            <th>Andel (bar)</th>
+            <th scope="col">Maskin</th>
+            <th scope="col" class="text-end">Total stopptid</th>
+            <th scope="col" class="text-end">Antal stopp</th>
+            <th scope="col" class="text-end">Snitt/stopp</th>
+            <th scope="col" class="text-end">Langsta stopp</th>
+            <th scope="col" class="text-end">Andel</th>
+            <th scope="col">Andel (bar)</th>
           </tr>
         </thead>
         <tbody>
@@ -241,18 +241,18 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th class="sortable" (click)="sortBy('startad_at')">
+            <th scope="col" class="sortable" (click)="sortBy('startad_at')">
               Tidpunkt <i [class]="getSortIcon('startad_at')"></i>
             </th>
-            <th class="sortable" (click)="sortBy('maskin_namn')">
+            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')">
               Maskin <i [class]="getSortIcon('maskin_namn')"></i>
             </th>
-            <th class="sortable text-end" (click)="sortBy('duration_min')">
+            <th scope="col" class="sortable text-end" (click)="sortBy('duration_min')">
               Varaktighet <i [class]="getSortIcon('duration_min')"></i>
             </th>
-            <th>Orsak</th>
-            <th>Kategori</th>
-            <th>Operatör</th>
+            <th scope="col">Orsak</th>
+            <th scope="col">Kategori</th>
+            <th scope="col">Operatör</th>
           </tr>
         </thead>
         <tbody>

@@ -5945,10 +5945,12 @@ HTML;
      * Kräver admin-session.
      */
     public function createAnnotation(): void {
-        $datum       = trim($_POST['datum'] ?? '');
-        $typ         = trim($_POST['typ'] ?? '');
-        $titel       = strip_tags(trim($_POST['titel'] ?? ''));
-        $beskrivning = strip_tags(trim($_POST['beskrivning'] ?? ''));
+        // Läs JSON-body (Angular skickar application/json, inte form-data)
+        $data        = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $datum       = trim($data['datum'] ?? '');
+        $typ         = trim($data['typ'] ?? '');
+        $titel       = strip_tags(trim($data['titel'] ?? ''));
+        $beskrivning = strip_tags(trim($data['beskrivning'] ?? ''));
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
@@ -5993,7 +5995,9 @@ HTML;
      * Kräver admin-session.
      */
     public function deleteAnnotation(): void {
-        $id = intval($_POST['id'] ?? 0);
+        // Läs JSON-body (Angular skickar application/json, inte form-data)
+        $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $id = intval($data['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt id'], JSON_UNESCAPED_UNICODE);

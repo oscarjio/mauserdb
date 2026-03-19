@@ -31,11 +31,11 @@
         <table class="rapport-tabell">
           <thead>
             <tr>
-              <th>Nyckeltal</th>
-              <th>Förra veckan</th>
-              <th>Denna vecka</th>
-              <th>Förändring</th>
-              <th>%</th>
+              <th scope="col">Nyckeltal</th>
+              <th scope="col">Förra veckan</th>
+              <th scope="col">Denna vecka</th>
+              <th scope="col">Förändring</th>
+              <th scope="col">%</th>
             </tr>
           </thead>
           <tbody>
@@ -65,9 +65,9 @@
         <table class="rapport-tabell">
           <thead>
             <tr>
-              <th>Datum</th>
-              <th>IBC producerade</th>
-              <th>Kassation %</th>
+              <th scope="col">Datum</th>
+              <th scope="col">IBC producerade</th>
+              <th scope="col">Kassation %</th>
             </tr>
           </thead>
           <tbody>
@@ -86,11 +86,11 @@
         <table class="rapport-tabell">
           <thead>
             <tr>
-              <th>Operatör</th>
-              <th>IBC OK</th>
-              <th>Kassation %</th>
-              <th>OEE %</th>
-              <th>Skift</th>
+              <th scope="col">Operatör</th>
+              <th scope="col">IBC OK</th>
+              <th scope="col">Kassation %</th>
+              <th scope="col">OEE %</th>
+              <th scope="col">Skift</th>
             </tr>
           </thead>
           <tbody>
@@ -111,10 +111,10 @@
         <table class="rapport-tabell">
           <thead>
             <tr>
-              <th>Orsak</th>
-              <th>Antal</th>
-              <th>Total tid (min)</th>
-              <th>Andel</th>
+              <th scope="col">Orsak</th>
+              <th scope="col">Antal</th>
+              <th scope="col">Total tid (min)</th>
+              <th scope="col">Andel</th>
             </tr>
           </thead>
           <tbody>
@@ -134,10 +134,10 @@
         <table class="rapport-tabell">
           <thead>
             <tr>
-              <th>Datum</th>
-              <th>Typ</th>
-              <th>Beskrivning</th>
-              <th>Allvarlighet</th>
+              <th scope="col">Datum</th>
+              <th scope="col">Typ</th>
+              <th scope="col">Beskrivning</th>
+              <th scope="col">Allvarlighet</th>
             </tr>
           </thead>
           <tbody>
@@ -202,7 +202,7 @@
           class="btn btn-sm btn-success"
           (click)="genereraSammanfattning()"
           [disabled]="loadingSammanfattning">
-          <span *ngIf="loadingSammanfattning" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="loadingSammanfattning" role="status" class="spinner-border spinner-border-sm me-1"></span>
           Generera utskriftsrapport
         </button>
       </div>

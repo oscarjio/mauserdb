@@ -47,7 +47,7 @@
           <button class="btn btn-success w-100"
                   [disabled]="sparLoading || !formAntal || formAntal <= 0"
                   (click)="sparaMal()">
-            <span *ngIf="sparLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i class="fas fa-save me-1" *ngIf="!sparLoading"></i>
             Spara mal
           </button>
@@ -210,13 +210,13 @@
         <table class="table table-dark table-sm table-hover align-middle mb-0">
           <thead>
             <tr>
-              <th>Typ</th>
-              <th>Period</th>
-              <th class="text-end">Mal</th>
-              <th class="text-end">Utfall</th>
-              <th class="text-end">Uppfyllnad</th>
-              <th class="text-center">Uppnadd</th>
-              <th class="text-end">Differens</th>
+              <th scope="col">Typ</th>
+              <th scope="col">Period</th>
+              <th scope="col" class="text-end">Mal</th>
+              <th scope="col" class="text-end">Utfall</th>
+              <th scope="col" class="text-end">Uppfyllnad</th>
+              <th scope="col" class="text-center">Uppnadd</th>
+              <th scope="col" class="text-end">Differens</th>
             </tr>
           </thead>
           <tbody>

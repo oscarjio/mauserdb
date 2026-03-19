@@ -98,22 +98,22 @@
           <table class="table table-dark table-sm mb-0">
             <thead>
               <tr>
-                <th class="sortable" (click)="sortOperators('op_namn')">
+                <th scope="col" class="sortable" (click)="sortOperators('op_namn')">
                   Operator <i [class]="getSortIcon('op_namn')"></i>
                 </th>
-                <th class="text-end sortable" (click)="sortOperators('total')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('total')">
                   Producerade <i [class]="getSortIcon('total')"></i>
                 </th>
-                <th class="text-end sortable" (click)="sortOperators('kasserade')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('kasserade')">
                   Kasserade <i [class]="getSortIcon('kasserade')"></i>
                 </th>
-                <th class="text-end sortable" (click)="sortOperators('rate')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('rate')">
                   Rate % <i [class]="getSortIcon('rate')"></i>
                 </th>
-                <th class="text-end sortable" (click)="sortOperators('avvikelse')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('avvikelse')">
                   Avvikelse <i [class]="getSortIcon('avvikelse')"></i>
                 </th>
-                <th class="text-center">Trend</th>
+                <th scope="col" class="text-center">Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -214,8 +214,8 @@
       <table class="table table-dark table-sm heatmap-table mb-0">
         <thead>
           <tr>
-            <th class="heatmap-header-station">Station</th>
-            <th *ngFor="let w of heatmapData.weeks; trackBy: trackByIndex" class="text-center heatmap-header">{{ w.label }}</th>
+            <th scope="col" class="heatmap-header-station">Station</th>
+            <th scope="col" *ngFor="let w of heatmapData.weeks; trackBy: trackByIndex" class="text-center heatmap-header">{{ w.label }}</th>
           </tr>
         </thead>
         <tbody>

@@ -94,21 +94,21 @@
       <table class="table table-dark table-hover align-middle mb-0">
         <thead>
           <tr>
-            <th class="sortable" (click)="sortBy('namn')">
+            <th scope="col" class="sortable" (click)="sortBy('namn')">
               Maskin <i [class]="getSortIcon('namn')"></i>
             </th>
-            <th class="sortable" (click)="sortBy('senaste_service')">
+            <th scope="col" class="sortable" (click)="sortBy('senaste_service')">
               Senaste service <i [class]="getSortIcon('senaste_service')"></i>
             </th>
-            <th class="sortable" (click)="sortBy('nasta_service')">
+            <th scope="col" class="sortable" (click)="sortBy('nasta_service')">
               Nästa service <i [class]="getSortIcon('nasta_service')"></i>
             </th>
-            <th class="sortable" (click)="sortBy('dagar_kvar')">
+            <th scope="col" class="sortable" (click)="sortBy('dagar_kvar')">
               Dagar kvar <i [class]="getSortIcon('dagar_kvar')"></i>
             </th>
-            <th>Status</th>
-            <th>Intervall</th>
-            <th>Åtgärd</th>
+            <th scope="col">Status</th>
+            <th scope="col">Intervall</th>
+            <th scope="col">Åtgärd</th>
           </tr>
         </thead>
         <tbody>
@@ -161,7 +161,7 @@
                   </div>
 
                   <div class="text-center py-3" *ngIf="loadingHistory">
-                    <div class="spinner-border spinner-border-sm text-info"></div>
+                    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
                     <span class="ms-2 text-muted">Laddar historik...</span>
                   </div>
                   <div class="alert alert-danger mb-0" *ngIf="errorHistory && !loadingHistory">
@@ -176,11 +176,11 @@
                       <table class="table table-dark table-sm mb-0">
                         <thead>
                           <tr>
-                            <th>Datum</th>
-                            <th>Typ</th>
-                            <th>Beskrivning</th>
-                            <th>Utfört av</th>
-                            <th>Nästa planerad</th>
+                            <th scope="col">Datum</th>
+                            <th scope="col">Typ</th>
+                            <th scope="col">Beskrivning</th>
+                            <th scope="col">Utfört av</th>
+                            <th scope="col">Nästa planerad</th>
                           </tr>
                         </thead>
                         <tbody>

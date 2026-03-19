@@ -1,3 +1,48 @@
+## 2026-03-19 Session #173 Worker A — PHP rate limiting + error response + session security audit — 7 buggar fixade
+
+### Uppgift 1: PHP rate limiting audit — 0 buggar (redan implementerat)
+
+Granskade alla autentiseringsrelaterade endpoints:
+- **LoginController**: Rate limiting via AuthHelper::isRateLimited() finns redan (5 forsok, 15 min lockout)
+- **RegisterController**: Rate limiting finns redan (prefixat 'reg:' + IP)
+- **ProfileController**: Rate limiting for losenordsbyte finns redan (prefixat 'pwchange:' + IP)
+- **AdminController**: Skyddat bakom admin-session, inget rate limiting behovs
+- Alla ovriga endpoints ar session-skyddade — ingen ytterligare rate limiting kravs
+
+### Uppgift 2: PHP error response standardization — 5 buggar fixade
+
+**RebotlingController.php (2 buggar):**
+- `addEvent()` (rad 1713-1716): Laste fran `$_POST` istallet for JSON-body. Angular skickar `Content-Type: application/json` sa `$_POST` ar alltid tom. Fixat med `json_decode(file_get_contents('php://input'))` med fallback till `$_POST`.
+- `deleteEvent()` (rad 1755): Samma bugg — laste `$_POST['id']` istallet for JSON-body. Fixat pa samma satt.
+
+**RebotlingAnalyticsController.php (2 buggar):**
+- `createAnnotation()` (rad 5948-5951): Laste `$_POST['datum']`, `$_POST['typ']`, `$_POST['titel']`, `$_POST['beskrivning']` istallet for JSON-body. Fixat med `json_decode()` + `$_POST` fallback.
+- `deleteAnnotation()` (rad 5996): Laste `$_POST['id']` istallet for JSON-body. Fixat pa samma satt.
+
+**CertificationController.php (1 bugg):**
+- `getExpiryCount()` catch-block (rad 111): Returnerade `success: true` vid databasfel, vilket maskerade fel for anroparen. Fixat till `success: false` med `http_response_code(500)` och felmeddelande.
+
+### Uppgift 3: PHP session security audit — 2 buggar fixade
+
+**update-weather.php (2 buggar):**
+- Saknade `Content-Type: application/json` header pa forsta felvagen (rad 11, db_config saknas). JSON-svar skickades utan Content-Type header. Fixat.
+- Pa PDO-felvaagen (rad 22-23) sattes `Content-Type` header EFTER `http_response_code(500)` men det spelar ingen praktisk roll — korrigerade ordningen for konsistens.
+
+**Session-konfiguration (inga buggar):**
+- api.php: Session cookie-params (HttpOnly, Secure, SameSite=Lax) korrekt konfigurerade
+- api.php: `use_strict_mode`, `use_only_cookies`, `use_trans_sid=0` alla satta — skyddar mot session fixation
+- LoginController: `session_regenerate_id(true)` anropas vid inloggning
+- AuthHelper: SESSION_TIMEOUT (8h) + checkSessionTimeout() + gc_maxlifetime (8h) konfigurerat
+- StatusController: Kontrollerar `last_activity` timeout vid varje poll
+
+**Filer andrade:**
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/RebotlingController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/RebotlingAnalyticsController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/CertificationController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/update-weather.php`
+
+---
+
 ## 2026-03-18 Session #172 Worker B — unsubscribe audit + template type-safety — 47 buggar fixade
 
 ### Uppgift 1: Angular services unsubscribe audit — 7 buggar fixade

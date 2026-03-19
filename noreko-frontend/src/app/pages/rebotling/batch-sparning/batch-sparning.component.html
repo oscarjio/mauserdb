@@ -44,7 +44,7 @@
 
   <!-- Loading KPI -->
   <div class="text-center py-3" *ngIf="loadingOverview">
-    <div class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     <span class="ms-2 text-muted">Laddar KPI:er...</span>
   </div>
 
@@ -75,7 +75,7 @@
 
     <!-- Loading -->
     <div class="text-center py-3" *ngIf="loadingActive">
-      <div class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
       <span class="ms-2 text-muted">Laddar aktiva batchar...</span>
     </div>
 
@@ -96,14 +96,14 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Batch</th>
-              <th>Status</th>
-              <th>Progress</th>
-              <th>Klara</th>
-              <th>Kasserade</th>
-              <th>Snitt cykeltid</th>
-              <th>Uppskattat kvar</th>
-              <th>Startad</th>
+              <th scope="col">Batch</th>
+              <th scope="col">Status</th>
+              <th scope="col">Progress</th>
+              <th scope="col">Klara</th>
+              <th scope="col">Kasserade</th>
+              <th scope="col">Snitt cykeltid</th>
+              <th scope="col">Uppskattat kvar</th>
+              <th scope="col">Startad</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +163,7 @@
 
     <!-- Loading -->
     <div class="text-center py-3" *ngIf="loadingHistory">
-      <div class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
       <span class="ms-2 text-muted">Laddar historik...</span>
     </div>
 
@@ -184,14 +184,14 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
-              <th>Batch</th>
-              <th>Klara</th>
-              <th>Kasserade</th>
-              <th>Kassation%</th>
-              <th>Snitt cykeltid</th>
-              <th>Ledtid</th>
-              <th>Startad</th>
-              <th>Avslutad</th>
+              <th scope="col">Batch</th>
+              <th scope="col">Klara</th>
+              <th scope="col">Kasserade</th>
+              <th scope="col">Kassation%</th>
+              <th scope="col">Snitt cykeltid</th>
+              <th scope="col">Ledtid</th>
+              <th scope="col">Startad</th>
+              <th scope="col">Avslutad</th>
             </tr>
           </thead>
           <tbody>
@@ -221,7 +221,7 @@
 
       <!-- Loading -->
       <div class="text-center py-5" *ngIf="loadingDetail && !selectedBatchDetail">
-        <div class="spinner-border text-info"></div>
+        <div role="status" class="spinner-border text-info"></div>
         <p class="mt-2 text-muted">Laddar batch-detaljer...</p>
       </div>
 
@@ -302,11 +302,11 @@
             <table class="table table-sm mb-0">
               <thead>
                 <tr>
-                  <th>IBC</th>
-                  <th>Startad</th>
-                  <th>Klar</th>
-                  <th>Cykeltid</th>
-                  <th>Status</th>
+                  <th scope="col">IBC</th>
+                  <th scope="col">Startad</th>
+                  <th scope="col">Klar</th>
+                  <th scope="col">Cykeltid</th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>

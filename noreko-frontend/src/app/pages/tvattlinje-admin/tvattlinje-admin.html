@@ -333,7 +333,7 @@
             class="btn btn-primary"
             (click)="saveNewSettings()"
             [disabled]="newSettingsSaving || newSettingsLoading">
-            <span *ngIf="newSettingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="newSettingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!newSettingsSaving" class="fas fa-save me-2"></i>
             {{ newSettingsSaving ? 'Sparar...' : 'Spara driftsinställningar' }}
           </button>
@@ -437,7 +437,7 @@
             class="btn btn-primary"
             (click)="saveWeekdayGoals()"
             [disabled]="weekdayGoalsSaving || weekdayGoalsLoading">
-            <span *ngIf="weekdayGoalsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="weekdayGoalsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!weekdayGoalsSaving" class="fas fa-save me-2"></i>
             {{ weekdayGoalsSaving ? 'Sparar...' : 'Spara veckodagsmål' }}
           </button>
@@ -523,7 +523,7 @@
         </div>
         <div class="mt-4 d-flex gap-2 align-items-center">
           <button class="btn btn-danger" (click)="saveAlertThresholds()" [disabled]="alertThresholdsSaving">
-            <span *ngIf="alertThresholdsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="alertThresholdsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!alertThresholdsSaving" class="fas fa-save me-2"></i>
             {{ alertThresholdsSaving ? 'Sparar...' : 'Spara trösklar' }}
           </button>
@@ -614,7 +614,7 @@
             class="btn btn-primary"
             (click)="saveSettings()"
             [disabled]="settingsSaving || loading">
-            <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="settingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
             {{ settingsSaving ? 'Sparar...' : 'Spara produktionsinställningar' }}
           </button>

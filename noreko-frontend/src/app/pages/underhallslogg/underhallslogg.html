@@ -143,7 +143,7 @@
 
           <div class="mt-3">
             <button class="btn-spara" (click)="spara()" [disabled]="submitting">
-              <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="submitting" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!submitting" class="fas fa-save me-2"></i>
               {{ submitting ? 'Sparar...' : 'Spara underhall' }}
             </button>
@@ -167,12 +167,12 @@
             <table class="underhall-table">
               <thead>
                 <tr>
-                  <th>Station</th>
-                  <th class="text-end">Antal</th>
-                  <th class="text-end">Total tid</th>
-                  <th class="text-end">Planerat</th>
-                  <th class="text-end">Oplanerat</th>
-                  <th style="width:35%">Fordelning</th>
+                  <th scope="col">Station</th>
+                  <th scope="col" class="text-end">Antal</th>
+                  <th scope="col" class="text-end">Total tid</th>
+                  <th scope="col" class="text-end">Planerat</th>
+                  <th scope="col" class="text-end">Oplanerat</th>
+                  <th scope="col" style="width:35%">Fordelning</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,7 +236,7 @@
 
         <div class="card-dark-body">
           <div *ngIf="loadingItems" class="text-center py-4">
-            <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar...
+            <span role="status" class="spinner-border spinner-border-sm text-info me-2"></span>Laddar...
           </div>
 
           <div *ngIf="!loadingItems && items.length === 0" class="empty-state">
@@ -248,14 +248,14 @@
             <table class="underhall-table">
               <thead>
                 <tr>
-                  <th>Datum</th>
-                  <th>Station</th>
-                  <th>Typ</th>
-                  <th>Varaktighet</th>
-                  <th>Stopporsak</th>
-                  <th>Utford av</th>
-                  <th class="td-beskrivning-hdr">Beskrivning</th>
-                  <th *ngIf="loggedIn"></th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Station</th>
+                  <th scope="col">Typ</th>
+                  <th scope="col">Varaktighet</th>
+                  <th scope="col">Stopporsak</th>
+                  <th scope="col">Utford av</th>
+                  <th scope="col" class="td-beskrivning-hdr">Beskrivning</th>
+                  <th scope="col" *ngIf="loggedIn"></th>
                 </tr>
               </thead>
               <tbody>
@@ -342,7 +342,7 @@
               </div>
 
               <button class="btn-spara" (click)="sparaLegacy()" [disabled]="legacySubmitting">
-                <span *ngIf="legacySubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                <span *ngIf="legacySubmitting" role="status" class="spinner-border spinner-border-sm me-2"></span>
                 <i *ngIf="!legacySubmitting" class="fas fa-save me-2"></i>
                 {{ legacySubmitting ? 'Sparar...' : 'Spara underhall' }}
               </button>
@@ -413,7 +413,7 @@
         </div>
         <div class="card-dark-body">
           <div *ngIf="loadingHistorik" class="text-center py-4">
-            <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar historik...
+            <span role="status" class="spinner-border spinner-border-sm text-info me-2"></span>Laddar historik...
           </div>
           <div *ngIf="!loadingHistorik && historik.length === 0" class="empty-state">
             <i class="fas fa-clipboard text-muted"></i>
@@ -423,14 +423,14 @@
             <table class="underhall-table">
               <thead>
                 <tr>
-                  <th>Datum</th>
-                  <th>Operator</th>
-                  <th>Kategori</th>
-                  <th>Typ</th>
-                  <th>Varaktighet</th>
-                  <th>Maskin</th>
-                  <th>Kommentar</th>
-                  <th *ngIf="loggedIn && user?.role === 'admin'"></th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Operator</th>
+                  <th scope="col">Kategori</th>
+                  <th scope="col">Typ</th>
+                  <th scope="col">Varaktighet</th>
+                  <th scope="col">Maskin</th>
+                  <th scope="col">Kommentar</th>
+                  <th scope="col" *ngIf="loggedIn && user?.role === 'admin'"></th>
                 </tr>
               </thead>
               <tbody>
@@ -448,7 +448,7 @@
                   <td class="td-kommentar">{{ post.kommentar || '' }}</td>
                   <td *ngIf="loggedIn && user?.role === 'admin'" class="td-actions">
                     <button class="btn-delete" (click)="deleteLegacy(post)" [disabled]="deletingId === post.id" title="Ta bort">
-                      <span *ngIf="deletingId === post.id" class="spinner-border spinner-border-sm"></span>
+                      <span *ngIf="deletingId === post.id" role="status" class="spinner-border spinner-border-sm"></span>
                       <i *ngIf="deletingId !== post.id" class="fas fa-trash-alt"></i>
                     </button>
                   </td>

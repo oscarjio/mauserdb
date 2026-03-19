@@ -7,6 +7,7 @@
 // Databasanslutning via db_config.php (inga hårdkodade credentials)
 $dbConfig = __DIR__ . '/db_config.php';
 if (!file_exists($dbConfig)) {
+    header('Content-Type: application/json; charset=utf-8');
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas'], JSON_UNESCAPED_UNICODE);
     exit;
@@ -18,8 +19,8 @@ try {
     ]);
 } catch (PDOException $e) {
     error_log('[update-weather] Databasanslutning misslyckades: ' . $e->getMessage());
-    http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
+    http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
     exit;
 }

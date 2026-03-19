@@ -281,7 +281,7 @@
           </div>
           <div class="mt-4 d-flex gap-2 align-items-center">
             <button class="btn btn-primary" (click)="saveSettings()" [disabled]="settingsSaving">
-              <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="settingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
               {{ settingsSaving ? 'Sparar...' : 'Spara inställningar' }}
             </button>
@@ -359,7 +359,7 @@
           </div>
           <div class="mt-3 d-flex gap-2 align-items-center">
             <button class="btn btn-info" (click)="saveWeekdayGoals()" [disabled]="weekdaySaving">
-              <span *ngIf="weekdaySaving" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="weekdaySaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!weekdaySaving" class="fas fa-save me-2"></i>
               {{ weekdaySaving ? 'Sparar...' : 'Spara veckodagsmål' }}
             </button>
@@ -412,7 +412,7 @@
             </div>
             <div class="col-12 col-md-3 d-flex align-items-end gap-2">
               <button class="btn btn-warning" (click)="saveGoalException()" [disabled]="savingException">
-                <span *ngIf="savingException" class="spinner-border spinner-border-sm me-2"></span>
+                <span *ngIf="savingException" role="status" class="spinner-border spinner-border-sm me-2"></span>
                 <i *ngIf="!savingException" class="fas fa-save me-2"></i>
                 {{ savingException ? 'Sparar...' : 'Spara undantag' }}
               </button>
@@ -553,7 +553,7 @@
           </div>
           <div class="mt-4 d-flex gap-2 align-items-center">
             <button class="btn btn-danger" (click)="saveAlertThresholds()" [disabled]="alertThresholdsSaving">
-              <span *ngIf="alertThresholdsSaving" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="alertThresholdsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!alertThresholdsSaving" class="fas fa-save me-2"></i>
               {{ alertThresholdsSaving ? 'Sparar...' : 'Spara trösklar' }}
             </button>
@@ -619,7 +619,7 @@
           </div>
           <div class="mt-3 d-flex gap-2 align-items-center">
             <button class="btn btn-warning" (click)="saveShiftTimes()" [disabled]="shiftTimesSaving">
-              <span *ngIf="shiftTimesSaving" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="shiftTimesSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!shiftTimesSaving" class="fas fa-save me-2"></i>
               {{ shiftTimesSaving ? 'Sparar...' : 'Spara skifttider' }}
             </button>

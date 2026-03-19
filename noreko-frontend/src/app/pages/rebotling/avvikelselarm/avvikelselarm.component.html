@@ -145,7 +145,7 @@
         <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>Larmtrend
       </h5>
       <div *ngIf="loadingTrend" class="text-center py-4">
-        <div class="spinner-border text-info spinner-border-sm"></div>
+        <div role="status" class="spinner-border text-info spinner-border-sm"></div>
       </div>
       <div *ngIf="!loadingTrend && errorTrend" class="text-center py-3" style="color:#fc8181;">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata.
@@ -179,7 +179,7 @@
     </div>
 
     <div *ngIf="loadingHistorik" class="text-center py-4">
-      <div class="spinner-border text-info spinner-border-sm"></div>
+      <div role="status" class="spinner-border text-info spinner-border-sm"></div>
     </div>
 
     <div *ngIf="!loadingHistorik && errorHistorik" class="text-center py-3" style="color:#fc8181;">
@@ -192,15 +192,15 @@
         <table class="table table-dark table-striped table-hover mb-0">
           <thead>
             <tr>
-              <th class="sortable" (click)="sortBy('tidsstampel')">Tidpunkt <i [class]="getSortIcon('tidsstampel')"></i></th>
-              <th>Grad</th>
-              <th>Typ</th>
-              <th>Meddelande</th>
-              <th>Varde</th>
-              <th>Grans</th>
-              <th>Status</th>
-              <th>Kvitterad av</th>
-              <th>Kommentar</th>
+              <th scope="col" class="sortable" (click)="sortBy('tidsstampel')">Tidpunkt <i [class]="getSortIcon('tidsstampel')"></i></th>
+              <th scope="col">Grad</th>
+              <th scope="col">Typ</th>
+              <th scope="col">Meddelande</th>
+              <th scope="col">Varde</th>
+              <th scope="col">Grans</th>
+              <th scope="col">Status</th>
+              <th scope="col">Kvitterad av</th>
+              <th scope="col">Kommentar</th>
             </tr>
           </thead>
           <tbody>
@@ -234,7 +234,7 @@
   <ng-container *ngIf="activeTab === 'regler'">
 
     <div *ngIf="loadingRegler" class="text-center py-4">
-      <div class="spinner-border text-info spinner-border-sm"></div>
+      <div role="status" class="spinner-border text-info spinner-border-sm"></div>
     </div>
 
     <div *ngIf="!loadingRegler && errorRegler" class="text-center py-3" style="color:#fc8181;">
@@ -308,7 +308,7 @@
       <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-sm btn-outline-secondary" (click)="closeKvittera()">Avbryt</button>
         <button class="btn btn-sm btn-success" [disabled]="!kvitteraNamn.trim() || savingKvittera" (click)="submitKvittera()">
-          <span *ngIf="savingKvittera" class="spinner-border spinner-border-sm me-1"></span>
+          <span *ngIf="savingKvittera" role="status" class="spinner-border spinner-border-sm me-1"></span>
           Kvittera
         </button>
       </div>

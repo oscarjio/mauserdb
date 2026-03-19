@@ -53,7 +53,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.totalt_inkommande ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -69,7 +69,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.godkanda ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -85,7 +85,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.kasserade ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -101,7 +101,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ formatPct(overview?.genomstromning_pct) }}
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -117,7 +117,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview" style="font-size:1.1rem;">
             {{ overview?.flaskhals_station ?? '-' }}
           </div>
-          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+          <div *ngIf="loadingOverview" role="status" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>
     </div>
@@ -132,7 +132,7 @@
     </div>
 
     <div *ngIf="loadingFlode" class="text-center py-5">
-      <div class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"></div>
       <div class="text-muted mt-2">Laddar flodesdiagram...</div>
     </div>
 
@@ -243,7 +243,7 @@
     </div>
 
     <div *ngIf="loadingStationer" class="text-center py-3">
-      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
     </div>
 
     <div *ngIf="!loadingStationer && stationerData && stationerData.rows.length > 0">
@@ -265,14 +265,14 @@
         <table class="table table-dark table-hover table-sm mb-0">
           <thead>
             <tr>
-              <th>#</th>
-              <th>Station</th>
-              <th class="text-end">Inkommande</th>
-              <th class="text-end">Godkanda</th>
-              <th class="text-end">Kasserade</th>
-              <th class="text-end">Genomstromning</th>
-              <th class="text-end">Tid/IBC (sek)</th>
-              <th class="text-center">Status</th>
+              <th scope="col">#</th>
+              <th scope="col">Station</th>
+              <th scope="col" class="text-end">Inkommande</th>
+              <th scope="col" class="text-end">Godkanda</th>
+              <th scope="col" class="text-end">Kasserade</th>
+              <th scope="col" class="text-end">Genomstromning</th>
+              <th scope="col" class="text-end">Tid/IBC (sek)</th>
+              <th scope="col" class="text-center">Status</th>
             </tr>
           </thead>
           <tbody>

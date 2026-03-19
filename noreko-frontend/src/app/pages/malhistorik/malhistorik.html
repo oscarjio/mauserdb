@@ -15,7 +15,7 @@
     <!-- Laddningsindikator (global) -->
     <div class="row mb-3" *ngIf="historyLoading || impactLoading">
       <div class="col-12 text-center py-4">
-        <div class="spinner-border text-info me-2"></div>
+        <div role="status" class="spinner-border text-info me-2"></div>
         <span class="text-muted">Hämtar data…</span>
       </div>
     </div>
@@ -55,7 +55,7 @@
           <div class="summary-value" *ngIf="historyLoaded">
             {{ historyData?.antal_andringar ?? 0 }}
           </div>
-          <div class="spinner-border spinner-border-sm text-info" *ngIf="!historyLoaded && historyLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info" *ngIf="!historyLoaded && historyLoading"></div>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
             {{ (getSnittImpact() ?? 0) > 0 ? '+' : '' }}{{ getSnittImpact() }}<span class="summary-unit">%</span>
           </div>
           <div class="summary-value text-muted" *ngIf="impactLoaded && getSnittImpact() === null">Ingen data</div>
-          <div class="spinner-border spinner-border-sm text-info" *ngIf="!impactLoaded && impactLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info" *ngIf="!impactLoaded && impactLoading"></div>
         </div>
       </div>
 
@@ -94,7 +94,7 @@
             {{ formatTid(historyData!.senaste_andring) }}
           </div>
           <div class="summary-value text-muted" *ngIf="historyLoaded && !historyData?.senaste_andring">—</div>
-          <div class="spinner-border spinner-border-sm text-warning" *ngIf="!historyLoaded && historyLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-warning" *ngIf="!historyLoaded && historyLoading"></div>
         </div>
       </div>
     </div>
@@ -135,12 +135,12 @@
             <table class="table table-dark table-hover table-sm mb-0">
               <thead>
                 <tr>
-                  <th>Datum</th>
-                  <th>Tid</th>
-                  <th>Ändrat av</th>
-                  <th>Gammalt mål</th>
-                  <th>Nytt mål</th>
-                  <th>Förändring</th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Tid</th>
+                  <th scope="col">Ändrat av</th>
+                  <th scope="col">Gammalt mål</th>
+                  <th scope="col">Nytt mål</th>
+                  <th scope="col">Förändring</th>
                 </tr>
               </thead>
               <tbody>

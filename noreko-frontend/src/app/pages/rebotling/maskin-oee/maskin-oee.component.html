@@ -235,15 +235,15 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th>Maskin</th>
-            <th class="text-end">OEE%</th>
-            <th class="text-end">Tillganglighet%</th>
-            <th class="text-end">Prestanda%</th>
-            <th class="text-end">Kvalitet%</th>
-            <th class="text-end">Planerad tid</th>
-            <th class="text-end">Drifttid</th>
-            <th class="text-end">Output</th>
-            <th class="text-end">Kassation%</th>
+            <th scope="col">Maskin</th>
+            <th scope="col" class="text-end">OEE%</th>
+            <th scope="col" class="text-end">Tillganglighet%</th>
+            <th scope="col" class="text-end">Prestanda%</th>
+            <th scope="col" class="text-end">Kvalitet%</th>
+            <th scope="col" class="text-end">Planerad tid</th>
+            <th scope="col" class="text-end">Drifttid</th>
+            <th scope="col" class="text-end">Output</th>
+            <th scope="col" class="text-end">Kassation%</th>
           </tr>
         </thead>
         <tbody>
@@ -281,23 +281,23 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th class="sortable" (click)="sortBy('datum')">
+            <th scope="col" class="sortable" (click)="sortBy('datum')">
               Datum <i [class]="getSortIcon('datum')"></i>
             </th>
-            <th class="sortable" (click)="sortBy('maskin_namn')">
+            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')">
               Maskin <i [class]="getSortIcon('maskin_namn')"></i>
             </th>
-            <th class="text-end sortable" (click)="sortBy('oee')">
+            <th scope="col" class="text-end sortable" (click)="sortBy('oee')">
               OEE% <i [class]="getSortIcon('oee')"></i>
             </th>
-            <th class="text-end">T%</th>
-            <th class="text-end">P%</th>
-            <th class="text-end">K%</th>
-            <th class="text-end">Planerad</th>
-            <th class="text-end">Drifttid</th>
-            <th class="text-end">Stopptid</th>
-            <th class="text-end">Output</th>
-            <th class="text-end">Kassation</th>
+            <th scope="col" class="text-end">T%</th>
+            <th scope="col" class="text-end">P%</th>
+            <th scope="col" class="text-end">K%</th>
+            <th scope="col" class="text-end">Planerad</th>
+            <th scope="col" class="text-end">Drifttid</th>
+            <th scope="col" class="text-end">Stopptid</th>
+            <th scope="col" class="text-end">Output</th>
+            <th scope="col" class="text-end">Kassation</th>
           </tr>
         </thead>
         <tbody>

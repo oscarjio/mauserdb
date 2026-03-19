@@ -31,7 +31,7 @@
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-sub">
           av alla producerade IBC
         </div>
-        <div *ngIf="loadingSammanfattning" class="kas-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="loadingSammanfattning" class="kas-spin"><div role="status" class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
     </div>
 
@@ -45,7 +45,7 @@
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-sub">
           senaste {{ days }} dagar
         </div>
-        <div *ngIf="loadingSammanfattning" class="kas-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="loadingSammanfattning" class="kas-spin"><div role="status" class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
     </div>
 
@@ -61,7 +61,7 @@
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-sub">
           procentenheters forandring
         </div>
-        <div *ngIf="loadingSammanfattning" class="kas-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="loadingSammanfattning" class="kas-spin"><div role="status" class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
     </div>
 
@@ -76,7 +76,7 @@
           <span *ngIf="kpiVarstaStationPct > 0" [style.color]="rateColor(kpiVarstaStationPct)">{{ kpiVarstaStationPct }}% kassationsandel</span>
           <span *ngIf="kpiVarstaStationPct === 0">Ingen data</span>
         </div>
-        <div *ngIf="loadingSammanfattning" class="kas-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="loadingSammanfattning" class="kas-spin"><div role="status" class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
     </div>
   </div>
@@ -92,7 +92,7 @@
     <div class="kas-section-title d-flex align-items-center gap-2 mb-3">
       <i class="fas fa-chart-bar" style="color:#fc8181;"></i>
       <span>Pareto-diagram: Kassationsorsaker (80/20)</span>
-      <span *ngIf="loadingOrsaker" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+      <span *ngIf="loadingOrsaker" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
     </div>
     <div *ngIf="!loadingOrsaker && orsaker.length > 0" class="kas-chart-wrap">
       <canvas id="kasParetoChart"></canvas>
@@ -108,12 +108,12 @@
       <table class="table table-sm kas-table mb-0">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Orsak</th>
-            <th class="text-end">Antal</th>
-            <th class="text-end">Andel %</th>
-            <th class="text-end">Kumulativ %</th>
-            <th class="text-center">Trend</th>
+            <th scope="col">#</th>
+            <th scope="col">Orsak</th>
+            <th scope="col" class="text-end">Antal</th>
+            <th scope="col" class="text-end">Andel %</th>
+            <th scope="col" class="text-end">Kumulativ %</th>
+            <th scope="col" class="text-center">Trend</th>
           </tr>
         </thead>
         <tbody>
@@ -144,7 +144,7 @@
         <button class="btn btn-sm" [class.btn-info]="trendGroup==='day'" [class.btn-outline-secondary]="trendGroup!=='day'" (click)="onTrendGroupChange('day')">Dag</button>
         <button class="btn btn-sm" [class.btn-info]="trendGroup==='week'" [class.btn-outline-secondary]="trendGroup!=='week'" (click)="onTrendGroupChange('week')">Vecka</button>
       </div>
-      <span *ngIf="loadingTrend" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+      <span *ngIf="loadingTrend" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
     </div>
     <div *ngIf="!loadingTrend && trendData?.har_data" class="kas-chart-wrap">
       <canvas id="kasTrendChart"></canvas>
@@ -166,16 +166,16 @@
         <div class="kas-section-title d-flex align-items-center gap-2 mb-3">
           <i class="fas fa-industry" style="color:#f6ad55;"></i>
           <span>Per station</span>
-          <span *ngIf="loadingStationer" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+          <span *ngIf="loadingStationer" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
         </div>
         <div *ngIf="!loadingStationer && stationer.length > 0" class="table-responsive">
           <table class="table table-sm kas-table mb-0">
             <thead>
               <tr>
-                <th>Station</th>
-                <th class="text-end">Kasserade</th>
-                <th class="text-end">Totalt</th>
-                <th class="text-end">Andel %</th>
+                <th scope="col">Station</th>
+                <th scope="col" class="text-end">Kasserade</th>
+                <th scope="col" class="text-end">Totalt</th>
+                <th scope="col" class="text-end">Andel %</th>
               </tr>
             </thead>
             <tbody>
@@ -201,17 +201,17 @@
         <div class="kas-section-title d-flex align-items-center gap-2 mb-3">
           <i class="fas fa-users" style="color:#b794f6;"></i>
           <span>Per operator</span>
-          <span *ngIf="loadingOperatorer" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+          <span *ngIf="loadingOperatorer" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
         </div>
         <div *ngIf="!loadingOperatorer && operatorer.length > 0" class="table-responsive">
           <table class="table table-sm kas-table mb-0">
             <thead>
               <tr>
-                <th class="text-center">#</th>
-                <th>Operator</th>
-                <th class="text-end">Kasserade</th>
-                <th class="text-end">Totalt</th>
-                <th class="text-end">Andel %</th>
+                <th scope="col" class="text-center">#</th>
+                <th scope="col">Operator</th>
+                <th scope="col" class="text-end">Kasserade</th>
+                <th scope="col" class="text-end">Totalt</th>
+                <th scope="col" class="text-end">Andel %</th>
               </tr>
             </thead>
             <tbody>
@@ -241,18 +241,18 @@
       <i class="fas fa-list" style="color:#68d391;"></i>
       <span>Kasserade IBCer</span>
       <span *ngIf="detaljerTotal > 0" class="badge bg-secondary ms-2">{{ detaljerTotal }} st</span>
-      <span *ngIf="loadingDetaljer" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+      <span *ngIf="loadingDetaljer" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
     </div>
 
     <div *ngIf="!loadingDetaljer && detaljer.length > 0" class="table-responsive">
       <table class="table table-sm kas-table mb-0">
         <thead>
           <tr>
-            <th style="width:30px;"></th>
-            <th>Tidpunkt</th>
-            <th>Station</th>
-            <th>Operator</th>
-            <th>Orsak</th>
+            <th scope="col" style="width:30px;"></th>
+            <th scope="col">Tidpunkt</th>
+            <th scope="col">Station</th>
+            <th scope="col">Operator</th>
+            <th scope="col">Orsak</th>
           </tr>
         </thead>
         <tbody>

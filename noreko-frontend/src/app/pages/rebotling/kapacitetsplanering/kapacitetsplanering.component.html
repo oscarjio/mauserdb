@@ -38,7 +38,7 @@
        KPI-KORT (4 huvudkort)
        ============================================================ -->
   <div *ngIf="loadingKpi" class="kp-loading py-3 mb-4">
-    <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar KPI...
+    <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar KPI...
   </div>
   <div *ngIf="errorKpi && !loadingKpi" class="kp-error py-3 mb-4">
     <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda KPI-data
@@ -155,7 +155,7 @@
         </div>
         <div class="kp-card-body">
           <div *ngIf="loadingStation" class="kp-loading py-4">
-            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
           </div>
           <div *ngIf="errorStation && !loadingStation" class="kp-error py-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stationsdata
@@ -187,7 +187,7 @@
         </div>
         <div class="kp-card-body">
           <div *ngIf="loadingStopporsaker" class="kp-loading py-4">
-            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+            <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
           </div>
           <div *ngIf="errorStopporsaker && !loadingStopporsaker" class="kp-error py-3">
             <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stopporsaker
@@ -216,7 +216,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingTrend" class="kp-loading py-4">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar trenddata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar trenddata...
       </div>
       <div *ngIf="errorTrend && !loadingTrend" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata
@@ -251,7 +251,7 @@
       </div>
 
       <div *ngIf="loadingBemanning" class="kp-loading py-3">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar bemanning...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar bemanning...
       </div>
       <div *ngIf="errorBemanning && !loadingBemanning" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna bemanning
@@ -289,9 +289,9 @@
             <table class="table table-dark table-hover kp-table mb-0">
               <thead>
                 <tr>
-                  <th>Station</th>
-                  <th class="text-end">Operatorer</th>
-                  <th class="text-center">Extra bemanning</th>
+                  <th scope="col">Station</th>
+                  <th scope="col" class="text-end">Operatorer</th>
+                  <th scope="col" class="text-center">Extra bemanning</th>
                 </tr>
               </thead>
               <tbody>
@@ -320,7 +320,7 @@
     </div>
     <div class="kp-card-body p-0">
       <div *ngIf="loadingTabell" class="kp-loading py-4 px-3">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetstabell...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetstabell...
       </div>
       <div *ngIf="errorTabell && !loadingTabell" class="kp-error py-3 px-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kapacitetstabell
@@ -330,14 +330,14 @@
         <table class="table table-dark table-hover kp-table mb-0">
           <thead>
             <tr>
-              <th>Station</th>
-              <th class="text-end">Teor. kap/h</th>
-              <th class="text-end">Faktisk kap/h</th>
-              <th class="text-end">Utnyttjande %</th>
-              <th class="text-end">Mal %</th>
-              <th class="text-end">Flaskhalsfaktor</th>
-              <th class="text-center">Trend</th>
-              <th class="text-end">Totalt IBC</th>
+              <th scope="col">Station</th>
+              <th scope="col" class="text-end">Teor. kap/h</th>
+              <th scope="col" class="text-end">Faktisk kap/h</th>
+              <th scope="col" class="text-end">Utnyttjande %</th>
+              <th scope="col" class="text-end">Mal %</th>
+              <th scope="col" class="text-end">Flaskhalsfaktor</th>
+              <th scope="col" class="text-center">Trend</th>
+              <th scope="col" class="text-end">Totalt IBC</th>
             </tr>
           </thead>
           <tbody>
@@ -404,7 +404,7 @@
       </div>
 
       <div *ngIf="loadingPrognos" class="kp-loading py-3">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Beraknar...
       </div>
       <div *ngIf="errorPrognos && !loadingPrognos" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna prognos
@@ -456,7 +456,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingDaglig" class="kp-loading py-4">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetsdata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetsdata...
       </div>
       <div *ngIf="errorDaglig && !loadingDaglig" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kapacitetsdata
@@ -476,7 +476,7 @@
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingTidFordelning" class="kp-loading py-4">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
       </div>
       <div *ngIf="errorTidFordelning && !loadingTidFordelning" class="kp-error py-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda tid-fordelning
@@ -496,7 +496,7 @@
     </div>
     <div class="kp-card-body p-0">
       <div *ngIf="loadingVecko" class="kp-loading py-4 px-3">
-        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar veckodata...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar veckodata...
       </div>
       <div *ngIf="errorVecko && !loadingVecko" class="kp-error py-3 px-3">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda veckodata
@@ -506,14 +506,14 @@
         <table class="table table-dark table-hover kp-table mb-0">
           <thead>
             <tr>
-              <th>Vecka</th>
-              <th>Period</th>
-              <th class="text-end">Produktion</th>
-              <th class="text-end">Max kapacitet</th>
-              <th class="text-end">Utnyttjande %</th>
-              <th class="text-center">Trend</th>
-              <th class="text-end">Basta dag</th>
-              <th class="text-end">Samsta dag</th>
+              <th scope="col">Vecka</th>
+              <th scope="col">Period</th>
+              <th scope="col" class="text-end">Produktion</th>
+              <th scope="col" class="text-end">Max kapacitet</th>
+              <th scope="col" class="text-end">Utnyttjande %</th>
+              <th scope="col" class="text-center">Trend</th>
+              <th scope="col" class="text-end">Basta dag</th>
+              <th scope="col" class="text-end">Samsta dag</th>
             </tr>
           </thead>
           <tbody>

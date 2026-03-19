@@ -106,9 +106,9 @@
             <button *ngIf="breadcrumb.length > 2" class="breadcrumb-btn active">{{ breadcrumb[2] }}</button>
           </nav>
           <div class="nav-controls d-flex align-items-center gap-2">
-            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()"><i class="fas fa-chevron-left"></i></button>
+            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()" aria-label="Föregående period"><i class="fas fa-chevron-left"></i></button>
             <span class="mx-2 view-mode-label">{{ getViewModeLabel() }}</span>
-            <button class="btn btn-dark btn-sm" (click)="navigateNext()"><i class="fas fa-chevron-right"></i></button>
+            <button class="btn btn-dark btn-sm" (click)="navigateNext()" aria-label="Nästa period"><i class="fas fa-chevron-right"></i></button>
           </div>
         </div>
       </div>
@@ -454,7 +454,7 @@
             <input type="date" class="form-control form-control-sm date-input"
               [(ngModel)]="heatmapCustomTo" [min]="heatmapCustomFrom" [max]="todayStr" />
             <button class="btn btn-sm btn-outline-primary" (click)="applyHeatmapCustomRange()" [disabled]="!heatmapCustomFrom || !heatmapCustomTo">Visa</button>
-            <button *ngIf="heatmapUseCustomRange" class="btn btn-sm btn-outline-secondary" (click)="clearHeatmapCustomRange()"><i class="fas fa-times"></i></button>
+            <button *ngIf="heatmapUseCustomRange" class="btn btn-sm btn-outline-secondary" (click)="clearHeatmapCustomRange()" aria-label="Rensa datumintervall"><i class="fas fa-times"></i></button>
           </div>
         </div>
         <div class="card-body">

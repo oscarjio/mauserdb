@@ -259,7 +259,7 @@
             class="btn btn-primary"
             (click)="saveSettings()"
             [disabled]="settingsSaving || settingsLoading">
-            <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="settingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
             {{ settingsSaving ? 'Sparar...' : 'Spara driftsinställningar' }}
           </button>
@@ -344,7 +344,7 @@
             class="btn btn-primary"
             (click)="saveWeekdayGoals()"
             [disabled]="weekdayGoalsSaving || weekdayGoalsLoading">
-            <span *ngIf="weekdayGoalsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <span *ngIf="weekdayGoalsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!weekdayGoalsSaving" class="fas fa-save me-2"></i>
             {{ weekdayGoalsSaving ? 'Sparar...' : 'Spara veckodagsmål' }}
           </button>

@@ -21,7 +21,7 @@
         <span class="me-2 text-danger">🔴</span>
         <strong class="text-light">Aktiva stopp</strong>
         <span class="badge bg-danger ms-2">{{ aktivaStopp.length }}</span>
-        <div class="spinner-border spinner-border-sm text-secondary ms-auto" *ngIf="loadingAktiva"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-secondary ms-auto" *ngIf="loadingAktiva"></div>
       </div>
       <div class="card-body p-0">
         <div class="aktiv-stopp-rad d-flex align-items-center p-3 border-bottom border-dark"
@@ -43,7 +43,7 @@
             class="btn btn-sm btn-outline-success"
             (click)="avslutaStopp(stopp)"
             [disabled]="endingStopId !== null">
-            <span class="spinner-border spinner-border-sm me-1" *ngIf="endingStopId === stopp.id"></span>
+            <span role="status" class="spinner-border spinner-border-sm me-1" *ngIf="endingStopId === stopp.id"></span>
             <span *ngIf="endingStopId !== stopp.id">✅ Avsluta</span>
           </button>
         </div>
@@ -67,7 +67,7 @@
 
       <ng-template #spinner>
         <div class="text-center py-5">
-          <div class="spinner-border text-secondary"></div>
+          <div role="status" class="spinner-border text-secondary"></div>
           <div class="text-muted mt-2">Laddar kategorier…</div>
         </div>
       </ng-template>
@@ -109,7 +109,7 @@
             class="btn btn-success flex-grow-1 py-3"
             (click)="bekraftaRegistrering()"
             [disabled]="submitting">
-            <span class="spinner-border spinner-border-sm me-2" *ngIf="submitting"></span>
+            <span role="status" class="spinner-border spinner-border-sm me-2" *ngIf="submitting"></span>
             <span *ngIf="!submitting">✅ Bekräfta stopp</span>
             <span *ngIf="submitting">Registrerar…</span>
           </button>
@@ -127,7 +127,7 @@
     <div class="mt-4">
       <h2 class="h6 text-muted mb-3 text-uppercase tracking-wide">
         Senaste registrerade stopp
-        <div class="spinner-border spinner-border-sm ms-2 text-secondary" *ngIf="loadingHistorik"></div>
+        <div role="status" class="spinner-border spinner-border-sm ms-2 text-secondary" *ngIf="loadingHistorik"></div>
       </h2>
 
       <div *ngIf="senasteStopp.length === 0 && !loadingHistorik" class="text-muted text-center py-4">

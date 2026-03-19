@@ -259,15 +259,15 @@
         <table class="table table-dark table-hover table-sm mb-0">
           <thead>
             <tr>
-              <th>Datum</th>
-              <th>Skift</th>
-              <th>Operator</th>
-              <th class="text-end">IBC</th>
-              <th class="text-end">IBC/h</th>
-              <th class="text-end">Stopp</th>
-              <th>Checklista</th>
-              <th>Sammanfattning</th>
-              <th></th>
+              <th scope="col">Datum</th>
+              <th scope="col">Skift</th>
+              <th scope="col">Operator</th>
+              <th scope="col" class="text-end">IBC</th>
+              <th scope="col" class="text-end">IBC/h</th>
+              <th scope="col" class="text-end">Stopp</th>
+              <th scope="col">Checklista</th>
+              <th scope="col">Sammanfattning</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -316,7 +316,7 @@
   <div *ngIf="viewMode === 'detail'">
 
     <div *ngIf="isLoadingDetail" class="text-center py-5">
-      <div class="spinner-border text-info"></div>
+      <div role="status" class="spinner-border text-info"></div>
     </div>
 
     <div *ngIf="!isLoadingDetail && selectedItem" class="detail-view">
@@ -456,7 +456,7 @@
         <div class="mb-4">
           <h6 class="text-muted mb-3">
             <i class="fas fa-robot me-2"></i>Automatisk data (fran PLC)
-            <span *ngIf="isLoadingKpis" class="spinner-border spinner-border-sm ms-2"></span>
+            <span *ngIf="isLoadingKpis" role="status" class="spinner-border spinner-border-sm ms-2"></span>
           </h6>
           <div class="row g-3">
             <div class="col-6 col-md-3">
@@ -601,7 +601,7 @@
         <!-- Knappar -->
         <div class="d-flex gap-2 mt-4">
           <button class="btn btn-primary" (click)="submitForm()" [disabled]="isSubmitting">
-            <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+            <span *ngIf="isSubmitting" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i *ngIf="!isSubmitting" class="fas fa-save me-1"></i>
             Spara overlamning
           </button>

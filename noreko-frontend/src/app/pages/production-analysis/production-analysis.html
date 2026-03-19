@@ -91,7 +91,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border text-info"></div>
+          <div role="status" class="spinner-border text-info"></div>
           <p class="text-muted mt-2">Laddar rankingdiagram...</p>
         </div>
         <div *ngIf="!loading && overallRanking.length === 0" class="text-center py-4">
@@ -215,7 +215,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border text-info"></div>
+          <div role="status" class="spinner-border text-info"></div>
           <p class="text-muted mt-2">Laddar dagsdata...</p>
         </div>
         <div *ngIf="!loading && dailyData.length === 0" class="text-center py-4">
@@ -235,7 +235,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border text-info"></div>
+          <div role="status" class="spinner-border text-info"></div>
           <p class="text-muted mt-2">Laddar veckodagsdata...</p>
         </div>
         <div *ngIf="!loading && weekdayData.length === 0" class="text-center py-4">
@@ -259,7 +259,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-5">
-          <div class="spinner-border text-primary"></div>
+          <div role="status" class="spinner-border text-primary"></div>
           <p class="text-muted mt-2">Laddar heatmap...</p>
         </div>
         <div *ngIf="!loading && heatmapData.length === 0" class="text-center py-4">
@@ -303,7 +303,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border text-primary"></div>
+          <div role="status" class="spinner-border text-primary"></div>
           <p class="text-muted mt-2">Laddar timdata...</p>
         </div>
         <div *ngIf="!loading && hourlyAvg.length === 0" class="text-center py-4">
@@ -360,7 +360,7 @@
       </div>
       <div class="card-body">
         <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border text-info"></div>
+          <div role="status" class="spinner-border text-info"></div>
           <p class="text-muted mt-2">Laddar skiftdiagram...</p>
         </div>
         <div *ngIf="!loading && allShifts.length === 0" class="text-center py-4">

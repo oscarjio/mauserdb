@@ -103,7 +103,7 @@
     </div>
 
     <div *ngIf="loadingTrend" class="loading-inline">
-      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div>
       Laddar trenddata...
     </div>
     <div *ngIf="!loadingTrend && errorTrend" class="alert-box alert-danger-box">{{ errorTrend }}</div>
@@ -188,7 +188,7 @@
   </div>
 
   <div *ngIf="loadingBonus" class="loading-inline">
-    <div class="spinner-border spinner-border-sm text-info me-2"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div>
     Laddar bonusdata...
   </div>
   <div *ngIf="!loadingBonus && errorBonus" class="alert-box alert-danger-box">{{ errorBonus }}</div>

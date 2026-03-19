@@ -362,10 +362,10 @@
                 <table class="table table-sm table-dark table-borderless mb-0" style="font-size:0.78rem;">
                   <thead>
                     <tr class="text-muted">
-                      <th>Skift</th>
-                      <th class="text-end">IBC OK</th>
-                      <th class="text-end">Kval.</th>
-                      <th class="text-end">IBC/h</th>
+                      <th scope="col">Skift</th>
+                      <th scope="col" class="text-end">IBC OK</th>
+                      <th scope="col" class="text-end">Kval.</th>
+                      <th scope="col" class="text-end">IBC/h</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -390,18 +390,18 @@
             </div>
 
             <div *ngIf="!compLoaded" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-secondary"></div>
+              <div role="status" class="spinner-border spinner-border-sm text-secondary"></div>
             </div>
 
             <ng-container *ngIf="compLoaded && comp">
               <table class="table table-sm table-dark table-borderless mb-0 comp-table">
                 <thead>
                   <tr class="text-muted" style="font-size:0.78rem;">
-                    <th></th>
-                    <th class="text-end">IBC OK</th>
-                    <th class="text-end">Kval. %</th>
-                    <th class="text-end">IBC/h</th>
-                    <th class="text-end">OEE %</th>
+                    <th scope="col"></th>
+                    <th scope="col" class="text-end">IBC OK</th>
+                    <th scope="col" class="text-end">Kval. %</th>
+                    <th scope="col" class="text-end">IBC/h</th>
+                    <th scope="col" class="text-end">OEE %</th>
                   </tr>
                 </thead>
                 <tbody>

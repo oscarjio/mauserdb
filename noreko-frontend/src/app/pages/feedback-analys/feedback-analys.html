@@ -43,7 +43,7 @@
             <i class="fas fa-comments fa-lg"></i>
           </div>
           <div *ngIf="statsLoading" class="text-center py-2">
-            <div class="spinner-border spinner-border-sm text-info"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-info"></div>
           </div>
           <div *ngIf="statsLoaded && !statsLoading">
             <div class="summary-value">{{ statsData?.total ?? 0 }}</div>
@@ -59,7 +59,7 @@
             <i class="fas fa-smile fa-lg"></i>
           </div>
           <div *ngIf="statsLoading" class="text-center py-2">
-            <div class="spinner-border spinner-border-sm text-info"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-info"></div>
           </div>
           <div *ngIf="statsLoaded && !statsLoading">
             <div class="summary-value">{{ snittStarDisplay(statsData?.snitt_stamning ?? null) }}</div>
@@ -75,7 +75,7 @@
             <i class="fas fa-chart-line fa-lg"></i>
           </div>
           <div *ngIf="statsLoading" class="text-center py-2">
-            <div class="spinner-border spinner-border-sm text-info"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-info"></div>
           </div>
           <div *ngIf="statsLoaded && !statsLoading">
             <div class="summary-value d-flex align-items-center gap-2">
@@ -94,7 +94,7 @@
             <i class="fas fa-clock fa-lg"></i>
           </div>
           <div *ngIf="statsLoading" class="text-center py-2">
-            <div class="spinner-border spinner-border-sm text-info"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-info"></div>
           </div>
           <div *ngIf="statsLoaded && !statsLoading">
             <div class="summary-value small">
@@ -245,13 +245,13 @@
             <table class="table table-dark table-hover table-sm mb-0">
               <thead>
                 <tr>
-                  <th>Operatör</th>
-                  <th class="text-center">Snitt-stämning</th>
-                  <th class="text-center">Antal</th>
-                  <th class="text-center">Status</th>
-                  <th>Senaste datum</th>
-                  <th>Senaste kommentar</th>
-                  <th class="text-center">Filter</th>
+                  <th scope="col">Operatör</th>
+                  <th scope="col" class="text-center">Snitt-stämning</th>
+                  <th scope="col" class="text-center">Antal</th>
+                  <th scope="col" class="text-center">Status</th>
+                  <th scope="col">Senaste datum</th>
+                  <th scope="col">Senaste kommentar</th>
+                  <th scope="col" class="text-center">Filter</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,11 +329,11 @@
               <table class="table table-dark table-hover table-sm mb-3">
                 <thead>
                   <tr>
-                    <th>Datum</th>
-                    <th>Operatör</th>
-                    <th class="text-center">Stämning</th>
-                    <th>Kommentar</th>
-                    <th class="text-muted small">Registrerat</th>
+                    <th scope="col">Datum</th>
+                    <th scope="col">Operatör</th>
+                    <th scope="col" class="text-center">Stämning</th>
+                    <th scope="col">Kommentar</th>
+                    <th scope="col" class="text-muted small">Registrerat</th>
                   </tr>
                 </thead>
                 <tbody>

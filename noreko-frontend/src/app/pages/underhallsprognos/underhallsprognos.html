@@ -126,7 +126,7 @@
 
     <!-- Laddning schema -->
     <div class="text-center py-3" *ngIf="scheduleLoading && !scheduleLoaded">
-      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div>
       <span class="text-muted">Hämtar schema...</span>
     </div>
 
@@ -134,15 +134,15 @@
       <table class="table prognos-table">
         <thead>
           <tr>
-            <th>Komponent</th>
-            <th>Maskin</th>
-            <th>Intervall</th>
-            <th>Senaste underhåll</th>
-            <th>Nästa planerat</th>
-            <th>Dagar kvar</th>
-            <th>Förlopp</th>
-            <th>Status</th>
-            <th>Ansvarig</th>
+            <th scope="col">Komponent</th>
+            <th scope="col">Maskin</th>
+            <th scope="col">Intervall</th>
+            <th scope="col">Senaste underhåll</th>
+            <th scope="col">Nästa planerat</th>
+            <th scope="col">Dagar kvar</th>
+            <th scope="col">Förlopp</th>
+            <th scope="col">Status</th>
+            <th scope="col">Ansvarig</th>
           </tr>
         </thead>
         <tbody>
@@ -241,7 +241,7 @@
 
     <!-- Laddning historik -->
     <div class="text-center py-3" *ngIf="historyLoading && !historyLoaded">
-      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info me-2"></div>
       <span class="text-muted">Hämtar historik...</span>
     </div>
 
@@ -250,13 +250,13 @@
         <table class="table prognos-table">
           <thead>
             <tr>
-              <th>Datum</th>
-              <th>Titel / Kategori</th>
-              <th>Maskin</th>
-              <th>Typ</th>
-              <th>Varaktighet</th>
-              <th>Utförare</th>
-              <th>Noteringar</th>
+              <th scope="col">Datum</th>
+              <th scope="col">Titel / Kategori</th>
+              <th scope="col">Maskin</th>
+              <th scope="col">Typ</th>
+              <th scope="col">Varaktighet</th>
+              <th scope="col">Utförare</th>
+              <th scope="col">Noteringar</th>
             </tr>
           </thead>
           <tbody>

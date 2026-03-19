@@ -140,8 +140,8 @@
             <table class="table table-sm mb-0" style="color:#e2e8f0;">
               <thead>
                 <tr style="border-bottom:1px solid #4a5568;">
-                  <th style="background:#1a202c; color:#a0aec0; padding:12px 16px; width:180px;">KPI</th>
-                  <th *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
+                  <th scope="col" style="background:#1a202c; color:#a0aec0; padding:12px 16px; width:180px;">KPI</th>
+                  <th scope="col" *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="background:#1a202c; padding:12px 16px; text-align:center;">
                     <span [style.color]="operatorFarg(i)" class="fw-semibold">{{ op.namn }}</span>
                   </th>

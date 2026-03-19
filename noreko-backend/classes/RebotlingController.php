@@ -1710,10 +1710,12 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        $date  = trim($_POST['event_date']   ?? '');
-        $title = strip_tags(trim($_POST['title']   ?? ''));
-        $desc  = strip_tags(trim($_POST['description'] ?? ''));
-        $type  = trim($_POST['event_type']   ?? 'ovrigt');
+        // Läs JSON-body (Angular skickar application/json, inte form-data)
+        $data  = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $date  = trim($data['event_date']   ?? '');
+        $title = strip_tags(trim($data['title']   ?? ''));
+        $desc  = strip_tags(trim($data['description'] ?? ''));
+        $type  = trim($data['event_type']   ?? 'ovrigt');
         if (mb_strlen($title) > 200) {
             $title = mb_substr($title, 0, 200);
         }
@@ -1752,7 +1754,9 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        $id = intval($_POST['id'] ?? 0);
+        // Läs JSON-body (Angular skickar application/json, inte form-data)
+        $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $id = intval($data['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Saknar id'], JSON_UNESCAPED_UNICODE);

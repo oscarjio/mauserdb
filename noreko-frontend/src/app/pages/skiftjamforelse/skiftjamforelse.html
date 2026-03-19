@@ -118,14 +118,14 @@
       <table class="table table-dark table-hover mb-0">
         <thead>
           <tr>
-            <th>Skift</th>
-            <th class="text-end">OEE %</th>
-            <th class="text-end">IBC (OK)</th>
-            <th class="text-end">Stopptid</th>
-            <th class="text-end">Kvalitet %</th>
-            <th class="text-end">Sn. cykeltid</th>
-            <th class="text-end">Tillganglighet %</th>
-            <th class="text-end">Prestanda %</th>
+            <th scope="col">Skift</th>
+            <th scope="col" class="text-end">OEE %</th>
+            <th scope="col" class="text-end">IBC (OK)</th>
+            <th scope="col" class="text-end">Stopptid</th>
+            <th scope="col" class="text-end">Kvalitet %</th>
+            <th scope="col" class="text-end">Sn. cykeltid</th>
+            <th scope="col" class="text-end">Tillganglighet %</th>
+            <th scope="col" class="text-end">Prestanda %</th>
           </tr>
         </thead>
         <tbody>
@@ -247,25 +247,25 @@
       <table class="table table-dark table-hover table-sm mb-0">
         <thead class="sticky-top" style="z-index: 1;">
           <tr>
-            <th class="sortable-th" (click)="sortDetaljer('datum')">
+            <th scope="col" class="sortable-th" (click)="sortDetaljer('datum')">
               Datum <i [class]="getSortIcon('datum')" class="ms-1"></i>
             </th>
-            <th class="sortable-th" (click)="sortDetaljer('skift')">
+            <th scope="col" class="sortable-th" (click)="sortDetaljer('skift')">
               Skift <i [class]="getSortIcon('skift')" class="ms-1"></i>
             </th>
-            <th class="sortable-th" (click)="sortDetaljer('station')">
+            <th scope="col" class="sortable-th" (click)="sortDetaljer('station')">
               Station <i [class]="getSortIcon('station')" class="ms-1"></i>
             </th>
-            <th class="sortable-th" (click)="sortDetaljer('operator')">
+            <th scope="col" class="sortable-th" (click)="sortDetaljer('operator')">
               Operator <i [class]="getSortIcon('operator')" class="ms-1"></i>
             </th>
-            <th class="text-end sortable-th" (click)="sortDetaljer('ibc_ok')">
+            <th scope="col" class="text-end sortable-th" (click)="sortDetaljer('ibc_ok')">
               IBC OK <i [class]="getSortIcon('ibc_ok')" class="ms-1"></i>
             </th>
-            <th class="text-end sortable-th" (click)="sortDetaljer('oee_pct')">
+            <th scope="col" class="text-end sortable-th" (click)="sortDetaljer('oee_pct')">
               OEE % <i [class]="getSortIcon('oee_pct')" class="ms-1"></i>
             </th>
-            <th class="text-end sortable-th" (click)="sortDetaljer('stopptid_min')">
+            <th scope="col" class="text-end sortable-th" (click)="sortDetaljer('stopptid_min')">
               Stopptid <i [class]="getSortIcon('stopptid_min')" class="ms-1"></i>
             </th>
           </tr>

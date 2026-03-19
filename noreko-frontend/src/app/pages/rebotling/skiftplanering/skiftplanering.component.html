@@ -49,7 +49,7 @@
 
   <!-- Loading KPI -->
   <div class="text-center py-3" *ngIf="loadingOverview">
-    <div class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     <span class="ms-2 text-muted">Laddar KPI:er...</span>
   </div>
 
@@ -79,8 +79,8 @@
       <table class="table table-bordered mb-0 schedule-table">
         <thead>
           <tr>
-            <th class="skift-col">Skift</th>
-            <th *ngFor="let d of dagar; trackBy: trackByDatum" [class.today-col]="isToday(d.datum)">
+            <th scope="col" class="skift-col">Skift</th>
+            <th scope="col" *ngFor="let d of dagar; trackBy: trackByDatum" [class.today-col]="isToday(d.datum)">
               {{ d.dag_namn }}<br>
               <small>{{ d.datum | date:'MM-dd' }}</small>
             </th>
@@ -125,7 +125,7 @@
 
   <!-- Loading schedule -->
   <div class="text-center py-3" *ngIf="loadingSchedule">
-    <div class="spinner-border spinner-border-sm text-info"></div>
+    <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     <span class="ms-2 text-muted">Laddar veckoschema...</span>
   </div>
 
@@ -153,7 +153,7 @@
 
       <!-- Loading -->
       <div class="text-center py-5" *ngIf="loadingDetail && !shiftDetail && !errorDetail">
-        <div class="spinner-border text-info"></div>
+        <div role="status" class="spinner-border text-info"></div>
         <p class="mt-2 text-muted">Laddar skiftdetaljer...</p>
       </div>
 
@@ -276,7 +276,7 @@
       </div>
 
       <div class="text-center py-2" *ngIf="loadingOperators">
-        <div class="spinner-border spinner-border-sm text-info"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-info"></div>
         <span class="ms-2 text-muted">Laddar operatörer...</span>
       </div>
 

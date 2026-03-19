@@ -130,7 +130,7 @@
         <table class="table table-sm mb-0" style="border-collapse:separate; border-spacing:2px;">
           <thead>
             <tr>
-              <th style="background:transparent; border:none; color:#718096; font-size:0.7rem; width:80px;">Dag \ Timme</th>
+              <th scope="col" style="background:transparent; border:none; color:#718096; font-size:0.7rem; width:80px;">Dag \ Timme</th>
               <th
                 *ngFor="let h of timmar; trackBy: trackByIndex"
                 style="background:transparent; border:none; color:#718096; font-size:0.65rem; text-align:center; padding:2px; min-width:30px;">
@@ -182,7 +182,7 @@
           </h5>
 
           <div *ngIf="loadingPeak" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-primary"></div>
           </div>
 
           <div *ngIf="!loadingPeak && harData">
@@ -222,7 +222,7 @@
           </h5>
 
           <div *ngIf="loadingPeak" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <div role="status" class="spinner-border spinner-border-sm text-primary"></div>
           </div>
 
           <div *ngIf="!loadingPeak && harData">
@@ -286,18 +286,18 @@
       </h5>
 
       <div *ngIf="loadingSummary" class="text-center py-3">
-        <div class="spinner-border spinner-border-sm text-primary"></div>
+        <div role="status" class="spinner-border spinner-border-sm text-primary"></div>
       </div>
 
       <div *ngIf="!loadingSummary && summaryTimmar.length" class="table-responsive">
         <table class="table table-sm table-hover" style="color:#e2e8f0;">
           <thead>
             <tr style="color:#718096; font-size:0.8rem; border-bottom:1px solid #4a5568;">
-              <th>Timme</th>
-              <th class="text-end">Snitt IBC/h</th>
-              <th class="text-end">Mätdagar</th>
-              <th>Bästa dag</th>
-              <th>Svagaste dag</th>
+              <th scope="col">Timme</th>
+              <th scope="col" class="text-end">Snitt IBC/h</th>
+              <th scope="col" class="text-end">Mätdagar</th>
+              <th scope="col">Bästa dag</th>
+              <th scope="col">Svagaste dag</th>
             </tr>
           </thead>
           <tbody style="font-size:0.85rem;">

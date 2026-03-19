@@ -590,7 +590,7 @@
       </h2>
       <div class="stopp-list">
         <div *ngIf="stopSummaryLoading" class="text-center text-muted py-3">
-          <span class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker...
+          <span role="status" class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker...
         </div>
         <div *ngFor="let item of stopSummary; trackBy: trackByIndex" class="stopp-row">
           <div class="stopp-label" [title]="item.orsak">{{ item.orsak }}</div>

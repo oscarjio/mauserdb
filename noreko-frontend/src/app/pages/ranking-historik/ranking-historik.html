@@ -45,7 +45,7 @@
           <div class="summary-label">Veckans #1</div>
           <div class="summary-value" *ngIf="changesLoaded">{{ getVeckansEtta() }}</div>
           <div class="summary-sub" *ngIf="changesLoaded">{{ getVeckansEttaIbc() }} IBC OK</div>
-          <div class="spinner-border spinner-border-sm text-warning" *ngIf="changesLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-warning" *ngIf="changesLoading"></div>
         </div>
       </div>
 
@@ -63,7 +63,7 @@
           <div class="summary-sub text-muted" *ngIf="changesLoaded && getStorstKlattareAndring() === 0">
             Ingen klättring denna vecka
           </div>
-          <div class="spinner-border spinner-border-sm text-success" *ngIf="changesLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-success" *ngIf="changesLoading"></div>
         </div>
       </div>
 
@@ -81,7 +81,7 @@
           <div class="summary-sub text-muted" *ngIf="streakLoaded && getLangstaPosStreak() === 0">
             Ingen pågående uppgång
           </div>
-          <div class="spinner-border spinner-border-sm text-info" *ngIf="streakLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-info" *ngIf="streakLoading"></div>
         </div>
       </div>
 
@@ -94,7 +94,7 @@
           <div class="summary-label">Mest konsekvent</div>
           <div class="summary-value" *ngIf="streakLoaded">{{ getMestKonsekvent() }}</div>
           <div class="summary-sub text-teal" *ngIf="streakLoaded">Lägst varians i placering</div>
-          <div class="spinner-border spinner-border-sm text-teal" *ngIf="streakLoading"></div>
+          <div role="status" class="spinner-border spinner-border-sm text-teal" *ngIf="streakLoading"></div>
         </div>
       </div>
 
@@ -126,11 +126,11 @@
             <table class="table table-dark table-hover ranking-table mb-0">
               <thead>
                 <tr>
-                  <th class="text-center" style="width:60px">Nu</th>
-                  <th>Operatör</th>
-                  <th class="text-center">Föreg.</th>
-                  <th class="text-center">Ändring</th>
-                  <th class="text-end">IBC denna vecka</th>
+                  <th scope="col" class="text-center" style="width:60px">Nu</th>
+                  <th scope="col">Operatör</th>
+                  <th scope="col" class="text-center">Föreg.</th>
+                  <th scope="col" class="text-center">Ändring</th>
+                  <th scope="col" class="text-end">IBC denna vecka</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,15 +283,15 @@
             <table class="table table-dark table-hover mb-0 streak-table">
               <thead>
                 <tr>
-                  <th>Operatör</th>
-                  <th class="text-center">Plats nu</th>
-                  <th class="text-center">
+                  <th scope="col">Operatör</th>
+                  <th scope="col" class="text-center">Plats nu</th>
+                  <th scope="col" class="text-center">
                     <i class="fas fa-arrow-up text-success me-1"></i>Positiv streak
                   </th>
-                  <th class="text-center">
+                  <th scope="col" class="text-center">
                     <i class="fas fa-arrow-down text-danger me-1"></i>Negativ streak
                   </th>
-                  <th>Placeringssekvens (senaste {{ weeks }} v)</th>
+                  <th scope="col">Placeringssekvens (senaste {{ weeks }} v)</th>
                 </tr>
               </thead>
               <tbody>

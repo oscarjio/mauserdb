@@ -113,21 +113,21 @@
     </div>
 
     <div class="text-center py-3" *ngIf="loadingOrdrar">
-      <div class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     </div>
 
     <div class="table-responsive" *ngIf="!loadingOrdrar && ordrarData?.ordrar?.length">
       <table class="table table-dark table-striped table-hover mb-0">
         <thead>
           <tr>
-            <th class="sortable" (click)="sortBy('prioritet')">Prio <i [class]="getSortIcon('prioritet')"></i></th>
-            <th class="sortable" (click)="sortBy('kundnamn')">Kund <i [class]="getSortIcon('kundnamn')"></i></th>
-            <th class="sortable" (click)="sortBy('antal_ibc')">Antal IBC <i [class]="getSortIcon('antal_ibc')"></i></th>
-            <th class="sortable" (click)="sortBy('bestallningsdatum')">Bestallning <i [class]="getSortIcon('bestallningsdatum')"></i></th>
-            <th class="sortable" (click)="sortBy('onskat_leveransdatum')">Onskat <i [class]="getSortIcon('onskat_leveransdatum')"></i></th>
-            <th class="sortable" (click)="sortBy('beraknat_leveransdatum')">Beraknat <i [class]="getSortIcon('beraknat_leveransdatum')"></i></th>
-            <th>Status</th>
-            <th>Atgard</th>
+            <th scope="col" class="sortable" (click)="sortBy('prioritet')">Prio <i [class]="getSortIcon('prioritet')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('kundnamn')">Kund <i [class]="getSortIcon('kundnamn')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('antal_ibc')">Antal IBC <i [class]="getSortIcon('antal_ibc')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('bestallningsdatum')">Bestallning <i [class]="getSortIcon('bestallningsdatum')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('onskat_leveransdatum')">Onskat <i [class]="getSortIcon('onskat_leveransdatum')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('beraknat_leveransdatum')">Beraknat <i [class]="getSortIcon('beraknat_leveransdatum')"></i></th>
+            <th scope="col">Status</th>
+            <th scope="col">Atgard</th>
           </tr>
         </thead>
         <tbody>
@@ -189,7 +189,7 @@
     </h5>
 
     <div class="text-center py-3" *ngIf="loadingKapacitet">
-      <div class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     </div>
 
     <div class="chart-wrapper-gantt" *ngIf="!loadingKapacitet">
@@ -204,7 +204,7 @@
     </h5>
 
     <div class="text-center py-3" *ngIf="loadingKapacitet">
-      <div class="spinner-border spinner-border-sm text-info"></div>
+      <div role="status" class="spinner-border spinner-border-sm text-info"></div>
     </div>
 
     <div class="chart-wrapper" *ngIf="!loadingKapacitet">

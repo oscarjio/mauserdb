@@ -809,7 +809,7 @@
         </p>
         <div class="d-flex gap-2 mb-4">
           <button class="btn btn-sm btn-outline-info" (click)="generateQRCodes()" [disabled]="qrLoading">
-            <span *ngIf="qrLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <span *ngIf="qrLoading" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i *ngIf="!qrLoading" class="fas fa-qrcode me-1"></i>
             Generera QR-koder
           </button>
