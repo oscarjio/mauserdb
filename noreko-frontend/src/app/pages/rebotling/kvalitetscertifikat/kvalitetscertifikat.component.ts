@@ -270,6 +270,10 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.genError = 'Batchnummer kravs';
       return;
     }
+    if (!this.genAntalIbc || this.genAntalIbc < 1) {
+      this.genError = 'Antal IBC maste vara minst 1';
+      return;
+    }
 
     this.genLoading = true;
     this.genError = '';

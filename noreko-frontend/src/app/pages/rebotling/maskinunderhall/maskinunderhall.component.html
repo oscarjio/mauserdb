@@ -260,8 +260,8 @@
           <select aria-label="Valj maskin id" id="serviceMaskinId" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.maskin_id"
                   name="maskin_id" #maskinIdCtrl="ngModel" required aria-required="true">
-            <option [value]="0" disabled>Välj maskin...</option>
-            <option *ngFor="let m of maskiner; trackBy: trackById" [value]="m.id">{{ m.namn }}</option>
+            <option [ngValue]="0" disabled>Välj maskin...</option>
+            <option *ngFor="let m of maskiner; trackBy: trackById" [ngValue]="m.id">{{ m.namn }}</option>
           </select>
           <div class="text-danger small mt-1" *ngIf="maskinIdCtrl.touched && !addServiceForm.maskin_id">
             Välj en maskin.
