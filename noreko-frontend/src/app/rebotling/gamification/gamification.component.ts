@@ -174,5 +174,8 @@ export class GamificationPage implements OnInit, OnDestroy {
       }
     });
   }
+  formatKvalitet(kassationsRate: number | null | undefined): string {
+    return (100 - (kassationsRate ?? 0)).toFixed(1);
+  }
   trackByIndex(index: number): number { return index; }
 }

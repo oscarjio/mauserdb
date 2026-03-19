@@ -145,7 +145,7 @@
           </div>
           <div class="kpi-progress-bar mt-2">
             <div class="kpi-progress-fill bg-success"
-                 [style.width.%]="kpiData.total_ibc > 0 ? (kpiData.ok_ibc / kpiData.total_ibc * 100) : 0"></div>
+                 [style.width.%]="okIbcPct()"></div>
           </div>
         </div>
       </div>

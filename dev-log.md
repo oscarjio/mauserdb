@@ -1,3 +1,28 @@
+## 2026-03-19 Session #185 Worker B — Angular template expression complexity + router subscription audit — 4 buggar fixade
+
+### Uppgift 1: Angular template expression complexity audit — 4 buggar
+
+**Metod:** Granskade 20 komponenters HTML-templates och TS-filer for komplex logik som borde vara i component-klassen: inline berakningar, .toFixed()-anrop, division i templates, komplexa ternary-uttryck, och upprepade uttryck som kor vid varje change detection.
+
+**Hittade och fixade problem:**
+
+1. `gamification.component.html` rad 122 — inline berakning `(100 - (op.kassations_rate ?? 0)).toFixed(1)` i template. Flyttad till ny metod `formatKvalitet()` i TS-filen.
+2. `stopptidsanalys.component.html` rad 63 — `(overview.period_total_min ?? 0).toFixed(1)` i template. Ersatt med befintlig `formatMin()` som redan hanterar formatering.
+3. `stopptidsanalys.component.html` rad 191 — `(m.andel_pct ?? 0).toFixed(1)` i template. Flyttad till ny metod `formatPct()` i TS-filen.
+4. `stationsdetalj.component.html` rad 148 — inline division `kpiData.ok_ibc / kpiData.total_ibc * 100` i template-binding. Flyttad till ny metod `okIbcPct()` i TS-filen.
+
+**Ovriga 16 komponenter:** daglig-briefing, produktionsflode, drifttids-timeline, statistik-overblick, equipment-stats, kpi-analysis, maintenance-list, pdf-export-button, skiftoverlamning, maintenance-form, service-intervals, produktionsmal, tidrapport, oee-trendanalys, operator-ranking, statistik-dashboard, historisk-sammanfattning — inga template-komplexitetsproblem identifierade. Dessa anvander redan helper-metoder eller enkla property-bindings.
+
+### Uppgift 2: Angular router subscription cleanup audit — 0 buggar
+
+**Metod:** Granskade 22 komponenter for saknade subscription-cleanup pa ActivatedRoute.params, ActivatedRoute.paramMap, ActivatedRoute.queryParams, ActivatedRoute.queryParamMap, och Router.events.
+
+**Resultat:** Ingen av de granskade komponenterna anvander ActivatedRoute eller Router.events subscriptions. Alla 22 komponenter anvander enbart HTTP-baserade subscriptions med korrekt takeUntil(this.destroy$) cleanup. Inga buggar att fixa.
+
+**Granskade komponenter:** vd-dashboard, kassationskvot-alarm, produktionskostnad, kvalitetscertifikat, maskinunderhall, produktions-sla, batch-sparning, prediktivt-underhall, avvikelselarm, maskinhistorik, vd-veckorapport, operators-prestanda, produktions-dashboard, leveransplanering, operatorsbonus, rebotling-sammanfattning, stopporsaker, kapacitetsplanering, maskin-oee, rebotling-trendanalys, historisk-produktion, skiftplanering.
+
+---
+
 ## 2026-03-19 Session #184 Worker B — setTimeout/setInterval cleanup audit — 26 buggar fixade
 
 ### Uppgift 1: Angular setInterval/setTimeout cleanup audit — 26 buggar

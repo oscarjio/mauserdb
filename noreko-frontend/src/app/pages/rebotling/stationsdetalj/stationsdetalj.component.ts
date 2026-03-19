@@ -371,6 +371,11 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     return dt.replace('T', ' ').slice(0, 16);
   }
 
+  okIbcPct(): number {
+    if (!this.kpiData || this.kpiData.total_ibc <= 0) return 0;
+    return (this.kpiData.ok_ibc / this.kpiData.total_ibc) * 100;
+  }
+
   isAktivStation(station: string): boolean {
     return station === this.valdStation;
   }

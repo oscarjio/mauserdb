@@ -60,7 +60,7 @@
         <div class="kpi-label">Snitt per stopp</div>
         <div class="kpi-value" style="color:#f6ad55">{{ formatMin(overview.snitt_per_stopp_min) }}</div>
         <div class="kpi-sub">
-          {{ (overview.period_total_min ?? 0).toFixed(1) }} min totalt under perioden
+          {{ formatMin(overview.period_total_min ?? 0) }} totalt under perioden
         </div>
       </div>
     </div>
@@ -188,7 +188,7 @@
             <td class="text-end">{{ m.antal_stopp }}</td>
             <td class="text-end">{{ formatMin(m.snitt_min) }}</td>
             <td class="text-end text-danger">{{ formatMin(m.max_stopp_min) }}</td>
-            <td class="text-end">{{ (m.andel_pct ?? 0).toFixed(1) }}%</td>
+            <td class="text-end">{{ formatPct(m.andel_pct) }}%</td>
             <td style="min-width:120px">
               <div class="progress" style="height:8px;background:#1a202c">
                 <div class="progress-bar"
