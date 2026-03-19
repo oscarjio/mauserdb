@@ -1,3 +1,24 @@
+## 2026-03-19 Session #194 Worker B — Angular strict template + lazy-loading audit — 2 buggar fixade
+
+Granskade 3 Angular-komponenter (kapacitetsplanering, produktionsflode, maskinhistorik) under pages/rebotling/ for: strictTemplates-varningar (felaktiga typer, osakra property-accesser, felaktiga event-typer, saknade null-checks, felaktiga pipe-argument) samt lazy-loading-konfiguration i app.routes.ts + app.config.ts.
+
+### Fixade buggar:
+
+1. **maskinhistorik.component.ts** — Redundant dead-code Chart.destroy(): I `byggDrifttidChart()` forstordes chart-instansen pa rad 173-174 (destroy + null), men pa rad 185 gjordes en andra `if (this.drifttidChart) { ... destroy() }` check som aldrig kunde vara true. Borttagen dead-code.
+2. **maskinhistorik.component.ts** — Redundant dead-code Chart.destroy(): Samma monster i `byggOeeChart()` — chart forstordes pa rad 273-274 men kontrollerades igen pa rad 287. Borttagen dead-code.
+
+### Noteringar (inga buggar):
+
+- **kapacitetsplanering**: Template valstrukturerat — alla property-accesser skyddas av *ngIf-guards, optional chaining (`?.`) anvands korrekt pa `flaskhals`-properties, pipes (`number`) anvands korrekt, event-bindningar korrekt typade. OnInit/OnDestroy + destroy$ + takeUntil + clearInterval/clearTimeout alla korrekt implementerade.
+- **produktionsflode**: Template anvander `?.` och `??` korrekt for null-safety. SVG-bindningar typsakra. Lifecycle korrekt med destroy$ + clearInterval. catchError + takeUntil-ordning OK (catchError returnerar `of(null)` som completas direkt).
+- **maskinhistorik**: Template anvander *ngIf-guards korrekt for alla data-sektioner. Stopphistorik-tabell med `trackBy` korrekt.
+- **app.routes.ts**: Alla 90+ routes anvander `loadComponent` (korrekt lazy-loading). Enda eager-importerade komponenten ar `Layout` som ar root-layout — korrekt da den behovs direkt.
+- **app.config.ts**: Anvander `PreloadAllModules` — samtliga lazy-loadade komponenter preloadas i bakgrunden efter initial laddning. Acceptabel strategi for intern produktionsapp.
+- **4 av 7 audit-mappar existerar inte**: driftstorning, energiforbrukning, kvalitetskontroll, linjebalansering finns inte i kodbasen. Endast kapacitetsplanering, produktionsflode, maskinhistorik granskades.
+- strictTemplates ar aktiverat i tsconfig.json. Build gar igenom utan fel.
+
+---
+
 ## 2026-03-19 Session #194 Worker A — PHP date/time + deprecated audit — 4 buggar fixade
 
 Granskade 7 PHP-controllers (SkiftrapportController, KassationsanalysController, KassationsDrilldownController, LineSkiftrapportController, ProduktionskostnadController, DrifttidsTimelineController, LeveransplaneringController) for: timezone/DST-problem, felaktig datumberakning, hardkodade sekunder, saknad timezone-hantering, deprecated PHP 8.1+ funktioner (utf8_encode/decode, strftime, ${var} interpolation, mysql_*, dynamiska properties, nullable params).

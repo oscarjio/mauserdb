@@ -182,7 +182,6 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     const drifttid= this.drifttidData.map(d => d.drifttid_h);
     const ibc     = this.drifttidData.map(d => d.total_ibc);
 
-    if (this.drifttidChart) { (this.drifttidChart as any).destroy(); }
     this.drifttidChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -284,7 +283,6 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     const prest  = this.oeeTrendData.map(d => d.prestanda_pct);
     const kval   = this.oeeTrendData.map(d => d.kvalitet_pct);
 
-    if (this.oeeChart) { (this.oeeChart as any).destroy(); }
     this.oeeChart = new Chart(ctx, {
       type: 'line',
       data: {
