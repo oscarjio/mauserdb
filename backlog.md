@@ -7,9 +7,9 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #188):
-- [ ] **PHP deprecated function + null/array safety audit** — alla 33 controllers (Worker A)
-- [ ] **Angular data flow + race condition audit** — alla 38 components (Worker B)
+### Klart (session #188):
+- [x] **PHP deprecated function + null/array safety audit** — 0 buggar, redan korrekt (Worker A)
+- [x] **Angular data flow + race condition audit** — 3 buggar fixade i kassationskvot-alarm (Worker B)
 
 ### Nasta buggjakt-items (session #189+):
 - [ ] **PHP file upload validation audit** — granska filuppladdning for saknad validering
