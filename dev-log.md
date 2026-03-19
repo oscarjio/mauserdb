@@ -1,3 +1,77 @@
+## 2026-03-19 Session #178 Worker B — Angular form reset audit + route param validation — 0 buggar
+
+### Uppgift 1: Angular form reset audit — 0 buggar
+
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/ (exkl. de fyra live-linjerna).
+Letade efter formular som inte nollstalls efter submit, som nollstalls fore API-anrop lyckas,
+modal-formular som inte rensas vid stangning, och forms som behaller dirty/touched state.
+
+**Granskade filer med formular:**
+- `pages/login/login.ts` — template-driven, enkelt inloggningsformular. Nollstalls inte (korrekt:
+  vid lyckad login navigeras anvandaren bort, ingen reset behovs).
+- `pages/register/register.ts` — nollstalls korrekt: `this.user = { ... }` efter lyckat API-svar,
+  plus redirect till /login med timeout. Korrekt.
+- `pages/create-user/create-user.ts` — nollstalls korrekt: `this.user = { ... }` vid res.success.
+- `pages/news-admin/news-admin.ts` — nollstalls via `cancelForm()` efter 800ms delay vid success
+  (visar success-meddelande ett ogonblick, sedan reset). Korrekt.
+- `pages/operators/operators.ts` — `addForm = { name: '', number: null }` + `showAddForm = false`
+  efter lyckat svar. Korrekt.
+- `pages/certifications/certifications.ts` — `addForm = { ... }` nollstalls korrekt vid success.
+- `pages/stopporsak-registrering/stopporsak-registrering.ts` — `valdKategori = null`,
+  `kommentar = ''` etc. nollstalls korrekt efter lyckat API-svar.
+- `pages/stoppage-log/stoppage-log.ts` — `newEntry.reason_id/start_time/end_time/comment`
+  nollstalls korrekt EFTER att API-anropet lyckas (inte fore). Korrekt.
+- `pages/maintenance-log/components/maintenance-form.component.ts` — modal, `close()` doldjer
+  formlaret; `openAdd()` och `openEdit()` populerar/nollstaller forman nasta gang den oppnas.
+  Nollstallning sker FORE oppning, inte vid stangning. Acceptabelt (ingen stale data vid nasta
+  oppning). Korrekt.
+- `pages/maintenance-log/components/service-intervals.component.ts` — `openServiceForm()`
+  nollstaller explicit; `closeServiceForm()` nollstaller `serviceFormError` och doldjer modal.
+  `editingId` nollstalls i `openServiceForm()` (ej i close), men det orsakar ingen bugg
+  eftersom id alltid setts korrekt fore nasta submit. Korrekt.
+- `pages/operator-compare/operator-compare.ts` — detta ar inte ett submit-formular utan ett
+  sokformular med dropdowns; state kvarstannar avsiktligt sa anvandaren kan justera val. Korrekt.
+- `pages/historik/historik.ts` — periodval med select (ingen submit). Korrekt.
+
+**Slutsats Uppgift 1:** Inga buggar hittades. Alla formular som submitar data till API:et
+nollstaller sina faelt korrekt EFTER lyckat API-svar (inte fore). Inget formular tappar data
+om API-anropet misslyckas.
+
+### Uppgift 2: Angular route param validation — 0 buggar
+
+Granskade ALLA komponenter som laser route-parametrar via ActivatedRoute.
+
+**Granskade komponenter:**
+- `pages/login/login.ts` — lasar `queryParams['returnUrl']`. Valideras korrekt:
+  `typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')` — skyddar mot
+  open redirect (krav pa relativ stig, blockerar `//evil.com`-attacker). Korrekt.
+- `pages/operator-detail/operator-detail.ts` — lasar `paramMap.get('id')`. Valideras:
+  `if (!id || isNaN(+id))` med felmeddelande vid ogiltigt ID. Korrekt.
+- `pages/rebotling/rebotling-statistik.ts` — lasar `queryParams['view', 'year', 'month', 'dates']`.
+  Valideras: view kontrolleras mot whitelist (`year|month|day`), year/month har `parseInt` + isNaN
+  + range-check (2000-2100 resp. 0-11), dates parsas med `new Date()` + NaN-check. Korrekt.
+- `pages/tvattlinje-statistik/tvattlinje-statistik.ts` — identisk validering som rebotling-statistik.
+  Korrekt.
+- `pages/stoppage-log/stoppage-log.ts` — lasar `queryParams['maskin', 'linje']`.
+  maskin: `decodeURIComponent(...).substring(0, 100)` — trunkeringsskydd.
+  linje: valideras mot `validLines`-array (`['rebotling','tvattlinje','saglinje','klassificeringslinje']`).
+  Korrekt.
+- `guards/auth.guard.ts` — lasar `state.url` och anvander det i `queryParams: { returnUrl }`.
+  Guardens jobb ar att skicka URL:en vidare; valideringen sker sedan i login.ts. Korrekt.
+- `interceptors/error.interceptor.ts` — anvander ActivatedRoute enbart for att kontrollera
+  nuvarande route vid felhantering. Inga params lasas for API-anrop. Korrekt.
+
+**Slutsats Uppgift 2:** Inga buggar hittades. Alla route-parametrar valideras korrekt med:
+- Whitelist-validering for string-parametrar (view, linje)
+- isNaN-check + range-validation for numeriska params (year, month, id)
+- Substring-trunkning for fri text (maskin)
+- Open-redirect-skydd for returnUrl
+- Datum-parse med NaN-check for date-strängar
+
+**Totalt session #178 Worker B: 0 buggar**
+
+---
+
 ## 2026-03-19 Session #177 Worker B — Angular HTTP interceptor audit + chart memory audit — 3 buggar fixade
 
 ### Uppgift 1: Angular HTTP interceptor audit — 0 buggar
