@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #182)*
+*Senast uppdaterad: 2026-03-19 (session #183)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -72,23 +72,20 @@ Session #179: BUGGJAKT — 8 buggar (4 Worker A + 4 Worker B). Numeric input (4)
 Session #180: BUGGJAKT — 15 buggar (14 Worker A + 1 Worker B). Logging completeness (14). Loading state (1: 152 spinners).
 Session #181: BUGGJAKT — 12 buggar (8 Worker A + 4 Worker B). Input sanitization (8). Error boundaries (4).
 Session #182: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). DST date calc (8: 1 UnderhallsprognosController 86400->DateTime, 7 dagdiff-guards). HTTP retry/timeout (5: andon-board, produktionstakt, skiftjamforelse, produktionsmal, daglig-sammanfattning). File I/O (0), route guards (0).
+Session #183: BUGGJAKT — 105 buggar (14 Worker A + 91 Worker B). Header injection (0), JSON response (1), error_log format (13). Lazy-loading (0), form accessibility (89), null-safety/error-handling (2).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #183+):
-- [ ] PHP header injection audit
-- [ ] PHP JSON response consistency
-- [ ] Angular lazy-loading verification
-- [ ] PHP error_log format audit
-- [ ] Angular form accessibility audit
+### Kvarstaende buggjakt-items (session #184+):
+- [ ] PHP session timeout/regeneration audit
+- [ ] PHP SQL string concatenation audit
+- [ ] Angular setInterval/setTimeout cleanup audit
+- [ ] PHP array key existence audit
+- [ ] Angular HTTP error message i18n audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #180 (klar)
-Worker A: 14 buggar — Logging completeness (14 tysta catch-block utan error_log i 12 controllers). Response code audit (0, alla korrekt).
-Worker B: 1 bugg — Memory leaks (0, alla korrekt). Loading state (1: 152 spinners saknade visually-hidden text).
 
 ### 2026-03-19 — Session #181 (klar)
 Worker A: 8 buggar — SQL column names (0, alla korrekt). Input sanitization (8: saknad strip_tags+mb_substr i 7 controllers).
@@ -97,3 +94,7 @@ Worker B: 4 buggar — Error boundaries (4: 23 HTTP-anrop utan catchError i 4 co
 ### 2026-03-19 — Session #182 (klar)
 Worker A: 8 buggar — DST date calc (8: 1 kritisk UnderhallsprognosController 86400->DateTime::modify, 7 dagdiff-guards strtotime->DateTime::diff i 7 controllers). File I/O (0, alla korrekt).
 Worker B: 5 buggar — HTTP retry/timeout (5: andon-board, produktionstakt, skiftjamforelse, produktionsmal, daglig-sammanfattning — lade till timeout(10000)+catchError+isFetching-guard). Route guards (0, alla korrekt).
+
+### 2026-03-19 — Session #183 (klar)
+Worker A: 14 buggar — Header injection (0, redan korrekt). JSON response (1: StatusController returnerade success:true vid DB-fel). error_log format (13: saknade metodnamn i 4 controllers).
+Worker B: 91 buggar — Lazy-loading (0, redan korrekt). Form accessibility (89: select-element utan aria-label i 53 templates). Null-safety/error-handling (2: saknad catchError i avvikelselarm).
