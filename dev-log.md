@@ -1,3 +1,44 @@
+## 2026-03-19 Session #184 Worker A — PHP session/SQL/array-access audit — 0 buggar fixade
+
+### Uppgift 1: PHP session timeout/regeneration audit — 0 buggar
+
+**Metod:** Granskade LoginController.php, AuthHelper.php, StatusController.php och api.php for session fixation och brist pa session-timeout.
+
+**Resultat:**
+- **LoginController.php (rad 90-95):** `session_start()` anropas BARA efter lyckad inloggning, omedelbart foljt av `session_regenerate_id(true)` — skyddar korrekt mot session fixation.
+- **AuthHelper.php:** `SESSION_TIMEOUT = 28800` (8 timmar). `checkSessionTimeout()` kollar `last_activity` mot timeout-konstanten och forstor sessionen om den gatt ut. `$_SESSION['last_activity']` satts vid varje lyckad inloggning.
+- **StatusController.php (rad 35-42):** Kontrollerar `last_activity` manuellt i read_and_close-lage och forstor sessionen om timeout intraffat.
+- **api.php (rad 75-90):** Konfigurerar `session.gc_maxlifetime=28800`, `session.use_strict_mode=1` (avvisar oinitierade session-ID:n) och `session.use_only_cookies=1` (forhindrar session-ID i URL).
+Inga buggar hittade.
+
+### Uppgift 2: PHP SQL string concatenation audit — 0 buggar
+
+**Metod:** Granskade alla PHP-controllers i noreko-backend/classes/ for SQL-queries byggda med string concatenation dar anvandardata injiceras direkt.
+
+**Resultat — granskade monstret:**
+- `implode(', ', $fields)` med hardkodade fieldnamn i UPDATE-queries (MaintenanceController, ProfileController, StoppageController, SkiftrapportController, LineSkiftrapportController, AdminController) — inga anvandardata i SQL-strukturen.
+- `$skiftCond` i OperatorsPrestandaController — varden fran `getValidSkift()` som whitelistar mot `['dag', 'kvall', 'natt']` innan anvandning i SQL.
+- `$column` i BonusAdminController — hamtas fran hardkodad `$column_map` array-lookup mot whitelist.
+- `$table` i LineSkiftrapportController — valideras mot `self::$allowedLines` whitelist.
+- `$tableName` i RuntimeController — valideras mot `$validLines = ['tvattlinje', 'rebotling']`.
+- `$dateFilter` i BonusController (rad 1669, 1837) — valideras med `preg_match('/^\d{4}-\d{2}-\d{2}$/')` innan anvandning.
+- `$ibcCol` i ForstaTimmeAnalysController — returnerar antingen `'timestamp'` eller `'datum'` (hardkodat).
+- `$orderExpr` i KassationsanalysController — hardkodade stranger, ingen anvandardata.
+Inga buggar hittade.
+
+### Uppgift 3: PHP array key existence audit — 0 buggar
+
+**Metod:** Sokt igenom alla PHP-controllers for `$_GET`/`$_POST`/`$_REQUEST`-access utan `isset()`, `??`-operator eller `empty()`.
+
+**Resultat:** Alla forkommande pattern ar skyddade:
+- `$_GET['run'] ?? ''` — null-coalescing overallt
+- `isset($_GET['line']) ? trim($_GET['line']) : null` — isset-skydd
+- `!empty($_GET['operator'])` innan `intval($_GET['operator'])` — MinDagController
+- `isset($_GET['operator_id']) && $_GET['operator_id'] !== '' ? intval(...)` — FeedbackAnalysController
+- `isset($_GET['month']) && preg_match(...)` — RebotlingAdminController
+- Alla json_decode-resultat kontrolleras med `is_array()` eller `?? []` innan elementaccess
+Inga buggar hittade.
+
 ## 2026-03-19 Session #183 Worker B — Angular lazy-loading + form accessibility + null-safety audit — 91 buggar fixade
 
 ### Uppgift 1: Angular lazy-loading verification — 0 buggar
