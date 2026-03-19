@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #184)*
+*Senast uppdaterad: 2026-03-19 (session #185)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -74,23 +74,20 @@ Session #181: BUGGJAKT — 12 buggar (8 Worker A + 4 Worker B). Input sanitizati
 Session #182: BUGGJAKT — 13 buggar (8 Worker A + 5 Worker B). DST date calc (8: 1 UnderhallsprognosController 86400->DateTime, 7 dagdiff-guards). HTTP retry/timeout (5: andon-board, produktionstakt, skiftjamforelse, produktionsmal, daglig-sammanfattning). File I/O (0), route guards (0).
 Session #183: BUGGJAKT — 105 buggar (14 Worker A + 91 Worker B). Header injection (0), JSON response (1), error_log format (13). Lazy-loading (0), form accessibility (89), null-safety/error-handling (2).
 Session #184: BUGGJAKT — 26 buggar (0 Worker A + 26 Worker B). Session timeout (0), SQL concat (0), array key (0). setTimeout cleanup (26: 13 komponenter), HTTP error i18n (0).
+Session #185: BUGGJAKT — 10 buggar (6 Worker A + 4 Worker B). Date/time format (0, konsekvent), unused vars (6: 5 overlappande period + 1 oanvand variabel). Template complexity (4), router subscriptions (0).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #185+):
-- [ ] PHP date/time format consistency audit
-- [ ] PHP unused variable audit
-- [ ] Angular template expression complexity audit
+### Kvarstaende buggjakt-items (session #186+):
 - [ ] PHP numeric input validation audit
-- [ ] Angular router subscription cleanup audit
+- [ ] PHP error response consistency audit
+- [ ] Angular lazy-loading optimization audit
+- [ ] PHP SQL LIMIT/OFFSET injection audit
+- [ ] Angular change detection audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #182 (klar)
-Worker A: 8 buggar — DST date calc (8: 1 kritisk UnderhallsprognosController 86400->DateTime::modify, 7 dagdiff-guards). File I/O (0).
-Worker B: 5 buggar — HTTP retry/timeout (5: timeout+catchError+isFetching-guard i 5 polling-components). Route guards (0).
 
 ### 2026-03-19 — Session #183 (klar)
 Worker A: 14 buggar — Header injection (0). JSON response (1: StatusController success:true vid DB-fel). error_log format (13: saknade metodnamn).
@@ -99,3 +96,7 @@ Worker B: 91 buggar — Lazy-loading (0). Form accessibility (89: select utan ar
 ### 2026-03-19 — Session #184 (klar)
 Worker A: 0 buggar — Session timeout/regeneration (0, redan korrekt). SQL string concat (0, alla prepared statements). Array key existence (0, alla skyddade).
 Worker B: 26 buggar — setTimeout cleanup (26: 13 komponenter saknade clearTimeout i ngOnDestroy). HTTP error i18n (0, redan svenska).
+
+### 2026-03-19 — Session #185 (klar)
+Worker A: 6 buggar — Date/time format (0, redan konsekvent). Unused vars (6: 5 overlappande periodberakning i KassationsanalysController BETWEEN-bugg, 1 oanvand $found i ProduktionsPrognosController).
+Worker B: 4 buggar — Template expression complexity (4: inline berakningar i gamification, stopptidsanalys, stationsdetalj flyttade till metoder). Router subscriptions (0, inga route-param-subscriptions hittade).
