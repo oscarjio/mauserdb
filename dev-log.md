@@ -1,3 +1,62 @@
+## 2026-03-19 Session #177 Worker A — PHP file permission audit + SQL injection re-audit — 0 buggar
+
+### Uppgift 1: PHP file permission audit — 0 buggar
+
+Granskade ALL PHP-kod i `noreko-backend/` (exkl. `plcbackend/`) som skriver till filer, loggar, uploads, temp-filer, exports.
+
+**Metod:** Sokte efter: `file_put_contents`, `fwrite`, `fopen(...'w')`, `move_uploaded_file`, `mkdir`, `chmod`
+
+**Resultat:** Inga sakerhetsbrister hittade.
+
+Fynd:
+- `VpnController.php:103,165` — `fwrite($socket, ...)` skriver till en TCP-socket (OpenVPN management interface), inte en fil. `$commonName` valideras med strikt regex `/^[\w\.\-@]+$/u` pa rad 69 fore anvandning. Sakert.
+- `TidrapportController.php:564` och `BonusAdminController.php:1819` — `fopen('php://output', 'w')` oppnar PHP:s output-buffer for CSV-export. Ingen diskskrivning sker. Sakert.
+- Inga `file_put_contents`, `move_uploaded_file`, `mkdir` eller `chmod` hittades i nagot PHP-fil utanfor plcbackend/.
+
+**Granskade filer (nodpunkter):**
+- Alla `classes/*.php` och `controllers/*.php` (125+ filer)
+- `admin.php`, `api.php`, `login.php`, `update-weather.php`
+
+### Uppgift 2: PHP SQL injection re-audit — 0 buggar
+
+Granskade ALLA PHP-controllers for direkta variabelinterpolationer i SQL-satser.
+
+**Metod:** Sokte efter:
+- `->query("...` och `->exec("...` med `$variabel` direkt i strangarna
+- `->prepare($sql)` dar `$sql` innehaller interpolerade variabler
+- `ORDER BY $var`, `LIMIT $var`, `WHERE ... $var` fran user input
+- Dynamisk WHERE-byggnad med user-kontrollerade varden
+
+**Resultat:** Inga SQL-injektionssarbarheter hittade.
+
+Granskade riskfulla monster:
+
+1. `KassationsanalysController.php` — `$groupExpr` och `$orderExpr` i `ORDER BY {$groupExpr}`. Valen kommer INTE fran user input utan ar hardkodade SQL-fragment valda via `if ($group === 'week')` dar `$group` valideras mot whitelist `['week', 'month']`. Sakert.
+
+2. `ProduktionsPrognosController.php` — `{$ibcCol}` i SQL-satser. Variabeln sats fran `getIbcTimestampColumn()` som returnerar antingen `'timestamp'` eller `'datum'` — hardkodade stranger, ej user input. Sakert.
+
+3. `RebotlingController.php:1099` — `$dateFilter` interpoleras i SQL. Variabeln sats fran ett `match($period)` dar `$period` valideras mot whitelist `['today', 'week', 'month']` och resulterar i hardkodade SQL-fragment. Sakert.
+
+4. `SkiftoverlamningController.php:624` — `$whereSql` byggd fran `implode(' AND ', $where)` dar `$where[]` fylls med hardkodade clause-stringar (`"l.datum >= :p{$paramIdx}"`), aldrig user input direkt. Alla varden bindas via `$params`. Sakert.
+
+5. `MaintenanceController.php:100-116` — `$where` byggd fran hardkodade clauses, alla varden via PDO-parametrar. Sakert.
+
+6. `AuditController.php:120-134` — `$whereClause` fran `implode(' AND ', $where)` dar klausulerna ar hardkodade stringar. Alla varden bindas. Sakert.
+
+7. `LineSkiftrapportController.php:106,257` — `$table` i SQL. Variabeln deriveras fran `$line . '_skiftrapport'` dar `$line` valideras mot whitelist `$allowedLines = ['tvattlinje', 'saglinje', 'klassificeringslinje']`. Sakert.
+
+8. `HistoriskProduktionController.php:382-383` — `$sort` valideras mot whitelist, `$order` ar antingen `'ASC'` eller `'DESC'`. Sortering utfors i PHP via `usort()`, ej i SQL. Sakert.
+
+9. `BonusAdminController.php:1766` och `AvvikelselarmController.php:496` — `$updateClause`/`$setStr` byggda fran hardkodade kolumnnamn valda ur PHP-arrayer/maps. Ej user input. Sakert.
+
+10. `ProfileController.php:145` och `AdminController.php:328` — dynamisk `SET`-klausul fran hardkodade field-stringar (`'username = ?'` etc.), aldrig user input direkt i SQL-strang. Sakert.
+
+**Ovriga observationer (positiva):**
+- Konsekvent anvandning av PDO prepared statements med bundna parametrar (`?` och `:param`) i hela kodbasen
+- `bcrypt` anvands genomgaende via `AuthHelper::hashPassword()` / `AuthHelper::verifyPassword()` — inga sha1/md5 hittades
+- Inga filuppladdningar (inga `move_uploaded_file`) i nagot av de granskade PHP-filerna
+- Inga `0777`-permissions hittades (inga mkdir/chmod alls)
+
 ## 2026-03-19 Session #176 Worker B — Angular error boundary + pagination/limit audit — 3 buggar
 
 ### Uppgift 1: Angular error boundary audit — 0 buggar
