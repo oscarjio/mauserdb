@@ -147,7 +147,7 @@
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label">Stopporsak</label>
-              <select class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id" required>
+              <select aria-label="Valj stopporsak" class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id" required>
                 <option [ngValue]="0" disabled>-- Välj orsak --</option>
                 <option *ngFor="let r of reasons; trackBy: trackByIndex" [ngValue]="r.id">
                   {{ r.name }} ({{ r.category === 'planned' ? 'Planerat' : 'Oplanerat' }})
@@ -245,7 +245,7 @@
           <!-- Category filter -->
           <div class="filter-group">
             <span class="filter-label"><i class="fas fa-tag me-1"></i>Kategori:</span>
-            <select class="form-select form-select-sm filter-select-sm" [(ngModel)]="filterCategory" (ngModelChange)="onLocalFilterChange()">
+            <select aria-label="Valj category" class="form-select form-select-sm filter-select-sm" [(ngModel)]="filterCategory" (ngModelChange)="onLocalFilterChange()">
               <option value="">Alla kategorier</option>
               <option value="unplanned">Oplanerat</option>
               <option value="planned">Planerat</option>

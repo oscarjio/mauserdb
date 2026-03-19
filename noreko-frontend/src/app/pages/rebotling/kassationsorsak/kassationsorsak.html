@@ -9,7 +9,7 @@
       <!-- Stationsfilter -->
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Station:</label>
-        <select class="form-select form-select-sm kps-select"
+        <select aria-label="Valj station" class="form-select form-select-sm kps-select"
                 [(ngModel)]="valdStation"
                 (change)="byttStation()">
           <option value="">Alla stationer</option>

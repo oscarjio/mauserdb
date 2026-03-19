@@ -105,7 +105,7 @@
         <!-- Skift-nr -->
         <div class="form-group-inline">
           <label class="form-label" for="skiftSelect">Skift</label>
-          <select id="skiftSelect" class="skift-select" [(ngModel)]="newSkiftNr">
+          <select aria-label="Valj skift" id="skiftSelect" class="skift-select" [(ngModel)]="newSkiftNr">
             <option [value]="1">Skift 1 — Morgon (06–14)</option>
             <option [value]="2">Skift 2 — Eftermiddag (14–22)</option>
             <option [value]="3">Skift 3 — Natt (22–06)</option>
@@ -115,7 +115,7 @@
         <!-- Åtkomst -->
         <div class="form-group-inline">
           <label class="form-label" for="audienceSelect">Åtkomst</label>
-          <select id="audienceSelect" class="skift-select" [(ngModel)]="newAudience">
+          <select aria-label="Valj åtkomst" id="audienceSelect" class="skift-select" [(ngModel)]="newAudience">
             <option value="alla">👥 Alla</option>
             <option value="ansvarig">👔 Ansvarig</option>
             <option value="teknik">🔧 Teknik</option>

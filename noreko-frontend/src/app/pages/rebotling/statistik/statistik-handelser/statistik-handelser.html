@@ -10,7 +10,7 @@
 <div class="row g-2">
 <div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Datum</label><input type="date" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_date"></div>
 <div class="col-md-3"><label style="color:#a0aec0; font-size:0.8rem;">Titel</label><input type="text" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" placeholder="T.ex. Ny operator anstalld" [(ngModel)]="newEvent.title"></div>
-<div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Typ</label><select class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_type">
+<div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Typ</label><select aria-label="Valj typ" class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_type">
 <option value="underhall">Underhall</option><option value="ny_operator">Ny operator</option><option value="mal_andring">Malandring</option><option value="rekord">Rekord</option><option value="ovrigt">Ovrigt</option></select></div>
 <div class="col-md-3"><label style="color:#a0aec0; font-size:0.8rem;">Beskrivning (valfri)</label><input type="text" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" placeholder="Kort beskrivning..." [(ngModel)]="newEvent.description"></div>
 <div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm w-100" style="background:#a855f7; color:#fff; border:none;" (click)="saveNewEvent()" [disabled]="eventsAdminSaving">

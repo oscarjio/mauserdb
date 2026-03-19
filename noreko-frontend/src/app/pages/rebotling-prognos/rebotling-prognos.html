@@ -31,7 +31,7 @@
     <div class="col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Arbetsdagar/vecka</label>
-        <select class="form-select bg-dark text-light border-secondary" [(ngModel)]="workdaysPerWeek" (change)="calculate()">
+        <select aria-label="Valj arbetsdagar/vecka" class="form-select bg-dark text-light border-secondary" [(ngModel)]="workdaysPerWeek" (change)="calculate()">
           <option [value]="5">5 dagar (mån–fre)</option>
           <option [value]="6">6 dagar (mån–lör)</option>
           <option [value]="7">7 dagar (alla dagar)</option>

@@ -461,7 +461,7 @@
           <div class="row g-3">
             <div class="col-6 col-md-3">
               <label class="form-label small text-muted">Skifttyp</label>
-              <select class="form-select form-select-sm dark-select" [(ngModel)]="form.skift_typ">
+              <select aria-label="Valj skifttyp" class="form-select form-select-sm dark-select" [(ngModel)]="form.skift_typ">
                 <option value="dag">Dag (06-14)</option>
                 <option value="kvall">Kvall (14-22)</option>
                 <option value="natt">Natt (22-06)</option>
@@ -588,7 +588,7 @@
 
           <div *ngIf="form.har_pagaende_problem" class="ms-4">
             <label class="form-label small text-muted">Allvarlighetsgrad</label>
-            <select class="form-select form-select-sm dark-select" style="max-width: 200px;"
+            <select aria-label="Valj allvarlighetsgrad" class="form-select form-select-sm dark-select" style="max-width: 200px;"
                     [(ngModel)]="form.allvarlighetsgrad">
               <option value="lag">Lag</option>
               <option value="medel">Medel</option>

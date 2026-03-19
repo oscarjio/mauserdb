@@ -1073,7 +1073,7 @@
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label">Skift</label>
-              <select class="form-select bg-dark text-light border-secondary"
+              <select aria-label="Valj skift" class="form-select bg-dark text-light border-secondary"
                       [(ngModel)]="shiftReportTestShift"
                       [disabled]="shiftReportSending">
                 <option [ngValue]="1">1 — Förmiddag (06–14)</option>
@@ -1586,7 +1586,7 @@
             <!-- Sortering -->
             <div class="col-12 col-md-6">
               <label class="form-label">Sortera efter</label>
-              <select class="form-select bg-dark text-light border-secondary"
+              <select aria-label="Valj ibc idag" class="form-select bg-dark text-light border-secondary"
                       [(ngModel)]="lrConfig.sort_by">
                 <option value="ibc_per_hour">IBC/h</option>
                 <option value="quality_pct">Kvalitet%</option>
@@ -1678,7 +1678,7 @@
             </div>
             <div class="col-12 col-md-3">
               <label class="form-label fw-semibold">Kassationsorsak</label>
-              <select class="form-select" [(ngModel)]="kassationForm.orsak_id" required>
+              <select aria-label="Valj kassationsorsak" class="form-select" [(ngModel)]="kassationForm.orsak_id" required>
                 <option [value]="0" disabled>Välj orsak...</option>
                 <option *ngFor="let t of kassationTyper; trackBy: trackByIndex" [value]="t.id">{{ t.namn }}</option>
               </select>

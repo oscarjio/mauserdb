@@ -9,7 +9,7 @@
       </div>
       <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
         <label class="text-muted small mb-0">Period (dagar):</label>
-        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:90px"
+        <select aria-label="Valj period (dagar)" class="form-select form-select-sm bg-dark text-light border-secondary" style="width:90px"
           [(ngModel)]="days" (change)="onDaysChange()">
           <option [value]="7">7 d</option>
           <option [value]="14">14 d</option>

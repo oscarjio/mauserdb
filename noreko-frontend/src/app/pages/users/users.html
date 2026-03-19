@@ -179,7 +179,7 @@
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Op-ID</label>
-                                <select class="form-select form-select-sm" [(ngModel)]="user.operator_id" name="operator_id-{{user.id}}">
+                                <select aria-label="Valj op-id" class="form-select form-select-sm" [(ngModel)]="user.operator_id" name="operator_id-{{user.id}}">
                                   <option [ngValue]="null">Ingen</option>
                                   <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.number">
                                     {{ op.name }} (#{{ op.number }})

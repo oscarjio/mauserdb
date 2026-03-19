@@ -9,7 +9,7 @@
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="text-muted small me-1 mb-0">Period:</label>
-      <select class="form-select form-select-sm period-select" [(ngModel)]="months" (ngModelChange)="onPeriodChange()">
+      <select aria-label="Valj period" class="form-select form-select-sm period-select" [(ngModel)]="months" (ngModelChange)="onPeriodChange()">
         <option [ngValue]="3">3 manader</option>
         <option [ngValue]="6">6 manader</option>
         <option [ngValue]="12">12 manader</option>

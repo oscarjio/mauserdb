@@ -3,7 +3,7 @@
 <div class="card-header" style="background:#1a202c; border-color:#4a5568;">
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
 <h6 class="mb-0 text-light"><i class="fas fa-calendar-week me-2 text-info"></i>Veckodag-analys</h6>
-<select class="form-select form-select-sm" style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="weekdayDagar" (change)="loadWeekdayStats()">
+<select aria-label="Valj weekday dagar" class="form-select form-select-sm" style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="weekdayDagar" (change)="loadWeekdayStats()">
 <option [value]="30">Senaste 30 dagar</option><option [value]="90">Senaste 90 dagar</option><option [value]="180">Senaste 180 dagar</option><option [value]="365">Senaste 365 dagar</option></select></div></div>
 <div class="card-body">
 <p class="text-muted small mb-3">Visar genomsnittlig IBC-produktion per veckodag baserat pa de senaste {{ weekdayDagar }} dagarna.

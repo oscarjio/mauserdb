@@ -9,7 +9,7 @@
       <!-- Maskinfilter -->
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Maskin:</label>
-        <select class="form-select form-select-sm mdt-select"
+        <select aria-label="Valj maskin" class="form-select form-select-sm mdt-select"
                 [(ngModel)]="valdStation"
                 (change)="byttStation()">
           <option *ngFor="let s of stationer; trackBy: trackByIndex" [value]="s.id">{{ s.namn }}</option>

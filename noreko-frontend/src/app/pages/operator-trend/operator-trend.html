@@ -29,7 +29,7 @@
         <label class="control-label">Operatör</label>
         <div class="select-wrap">
           <i class="fas fa-user select-icon"></i>
-          <select class="ot-select"
+          <select aria-label="Valj operatör" class="ot-select"
                   [(ngModel)]="selectedOpId"
                   (ngModelChange)="onOperatorChange()"
                   [disabled]="loadingOps">

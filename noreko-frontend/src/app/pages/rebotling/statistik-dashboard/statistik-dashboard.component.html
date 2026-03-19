@@ -179,7 +179,7 @@
       </h5>
       <div class="d-flex align-items-center gap-2">
         <label class="text-muted small mb-0">Period:</label>
-        <select class="form-select form-select-sm dash-select" [(ngModel)]="trendPeriod" (change)="onPeriodChange()">
+        <select aria-label="Valj period" class="form-select form-select-sm dash-select" [(ngModel)]="trendPeriod" (change)="onPeriodChange()">
           <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p.val">{{ p.label }}</option>
         </select>
       </div>

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   AvvikelselarmService,
@@ -306,7 +306,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   toggleRegel(regel: Regel): void {
     this.svc.uppdateraRegel(regel.id, undefined, !regel.aktiv)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.aktiv = !regel.aktiv;
@@ -318,7 +318,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     const val = parseFloat((event.target as HTMLInputElement).value);
     if (isNaN(val)) return;
     this.svc.uppdateraRegel(regel.id, val)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.grans_varde = val;

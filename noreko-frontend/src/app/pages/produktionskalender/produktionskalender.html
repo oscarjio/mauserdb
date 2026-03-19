@@ -16,11 +16,11 @@
           <i class="fas fa-chevron-left"></i>
         </button>
 
-        <select class="form-select form-select-sm year-select" [(ngModel)]="selectedYear" (change)="onManadChange()">
+        <select aria-label="Valj year" class="form-select form-select-sm year-select" [(ngModel)]="selectedYear" (change)="onManadChange()">
           <option *ngFor="let y of years; trackBy: trackByIndex" [value]="y">{{ y }}</option>
         </select>
 
-        <select class="form-select form-select-sm month-select" [(ngModel)]="selectedMonth" (change)="onManadChange()">
+        <select aria-label="Valj month" class="form-select form-select-sm month-select" [(ngModel)]="selectedMonth" (change)="onManadChange()">
           <option *ngFor="let m of months; trackBy: trackByIndex" [value]="m.nr">{{ m.namn }}</option>
         </select>
 

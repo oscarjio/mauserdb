@@ -257,7 +257,7 @@
       <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm">
         <div class="mb-3">
           <label class="form-label" for="serviceMaskinId">Maskin <span class="text-danger">*</span></label>
-          <select id="serviceMaskinId" class="form-select form-select-dark"
+          <select aria-label="Valj maskin id" id="serviceMaskinId" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.maskin_id"
                   name="maskin_id" #maskinIdCtrl="ngModel" required aria-required="true">
             <option [value]="0" disabled>Välj maskin...</option>
@@ -278,7 +278,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label" for="serviceTyp">Servicetyp</label>
-          <select id="serviceTyp" class="form-select form-select-dark"
+          <select aria-label="Valj servicetyp" id="serviceTyp" class="form-select form-select-dark"
                   [(ngModel)]="addServiceForm.service_typ"
                   name="service_typ">
             <option value="planerat">Planerat</option>

@@ -13,7 +13,7 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <!-- Operator-dropdown -->
           <label class="text-muted small mb-0">Operator:</label>
-          <select class="form-select form-select-sm filter-select"
+          <select aria-label="Valj operator" class="form-select form-select-sm filter-select"
                   [(ngModel)]="selectedOperatorId"
                   (change)="onOperatorChange()">
             <option [ngValue]="0" disabled>-- Valj operator --</option>
@@ -22,7 +22,7 @@
 
           <!-- Period -->
           <label class="text-muted small mb-0 ms-2">Period:</label>
-          <select class="form-select form-select-sm filter-select" style="width:110px;"
+          <select aria-label="Valj period" class="form-select form-select-sm filter-select" style="width:110px;"
                   [(ngModel)]="periodDays"
                   (change)="onPeriodChange()">
             <option [value]="7">7 dagar</option>

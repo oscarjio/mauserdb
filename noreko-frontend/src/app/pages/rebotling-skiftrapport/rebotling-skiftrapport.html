@@ -86,7 +86,7 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">Produkt</label>
-              <select class="form-control" [(ngModel)]="newReport.product_id">
+              <select aria-label="Valj datum" class="form-control" [(ngModel)]="newReport.product_id">
                 <option [value]="null">Välj produkt...</option>
                 <option *ngFor="let product of products; trackBy: trackByProductId" [value]="product.id">{{ product.name }}</option>
               </select>
@@ -200,21 +200,21 @@
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>
-          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="max-width:200px; width:100%;">
+          <select aria-label="Valj filtrera på operatör" class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="max-width:200px; width:100%;">
             <option [ngValue]="null">— Alla operatörer —</option>
             <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>
-          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
+          <select aria-label="Valj filtrera på operatör" class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
             <option [ngValue]="null">— Alla operatörer —</option>
             <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>
-          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
+          <select aria-label="Valj filtrera på operatör" class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
             <option [ngValue]="null">— Alla operatörer —</option>
             <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
@@ -827,7 +827,7 @@
                               </div>
                               <div class="col-md-3">
                                 <label class="form-label small">Produkt</label>
-                                <select class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
+                                <select aria-label="Valj produkt" class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
                                   <option [value]="null">Välj produkt...</option>
                                   <option *ngFor="let product of products; trackBy: trackByProductId" [value]="product.id">{{ product.name }}</option>
                                 </select>
