@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import {
   AndonBoardService,
   TodayProduction,
@@ -35,8 +35,9 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   isFullscreen = false;
 
   private destroy$ = new Subject<void>();
-  private refreshInterval: any = null;
-  private clockInterval: any = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private clockInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private andonService: AndonBoardService) {}
 
@@ -56,9 +57,16 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   }
 
   fetchData(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.andonService.getStatus()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(10000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe(data => {
+        this.isFetching = false;
         if (data && data.success) {
           this.production = data.today_production;
           this.rate = data.current_rate;

@@ -1,3 +1,54 @@
+## 2026-03-19 Session #182 Worker B — Angular HTTP retry/timeout audit + route guard audit — 5 buggar fixade
+
+### Uppgift 1: Angular HTTP retry audit — 5 buggar fixade
+
+**Metod:** Systematiskt granskat alla 70 Angular-components med setInterval() i noreko-frontend/src/app/ (exklusive live-sidorna rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Kontrollerat:
+- HTTP-anrop i polling-loopar utan timeout()
+- HTTP-anrop utan catchError()
+- Polling-anrop utan isFetching-guard (risk for parallella requests)
+
+**Buggar hittade och fixade:**
+
+1. **andon-board.ts** — fetchData() kallades via setInterval var 30:e sekund utan timeout(), utan catchError() och utan isFetching-guard. Requests kunde stacka upp och hanga obegransat.
+   Fix: Lade till isFetching-guard, timeout(10000) och catchError(() => of(null)).
+
+2. **produktionstakt.ts** — fetchAll() kallades via setInterval var 30:e sekund. Bada HTTP-anropen (getCurrentRate, getHourlyHistory) saknade timeout() och catchError(). Ingen isFetching-guard.
+   Fix: Lade till isFetching-guard, timeout(10000) och catchError(() => of(null)) pa bada anrop.
+
+3. **skiftjamforelse.ts** — loadAll() kallades via setInterval var 120:e sekund. 5 samtida HTTP-anrop (getSammanfattning, getJamforelse, getTrend, getBestPractices, getDetaljer) saknade alla timeout() och catchError(). Ingen isFetching-guard.
+   Fix: Lade till isFetching-guard, timeout(10000) och catchError(() => of(null)) pa alla 5 anrop.
+
+4. **produktionsmal.ts** — laddaProgress() och laddaHistorik() kallades via setInterval var 5:e minut utan timeout() och catchError(). Trots separata loading-guards saknades felhantering.
+   Fix: Lade till isFetching-kontroll i bada metoderna, timeout(10000) och catchError(() => of(null)).
+
+5. **daglig-sammanfattning.ts** — getDailySummary() och getComparison() kallades via setInterval var 60:e sekund. Bada anropen saknade timeout() och catchError(). Requests kunde hanga obegransat (trots isFetching-guards).
+   Fix: Lade till timeout(10000) och catchError(() => of(null)) pa bada anrop.
+
+**Ovriga granskade filer (inga buggar):**
+- andon.ts, alerts.ts, bonus-dashboard.ts, produktionspuls.ts, produktionseffektivitet.ts, kassationsorsak-statistik.ts, min-dag.ts, produktionsmal.component.ts, rebotling-trendanalys.component.ts, statistik-leaderboard.ts, statistik-uptid-heatmap.ts, statistik-veckotrend.ts, shared-skiftrapport.ts, stopporsak-registrering.ts, shift-handover.ts, rebotling-skiftrapport.ts, stationsdetalj.component.ts, stoppage-log.ts, rebotling-admin.ts, batch-sparning.component.ts, produktions-dashboard.component.ts, skiftoverlamning.ts m.fl. — alla har korrekt timeout/catchError/isFetching.
+
+### Uppgift 2: Angular route guard audit — 0 buggar
+
+**Metod:** Granskat alla 137 routes i noreko-frontend/src/app/app.routes.ts samt guards/auth.guard.ts.
+
+**Resultat:** Inga saknade guards hittades.
+- 117 routes har canActivate: [authGuard] eller canActivate: [adminGuard]
+- 20 routes ar avsiktligt publika (login, register, about, contact, startsida, live-vyer, skiftrapport-vyer, statistik-vyer, historik, not-found) — korrekt kommenterade i kodfilen
+- authGuard: vantar pa initialized$-signal, redirectar till /login med returnUrl
+- adminGuard: kontrollerar role === 'admin' || role === 'developer', redirectar till / for icke-admins
+- Inga admin-sidor saknar rollkontroll
+- Inga lazy-loading-routes saknar guards
+- canDeactivate: Inga formularsidor anvander unsaved-changes-tracking, darfor inga canDeactivate-guards nodvandiga
+
+**Andrade filer:**
+- noreko-frontend/src/app/pages/andon-board/andon-board.ts
+- noreko-frontend/src/app/pages/rebotling/produktionstakt/produktionstakt.ts
+- noreko-frontend/src/app/pages/skiftjamforelse/skiftjamforelse.ts
+- noreko-frontend/src/app/pages/produktionsmal/produktionsmal.ts
+- noreko-frontend/src/app/pages/daglig-sammanfattning/daglig-sammanfattning.ts
+
+---
+
 ## 2026-03-19 Session #182 Worker A — PHP date/timezone + file_get_contents audit — 8 buggar fixade
 
 ### Uppgift 1: PHP date/timezone edge cases — 8 buggar fixade

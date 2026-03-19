@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 
 import {
   DagligSammanfattningService,
@@ -85,7 +85,7 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
     this.summaryError   = false;
 
     this.service.getDailySummary(this.selectedDate)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.summaryLoading = false;
         if (res?.success) {
@@ -105,7 +105,7 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
     this.compLoading = true;
 
     this.service.getComparison(this.selectedDate)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.compLoading = false;
         this.comp        = res?.success ? res.data : null;

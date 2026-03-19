@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -86,10 +86,11 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
   }
 
   laddaProgress(): void {
+    if (this.progressLoading) return;
     this.progressLoading = true;
     this.progressError = false;
     this.service.getProgress()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.progressLoading = false;
         if (res?.success) {
@@ -109,10 +110,11 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
   }
 
   laddaHistorik(): void {
+    if (this.historikLoading) return;
     this.historikLoading = true;
     this.historikError = false;
     this.service.getMalHistorik(12)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.historikLoading = false;
         if (res?.success) {

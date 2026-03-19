@@ -23,6 +23,7 @@ Chart.register(...registerables);
 export class ProduktionsTaktPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
   private chart: any = null;
 
   @ViewChild('taktChart', { static: false }) chartRef!: ElementRef<HTMLCanvasElement>;
@@ -71,7 +72,12 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
   }
 
   fetchAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
+
     this.taktService.getCurrentRate().pipe(
+      timeout(10000),
+      catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success && res.data) {
@@ -88,16 +94,23 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
           this.rateAnimating = true;
           setTimeout(() => { if (!this.destroy$.closed) this.rateAnimating = false; }, 600);
         }
+      } else {
+        this.loading = false;
       }
     });
 
     this.taktService.getHourlyHistory().pipe(
+      timeout(10000),
+      catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.isFetching = false;
       if (res?.success && res.data) {
         this.hourlyHistory = res.data.history;
         this.loadingHistory = false;
         setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
+      } else {
+        this.loadingHistory = false;
       }
     });
   }

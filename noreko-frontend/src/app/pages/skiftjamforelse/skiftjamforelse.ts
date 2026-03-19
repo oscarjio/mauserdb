@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -47,6 +47,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
   private radarChart: Chart | null = null;
   private trendChart: Chart | null = null;
 
@@ -87,18 +88,20 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
   }
 
   private loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.error = false;
     const d = this.selectedPeriod;
 
     this.service.getSammanfattning(d)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sammanfattning = res?.success ? res.data : null;
         this.lastRefreshed = new Date();
       });
 
     this.service.getJamforelse(d)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.jamforelse = res?.success ? res.data : null;
         this.loading = false;
@@ -109,7 +112,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       });
 
     this.service.getTrend(d)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.trendData = res?.success ? res.data : null;
         if (this.trendData) {
@@ -118,15 +121,16 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       });
 
     this.service.getBestPractices(d)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.bestPractices = res?.success ? res.data : null;
       });
 
     this.service.getDetaljer(d)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detaljer = res?.success ? res.data : null;
+        this.isFetching = false;
       });
   }
 
