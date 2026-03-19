@@ -94,14 +94,14 @@ export class SkiftoverlamningProtokollService {
     return this.http.get<SkiftdataResponse>(`${API}&run=skiftdata`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
   }
 
   spara(payload: SparaPayload): Observable<SparaResponse> {
     return this.http.post<SparaResponse>(`${API}&run=spara`, payload, { withCredentials: true }).pipe(
       timeout(15000),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as SparaResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as SparaResponse))
     );
   }
 
@@ -109,7 +109,7 @@ export class SkiftoverlamningProtokollService {
     return this.http.get<HistorikResponse>(`${API}&run=protokoll-historik&limit=${limit}`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', items: [] } as HistorikResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', items: [] } as HistorikResponse))
     );
   }
 
@@ -117,7 +117,7 @@ export class SkiftoverlamningProtokollService {
     return this.http.get<DetaljResponse>(`${API}&run=protokoll-detalj&id=${id}`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
   }
 }

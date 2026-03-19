@@ -270,7 +270,7 @@ export class SkiftoverlamningService {
     return this.http.get<ListResponse>(`${API}&run=list`, { params, withCredentials: true }).pipe(
       timeout(15000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', items: [], total: 0, limit: 50, offset: 0 } as ListResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', items: [], total: 0, limit: 50, offset: 0 } as ListResponse))
     );
   }
 
@@ -278,7 +278,7 @@ export class SkiftoverlamningService {
     return this.http.get<DetailResponse>(`${API}&run=detail&id=${id}`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
   }
 
@@ -286,7 +286,7 @@ export class SkiftoverlamningService {
     return this.http.get<ShiftKpisResponse>(`${API}&run=shift-kpis`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', kpis: null } as ShiftKpisResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', kpis: null } as ShiftKpisResponse))
     );
   }
 
@@ -295,7 +295,7 @@ export class SkiftoverlamningService {
       timeout(10000),
       retry(1),
       catchError(() => of({
-        success: false, error: 'Natverksfel',
+        success: false, error: 'Nätverksfel',
         senaste_overlamning: null, antal_denna_vecka: 0,
         snitt_produktion_10: 0, pagaende_problem_antal: 0,
         pagaende_problem_lista: []
@@ -307,7 +307,7 @@ export class SkiftoverlamningService {
     return this.http.get<OperatorsResponse>(`${API}&run=operators`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', operators: [] } as OperatorsResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', operators: [] } as OperatorsResponse))
     );
   }
 
@@ -315,7 +315,7 @@ export class SkiftoverlamningService {
     return this.http.get<AktuelltSkiftResponse>(`${API}&run=aktuellt-skift`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
   }
 
@@ -323,7 +323,7 @@ export class SkiftoverlamningService {
     return this.http.get<SkiftSammanfattningResponse>(`${API}&run=skift-sammanfattning`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
   }
 
@@ -331,7 +331,7 @@ export class SkiftoverlamningService {
     return this.http.get<OppnaProblemResponse>(`${API}&run=oppna-problem`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', problem: [], antal: 0 } as OppnaProblemResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', problem: [], antal: 0 } as OppnaProblemResponse))
     );
   }
 
@@ -339,7 +339,7 @@ export class SkiftoverlamningService {
     return this.http.get<ChecklistaResponse>(`${API}&run=checklista`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', checklista: [] } as ChecklistaResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', checklista: [] } as ChecklistaResponse))
     );
   }
 
@@ -347,14 +347,14 @@ export class SkiftoverlamningService {
     return this.http.get<HistorikResponse>(`${API}&run=historik&limit=${limit}`, { withCredentials: true }).pipe(
       timeout(10000),
       retry(1),
-      catchError(() => of({ success: false, error: 'Natverksfel', items: [] } as HistorikResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel', items: [] } as HistorikResponse))
     );
   }
 
   create(payload: CreatePayload): Observable<CreateResponse> {
     return this.http.post<CreateResponse>(`${API}&run=skapa-overlamning`, payload, { withCredentials: true }).pipe(
       timeout(15000),
-      catchError(() => of({ success: false, error: 'Natverksfel' } as CreateResponse))
+      catchError(() => of({ success: false, error: 'Nätverksfel' } as CreateResponse))
     );
   }
 }

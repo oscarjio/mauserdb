@@ -1,3 +1,36 @@
+## 2026-03-19 Session #186 Worker B — Angular change detection audit + service error consistency audit — 29 buggar fixade
+
+### Uppgift 1: Angular change detection optimization audit (OnPush) — 0 buggar
+
+**Metod:** Granskade 20 Angular-komponenter for saknad ChangeDetectionStrategy.OnPush dar det ar sakert att anvanda.
+
+**Resultat:** Alla 20 komponenter muterar lokala variabler direkt i subscribe-callbacks (loading-flaggor, error-flaggor, data-properties) som templates laser av. Ingen anvander async pipe. Inga data kommer enbart via @Input(). Att lagga till OnPush pa nagon av dessa skulle bryta change detection.
+
+**Granskade komponenter:** daglig-briefing, produktionsflode, drifttids-timeline, statistik-overblick, equipment-stats, kpi-analysis, maintenance-list, pdf-export-button, skiftoverlamning, maintenance-form, service-intervals, produktionsmal, tidrapport, oee-trendanalys, operator-ranking, statistik-dashboard, historisk-sammanfattning, vd-dashboard, kassationskvot-alarm, produktionskostnad.
+
+### Uppgift 2: Angular service error response consistency audit — 29 buggar
+
+**Metod:** Granskade alla 94+2 .service.ts-filer i noreko-frontend/src/app/ for inkonsekvent felhantering: saknade catchError, saknade timeout, engelska felmeddelanden, felstavade svenska felmeddelanden.
+
+**Resultat:** Alla services har konsekvent timeout + catchError + retry. Hittade felstavade svenska felmeddelanden:
+
+**Bugg 1-5: 'Okant fel' -> 'Okant fel' (saknar a-umlaut):**
+1. produktions-sla.service.ts rad 178
+2. kvalitetscertifikat.service.ts rad 152
+3. kvalitetscertifikat.service.ts rad 163
+4. kvalitetscertifikat.service.ts rad 181
+5. operatorsbonus.service.ts rad 149
+
+**Bugg 6-29: 'Natverksfel' -> 'Natverksfel' (saknar a-umlaut):**
+6-9. rebotling/skiftoverlamning.service.ts rad 97, 104, 112, 120 (4 instanser)
+10-12. services/stoppage.service.ts rad 86, 92, 98 (3 instanser)
+13-23. services/skiftoverlamning.service.ts rad 273, 281, 289, 298, 310, 318, 326, 334, 342, 350, 357 (11 instanser)
+24-29. services/skiftrapport.service.ts rad 30, 39, 48, 58, 68, 78 (6 instanser)
+
+Alla 29 fixade till korrekt svensk stavning med a-umlaut.
+
+---
+
 ## 2026-03-19 Session #186 Worker A — PHP numeric input validation + SQL LIMIT/OFFSET injection audit — 0 buggar
 
 ### Uppgift 1: PHP numeric input validation audit (A-M controllers) — 0 buggar

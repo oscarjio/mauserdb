@@ -175,7 +175,7 @@ export class ProduktionsSlaService {
       { withCredentials: true }
     ).pipe(
       timeout(10000),
-      catchError((err) => of({ success: false, error: err?.error?.error || 'Okant fel' }))
+      catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
 }

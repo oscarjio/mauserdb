@@ -83,19 +83,19 @@ export class StoppageService {
 
   create(entry: { line: string; reason_id: number; start_time: string; end_time?: string; comment?: string }): Observable<any> {
     return this.http.post<any>(this.base, { action: 'create', ...entry }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of({ success: false, error: 'Natverksfel' }))
+      timeout(10000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
     );
   }
 
   update(id: number, data: any): Observable<any> {
     return this.http.post<any>(this.base, { action: 'update', id, ...data }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of({ success: false, error: 'Natverksfel' }))
+      timeout(10000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
     );
   }
 
   delete(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'delete', id }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of({ success: false, error: 'Natverksfel' }))
+      timeout(10000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
     );
   }
 
