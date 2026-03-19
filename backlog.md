@@ -7,9 +7,9 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #189):
-- [ ] **PHP SQL query + try-catch audit** — StatistikDashboard, Skiftplanering, Stopptidsanalys, Stopporsak, Produktionsmal, OeeTrendanalys, OperatorRanking, VdDashboard, HistoriskSammanfattning, StatistikOverblick, DagligBriefing (Worker A)
-- [ ] **Angular template null-safety + subscription audit** — produktionsflode, statistik-overblick, drifttids-timeline, produktionsmal, oee-trendanalys, operator-ranking, statistik-dashboard, historisk-sammanfattning, vd-dashboard, daglig-briefing, produktions-dashboard (Worker B)
+### Klart (session #189):
+- [x] **PHP SQL query + try-catch audit** — 4 buggar fixade (Worker A)
+- [x] **Angular template null-safety + subscription audit** — 1 bugg fixad (Worker B)
 
 ### Nasta buggjakt-items (session #190+):
 - [ ] **PHP file upload validation audit** — granska filuppladdning for saknad validering

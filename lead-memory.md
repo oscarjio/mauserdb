@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #186)*
+*Senast uppdaterad: 2026-03-19 (session #189)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -78,13 +78,13 @@ Session #185: BUGGJAKT — 10 buggar (6 Worker A + 4 Worker B). Date/time format
 Session #186: BUGGJAKT — 29 buggar (0 Worker A + 29 Worker B). Numeric input validation (0), LIMIT/OFFSET injection (0). Change detection/OnPush (0), error message typos (29: 5 'Okant'->'Okänt' + 24 'Natverksfel'->'Nätverksfel').
 Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response consistency (20: 2 RebotlingStationsdetalj 400->500, 6 UnderhallsloggController raw echo->helpers, 12 OperatorDashboardController raw echo->helpers). Content-Type headers (16: alla 16 controllers saknade application/json). Angular HTTP/null-safety (0, redan korrekt).
 Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/null (0, redan korrekt). Angular number pipe undefined (3: kassationskvot-alarm).
-Session #189: BUGGJAKT — pagaende. Worker A: PHP SQL query + try-catch audit (11 controllers). Worker B: Angular template null-safety + subscription audit (11 komponenter).
+Session #189: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). SQL query (3: station_id+GROUP BY i OeeTrendanalys+VdDashboard), try-catch (2: StatistikDashboard+Skiftplanering). setTimeout cleanup (1: daglig-briefing).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #189+):
+### Kvarstaende buggjakt-items (session #190+):
 - [ ] PHP file upload validation audit
 - [ ] Angular HTTP interceptor error handling
 - [ ] Angular memory profiling — tunga sidor
@@ -93,14 +93,10 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-19 — Session #187 (klar)
-Worker A: 32 buggar — Error response (20) + Content-Type (16).
-Worker B: 0 buggar — HTTP/null-safety redan korrekt.
-
 ### 2026-03-19 — Session #188 (klar)
 Worker A: 0 buggar — PHP deprecated/null redan korrekt.
 Worker B: 3 buggar — Angular number pipe pa undefined (3: kassationskvot-alarm).
 
-### 2026-03-19 — Session #189 (pagaende)
-Worker A: PHP SQL query + try-catch audit — 11 controllers.
-Worker B: Angular template null-safety + subscription audit — 11 komponenter.
+### 2026-03-19 — Session #189 (klar)
+Worker A: 4 buggar — SQL station_id saknas i OeeTrendanalys+VdDashboard (2), saknad DATE(datum) i GROUP BY (1), saknad try-catch i StatistikDashboard+Skiftplanering (2).
+Worker B: 1 bugg — setTimeout-lacka i daglig-briefing loadTrend() (1). Ovriga 10 komponenter redan korrekta.
