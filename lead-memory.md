@@ -78,6 +78,7 @@ Session #185: BUGGJAKT — 10 buggar (6 Worker A + 4 Worker B). Date/time format
 Session #186: BUGGJAKT — 29 buggar (0 Worker A + 29 Worker B). Numeric input validation (0), LIMIT/OFFSET injection (0). Change detection/OnPush (0), error message typos (29: 5 'Okant'->'Okänt' + 24 'Natverksfel'->'Nätverksfel').
 Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response consistency (20: 2 RebotlingStationsdetalj 400->500, 6 UnderhallsloggController raw echo->helpers, 12 OperatorDashboardController raw echo->helpers). Content-Type headers (16: alla 16 controllers saknade application/json). Angular HTTP/null-safety (0, redan korrekt).
 Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/null (0, redan korrekt). Angular number pipe undefined (3: kassationskvot-alarm).
+Session #189: BUGGJAKT — pagaende. Worker A: PHP SQL query + try-catch audit (11 controllers). Worker B: Angular template null-safety + subscription audit (11 komponenter).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -92,14 +93,14 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-19 — Session #186 (klar)
-Worker A: 0 buggar — Numeric input validation (0, alla controllers har intval/cast). SQL LIMIT/OFFSET (0, alla har int-cast eller prepared statements).
-Worker B: 29 buggar — Change detection/OnPush (0, inga kandidater). Error response consistency (29: 5 'Okant fel'->'Okänt fel' i 3 services, 24 'Natverksfel'->'Nätverksfel' i 4 services).
-
 ### 2026-03-19 — Session #187 (klar)
-Worker A: 32 buggar — Error response (20: 2 RebotlingStationsdetalj sendError 400->500, 6 UnderhallsloggController raw echo->sendSuccess/sendError, 12 OperatorDashboardController saknade helpers). Content-Type (16: alla controllers saknade application/json header).
-Worker B: 0 buggar — HTTP error handling (0, alla 96 services har timeout+catchError+svenska). Component null safety (0, alla 17 komponenter har optional chaining, *ngIf-guards, trackBy, division-by-zero-skydd).
+Worker A: 32 buggar — Error response (20) + Content-Type (16).
+Worker B: 0 buggar — HTTP/null-safety redan korrekt.
 
 ### 2026-03-19 — Session #188 (klar)
-Worker A: 0 buggar — PHP deprecated function (0, inga deprecated), null/array safety (0, alla har korrekt casting/coalescing).
-Worker B: 3 buggar — Angular number pipe pa undefined (3: kassationskvot-alarm senaste_timme/aktuellt_skift/idag kvot_pct). Data flow/race conditions (0, alla har takeUntil+trackBy+forkJoin).
+Worker A: 0 buggar — PHP deprecated/null redan korrekt.
+Worker B: 3 buggar — Angular number pipe pa undefined (3: kassationskvot-alarm).
+
+### 2026-03-19 — Session #189 (pagaende)
+Worker A: PHP SQL query + try-catch audit — 11 controllers.
+Worker B: Angular template null-safety + subscription audit — 11 komponenter.
