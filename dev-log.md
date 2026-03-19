@@ -1,3 +1,52 @@
+## 2026-03-19 Session #181 Worker B — Angular error boundary audit + null-safety audit — 4 buggar fixade
+
+### Uppgift 1: Angular error boundary audit — 4 buggar (saknad catchError i HTTP-anrop)
+
+**Metod:** Systematiskt granskat alla Angular components (41+ st) i noreko-frontend/src/app/.
+Fokus: HTTP-anrop utan catchError, saknade felmeddelanden, loading-state som inte aterstalls vid fel.
+
+**Buggar hittade och fixade:**
+
+1. **underhallslogg.ts** — 8 HTTP subscribe-anrop saknade catchError.
+   Filer som `loadStationer()`, `loadKpi()`, `loadPerStation()`, `loadItems()`, `loadChart()`, `spara()`, `taBort()`, `getCategories()` hade ingen catchError, vilket innebar att natverksfel kraschade subscribern och loading-states fastnade.
+   Fix: Lade till `catchError(() => of(null))` pa alla 8 anrop + andrade `res.success` till `res?.success`.
+
+2. **operatorsportal.ts** — 3 HTTP subscribe-anrop (`getMyStats`, `getMyTrend`, `getMyBonus`) saknade catchError.
+   Vid natverksfel skulle loading-spinner fastna och ingen feltext visas.
+   Fix: Lade till `catchError(() => of(null))` pa alla 3 anrop.
+
+3. **produktionsprognos.ts** — 2 HTTP subscribe-anrop (`getForecast`, `getShiftHistory`) saknade catchError.
+   Loading- och fetching-states aterstalldes aldrig vid natverksfel (polling var 60:e sekund).
+   Fix: Lade till `catchError(() => of(null))` pa bada anrop.
+
+4. **skiftoverlamning.ts (pages/)** — 10 HTTP subscribe-anrop saknade catchError.
+   `loadAktuelltSkift`, `loadSkiftSammanfattning`, `loadOppnaProblem`, `loadSummary`, `loadHistorik`, `loadDetail`, `loadAutoKpis`, `loadChecklista`, `create` — alla utan catchError.
+   Loading-states (`isLoading`, `isLoadingDetail`, `isLoadingKpis`, `isSubmitting`) fastnade vid fel.
+   Fix: Lade till `catchError(() => of(null))` pa alla 10 anrop.
+
+### Uppgift 2: Angular template null-safety audit — 0 buggar
+
+**Metod:** Granskat alla .html-templates for null-safety, *ngFor trackBy, loading/null-states, och pipe null-input.
+
+**Resultat:** Alla granskade templates ar korrekt implementerade:
+- Property-accessors anvander genomgaende optional chaining (?.) eller *ngIf-guards
+- Alla *ngFor har trackBy-funktioner (trackByIndex, trackById, trackByNamn etc.)
+- Async-data hanterar loading/null-state med spinners och felmeddelanden
+- Pipes hanterar null-input med ?? fallback-varden
+
+### Sammanfattning
+- **4 buggar fixade** (totalt 23 HTTP-anrop som saknade catchError i 4 filer)
+- **0 template null-safety buggar** (kodbasen ar val implementerad)
+- Alla fixes foljer projektets konventioner: catchError(() => of(null)), svenska felmeddelanden, loading-state aterstallning
+
+### Filer andrade
+- noreko-frontend/src/app/pages/underhallslogg/underhallslogg.ts
+- noreko-frontend/src/app/pages/operatorsportal/operatorsportal.ts
+- noreko-frontend/src/app/pages/produktionsprognos/produktionsprognos.ts
+- noreko-frontend/src/app/pages/skiftoverlamning/skiftoverlamning.ts
+
+---
+
 ## 2026-03-19 Session #180 Worker B — Memory leak audit + loading state audit — 1 bugg (152 spinner-instanser fixade)
 
 ### Uppgift 1: Angular memory leak audit — 0 buggar

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import {
@@ -122,7 +122,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadAktuelltSkift(): void {
-    this.svc.getAktuelltSkift().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getAktuelltSkift().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.aktuelltSkift = res;
         this.updateTidKvar();
@@ -131,7 +131,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadSkiftSammanfattning(): void {
-    this.svc.getSkiftSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSkiftSammanfattning().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.skiftSammanfattning = res;
       }
@@ -139,7 +139,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadOppnaProblem(): void {
-    this.svc.getOppnaProblem().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOppnaProblem().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.oppnaProblem = res.problem;
       }
@@ -147,7 +147,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadSummary(): void {
-    this.svc.getSummary().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSummary().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isLoading = false;
       if (res?.success) {
         this.senaste = res.senaste_overlamning;
@@ -162,7 +162,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadHistorik(): void {
-    this.svc.getHistorik(10).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getHistorik(10).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.historikItems = res.items;
       }
@@ -171,7 +171,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadDetail(id: number): void {
     this.isLoadingDetail = true;
-    this.svc.getDetail(id).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getDetail(id).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isLoadingDetail = false;
       if (res?.success && res.item) {
         this.selectedItem = res.item;
@@ -185,7 +185,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadAutoKpis(): void {
     this.isLoadingKpis = true;
-    this.svc.getShiftKpis().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getShiftKpis().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isLoadingKpis = false;
       if (res?.success && res.kpis) {
         this.autoKpis = res.kpis;
@@ -200,7 +200,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   }
 
   loadChecklista(): void {
-    this.svc.getChecklista().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getChecklista().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.checklista = res.checklista.map(c => ({ ...c }));
         this.form.checklista = this.checklista;
@@ -234,13 +234,13 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
     this.form.checklista = this.checklista;
 
-    this.svc.create(this.form).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.create(this.form).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isSubmitting = false;
       if (res?.success) {
         this.toast.success('Skiftoverlamning sparad!');
         this.backToDashboard();
       } else {
-        this.toast.error(res?.error ?? 'Kunde inte spara');
+        this.toast.error(res?.error ?? 'Kunde inte spara — kontrollera anslutningen');
       }
     });
   }

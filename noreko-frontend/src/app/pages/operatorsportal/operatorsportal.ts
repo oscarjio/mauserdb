@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   OperatorsportalService,
@@ -62,12 +62,12 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
   loadStats(): void {
     this.loadingStats = true;
     this.errorStats = '';
-    this.service.getMyStats().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.service.getMyStats().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingStats = false;
       if (res?.success && res.data) {
         this.stats = res.data;
       } else {
-        this.errorStats = 'Kunde inte ladda din statistik. Kontrollera att du är inloggad och kopplad till ett operatörskonto.';
+        this.errorStats = 'Kunde inte ladda din statistik. Kontrollera att du ar inloggad och kopplad till ett operatorskonto.';
       }
     });
   }
@@ -75,7 +75,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
   loadTrend(): void {
     this.loadingTrend = true;
     this.errorTrend = '';
-    this.service.getMyTrend(this.trendDays).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.service.getMyTrend(this.trendDays).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success && res.data) {
         this.trend = res.data;
@@ -89,7 +89,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
   loadBonus(): void {
     this.loadingBonus = true;
     this.errorBonus = '';
-    this.service.getMyBonus().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.service.getMyBonus().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingBonus = false;
       if (res?.success && res.data) {
         this.bonus = res.data;

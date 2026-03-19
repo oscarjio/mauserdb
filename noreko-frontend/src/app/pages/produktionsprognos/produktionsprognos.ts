@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import {
   ProduktionsPrognosService,
   ForecastData,
@@ -66,7 +66,7 @@ export class ProduktionsPrognosPage implements OnInit, OnDestroy {
     this.isFetchingForecast = true;
     this.errorForecast = false;
 
-    this.svc.getForecast().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getForecast().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isFetchingForecast = false;
       this.loadingForecast = false;
       if (res?.success && res.data) {
@@ -83,7 +83,7 @@ export class ProduktionsPrognosPage implements OnInit, OnDestroy {
     this.isFetchingHistory = true;
     this.errorHistory = false;
 
-    this.svc.getShiftHistory().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getShiftHistory().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isFetchingHistory = false;
       this.loadingHistory = false;
       if (res?.success && res.data) {

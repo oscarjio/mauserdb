@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import {
@@ -138,14 +138,14 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   // =========================================================================
 
   loadStationer(): void {
-    this.svc.getStationer().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) this.stationer = res.stationer;
+    this.svc.getStationer().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) this.stationer = res.stationer;
     });
   }
 
   loadKpi(): void {
-    this.svc.getSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+    this.svc.getSammanfattning().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) {
         this.kpi = {
           totalt_denna_manad: res.totalt_denna_manad,
           total_tid_min: res.total_tid_min,
@@ -161,8 +161,8 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   loadPerStation(): void {
-    this.svc.getPerStation(this.perStationDays).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) this.perStation = res.stationer;
+    this.svc.getPerStation(this.perStationDays).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) this.perStation = res.stationer;
     });
   }
 
@@ -174,15 +174,15 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
       from: this.filterFrom || undefined,
       to: this.filterTo || undefined,
       limit: 50,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingItems = false;
-      if (res.success) this.items = res.items;
+      if (res?.success) this.items = res.items;
     });
   }
 
   loadChart(): void {
-    this.svc.getManadsChart(6).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+    this.svc.getManadsChart(6).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) {
         this.chartData = { labels: res.labels, planerat: res.planerat, oplanerat: res.oplanerat };
         if (this.chartReady) this.renderChart();
       }
@@ -296,29 +296,29 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
       stopporsak: this.formStopporsak || undefined,
       utford_av: this.formUtfordAv || undefined,
       datum: this.formDatum,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.submitting = false;
-      if (res.success) {
+      if (res?.success) {
         this.toast.success('Underhall registrerat!');
         this.showForm = false;
         this.refreshAll();
       } else {
-        this.errorMessage = res.error || 'Kunde inte spara';
+        this.errorMessage = res?.error || 'Kunde inte spara — kontrollera anslutningen';
       }
     });
   }
 
   taBort(post: RebotlingUnderhallsPost): void {
     if (!confirm(`Ta bort underhallspost fran ${this.formatDatum(post.datum)}?`)) return;
-    this.svc.taBort(post.id).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+    this.svc.taBort(post.id).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) {
         this.items = this.items.filter(i => i.id !== post.id);
         this.toast.success('Post borttagen');
         this.loadKpi();
         this.loadPerStation();
         this.loadChart();
       } else {
-        this.toast.error(res.error || 'Kunde inte ta bort');
+        this.toast.error(res?.error || 'Kunde inte ta bort — kontrollera anslutningen');
       }
     });
   }
@@ -335,8 +335,8 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   loadLegacy(): void {
-    this.svc.getCategories().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+    this.svc.getCategories().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      if (res?.success) {
         this.kategorier = res.data;
         if (this.kategorier.length > 0 && !this.legacyFormKategori) {
           this.legacyFormKategori = this.kategorier[0].namn;
