@@ -1,3 +1,22 @@
+## 2026-03-19 Session #189 Worker B — Angular template null-safety + subscription audit — 1 bugg fixad
+
+### Uppgift 1: Angular template type-safety + null-safety audit
+**Granskade komponenter (11 st):**
+produktionsflode, statistik-overblick, drifttids-timeline, produktionsmal, oee-trendanalys, operator-ranking, statistik-dashboard, historisk-sammanfattning, vd-dashboard, daglig-briefing, produktions-dashboard
+
+**Resultat:** Alla templates anvander korrekta *ngIf-guards, optional chaining (?.) och nullish coalescing (??) for data-binding. Inga pipes pa undefined-varden. Inga osaker array-accesser. Alla *ngFor har trackBy-funktioner.
+
+### Uppgift 2: Angular subscription cleanup audit
+**Resultat:** Alla komponenter har korrekt destroy$ + takeUntil, ngOnDestroy med next()/complete(), clearInterval/clearTimeout, chart.destroy() — UTOM en bugg:
+
+**Bugg 1 — daglig-briefing.component.ts (rad 171):**
+`setTimeout(() => { ... buildTrendChart(); }, 100)` sparades INTE till variabel och rensades INTE i ngOnDestroy.
+Om komponenten destroyas inom 100ms-fonstret kors buildTrendChart() pa en dod komponent.
+Fix: La till `chartTimer`-variabel, sparar setTimeout-referensen, rensar med clearTimeout i ngOnDestroy.
+
+**Filer andrade:**
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/rebotling/daglig-briefing/daglig-briefing.component.ts`
+
 ## 2026-03-19 Session #188 Worker B — Angular data flow + race condition audit — 3 buggar fixade
 
 ### Uppgift 1: Race conditions och timing-buggar
