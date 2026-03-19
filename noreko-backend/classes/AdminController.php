@@ -18,6 +18,13 @@ class AdminController {
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
+
+        // Kontrollera session-timeout (inaktivitet)
+        if (!AuthHelper::checkSessionTimeout()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         global $pdo;
         AuditLogger::ensureTable($pdo);
 

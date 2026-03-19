@@ -1,3 +1,38 @@
+## 2026-03-19 Session #190 Worker A — PHP file upload + session security audit — 3 buggar fixade
+
+### Del 1: PHP file upload validation audit
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (100+ filer) for filuppladdning ($_FILES, move_uploaded_file, base64-kodade bilder, etc).
+**Resultat:** Inga faktiska filuppladdningar (via $_FILES/move_uploaded_file) anvands. All indata ar JSON via file_get_contents('php://input'). Ingen MIME-type/filstorlek/filtyp-validering behovs da inga filer laddas upp.
+
+### Del 2: PHP session/cookie security audit
+Granskade LoginController, RegisterController, ProfileController, AdminController, AuthHelper, StatusController, NewsController, KvalitetscertifikatController, FeedbackController, FeatureFlagController, StoppageController, ShiftHandoverController.
+
+**Befintlig sakerhet (redan korrekt implementerat):**
+- Session cookie: secure, httponly, samesite=Lax (api.php rad 78-85)
+- session.use_strict_mode=1, use_only_cookies=1, use_trans_sid=0 (api.php rad 87-89)
+- session_regenerate_id(true) vid login (LoginController rad 95)
+- Rate limiting for login, registrering, och losenordsbyte
+- Bcrypt for alla losenord (AuthHelper::hashPassword)
+- Session timeout-konstant: 8 timmar (AuthHelper::SESSION_TIMEOUT)
+- CORS, CSP, HSTS, X-Frame-Options, nosniff (api.php headers)
+
+**Buggar fixade (3 st):**
+
+**Bugg 1 — Session timeout aldrig kontrolleras vid POST-operationer (8 controllers):**
+AuthHelper::checkSessionTimeout() existerade men anropades ALDRIG av nagon controller. Bara StatusController (GET-polling) kontrollerade timeout manuellt. En session som gatt ut p.g.a. inaktivitet kunde fortfarande anvandas for att utfora POST-operationer (skapa/uppdatera/ta bort data).
+Fix: La till AuthHelper::checkSessionTimeout()-anrop i: ProfileController, AdminController, NewsController, KvalitetscertifikatController, FeedbackController, FeatureFlagController, StoppageController, ShiftHandoverController.
+Filer: ProfileController.php, AdminController.php, NewsController.php, KvalitetscertifikatController.php, FeedbackController.php, FeatureFlagController.php, StoppageController.php, ShiftHandoverController.php
+
+**Bugg 2 — StatusController uppdaterar aldrig last_activity:**
+StatusController (polling-endpoint som anropas var ~5 sek) oppnade sessionen i read_and_close-lage och uppdaterade aldrig $_SESSION['last_activity']. Detta innebar att sessioner alltid gick ut exakt 8 timmar efter inloggning, oavsett om anvandaren var aktiv.
+Fix: Lagt till session_start() + uppdatering av last_activity + session_write_close() efter timeout-checken sa sessionen halls vid liv vid aktiv anvandning.
+Fil: StatusController.php
+
+**Bugg 3 — KvalitetscertifikatController oppnar session i read_and_close for ALLA requests:**
+Alla requests (aven POST) oppnades med read_and_close, vilket innebar att POST-endpoints inte kunde skriva session-data (t.ex. uppdatera last_activity).
+Fix: Andrat till att oppna session i skrivbart lage for POST-requests, read_and_close for GET.
+Fil: KvalitetscertifikatController.php
+
 ## 2026-03-19 Session #189 Worker A — PHP SQL query + try-catch audit — 4 buggar fixade
 
 ### Uppgift 1: PHP SQL query correctness audit

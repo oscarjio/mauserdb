@@ -41,6 +41,14 @@ class StatusController {
             return;
         }
 
+        // Uppdatera last_activity så att sessionen hålls vid liv vid polling.
+        // Öppna sessionen igen i skrivbart läge, uppdatera, och stäng omedelbart.
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION['last_activity'] = time();
+        session_write_close();
+
         $userId = (int)$_SESSION['user_id'];
         // Session-laset ar nu fritt -- gor DB-fragan utan att blockera andra requests.
 

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
 
 /**
  * KvalitetscertifikatController
@@ -25,8 +26,13 @@ class KvalitetscertifikatController {
     }
 
     public function handle(): void {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if (session_status() === PHP_SESSION_NONE) {
-            session_start(['read_and_close' => true]);
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
         }
 
         if (empty($_SESSION['user_id'])) {
@@ -34,7 +40,12 @@ class KvalitetscertifikatController {
             return;
         }
 
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        // Kontrollera session-timeout (inaktivitet)
+        if (!AuthHelper::checkSessionTimeout()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'GET') {

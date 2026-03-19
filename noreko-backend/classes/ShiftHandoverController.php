@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
 
 class ShiftHandoverController {
     private $pdo;
@@ -60,6 +61,12 @@ class ShiftHandoverController {
             session_start();
         }
         if (!isset($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        // Kontrollera session-timeout (inaktivitet)
+        if (!AuthHelper::checkSessionTimeout()) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;

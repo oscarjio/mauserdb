@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
+
 /**
  * FeedbackController.php
  * Hanterar operatörsfeedback efter skift
@@ -32,6 +34,14 @@ class FeedbackController {
             echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
+
+        // Kontrollera session-timeout (inaktivitet)
+        if (!AuthHelper::checkSessionTimeout()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'POST') {

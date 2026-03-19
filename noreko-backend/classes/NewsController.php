@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
+
 class NewsController {
     private $pdo;
 
@@ -40,6 +42,12 @@ class NewsController {
             error_log('NewsController::requireAdmin: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
+            return false;
+        }
+        // Kontrollera session-timeout (inaktivitet)
+        if (!AuthHelper::checkSessionTimeout()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             return false;
         }
         return true;
