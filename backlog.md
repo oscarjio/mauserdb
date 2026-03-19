@@ -7,18 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #174):
-- [x] **PHP input validation completeness** — 3 stored XSS buggar fixade (Worker A)
-- [x] **PHP SQL injection review** — 0 buggar, redan prepared statements overallt (Worker A)
-- [x] **Angular HTTP error retry logic** — 0 buggar, redan komplett (Worker B)
-- [x] **Angular route guard completeness** — 0 buggar, redan komplett (Worker B)
-
-### Nasta buggjakt-items (session #175+):
-- [ ] **PHP logging audit** — saknade loggningar vid kritiska operationer
-- [ ] **Angular memory leak audit** — subscription-lackor, saknade unsubscribe, timers utan cleanup
-- [ ] **PHP file upload security** — MIME-validering, filstorlek, path traversal
-- [ ] **Angular form validation consistency** — saknad client-side validering pa formular
+### Nasta buggjakt-items (session #176+):
 - [ ] **PHP CORS configuration review** — verifiera att CORS-headers ar korrekta och restriktiva
+- [ ] **PHP session handling audit** — session fixation, regenerate_id, timeout-hantering
+- [ ] **Angular error boundary audit** — saknade catchError i pipe chains, obehandlade promise rejections
+- [ ] **PHP pagination/limit audit** — endpoints utan LIMIT som kan returnera for mycket data
+- [ ] **Angular template accessibility** — saknade alt-texter, aria-attributes pa interaktiva element
 
 ## Parkerade features (ta inte dessa nu)
 
