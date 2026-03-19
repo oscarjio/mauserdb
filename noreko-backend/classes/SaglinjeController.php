@@ -168,6 +168,7 @@ class SaglinjeController {
             try {
                 $this->pdo->query("SELECT 1");
             } catch (\Exception $e) {
+                error_log('SaglinjeController::getSystemStatus: ' . $e->getMessage());
                 $dbStatus = 'error';
             }
 

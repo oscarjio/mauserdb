@@ -101,6 +101,7 @@ class UnderhallsprognosController {
             $diff = (new \DateTime('today'))->diff(new \DateTime($nextDatum));
             return $diff->invert ? -$diff->days : $diff->days;
         } catch (\Exception $e) {
+            error_log('UnderhallsprognosController::dagarKvar: ' . $e->getMessage());
             return null;
         }
     }
@@ -126,6 +127,7 @@ class UnderhallsprognosController {
         try {
             $elapsed = (new \DateTime($senasteUnderhall))->diff(new \DateTime('today'))->days;
         } catch (\Exception $e) {
+            error_log('UnderhallsprognosController::beraknaProgress: ' . $e->getMessage());
             return 100.0;
         }
         $pct = ($elapsed / max(1, $intervallDagar)) * 100;

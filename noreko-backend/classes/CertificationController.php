@@ -142,6 +142,7 @@ class CertificationController {
                         $diff = (new \DateTime('today'))->diff(new \DateTime($row['expires_date']));
                         $daysUntil = $diff->invert ? -$diff->days : $diff->days;
                     } catch (\Exception $e) {
+                        error_log('CertificationController::getAll: ' . $e->getMessage());
                         // Ogiltigt datum — ignorera
                     }
                 }
@@ -231,6 +232,7 @@ class CertificationController {
                             $diff = (new \DateTime('today'))->diff(new \DateTime($cert['expires_date']));
                             $daysUntil = $diff->invert ? -$diff->days : $diff->days;
                         } catch (\Exception $e) {
+                            error_log('CertificationController::getMatrix: ' . $e->getMessage());
                             // Ogiltigt datum — ignorera
                         }
                     }

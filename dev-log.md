@@ -1,3 +1,32 @@
+## 2026-03-19 Session #175 Worker A — PHP logging audit + file upload security — 13 buggar fixade
+
+### Uppgift 1: PHP logging audit — 13 buggar fixade
+
+Granskade ALLA 47 PHP-controllers med skrivoperationer (INSERT/UPDATE/DELETE) i noreko-backend/classes/ for saknade error_log() i catch-block.
+
+**Metod:** Parsade samtliga catch-block med korrekt brace-tracking. Filtrerade bort: (1) catch-block som redan har error_log, (2) catch-block som kastar om undantaget (throw), (3) catch-block utan variabel (PHP 8 `catch (Exception)` — avsiktligt tysta).
+
+**Resultat:** 13 catch-block i 5 filer saknade error_log() trots att de hade en exception-variabel:
+
+- `classes/CertificationController.php` — 2 fixar: getAll() och getMatrix() saknade loggning vid datumparsningsfel
+- `classes/KlassificeringslinjeController.php` — 1 fix: getSystemStatus() saknade loggning vid DB-kontrollfel
+- `classes/SaglinjeController.php` — 1 fix: getSystemStatus() saknade loggning vid DB-kontrollfel
+- `classes/TvattlinjeController.php` — 7 fixar: getSystemStatus(), saveAdminSettings() (2st), loadSettings() (2st), getReport(), getOeeTrend() saknade loggning
+- `classes/UnderhallsprognosController.php` — 2 fixar: dagarKvar() och beraknaProgress() saknade loggning vid datumberakningsfel
+
+**Redan korrekt:**
+- LoginController: Komplett loggning for lyckade/misslyckade inlogg, rate limiting, inaktiva konton
+- AdminController: Alla 7 catch-block har error_log (skapa/radera/uppdatera anvandare, toggle admin/active)
+- RegisterController: Komplett loggning for rate limiting och DB-fel
+- AuthHelper: 6 catch-block utan error_log men dessa ar for tabellskapande (ensureRateLimitTable) dar felet antingen ar harmlost eller hanteras pa annat satt
+- De flesta ovriga controllers: Redan korrekt med error_log i catch-block
+
+### Uppgift 2: PHP file upload security — 0 buggar (ingen uppladdningskod finns)
+
+Sokte igenom HELA noreko-backend/ efter filuppladdningskod: `move_uploaded_file`, `$_FILES`, `multipart`, `file_put_contents`, `fopen.*w`, `tmpfile`.
+
+**Resultat:** Ingen filuppladdningsfunktionalitet finns i kodbasen. De enda `fopen`-anropen ar for CSV-export till `php://output` (stdout), inte filuppladdning. Inga sakerhetsproblem att atgarda.
+
 ## 2026-03-19 Session #174 Worker B — HTTP error/retry logic + route guard audit — 0 buggar
 
 ### Uppgift 1: Angular HTTP error retry logic — 0 buggar

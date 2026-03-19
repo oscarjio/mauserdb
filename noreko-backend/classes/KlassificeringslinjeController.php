@@ -168,6 +168,7 @@ class KlassificeringslinjeController {
             try {
                 $this->pdo->query("SELECT 1");
             } catch (\Exception $e) {
+                error_log('KlassificeringslinjeController::getSystemStatus: ' . $e->getMessage());
                 $dbStatus = 'error';
             }
 

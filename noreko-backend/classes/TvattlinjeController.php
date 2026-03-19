@@ -206,6 +206,7 @@ class TvattlinjeController {
             try {
                 $this->pdo->query("SELECT 1");
             } catch (\Exception $e) {
+                error_log('TvattlinjeController::getSystemStatus: ' . $e->getMessage());
                 $dbStatus = 'error';
             }
 
@@ -702,9 +703,11 @@ class TvattlinjeController {
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
             } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+            error_log('TvattlinjeController::saveAdminSettings: ' . $e->getMessage());
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
             } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+                error_log('TvattlinjeController::saveAdminSettings: ' . $e->getMessage());
 
             // Använd INSERT ... ON DUPLICATE KEY UPDATE för att undvika race condition
             // (concurrent requests som båda ser COUNT=0 och försöker INSERT)
@@ -740,9 +743,11 @@ class TvattlinjeController {
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
         } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+        error_log('TvattlinjeController::loadSettings: ' . $e->getMessage());
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
         } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+            error_log('TvattlinjeController::loadSettings: ' . $e->getMessage());
 
         $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings ORDER BY id ASC LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -932,6 +937,7 @@ class TvattlinjeController {
                 $stmt->execute(['datum' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
+                error_log('TvattlinjeController::getReport: ' . $e->getMessage());
                 // Tabell finns inte eller fel — returnera tom data
             }
 
@@ -1066,6 +1072,7 @@ class TvattlinjeController {
                 $stmt->execute(['dagar' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
+                error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
                 // Tabell finns inte — returnera empty
             }
 
