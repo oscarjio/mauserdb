@@ -87,20 +87,21 @@ class DrifttidsTimelineController {
             }
 
             $dayStart = $date . ' 00:00:00';
-            $dayEnd   = $date . ' 23:59:59';
+            $nextDay  = (new \DateTime($date))->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+            $dayEnd   = $nextDay;
 
             // rebotling_onoff har datum + running (boolean), inte start_time/stop_time
             $stmt = $this->pdo->prepare("
                 SELECT datum, running
                 FROM rebotling_onoff
-                WHERE datum BETWEEN :day_start AND :day_end
+                WHERE datum >= :day_start AND datum < :day_end
                 ORDER BY datum ASC
             ");
             $stmt->execute([':day_start' => $dayStart, ':day_end' => $dayEnd]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $dayStartTs = strtotime($dayStart);
-            $dayEndTs   = strtotime($dayEnd);
+            $dayEndTs   = strtotime($nextDay);
 
             // Bygg ON-perioder fran running-data
             $lastOnTs = null;
@@ -237,7 +238,7 @@ class DrifttidsTimelineController {
         $skiftStartTs = strtotime($date . ' ' . self::SKIFT_START);
         $skiftSlutTs  = strtotime($date . ' ' . self::SKIFT_SLUT);
         $dayStartTs   = strtotime($date . ' 00:00:00');
-        $dayEndTs     = strtotime($date . ' 23:59:59');
+        $dayEndTs     = strtotime((new \DateTime($date))->modify('+1 day')->format('Y-m-d') . ' 00:00:00');
 
         $segments = [];
 

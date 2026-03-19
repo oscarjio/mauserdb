@@ -583,9 +583,9 @@ class LeveransplaneringController {
     // ================================================================
 
     private function ensureTables(): void {
+        // DDL (CREATE TABLE) orsakar implicit commit i MySQL/InnoDB,
+        // sa vi kor DDL utanfor transaktion och seed-data i egen transaktion.
         try {
-            $this->pdo->beginTransaction();
-
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS `kundordrar` (
                     `id`                     INT AUTO_INCREMENT PRIMARY KEY,
@@ -611,6 +611,9 @@ class LeveransplaneringController {
                     `uppdaterad_datum`          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
+
+            // Seed-data i transaktion
+            $this->pdo->beginTransaction();
 
             // Seed config om tom
             $count = (int)$this->pdo->query("SELECT COUNT(*) FROM produktionskapacitet_config")->fetchColumn();

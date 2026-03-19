@@ -511,7 +511,7 @@ class ProduktionskostnadController {
             try {
                 $diffDays = (int)(new \DateTime($from))->diff(new \DateTime($to))->days;
                 if ($diffDays > 365) {
-                    $from = date('Y-m-d', strtotime($to . ' -365 days'));
+                    $from = (new \DateTime($to))->modify('-1 year')->format('Y-m-d');
                 }
             } catch (\Exception $e) {
                 $from = (new \DateTime())->modify('-30 days')->format('Y-m-d');

@@ -1,3 +1,23 @@
+## 2026-03-19 Session #194 Worker A — PHP date/time + deprecated audit — 4 buggar fixade
+
+Granskade 7 PHP-controllers (SkiftrapportController, KassationsanalysController, KassationsDrilldownController, LineSkiftrapportController, ProduktionskostnadController, DrifttidsTimelineController, LeveransplaneringController) for: timezone/DST-problem, felaktig datumberakning, hardkodade sekunder, saknad timezone-hantering, deprecated PHP 8.1+ funktioner (utf8_encode/decode, strftime, ${var} interpolation, mysql_*, dynamiska properties, nullable params).
+
+### Fixade buggar:
+
+1. **ProduktionskostnadController.php** — Felaktig datumberakning: `strtotime($to . ' -365 days')` anvandes for att begränsa max-intervall, men 365 dagar != 1 ar i skottar. Bytt till `(new DateTime($to))->modify('-1 year')->format('Y-m-d')`.
+2. **SkiftrapportController.php** — DST-osakert datumkalkyl: `strtotime($startTid) + ($runtimeMin * 60)` i runtime-fallback anvande ral sekundaddition, vilket ger fel under sommartidsomstallning (sista sondagen i mars/oktober). Bytt till `DateTime::modify('+N minutes')`.
+3. **DrifttidsTimelineController.php** — Off-by-one dagsslut: `$dayEndTs = strtotime($date . ' 23:59:59')` exkluderar sista sekunden av dagen och orsakar 1-sekunds gap i timeline-segment. Anvander nu `+1 day 00:00:00` som exklusiv ovre grans, bade i `getOnOffPeriods()` och `buildSegments()`. SQL-fragen andrad fran `BETWEEN` till `>= AND <` for korrekt halvopet intervall.
+4. **LeveransplaneringController.php** — Felaktig transaktionshantering: `ensureTables()` anvande `beginTransaction()` fore `CREATE TABLE IF NOT EXISTS`, men DDL-satser i MySQL/InnoDB orsakar implicit commit — sa transaktionen tyst committades vid forsta CREATE TABLE och rollBack() i catch-blocket var overflodigt. Flyttat DDL utanfor transaktionen, seed-data i egen transaktion.
+
+### Noteringar (inga buggar):
+
+- **Deprecated PHP 8.1+ audit**: Inga forekomster av utf8_encode/utf8_decode, strftime(), ${var} string interpolation, implode() med deprecated argument order, mysql_*-funktioner, eller dynamiska properties hittades i nagon av de 7 granskade controllerna.
+- **KassationsanalysController, KassationsDrilldownController, LineSkiftrapportController**: Korrekt implementerade — anvander DateTime korrekt, inga hardkodade sekunder (86400), inga deprecated funktioner.
+- Alla controllers anvander PDO (inte mysql_*), korrekt `implode(separator, array)` ordning, och inga `${var}` interpolationer.
+- Timezone satt globalt i api.php till Europe/Stockholm via `date_default_timezone_set()`.
+
+---
+
 ## 2026-03-19 Session #193 Worker B — Angular HTTP + null safety audit — 4 buggar fixade
 
 Granskade 10 Angular-komponenter + deras HTML-templates for: HTTP-anrop utan felhantering, null/undefined safety, subscription-lackor, timer-lackor, felaktig error-display, type-safety.

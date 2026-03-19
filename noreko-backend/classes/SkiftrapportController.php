@@ -696,7 +696,9 @@ class SkiftrapportController {
                         $startTid = $baseDate . ' 06:00:00';
                     }
                     if (!$slutTid) {
-                        $slutTid = date('Y-m-d H:i:s', strtotime($startTid) + ($runtimeMin * 60));
+                        $slutDt = new \DateTime($startTid);
+                        $slutDt->modify('+' . $runtimeMin . ' minutes');
+                        $slutTid = $slutDt->format('Y-m-d H:i:s');
                     }
                 }
             } catch (Exception $e) {
