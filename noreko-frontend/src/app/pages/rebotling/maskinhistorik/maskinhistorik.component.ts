@@ -59,6 +59,10 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
   private drifttidChart: Chart | null = null;
   private oeeChart: Chart | null      = null;
 
+  // Timers
+  private drifttidChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private oeeChartTimer: ReturnType<typeof setTimeout> | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(private svc: MaskinhistorikService) {}
@@ -71,6 +75,8 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.drifttidChartTimer !== null) { clearTimeout(this.drifttidChartTimer); this.drifttidChartTimer = null; }
+    if (this.oeeChartTimer !== null) { clearTimeout(this.oeeChartTimer); this.oeeChartTimer = null; }
     try { this.drifttidChart?.destroy(); } catch (_) {}
     try { this.oeeChart?.destroy(); }     catch (_) {}
     this.drifttidChart = null;
@@ -155,7 +161,8 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
         this.loadingDrifttid = false;
         if (res?.success) {
           this.drifttidData = res.data.dagdata;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggDrifttidChart(); }, 0);
+          if (this.drifttidChartTimer !== null) { clearTimeout(this.drifttidChartTimer); }
+          this.drifttidChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggDrifttidChart(); }, 0);
         } else {
           this.errorDrifttid = true;
         }
@@ -254,7 +261,8 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
         this.loadingOeeTrend = false;
         if (res?.success) {
           this.oeeTrendData = res.data.dagdata;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggOeeChart(); }, 0);
+          if (this.oeeChartTimer !== null) { clearTimeout(this.oeeChartTimer); }
+          this.oeeChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggOeeChart(); }, 0);
         } else {
           this.errorOeeTrend = true;
         }

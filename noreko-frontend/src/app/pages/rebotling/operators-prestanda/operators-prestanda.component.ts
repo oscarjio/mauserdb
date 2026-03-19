@@ -84,6 +84,12 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
   private scatterChart:   Chart | null = null;
   private detaljChart:    Chart | null = null;
   private utvecklingChart: Chart | null = null;
+
+  // ---- Timers ----
+  private scatterChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private detaljChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private utvecklingChartTimer: ReturnType<typeof setTimeout> | null = null;
+
   private destroy$ = new Subject<void>();
 
   // Skift-färger
@@ -102,6 +108,9 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.scatterChartTimer !== null) { clearTimeout(this.scatterChartTimer); this.scatterChartTimer = null; }
+    if (this.detaljChartTimer !== null) { clearTimeout(this.detaljChartTimer); this.detaljChartTimer = null; }
+    if (this.utvecklingChartTimer !== null) { clearTimeout(this.utvecklingChartTimer); this.utvecklingChartTimer = null; }
     this.destroyAllCharts();
   }
 
@@ -151,7 +160,8 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
             this.scatterData   = res.data?.operatorer ?? [];
             this.medelCykeltid = res.data?.medel_cykeltid ?? 0;
             this.medelKvalitet = res.data?.medel_kvalitet_pct ?? 0;
-            setTimeout(() => {
+            if (this.scatterChartTimer !== null) { clearTimeout(this.scatterChartTimer); }
+            this.scatterChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.buildScatterChart();
             }, 0);
           } else {
@@ -297,7 +307,8 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
             this.detaljStreak   = res.data?.streak         ?? 0;
             this.detaljBastaDag = res.data?.basta_dag      ?? null;
             this.detaljSammstaDag = res.data?.sammsta_dag  ?? null;
-            setTimeout(() => {
+            if (this.detaljChartTimer !== null) { clearTimeout(this.detaljChartTimer); }
+            this.detaljChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.buildDetaljChart();
             }, 0);
           } else {
@@ -323,7 +334,8 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.utvecklingData  = res.data?.veckor ?? [];
             this.utvecklingTrend = res.data?.trend  ?? 'neutral';
-            setTimeout(() => {
+            if (this.utvecklingChartTimer !== null) { clearTimeout(this.utvecklingChartTimer); }
+            this.utvecklingChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.buildUtvecklingChart();
             }, 0);
           } else {

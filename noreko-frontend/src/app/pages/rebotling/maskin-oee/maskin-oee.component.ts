@@ -80,6 +80,10 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   private barChart:   Chart | null = null;
   private trendChart: Chart | null = null;
 
+  // Timers
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private barChartTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -111,6 +115,8 @@ export class MaskinOeePage implements OnInit, OnDestroy {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
     }
+    if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
+    if (this.barChartTimer !== null) { clearTimeout(this.barChartTimer); this.barChartTimer = null; }
   }
 
   // ---- Period & filter ----
@@ -183,7 +189,8 @@ export class MaskinOeePage implements OnInit, OnDestroy {
             .sort((a, b) => b.avg - a.avg)
             .slice(0, 3);
           top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
+          if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
         }
       },
       error: () => { this.loadingTrend = false; }
@@ -197,7 +204,8 @@ export class MaskinOeePage implements OnInit, OnDestroy {
         this.loadingBenchmark = false;
         if (res?.success) {
           this.benchmarkData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
+          if (this.barChartTimer !== null) { clearTimeout(this.barChartTimer); }
+          this.barChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
         }
       },
       error: () => { this.loadingBenchmark = false; }

@@ -102,6 +102,13 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private isFetching = false;
 
+  // Timers
+  private kapacitetsChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private stationChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopporsakChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private tidFordelningChartTimer: ReturnType<typeof setTimeout> | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(private svc: KapacitetsplaneringService) {}
@@ -124,6 +131,11 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.kapacitetsChartTimer !== null) { clearTimeout(this.kapacitetsChartTimer); this.kapacitetsChartTimer = null; }
+    if (this.stationChartTimer !== null) { clearTimeout(this.stationChartTimer); this.stationChartTimer = null; }
+    if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
+    if (this.stopporsakChartTimer !== null) { clearTimeout(this.stopporsakChartTimer); this.stopporsakChartTimer = null; }
+    if (this.tidFordelningChartTimer !== null) { clearTimeout(this.tidFordelningChartTimer); this.tidFordelningChartTimer = null; }
   }
 
   private destroyCharts(): void {
@@ -218,7 +230,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.dagligData     = res.data.dagdata;
             this.dagligGenomsni = res.data.genomsnitt;
-            setTimeout(() => { if (!this.destroy$.closed) this.byggKapacitetsChart(); }, 0);
+            if (this.kapacitetsChartTimer !== null) { clearTimeout(this.kapacitetsChartTimer); }
+            this.kapacitetsChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggKapacitetsChart(); }, 0);
           } else {
             this.errorDaglig = true;
           }
@@ -354,7 +367,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
           this.loadingStation = false;
           if (res?.success) {
             this.stationData = res.data.stationer;
-            setTimeout(() => { if (!this.destroy$.closed) this.byggStationChart(); }, 0);
+            if (this.stationChartTimer !== null) { clearTimeout(this.stationChartTimer); }
+            this.stationChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggStationChart(); }, 0);
           } else {
             this.errorStation = true;
           }
@@ -455,7 +469,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.trendData  = res.data.dagdata;
             this.trendMalPct = res.data.mal_pct;
-            setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+            if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+            this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
           } else {
             this.errorTrend = true;
           }
@@ -565,7 +580,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
               antal_stopp:  res.data.antal_stopp,
               avg_stopp_min: res.data.avg_stopp_min,
             };
-            setTimeout(() => { if (!this.destroy$.closed) this.byggStopporsakChart(); }, 0);
+            if (this.stopporsakChartTimer !== null) { clearTimeout(this.stopporsakChartTimer); }
+            this.stopporsakChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggStopporsakChart(); }, 0);
           } else {
             this.errorStopporsaker = true;
           }
@@ -639,7 +655,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
           this.loadingTidFordelning = false;
           if (res?.success) {
             this.tidFordelningData = res.data.dagdata;
-            setTimeout(() => { if (!this.destroy$.closed) this.byggTidFordelningChart(); }, 0);
+            if (this.tidFordelningChartTimer !== null) { clearTimeout(this.tidFordelningChartTimer); }
+            this.tidFordelningChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggTidFordelningChart(); }, 0);
           } else {
             this.errorTidFordelning = true;
           }

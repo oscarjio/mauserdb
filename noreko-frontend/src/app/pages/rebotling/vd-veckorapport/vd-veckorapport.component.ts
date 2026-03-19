@@ -60,6 +60,11 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
 
   // ---- Chart ----
   private dagligChart: Chart | null = null;
+
+  // ---- Timers ----
+  private dagligChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(private svc: VdVeckorapportService) {}
@@ -71,6 +76,8 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.dagligChartTimer !== null) { clearTimeout(this.dagligChartTimer); this.dagligChartTimer = null; }
+    if (this.scrollTimer !== null) { clearTimeout(this.scrollTimer); this.scrollTimer = null; }
     try { this.dagligChart?.destroy(); } catch (_) {}
     this.dagligChart = null;
   }
@@ -103,7 +110,8 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
           this.loadingKpi = false;
           if (res?.success) {
             this.kpiData = res.data;
-            setTimeout(() => {
+            if (this.dagligChartTimer !== null) { clearTimeout(this.dagligChartTimer); }
+            this.dagligChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.byggDagligChart();
             }, 0);
           } else {
@@ -200,7 +208,8 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.sammanfattningData = res.data;
             this.visaSammanfattning = true;
-            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+            if (this.scrollTimer !== null) { clearTimeout(this.scrollTimer); }
+            this.scrollTimer = setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 50);
           } else {
             this.errorSammanfattning = true;
           }

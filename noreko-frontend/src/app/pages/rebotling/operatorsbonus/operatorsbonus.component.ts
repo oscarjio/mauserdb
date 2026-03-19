@@ -70,6 +70,9 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   private destroy$         = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private operatorerChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private radarChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private simChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: OperatorsbonusService) {}
@@ -86,6 +89,9 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.operatorerChartTimer !== null) { clearTimeout(this.operatorerChartTimer); this.operatorerChartTimer = null; }
+    if (this.radarChartTimer !== null) { clearTimeout(this.radarChartTimer); this.radarChartTimer = null; }
+    if (this.simChartTimer !== null) { clearTimeout(this.simChartTimer); this.simChartTimer = null; }
     this.destroyCharts();
   }
 
@@ -133,7 +139,8 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
           if (this.operatorer.length > 0 && !this.selectedOperator) {
             this.selectedOperator = this.operatorer[0];
           }
-          setTimeout(() => {
+          if (this.operatorerChartTimer !== null) { clearTimeout(this.operatorerChartTimer); }
+          this.operatorerChartTimer = setTimeout(() => {
             if (!this.destroy$.closed) {
               this.renderBarChart();
               this.renderRadarChart();
@@ -183,7 +190,8 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   selectOperator(op: OperatorBonus): void {
     this.selectedOperator = op;
-    setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 100);
+    if (this.radarChartTimer !== null) { clearTimeout(this.radarChartTimer); }
+    this.radarChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 100);
   }
 
   // ---- Konfig ----
@@ -251,7 +259,8 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
           this.loadingSimulering = false;
           if (res?.success) {
             this.simulering = res.data;
-            setTimeout(() => { if (!this.destroy$.closed) this.renderSimChart(); }, 100);
+            if (this.simChartTimer !== null) { clearTimeout(this.simChartTimer); }
+            this.simChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderSimChart(); }, 100);
           } else {
             this.errorSimulering = true;
           }

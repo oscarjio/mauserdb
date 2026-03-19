@@ -103,6 +103,9 @@ export class StopporsakerPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private paretoChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private stationChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: StopporsakerService) {}
@@ -120,6 +123,9 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
     }
+    if (this.paretoChartTimer !== null) { clearTimeout(this.paretoChartTimer); this.paretoChartTimer = null; }
+    if (this.stationChartTimer !== null) { clearTimeout(this.stationChartTimer); this.stationChartTimer = null; }
+    if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
   }
 
   setPeriod(days: number): void {
@@ -191,7 +197,8 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
+        if (this.paretoChartTimer !== null) { clearTimeout(this.paretoChartTimer); }
+        this.paretoChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
       }
     });
   }
@@ -202,7 +209,8 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingStation = false;
       if (res?.success) {
         this.stationData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildStationChart(); }, 100);
+        if (this.stationChartTimer !== null) { clearTimeout(this.stationChartTimer); }
+        this.stationChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildStationChart(); }, 100);
       }
     });
   }
@@ -213,7 +221,8 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
+        if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+        this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       }
     });
   }

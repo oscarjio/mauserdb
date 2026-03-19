@@ -1,3 +1,36 @@
+## 2026-03-19 Session #184 Worker B — setTimeout/setInterval cleanup audit — 26 buggar fixade
+
+### Uppgift 1: Angular setInterval/setTimeout cleanup audit — 26 buggar
+
+**Metod:** Granskade alla component.ts-filer i noreko-frontend/src/app/ for setTimeout/setInterval-anrop utan matchande clearTimeout/clearInterval i ngOnDestroy. Exkluderade: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live.
+
+**Hittade problem:**
+Samtliga `setInterval`-anrop hade redan matchande `clearInterval` i ngOnDestroy. Problemet gällde `setTimeout`-anrop dar timer-ID inte sparades i class properties och inte rensades i ngOnDestroy.
+
+**Fixade filer (26 setTimeout-anrop utan timer-ID, nu fixade):**
+
+1. `maskinhistorik.component.ts` — 2 setTimeout: lade till `drifttidChartTimer` + `oeeChartTimer`, clearTimeout i ngOnDestroy
+2. `vd-veckorapport.component.ts` — 2 setTimeout: lade till `dagligChartTimer` + `scrollTimer`, clearTimeout i ngOnDestroy
+3. `operators-prestanda.component.ts` — 3 setTimeout: lade till `scatterChartTimer` + `detaljChartTimer` + `utvecklingChartTimer`, clearTimeout i ngOnDestroy
+4. `produktions-dashboard.component.ts` — 2 setTimeout: lade till `graferChartTimer` + `pulsTimer`, clearTimeout i ngOnDestroy
+5. `leveransplanering.component.ts` — 1 setTimeout: lade till `kapacitetChartTimer`, clearTimeout i ngOnDestroy
+6. `operatorsbonus.component.ts` — 3 setTimeout: lade till `operatorerChartTimer` + `radarChartTimer` + `simChartTimer`, clearTimeout i ngOnDestroy
+7. `rebotling-sammanfattning.component.ts` — 1 setTimeout: lade till `chartTimer`, clearTimeout i ngOnDestroy
+8. `stopporsaker.component.ts` — 3 setTimeout: lade till `paretoChartTimer` + `stationChartTimer` + `trendChartTimer`, clearTimeout i ngOnDestroy
+9. `kapacitetsplanering.component.ts` — 5 setTimeout: lade till `kapacitetsChartTimer` + `stationChartTimer` + `trendChartTimer` + `stopporsakChartTimer` + `tidFordelningChartTimer`, clearTimeout i ngOnDestroy
+10. `maskin-oee.component.ts` — 2 setTimeout: lade till `trendChartTimer` + `barChartTimer`, clearTimeout i ngOnDestroy
+11. `rebotling-trendanalys.component.ts` — 4 setTimeout: lade till `sparklinesTimer` + `huvudChartTimer`, clearTimeout i ngOnDestroy
+12. `historisk-produktion.component.ts` — 1 setTimeout: lade till `productionChartTimer`, clearTimeout i ngOnDestroy
+13. `skiftplanering.component.ts` — 2 setTimeout: lade till `assignModalTimer` + `capacityChartTimer`, clearTimeout i ngOnDestroy
+
+### Uppgift 2: Angular HTTP error message i18n audit — 0 buggar
+
+**Metod:** Granskade alla component.ts och service.ts-filer for engelska felmeddelanden som visas for anvandaren. Ignorerade console.error/log och meddelanden som redan ar pa svenska.
+
+**Resultat:** Alla anvandarvisbara felmeddelanden ar redan pa svenska. Inga engelska felmeddelanden hittades att fixa.
+
+---
+
 ## 2026-03-19 Session #184 Worker A — PHP session/SQL/array-access audit — 0 buggar fixade
 
 ### Uppgift 1: PHP session timeout/regeneration audit — 0 buggar

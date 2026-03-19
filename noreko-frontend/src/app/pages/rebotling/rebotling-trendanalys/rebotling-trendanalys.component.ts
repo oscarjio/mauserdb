@@ -67,6 +67,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private sparklinesTimer: ReturnType<typeof setTimeout> | null = null;
+  private huvudChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: RebotlingTrendanalysService) {}
 
@@ -84,6 +86,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+    if (this.sparklinesTimer !== null) { clearTimeout(this.sparklinesTimer); this.sparklinesTimer = null; }
+    if (this.huvudChartTimer !== null) { clearTimeout(this.huvudChartTimer); this.huvudChartTimer = null; }
     this.destroyCharts();
   }
 
@@ -119,7 +123,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
         this.loadingTrender = false;
         if (res?.success) {
           this.trenderData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggSparklines(); }, 0);
+          if (this.sparklinesTimer !== null) { clearTimeout(this.sparklinesTimer); }
+          this.sparklinesTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggSparklines(); }, 0);
         } else {
           this.errorTrender = true;
         }
@@ -136,7 +141,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
         this.loadingHistorik = false;
         if (res?.success) {
           this.historikData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
+          if (this.huvudChartTimer !== null) { clearTimeout(this.huvudChartTimer); }
+          this.huvudChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
         } else {
           this.errorHistorik = true;
         }
@@ -187,7 +193,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
           this.prognosData = res.data;
           // Lägg till prognosen i huvudgrafen om historik finns
           if (this.historikData.length > 0) {
-            setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
+            if (this.huvudChartTimer !== null) { clearTimeout(this.huvudChartTimer); }
+            this.huvudChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
           }
         } else {
           this.errorPrognos = true;
@@ -204,7 +211,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.aktivPeriod = p;
     try { this.huvudChart?.destroy(); } catch (_) {}
     this.huvudChart = null;
-    setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
+    if (this.huvudChartTimer !== null) { clearTimeout(this.huvudChartTimer); }
+    this.huvudChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
   }
 
   toggleDataset(dataset: 'oee' | 'produktion' | 'kassation'): void {
@@ -213,7 +221,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     if (dataset === 'kassation')  this.visaKassation  = !this.visaKassation;
     try { this.huvudChart?.destroy(); } catch (_) {}
     this.huvudChart = null;
-    setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
+    if (this.huvudChartTimer !== null) { clearTimeout(this.huvudChartTimer); }
+    this.huvudChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggHuvudChart(); }, 0);
   }
 
   // ============================================================

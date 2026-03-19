@@ -55,6 +55,10 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private readonly POLL_INTERVAL_MS = 30000;
 
+  // Timers
+  private graferChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private pulsTimer: ReturnType<typeof setTimeout> | null = null;
+
   private destroy$ = new Subject<void>();
 
   constructor(private svc: ProduktionsDashboardService) {}
@@ -71,6 +75,8 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
+    if (this.graferChartTimer !== null) { clearTimeout(this.graferChartTimer); this.graferChartTimer = null; }
+    if (this.pulsTimer !== null) { clearTimeout(this.pulsTimer); this.pulsTimer = null; }
     try { this.prodChart?.destroy(); } catch (_) {}
     try { this.oeeChart?.destroy();  } catch (_) {}
     this.prodChart = null;
@@ -135,7 +141,8 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
         if (oeeRes?.success)  this.veckoOee  = oeeRes.data.dagar;
 
         if (prodRes?.success || oeeRes?.success) {
-          setTimeout(() => {
+          if (this.graferChartTimer !== null) { clearTimeout(this.graferChartTimer); }
+          this.graferChartTimer = setTimeout(() => {
             if (!this.destroy$.closed) {
               this.byggProdChart();
               this.byggOeeChart();
@@ -186,7 +193,8 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
 
   private pulsera(): void {
     this.livePuls = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.livePuls = false; }, 800);
+    if (this.pulsTimer !== null) { clearTimeout(this.pulsTimer); }
+    this.pulsTimer = setTimeout(() => { if (!this.destroy$.closed) this.livePuls = false; }, 800);
   }
 
   // ============================================================

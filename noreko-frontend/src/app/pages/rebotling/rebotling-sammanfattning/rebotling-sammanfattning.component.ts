@@ -46,6 +46,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: RebotlingSammanfattningService) {}
 
@@ -62,6 +63,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.chartTimer !== null) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     if (this.productionChart) {
       this.productionChart.destroy();
       this.productionChart = null;
@@ -104,7 +106,8 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
         this.isFetchingGraph = false;
         if (res?.success) {
           this.produktion7d = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
+          if (this.chartTimer !== null) { clearTimeout(this.chartTimer); }
+          this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
         } else {
           this.errorGraph = true;
         }

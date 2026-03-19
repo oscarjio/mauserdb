@@ -56,6 +56,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private productionChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: HistoriskProduktionService) {}
@@ -76,6 +77,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.productionChartTimer !== null) { clearTimeout(this.productionChartTimer); this.productionChartTimer = null; }
     if (this.productionChart) {
       this.productionChart.destroy();
       this.productionChart = null;
@@ -146,7 +148,8 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
           this.loadingGraph = false;
           if (res?.success) {
             this.periodData = res.data;
-            setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
+            if (this.productionChartTimer !== null) { clearTimeout(this.productionChartTimer); }
+            this.productionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
           }
         },
         error: () => { this.loadingGraph = false; }

@@ -66,6 +66,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   private capacityChart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private assignModalTimer: ReturnType<typeof setTimeout> | null = null;
+  private capacityChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: SkiftplaneringService) {}
@@ -83,6 +85,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    if (this.assignModalTimer !== null) { clearTimeout(this.assignModalTimer); this.assignModalTimer = null; }
+    if (this.capacityChartTimer !== null) { clearTimeout(this.capacityChartTimer); this.capacityChartTimer = null; }
     if (this.capacityChart) {
       this.capacityChart.destroy();
       this.capacityChart = null;
@@ -244,7 +248,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
           this.loadSchedule(this.currentWeek);
           this.loadOverview();
           this.loadCapacity();
-          setTimeout(() => { if (!this.destroy$.closed) this.closeAssignModal(); }, 800);
+          if (this.assignModalTimer !== null) { clearTimeout(this.assignModalTimer); }
+          this.assignModalTimer = setTimeout(() => { if (!this.destroy$.closed) this.closeAssignModal(); }, 800);
         } else {
           this.assignError = res?.error || 'Kunde inte tilldela operatör';
         }
@@ -261,7 +266,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.capacityData = res.dag_data;
         this.capacityMinPerDay = res.min_per_dag;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderCapacityChart(); }, 100);
+        if (this.capacityChartTimer !== null) { clearTimeout(this.capacityChartTimer); }
+        this.capacityChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderCapacityChart(); }, 100);
       } else {
         this.errorCapacity = true;
       }
