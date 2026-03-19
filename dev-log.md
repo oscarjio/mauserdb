@@ -1,3 +1,38 @@
+## 2026-03-19 Session #174 Worker B — HTTP error/retry logic + route guard audit — 0 buggar
+
+### Uppgift 1: Angular HTTP error retry logic — 0 buggar
+
+Granskade ALLA 96 Angular services i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ samt alla ~40 komponenter med direkta HTTP-anrop.
+
+**Resultat:** Kodbasen har redan komplett felhantering pa ALLA HTTP-anrop:
+- `timeout()` finns pa samtliga HTTP-anrop (8000-15000ms beroende pa endpoint)
+- `retry(1)` finns pa alla GET-anrop (datahamtning). Korrekt utelamnad pa POST/PUT/DELETE (mutationer ska inte retrigas)
+- `catchError()` finns pa samtliga HTTP-anrop, returnerar `of(null)` eller lasa felmeddelanden
+- `takeUntil(this.destroy$)` finns pa alla komponent-niva subscribes
+- Pipe-ordning korrekt overallt: timeout -> retry -> catchError
+- Auth-polling i auth.service.ts anvander RxJS `interval()` med `switchMap` + `timeout(8000)` + `retry(1)` + `catchError`
+- Alla setInterval-pollings i komponenter gor anrop till service-metoder som redan har komplett felhantering
+- Alla setInterval har matchande clearInterval i ngOnDestroy
+
+Granskade 96 service-filer (508 HTTP-anrop totalt) och 40+ komponenter med direkta HTTP-anrop. Inga saknade retry, catchError eller timeout hittades.
+
+### Uppgift 2: Angular route guard completeness — 0 buggar
+
+Granskade ALLA 160 routes i app.routes.ts samt authGuard och adminGuard i guards/auth.guard.ts.
+
+**Resultat:** Alla routes har korrekta guards:
+- Publika sidor (login, register, about, contact, live-vyer, statistik/rapporter) — korrekt utan guard
+- Autentiserade sidor (personliga dashboards, dataanalys, operatorsportalen, etc.) — `canActivate: [authGuard]`
+- Admin-sidor (user management, VD-dashboard, bonus-admin, feature flags, etc.) — `canActivate: [adminGuard]`
+- Guards implementerade korrekt med `initialized$` + `filter` + `take(1)` for att vanta pa forsta auth-check
+- adminGuard kontrollerar bade `admin` och `developer` roller
+- Skiftrapport-sidor (rebotling, tvattlinje, saglinje, klassificeringslinje) ar avsiktligt publika med `*ngIf="loggedIn"` for redigeringsknappar — backend kontrollerar auth for mutationer
+- Ingen inkonsekvens mellan liknande sidor
+
+**Filer andrade:** Inga
+
+---
+
 ## 2026-03-19 Session #174 Worker A — PHP input validation + SQL injection review — 3 buggar fixade
 
 ### Uppgift 1: PHP input validation completeness — 3 buggar fixade
