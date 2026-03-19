@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #186):
-- [ ] **PHP numeric input validation audit** — granska att numeriska inputs valideras (intval/floatval) (Worker A)
-- [ ] **PHP SQL LIMIT/OFFSET injection audit** — granska att LIMIT/OFFSET-varden ar validerade integers (Worker A)
-- [ ] **Angular change detection audit** — granska att OnPush anvands dar det ar lampligt (Worker B)
-- [ ] **Angular error response consistency audit** — granska felhantering i services (Worker B)
+### Pagaende (session #187):
+- [ ] **PHP error response consistency audit** — granska felhantering i 16 controllers (Worker A)
+- [ ] **PHP controller return type consistency** — granska att alla endpoints returnerar JSON konsekvent (Worker A)
+- [ ] **Angular service HTTP error handling audit** — granska catchError/timeout i services (Worker B)
+- [ ] **Angular component null safety audit** — granska template-buggar i 13+ components (Worker B)
 
-### Nasta buggjakt-items (session #187+):
-- [ ] **PHP error response consistency audit** — granska att alla error responses har konsekvent format
-- [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
+### Nasta buggjakt-items (session #188+):
 - [ ] **PHP file upload validation audit** — granska filuppladdning for saknad validering
+- [ ] **Angular lazy-loading optimization audit** — granska att alla routes lazy-loadar korrekt
 - [ ] **Angular HTTP interceptor error handling** — granska centraliserad felhantering
-- [ ] **PHP controller return type consistency** — granska att alla endpoints returnerar JSON konsekvent
+- [ ] **PHP deprecated function usage audit** — granska anvandning av deprecated PHP-funktioner
+- [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor (exec-dashboard, vd-dashboard)
 
 ## Parkerade features (ta inte dessa nu)
 

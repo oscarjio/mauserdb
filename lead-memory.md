@@ -76,23 +76,20 @@ Session #183: BUGGJAKT — 105 buggar (14 Worker A + 91 Worker B). Header inject
 Session #184: BUGGJAKT — 26 buggar (0 Worker A + 26 Worker B). Session timeout (0), SQL concat (0), array key (0). setTimeout cleanup (26: 13 komponenter), HTTP error i18n (0).
 Session #185: BUGGJAKT — 10 buggar (6 Worker A + 4 Worker B). Date/time format (0, konsekvent), unused vars (6: 5 overlappande period + 1 oanvand variabel). Template complexity (4), router subscriptions (0).
 Session #186: BUGGJAKT — 29 buggar (0 Worker A + 29 Worker B). Numeric input validation (0), LIMIT/OFFSET injection (0). Change detection/OnPush (0), error message typos (29: 5 'Okant'->'Okänt' + 24 'Natverksfel'->'Nätverksfel').
+Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response consistency (20: 2 RebotlingStationsdetalj 400->500, 6 UnderhallsloggController raw echo->helpers, 12 OperatorDashboardController raw echo->helpers). Content-Type headers (16: alla 16 controllers saknade application/json). Angular HTTP/null-safety (0, redan korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #187+):
-- [ ] PHP error response consistency audit
-- [ ] Angular lazy-loading optimization audit
+### Kvarstaende buggjakt-items (session #188+):
 - [ ] PHP file upload validation audit
+- [ ] Angular lazy-loading optimization audit
 - [ ] Angular HTTP interceptor error handling
-- [ ] PHP controller return type consistency
+- [ ] PHP deprecated function usage audit
+- [ ] Angular memory profiling — tunga sidor
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-19 — Session #184 (klar)
-Worker A: 0 buggar — Session timeout/regeneration (0, redan korrekt). SQL string concat (0, alla prepared statements). Array key existence (0, alla skyddade).
-Worker B: 26 buggar — setTimeout cleanup (26: 13 komponenter saknade clearTimeout i ngOnDestroy). HTTP error i18n (0, redan svenska).
 
 ### 2026-03-19 — Session #185 (klar)
 Worker A: 6 buggar — Date/time format (0, redan konsekvent). Unused vars (6: 5 overlappande periodberakning i KassationsanalysController BETWEEN-bugg, 1 oanvand $found i ProduktionsPrognosController).
@@ -101,3 +98,7 @@ Worker B: 4 buggar — Template expression complexity (4: inline berakningar i g
 ### 2026-03-19 — Session #186 (klar)
 Worker A: 0 buggar — Numeric input validation (0, alla controllers har intval/cast). SQL LIMIT/OFFSET (0, alla har int-cast eller prepared statements).
 Worker B: 29 buggar — Change detection/OnPush (0, inga kandidater). Error response consistency (29: 5 'Okant fel'->'Okänt fel' i 3 services, 24 'Natverksfel'->'Nätverksfel' i 4 services).
+
+### 2026-03-19 — Session #187 (klar)
+Worker A: 32 buggar — Error response (20: 2 RebotlingStationsdetalj sendError 400->500, 6 UnderhallsloggController raw echo->sendSuccess/sendError, 12 OperatorDashboardController saknade helpers). Content-Type (16: alla controllers saknade application/json header).
+Worker B: 0 buggar — HTTP error handling (0, alla 96 services har timeout+catchError+svenska). Component null safety (0, alla 17 komponenter har optional chaining, *ngIf-guards, trackBy, division-by-zero-skydd).
