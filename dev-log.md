@@ -1,3 +1,30 @@
+## 2026-03-19 Session #191 Worker B — Angular chart cleanup + memory leak audit — 0 buggar (kodbas ren)
+
+Genomforde djupgaende memory leak audit pa ALLA 108 komponenter som importerar Chart fran chart.js, samt 141 filer med setInterval/setTimeout och 169 filer med .subscribe().
+
+### Granskade kategorier:
+1. **Chart.destroy() i ngOnDestroy** — alla 108 chart-komponenter destroyar samtliga Chart-instanser (via direkta anrop eller destroyCharts()-hjalpmetoder)
+2. **Dubbla chart-skapanden** — alla render-metoder kallar .destroy() pa befintlig chart innan ny skapas
+3. **Canvas ViewChild-ref** — alla korrekt kopplade
+4. **setInterval/setTimeout cleanup** — alla lagrade timer-ID:n rensas i ngOnDestroy med clearInterval/clearTimeout
+5. **Subscriptions takeUntil** — alla .subscribe()-anrop i komponenter anvander takeUntil(this.destroy$)
+6. **EventListeners** — alla addEventListener har matchande removeEventListener i ngOnDestroy
+7. **ResizeObserver** — anvands ej i kodbasen
+8. **RxJS interval()** — 3 anvandningar, alla har takeUntil(this.destroy$)
+9. **Anonyma setTimeout** — alla har destroy$.closed guard
+
+### Bakgrund:
+Tidigare sessioner har gjort grundligt arbete:
+- Session #156: 15 setTimeout destroy$-guard fixar
+- Session #171: 226 buggar (form validation + chart destroy)
+- Session #172: 47 buggar (unsubscribe + template type-safety)
+- Session #177: 3 chart double-destroy fixar
+- Session #184: 26 setTimeout-lackor fixade
+
+Kodbas bygger utan fel. Inga nya memory leaks hittades.
+
+---
+
 ## 2026-03-19 Session #191 Worker A — PHP input validation audit — 8 buggar fixade
 
 Granskade ALLA PHP-controllers i noreko-backend/classes/ for saknad input-validering. 80+ controllers genomsokta. Kodbas ar generellt valsakerhetad med prepared statements, regex-validering och whitelist-kontroller. Hittade och fixade 8 buggar:
