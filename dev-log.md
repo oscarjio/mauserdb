@@ -1,3 +1,29 @@
+## 2026-03-19 Session #188 Worker A — PHP deprecated function + null/array safety audit — 0 buggar fixade
+
+### Uppgift 1: PHP deprecated function usage audit
+### Uppgift 2: PHP null/array safety audit
+
+**Metod:** Granskade alla 33 PHP-controller-klasser i noreko-backend/classes/ samt noreko-backend/api.php, login.php, admin.php, update-weather.php för:
+- Deprecated PHP-funktioner: each(), create_function(), strftime(), utf8_encode/decode(), FILTER_SANITIZE_STRING, curly brace string index, fel argument-ordning i implode()
+- Nullable type declarations utan ? prefix
+- count()/array_merge()/foreach()/in_array() på potentiellt null-värden
+- Aritmetik på potentiellt null DB-värden utan type cast eller ?? guard
+- strlen() på potentiellt null-värden
+
+**Resultat:** Inga buggar hittades. Kodbasen är redan korrekt:
+- Inga deprecated PHP-funktioner används
+- Alla implode()-anrop har korrekt argument-ordning (glue, array)
+- Alla nullable parametrar använder redan ? prefix (t.ex. ?string, ?int)
+- Alla count()-anrop är på variabler från fetchAll() (aldrig null) eller explode() (alltid array)
+- Alla array_merge()-anrop använder typade return-värden
+- Alla foreach-loopar itererar över ordentligt initierade arrayer
+- Alla DB-värden som används i aritmetik är antingen castade med (int)/(float), skyddade med ?? 0, eller använder SQL COALESCE()
+- Alla strlen()-anrop är på värden som redan är saniterade strängar
+
+**Buggar fixade (0 st):** Ingenting att fixa — koden är korrekt skriven.
+
+---
+
 ## 2026-03-19 Session #187 Worker A — PHP error response + return type audit — 32 buggar fixade
 
 ### Uppgift 1: PHP error response consistency audit
