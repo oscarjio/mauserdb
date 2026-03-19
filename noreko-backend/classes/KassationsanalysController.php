@@ -839,7 +839,7 @@ class KassationsanalysController {
         $toDate    = date('Y-m-d');
         $fromDate  = date('Y-m-d', strtotime("-{$days} days"));
         $orsakId   = isset($_GET['orsak']) && $_GET['orsak'] !== '' ? intval($_GET['orsak']) : null;
-        $operatorNamn = isset($_GET['operator']) && $_GET['operator'] !== '' ? trim($_GET['operator']) : null;
+        $operatorNamn = isset($_GET['operator']) && $_GET['operator'] !== '' ? mb_substr(trim($_GET['operator']), 0, 100) : null;
 
         $kostnadPerIbc = 850;
 

@@ -291,7 +291,7 @@ class ProduktionsmalController {
         }
 
         $input = json_decode(file_get_contents('php://input'), true);
-        if (!$input) {
+        if (!is_array($input)) {
             $this->sendError('Ogiltig JSON-data');
             return;
         }
@@ -802,7 +802,7 @@ class ProduktionsmalController {
         }
 
         $input = json_decode(file_get_contents('php://input'), true);
-        if (!$input) {
+        if (!is_array($input)) {
             $this->sendError('Ogiltig JSON-data');
             return;
         }

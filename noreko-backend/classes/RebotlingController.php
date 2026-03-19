@@ -1711,7 +1711,7 @@ class RebotlingController {
             return;
         }
         // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data  = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $data  = json_decode(file_get_contents('php://input'), true) ?? [];
         $date  = trim($data['event_date']   ?? '');
         $title = strip_tags(trim($data['title']   ?? ''));
         $desc  = strip_tags(trim($data['description'] ?? ''));
@@ -1755,7 +1755,7 @@ class RebotlingController {
             return;
         }
         // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $id = intval($data['id'] ?? 0);
         if (!$id) {
             http_response_code(400);

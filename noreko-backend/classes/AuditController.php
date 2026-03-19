@@ -50,10 +50,10 @@ class AuditController {
             $limit = min(200, max(10, intval($_GET['limit'] ?? 50)));
             $offset = ($page - 1) * $limit;
 
-            $actionFilter = trim($_GET['filter_action'] ?? '');
-            $userFilter   = trim($_GET['filter_user'] ?? '');
-            $entityFilter = trim($_GET['filter_entity'] ?? '');
-            $searchText   = trim($_GET['search'] ?? '');
+            $actionFilter = mb_substr(trim($_GET['filter_action'] ?? ''), 0, 100);
+            $userFilter   = mb_substr(trim($_GET['filter_user'] ?? ''), 0, 100);
+            $entityFilter = mb_substr(trim($_GET['filter_entity'] ?? ''), 0, 100);
+            $searchText   = mb_substr(trim($_GET['search'] ?? ''), 0, 200);
             $periodFilter = trim($_GET['period'] ?? 'custom');
             $fromDate     = trim($_GET['from_date'] ?? '');
             $toDate       = trim($_GET['to_date'] ?? '');

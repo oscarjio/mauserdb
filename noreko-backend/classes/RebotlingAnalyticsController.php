@@ -3763,7 +3763,7 @@ class RebotlingAnalyticsController {
     // Returnerar drill-down-data för en specifik stopporsak.
 
     public function getStopCauseDrilldown(): void {
-        $cause = trim($_GET['cause'] ?? '');
+        $cause = mb_substr(trim($_GET['cause'] ?? ''), 0, 200);
         $days  = max(1, min(365, intval($_GET['days'] ?? 30)));
 
         if ($cause === '') {
@@ -3902,7 +3902,7 @@ class RebotlingAnalyticsController {
 
     public function getSkiftrapportList() {
         try {
-            $operator = trim($_GET['operator'] ?? '');
+            $operator = mb_substr(trim($_GET['operator'] ?? ''), 0, 100);
             $limit  = max(1, min(500, (int)($_GET['limit'] ?? 100)));
             $offset = max(0, min(100000, (int)($_GET['offset'] ?? 0)));
 
@@ -5946,7 +5946,7 @@ HTML;
      */
     public function createAnnotation(): void {
         // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data        = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $data        = json_decode(file_get_contents('php://input'), true) ?? [];
         $datum       = trim($data['datum'] ?? '');
         $typ         = trim($data['typ'] ?? '');
         $titel       = strip_tags(trim($data['titel'] ?? ''));
@@ -5996,7 +5996,7 @@ HTML;
      */
     public function deleteAnnotation(): void {
         // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $id = intval($data['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(400);

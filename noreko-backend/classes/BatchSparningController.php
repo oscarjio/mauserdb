@@ -410,7 +410,7 @@ class BatchSparningController {
                 $params[] = $to . ' 23:59:59';
             }
 
-            $search = trim($_GET['search'] ?? '');
+            $search = mb_substr(trim($_GET['search'] ?? ''), 0, 200);
             if ($search) {
                 $where .= " AND (bo.batch_nummer LIKE ? OR bo.kommentar LIKE ?)";
                 $escapedSearch = addcslashes($search, '%_\\');

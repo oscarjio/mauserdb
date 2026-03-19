@@ -328,6 +328,9 @@ class KvalitetscertifikatController {
 
         $batchNummer     = mb_substr(strip_tags(trim($data['batch_nummer'] ?? '')), 0, 100);
         $datum           = trim($data['datum'] ?? date('Y-m-d'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            $datum = date('Y-m-d');
+        }
         $operatorId      = isset($data['operator_id']) ? (int)$data['operator_id'] : null;
         $operatorNamn    = mb_substr(strip_tags(trim($data['operator_namn'] ?? '')), 0, 100);
         $antalIbc        = max(0, (int)($data['antal_ibc'] ?? 0));
