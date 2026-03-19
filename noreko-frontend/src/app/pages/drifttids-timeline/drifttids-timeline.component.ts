@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import {
   DrifttidsTimelineService,
   TimelineSegment,
@@ -125,7 +125,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     this.loadingSummary = true;
     this.errorSummary   = false;
     this.svc.getDaySummary(this.selectedDate)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success) {
@@ -142,7 +142,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     this.errorTimeline   = false;
     this.selectedSegment = null;
     this.svc.getDayTimeline(this.selectedDate)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTimeline = false;
         if (res?.success) {

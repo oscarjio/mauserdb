@@ -1,3 +1,49 @@
+## 2026-03-19 Session #190 Worker B — Angular HTTP interceptor + error handling audit — 5 buggar fixade
+
+### Del 1: Angular HTTP interceptor audit
+Granskade error.interceptor.ts: Korrekt implementation. Retry max 1 gang vid natverksfel/502/503/504 med 1s delay. 401 gor clearSession + redirect till /login med returnUrl. Felmeddelanden pa svenska for alla statuskoder (0, 401, 403, 404, 408, 429, 500+). Svaljer inte fel tyst (alltid throwError). Ingen oandlig retry-risk.
+**Resultat: Inga buggar i interceptorn.**
+
+### Del 2: HTTP error handling i komponenter
+Granskade 10 komponenter. 7 av 10 hade korrekt felhantering. Buggar hittades i 2 komponenter:
+
+**Bugg 1 — drifttids-timeline: saknade timeout pa 2 HTTP-anrop:**
+getDaySummary() och getDayTimeline() hade catchError men INGEN timeout(15000). Forfragan kunde hanga for evigt utan att anvandaren fick felmeddelande.
+Fix: La till timeout(15000) i pipe() for bada anrop. La aven till timeout i import.
+Fil: noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts
+
+**Bugg 2 — produktions-dashboard: 3 subscribe-anrop svalde fel tyst:**
+laddaStationer(), laddaAlarm(), laddaIbc() hade catchError(() => of(null)) men kontrollerade aldrig om res var null. Vid natverksfel/timeout aterstalldes loading-state men inget felmeddelande visades och inga error-flaggor sattes.
+Fix: La till errorStationer, errorAlarm, errorIbc flaggor. La till error-hantering i else-grenen for alla tre metoder.
+Fil: noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.ts
+
+**Bugg 3 — produktions-dashboard: laddaOversikt svalde null-fel:**
+`else if (res !== null)` betydde att nar catchError returnerade of(null) visades inget felmeddelande.
+Fix: Andrade till `else` sa att alla felsvar satter errorOversikt = true.
+Fil: noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.ts
+
+**Bugg 4 — produktions-dashboard: laddaGrafer svalde null-fel:**
+Samma monster som bugg 3: `else if (prodRes !== null || oeeRes !== null)` missade fallet nar bada ar null.
+Fix: Andrade till `else`.
+Fil: noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.ts
+
+**Bugg 5 — produktions-dashboard: errorStationer/errorAlarm/errorIbc saknades:**
+Komponentklassen deklarerade bara errorOversikt och errorGrafer. De tre ovriga felstate-variablerna existerade inte.
+Fix: La till errorStationer, errorAlarm, errorIbc deklarationer.
+Fil: noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.ts
+
+**Komponenter utan buggar (korrekt felhantering):**
+- produktionsflode.component.ts (catchError + timeout + error flags)
+- statistik-overblick.component.ts (catchError + timeout + error flags)
+- prediktivt-underhall.component.ts (catchError + timeout + error flags)
+- gamification.component.ts (catchError + timeout + error flags)
+- skiftoverlamning.component.ts (catchError + timeout + error callback)
+- leveransplanering.component.ts (catchError + timeout + error flags)
+- kapacitetsplanering.component.ts (timeout + subscribe error callback + error flags)
+- rebotling-trendanalys.component.ts (catchError + timeout + error flags)
+
+---
+
 ## 2026-03-19 Session #190 Worker A — PHP file upload + session security audit — 3 buggar fixade
 
 ### Del 1: PHP file upload validation audit

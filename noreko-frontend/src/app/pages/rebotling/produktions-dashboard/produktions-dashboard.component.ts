@@ -40,6 +40,9 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   loadingIbc       = false;
   errorOversikt    = false;
   errorGrafer      = false;
+  errorStationer   = false;
+  errorAlarm       = false;
+  errorIbc         = false;
 
   // Live puls
   livePuls = false;
@@ -120,7 +123,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
           this.oversikt = res.data;
           this.senastUppdaterad = new Date();
           this.pulsera();
-        } else if (res !== null) {
+        } else {
           this.errorOversikt = true;
         }
       });
@@ -148,7 +151,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
               this.byggOeeChart();
             }
           }, 0);
-        } else if (prodRes !== null || oeeRes !== null) {
+        } else {
           this.errorGrafer = true;
         }
       });
@@ -157,33 +160,39 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   laddaStationer(): void {
     if (this.loadingStationer) return;
     this.loadingStationer = true;
+    this.errorStationer   = false;
     this.svc.getStationerStatus()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
-        if (res?.success) this.stationer = res.data.stationer;
+        if (res?.success) { this.stationer = res.data.stationer; }
+        else { this.errorStationer = true; }
       });
   }
 
   laddaAlarm(): void {
     if (this.loadingAlarm) return;
     this.loadingAlarm = true;
+    this.errorAlarm   = false;
     this.svc.getSenasteAlarm()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingAlarm = false;
-        if (res?.success) this.alarm = res.data.alarm;
+        if (res?.success) { this.alarm = res.data.alarm; }
+        else { this.errorAlarm = true; }
       });
   }
 
   laddaIbc(): void {
     if (this.loadingIbc) return;
     this.loadingIbc = true;
+    this.errorIbc   = false;
     this.svc.getSenasteIbc()
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingIbc = false;
-        if (res?.success) this.senIbc = res.data.ibc;
+        if (res?.success) { this.senIbc = res.data.ibc; }
+        else { this.errorIbc = true; }
       });
   }
 
