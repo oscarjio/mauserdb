@@ -353,7 +353,6 @@ class ProduktionsPrognosController {
         // Gå bakåt i tid, hitta de senaste 10 fullständiga skiften
         $now   = new \DateTime();
         $limit = 10;
-        $found = 0;
         $maxDays = 30; // sök max 30 dagar bakåt
 
         // Generera alla skiftfönster bakåt i tid
@@ -436,7 +435,6 @@ class ProduktionsPrognosController {
                         'ibc_totalt'     => $cnt,
                         'takt_per_timme' => $taktPerTimme,
                     ];
-                    $found++;
                 }
             } catch (\PDOException $e) {
                 error_log('ProduktionsPrognosController::getShiftHistory: ' . $e->getMessage());

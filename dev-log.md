@@ -11964,3 +11964,34 @@ aldrig. Tog bort tilldelningen.
 **SkiftoverlamningController.php** — Deprecated nullable parameter: skiftTider(string $typ,
 string $datum = null) ger deprecation-varning i PHP 8.1+ nar en parameter har
 default null utan nullable-typdeklaration. Andrade till ?string $datum = null.
+
+## 2026-03-19 Session #185 Worker A — PHP date/time + unused variable audit — 6 buggar fixade
+
+### Uppgift 1: PHP date/time format consistency audit
+
+Granskade alla 17 controllers (KassationsanalysController, VeckorapportController,
+AlarmHistorikController, HeatmapController, ParetoController, OeeWaterfallController,
+MorgonrapportController, DrifttidsTimelineController, KassationsDrilldownController,
+ProduktionspulsController, ForstaTimmeAnalysController, MyStatsController,
+ProduktionsPrognosController, StopporsakOperatorController, OperatorOnboardingController,
+FavoriterController, KvalitetsTrendbrottController).
+
+Alla controllers anvander konsekvent Y-m-d H:i:s for timestamps och Y-m-d for datum.
+Inga avvikande datumformat hittades (d/m-format i AlarmHistorikController ar enbart
+for Chart.js-etiketter, inte datalagring). Ingen date_default_timezone_set saknas
+— den sats i api.php globalt.
+
+**KassationsanalysController.php** — Overlappande periodberakning i 5 metoder
+(getSummary, getByCause, getOverview, getSammanfattning, getOrsaker): $prevTo sattes
+till $fromDate vilket innebar att gransdatumet raknades med i BADE nuvarande OCH
+foregaende period (SQL BETWEEN ar inklusiv). Resultatet blev dubbelrakning av data
+pa gransdatumet i alla trendjamforelser. Fixade genom att satta
+$prevTo = date('Y-m-d', strtotime($fromDate . ' -1 day')) i alla 5 metoder.
+(5 buggar)
+
+### Uppgift 2: PHP unused variable audit
+
+**ProduktionsPrognosController.php** — Oanvand variabel $found i getShiftHistory():
+variabeln initierades till 0 och inkementerades i loopen men lases aldrig —
+count($history) anvands istallet for antal-skift i svaret. Tog bort $found
+och dess inkrementering. (1 bugg)

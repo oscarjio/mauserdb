@@ -149,7 +149,7 @@ class KassationsanalysController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = $fromDate;
+        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
         $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
 
         try {
@@ -253,7 +253,7 @@ class KassationsanalysController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = $fromDate;
+        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
         $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
 
         try {
@@ -620,7 +620,7 @@ class KassationsanalysController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = $fromDate;
+        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
         $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
 
         // Uppskattad kostnad per kasserad IBC (SEK) — konfigurerbar, defaultvärde 850 SEK
@@ -1066,7 +1066,7 @@ class KassationsanalysController {
 
             foreach ($periods as $days) {
                 $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-                $prevTo   = $fromDate;
+                $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
                 $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
 
                 $kasserade   = $this->getTotalKasserade($fromDate, $toDate);
@@ -1122,7 +1122,7 @@ class KassationsanalysController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = $fromDate;
+        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
         $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
 
         try {
