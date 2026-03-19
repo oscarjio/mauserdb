@@ -56,7 +56,7 @@ class DagligBriefingController {
 
     private function getDatum(): string {
         $d = trim($_GET['datum'] ?? '');
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false) {
             return $d;
         }
         return date('Y-m-d', strtotime('-1 day'));

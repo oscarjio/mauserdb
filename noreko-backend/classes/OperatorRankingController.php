@@ -626,26 +626,30 @@ class OperatorRankingController {
                 error_log('OperatorRankingController::historik primary: ' . $e->getMessage());
                 // Fallback: rebotling_data
                 if ($this->tableExists('rebotling_data')) {
-                    $sql = "
-                        SELECT
-                            DATE(datum) AS dag,
-                            user_id,
-                            SUM(COALESCE(antal, 1)) AS total_ibc
-                        FROM rebotling_data
-                        WHERE user_id IN ({$placeholders})
-                          AND DATE(datum) BETWEEN ? AND ?
-                        GROUP BY DATE(datum), user_id
-                        ORDER BY dag ASC
-                    ";
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute(array_merge($userIds, [$from30, $to]));
-                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                        $dag = $row['dag'];
-                        $uid = (int)$row['user_id'];
-                        if (!isset($historik[$dag])) {
-                            $historik[$dag] = [];
+                    try {
+                        $sql = "
+                            SELECT
+                                DATE(datum) AS dag,
+                                user_id,
+                                SUM(COALESCE(antal, 1)) AS total_ibc
+                            FROM rebotling_data
+                            WHERE user_id IN ({$placeholders})
+                              AND DATE(datum) BETWEEN ? AND ?
+                            GROUP BY DATE(datum), user_id
+                            ORDER BY dag ASC
+                        ";
+                        $stmt = $this->pdo->prepare($sql);
+                        $stmt->execute(array_merge($userIds, [$from30, $to]));
+                        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                            $dag = $row['dag'];
+                            $uid = (int)$row['user_id'];
+                            if (!isset($historik[$dag])) {
+                                $historik[$dag] = [];
+                            }
+                            $historik[$dag][$uid] = (int)$row['total_ibc'] * 10;
                         }
-                        $historik[$dag][$uid] = (int)$row['total_ibc'] * 10;
+                    } catch (\PDOException $e2) {
+                        error_log('OperatorRankingController::historik fallback: ' . $e2->getMessage());
                     }
                 }
             }

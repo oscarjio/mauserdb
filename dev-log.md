@@ -12469,3 +12469,28 @@ $prevTo = date('Y-m-d', strtotime($fromDate . ' -1 day')) i alla 5 metoder.
 variabeln initierades till 0 och inkementerades i loopen men lases aldrig —
 count($history) anvands istallet for antal-skift i svaret. Tog bort $found
 och dess inkrementering. (1 bugg)
+
+## 2026-03-19 Session #193 Worker A — PHP error logging + edge case audit — 5 buggar fixade
+
+Granskade 8 PHP-controllers (proxy-filer i controllers/ + faktisk logik i classes/):
+StatistikDashboardController, StopptidsanalysController, StopporsakController,
+ProduktionsmalController, OperatorRankingController, HistoriskSammanfattningController,
+StatistikOverblickController, DagligBriefingController.
+
+### Fixade buggar:
+
+1. **classes/ProduktionsmalController.php** — `getFactualIbcByDate()` saknade try-catch + error_log. Metoden anropas fran 7+ endpoints (getSammanfattning, getVeckodata, getHistorik30d, getPerStation, getSummary, getDaily, getWeekly). En PDOException propagerade ohanteradt utan loggning. Lagt till try-catch med error_log + returnerar tom array vid fel.
+
+2. **classes/HistoriskSammanfattningController.php** — `calcPeriodData()` saknade try-catch + error_log. Metoden anropas fran rapport() och stationer(). En PDOException propagerade utan loggning. Lagt till try-catch med error_log + returnerar noll-array vid fel.
+
+3. **classes/HistoriskSammanfattningController.php** — `calcStationData()` saknade try-catch + error_log. Metoden anropas fran rapport() (flaskhals-loop) och stationer(). Samma problem. Lagt till try-catch med error_log + returnerar noll-array vid fel.
+
+4. **classes/OperatorRankingController.php** — `historik()` fallback-query i catch-block (rad ~628-650) saknade egen try-catch. Om rebotling_data-queryn ocksa felade kastades PDOException ohanterat fran insidan av en catch-block, utan error_log. Lagt till try-catch runt fallback-queryn med error_log.
+
+5. **classes/DagligBriefingController.php** — `getDatum()` validerade datum-parameter med regex `/^\d{4}-\d{2}-\d{2}$/` men kontrollerade inte att datumet var giltigt (t.ex. "2026-13-45" passerade). Lagt till `strtotime($d) !== false`-kontroll for att forhindra ogiltiga datum fran att skickas till SQL-queries.
+
+### Kontrollerade utan buggar:
+- StatistikDashboardController — alla catch-block har error_log + sendError med korrekt HTTP-kod
+- StopptidsanalysController — korrekt felhantering i alla metoder
+- StopporsakController — korrekt felhantering i alla metoder
+- StatistikOverblickController — korrekt felhantering i alla metoder

@@ -159,6 +159,7 @@ class HistoriskSammanfattningController {
      * Berakna produktionsdata for en period.
      */
     private function calcPeriodData(string $from, string $to): array {
+        try {
         // IBC-data
         $stmt = $this->pdo->prepare(
             "SELECT
@@ -218,6 +219,16 @@ class HistoriskSammanfattningController {
             'snitt_ibc_per_dag'  => $snittIbcPerDag,
             'dag_count'          => $dagCount,
         ];
+        } catch (\PDOException $e) {
+            error_log('HistoriskSammanfattningController::calcPeriodData: ' . $e->getMessage());
+            return [
+                'ibc_ok' => 0, 'ibc_ej_ok' => 0, 'ibc_total' => 0,
+                'runtime_min' => 0, 'antal_skift' => 0, 'ibc_per_h' => 0.0,
+                'kvalitet_pct' => 0.0, 'oee_pct' => 0.0,
+                'tillganglighet_pct' => 0.0, 'prestanda_pct' => 0.0,
+                'stopptid_min' => 0, 'snitt_ibc_per_dag' => 0, 'dag_count' => 1,
+            ];
+        }
     }
 
     // ================================================================
@@ -407,56 +418,66 @@ class HistoriskSammanfattningController {
     }
 
     private function calcStationData(string $from, string $to, int $stationId): array {
-        $stmt = $this->pdo->prepare(
-            "SELECT
-                COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
-                COALESCE(SUM(max_runtime), 0) AS runtime_min,
-                COUNT(DISTINCT skiftraknare) AS antal_skift
-             FROM (
-                SELECT
-                    skiftraknare,
-                    MAX(ibc_ok)      AS max_ok,
-                    MAX(ibc_ej_ok)   AS max_ej_ok,
-                    MAX(runtime_plc) AS max_runtime
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
-                  AND COALESCE(station_id, 1) = ?
-                GROUP BY skiftraknare
-                HAVING COUNT(*) > 1
-             ) s"
-        );
-        $stmt->execute([$from, $to, $stationId]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    COALESCE(SUM(max_ok),    0) AS ibc_ok,
+                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                    COUNT(DISTINCT skiftraknare) AS antal_skift
+                 FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(ibc_ok)      AS max_ok,
+                        MAX(ibc_ej_ok)   AS max_ej_ok,
+                        MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                      AND COALESCE(station_id, 1) = ?
+                    GROUP BY skiftraknare
+                    HAVING COUNT(*) > 1
+                 ) s"
+            );
+            $stmt->execute([$from, $to, $stationId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        $ibcOk      = (int)($row['ibc_ok'] ?? 0);
-        $ibcEjOk    = (int)($row['ibc_ej_ok'] ?? 0);
-        $runtime    = (int)($row['runtime_min'] ?? 0);
-        $antalSkift = (int)($row['antal_skift'] ?? 0);
-        $ibcTotal   = $ibcOk + $ibcEjOk;
+            $ibcOk      = (int)($row['ibc_ok'] ?? 0);
+            $ibcEjOk    = (int)($row['ibc_ej_ok'] ?? 0);
+            $runtime    = (int)($row['runtime_min'] ?? 0);
+            $antalSkift = (int)($row['antal_skift'] ?? 0);
+            $ibcTotal   = $ibcOk + $ibcEjOk;
 
-        $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
-        $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
+            $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
+            $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
-        $planMin   = $antalSkift * self::PLANERAD_MIN;
-        $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-        $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
-        $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
-        $oee       = $tillg * $prest * $kvalFakt;
-        $stopptid  = max(0, $planMin - $runtime);
+            $planMin   = $antalSkift * self::PLANERAD_MIN;
+            $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+            $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+            $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+            $oee       = $tillg * $prest * $kvalFakt;
+            $stopptid  = max(0, $planMin - $runtime);
 
-        return [
-            'ibc_ok'             => $ibcOk,
-            'ibc_ej_ok'          => $ibcEjOk,
-            'ibc_total'          => $ibcTotal,
-            'runtime_min'        => $runtime,
-            'ibc_per_h'          => $ibcPerH,
-            'kvalitet_pct'       => $kvalitet,
-            'oee_pct'            => round($oee * 100, 1),
-            'tillganglighet_pct' => round($tillg * 100, 1),
-            'prestanda_pct'      => round($prest * 100, 1),
-            'stopptid_min'       => $stopptid,
-        ];
+            return [
+                'ibc_ok'             => $ibcOk,
+                'ibc_ej_ok'          => $ibcEjOk,
+                'ibc_total'          => $ibcTotal,
+                'runtime_min'        => $runtime,
+                'ibc_per_h'          => $ibcPerH,
+                'kvalitet_pct'       => $kvalitet,
+                'oee_pct'            => round($oee * 100, 1),
+                'tillganglighet_pct' => round($tillg * 100, 1),
+                'prestanda_pct'      => round($prest * 100, 1),
+                'stopptid_min'       => $stopptid,
+            ];
+        } catch (\PDOException $e) {
+            error_log('HistoriskSammanfattningController::calcStationData: ' . $e->getMessage());
+            return [
+                'ibc_ok' => 0, 'ibc_ej_ok' => 0, 'ibc_total' => 0,
+                'runtime_min' => 0, 'ibc_per_h' => 0.0, 'kvalitet_pct' => 0.0,
+                'oee_pct' => 0.0, 'tillganglighet_pct' => 0.0,
+                'prestanda_pct' => 0.0, 'stopptid_min' => 0,
+            ];
+        }
     }
 
     // ================================================================

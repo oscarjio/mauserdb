@@ -1101,24 +1101,29 @@ class ProduktionsmalController {
     }
 
     private function getFactualIbcByDate(string $fromDate, string $toDate): array {
-        $stmt = $this->pdo->prepare(
-            "SELECT dag, SUM(max_ibc) AS ibc_count
-             FROM (
-                SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
-                GROUP BY DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
-             ) sub
-             GROUP BY dag ORDER BY dag ASC"
-        );
-        $stmt->execute([$fromDate, $toDate]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $result = [];
-        foreach ($rows as $r) {
-            $result[$r['dag']] = (int)$r['ibc_count'];
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT dag, SUM(max_ibc) AS ibc_count
+                 FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY DATE(datum), skiftraknare
+                    HAVING COUNT(*) > 1
+                 ) sub
+                 GROUP BY dag ORDER BY dag ASC"
+            );
+            $stmt->execute([$fromDate, $toDate]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $result = [];
+            foreach ($rows as $r) {
+                $result[$r['dag']] = (int)$r['ibc_count'];
+            }
+            return $result;
+        } catch (\PDOException $e) {
+            error_log('ProduktionsmalController::getFactualIbcByDate: ' . $e->getMessage());
+            return [];
         }
-        return $result;
     }
 
     private function getStatus(float $pct): string {
