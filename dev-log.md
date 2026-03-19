@@ -1,3 +1,75 @@
+## 2026-03-19 Session #182 Worker A — PHP date/timezone + file_get_contents audit — 8 buggar fixade
+
+### Uppgift 1: PHP date/timezone edge cases — 8 buggar fixade
+
+**Metod:** Systematiskt granskat alla 110 PHP-controllers i noreko-backend/classes/ for:
+- strtotime() + 86400 (sekund-baserade dagberakningar)
+- date() utan explicit timezone (hittades ej — date_default_timezone_set('Europe/Stockholm') satt i api.php)
+- mktime/gmmktime (hittades ej)
+- Datum-jamforelser < > vid midnatt/DST
+- Kvarstaende DST-buggar fran session #169
+
+**Buggar hittade och fixade:**
+
+**Bugg 1 (kritisk DST-bugg):** `UnderhallsprognosController.php:90` — `beraknaNextDatum()`
+- `$ts + ($intervallDagar * 86400)` adderar sekunder for att berakna nasta underhallsdatum.
+- Pa DST-dag (sista sondagen i mars/oktober i Sverige) ar en dag 23h eller 25h, ej 24h.
+- Nar ett underhall skedde kl 14:00 dagen fore DST, beraknar nasta datum 1 timme fel.
+- Fix: Ersatt med `new \DateTime($senasteUnderhall)->modify("+{$intervallDagar} days")` — DST-sakert.
+
+**Buggar 2-8 (DST-felaktiga dagberakningar i datumrangeguards):**
+Sju controllers anvande `(int)(($toTs - $fromTs) / 86400)` for att rakna dagars skillnad
+som "365-dagars max"-gransning. Pa DST-dag (23h) kan en 365-dagarsperiod ge 364 dagar,
+sa gransen inte uppnas. Alla ersatta med `(new \DateTime($from))->diff(new \DateTime($to))->days`
+som ar DST-sakert och korrekt raknar kalenderdagar.
+
+- `AuditController.php` — diffDays / 86400 → DateTime::diff (bugg 2)
+- `UnderhallsloggController.php` — diffDays / 86400 → DateTime::diff (bugg 3)
+- `SkiftoverlamningController.php` — diffDays / 86400 → DateTime::diff (bugg 4)
+- `OperatorsbonusController.php` — diffDays / 86400 → DateTime::diff (bugg 5)
+- `BatchSparningController.php` — diffDays / 86400 → DateTime::diff (bugg 6)
+- `TidrapportController.php` — diffDays / 86400 → DateTime::diff (bugg 7)
+- `ProduktionskostnadController.php` — diffDays / 86400 → DateTime::diff (bugg 8)
+
+**Granskade men ej fixade (ej DST-buggar):**
+- `AuthHelper.php:141` — `time() - 86400` for cleanup cutoff (24h timestamp, ej datumberakning — acceptabelt)
+- `ShiftHandoverController.php:105` — `$diff < 86400` for "visa som 'just nu'" (display-logik, ej datumberakning)
+- `RebotlingTrendanalysController.php:96,377` — `86400` som konstantvarde for "antal sekunder per skift/dag" (korrekt anvandning)
+- Alla `strtotime('-N days')` anvandningar — DST-sakra da de anvander relativ tidsberakning, ej sekundaddition
+
+### Uppgift 2: PHP file_get_contents/fopen audit — 0 buggar
+
+**Metod:** Systematiskt granskat alla 110 PHP-controllers for farliga filoperation.
+
+**Resultat: Inga buggar hittades.**
+
+Alla `file_get_contents()` ar antingen:
+- `file_get_contents('php://input')` — in-memory stream, kan ej misslyckas; alltid null-/array-kontrollerad efterat
+- Migrationsfiler via `__DIR__ . '/../migrations/...'` — alla har `if ($sql === false) { error_log(...); }` + try/catch
+
+Alla `fopen()`-anrop ar antingen:
+- `fopen('php://output', 'w')` — CSV-export, kan ej misslyckas pa webbserver
+- `fsockopen()` i VpnController — kontrollerad med `if (!$socket)`, `@fwrite` kontrollerad med `=== false`
+
+Ingen `file_put_contents()` hittades i nagra controllers.
+Inga path-traversal-riskfaktorer — alla filsokvagar ar hardkodade med `__DIR__` + `/migrations/`.
+
+### Sammanfattning
+- **8 DST date/timezone-buggar fixade** i 7 PHP-filer
+- **0 file_get_contents/fopen-buggar** (alla redan korrekt hanterade)
+
+### Filer andrade
+- noreko-backend/classes/UnderhallsprognosController.php
+- noreko-backend/classes/AuditController.php
+- noreko-backend/classes/UnderhallsloggController.php
+- noreko-backend/classes/SkiftoverlamningController.php
+- noreko-backend/classes/OperatorsbonusController.php
+- noreko-backend/classes/BatchSparningController.php
+- noreko-backend/classes/TidrapportController.php
+- noreko-backend/classes/ProduktionskostnadController.php
+
+---
+
 ## 2026-03-19 Session #181 Worker A — PHP SQL column name audit + input sanitization audit — 8 buggar fixade
 
 ### Uppgift 1: PHP SQL column name audit — 0 buggar

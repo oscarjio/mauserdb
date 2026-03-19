@@ -84,16 +84,14 @@ class TidrapportController {
                     [$fromDate, $toDate] = [$toDate, $fromDate];
                 }
                 // Begränsa till max 365 dagar
-                $toTs = strtotime($toDate);
-                $fromTs = strtotime($fromDate);
-                if ($toTs === false || $fromTs === false) {
-                    $fromDate = date('Y-m-d', strtotime('-30 days'));
-                    $toDate   = $today;
-                } else {
-                    $diffDays = (int)(($toTs - $fromTs) / 86400);
+                try {
+                    $diffDays = (int)(new \DateTime($fromDate))->diff(new \DateTime($toDate))->days;
                     if ($diffDays > 365) {
                         $fromDate = date('Y-m-d', strtotime($toDate . ' -365 days'));
                     }
+                } catch (\Exception $e) {
+                    $fromDate = date('Y-m-d', strtotime('-30 days'));
+                    $toDate   = $today;
                 }
                 break;
             default:

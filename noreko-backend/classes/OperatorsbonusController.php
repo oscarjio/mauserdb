@@ -670,16 +670,14 @@ class OperatorsbonusController {
             }
             // Begränsa till max 365 dagar
             if ($from && $to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
-                $toTs = strtotime($to);
-                $fromTs = strtotime($from);
-                if ($toTs === false || $fromTs === false) {
-                    $from = date('Y-m-d', strtotime('-30 days'));
-                    $to   = date('Y-m-d');
-                } else {
-                    $diffDays = (int)(($toTs - $fromTs) / 86400);
+                try {
+                    $diffDays = (int)(new \DateTime($from))->diff(new \DateTime($to))->days;
                     if ($diffDays > 365) {
                         $from = date('Y-m-d', strtotime($to . ' -365 days'));
                     }
+                } catch (\Exception $e) {
+                    $from = date('Y-m-d', strtotime('-30 days'));
+                    $to   = date('Y-m-d');
                 }
             }
 

@@ -85,9 +85,13 @@ class UnderhallsprognosController {
         if ($senasteUnderhall === null) {
             return null;
         }
-        $ts = strtotime($senasteUnderhall);
-        if ($ts === false) return null;
-        return date('Y-m-d H:i:s', $ts + ($intervallDagar * 86400));
+        try {
+            $dt = new \DateTime($senasteUnderhall);
+            $dt->modify("+{$intervallDagar} days");
+            return $dt->format('Y-m-d H:i:s');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
