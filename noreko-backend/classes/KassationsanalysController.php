@@ -1109,7 +1109,7 @@ class KassationsanalysController {
     /**
      * Hitta stationen med hogst kassationsandel.
      */
-    private function getVarstaStation(int $days): ?array {
+    private function getVarstaStation(int $_days): ?array {
         // rebotling_ibc has no station column — return null
         return null;
     }

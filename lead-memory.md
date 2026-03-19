@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #190)*
+*Senast uppdaterad: 2026-03-19 (session #191)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -80,6 +80,7 @@ Session #187: BUGGJAKT — 32 buggar (32 Worker A + 0 Worker B). Error response 
 Session #188: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP deprecated/null (0, redan korrekt). Angular number pipe undefined (3: kassationskvot-alarm).
 Session #189: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). SQL query (3: station_id+GROUP BY i OeeTrendanalys+VdDashboard), try-catch (2: StatistikDashboard+Skiftplanering). setTimeout cleanup (1: daglig-briefing).
 Session #190: BUGGJAKT — 8 buggar (3 Worker A + 5 Worker B). File upload (0, ingen kod), session timeout enforcement (3: checkSessionTimeout i 8 POST-controllers, last_activity-uppdatering, session write-mode). HTTP interceptor (0, redan korrekt), HTTP timeout (1: drifttids-timeline), error-flaggor (4: produktions-dashboard tyst felhantering).
+Session #191: BUGGJAKT — 8 buggar (8 Worker A + 0 Worker B). Input validation (8: 4 json_decode $_POST-fallback, 2 svag null-check, 1 saknad datum-regex, 1 langdbegransningar). Chart cleanup (0, redan korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -94,10 +95,10 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-19 — Session #189 (klar)
-Worker A: 4 buggar — SQL station_id saknas i OeeTrendanalys+VdDashboard (2), saknad DATE(datum) i GROUP BY (1), saknad try-catch i StatistikDashboard+Skiftplanering (2).
-Worker B: 1 bugg — setTimeout-lacka i daglig-briefing loadTrend() (1). Ovriga 10 komponenter redan korrekta.
-
 ### 2026-03-19 — Session #190 (klar)
 Worker A: 3 buggar — session timeout aldrig kontrollerad vid POST (8 controllers), StatusController uppdaterade aldrig last_activity, KvalitetscertifikatController session read_and_close for POST.
 Worker B: 5 buggar — drifttids-timeline saknade timeout (1), produktions-dashboard tyst felhantering i 3 metoder + missad catchError-gren i 2 metoder (4).
+
+### 2026-03-19 — Session #191 (klar)
+Worker A: 8 buggar — json_decode fallback till $_POST (4), svag null-check !$input (2), saknad datum-regex (1), saknade langdbegransningar (1).
+Worker B: 0 buggar — 108 Chart-instanser, 141 timer-filer, 169 subscribe-filer granskade. Kodbasen ren efter tidigare sessions.

@@ -6676,7 +6676,7 @@ HTML;
                 ";
             };
 
-            $calcRanking = function(string $fromDate, string $toDate) use ($makeInner, $opRows, $limit): array {
+            $calcRanking = function(string $fromDate, string $toDate) use ($makeInner, $limit): array {
                 $s1 = $makeInner(1);
                 $s2 = $makeInner(2);
                 $s3 = $makeInner(3);
