@@ -1,3 +1,51 @@
+## 2026-03-19 Session #187 Worker B — Angular HTTP error handling + null safety audit — 0 buggar
+
+### Uppgift 1: HTTP error handling audit — alla *.service.ts — 0 buggar
+
+**Metod:** Granskade alla 96 .service.ts-filer i noreko-frontend/src/app/ (92 i services/ + 4 i rebotling/) for:
+- HTTP-anrop utan catchError
+- HTTP-anrop utan timeout()
+- catchError som returnerar EMPTY (tyst swallowing)
+- Engelska felmeddelanden istallet for svenska
+- Saknat takeUntil for avbrytningsstod
+
+**Resultat:** Alla 96 service-filer ar felfria:
+- 100% har timeout() pa alla HTTP-anrop
+- 100% har catchError() pa alla HTTP-anrop
+- 0 filer returnerar EMPTY fran catchError — alla returnerar of({...}) eller throwError
+- 100% svenska felmeddelanden (Natverksfel, Okant fel, etc.)
+- takeUntil hanteras korrekt i komponenter via destroy$
+
+**Granskade service-kataloger:** noreko-frontend/src/app/services/ (92 filer), noreko-frontend/src/app/rebotling/ (4 filer: gamification.service.ts, daglig-briefing.service.ts, prediktivt-underhall.service.ts, skiftoverlamning.service.ts)
+
+### Uppgift 2: Component data binding + null safety audit — 0 buggar
+
+**Metod:** Granskade 13 komponentgrupper for: osakert property-access utan ?., fel trackBy, odefinierade [value]-bindings, asynkron data utan loading-guards, division by zero.
+
+**Resultat:** Alla 13 komponentgrupper ar felfria:
+
+1. **daglig-briefing** — OnInit/OnDestroy, destroy$, takeUntil, clearInterval, alla *ngIf loading/error-guards, trackBy:trackByIndex pa alla *ngFor
+2. **produktionsflode** — isFetching-guard, buildSankeyNodes() skyddar mot division by zero med `|| 1`, KPI-varden med `?.` null-coalescing
+3. **drifttids-timeline** — timeout hanteras i service-lagret, rebuildCachedSegments() null-guardar, hourLeft() anvander fast denominator (aldrig 0)
+4. **statistik-overblick** — alla chart-timers rensas i ngOnDestroy, alla HTTP-anrop med timeout+catchError+takeUntil
+5. **maintenance-log/equipment-stats** — cachedSortedEquipmentStats, null-saka sortering
+6. **maintenance-log/kpi-analysis** — *ngIf null-guard pa avg_mtbf_dagar
+7. **maintenance-log/maintenance-list** — isLoading-guard, trackBy:trackById
+8. **maintenance-log/maintenance-form** — optional chaining pa entry.start_time?.replace(), entry.description ?? ''
+9. **maintenance-log/service-intervals** — si.senaste_service_datum?.replace() optional chaining
+10. **pdf-export-button** — ingen HTTP, async/await med try/catch, isLoading-guard
+11. **skiftoverlamning** — timeout i service-lagret, korrekt subscribe({next, error}) pattern
+12. **produktionsmal** — stationBarWidth() skyddar mot division by zero (dagMal <= 0), chart + refresh timers rensas
+13. **tidrapport** — timeout i service-lagret (TidrapportService), alla timers rensas i ngOnDestroy
+14. **oee-trendanalys** — timeout i service-lagret (OeeTrendanalysService), non-null assertion skyddad av if-guard
+15. **operator-ranking** — timeout i service-lagret (OperatorRankingService), alla timers rensas
+16. **statistik-dashboard** — getDiffPct() skyddar mot division by zero (p === 0), ibcPerHVsMal() null-guard
+17. **historisk-sammanfattning** — timeout i service-lagret (HistoriskSammanfattningService), deltaClass/deltaIcon/formatNum/abs hanterar undefined|null via ?? 0
+
+**Bygget lyckades** utan kompileringsfel (enbart befintliga CommonJS-varningar fran tredjepartsbibliotek).
+
+---
+
 ## 2026-03-19 Session #186 Worker B — Angular change detection audit + service error consistency audit — 29 buggar fixade
 
 ### Uppgift 1: Angular change detection optimization audit (OnPush) — 0 buggar
