@@ -1,3 +1,45 @@
+## 2026-03-20 Session #217 Worker A — Session handling + error response + SQL UNION injection audit (0 buggar)
+
+### Uppgift 1: PHP classes/ session handling audit
+Granskade ALLA PHP-filer i noreko-backend/ for session-relaterade sarbarheter.
+
+Resultat: **0 buggar — session-hanteringen ar korrekt implementerad.**
+
+Detaljerad granskning:
+1. **session_regenerate_id() efter inloggning**: LoginController.php rad 105 — `session_regenerate_id(true)` anropas korrekt efter lyckad inloggning.
+2. **session.cookie_httponly, session.cookie_secure, session.use_strict_mode**: api.php rad 80-91 — alla tre ar korrekt konfigurerade via `session_set_cookie_params()` och `ini_set()` FORE nagon `session_start()`.
+3. **Session timeout-hantering**: AuthHelper.php rad 160-171 — `checkSessionTimeout()` kontrollerar `last_activity` mot `SESSION_TIMEOUT` (8h). Anropas centralt i api.php rad 258 for POST/PUT/DELETE, och i StatusController.php rad 35 for polling.
+4. **session_start() utan korrekta ini_set()**: api.php rad 77-92 — ini_set anropas FORE session_start, och session_set_cookie_params() konfigureras korrekt.
+5. **session_destroy() vid utloggning**: LoginController.php rad 163-164 — bade `session_unset()` och `session_destroy()` anropas. Cookie raderas ocksa explicit (rad 170-181).
+6. **CSRF-mekanism (session #208)**: Korrekt implementerad — `AuthHelper::generateCsrfToken()` vid login (rad 116), `validateCsrfToken()` i api.php (rad 265) for POST/PUT/DELETE, token returneras via status-endpoint.
+
+### Uppgift 2: PHP classes/ error response consistency audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ (98 filer) for inkonsistenta error-responses.
+
+Resultat: **0 buggar — alla error-responses ar konsekventa.**
+
+Detaljerad granskning:
+- **Alla felmeddelanden** anvander `json_encode(['success' => false, 'error' => '...'])` eller `json_encode(['error' => '...'])`.
+- **HTTP-statuskoder** anvands konsekvent: 400 (bad request), 401 (auth), 403 (forbidden), 404 (not found), 405 (method not allowed), 429 (rate limit), 500 (server error).
+- **Manga controllers** anvander `sendError()`-hjalpmetoder som centraliserar format och statuskod.
+- **Inga radtext/HTML-felmeddelanden** i JSON-endpoints. De 2 HTML-echo i RebotlingAnalyticsController.php (rad 5098, 5307) ar korrekta — de tillhor en HTML/PDF-export-endpoint som explicit satter `Content-Type: text/html`.
+- **CSV-export-endpoints** (BonusAdminController, RebotlingAnalyticsController) anvander korrekt `Content-Type: text/csv`.
+- **Inga interna felmeddelanden lackas** — `$e->getMessage()` skickas bara till `error_log()`, aldrig till klienten.
+
+### Uppgift 3: PHP classes/ SQL UNION injection audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for SQL UNION injection-sarbarheter.
+
+Resultat: **0 buggar — alla SQL-fragor ar sakra.**
+
+Detaljerad granskning:
+- **UNION-klausuler** (100+ forekomster): Alla UNION/UNION ALL ar hardkodade i SQL-strangar. Inga dynamiska UNION-delar byggs fran user input.
+- **Strankkonkatenering i SQL**: Alla forekomster anvander antingen:
+  - PDO prepared statements med `?` placeholders
+  - Hardkodade variabel-interpoleringar som ar sakra: `$pos` (int parameter), `$limit`/`$offset` (cast med `(int)`), `$orderExpr`/`$groupExpr` (hardkodade fran whitelist), `$ibcCol` (fran DB-kolumnnamn)
+- **$_GET/$_POST/$_REQUEST**: Alla user-inputs valideras/castas fore anvandning — `trim()`, `(int)`, `intval()`, `in_array()` whitelist, `max()/min()` range-checks. Ingen direkt SQL-interpolering av user input.
+
+---
+
 ## 2026-03-20 Session #216 Worker B — HTTP retry + memory leak audit (4 buggar)
 
 ### Uppgift 1: Angular HTTP retry logic audit
