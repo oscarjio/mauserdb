@@ -49,14 +49,23 @@ class LoginController {
             return;
         }
 
-        // Rate limiting
+        // Rate limiting — kontrollera både IP och användarnamn (skyddar mot distribuerad brute force)
         if (AuthHelper::isRateLimited($pdo, $ip)) {
             $remaining = AuthHelper::getLockoutRemaining($pdo, $ip);
-            error_log("LoginController::handle: Rate limit triggered for IP {$ip}, user '{$username}'");
+            error_log("LoginController::handle: Rate limit (IP) triggered for IP {$ip}, user '{$username}'");
             http_response_code(429);
             echo json_encode([
                 'success' => false,
                 'error' => "För många inloggningsförsök. Försök igen om {$remaining} minuter."
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (AuthHelper::isUsernameLocked($pdo, $username)) {
+            error_log("LoginController::handle: Rate limit (username) triggered for user '{$username}' from IP {$ip}");
+            http_response_code(429);
+            echo json_encode([
+                'success' => false,
+                'error' => "Kontot är tillfälligt låst p.g.a. för många misslyckade inloggningsförsök. Försök igen om några minuter."
             ], JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -79,6 +88,7 @@ class LoginController {
 
             if ($user && AuthHelper::verifyPassword($password, $user['password'])) {
                 AuthHelper::clearAttempts($pdo, $ip);
+                AuthHelper::clearAttemptsByUsername($pdo, $username);
                 AuthHelper::recordAttempt($pdo, $ip, $username, true);
 
                 // Update last login
@@ -117,7 +127,7 @@ class LoginController {
                 ], 'csrfToken' => $csrfToken], JSON_UNESCAPED_UNICODE);
             } else {
                 AuthHelper::recordAttempt($pdo, $ip, $username, false);
-                $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);
+                $attemptsLeft = AuthHelper::MAX_ATTEMPTS - AuthHelper::getFailedAttemptCount($pdo, $ip);
                 $msg = 'Felaktigt användarnamn eller lösenord';
                 if ($attemptsLeft <= 2 && $attemptsLeft > 0) {
                     $msg .= '. Kontot låses snart tillfälligt vid ytterligare misslyckade försök.';

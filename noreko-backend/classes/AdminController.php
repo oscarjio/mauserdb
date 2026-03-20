@@ -61,6 +61,11 @@ class AdminController {
                     echo json_encode(['success' => false, 'error' => 'Lösenordet måste vara 8–255 tecken'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
+                if (!preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Lösenordet måste innehålla minst en bokstav och en siffra'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress'], JSON_UNESCAPED_UNICODE);

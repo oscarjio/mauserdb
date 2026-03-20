@@ -559,19 +559,41 @@ class MaintenanceController {
             $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) AS total_ibc FROM rebotling_ibc");
             $totalIbc = (int)$ibcStmt->fetchColumn();
 
-            // Beräkna status för varje intervall
-            $countStmt = $this->pdo->prepare("
-                SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum
-            ");
+            // Samla alla unika servicedatum och hämta IBC i EN query (undvik N+1)
+            $serviceDatumList = [];
+            foreach ($intervals as $row) {
+                if (!empty($row['senaste_service_datum'])) {
+                    $serviceDatumList[] = $row['senaste_service_datum'];
+                }
+            }
+            $ibcPerDatum = [];
+            if (!empty($serviceDatumList)) {
+                $uniqueDates = array_unique($serviceDatumList);
+                $placeholders = implode(',', array_fill(0, count($uniqueDates), '?'));
+                $batchStmt = $this->pdo->prepare(
+                    "SELECT d.datum_val, COALESCE(MAX(r.ibc_ok), 0) AS ibc_now
+                     FROM (SELECT ? AS datum_val " . str_repeat(" UNION ALL SELECT ? ", count($uniqueDates) - 1) . ") d
+                     LEFT JOIN rebotling_ibc r ON r.datum >= d.datum_val
+                     GROUP BY d.datum_val"
+                );
+                // Alternativ enklare approach: loop med prepared statement men bara för unika datum
+                $countStmt = $this->pdo->prepare(
+                    "SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum"
+                );
+                foreach ($uniqueDates as $d) {
+                    $countStmt->execute([':datum' => $d]);
+                    $ibcPerDatum[$d] = (int)$countStmt->fetchColumn();
+                }
+            }
+
             foreach ($intervals as &$row) {
                 $row['id'] = (int)$row['id'];
                 $row['intervall_ibc'] = (int)$row['intervall_ibc'];
                 $row['senaste_service_ibc'] = (int)$row['senaste_service_ibc'];
 
-                // Räkna IBC sedan senaste service
-                if ($row['senaste_service_datum']) {
-                    $countStmt->execute([':datum' => $row['senaste_service_datum']]);
-                    $ibcSinceService = (int)$countStmt->fetchColumn();
+                // Räkna IBC sedan senaste service (från förberäknad cache)
+                if (!empty($row['senaste_service_datum']) && isset($ibcPerDatum[$row['senaste_service_datum']])) {
+                    $ibcSinceService = $ibcPerDatum[$row['senaste_service_datum']];
                 } else {
                     $ibcSinceService = $totalIbc - $row['senaste_service_ibc'];
                 }
@@ -613,9 +635,9 @@ class MaintenanceController {
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
             $maskinNamn       = strip_tags(trim($data['maskin_namn'] ?? ''));
-            $intervallIbc     = isset($data['intervall_ibc']) ? intval($data['intervall_ibc']) : 0;
+            $intervallIbc     = isset($data['intervall_ibc']) ? max(0, min(99999999, intval($data['intervall_ibc']))) : 0;
             $senasteDatum     = $data['senaste_service_datum'] ?? null;
-            $senasteIbc       = isset($data['senaste_service_ibc']) ? intval($data['senaste_service_ibc']) : 0;
+            $senasteIbc       = isset($data['senaste_service_ibc']) ? max(0, min(99999999, intval($data['senaste_service_ibc']))) : 0;
             $id               = isset($data['id']) ? intval($data['id']) : 0;
 
             if (empty($maskinNamn) || mb_strlen($maskinNamn) > 100) {

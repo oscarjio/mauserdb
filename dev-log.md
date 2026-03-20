@@ -13691,3 +13691,31 @@ Andrad fil:
 - 6 Angular-buggar fixade (2 change detection + 4 subscription leak)
 - 12 PHP error logging-buggar fixade (8 datumparse + 4 tableExists + 1 beraknaNextDatum)
 - Bygge: OK
+
+## 2026-03-20 Session #209 Worker A — PHP integer overflow + password policy + SQL audit (8 buggar)
+
+### Uppgift 1: Integer overflow / bounds audit (3 buggar fixade)
+Granskade alla PHP-filer i noreko-backend/classes/ for intval()/floatval() utan bounds-kontroller.
+
+Fixade:
+1. **MaintenanceController.php** — `setServiceInterval()`: `intervallIbc` och `senasteIbc` saknade ovre grans vid intval() — kunde skicka extremt stora varden. Lagt till `max(0, min(99999999, ...))`.
+2. **UnderhallsloggController.php** — `logUnderhall()`: `varaktighetMin` saknade ovre grans — extremt stora varden kunde lagras. Lagt till `max(0, min(14400, ...))`.
+3. **GamificationController.php** — `getMilstolpar()`: Division med `$m['krav']` utan att kontrollera att det ar > 0 — risk for division by zero. Lagt till skydd.
+
+### Uppgift 2: Password policy / brute force audit (4 buggar fixade)
+Granskade AuthHelper.php, LoginController.php, RegisterController.php, ProfileController.php, AdminController.php.
+
+Fixade:
+4. **AdminController.php** — `create`-endpointen saknade komplexitetskontroll pa losenord (kraver bara langd 8-255, men INTE bokstav+siffra som RegisterController och ProfileController). Lagt till `preg_match('/[A-Za-z]/')` och `preg_match('/[0-9]/')`.
+5. **AuthHelper.php** — Saknade per-anvandarkonto lockout. Rate limiting kontrollerade bara IP, inte anvandarnamn. En angripare med flera IP:er kunde brute-forca ett konto obegransat. Lagt till `isUsernameLocked()`, `getFailedAttemptCountByUsername()` och `clearAttemptsByUsername()`.
+6. **LoginController.php** — Lagt till anrop till `AuthHelper::isUsernameLocked()` vid inloggning och `clearAttemptsByUsername()` vid lyckad inloggning.
+7. **LoginController.php** — Hardkodad `5` for max antal forsok istallet for `AuthHelper::MAX_ATTEMPTS`. Andrat till konstanten. `MAX_ATTEMPTS` andrad fran `private` till `public` i AuthHelper.
+
+### Uppgift 3: SQL / N+1 query audit (1 bugg fixad)
+Granskade alla PHP-filer i noreko-backend/classes/ for felaktiga JOINs, saknade GROUP BY, N+1-queries.
+
+Fixade:
+8. **MaintenanceController.php** — N+1 query i `getServiceIntervals()`: en `SELECT MAX(ibc_ok)` exekverades inuti en foreach-loop for varje serviceintervall. Refaktorerad till att forst samla alla unika servicedatum och kora EN batch-fraga for att hamta IBC per datum, sedan sluta upp resultaten i loopen.
+
+### Migration
+- `noreko-backend/migrations/2026-03-20_login_attempts_username_index.sql` — Index pa `(username, created_at)` i `login_attempts` for effektiv per-konto lockout-kontroll.

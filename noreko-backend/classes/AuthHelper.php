@@ -6,7 +6,7 @@
  * database-backed rate limiting, and login audit logging.
  */
 class AuthHelper {
-    private const MAX_ATTEMPTS = 5;
+    public const MAX_ATTEMPTS = 5;
     private const LOCKOUT_MINUTES = 15;
     /** Session timeout i sekunder (8 timmar — matchar session.gc_maxlifetime i api.php) */
     public const SESSION_TIMEOUT = 28800;
@@ -38,6 +38,7 @@ class AuthHelper {
                 `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
                 KEY `idx_ip_created` (`ip_address`, `created_at`),
+                KEY `idx_username_created` (`username`, `created_at`),
                 KEY `idx_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
         } catch (PDOException $e) {
@@ -62,6 +63,32 @@ class AuthHelper {
      */
     public static function isRateLimited(PDO $pdo, string $ip): bool {
         return self::getFailedAttemptCount($pdo, $ip) >= self::MAX_ATTEMPTS;
+    }
+
+    /**
+     * Kontrollera om ett specifikt användarkonto är låst p.g.a. för många
+     * misslyckade inloggningsförsök (oavsett IP-adress).
+     * Skyddar mot distribuerade brute force-attacker från flera IP:er.
+     */
+    public static function isUsernameLocked(PDO $pdo, string $username): bool {
+        return self::getFailedAttemptCountByUsername($pdo, $username) >= self::MAX_ATTEMPTS;
+    }
+
+    /**
+     * Antal misslyckade försök per användarnamn inom lockout-fönstret (oavsett IP).
+     */
+    public static function getFailedAttemptCountByUsername(PDO $pdo, string $username): int {
+        try {
+            $cutoff = date('Y-m-d H:i:s', time() - (self::LOCKOUT_MINUTES * 60));
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM login_attempts WHERE username = ? AND success = 0 AND created_at > ?"
+            );
+            $stmt->execute([$username, $cutoff]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log('AuthHelper::getFailedAttemptCountByUsername: ' . $e->getMessage());
+            return 0;
+        }
     }
 
     /**
@@ -111,6 +138,17 @@ class AuthHelper {
             $pdo->prepare("DELETE FROM login_attempts WHERE ip_address = ? AND success = 0")->execute([$ip]);
         } catch (PDOException $e) {
             error_log('AuthHelper::clearAttempts: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Rensa misslyckade försök för ett användarnamn (anropas vid lyckad inloggning).
+     */
+    public static function clearAttemptsByUsername(PDO $pdo, string $username): void {
+        try {
+            $pdo->prepare("DELETE FROM login_attempts WHERE username = ? AND success = 0")->execute([$username]);
+        } catch (PDOException $e) {
+            error_log('AuthHelper::clearAttemptsByUsername: ' . $e->getMessage());
         }
     }
 
