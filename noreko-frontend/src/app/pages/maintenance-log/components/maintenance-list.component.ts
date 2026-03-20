@@ -65,7 +65,7 @@ import {
     </div>
 
     <!-- Felmeddelande -->
-    <div *ngIf="!isLoading && loadError" class="text-center py-3" style="color:#fc8181;">
+    <div *ngIf="!isLoading && loadError" class="text-center py-3" style="color:#fc8181;" role="alert">
       <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
       <p class="mt-2 mb-1">Kunde inte ladda underhållsposter.</p>
       <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadEntries()">
@@ -112,10 +112,10 @@ import {
             <span class="entry-title">{{ entry.title }}</span>
           </div>
           <div class="entry-actions">
-            <button class="btn btn-sm btn-action btn-edit" (click)="editEntry.emit(entry)" title="Redigera">
+            <button class="btn btn-sm btn-action btn-edit" (click)="editEntry.emit(entry)" title="Redigera" aria-label="Redigera post">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-sm btn-action btn-delete" (click)="onDeleteEntry(entry)" title="Ta bort">
+            <button class="btn btn-sm btn-action btn-delete" (click)="onDeleteEntry(entry)" title="Ta bort" aria-label="Ta bort post">
               <i class="fas fa-trash"></i>
             </button>
           </div>

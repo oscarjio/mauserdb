@@ -22,7 +22,7 @@ import {
     </div>
 
     <!-- Felmeddelande -->
-    <div *ngIf="!statsLoading && statsError" class="text-center py-4" style="color:#fc8181;">
+    <div *ngIf="!statsLoading && statsError" class="text-center py-4" style="color:#fc8181;" role="alert">
       <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
       <p class="mt-2 mb-1">Kunde inte ladda utrustningsstatistik.</p>
       <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadEquipmentStats()">

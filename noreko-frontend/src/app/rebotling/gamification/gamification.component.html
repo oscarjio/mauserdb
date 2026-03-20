@@ -80,7 +80,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="loadingLeaderboard" class="text-center py-4 mb-4"><span class="loading-spinner"></span></div>
+    <div *ngIf="loadingLeaderboard" class="text-center py-4 mb-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
 
     <!-- Rankingtabell -->
     <div class="chart-card mb-4" *ngIf="!loadingLeaderboard && leaderboardData?.leaderboard?.length">
@@ -148,7 +148,7 @@
   <!-- ============================================================ -->
   <div *ngIf="activeTab === 'min-profil'">
 
-    <div *ngIf="loadingProfil" class="text-center py-5"><span class="loading-spinner"></span></div>
+    <div *ngIf="loadingProfil" class="text-center py-5"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
 
     <div *ngIf="!loadingProfil && profilData">
       <!-- Profil-header -->
@@ -242,7 +242,7 @@
   <!-- ============================================================ -->
   <div *ngIf="activeTab === 'vd-vy'">
 
-    <div *ngIf="loadingOverview" class="text-center py-5"><span class="loading-spinner"></span></div>
+    <div *ngIf="loadingOverview" class="text-center py-5"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
 
     <div *ngIf="!loadingOverview && overviewData">
       <!-- KPI-kort -->

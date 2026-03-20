@@ -4,6 +4,7 @@
   [disabled]="isLoading"
   (click)="exportPdf()"
   title="Exportera sidan som PDF"
+  aria-label="Exportera sidan som PDF"
 >
   <i *ngIf="!isLoading && !exportError" class="fas fa-file-pdf me-1"></i>
   <i *ngIf="exportError && !isLoading" class="fas fa-exclamation-triangle me-1" style="color: #fc8181;"></i>

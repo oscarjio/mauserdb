@@ -42,10 +42,10 @@
   <!-- ============================================================ -->
   <div *ngIf="aktivFlik === 'mtbf'">
     <div class="text-center py-4" *ngIf="loadingMtbf">
-      <div class="spinner-border text-info" role="status"></div>
+      <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
       <p class="text-muted mt-2">Laddar MTBF-data...</p>
     </div>
-    <div class="alert alert-danger" *ngIf="errorMtbf && !loadingMtbf">
+    <div class="alert alert-danger" *ngIf="errorMtbf && !loadingMtbf" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda MTBF-data.
     </div>
     <div *ngIf="!loadingMtbf && !errorMtbf && mtbfStationer.length > 0">
@@ -113,10 +113,10 @@
   <!-- ============================================================ -->
   <div *ngIf="aktivFlik === 'heatmap'">
     <div class="text-center py-4" *ngIf="loadingHeatmap">
-      <div class="spinner-border text-info" role="status"></div>
+      <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
       <p class="text-muted mt-2">Laddar heatmap...</p>
     </div>
-    <div class="alert alert-danger" *ngIf="errorHeatmap && !loadingHeatmap">
+    <div class="alert alert-danger" *ngIf="errorHeatmap && !loadingHeatmap" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda heatmap-data.
     </div>
     <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapMatris.length > 0">
@@ -164,10 +164,10 @@
   <!-- ============================================================ -->
   <div *ngIf="aktivFlik === 'trender'">
     <div class="text-center py-4" *ngIf="loadingTrender">
-      <div class="spinner-border text-info" role="status"></div>
+      <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
       <p class="text-muted mt-2">Laddar trenddata...</p>
     </div>
-    <div class="alert alert-danger" *ngIf="errorTrender && !loadingTrender">
+    <div class="alert alert-danger" *ngIf="errorTrender && !loadingTrender" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda trenddata.
     </div>
     <div *ngIf="!loadingTrender && !errorTrender && trendStationer.length > 0">
@@ -209,10 +209,10 @@
   <!-- ============================================================ -->
   <div *ngIf="aktivFlik === 'rekom'">
     <div class="text-center py-4" *ngIf="loadingRekom">
-      <div class="spinner-border text-info" role="status"></div>
+      <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
       <p class="text-muted mt-2">Laddar rekommendationer...</p>
     </div>
-    <div class="alert alert-danger" *ngIf="errorRekom && !loadingRekom">
+    <div class="alert alert-danger" *ngIf="errorRekom && !loadingRekom" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda rekommendationer.
     </div>
     <div *ngIf="!loadingRekom && !errorRekom && rekommendationer.length > 0">
