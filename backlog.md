@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #203):
-- [x] **Angular HTTP retry/timeout audit** — 0 buggar, alla services har timeout/catchError/retry (Worker B)
-- [x] **PHP classes/ integer overflow/type juggling audit** — 5 buggar: saknade bounds i 4 controllers (Worker A)
-- [x] **PHP classes/ error disclosure audit** — 1 bugg: json_last_error_msg exponerad (Worker A)
-- [x] **Angular form XSS audit** — 0 buggar, inga innerHTML/bypassSecurityTrust (Worker B)
+### Klart (session #204):
+- [x] **PHP classes/ race condition audit** — 3 buggar: CertificationController + UnderhallsloggController (Worker A)
+- [x] **PHP classes/ SQL LIKE injection audit** — 0 buggar, addcslashes() anvands korrekt (Worker A)
+- [x] **Angular router guard audit** — 0 buggar, alla routes har korrekt guards (Worker B)
+- [x] **Angular environment config audit** — 0 buggar, environment.prod.ts korrekt (Worker B)
 
-### Nasta buggjakt-items (session #204+):
-- [ ] **PHP classes/ race condition audit** — concurrent requests, TOCTOU, saknade DB-transaktioner
-- [ ] **Angular router guard audit** — saknade guards pa skyddade routes, felaktig rollkontroll
-- [ ] **PHP classes/ SQL LIKE injection audit** — saknad escapning av %, _, wildcard i LIKE-queries
-- [ ] **Angular environment config audit** — hardkodade API-URLer, dev-flaggor i produktion
+### Nasta buggjakt-items (session #205+):
 - [ ] **PHP classes/ date/timezone consistency audit** — blandning av UTC/lokal tid, sommartid-buggar
+- [ ] **PHP classes/ file upload validation audit** — MIME-type, storlek, filnamn-sanering
+- [ ] **Angular change detection audit** — onodiga rerenders, saknad OnPush, tunga template-uttryck
+- [ ] **PHP classes/ header injection audit** — CRLF i Location/Set-Cookie-headers
+- [ ] **Angular i18n/hardcoded string audit** — icke-svenska strangar, saknade oversattningar
 
 ## Parkerade features (ta inte dessa nu)
 
