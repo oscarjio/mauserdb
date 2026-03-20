@@ -1,3 +1,45 @@
+## 2026-03-20 Session #198 Worker A — PHP classes/ authorization + file upload audit — 3 buggar fixade
+
+Systematisk granskning av ALLA 117 PHP-klasser i noreko-backend/classes/ for:
+1. Auth-kontroll: endpoints som saknar session_start/SESSION-check, endpoints som borde krava admin men inte kollar, inkonsistent auth-hantering
+2. File upload/path traversal: _FILES-hantering, osaker file_get_contents med user-controlled paths, path traversal via ../
+
+### Fixade buggar:
+
+1. **RebotlingController.php rad 26-30** — `$adminOnlyActions`-listan for GET-endpoints saknade tre admin-only actions: `live-ranking-settings`, `live-ranking-config` och `goal-history`. Dessa endpoints anropade `RebotlingAdminController`-metoder utan foregaende auth-kontroll, vilket innebar att valfri inloggad (eller oautentiserad?) anvandare kunde lasa admin-konfiguration for Live Ranking. Lade till alla tre i listan.
+
+2. **RebotlingAdminController.php rad 957** — `getLiveRankingSettings()` startade session men kontrollerade varken `user_id` eller `role`. Lade till admin-kontroll (403-svar vid otillracklig beborig).
+
+3. **RebotlingAdminController.php rad 1024** — `getLiveRankingConfig()` saknade BADE session_start och auth-kontroll — fullstandigt oskyddad. Lade till bade `session_start(['read_and_close' => true])` och admin-kontroll.
+
+### Granskade filer (inga buggar):
+
+- AdminController.php — korrekt admin-check + session_start, bcrypt, transaktioner
+- ProfileController.php — korrekt user_id-check, rate-limiting for losenordsbyte
+- RegisterController.php — korrekt, rate-limiting, bcrypt
+- OperatorController.php — admin-check pa alla POST/GET
+- MaintenanceController.php — admin-check pa alla endpoints
+- NewsController.php — admin-check via requireAdmin(), getEvents() ar avsiktligt publik
+- FeedbackController.php — user_id-check, admin-check pa summary
+- FeatureFlagController.php — developer/admin-check pa POST, GET publik (by design)
+- CertificationController.php — admin-check pa POST, getAll/getMatrix publik (certmatrisen visas for alla)
+- AuditController.php — admin-check
+- GamificationController.php — user_id-check
+- SkiftrapportExportController.php — user_id-check
+- VpnController.php — admin-check
+- AndonController.php — avsiktligt publik (andon-tavla, read-only)
+- HistorikController.php — avsiktligt publik (historik, read-only)
+- AuthHelper.php — hjalp-klass, ej endpoint
+- LoginController.php, RebotlingController.php (POST), DashboardLayoutController.php m.fl. — korrekt auth
+
+### File upload / path traversal:
+- Inga $_FILES-uploads hittades i hela klasser/-katalogen
+- Alla file_get_contents()-anrop anvander hardkodade sokvagar (__DIR__ + statiska filnamn fran migrations/)
+- Inga user-controlled sokvagar i include/require
+- Inga path traversal-risker identifierade
+
+---
+
 ## 2026-03-20 Session #197 Worker A — PHP classes/ date/time edge cases + error response audit — 6 buggar fixade
 
 Granskade 10 PHP-klasser i noreko-backend/classes/ for: date/time edge cases (saknad timezone, DST-problem, strtotime med stora intervall), error response audit (saknade HTTP-statuskoder, inkonsistent JSON-format, saknade Content-Type headers, saknade exit/die, JSON_PRETTY_PRINT i produktion).

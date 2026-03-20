@@ -956,6 +956,11 @@ class RebotlingAdminController {
 
     public function getLiveRankingSettings(): void {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         try {
             $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
@@ -1018,6 +1023,12 @@ class RebotlingAdminController {
      * Hämtar KPI-kolumner, sortering och refresh-intervall för Live Ranking.
      */
     public function getLiveRankingConfig(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
         try {
             $keys = ['lrc_columns', 'lrc_sort_by', 'lrc_refresh_interval'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
