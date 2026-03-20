@@ -7,11 +7,11 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #215):
-- [ ] **PHP classes/ integer overflow/bounds audit** — saknade range-checks pa intval/floatval (Worker A)
-- [ ] **PHP classes/ array key existence audit** — saknade isset/array_key_exists fore access (Worker A)
-- [ ] **Angular pipe/filter edge case audit** — felaktiga date/number pipes, null-inputs (Worker B)
-- [ ] **Angular routing guard audit** — saknade canDeactivate, felaktiga redirects (Worker B)
+### Klart (session #215):
+- [x] **PHP classes/ integer overflow/bounds audit** — 4 bounds-buggar fixade (Worker A)
+- [x] **PHP classes/ array key existence audit** — 1 null-check bugg fixad (Worker A)
+- [x] **Angular pipe/filter edge case audit** — 7 date pipe null-check buggar fixade (Worker B)
+- [x] **Angular routing guard audit** — RENT, inga buggar (Worker B)
 
 ### Nasta buggjakt-items (session #216+):
 - [ ] **PHP classes/ SQL ORDER BY injection audit** — dynamiska ORDER BY utan whitelist

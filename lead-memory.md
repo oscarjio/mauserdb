@@ -81,17 +81,11 @@ Session #211: BUGGJAKT — 19 buggar (7 Worker A + 12 Worker B). Input sanitizat
 Session #212: BUGGJAKT — 20 buggar (0 Worker A + 20 Worker B). File path traversal: rent. Session handling: rent. SQL param binding: rent. Change detection: rent. A11y: 20 fixar (aria-labels, visually-hidden, role="alert").
 Session #213: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error logging: 34 tomma catch-block i 5 PHP-klasser. CORS/headers: rent. HTTP interceptor: rent. Template strict null check: rent.
 Session #214: BUGGJAKT — 24 buggar (3 Worker A + 21 Worker B). Date/time: 3 felaktiga "last monday"-berakningar. SQL JOIN: rent. withCredentials: 8 saknade. maxlength: 13 saknade.
-Session #215: BUGGJAKT — pagaende. Worker A: integer overflow + array key audit. Worker B: pipe/filter + routing guard audit.
+Session #215: BUGGJAKT — 12 buggar (5 Worker A + 7 Worker B). Integer overflow bounds (4), array key null-check (1), pipe null-check (7). Routing guard audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-
-### Pagaende (session #215):
-- [ ] PHP classes/ integer overflow/bounds audit (Worker A)
-- [ ] PHP classes/ array key existence audit (Worker A)
-- [ ] Angular pipe/filter edge case audit (Worker B)
-- [ ] Angular routing guard audit (Worker B)
 
 ### Kvarstaende buggjakt-items (session #216+):
 - [ ] PHP classes/ SQL ORDER BY injection audit
@@ -106,6 +100,6 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 Worker A: 3 buggar — felaktiga "last monday -1 week" i WeeklyReportController + RebotlingAnalyticsController. SQL JOIN audit: rent.
 Worker B: 21 buggar — saknade withCredentials:true (8), saknade maxlength (13).
 
-### 2026-03-20 — Session #215 (pagaende)
-Worker A: PHP integer overflow/bounds audit + array key existence audit.
-Worker B: Angular pipe/filter edge case audit + routing guard audit.
+### 2026-03-20 — Session #215 (klar)
+Worker A: 5 buggar — bounds-check i MaintenanceController (3) + OperatorsbonusController (1) + array key null-check i OperatorCompareController (1).
+Worker B: 7 buggar — date pipe null-check i rebotling-admin/batch-sparning/skiftrapport/produktionsprognos/stopptidsanalys (7). Routing guard audit: rent.
