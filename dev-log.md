@@ -1,3 +1,45 @@
+## 2026-03-20 Session #212 Worker B — Angular a11y + change detection audit (20 buggar)
+
+### Uppgift 1: Angular change detection audit
+Granskade ALLA Angular-komponenter i pages/, components/ och rebotling/.
+Resultat: **0 buggar (inga OnPush-relaterade problem).**
+- Ingen komponent anvander OnPush change detection strategy.
+- Ingen komponent injektar ChangeDetectorRef.
+- Alla komponenter anvander default change detection, sa inga markForCheck()-problem finns.
+- Lifecycle-hantering (destroy$, takeUntil, clearInterval/clearTimeout) ar korrekt implementerad i samtliga komponenter.
+
+### Uppgift 2: Angular a11y (tillganglighet) audit
+Granskade ALLA Angular-templates i pages/, components/ och rebotling/.
+Resultat: **20 buggar fixade.**
+
+**Saknade aria-label pa icon-only knappar (6 st):**
+1. maintenance-form.component.ts — Stang-knapp (X-ikon) saknade aria-label
+2. service-intervals.component.ts — Stang-knapp (X-ikon) saknade aria-label
+3. maintenance-list.component.ts — Redigera-knapp (edit-ikon) saknade aria-label
+4. maintenance-list.component.ts — Ta bort-knapp (trash-ikon) saknade aria-label
+5. service-intervals.component.ts — Service-reset-knapp (check-ikon) saknade aria-label
+6. service-intervals.component.ts — Redigera intervall-knapp (edit-ikon) saknade aria-label
+
+**Saknad aria-label pa knappar med ikon + text (2 st):**
+7. pdf-export-button.component.html — Exportera PDF-knapp saknade aria-label
+8. historisk-sammanfattning.component.html — Skriv ut rapport-knapp saknade aria-label
+
+**Saknad visually-hidden text pa laddningsspinners (8 st):**
+9-12. prediktivt-underhall.component.html — 4 spinners (MTBF, heatmap, trend, rekom) saknade visually-hidden
+13. skiftoverlamning.component.html — 1 spinner saknade visually-hidden
+14-16. gamification.component.html — 3 spinners (leaderboard, profil, overview) saknade role="status" + visually-hidden
+
+**Saknad visually-hidden text pa spinners i daglig-briefing (4 st):**
+17-20. daglig-briefing.component.html — 4 spinners (stopp, bemanning, trend, stationer) saknade visually-hidden
+
+**Saknad role="alert" pa felmeddelanden (9 st):**
+- equipment-stats.component.ts — felmeddelande saknade role="alert"
+- kpi-analysis.component.ts — felmeddelande saknade role="alert"
+- maintenance-list.component.ts — felmeddelande saknade role="alert"
+- service-intervals.component.ts — felmeddelande saknade role="alert"
+- prediktivt-underhall.component.html — 4 felmeddelanden saknade role="alert"
+- daglig-briefing.component.html — 1 felmeddelande saknade role="alert"
+
 ## 2026-03-20 Session #212 Worker A — PHP backend security re-audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ file path traversal re-audit
