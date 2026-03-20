@@ -393,7 +393,11 @@ class UnderhallsloggController {
             $months = max(1, min(12, (int)($_GET['months'] ?? 6)));
 
             // EN query med GROUP BY istallet for N queries i loop (N+1 fix)
-            $startDate = date('Y-m-01', strtotime("-" . ($months - 1) . " months"));
+            // Bugfix: strtotime('-N months') ger fel datum pa manad-slut (t.ex. 31 mars - 1 manad = 3 mars).
+            // Anvand DateTime fran forsta dagen i innevarande manad for korrekt manad-aritmetik.
+            $firstOfMonth = new \DateTime('first day of this month');
+            $startDt = (clone $firstOfMonth)->modify('-' . ($months - 1) . ' months');
+            $startDate = $startDt->format('Y-m-01');
             $endDate   = date('Y-m-t 23:59:59');
 
             $stmt = $this->pdo->prepare(
@@ -418,8 +422,10 @@ class UnderhallsloggController {
             $labels    = [];
             $planerat  = [];
             $oplanerat = [];
+            // Bugfix: generera labels fran DateTime (inte strtotime('-N months')) for korrekt manad-aritmetik
             for ($i = $months - 1; $i >= 0; $i--) {
-                $label = date('Y-m', strtotime("-{$i} months"));
+                $labelDt = (clone $firstOfMonth)->modify('-' . $i . ' months');
+                $label = $labelDt->format('Y-m');
                 $labels[]    = $label;
                 $planerat[]  = (int)($dataByMonth[$label]['p'] ?? 0);
                 $oplanerat[] = (int)($dataByMonth[$label]['o'] ?? 0);

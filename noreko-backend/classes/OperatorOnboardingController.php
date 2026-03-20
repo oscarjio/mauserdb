@@ -243,7 +243,11 @@ class OperatorOnboardingController {
 
     private function getOverview(): void {
         $months = $this->getMonths();
-        $cutoffDate = date('Y-m-d', strtotime("-{$months} months"));
+        // Bugfix: strtotime('-N months') ger fel datum pa manad-slut (t.ex. 31 mars - 1 manad = 3 mars).
+        // Anvand DateTime fran forsta dagen i innevarande manad for korrekt manad-aritmetik.
+        $cutoffDt = new \DateTime('first day of this month');
+        $cutoffDt->modify("-{$months} months");
+        $cutoffDate = $cutoffDt->format('Y-m-d');
 
         try {
             $firstDates = $this->getFirstDates();

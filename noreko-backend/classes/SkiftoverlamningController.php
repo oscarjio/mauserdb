@@ -1189,6 +1189,20 @@ class SkiftoverlamningController {
         $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? strip_tags(trim(mb_substr($data['kommentar_ovrigt'], 0, 5000)))  : null;
 
         try {
+            // Race condition-skydd: kontrollera om ett protokoll redan finns for samma operator+datum+skift.
+            // Forhindrar dubbletter vid dubbelklick eller simultana requests.
+            $dupStmt = $this->pdo->prepare(
+                "SELECT id FROM rebotling_skiftoverlamning
+                 WHERE skift_datum = ? AND skift_typ = ? AND operator_id = ?
+                 LIMIT 1"
+            );
+            $dupStmt->execute([$skiftDatum, $skiftTyp, $userId]);
+            $existing = $dupStmt->fetch(\PDO::FETCH_ASSOC);
+            if ($existing) {
+                $this->sendError('Ett protokoll for detta skift finns redan (ID: ' . $existing['id'] . '). Ladda om sidan for att se det.', 409);
+                return;
+            }
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO rebotling_skiftoverlamning
                     (skift_datum, skift_typ, operator_id,

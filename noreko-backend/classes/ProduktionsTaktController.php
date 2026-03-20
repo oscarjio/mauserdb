@@ -128,14 +128,20 @@ class ProduktionsTaktController {
             $avg4h = round($count4h / 4.0, 1);
 
             // Dagens snitt
+            // Bugfix: anvand DateTime-diff for DST-korrekt timberakning
             $dayStart = date('Y-m-d 00:00:00');
-            $hoursToday = max(1, (time() - strtotime($dayStart)) / 3600);
+            $dayStartDt = new \DateTime($dayStart, new \DateTimeZone('Europe/Stockholm'));
+            $hoursToday = max(1, ($nowDt->getTimestamp() - $dayStartDt->getTimestamp()) / 3600);
             $countToday = $this->countIbcBetween($dayStart, $now);
             $avgToday = round($countToday / $hoursToday, 1);
 
             // Veckans snitt
+            // Bugfix: anvand DateTime-diff for timberakning istallet for (time() - strtotime()) / 3600.
+            // time() - strtotime() ar av med 1 timme nar veckan spanner DST-overgangen (mars/oktober).
             $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
-            $hoursThisWeek = max(1, (time() - strtotime($weekStart)) / 3600);
+            $weekStartDt = new \DateTime($weekStart, new \DateTimeZone('Europe/Stockholm'));
+            $nowDt       = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
+            $hoursThisWeek = max(1, ($nowDt->getTimestamp() - $weekStartDt->getTimestamp()) / 3600);
             $countWeek = $this->countIbcBetween($weekStart, $now);
             $avgWeek = round($countWeek / $hoursThisWeek, 1);
 

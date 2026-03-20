@@ -1,0 +1,29 @@
+-- Migration: 2026-03-20 Session #210 Worker A
+-- Bugfixar i PHP-controllers — inga schema-andringar kravs for dessa fixes.
+-- Alla fixar ar i PHP-kod (se respektive controller-fil).
+--
+-- Fixade buggar:
+-- 1. UnderhallsloggController::getManadsChart() — strtotime month-overflow orsakade
+--    duplicerade/saknade manadsetiketter i diagrammet pa manadslutdagar (t.ex. 31 mars).
+--    Fix: DateTime fran forsta dagen i innevarande manad for korrekt manad-aritmetik.
+--
+-- 2. ProduktionsTaktController::getCurrentRate() — DST-inkorrekta timberakningar.
+--    (time() - strtotime(weekStart)) / 3600 ar av med 1 timme nar veckan spanner
+--    DST-overgangen i mars/oktober.
+--    Fix: DateTime::getTimestamp()-diff for DST-korrekta timberakningar.
+--
+-- 3. MaintenanceController::setServiceInterval() — saknad duplikat-kontroll vid INSERT
+--    av nytt serviceintervall. Tva simultana requests for samma maskinnamn skapar
+--    dubbletter da service_intervals-tabellen saknar UNIQUE-begransning.
+--    Fix: SELECT-kontroll fore INSERT med 409-svar vid duplikat.
+--
+-- 4. SkiftoverlamningController::sparaProtokoll() — saknad dublikat-kontroll.
+--    Dubbelklick eller tva simultana POST-requests skapar duplicerade protokoll
+--    for samma operator+datum+skift.
+--    Fix: SELECT-kontroll fore INSERT med 409-svar vid duplikat.
+--
+-- 5. OperatorOnboardingController::getOverview() — strtotime month-overflow
+--    ger fel cutoff-datum pa manadslutdagar.
+--    Fix: DateTime fran forsta dagen i innevarande manad.
+
+SELECT 'Session #210 Worker A migration — inga schema-andringar' AS info;

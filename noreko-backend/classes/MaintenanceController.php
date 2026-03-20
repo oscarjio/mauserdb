@@ -663,6 +663,14 @@ class MaintenanceController {
                     ':id'             => $id
                 ]);
             } else {
+                // Race condition-skydd: kontrollera om maskinnamnet redan existerar (INSERT annars dubbletter)
+                $dupCheck = $this->pdo->prepare("SELECT id FROM service_intervals WHERE maskin_namn = :maskin_namn LIMIT 1");
+                $dupCheck->execute([':maskin_namn' => $maskinNamn]);
+                $existing = $dupCheck->fetch(PDO::FETCH_ASSOC);
+                if ($existing) {
+                    $this->sendError('Ett serviceintervall med detta maskinnamn finns redan (ID: ' . $existing['id'] . ')', 409);
+                    return;
+                }
                 // Skapa ny
                 $stmt = $this->pdo->prepare("
                     INSERT INTO service_intervals (maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc)

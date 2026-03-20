@@ -1,3 +1,61 @@
+## 2026-03-20 Session #210 Worker A — PHP date/time edge case + concurrent access audit (5 buggar)
+
+### Uppgift 1: Date/time edge case audit
+Granskade ALLA 100+ PHP-filer i noreko-backend/classes/ for date/time-buggar.
+Session #197 fixade DST i: SkiftoverlamningController, RebotlingController, KassationsanalysController, BonusAdminController.
+Session #205 Worker A bekraftade att ovriga controllers ar korrekta da api.php satter date_default_timezone_set('Europe/Stockholm').
+
+Hittade och fixade 3 date/time-buggar:
+
+1. **UnderhallsloggController::getManadsChart() (rad 396 + 422)** — strtotime month-overflow.
+   `strtotime("-N months")` pa manadslutdagar (t.ex. 31 mars) overflow till fel manad:
+   -1 month fran 31 mars = 3 mars (inte 28 feb), -2 months = 31 jan (OK), -1 month fran 31 jan = 31 dec (OK).
+   Bugg 1: `$startDate = date('Y-m-01', strtotime("-" . ($months - 1) . " months"))` — pa 31 mars med 2 manader ger startDate = 2026-03-01 (mars) istallet for 2026-02-01 (februari). SQL-query missar februaridata.
+   Bugg 2: `$label = date('Y-m', strtotime("-{$i} months"))` i looppen — pa 31 mars med $i=1 ger "2026-03" (mars) istallet for "2026-02" (februari). Diagrammet visar mars tva ganger och saknar februari helt.
+   Fix: DateTime fran 'first day of this month' med ->modify('-N months') for korrekt manad-aritmetik.
+
+2. **ProduktionsTaktController::getCurrentRate() (rad 137-138)** — DST-inkorrekta timberakningar.
+   `$hoursThisWeek = max(1, (time() - strtotime($weekStart)) / 3600)` ar av med 1 timme (179h istallet for 180h) nar veckan spanner DST-overgangen (sista helgen i mars eller oktober). Ger ~0.6% fel i veckosnitt-IBC/h.
+   Detsamma galler `$hoursToday` pa DST-overgangsdagen.
+   Fix: Anvand `DateTime::getTimestamp()`-diff med explicit DateTimeZone('Europe/Stockholm') for DST-korrekta berakningar.
+
+3. **OperatorOnboardingController::getOverview() (rad 246)** — strtotime month-overflow.
+   `$cutoffDate = date('Y-m-d', strtotime("-{$months} months"))` — pa 31 mars med 1 manad = 2026-03-03 istallet for 2026-02-28. Operatorer som startade 28 feb–2 mars utesluts fran vyn trots att de borde vara med i 1-manadsfonster.
+   Fix: DateTime fran 'first day of this month' med ->modify("-N months").
+
+### Uppgift 2: Concurrent access audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for race conditions.
+Session #204 fixade race conditions i CertificationController + UnderhallsloggController (taBort/deleteEntry).
+
+Granskade alla files med INSERT/UPDATE/DELETE men utan beginTransaction():
+AuditController, AuthHelper, AvvikelselarmController, DashboardLayoutController, KassationskvotAlarmController,
+KlassificeringslinjeController, LoginController, MaskinOeeController, MaskinunderhallController, NewsController,
+ProduktionskostnadController, ProduktionsTaktController, SaglinjeController, ShiftHandoverController,
+SkiftoverlamningController, StopptidsanalysController, TvattlinjeController, UnderhallsloggController, UnderhallsprognosController.
+
+Hittade och fixade 2 race conditions:
+
+4. **MaintenanceController::setServiceInterval() (rad 665-677)** — saknad duplikat-kontroll vid INSERT.
+   Vid skapande av nytt serviceintervall (id=0) saknas kontroll om maskinnamnet redan existerar.
+   service_intervals-tabellen har ingen UNIQUE-begransning pa maskin_namn.
+   Tva simultana admin-requests for samma maskinnamn skapar duplicerade rad.
+   Fix: SELECT-kontroll fore INSERT, returnerar HTTP 409 vid duplikat.
+
+5. **SkiftoverlamningController::sparaProtokoll() (rad 1192-1208)** — saknad dublikat-kontroll.
+   Dubbelklick i UI eller tva simultana POST-requests skapar duplicerade protokoll
+   for samma (operator_id, skift_datum, skift_typ). rebotling_skiftoverlamning saknar UNIQUE-index.
+   Fix: SELECT-kontroll fore INSERT, returnerar HTTP 409 med svenska felmeddelande.
+
+Andrade filer:
+- noreko-backend/classes/UnderhallsloggController.php (bugg 1)
+- noreko-backend/classes/ProduktionsTaktController.php (bugg 2)
+- noreko-backend/classes/OperatorOnboardingController.php (bugg 3)
+- noreko-backend/classes/MaintenanceController.php (bugg 4)
+- noreko-backend/classes/SkiftoverlamningController.php (bugg 5)
+- noreko-backend/migrations/2026-03-20_session210_worker_a.sql (ny — dokumenterar fixar, inga schema-andringar)
+
+----
+
 ## 2026-03-20 Session #208 Worker B — Angular HTTP interceptor + template null safety audit (14 buggar)
 
 ### Uppgift 1: Angular HTTP interceptor audit (7 buggar fixade)
