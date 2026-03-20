@@ -82,6 +82,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private chartRenderTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: KvalitetscertifikatService) {}
@@ -98,6 +99,10 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+    if (this.chartRenderTimer) {
+      clearTimeout(this.chartRenderTimer);
+      this.chartRenderTimer = null;
     }
     if (this.barChart) {
       this.barChart.destroy();
@@ -302,7 +307,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
         this.loadingStatistik = false;
         if (res?.success) {
           this.statistik = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
+          this.chartRenderTimer = setTimeout(() => { this.chartRenderTimer = null; if (!this.destroy$.closed) this.renderChart(); }, 150);
         } else if (res !== null) {
           this.errorStatistik = true;
         }

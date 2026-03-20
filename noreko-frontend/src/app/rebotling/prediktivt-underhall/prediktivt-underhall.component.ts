@@ -57,6 +57,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private chartTimers: ReturnType<typeof setTimeout>[] = [];
   private isFetching = false;
 
   constructor(private svc: PrediktivtUnderhallService) {}
@@ -69,6 +70,8 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
     if (this.refreshInterval) {
@@ -89,7 +92,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   bytFlik(flik: 'heatmap' | 'mtbf' | 'trender' | 'rekom'): void {
     this.aktivFlik = flik;
     if (flik === 'trender') {
-      setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150);
+      this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150));
     }
   }
 
@@ -220,7 +223,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
         this.trendStationer = res.data.trender;
         this.trendVeckonycklar = res.data.veckonycklar;
         if (this.aktivFlik === 'trender') {
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 150));
         }
       } else if (res !== null) {
         this.errorTrender = true;

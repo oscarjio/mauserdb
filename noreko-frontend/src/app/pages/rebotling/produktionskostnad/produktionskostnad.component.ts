@@ -65,6 +65,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   private destroy$      = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private chartTimers: ReturnType<typeof setTimeout>[] = [];
   private isFetching = false;
 
   constructor(private svc: ProduktionskostnadService) {}
@@ -85,6 +86,8 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.destroyCharts();
   }
 
@@ -125,7 +128,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         this.loadingBreakdown = false;
         if (res?.success) {
           this.breakdown = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderDoughnutChart(); }, 100);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderDoughnutChart(); }, 100));
         }
     });
   }
@@ -143,7 +146,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100));
         }
     });
   }
@@ -176,7 +179,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         this.loadingShift = false;
         if (res?.success) {
           this.shiftComp = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderShiftChart(); }, 100);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderShiftChart(); }, 100));
         }
     });
   }

@@ -81,6 +81,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private chartTimers: ReturnType<typeof setTimeout>[] = [];
   private isFetching = false;
 
   constructor(private svc: StopptidsanalysService) {}
@@ -104,6 +105,8 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.destroyCharts();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
@@ -159,7 +162,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         this.loadingPerMaskin = false;
         if (res?.success) {
           this.perMaskinData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80));
         }
       },
       error: () => { this.loadingPerMaskin = false; }
@@ -180,7 +183,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
             .sort((a, b) => b.sum - a.sum)
             .slice(0, 3);
           top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80));
         }
       },
       error: () => { this.loadingTrend = false; }
@@ -194,7 +197,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         this.loadingFordelning = false;
         if (res?.success) {
           this.fordelningData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 80);
+          this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 80));
         }
       },
       error: () => { this.loadingFordelning = false; }
