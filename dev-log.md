@@ -1,3 +1,33 @@
+## 2026-03-20 Session #204 Worker B — Angular router guard + environment config audit (0 buggar)
+
+### Uppgift 1: Angular router guard audit
+Systematisk granskning av ALLA routes i noreko-frontend/src/app/app.routes.ts (163 rader, ~80 routes).
+
+Kontrollerade:
+- Alla admin-routes (oversikt, rebotling/admin, bonus-admin, vpn-admin, users, create-user, audit, news-admin, operators, skiftplan, certifiering, operator-dashboard, operator-compare, operator-attendance, operator-trend, kvalitetstrend, stopporsak-trend, operator/:id, underhall, feature-flags, vd-veckorapport, vd-dashboard, rebotling/bonus, rebotling/analys, rebotling/kalender, rebotling/prognos, tvattlinje/admin, saglinje/admin, klassificeringslinje/admin) — ALLA har adminGuard
+- Alla autentiserade routes (narvarotracker, produktionspuls, benchmarking, min-dag, kassationsanalys, min-bonus, rapporter, etc.) — ALLA har authGuard
+- Publika routes (news, login, register, about, contact, live-views, skiftrapport, statistik, historik) — korrekt utan guard
+- authGuard: vantar pa initialized$, kontrollerar loggedIn$, redirectar till /login med returnUrl — korrekt
+- adminGuard: vantar pa initialized$, kontrollerar role === 'admin' || role === 'developer', redirectar ej inloggade till /login och inloggade utan admin-roll till / — korrekt
+- Inga lazy-loaded sub-moduler med egna routes (all routing centraliserad i app.routes.ts)
+
+Resultat: Inga buggar hittade. Alla skyddade sidor har korrekta guards.
+
+### Uppgift 2: Angular environment config audit
+Systematisk granskning av ALLA .ts- och .html-filer i noreko-frontend/src/ for hardkodade URLer, debug-flaggor, API-nycklar.
+
+Kontrollerade:
+- environment.ts: production: false, apiUrl: '/noreko-backend/api.php' — korrekt
+- environment.prod.ts: production: true, apiUrl: '/noreko-backend/api.php' — korrekt
+- Inga hardkodade localhost/192.168.x.x/privata IP-adresser
+- Inga API-nycklar eller hemligheter i frontend-kod
+- Inga debug-flaggor (debugMode/isDebug/DEBUG)
+- Enda externa URLer ar Mauser-logotyper (https://mauserpackaging.com/...) — acceptabelt
+- 32 filer anvander hardkodad '/noreko-backend/api.php' istallet for environment.apiUrl — detta ar en code quality-fraga men inte en bugg da bada miljoer har samma varde
+- console.log anvands konsekvent i 13 filer — acceptabelt da det ar samma i alla miljoer
+
+Resultat: Inga buggar hittade. Environment-konfigurationen ar korrekt.
+
 ## 2026-03-20 Session #203 Worker A — PHP integer overflow/type juggling + error disclosure audit (5 buggar)
 
 ### Uppgift 1: PHP classes/ integer overflow/type juggling audit
