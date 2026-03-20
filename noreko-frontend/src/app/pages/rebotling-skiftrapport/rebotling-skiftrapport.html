@@ -913,7 +913,7 @@
                           <div class="d-flex align-items-center gap-2">
                             <i class="fas fa-clipboard-check text-success me-2"></i>
                             <span class="text-success fw-semibold">
-                              Skiftsammanfattning — {{ (report.datum || '') | date:'yyyy-MM-dd' }}
+                              Skiftsammanfattning — {{ report.datum ? (report.datum | date:'yyyy-MM-dd') : '–' }}
                               <span class="text-muted small ms-2">({{ shiftSummaryData?.shift_name || 'Laddar...' }})</span>
                             </span>
                           </div>

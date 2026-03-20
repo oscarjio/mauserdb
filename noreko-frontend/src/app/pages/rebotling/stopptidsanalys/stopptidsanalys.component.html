@@ -257,7 +257,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let s of cachedSortedStopp; trackBy: trackById">
-            <td class="text-nowrap">{{ s.startad_at | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td class="text-nowrap">{{ s.startad_at ? (s.startad_at | date:'yyyy-MM-dd HH:mm') : '–' }}</td>
             <td>{{ s.maskin_namn }}</td>
             <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(s.duration_min) }}</td>
             <td>{{ s.orsak }}</td>

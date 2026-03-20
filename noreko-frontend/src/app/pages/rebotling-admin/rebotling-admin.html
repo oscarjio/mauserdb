@@ -197,7 +197,7 @@
                 </div>
                 <div class="status-label">IBC idag (PLC)</div>
                 <div class="status-value text-warning">{{ systemStatus.ibc_today }}</div>
-                <div class="status-sub text-muted small">
+                <div class="status-sub text-muted small" *ngIf="systemStatus.server_time">
                   Servertid: {{ systemStatus.server_time | date:'HH:mm:ss' }}
                 </div>
               </div>

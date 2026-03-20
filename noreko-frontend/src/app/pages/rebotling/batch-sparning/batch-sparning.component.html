@@ -207,7 +207,7 @@
               <td>{{ formatSeconds(b.snitt_cykeltid_s) }}</td>
               <td>{{ formatMinutes(b.ledtid_min) }}</td>
               <td>{{ b.skapad_datum | date:'yyyy-MM-dd HH:mm' }}</td>
-              <td>{{ b.avslutad_datum | date:'yyyy-MM-dd HH:mm' }}</td>
+              <td>{{ b.avslutad_datum ? (b.avslutad_datum | date:'yyyy-MM-dd HH:mm') : '–' }}</td>
             </tr>
           </tbody>
         </table>
@@ -319,7 +319,7 @@
               <tbody>
                 <tr *ngFor="let ibc of selectedBatchDetail.ibcer; trackBy: trackByIbcNummer" [class.row-kasserad]="ibc.kasserad">
                   <td>{{ ibc.ibc_nummer || '-' }}</td>
-                  <td>{{ ibc.startad | date:'HH:mm' }}</td>
+                  <td>{{ ibc.startad ? (ibc.startad | date:'HH:mm') : '-' }}</td>
                   <td>{{ ibc.klar ? (ibc.klar | date:'HH:mm') : '-' }}</td>
                   <td>{{ formatSeconds(ibc.cykeltid_sekunder) }}</td>
                   <td>
