@@ -1,3 +1,35 @@
+## 2026-03-20 Session #204 Worker A — PHP race condition + SQL LIKE injection audit (3 buggar)
+
+### Uppgift 1: PHP classes/ race condition audit
+Systematisk granskning av ALLA 100+ PHP-filer i noreko-backend/classes/ for:
+- TOCTOU (Time-of-check-to-time-of-use) — SELECT + INSERT/UPDATE/DELETE utan transaktion
+- Saknade DB-transaktioner dar multipla operationer borde vara atomara
+- SELECT + INSERT utan ON DUPLICATE KEY UPDATE (potential double-insert)
+- Race conditions i concurrent requests
+
+Granskade monster:
+- 47 filer med INSERT/UPDATE/DELETE-operationer
+- 27 filer med beginTransaction()
+- Alla SELECT...FOR UPDATE-monster (korrekt anvanda i BatchSparning, SkiftPlanning, StopporsakRegistrering, Admin, Register, Operator, FeedbackController, RebotlingController, FavoriterController, RebotlingAnalyticsController)
+- Alla ON DUPLICATE KEY UPDATE-monster (korrekt anvanda i DashboardLayout, RebotlingController, ProduktionskostnadController, BonusAdmin, RebotlingAdmin, TvattlinjeController, KlassificeringslinjeController, SaglinjeController, ShiftPlanController, ProduktionsmalController, AlertsController)
+
+Hittade och fixade 3 buggar:
+1. **CertificationController::addCertification()** — Race condition: tva concurrent POST-requests for samma operator+linje skapar duplicerade aktiva certifieringar. Fixat med transaktion + SELECT FOR UPDATE + deaktivera befintlig fore INSERT.
+2. **UnderhallsloggController::taBort()** — TOCTOU: separat SELECT-check + DELETE utan transaktion. Fixat genom att ta bort SELECT-check och anvanda DELETE direkt med rowCount()-kontroll.
+3. **UnderhallsloggController::deleteEntry()** — Samma TOCTOU-monster som ovan. Fixat pa samma satt.
+
+### Uppgift 2: PHP classes/ SQL LIKE injection audit
+Systematisk granskning av ALLA PHP-filer i noreko-backend/classes/ for:
+- LIKE-queries dar user input anvands utan att escapa %, _, och \ tecken
+- Sokvardar i LIKE utan addcslashes($input, '%_\\')
+- CONCAT('%', ?, '%') utan sanering av specialtecken
+
+Granskade monster:
+- Hittade 2 filer med user-input LIKE-queries: AuditController.php och BatchSparningController.php
+- Bada anvander redan addcslashes($input, '%_\\') korrekt
+- Alla ovriga LIKE-forekomster (ca 40 st) anvander hardkodade tabellnamn i SHOW TABLES LIKE / SHOW COLUMNS LIKE — ingen user input
+- **Inga buggar hittade — LIKE-hanteringen ar korrekt i hela kodbasen**
+
 ## 2026-03-20 Session #204 Worker B — Angular router guard + environment config audit (0 buggar)
 
 ### Uppgift 1: Angular router guard audit

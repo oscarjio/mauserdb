@@ -536,15 +536,13 @@ class UnderhallsloggController {
                 return;
             }
 
-            $check = $this->pdo->prepare("SELECT id FROM rebotling_underhallslogg WHERE id = ?");
-            $check->execute([$id]);
-            if (!$check->fetch()) {
+            $stmt = $this->pdo->prepare("DELETE FROM rebotling_underhallslogg WHERE id = ?");
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() === 0) {
                 $this->sendError('Post hittades inte', 404);
                 return;
             }
-
-            $stmt = $this->pdo->prepare("DELETE FROM rebotling_underhallslogg WHERE id = ?");
-            $stmt->execute([$id]);
 
             $this->sendSuccess(['message' => 'Post borttagen']);
         } catch (\PDOException $e) {
@@ -731,15 +729,13 @@ class UnderhallsloggController {
                 return;
             }
 
-            $check = $this->pdo->prepare("SELECT id FROM underhallslogg WHERE id = ?");
-            $check->execute([$id]);
-            if (!$check->fetch()) {
+            $stmt = $this->pdo->prepare("DELETE FROM underhallslogg WHERE id = ?");
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() === 0) {
                 $this->sendError('Post hittades inte', 404);
                 return;
             }
-
-            $stmt = $this->pdo->prepare("DELETE FROM underhallslogg WHERE id = ?");
-            $stmt->execute([$id]);
 
             $this->sendSuccess(['message' => 'Post borttagen']);
         } catch (\PDOException $e) {

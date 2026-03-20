@@ -342,6 +342,24 @@ class CertificationController {
         $certifiedBy = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 
         try {
+            $this->pdo->beginTransaction();
+
+            // Deaktivera eventuell befintlig aktiv certifiering för samma operatör+linje
+            // FOR UPDATE förhindrar race condition vid concurrent requests
+            $existStmt = $this->pdo->prepare(
+                "SELECT id FROM operator_certifications WHERE op_number = ? AND line = ? AND active = 1 FOR UPDATE"
+            );
+            $existStmt->execute([$opNumber, $line]);
+            $existing = $existStmt->fetchAll(\PDO::FETCH_COLUMN);
+
+            if (!empty($existing)) {
+                $placeholders = implode(',', array_fill(0, count($existing), '?'));
+                $deactivateStmt = $this->pdo->prepare(
+                    "UPDATE operator_certifications SET active = 0 WHERE id IN ($placeholders)"
+                );
+                $deactivateStmt->execute($existing);
+            }
+
             $stmt = $this->pdo->prepare("
                 INSERT INTO operator_certifications
                     (op_number, line, certified_by, certified_date, expires_date, notes, active)
@@ -351,11 +369,16 @@ class CertificationController {
             $stmt->execute([$opNumber, $line, $certifiedBy, $certDate, $expiresDate, $notes ?: null]);
             $newId = (int)$this->pdo->lastInsertId();
 
+            $this->pdo->commit();
+
             AuditLogger::log($this->pdo, 'add_certification', 'operator_certifications', $newId,
                 "Certifiering tillagd: operatör #$opNumber, linje: $line",
                 null, ['op_number' => $opNumber, 'line' => $line, 'certified_date' => $certDate]);
             echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('CertificationController::addCertification: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till certifiering'], JSON_UNESCAPED_UNICODE);
