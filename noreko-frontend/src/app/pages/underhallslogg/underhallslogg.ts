@@ -282,6 +282,14 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
     if (this.submitting) return;
     this.errorMessage = '';
 
+    if (!this.formStationId) {
+      this.errorMessage = 'Valj en station';
+      return;
+    }
+    if (!this.formDatum) {
+      this.errorMessage = 'Ange ett datum';
+      return;
+    }
     if (!this.formVaraktighet || this.formVaraktighet <= 0) {
       this.errorMessage = 'Ange varaktighet i minuter (minst 1)';
       return;

@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
-import * as XLSX from 'xlsx';
+import { utils as XLSXUtils, writeFile as XLSXWriteFile } from 'xlsx';
 import { environment } from '../../../environments/environment';
 import { localToday } from '../../utils/date-utils';
 
@@ -595,7 +595,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       ])
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const ws = XLSXUtils.aoa_to_sheet(wsData);
 
     // Kolumnbredder
     ws['!cols'] = [
@@ -607,9 +607,9 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       { wch: 10 },  // Antal dagar
     ];
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Historik');
-    XLSX.writeFile(wb, `historik-${localToday()}.xlsx`);
+    const wb = XLSXUtils.book_new();
+    XLSXUtils.book_append_sheet(wb, ws, 'Historik');
+    XLSXWriteFile(wb, `historik-${localToday()}.xlsx`);
   }
 
   // ─── Charts ─────────────────────────────────────────────────────────────────

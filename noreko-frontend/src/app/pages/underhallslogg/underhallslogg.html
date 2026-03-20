@@ -142,7 +142,7 @@
           </div>
 
           <div class="mt-3">
-            <button class="btn-spara" (click)="spara()" [disabled]="submitting">
+            <button class="btn-spara" (click)="spara()" [disabled]="submitting || !formStationId || !formDatum || !formVaraktighet || formVaraktighet <= 0">
               <span *ngIf="submitting" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!submitting" class="fas fa-save me-2"></i>
               {{ submitting ? 'Sparar...' : 'Spara underhall' }}

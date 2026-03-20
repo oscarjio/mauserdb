@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
-import * as XLSX from 'xlsx';
+import { utils as XLSXUtils, writeFile as XLSXWriteFile } from 'xlsx';
 import Chart from 'chart.js/auto';
 
 interface CalendarDay {
@@ -563,7 +563,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
       targetRow
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    const ws = XLSXUtils.aoa_to_sheet(allRows);
 
     // Kolumnbredder
     ws['!cols'] = [
@@ -575,9 +575,9 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
       { wch: 12 }  // Status
     ];
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Produktionskalender ${this.selectedYear}`);
-    XLSX.writeFile(wb, `Produktionskalender_${this.selectedYear}.xlsx`);
+    const wb = XLSXUtils.book_new();
+    XLSXUtils.book_append_sheet(wb, ws, `Produktionskalender ${this.selectedYear}`);
+    XLSXWriteFile(wb, `Produktionskalender_${this.selectedYear}.xlsx`);
   }
 
   exportToPDF(): void {
