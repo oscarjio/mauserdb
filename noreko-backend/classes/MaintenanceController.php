@@ -569,14 +569,6 @@ class MaintenanceController {
             $ibcPerDatum = [];
             if (!empty($serviceDatumList)) {
                 $uniqueDates = array_unique($serviceDatumList);
-                $placeholders = implode(',', array_fill(0, count($uniqueDates), '?'));
-                $batchStmt = $this->pdo->prepare(
-                    "SELECT d.datum_val, COALESCE(MAX(r.ibc_ok), 0) AS ibc_now
-                     FROM (SELECT ? AS datum_val " . str_repeat(" UNION ALL SELECT ? ", count($uniqueDates) - 1) . ") d
-                     LEFT JOIN rebotling_ibc r ON r.datum >= d.datum_val
-                     GROUP BY d.datum_val"
-                );
-                // Alternativ enklare approach: loop med prepared statement men bara för unika datum
                 $countStmt = $this->pdo->prepare(
                     "SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum"
                 );
