@@ -7,18 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #201):
-- [x] **PHP classes/ caching audit** — 3 buggar: redundant SHOW TABLES, N+1 x2, redundanta COUNT (Worker A)
-- [x] **PHP classes/ date/time edge case audit** — 1 bugg: midnight edge case i NarvaroController (Worker A)
-- [x] **Angular lazy loading + bundle size audit** — inga buggar, alla routes lazy-loadade (Worker B)
-- [x] **Angular form validation audit** — 1 bugg: saknad losenordsvalidering i menu.ts (Worker B)
+### Klart (session #202):
+- [x] **PHP classes/ session/cookie security audit** — 1 bugg: saknad session timeout-check i api.php (Worker A)
+- [x] **PHP classes/ file path traversal audit** — inga buggar, alla 114 PHP-filer anvander hardkodade sokvagar (Worker A)
+- [x] **Angular accessibility audit** — 15 buggar: saknade role="alert" i 14 templates (Worker B)
+- [x] **Angular memory leak audit** — inga buggar, alla 169 komponenter har korrekt cleanup (Worker B)
 
-### Nasta buggjakt-items (session #202+):
-- [ ] **Angular accessibility audit** — saknade aria-labels, keyboard navigation
-- [ ] **PHP classes/ session/cookie security audit** — session fixation, cookie flags, CSRF
+### Nasta buggjakt-items (session #203+):
 - [ ] **Angular HTTP retry/timeout audit** — saknade retries, for langa timeouts
-- [ ] **PHP classes/ file path traversal audit** — saknad validering av filsokvagar
-- [ ] **Angular memory leak audit** — detached DOM, event listeners, chart instances
+- [ ] **PHP classes/ integer overflow/type juggling audit** — PHP loose comparison, intval overflow
+- [ ] **PHP classes/ error disclosure audit** — stack traces, DB-schema i felmeddelanden
+- [ ] **Angular form XSS audit** — innerHTML, bypassSecurityTrust, user-input i templates
 
 ## Parkerade features (ta inte dessa nu)
 
