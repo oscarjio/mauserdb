@@ -618,7 +618,7 @@
                       <td>
                         <div class="progress-bar-wrapper">
                           <div class="progress-bar-fill" [style.width.%]="stats.total_minutes > 0 ? (r.total_minutes / stats.total_minutes * 100) : 0" [style.backgroundColor]="r.color"></div>
-                          <span class="progress-bar-text">{{ stats.total_minutes > 0 ? (r.total_minutes / stats.total_minutes * 100 | number:'1.0-0') : 0 }}%</span>
+                          <span class="progress-bar-text">{{ stats.total_minutes > 0 ? ((r.total_minutes / stats.total_minutes * 100) | number:'1.0-0') : 0 }}%</span>
                         </div>
                       </td>
                     </tr>

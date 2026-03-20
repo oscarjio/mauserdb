@@ -195,7 +195,7 @@
         <div class="typ-bar">
           <div class="typ-bar-fill" [style.width.%]="summary.total > 0 ? (entry.value / summary.total * 100) : 0"></div>
         </div>
-        <div class="typ-pct">{{ summary.total > 0 ? (entry.value / summary.total * 100 | number:'1.0-0') : 0 }}%</div>
+        <div class="typ-pct">{{ summary.total > 0 ? ((entry.value / summary.total * 100) | number:'1.0-0') : 0 }}%</div>
       </div>
     </div>
   </div>

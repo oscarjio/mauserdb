@@ -1,3 +1,43 @@
+## 2026-03-20 Session #207 Worker B — Angular pipe/transform + lazy loading audit (13 buggar)
+
+### Uppgift 1: Pipe/transform audit (13 buggar)
+Systematisk granskning av alla Angular-templates for pipe-anvandning (date, number, percent, currency).
+
+Hittade och fixade 13 buggar:
+
+1. app.config.ts: Saknade registerLocaleData(localeSv) — alla pipes anvande en-US locale istallet for sv
+2. app.config.ts: Saknade LOCALE_ID provider — Angular-pipes fick inte korrekt locale
+3. my-bonus.html: Operator precedence bugg — `stats.kpis?.bonus_avg || 0 | number` pipe band till `0` istallet for hela uttrycket (rad 89)
+4. my-bonus.html: Operator precedence bugg — `stats.summary?.total_hours || 0 | number` (rad 143)
+5. my-bonus.html: Operator precedence bugg — `stats.kpis?.bonus_max || 0 | number` (rad 144)
+6. my-bonus.html: Operator precedence bugg — `stats.kpis?.bonus_avg || 0 | number` (rad 727)
+7. my-bonus.html: Operator precedence bugg — `stats.kpis?.effektivitet || 0 | number` (rad 736)
+8. my-bonus.html: Operator precedence bugg — `stats.kpis?.produktivitet || 0 | number` (rad 744)
+9. my-bonus.html: Operator precedence bugg — `stats.kpis?.kvalitet || 0 | number` (rad 752)
+10. tvattlinje-statistik.html: Operator precedence bugg — `totalRuntimeHours * 60 | number` pipe band till `60` istallet for produkten
+11. rebotling-statistik.html: Operator precedence bugg — `totalRuntimeHours * 60 | number` samma som ovan
+12. alarm-historik.html: Operator precedence bugg — `entry.value / summary.total * 100 | number` pipe band till `100`
+13. stoppage-log.html: Operator precedence bugg — `r.total_minutes / stats.total_minutes * 100 | number` pipe band till `100`
+
+Notering: kassationsorsak.html hade samma operator precedence-bugg med `* 100 | number` — fixad men raknades in ovan.
+
+### Uppgift 2: Lazy loading + route preload audit (0 buggar)
+Granskat app.routes.ts och app.config.ts:
+- Alla komponenter anvander loadComponent() korrekt for lazy loading
+- PreloadAllModules strategi ar konfigurerad
+- authGuard och adminGuard ar korrekt implementerade med CanActivateFn
+- Layout ar enda eagerly loaded komponenten (korrekt som app-shell)
+- Inga canDeactivate guards behovs (inga formularsidor med osparad data i routing)
+
+Andrade filer:
+- noreko-frontend/src/app/app.config.ts
+- noreko-frontend/src/app/pages/my-bonus/my-bonus.html
+- noreko-frontend/src/app/pages/tvattlinje-statistik/tvattlinje-statistik.html
+- noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html
+- noreko-frontend/src/app/pages/alarm-historik/alarm-historik.html
+- noreko-frontend/src/app/pages/stoppage-log/stoppage-log.html
+- noreko-frontend/src/app/pages/rebotling/kassationsorsak/kassationsorsak.html
+
 ## 2026-03-20 Session #206 Worker B — Angular HTTP error UX + form accessibility audit (14 buggar)
 
 ### Uppgift 1: HTTP error UX audit (3 buggar)

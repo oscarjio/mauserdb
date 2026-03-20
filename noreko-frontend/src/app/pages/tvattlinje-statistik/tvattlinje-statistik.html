@@ -445,7 +445,7 @@
                     <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
                       <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
                     </td>
-                    <td class="text-end"><strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong></td>
+                    <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
                   </tr>
                 </tfoot>
               </table>

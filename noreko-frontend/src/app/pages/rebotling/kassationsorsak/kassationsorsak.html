@@ -236,7 +236,7 @@
                       [style.color]="kassationFarg(detaljer.total_producerade > 0 ? (detaljer.total_kassation / detaljer.total_producerade * 100) : 0)">
                     <strong>
                       {{ detaljer.total_producerade > 0
-                          ? (detaljer.total_kassation / detaljer.total_producerade * 100 | number:'1.1-1')
+                          ? ((detaljer.total_kassation / detaljer.total_producerade * 100) | number:'1.1-1')
                           : '0.0' }}%
                     </strong>
                   </td>

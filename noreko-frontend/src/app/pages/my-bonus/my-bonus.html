@@ -86,7 +86,7 @@
                [class.dial-primary]="(stats.kpis?.bonus_avg || 0) >= 80 && (stats.kpis?.bonus_avg || 0) < 90"
                [class.dial-info]="(stats.kpis?.bonus_avg || 0) >= 90 && (stats.kpis?.bonus_avg || 0) < 95"
                [class.dial-gold]="(stats.kpis?.bonus_avg || 0) >= 95">
-            <div class="dial-num">{{ stats.kpis?.bonus_avg || 0 | number:'1.0-0' }}</div>
+            <div class="dial-num">{{ (stats.kpis?.bonus_avg || 0) | number:'1.0-0' }}</div>
             <div class="dial-label">poäng</div>
           </div>
         </div>
@@ -140,8 +140,8 @@
             <div class="hero-qs"><span class="qs-label">Position</span><span class="qs-val">{{ getPositionName(stats.position) }}</span></div>
             <div class="hero-qs"><span class="qs-label">Cykler</span><span class="qs-val">{{ stats.summary?.total_cycles || 0 }}</span></div>
             <div class="hero-qs"><span class="qs-label">IBC OK</span><span class="qs-val text-success">{{ stats.summary?.total_ibc_ok || 0 }}</span></div>
-            <div class="hero-qs"><span class="qs-label">Timmar</span><span class="qs-val">{{ stats.summary?.total_hours || 0 | number:'1.1-1' }}</span></div>
-            <div class="hero-qs"><span class="qs-label">Max bonus</span><span class="qs-val" [ngClass]="getBonusClass(stats.kpis?.bonus_max || 0)">{{ stats.kpis?.bonus_max || 0 | number:'1.0-0' }}</span></div>
+            <div class="hero-qs"><span class="qs-label">Timmar</span><span class="qs-val">{{ (stats.summary?.total_hours || 0) | number:'1.1-1' }}</span></div>
+            <div class="hero-qs"><span class="qs-label">Max bonus</span><span class="qs-val" [ngClass]="getBonusClass(stats.kpis?.bonus_max || 0)">{{ (stats.kpis?.bonus_max || 0) | number:'1.0-0' }}</span></div>
             <div class="hero-qs" *ngIf="getNextTierInfo(stats.kpis?.bonus_avg || 0) as next">
               <span class="qs-label">Till nästa nivå</span>
               <span class="qs-val text-info">+{{ next.pointsNeeded | number:'1.0-0' }} p</span>
@@ -724,7 +724,7 @@
           <div class="kpi-icon"><i class="fas fa-star"></i></div>
           <div class="kpi-label">Snittbonus</div>
           <div class="kpi-value" [ngClass]="getBonusClass(stats.kpis?.bonus_avg || 0)">
-            {{ stats.kpis?.bonus_avg || 0 | number:'1.1-1' }}
+            {{ (stats.kpis?.bonus_avg || 0) | number:'1.1-1' }}
           </div>
           <div class="kpi-sub">{{ getBonusTier(stats.kpis?.bonus_avg || 0) }}</div>
         </div>
@@ -733,7 +733,7 @@
         <div class="kpi-card kpi-eff">
           <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
           <div class="kpi-label">Effektivitet</div>
-          <div class="kpi-value text-info">{{ stats.kpis?.effektivitet || 0 | number:'1.1-1' }}%</div>
+          <div class="kpi-value text-info">{{ (stats.kpis?.effektivitet || 0) | number:'1.1-1' }}%</div>
           <div class="kpi-sub">Godkänd / Total IBC</div>
         </div>
       </div>
@@ -741,7 +741,7 @@
         <div class="kpi-card kpi-prod">
           <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
           <div class="kpi-label">Produktivitet</div>
-          <div class="kpi-value text-primary">{{ stats.kpis?.produktivitet || 0 | number:'1.1-1' }}</div>
+          <div class="kpi-value text-primary">{{ (stats.kpis?.produktivitet || 0) | number:'1.1-1' }}</div>
           <div class="kpi-sub">IBC per timme</div>
         </div>
       </div>
@@ -749,7 +749,7 @@
         <div class="kpi-card kpi-qual">
           <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
           <div class="kpi-label">Kvalitet</div>
-          <div class="kpi-value text-success">{{ stats.kpis?.kvalitet || 0 | number:'1.1-1' }}%</div>
+          <div class="kpi-value text-success">{{ (stats.kpis?.kvalitet || 0) | number:'1.1-1' }}%</div>
           <div class="kpi-sub">Godkänd / Rättade</div>
         </div>
       </div>
