@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Subscription, interval, of, Observable } from 'rxjs';
 import { timeout, catchError, retry, tap, map, switchMap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface AuthUser {
   id: number;
@@ -62,7 +63,7 @@ export class AuthService {
   }
 
   fetchStatus(): Observable<void> {
-    return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null }>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
+    return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null }>(`${environment.apiUrl}?action=status`, { withCredentials: true }).pipe(
       timeout(8000),
       retry(1),
       catchError(() => of(null)), // null = transient error, ändra inte auth-state
@@ -96,7 +97,7 @@ export class AuthService {
     this.user$.next(null);
 
     this.logoutSub?.unsubscribe();
-    this.logoutSub = this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).pipe(
+    this.logoutSub = this.http.get(`${environment.apiUrl}?action=login&run=logout`, { withCredentials: true }).pipe(
       timeout(8000),
       catchError(() => of(null))
     ).subscribe(() => {

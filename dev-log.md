@@ -1,3 +1,32 @@
+## 2026-03-20 Session #199 Worker B — Angular HTTP error consistency + routing guard audit — 2 buggar fixade
+
+### Uppgift 1: Angular HTTP error consistency audit
+Granskade ALLA 92 services i noreko-frontend/src/app/services/ samt 4 services i noreko-frontend/src/app/rebotling/.
+- Alla 96 services har catchError pa samtliga HTTP-anrop — inga saknade.
+- 88 av 92 services i services/ anvander environment.apiUrl korrekt. De 4 som inte gor det: auth.service.ts (BUGG — fixad), tvattlinje.service.ts, saglinje.service.ts, klassificeringslinje.service.ts (de 3 sistnamnda ar live-services som ej ska roras).
+- 3 av 4 rebotling-services anvander environment.apiUrl. Den 4:e, rebotling/skiftoverlamning.service.ts, anvande hardkodad URL (BUGG — fixad).
+- Alla services har timeout + catchError-monster. GET-anrop har retry(1). POST-anrop saknar retry (korrekt — undviker dubbletter).
+- Alla komponenter som granskades har loading/error state.
+- Session #197 fixade timeout+catchError i 8 komponenter. Ovriga komponenter/services hade redan korrekt felhantering.
+
+### Uppgift 2: Angular routing guard audit
+Granskade app.routes.ts (137 routes totalt):
+- 117 routes har canActivate guards
+- 20 routes ar medvetet publika: startsida, login, register, about, contact, 5 live-vyer, 8 publika rapporter/statistik-sidor, 404-sida
+- Alla admin-sidor (26 st) anvander adminGuard korrekt
+- Alla autentiserade sidor (91 st) anvander authGuard korrekt
+- Auth guard (authGuard) och admin guard (adminGuard) ar korrekt implementerade med initialized$-vant och korrekt redirect-logik
+- Inga saknade guards, inga felaktiga redirects, inga inkonsistenta guards
+- Inga routing-buggar hittades
+
+### Fixade buggar:
+
+1. **auth.service.ts rad 66, 100** — Hardkodade API-URLer `/noreko-backend/api.php` istallet for `environment.apiUrl`. Bade fetchStatus() och logout() anvande hardkodade strangvarden. Om API-URL andras i environment-konfigurationen (t.ex. vid staging/test-miljo) sa bryts autentisering helt — anvandare kan inte logga in, logga ut, eller fa sin session verifierad. La till `import { environment } from '../../environments/environment'` och andrade bada URLer till att anvanda `${environment.apiUrl}`.
+
+2. **rebotling/skiftoverlamning.service.ts rad 6** — Hardkodad API-URL `const API = '/noreko-backend/api.php?action=skiftoverlamning'` istallet for `environment.apiUrl`. Samma problem som ovan — bryts i alternativa miljoer. La till environment-import och andrade till template literal med `environment.apiUrl`.
+
+---
+
 ## 2026-03-20 Session #198 Worker B — Angular form validation + subscription audit — 5 buggar fixade
 
 Granskade ALLA 41 Angular-komponenter i noreko-frontend/src/app/ (exkl. live-sidor) for:
