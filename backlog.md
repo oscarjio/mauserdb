@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #211):
-- [x] **PHP classes/ input sanitization audit** — strip_tags + mb_substr (Worker A, 3 buggar)
-- [x] **PHP classes/ error response consistency** — rent, alla konsekvent (Worker A)
-- [x] **PHP classes/ numeric precision audit** — float===0.0 fixade (Worker A, 4 buggar)
-- [x] **Angular form validation audit** — login trim + prematur redirect (Worker B, 5 buggar)
-- [x] **Angular route guard audit** — svenska UI-text (Worker B, 7 buggar)
+### Klart (session #212):
+- [x] **PHP classes/ file path traversal re-audit** — RENT, inga user-controlled paths (Worker A)
+- [x] **PHP classes/ session handling audit** — RENT, korrekt konfigurerat (Worker A)
+- [x] **PHP classes/ SQL query parameter binding audit** — RENT, alla prepared statements (Worker A)
+- [x] **Angular change detection audit** — RENT, inga OnPush-problem (Worker B)
+- [x] **Angular a11y audit** — 20 buggar fixade: aria-labels, visually-hidden, role="alert" (Worker B)
 
-### Nasta buggjakt-items (session #212+):
-- [ ] **PHP classes/ file path traversal re-audit** — realpath() + basename() konsistens
-- [ ] **Angular change detection audit** — OnPush-strategier, manuell markForCheck
-- [ ] **PHP classes/ session handling audit** — session_regenerate_id, session timeout
-- [ ] **Angular a11y audit** — aria-labels, keyboard navigation, screen reader
-- [ ] **PHP classes/ SQL query parameter binding audit** — prepared statements konsistens
+### Nasta buggjakt-items (session #213+):
+- [ ] **PHP classes/ error logging audit** — konsekvent error_log() + saknade try/catch
+- [ ] **Angular HTTP interceptor audit** — felhantering, retry-logik, token refresh
+- [ ] **PHP classes/ date/time edge case re-audit** — DST, midnight, month boundaries
+- [ ] **Angular template strict null check** — safe navigation (?.) i alla bindings
+- [ ] **PHP classes/ CORS/headers audit** — saknade Content-Type, CORS-policyer
 
 ## Parkerade features (ta inte dessa nu)
 

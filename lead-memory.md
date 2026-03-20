@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #211)*
+*Senast uppdaterad: 2026-03-20 (session #212)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -78,24 +78,25 @@ Session #208: BUGGJAKT — 16 buggar (2 Worker A + 14 Worker B). CSRF-token-meka
 Session #209: BUGGJAKT — 20 buggar (6 Worker A + 14 Worker B). Integer overflow bounds (1), password policy + brute force (3), N+1 query (1), DB migration (1), change detection (2), subscription leaks (4), error logging (8).
 Session #210: BUGGJAKT — 40 buggar (5 Worker A + 35 Worker B). strtotime month-overflow (2), DST timberakning (1), duplikat-kontroller (2), oanvand Subject (1), svenska UI-accentfel (34).
 Session #211: BUGGJAKT — 19 buggar (7 Worker A + 12 Worker B). Input sanitization (3), float===0.0 (4), login trim (1), prematur admin redirect (4), svenska UI-text (7).
+Session #212: BUGGJAKT — 20 buggar (0 Worker A + 20 Worker B). File path traversal: rent. Session handling: rent. SQL param binding: rent. Change detection: rent. A11y: 20 fixar (aria-labels, visually-hidden, role="alert").
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #212+):
-- [ ] PHP classes/ file path traversal re-audit
-- [ ] Angular change detection audit
-- [ ] PHP classes/ session handling audit
-- [ ] Angular a11y audit
-- [ ] PHP classes/ SQL query parameter binding audit
+### Kvarstaende buggjakt-items (session #213+):
+- [ ] PHP classes/ error logging audit
+- [ ] Angular HTTP interceptor audit
+- [ ] PHP classes/ date/time edge case re-audit
+- [ ] Angular template strict null check
+- [ ] PHP classes/ CORS/headers audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #210 (klar)
-Worker A: 5 buggar — strtotime month-overflow i UnderhallsloggController (1) + OperatorOnboardingController (1), DST timberakning i ProduktionsTaktController (1), duplikat-kontroll i MaintenanceController (1) + SkiftoverlamningController (1).
-Worker B: 35 buggar — oanvand pollTrigger$ Subject i statistik-oee-gauge (1), svenska UI-accentfel i 17 filer (34). Lazy loading audit: rent. HTTP retry audit: rent.
 
 ### 2026-03-20 — Session #211 (klar)
 Worker A: 7 buggar — saknad strip_tags i ProfileController (1) + FeatureFlagController (1), saknad mb_substr langdbegransning i StopporsakTrendController (1), float===0.0 i OperatorsPrestandaController+OperatorCompareController+TvattlinjeController+RebotlingController (4). Error response audit: rent.
 Worker B: 12 buggar — saknad trim() pa login username (1), prematur admin redirect utan initialized$-vant i users+create-user+operators+vpn-admin (4), svenska UI-text: Email->E-post, Feature Flags->Funktionsflaggor, Success Rate->Godkand andel, Dashboard->Instrumentpanel (7).
+
+### 2026-03-20 — Session #212 (klar)
+Worker A: 0 buggar — file path traversal re-audit (rent, inga user-controlled paths), session handling (rent, korrekt konfigurerat), SQL parameter binding (rent, alla prepared statements med whitelists).
+Worker B: 20 buggar — change detection (rent, inga OnPush), a11y: saknade aria-labels pa icon-only knappar (8), laddningsspinners utan visually-hidden (12), felmeddelande-containers utan role="alert" (9) i maintenance-log, pdf-export, prediktivt-underhall, skiftoverlamning, gamification, daglig-briefing m.fl.
