@@ -1,3 +1,30 @@
+## 2026-03-20 Session #213 Worker B — HTTP interceptor + template null safety audit (0 buggar)
+
+### Uppgift 1: Angular HTTP interceptor audit
+Granskade bada interceptors (error.interceptor.ts, csrf.interceptor.ts) och app.config.ts.
+Resultat: **0 buggar — interceptors ar korrekt implementerade.**
+- CSRF-interceptor kommer fore error-interceptor i provider-arrayen (korrekt ordning).
+- Error-interceptor har retry-logik for transient errors (status 0, 502, 503, 504) med 1s delay.
+- 401-hantering rensar session via AuthService.clearSession() och redirectar till /login med returnUrl.
+- Fel propageras korrekt med throwError() — inga fel svaljs.
+- Inga memory leaks — funktionella interceptors (HttpInterceptorFn), inga subscriptions.
+- Toast-meddelanden pa svenska for alla felkoder (0, 401, 403, 404, 408, 429, 500+).
+- Skip-logik for polling-requests (action=status) och custom header (X-Skip-Error-Toast).
+
+### Uppgift 2: Angular template strict null check audit
+Granskade ALLA Angular-templates (HTML och inline templates i .ts) i pages/ och components/.
+Totalt granskade: ~90+ template-filer.
+Resultat: **0 buggar — alla templates har korrekt null-hantering.**
+- Alla objekt som kan vara null/undefined skyddas med *ngIf innan anvandning.
+- Safe navigation operators (?.) anvands konsekvent pa potentiellt null-objekt.
+- Arrayer initialiseras som tomma arrayer ([]) och kontrolleras med .length innan iterering.
+- Nullbara varden anvander ternary-operatorer eller ?? (nullish coalescing) for fallback-varden.
+- Pipe-anrop (number, date, slice) skyddas av *ngIf eller safe navigation.
+- trackBy-funktioner finns pa alla *ngFor-loopar.
+- Kodbasen ar mycket konsekvent och valsskriven ur ett null-safety-perspektiv.
+
+---
+
 ## 2026-03-20 Session #212 Worker B — Angular a11y + change detection audit (20 buggar)
 
 ### Uppgift 1: Angular change detection audit
