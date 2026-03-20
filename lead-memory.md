@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #206)*
+*Senast uppdaterad: 2026-03-20 (session #207)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -73,24 +73,25 @@ Session #203: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade bounds pa
 Session #204: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Race conditions i CertificationController + UnderhallsloggController (3). SQL LIKE injection audit: rent. Router guard audit: rent. Environment config audit: rent.
 Session #205: BUGGJAKT — 12 buggar (1 Worker A + 11 Worker B). Saknad timezone i update-weather.php (1), engelska UI-strangar i gamification/operator-ranking/produktions-sla (11). File upload audit: rent. Change detection audit: rent.
 Session #206: BUGGJAKT — 21 buggar (7 Worker A + 14 Worker B). CRLF header injection (3), catch Exception->Throwable (4), HTTP error UX (3), form accessibility for/id-par (11). Error handling audit: rent.
+Session #207: BUGGJAKT — 17 buggar (4 Worker A + 13 Worker B). SQL felaktiga kolumnnamn (4), saknad sv-locale for pipes (2), pipe operator-precedens (11). Session fixation audit: rent. Lazy loading audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #207+):
-- [ ] PHP classes/ SQL column name verification
-- [ ] PHP classes/ session fixation audit
-- [ ] Angular pipe/transform audit
+### Kvarstaende buggjakt-items (session #208+):
 - [ ] PHP classes/ CSRF token audit
-- [ ] Angular lazy loading + route preload audit
+- [ ] PHP classes/ file inclusion audit
+- [ ] Angular HTTP interceptor audit
+- [ ] PHP classes/ integer overflow audit
+- [ ] Angular template strict null check
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #205 (klar)
-Worker A: 1 bugg — update-weather.php saknade date_default_timezone_set('Europe/Stockholm'). File upload audit: rent.
-Worker B: 11 buggar — i18n audit: engelska strangar i gamification/operator-ranking/produktions-sla. Change detection audit: rent.
 
 ### 2026-03-20 — Session #206 (klar)
 Worker A: 7 buggar — CRLF header injection i api.php/login.php/admin.php CORS-headers (3), catch Exception->Throwable i api.php/update-weather.php (4). Error handling audit: rent i classes/.
 Worker B: 14 buggar — HTTP error UX: tysta fel i leveransplanering/batch-sparning (3). Form accessibility: saknade for/id-par i kvalitetscertifikat/produktions-sla/tidrapport/batch-sparning/produktionsmal/historisk-produktion/produktionskostnad/skiftoverlamning/avvikelselarm (11).
+
+### 2026-03-20 — Session #207 (klar)
+Worker A: 4 buggar — SQL felaktiga kolumnnamn: BatchSparningController namn->name (1), TidrapportController start_time/end_time/station/antal->start_tid/slut_tid/skift_typ/timmar (1), MinDagController/RebotlingController icke-existerande initialer-kolumn (2). Session fixation audit: rent.
+Worker B: 13 buggar — Saknad sv-locale i app.config.ts (2), pipe operator-precedens || 0 | number i my-bonus/tvattlinje-statistik/rebotling-statistik/alarm-historik/stoppage-log/kassationsorsak (11). Lazy loading audit: rent.
