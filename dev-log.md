@@ -1,3 +1,29 @@
+## 2026-03-20 Session #216 Worker B — HTTP retry + memory leak audit (4 buggar)
+
+### Uppgift 1: Angular HTTP retry logic audit
+Granskade ALLA 96 Angular services i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ for saknade timeout(), catchError() och retry() operatorer.
+
+Resultat: **0 buggar — alla 96 services har redan timeout() + catchError() + retry().** Session #208 fixade dessa fullstandigt.
+
+### Uppgift 2: Angular memory leak audit (re-audit)
+Granskade ALLA 41 Angular-komponenter for memory leaks: chart.js-instanser, setInterval, setTimeout, subscriptions, addEventListener, ResizeObserver/MutationObserver.
+
+Hittade **4 buggar** — setTimeout-timers som INTE clearades i ngOnDestroy (totalt 9 setTimeout-anrop i 4 filer):
+
+1. **kvalitetscertifikat.component.ts** — 1 setTimeout for chart-rendering utan clearTimeout i ngOnDestroy. Fix: Lagg till chartRenderTimer-referens + clearTimeout i ngOnDestroy.
+2. **produktionskostnad.component.ts** — 3 setTimeout for chart-rendering utan clearTimeout i ngOnDestroy. Fix: Lagg till chartTimers-array + clearTimeout for alla i ngOnDestroy.
+3. **stopptidsanalys.component.ts** — 3 setTimeout for chart-rendering utan clearTimeout i ngOnDestroy. Fix: Lagg till chartTimers-array + clearTimeout for alla i ngOnDestroy.
+4. **prediktivt-underhall.component.ts** — 2 setTimeout for chart-rendering utan clearTimeout i ngOnDestroy. Fix: Lagg till chartTimers-array + clearTimeout for alla i ngOnDestroy.
+
+Ovrigt som granskades och var korrekt:
+- Alla 32 komponenter med new Chart() har chart.destroy() i ngOnDestroy
+- Alla 29 komponenter med setInterval har clearInterval i ngOnDestroy
+- Alla 41 komponenter med .subscribe() anvander takeUntil(destroy$)
+- Inga addEventListener, ResizeObserver eller MutationObserver hittades
+- Alla 5 maintenance-log-komponenter har korrekt destroy$/takeUntil/timeout/catchError
+
+---
+
 ## 2026-03-20 Session #216 Worker A — SQL ORDER BY injection + SSRF audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ SQL ORDER BY injection audit
