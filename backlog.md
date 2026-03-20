@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #215):
-- [x] **PHP classes/ integer overflow/bounds audit** — 4 bounds-buggar fixade (Worker A)
-- [x] **PHP classes/ array key existence audit** — 1 null-check bugg fixad (Worker A)
-- [x] **Angular pipe/filter edge case audit** — 7 date pipe null-check buggar fixade (Worker B)
-- [x] **Angular routing guard audit** — RENT, inga buggar (Worker B)
+### Klart (session #216):
+- [x] **PHP classes/ SQL ORDER BY injection audit** — RENT, alla redan whitelist-skyddade (Worker A)
+- [x] **PHP classes/ file_get_contents/curl SSRF audit** — RENT, ingen user-input till URL (Worker A)
+- [x] **Angular HTTP retry logic audit** — RENT, redan fixat i session #208 (Worker B)
+- [x] **Angular memory leak audit (re-audit)** — 4 setTimeout-lackor fixade (Worker B)
 
-### Nasta buggjakt-items (session #216+):
-- [ ] **PHP classes/ SQL ORDER BY injection audit** — dynamiska ORDER BY utan whitelist
-- [ ] **PHP classes/ file_get_contents/curl audit** — SSRF-risk, saknad URL-validering
-- [ ] **Angular HTTP retry logic audit** — saknade retry/timeout pa kritiska anrop
+### Nasta buggjakt-items (session #217+):
 - [ ] **PHP classes/ session handling audit** — session fixation, saknad regenerate_id
-- [ ] **Angular memory leak audit (re-audit)** — chart.js instances, event listeners
+- [ ] **PHP classes/ error response consistency audit** — blandade JSON/text-svar, saknade HTTP-statuskoder
+- [ ] **Angular form validation audit** — saknad client-side validering pa formuler
+- [ ] **PHP classes/ SQL UNION injection audit** — dynamiska UNION-klausuler utan sanitering
+- [ ] **Angular lazy loading + bundle size audit** — onodigt stora imports, saknad tree-shaking
 
 ## Parkerade features (ta inte dessa nu)
 
