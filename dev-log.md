@@ -1,3 +1,43 @@
+## 2026-03-20 Session #200 Worker B — Angular template type-safety + PHP error response consistency audit — 2 buggar fixade
+
+### Uppgift 1: Angular template type-safety audit
+Systematisk granskning av ALLA Angular-komponenter i noreko-frontend/src/app/ (42+ komponent-filer, 37+ template-filer, 90+ service-filer).
+
+Granskade omraden:
+- **Null-checks i templates**: Alla templates anvander korrekt `*ngIf`-guards for att skydda mot null-data. Nested properties skyddas med `?.` (optional chaining). Inga saknade null-checks hittades.
+- **`any`-typer**: Anvandning av `any` ar begransad till Chart.js callbacks (`(v: any) => v + '%'`), trackBy-funktioner, och datasets-arrayer — alla acceptabla undantag dar strikta typer inte ar mojliga.
+- **@Input/@Output-dekoratorer**: Alla @Input/@Output anvander korrekta typer.
+- **Template-uttryck**: Alla komponenter som anropar metoder med null-varden (t.ex. `abs()`, `deltaClass()`) har null-safe implementationer med `?? 0` fallbacks.
+- **Error-hantering i subscribe**: Alla subscribe-anrop anvander antingen `catchError(() => of(null))` med pipe, eller observer-objekt med `error:` callback. Inga ohanterlade HTTP-fel.
+- **Lifecycle**: Alla komponenter anvander `OnInit`/`OnDestroy` + `destroy$` + `takeUntil` + `clearInterval`/`clearTimeout` korrekt.
+- **trackBy**: Alla `*ngFor`-loopar har `trackBy`-funktioner.
+
+Resultat: Inga Angular template-buggar hittades. Kodbasen ar konsekvent och valmaintained.
+
+### Uppgift 2: PHP classes/ error response consistency audit
+Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (100+ filer).
+
+Granskade omraden:
+- Felformat: Nastan alla controllers anvander konsekvent `['success' => false, 'error' => '...']` format.
+- HTTP-statuskoder: Alla felkoder ar korrekta (400 for validering, 401 for auth, 403 for behorighetsbrist, 404 for not found, 500 for serverfel).
+- Content-Type: Controllers som anvander `sendSuccess/sendError`-helpers sattar Content-Type korrekt. Ovriga controllers forlitar sig pa api.php:s globala header.
+- Alla catch-block loggar till error_log() och returnerar korrekt JSON-svar.
+
+### Fixade buggar:
+
+1. **RebotlingController.php rad 1701** — Saknad `error`-nyckel i JSON-error-response: Vid undantag i `getEvents()` returnerades `['success' => false, 'events' => []]` utan `'error'`-nyckel. Frontend-komponenter som letar efter `error`-nyckeln for att visa felmeddelande fick aldrig nagot felmeddelande, sa anvandaren sag bara en tom lista utan forklaring. Fixade till `['success' => false, 'error' => 'Kunde inte hamta handelser', 'events' => []]`.
+
+2. **RebotlingController.php rad 2888** — Saknad `error`-nyckel i JSON-error-response: Vid undantag i `getTopStopp()` (databastabell-kontroll) returnerades `['success' => false, 'items' => [], 'fallback' => true]` utan `'error'`-nyckel. Samma problem som bugg 1 — frontend kan inte visa felmeddelande. Fixade till `['success' => false, 'error' => 'Databasfel vid hamtning av stopporsaker', 'items' => [], 'fallback' => true]`.
+
+### Granskade controllers utan buggar (urval):
+- AdminController, LoginController, RegisterController, ProfileController: Fullstandigt korrekta error responses.
+- StatusController, ShiftPlanController, ShiftHandoverController: Konsekvent felhantering.
+- NewsController, FeatureFlagController, StoppageController, RuntimeController: Alla error responses har 'error'-nyckel.
+- DashboardLayoutController, FavoriterController, BatchSparningController: Anvander sendError-helper korrekt.
+- CertificationController, AuditController, OperatorCompareController: Korrekt felformat.
+
+---
+
 ## 2026-03-20 Session #200 Worker A — PHP classes/ logging + input sanitization audit — 8 buggar fixade
 
 Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (117+ filer) for:

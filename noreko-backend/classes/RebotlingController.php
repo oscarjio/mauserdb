@@ -1698,7 +1698,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController::getEvents: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'events' => []], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta händelser', 'events' => []], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2885,7 +2885,7 @@ class RebotlingController {
             } catch (\Exception $e) {
                 error_log('RebotlingController::getTopStopp table check: ' . $e->getMessage());
                 http_response_code(500);
-                echo json_encode(['success' => false, 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av stopporsaker', 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
