@@ -1,3 +1,46 @@
+## 2026-03-20 Session #202 Worker A — PHP session/cookie security + file path traversal audit — 1 bugg fixad
+
+### Uppgift 1: PHP classes/ session/cookie security audit
+Systematisk granskning av ALLA 114 PHP-filer i noreko-backend/classes/ samt noreko-backend/api.php for session-, cookie- och CSRF-sakerhet.
+
+Granskade omraden:
+- **Session fixation**: LoginController (rad 90-95) anropar session_regenerate_id(true) efter lyckad inloggning. api.php (rad 87-89) satter use_strict_mode=1 och use_only_cookies=1. SKYDDAT.
+- **Cookie-flaggor**: api.php (rad 78-85) satter HttpOnly, Secure (vid HTTPS), SameSite=Lax, path=/, lifetime=28800. LoginController::logout (rad 157-168) raderar cookie med samma flaggor. SKYDDAT.
+- **CSRF-skydd**: SameSite=Lax cookies + CORS-restriktioner (api.php rad 9-46) ger tillrackligt skydd for JSON API-backend. Inga HTML-formular anvands — alla state-andrande anrop sker via JSON POST. SKYDDAT.
+- **Session timeout**: AuthHelper::SESSION_TIMEOUT = 28800 (8h). checkSessionTimeout() gallde bara i 9 av 114 filer. BUGG HITTAD — fixad med centraliserad kontroll i api.php (se nedan).
+
+Controllers med korrekt checkSessionTimeout fore fix:
+AdminController, ProfileController, FeedbackController, NewsController, ShiftHandoverController, StoppageController, FeatureFlagController, KvalitetscertifikatController, StatusController (manuell kontroll).
+
+Controllers som saknade checkSessionTimeout for POST/PUT/DELETE (fixade via centraliserad check):
+AlertsController, AvvikelselarmController, BatchSparningController, BonusAdminController, BonusController, CertificationController, DashboardLayoutController, FavoriterController, KassationskvotAlarmController, KlassificeringslinjeController, LeveransplaneringController, LineSkiftrapportController, MaintenanceController, MaskinunderhallController, OperatorController, OperatorsbonusController, ProduktionskostnadController, ProduktionsmalController, ProduktionsSlaController, ProduktionsTaktController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingController, RebotlingProductController, RuntimeController, SaglinjeController, ShiftPlanController, SkiftoverlamningController, SkiftplaneringController, SkiftrapportController, StopporsakRegistreringController, TvattlinjeController, UnderhallsloggController, VpnController.
+
+### Uppgift 2: PHP classes/ file path traversal audit
+Systematisk granskning av ALLA PHP-filer i noreko-backend/classes/ for path traversal-sarbarheter.
+
+Granskade omraden:
+- **file_get_contents**: Anvands enbart med php://input (JSON body-lasning) och hardkodade __DIR__-relativa migrationssokvagar. Ingen user input i filsokvagar. SAKERT.
+- **file_put_contents**: Finns inte i kodbasen. SAKERT.
+- **fopen/fwrite**: Enbart php://output (CSV-export i BonusAdminController, TidrapportController) och socket-operationer i VpnController. SAKERT.
+- **include/require**: Alla anvander __DIR__ eller hardkodade sokvagar. Autoloader i api.php (rad 114-117) anvander vitlistad $classNameMap — ingen user input i filsokvagar. SAKERT.
+- **$_FILES / upload**: Finns inte i kodbasen. Inga filuppladdningar. SAKERT.
+- **unlink/copy/rename**: Finns inte i kodbasen. SAKERT.
+- **exec/shell_exec/system/passthru/eval**: Finns inte i kodbasen. SAKERT.
+- **Migrationsfilslasning**: UnderhallsloggController, KapacitetsplaneringController, SkiftplaneringController, BatchSparningController, OperatorsbonusController, ProduktionsSlaController, MaskinunderhallController, ProduktionskostnadController, KvalitetscertifikatController, SkiftoverlamningController — alla anvander __DIR__ + hardkodad sokvag. SAKERT.
+- **BonusAdminController CSV-export** (rad 1809-1832): Filnamn saniteras med basename() + preg_replace. SAKERT.
+
+Resultat: Inga path traversal-sarbarheter hittades. Kodbasen har konsekvent sakra filhanteringsmonster.
+
+### Fixade buggar:
+
+1. **noreko-backend/api.php** — Saknad centraliserad session-timeout-kontroll for state-andrande requests: 34 controllers som hanterar POST/PUT/DELETE-requests saknade AuthHelper::checkSessionTimeout(). En angripare med en utgangen session-cookie kunde fortsatta gora state-andrande API-anrop (skapa anvandare, andra konfigurationer, radera data) trots att sessionen borde ha gatt ut efter 8 timmars inaktivitet. Fixade genom att lagga till en centraliserad session-timeout-kontroll i api.php som kor fore controller-exekveringen for alla POST/PUT/DELETE-requests (utom login/register/status). Detta ger automatiskt timeout-skydd for ALLA nuvarande och framtida controllers utan att varje controller behover implementera det sjalv.
+
+### Granskade filer utan buggar (session/cookie):
+LoginController.php, AuthHelper.php, RegisterController.php, ProfileController.php, AdminController.php, StatusController.php, VpnController.php, SkiftrapportExportController.php, FeedbackController.php, NewsController.php, FeatureFlagController.php, ShiftHandoverController.php, StoppageController.php, KvalitetscertifikatController.php, AndonController.php (publik), HistorikController.php (publik).
+
+### Granskade filer utan buggar (path traversal):
+Samtliga 114 filer i noreko-backend/classes/ — inga path traversal-sarbarheter. Alla filoperationer anvander hardkodade sokvagar.
+
 ## 2026-03-20 Session #201 Worker B — Angular lazy loading + form validation audit — 1 bugg fixad
 
 ### Uppgift 1: Angular lazy loading + bundle size audit

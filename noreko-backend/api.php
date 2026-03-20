@@ -245,6 +245,21 @@ if (!isset($classNameMap[$actionKey])) {
 }
 $className = $classNameMap[$actionKey];
 
+// Centraliserad session-timeout-kontroll för state-ändrande requests (POST/PUT/DELETE).
+// Login, register och status hanterar sessioner själva — hoppa över dem.
+$publicActions = ['login', 'register', 'status'];
+if (!in_array($actionKey, $publicActions, true) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'], true)) {
+    require_once __DIR__ . '/classes/AuthHelper.php';
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (!AuthHelper::checkSessionTimeout()) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
 // Ladda klassen manuellt
 $file = __DIR__ . '/classes/' . $className . '.php';
 if (file_exists($file)) {
