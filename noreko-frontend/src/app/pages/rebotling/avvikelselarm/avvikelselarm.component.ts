@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   AvvikelselarmService,
@@ -137,30 +137,24 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
-        this.loadingOverview = false;
-        this.isFetching = false;
-        if (res?.success) { this.overview = res.data; }
-        else { this.errorData = true; }
-      },
-      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.loadingOverview = false;
+      this.isFetching = false;
+      if (res?.success) { this.overview = res.data; }
+      else { this.errorData = true; }
     });
   }
 
   private loadAktiva(): void {
     this.loadingAktiva = true;
     this.errorAktiva = false;
-    this.svc.getAktiva().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
-        this.loadingAktiva = false;
-        if (res?.success) {
-          this.aktivaLarm = res.data.larm;
-        } else {
-          this.errorAktiva = true;
-        }
-      },
-      error: () => { this.loadingAktiva = false; this.errorAktiva = true; }
+    this.svc.getAktiva().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.loadingAktiva = false;
+      if (res?.success) {
+        this.aktivaLarm = res.data.larm;
+      } else {
+        this.errorAktiva = true;
+      }
     });
   }
 
@@ -168,51 +162,42 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.loadingHistorik = true;
     this.errorHistorik = false;
     this.svc.getHistorik(this.period, this.filterTyp, this.filterGrad)
-      .pipe(timeout(15000), takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.loadingHistorik = false;
-          if (res?.success) {
-            this.historikData = res.data;
-            this.rebuildSortedHistorik();
-          } else {
-            this.errorHistorik = true;
-          }
-        },
-        error: () => { this.loadingHistorik = false; this.errorHistorik = true; }
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingHistorik = false;
+        if (res?.success) {
+          this.historikData = res.data;
+          this.rebuildSortedHistorik();
+        } else {
+          this.errorHistorik = true;
+        }
       });
   }
 
   private loadRegler(): void {
     this.loadingRegler = true;
     this.errorRegler = false;
-    this.svc.getRegler().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
-        this.loadingRegler = false;
-        if (res?.success) {
-          this.regler = res.data.regler;
-        } else {
-          this.errorRegler = true;
-        }
-      },
-      error: () => { this.loadingRegler = false; this.errorRegler = true; }
+    this.svc.getRegler().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.loadingRegler = false;
+      if (res?.success) {
+        this.regler = res.data.regler;
+      } else {
+        this.errorRegler = true;
+      }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
     this.errorTrend = false;
-    this.svc.getTrend(this.period).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
-        this.loadingTrend = false;
-        if (res?.success) {
-          if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
-          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
-        } else {
-          this.errorTrend = true;
-        }
-      },
-      error: () => { this.loadingTrend = false; this.errorTrend = true; }
+    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.loadingTrend = false;
+      if (res?.success) {
+        if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+        this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
+      } else {
+        this.errorTrend = true;
+      }
     });
   }
 
@@ -287,21 +272,18 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.savingKvittera = true;
     this.kvitteraError = '';
     this.svc.kvittera(this.kvitteraLarm.id, this.kvitteraNamn.trim(), this.kvitteraKommentar.trim())
-      .pipe(timeout(15000), takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.savingKvittera = false;
-          if (res?.success) {
-            this.kvitteraLarm = null;
-            this.kvitteraError = '';
-            this.loadOverview();
-            this.loadAktiva();
-            this.loadHistorik();
-          } else {
-            this.kvitteraError = 'Kunde inte kvittera larmet';
-          }
-        },
-        error: () => { this.savingKvittera = false; this.kvitteraError = 'Kunde inte kvittera larmet'; }
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.savingKvittera = false;
+        if (res?.success) {
+          this.kvitteraLarm = null;
+          this.kvitteraError = '';
+          this.loadOverview();
+          this.loadAktiva();
+          this.loadHistorik();
+        } else {
+          this.kvitteraError = 'Kunde inte kvittera larmet';
+        }
       });
   }
 
@@ -309,7 +291,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   toggleRegel(regel: Regel): void {
     this.svc.uppdateraRegel(regel.id, undefined, !regel.aktiv)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.aktiv = !regel.aktiv;
@@ -321,7 +303,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     const val = parseFloat((event.target as HTMLInputElement).value);
     if (isNaN(val)) return;
     this.svc.uppdateraRegel(regel.id, val)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           regel.grans_varde = val;

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ProduktionskostnadService,
@@ -109,7 +109,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(timeout(15000), catchError(() => { this.errorData = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOverview = false;
         this.isFetching = false;
         if (res?.success) { this.overview = res.data; }
@@ -121,7 +121,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadBreakdown(): void {
     this.loadingBreakdown = true;
-    this.svc.getBreakdown(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getBreakdown(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingBreakdown = false;
         if (res?.success) {
           this.breakdown = res.data;
@@ -139,7 +139,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.trendPeriod).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTrend(this.trendPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
@@ -156,7 +156,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadTable(): void {
     this.loadingTable = true;
-    this.svc.getDailyTable(this.tableFrom, this.tableTo).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getDailyTable(this.tableFrom, this.tableTo).pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingTable = false;
         if (res?.success) {
           this.dailyTable = res.data;
@@ -172,7 +172,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadShift(): void {
     this.loadingShift = true;
-    this.svc.getShiftComparison(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getShiftComparison(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingShift = false;
         if (res?.success) {
           this.shiftComp = res.data;
@@ -185,7 +185,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadConfig(): void {
     this.loadingConfig = true;
-    this.svc.getConfig().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getConfig().pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingConfig = false;
         if (res?.success) {
           this.configItems = res.config;
@@ -208,7 +208,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     this.configError  = '';
     this.configMessage= '';
 
-    this.svc.updateConfig(this.configForm).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.updateConfig(this.configForm).pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.savingConfig = false;
         if (res?.success) {
           this.configMessage = 'Konfiguration sparad!';

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   BatchSparningService,
@@ -104,7 +104,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     if (this.loadingOverview) return;
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
@@ -118,7 +118,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     if (this.loadingActive) return;
     this.loadingActive = true;
     this.errorActive = false;
-    this.svc.getActiveBatches().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getActiveBatches().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingActive = false;
       if (res?.success) {
         this.activeBatches = res.batchar;
@@ -137,7 +137,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
       this.historyFrom || undefined,
       this.historyTo || undefined,
       this.historySearch || undefined
-    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    ).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingHistory = false;
       if (res?.success) {
         this.historyBatches = res.batchar;
@@ -161,7 +161,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     this.loadingDetail = true;
     this.errorDetail = false;
     this.selectedBatchDetail = null;
-    this.svc.getBatchDetail(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getBatchDetail(batchId).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetail = false;
       if (res?.success) {
         this.selectedBatchDetail = res;
@@ -180,7 +180,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
   completeBatch(batchId: number): void {
     if (!confirm('Vill du markera denna batch som klar?')) return;
     this.completeError = '';
-    this.svc.completeBatch(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.completeBatch(batchId).pipe(takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
         this.closeDetail();
@@ -224,7 +224,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     this.savingBatch = true;
     this.createError = '';
     this.createMessage = '';
-    this.svc.createBatch(data).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.createBatch(data).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.savingBatch = false;
       if (res?.success) {
         this.createMessage = 'Batch skapad!';

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   HistoriskProduktionService,
@@ -127,45 +127,36 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     this.loadingOverview = true;
     this.errorData = false;
     this.svc.getOverview(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(timeout(15000), takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.loadingOverview = false;
-          this.isFetching = false;
-          if (res?.success) { this.overview = res.data; }
-          else { this.errorData = true; }
-        },
-        error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingOverview = false;
+        this.isFetching = false;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorData = true; }
       });
   }
 
   loadGraph(): void {
     this.loadingGraph = true;
     this.svc.getProduktionPerPeriod(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(timeout(15000), takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.loadingGraph = false;
-          if (res?.success) {
-            this.periodData = res.data;
-            if (this.productionChartTimer !== null) { clearTimeout(this.productionChartTimer); }
-            this.productionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
-          }
-        },
-        error: () => { this.loadingGraph = false; }
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingGraph = false;
+        if (res?.success) {
+          this.periodData = res.data;
+          if (this.productionChartTimer !== null) { clearTimeout(this.productionChartTimer); }
+          this.productionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
+        }
       });
   }
 
   loadCompare(): void {
     this.loadingCompare = true;
     this.svc.getJamforelse(this.getDaysParam(), this.getFrom(), this.getTo())
-      .pipe(timeout(15000), takeUntil(this.destroy$))
-      .subscribe({
-        next: res => {
-          this.loadingCompare = false;
-          if (res?.success) this.jamforelse = res.data;
-        },
-        error: () => { this.loadingCompare = false; }
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingCompare = false;
+        if (res?.success) this.jamforelse = res.data;
       });
   }
 
@@ -179,12 +170,9 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
       per_page: 50,
       sort: this.tableSort,
       order: this.tableOrder,
-    }).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
-        this.loadingTable = false;
-        if (res?.success) this.tabell = res.data;
-      },
-      error: () => { this.loadingTable = false; }
+    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.loadingTable = false;
+      if (res?.success) this.tabell = res.data;
     });
   }
 

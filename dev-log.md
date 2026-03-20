@@ -1,3 +1,51 @@
+## 2026-03-20 Session #208 Worker B — Angular HTTP interceptor + template null safety audit (14 buggar)
+
+### Uppgift 1: Angular HTTP interceptor audit (7 buggar fixade)
+Granskade Angular HTTP-infrastrukturen i noreko-frontend/src/app/.
+
+Fynd:
+- app.config.ts: provideHttpClient(withInterceptors([errorInterceptor]), withFetch()) — korrekt konfigurerat
+- interceptors/error.interceptor.ts: Hanterar retry, 401/403/404/408/429/5xx — valkonstruerad
+- Auth: Cookie-baserad (withCredentials: true), inget behov av auth-interceptor med Bearer-tokens
+- Alla services har timeout(), retry() och catchError() i sina HTTP-pipes — bra
+
+Bugg: 7 komponenter hade REDUNDANT timeout(15000) i komponent-pipen ovanpa servicens egna timeout(15000) + retry(1) + catchError(). Servicen kan ta upp till 30s (15s + 15s retry) innan catchError returnerar null. Komponentens timeout(15000) firear efter 15s, INNAN servicens retry hinner slutfora — detta orsakar TimeoutError som antingen:
+a) Kastas ohantera (avvikelselarm, historisk-produktion) -> subscribe error handler fangar men ger onodigt felmeddelande
+b) Fangas av komponentens catchError (leveransplanering, batch-sparning, kvalitetscertifikat, produktionskostnad, tidrapport) -> redundant dubbel felhantering
+
+Fix: Tog bort redundant timeout() och catchError() fran komponent-pipes. Servicens interna felhantering ar tillracklig.
+
+Andrade filer:
+- noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.ts (7 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts (4 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/rebotling/leveransplanering/leveransplanering.component.ts (5 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.ts (6 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.ts (6 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskostnad.component.ts (7 subscribe-anrop fixade)
+- noreko-frontend/src/app/pages/tidrapport/tidrapport.component.ts (4 subscribe-anrop fixade)
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.ts (2 subscribe-anrop fixade)
+
+### Uppgift 2: Angular template strict null check audit (7 buggar fixade)
+Granskade 10 komponent-templates for null-safety.
+
+Fynd (INGET att fixa — valkonstruerade templates):
+- Alla templates anvander *ngIf-guards for async-data
+- Optional chaining (?.) anvands korrekt i interpoleringar (t.ex. overview?.total_produktion ?? 0)
+- Inga non-null assertions (!) i templates
+- Short-circuit evaluation i *ngIf anvands korrekt (t.ex. *ngIf="!shiftComp || shiftComp.skift.length === 0")
+
+Bugg: De 7 komponenterna ovan hade subscribe({next, error}) monster dar error-hanteraren satte loading=false men komponentens template visar "laddar..." tills loadingX=false OCH data finns. Nar timeout-felet intraffade satte error-handleren loading=false men satte INTE alltid error-flaggan, sa UI:t fastnade i ett tomt tillstand utan felmeddelande. Genom att ta bort redundant timeout lat vi servicens catchError returnera null, sa subscribe-callbacken ALLTID kor och satter ratt error-state.
+
+Granskade templates:
+- avvikelselarm.component.html — korrekt *ngIf-guards for overview, aktivaLarm, historikData, regler
+- batch-sparning.component.html — korrekt *ngIf-guards for overview, activeBatches, selectedBatchDetail
+- kvalitetscertifikat.component.html — korrekt ?. och ?? for overview, selectedCert
+- historisk-produktion.component.html — korrekt ?. och ?? for overview, jamforelse, tabell, periodData
+- leveransplanering.component.html — korrekt *ngIf-guards for overview, ordrarData, kapacitetData
+- produktionskostnad.component.html — korrekt ?. och *ngIf for overview, breakdown, trendData, shiftComp
+- tidrapport.component.html — korrekt ?. och ?? for sammanfattning, operatorData, veckodata, detaljerData
+- skiftoverlamning.component.html — korrekt *ngIf for skiftdata, selectedDetail
+
 ## 2026-03-20 Session #208 Worker A — CSRF token-skydd + file inclusion audit (2 buggar)
 
 ### Uppgift 1: PHP CSRF token audit (1 bugg — implementerade komplett CSRF-skydd)

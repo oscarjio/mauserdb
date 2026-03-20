@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../services/toast.service';
 import {
   SkiftoverlamningProtokollService,
@@ -74,7 +74,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
     this.isLoading = true;
     this.errorSkiftdata = false;
     this.svc.getSkiftdata().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       this.isLoading = false;
       if (res?.success) {
@@ -87,7 +87,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
 
   loadHistorik(): void {
     this.svc.getHistorik(10).pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success) {
         this.historikItems = res.items;
