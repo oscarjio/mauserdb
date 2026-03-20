@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #213)*
+*Senast uppdaterad: 2026-03-20 (session #214)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -80,24 +80,25 @@ Session #210: BUGGJAKT — 40 buggar (5 Worker A + 35 Worker B). strtotime month
 Session #211: BUGGJAKT — 19 buggar (7 Worker A + 12 Worker B). Input sanitization (3), float===0.0 (4), login trim (1), prematur admin redirect (4), svenska UI-text (7).
 Session #212: BUGGJAKT — 20 buggar (0 Worker A + 20 Worker B). File path traversal: rent. Session handling: rent. SQL param binding: rent. Change detection: rent. A11y: 20 fixar (aria-labels, visually-hidden, role="alert").
 Session #213: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error logging: 34 tomma catch-block i 5 PHP-klasser. CORS/headers: rent. HTTP interceptor: rent. Template strict null check: rent.
+Session #214: BUGGJAKT — 24 buggar (3 Worker A + 21 Worker B). Date/time: 3 felaktiga "last monday"-berakningar. SQL JOIN: rent. withCredentials: 8 saknade. maxlength: 13 saknade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #214+):
-- [ ] PHP classes/ date/time edge case re-audit
-- [ ] Angular service URL consistency audit
+### Kvarstaende buggjakt-items (session #215+):
 - [ ] PHP classes/ integer overflow/bounds audit
-- [ ] Angular form validation audit
-- [ ] PHP classes/ SQL JOIN audit
+- [ ] Angular pipe/filter edge case audit
+- [ ] PHP classes/ array key existence audit
+- [ ] Angular routing guard audit
+- [ ] PHP classes/ SQL ORDER BY injection audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-20 — Session #212 (klar)
-Worker A: 0 buggar — file path traversal re-audit (rent, inga user-controlled paths), session handling (rent, korrekt konfigurerat), SQL parameter binding (rent, alla prepared statements med whitelists).
-Worker B: 20 buggar — change detection (rent, inga OnPush), a11y: saknade aria-labels pa icon-only knappar (8), laddningsspinners utan visually-hidden (12), felmeddelande-containers utan role="alert" (9) i maintenance-log, pdf-export, prediktivt-underhall, skiftoverlamning, gamification, daglig-briefing m.fl.
-
 ### 2026-03-20 — Session #213 (klar)
-Worker A: 34 buggar — tomma catch-block utan error_log() i RebotlingSammanfattningController (1), RebotlingController (5), RebotlingAnalyticsController (13), RebotlingAdminController (12), BonusController (3). CORS/headers audit: rent (centraliserad i api.php).
-Worker B: 0 buggar — HTTP interceptor (rent, korrekt retry/401/CSRF-ordning), template strict null check (rent, konsekvent ?. och *ngIf overallt).
+Worker A: 34 buggar — tomma catch-block utan error_log() i 5 PHP-klasser. CORS/headers: rent.
+Worker B: 0 buggar — HTTP interceptor: rent. Template strict null check: rent.
+
+### 2026-03-20 — Session #214 (klar)
+Worker A: 3 buggar — felaktiga "last monday -1 week" i WeeklyReportController + RebotlingAnalyticsController (visade 2 veckor tillbaka istallet for 1). SQL JOIN audit: rent.
+Worker B: 21 buggar — saknade withCredentials:true i andon/historik/operator-detail (8), saknade maxlength pa text-inputs i operators/skiftrapport/bonus-admin/maskinunderhall/statistik (13).
