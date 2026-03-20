@@ -3,20 +3,20 @@
 *Lead-agenten fyller pa. Workers plockar uppgifter harifran.*
 *Hall 5-10 oppna items. Markera med [x] nar klart.*
 
-## PRIORITET: BUGGJAKT (2026-03-19)
+## PRIORITET: BUGGJAKT (2026-03-20)
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #194):
-- [x] **PHP date/time + deprecated audit** — 4 buggar (Worker A)
-- [x] **Angular strict template + lazy-loading audit** — 2 buggar (Worker B)
+### Klart (session #195):
+- [x] **PHP file I/O + array key audit** — 0 buggar, controllers ar proxys (Worker A)
+- [x] **Angular HTTP retry + change detection audit** — 3 buggar (Worker B)
 
-### Nasta buggjakt-items (session #195+):
+### Nasta buggjakt-items (session #196+):
 - [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor
-- [ ] **PHP file I/O error handling** — granska controllers for saknad felhantering vid filoperationer
-- [ ] **Angular HTTP retry logic audit** — granska att retry/backoff ar korrekt implementerat
-- [ ] **PHP array key existence audit** — granska for saknade isset/array_key_exists-kontroller
-- [ ] **Angular change detection audit** — granska for onodiga renderingar, saknad OnPush
+- [ ] **PHP classes/ file I/O + array key audit** — logiken finns i classes/, inte controllers/
+- [ ] **PHP classes/ numeric input validation audit** — saknade is_numeric/intval
+- [ ] **Angular template null-safety audit** — saknade ?. och *ngIf-guards
+- [ ] **PHP classes/ SQL injection deep audit** — string-interpolation i SQL
 
 ## Parkerade features (ta inte dessa nu)
 
