@@ -90,6 +90,7 @@ class UnderhallsprognosController {
             $dt->modify("+{$intervallDagar} days");
             return $dt->format('Y-m-d H:i:s');
         } catch (\Exception $e) {
+            error_log('UnderhallsprognosController::beraknaNextDatum: ' . $e->getMessage());
             return null;
         }
     }

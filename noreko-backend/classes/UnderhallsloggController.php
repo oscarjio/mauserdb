@@ -221,6 +221,7 @@ class UnderhallsloggController {
                         $from = date('Y-m-d', strtotime($to . ' -365 days'));
                     }
                 } catch (\Exception $e) {
+                    error_log('UnderhallsloggController: datumberäkning fallback — ' . $e->getMessage());
                     $from = date('Y-m-d', strtotime('-30 days'));
                     $to   = date('Y-m-d');
                 }
@@ -577,7 +578,7 @@ class UnderhallsloggController {
 
             $kategori       = mb_substr(strip_tags(trim($data['kategori'] ?? '')), 0, 50);
             $typ            = $data['typ'] ?? '';
-            $varaktighetMin = intval($data['varaktighet_min'] ?? 0);
+            $varaktighetMin = max(0, min(14400, intval($data['varaktighet_min'] ?? 0)));
             $kommentar      = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 2000);
             $maskin         = mb_substr(strip_tags(trim($data['maskin'] ?? 'Rebotling')), 0, 100);
 

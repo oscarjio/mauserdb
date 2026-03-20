@@ -676,6 +676,7 @@ class OperatorsbonusController {
                         $from = date('Y-m-d', strtotime($to . ' -365 days'));
                     }
                 } catch (\Exception $e) {
+                    error_log('OperatorsbonusController: datumberäkning fallback — ' . $e->getMessage());
                     $from = date('Y-m-d', strtotime('-30 days'));
                     $to   = date('Y-m-d');
                 }

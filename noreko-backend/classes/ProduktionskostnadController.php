@@ -514,6 +514,7 @@ class ProduktionskostnadController {
                     $from = (new \DateTime($to))->modify('-1 year')->format('Y-m-d');
                 }
             } catch (\Exception $e) {
+                error_log('ProduktionskostnadController: datumberäkning fallback — ' . $e->getMessage());
                 $from = (new \DateTime())->modify('-30 days')->format('Y-m-d');
                 $to   = date('Y-m-d');
             }

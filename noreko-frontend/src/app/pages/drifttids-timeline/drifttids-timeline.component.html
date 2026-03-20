@@ -18,7 +18,7 @@
       class="form-control form-control-sm date-input"
       [(ngModel)]="selectedDate"
       (change)="onDateChange()"
-      [max]="todayStr()"
+      [max]="cachedTodayStr"
       aria-label="Valj datum for tidslinje" />
     <button
       class="btn btn-outline-secondary btn-sm nav-btn"

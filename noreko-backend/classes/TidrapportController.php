@@ -90,6 +90,7 @@ class TidrapportController {
                         $fromDate = date('Y-m-d', strtotime($toDate . ' -365 days'));
                     }
                 } catch (\Exception $e) {
+                    error_log('TidrapportController: datumberäkning fallback — ' . $e->getMessage());
                     $fromDate = date('Y-m-d', strtotime('-30 days'));
                     $toDate   = $today;
                 }
@@ -110,7 +111,8 @@ class TidrapportController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('TidrapportController::tableExists: ' . $e->getMessage());
             return false;
         }
     }

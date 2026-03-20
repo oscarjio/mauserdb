@@ -83,6 +83,7 @@ class AuditController {
                             $dateStart = date('Y-m-d 00:00:00', strtotime($dateEnd . ' -365 days'));
                         }
                     } catch (\Exception $e) {
+                        error_log('AuditController: datumberäkning fallback — ' . $e->getMessage());
                         $dateStart = date('Y-m-d 00:00:00', strtotime('-30 days'));
                         $dateEnd   = date('Y-m-d 23:59:59');
                     }

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -58,6 +58,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   constructor(private svc: DrifttidsTimelineService) {}
 
   ngOnInit(): void {
+    this.cachedTodayStr = this.todayStr();
     this.rebuildTimelineHours();
     this.loadAll();
   }
@@ -102,9 +103,11 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   // isToday ar nu en cached property, se updateIsToday()
 
   isToday = true;
+  cachedTodayStr = '';
 
   private updateIsToday(): void {
-    this.isToday = this.selectedDate === this.todayStr();
+    this.cachedTodayStr = this.todayStr();
+    this.isToday = this.selectedDate === this.cachedTodayStr;
   }
 
   formatDisplayDate(dateStr: string): string {
@@ -250,13 +253,9 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     this.tooltipY = event.clientY - 10;
   }
 
-  @HostListener('document:mousemove', ['$event'])
-  onDocMouseMove(event: MouseEvent): void {
-    if (this.tooltipSegment) {
-      this.tooltipX = event.clientX + 12;
-      this.tooltipY = event.clientY - 10;
-    }
-  }
+  // Removed @HostListener('document:mousemove') — onSegmentMouseMove already handles tooltip
+  // position when hovering over segments. The global listener was triggering unnecessary
+  // change detection on every mouse move anywhere on the page.
 
   // =================================================================
   // Hjälpmetoder — formatering

@@ -74,6 +74,7 @@ class HistoriskProduktionController {
                 $dt2 = new \DateTime($to);
             } catch (\Exception $e) {
                 // Ogiltigt datum trots korrekt format — fallback till default
+                error_log('HistoriskProduktionController: datumparse fallback — ' . $e->getMessage());
                 $days = 30;
                 return [date('Y-m-d', strtotime('-29 days')), date('Y-m-d'), $days];
             }

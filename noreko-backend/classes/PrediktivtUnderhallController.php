@@ -92,7 +92,8 @@ class PrediktivtUnderhallController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('PrediktivtUnderhallController::tableExists: ' . $e->getMessage());
             return false;
         }
     }

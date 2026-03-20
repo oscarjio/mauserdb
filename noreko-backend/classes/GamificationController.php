@@ -77,7 +77,8 @@ class GamificationController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('GamificationController::tableExists: ' . $e->getMessage());
             return false;
         }
     }
@@ -805,7 +806,7 @@ class GamificationController {
         $result = [];
         foreach ($milstolpar as $m) {
             $uppnadd = $totalIbc >= $m['krav'];
-            $progress = min(100, round(($totalIbc / $m['krav']) * 100, 1));
+            $progress = $m['krav'] > 0 ? min(100, round(($totalIbc / $m['krav']) * 100, 1)) : 0;
             $result[] = [
                 'namn'     => $m['namn'],
                 'krav'     => $m['krav'],
