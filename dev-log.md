@@ -1,3 +1,39 @@
+## 2026-03-20 Session #195 Worker B — Angular HTTP retry + change detection audit — 3 buggar fixade
+
+Granskade 26 Angular-komponenter for: HTTP-anrop utan catchError, saknad timeout, felaktig retry-logik, tyst felhantering, dubbla subscriptions, saknad OnPush, manuell DOM-manipulation, saknad trackBy, setTimeout for CD-trigger, upprepade async pipe-anrop.
+
+### Fixade buggar:
+1. **produktionstakt.ts** — `saveTarget()` POST-anrop saknade bade `timeout` och `catchError`. Ett POST-anrop utan timeout kan hanga for evigt och utan catchError kraschar appen vid natveksfel. La till `timeout(10000)` och `catchError(() => of(null))`.
+2. **batch-sparning.component.ts** — `selectBatch()` HTTP-anrop saknade `timeout`. La till `timeout(15000)` for att forhindra att anropet hanger for evigt.
+3. **batch-sparning.component.ts** — `completeBatch()` HTTP-anrop saknade `timeout`. La till `timeout(15000)` for att forhindra att anropet hanger for evigt.
+
+### Noteringar (inga buggar):
+- **alerts.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil + destroy$. Polling med setInterval rensas i ngOnDestroy. trackBy anvands.
+- **historisk-produktion.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Error-grenen hanterar fel korrekt. Timers rensas i ngOnDestroy.
+- **kassationsorsak.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. Charts destroyas i ngOnDestroy.
+- **kassationsorsak-statistik.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. RefreshTimer rensas.
+- **kvalitetstrendanalys.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. RefreshInterval rensas.
+- **kvalitets-trendbrott.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil.
+- **leveransplanering.component.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. Timers rensas.
+- **maskin-drifttid.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil.
+- **maskin-oee.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Error-grenen hanterar fel. Timers rensas.
+- **min-dag.ts** — Korrekt: anvander forkJoin med timeout + catchError + takeUntil pa varje anrop. RefreshTimer rensas.
+- **narvarotracker.ts** — Korrekt: HTTP-anrop har timeout + catchError + takeUntil. Cached cell-data optimerar renderingsprestanda.
+- **oee-jamforelse.ts** — Korrekt: HTTP-anrop har timeout + catchError + takeUntil.
+- **operator-jamforelse.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Error-grenen hanterar fel. Cached KPI-varden.
+- **operatorsbonus.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Alla timers rensas.
+- **operators-prestanda.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Alla timers rensas.
+- **produktionseffektivitet.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. PollInterval rensas.
+- **rebotling-sammanfattning.component.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. isFetching guards forhindrar dubbelanrop.
+- **rebotling-trendanalys.component.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. Alla timers rensas.
+- **skiftrapport-sammanstallning.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil.
+- **stationsdetalj.component.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. Polling rensas.
+- **statistik/** — Innehaller 26+ sub-komponenter som ej granskats individuellt i denna session.
+- **stopporsaker.component.ts** — Korrekt: alla HTTP-anrop har timeout + catchError + takeUntil. Alla timers rensas.
+- **stopptidsanalys.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Error-grenen hanterar fel.
+- **vd-veckorapport.component.ts** — Korrekt: anvander subscribe({next, error}) med timeout + takeUntil. Error-grenen hanterar fel. Timers rensas.
+- Change detection: Alla komponenter anvander trackBy pa *ngFor. Inga onodiga manuella DOM-manipulationer (document.getElementById anvands enbart for Chart.js canvas-element, vilket ar norskt). Ingen komponent anvander setTimeout(0) for CD-triggning i problematisk mening — setTimeout(0-100) anvands enbart for att lata DOM rendera canvas fore chart-skapande.
+
 ## 2026-03-20 Session #195 Worker A — PHP file I/O + array key audit — 0 buggar fixade
 
 Granskade 18 PHP-controllers i noreko-backend/controllers/ for: file I/O utan felhantering (file_get_contents, fopen, etc.), saknade isset/array_key_exists, saknad null-check efter json_decode, accesser pa potentiellt tomma arrays, saknad ?? operator.

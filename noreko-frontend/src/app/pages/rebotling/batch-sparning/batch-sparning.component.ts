@@ -157,7 +157,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
   selectBatch(batchId: number): void {
     this.loadingDetail = true;
     this.selectedBatchDetail = null;
-    this.svc.getBatchDetail(batchId).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getBatchDetail(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetail = false;
       if (res?.success) {
         this.selectedBatchDetail = res;
@@ -171,7 +171,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
 
   completeBatch(batchId: number): void {
     if (!confirm('Vill du markera denna batch som klar?')) return;
-    this.svc.completeBatch(batchId).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.completeBatch(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
         this.closeDetail();

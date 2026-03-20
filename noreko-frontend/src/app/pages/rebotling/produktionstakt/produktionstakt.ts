@@ -200,6 +200,8 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
     if (this.newTarget <= 0 || this.newTarget > 100) return;
     this.savingTarget = true;
     this.taktService.setTarget(this.newTarget).pipe(
+      timeout(10000),
+      catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       this.savingTarget = false;
