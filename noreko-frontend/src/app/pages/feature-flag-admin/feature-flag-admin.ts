@@ -60,7 +60,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
       { withCredentials: true }
     ).pipe(
       timeout(10000),
-      catchError(err => {
+      catchError(() => {
         this.error = 'Kunde inte ladda funktionsflaggor.';
         this.loading = false;
         return of(null);

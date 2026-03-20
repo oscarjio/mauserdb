@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #210)*
+*Senast uppdaterad: 2026-03-20 (session #211)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -77,24 +77,25 @@ Session #207: BUGGJAKT — 17 buggar (4 Worker A + 13 Worker B). SQL felaktiga k
 Session #208: BUGGJAKT — 16 buggar (2 Worker A + 14 Worker B). CSRF-token-mekanism (1), redundanta timeout/catchError i 8 komponenter (14). File inclusion audit: rent. Template strict null check: rent.
 Session #209: BUGGJAKT — 20 buggar (6 Worker A + 14 Worker B). Integer overflow bounds (1), password policy + brute force (3), N+1 query (1), DB migration (1), change detection (2), subscription leaks (4), error logging (8).
 Session #210: BUGGJAKT — 40 buggar (5 Worker A + 35 Worker B). strtotime month-overflow (2), DST timberakning (1), duplikat-kontroller (2), oanvand Subject (1), svenska UI-accentfel (34).
+Session #211: BUGGJAKT — 19 buggar (7 Worker A + 12 Worker B). Input sanitization (3), float===0.0 (4), login trim (1), prematur admin redirect (4), svenska UI-text (7).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #211+):
-- [ ] PHP classes/ input sanitization audit
-- [ ] PHP classes/ error response consistency
-- [ ] Angular form validation audit
-- [ ] PHP classes/ numeric precision audit
-- [ ] Angular route guard audit
+### Kvarstaende buggjakt-items (session #212+):
+- [ ] PHP classes/ file path traversal re-audit
+- [ ] Angular change detection audit
+- [ ] PHP classes/ session handling audit
+- [ ] Angular a11y audit
+- [ ] PHP classes/ SQL query parameter binding audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #209 (klar)
-Worker A: 6 buggar — MaintenanceController intval bounds-check (1), AdminController losenordskomplexitet (1), AuthHelper username-baserad lockout + rate limiting (2), LoginController username-lockout + MAX_ATTEMPTS-referens (1), MaintenanceController N+1 query refaktoriserad (1). Migration: login_attempts username-index.
-Worker B: 14 buggar — drifttids-timeline change detection: cachad todayStr + borttagen HostListener (2), tidrapport subscription leaks: timeout+catchError pa 4 HTTP-anrop (4), error_log i 12 catch-block over 10 PHP-filer (8).
 
 ### 2026-03-20 — Session #210 (klar)
 Worker A: 5 buggar — strtotime month-overflow i UnderhallsloggController (1) + OperatorOnboardingController (1), DST timberakning i ProduktionsTaktController (1), duplikat-kontroll i MaintenanceController (1) + SkiftoverlamningController (1).
 Worker B: 35 buggar — oanvand pollTrigger$ Subject i statistik-oee-gauge (1), svenska UI-accentfel i 17 filer (34). Lazy loading audit: rent. HTTP retry audit: rent.
+
+### 2026-03-20 — Session #211 (klar)
+Worker A: 7 buggar — saknad strip_tags i ProfileController (1) + FeatureFlagController (1), saknad mb_substr langdbegransning i StopporsakTrendController (1), float===0.0 i OperatorsPrestandaController+OperatorCompareController+TvattlinjeController+RebotlingController (4). Error response audit: rent.
+Worker B: 12 buggar — saknad trim() pa login username (1), prematur admin redirect utan initialized$-vant i users+create-user+operators+vpn-admin (4), svenska UI-text: Email->E-post, Feature Flags->Funktionsflaggor, Success Rate->Godkand andel, Dashboard->Instrumentpanel (7).
