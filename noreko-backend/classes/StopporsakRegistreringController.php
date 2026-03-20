@@ -95,10 +95,13 @@ class StopporsakRegistreringController {
                 KEY `idx_start` (`start_time`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            // Ta bort dubbletter om seed körts flera gånger
-            $dupCount = $this->pdo->query("SELECT COUNT(*) FROM stopporsak_kategorier")->fetchColumn();
-            $distinctCount = $this->pdo->query("SELECT COUNT(DISTINCT namn) FROM stopporsak_kategorier")->fetchColumn();
-            if ((int)$dupCount > (int)$distinctCount && (int)$distinctCount > 0) {
+            // Ta bort dubbletter om seed körts flera gånger + kolla om tom (1 query istallet for 3)
+            $countRow = $this->pdo->query(
+                "SELECT COUNT(*) AS total, COUNT(DISTINCT namn) AS unikt FROM stopporsak_kategorier"
+            )->fetch(\PDO::FETCH_ASSOC);
+            $dupCount      = (int)($countRow['total'] ?? 0);
+            $distinctCount = (int)($countRow['unikt'] ?? 0);
+            if ($dupCount > $distinctCount && $distinctCount > 0) {
                 $this->pdo->exec(
                     "DELETE k1 FROM stopporsak_kategorier k1
                      INNER JOIN stopporsak_kategorier k2
@@ -107,8 +110,7 @@ class StopporsakRegistreringController {
             }
 
             // Seed standardkategorier om tabellen är tom
-            $count = $this->pdo->query("SELECT COUNT(*) FROM stopporsak_kategorier")->fetchColumn();
-            if ((int)$count === 0) {
+            if ($dupCount === 0) {
                 $defaults = [
                     ['Underhåll',         '🔧', 1],
                     ['Materialbrist',      '📦', 2],

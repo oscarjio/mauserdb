@@ -128,6 +128,54 @@ class MaskinhistorikController {
     }
 
     /**
+     * Beraknar drifttid (sek) per dag fran rebotling_onoff for ett datumintervall.
+     * Returnerar associativt array: [datum => drifttid_sek]
+     * En enda query istallet for en per dag (N+1 fix).
+     */
+    private function getDrifttidPerDag(string $fromDt, string $toDt): array {
+        $result = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+
+                if ($prevTime !== null && $prevRunning === 1) {
+                    // Berakna drifttid och tilldela till korrekt dag
+                    // Om drifttiden spanner over midnatt, dela upp per dag
+                    $intervalStart = $prevTime;
+                    $intervalEnd   = $ts;
+                    while ($intervalStart < $intervalEnd) {
+                        $dagStr = date('Y-m-d', $intervalStart);
+                        $nextMidnight = strtotime(date('Y-m-d', $intervalStart) . ' +1 day');
+                        $segmentEnd = min($intervalEnd, $nextMidnight);
+                        $segmentSek = $segmentEnd - $intervalStart;
+                        if (!isset($result[$dagStr])) $result[$dagStr] = 0;
+                        $result[$dagStr] += $segmentSek;
+                        $intervalStart = $segmentEnd;
+                    }
+                }
+
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+        } catch (\PDOException $e) {
+            error_log('MaskinhistorikController::getDrifttidPerDag: ' . $e->getMessage());
+        }
+        return $result;
+    }
+
+    /**
      * Hamta IBC-data for ett datumintervall.
      * Uses MAX(ibc_ok) per skiftraknare then SUM over skift.
      */
@@ -248,18 +296,51 @@ class MaskinhistorikController {
         $period  = max(7, min(365, (int)($_GET['period'] ?? 30)));
 
         $toDate = new \DateTime();
-        $result = [];
+        $fromDateStr = (clone $toDate)->modify("-" . ($period - 1) . " days")->format('Y-m-d');
+        $toDateStr   = $toDate->format('Y-m-d');
 
+        // Batch-hamta IBC-data for hela perioden (1 query istallet for N)
+        $ibcPerDag = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) AS dag,
+                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum_dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $ok = (int)($row['total_ok'] ?? 0);
+                $ejOk = (int)($row['total_ej_ok'] ?? 0);
+                $ibcPerDag[$row['dag']] = ['ok' => $ok, 'ej_ok' => $ejOk, 'total' => $ok + $ejOk];
+            }
+        } catch (\PDOException $e) {
+            error_log('MaskinhistorikController::getStationDrifttid (batch ibc): ' . $e->getMessage());
+        }
+
+        // Batch-hamta drifttid for hela perioden (1 query istallet for N)
+        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', $toDateStr . ' 23:59:59');
+
+        $result = [];
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $toDate;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
 
-            $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = $dagStr . ' 23:59:59';
-
-            $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
-            $ibcData = $this->getIbcData($dagStr, $dagStr);
+            $drifttidSek = $drifttidPerDag[$dagStr] ?? 0;
+            $ibcData = $ibcPerDag[$dagStr] ?? ['ok' => 0, 'ej_ok' => 0, 'total' => 0];
 
             $result[] = [
                 'datum'        => $dagStr,
@@ -283,22 +364,69 @@ class MaskinhistorikController {
         $period  = max(7, min(365, (int)($_GET['period'] ?? 30)));
 
         $toDate = new \DateTime();
-        $result = [];
+        $fromDateStr = (clone $toDate)->modify("-" . ($period - 1) . " days")->format('Y-m-d');
+        $toDateStr   = $toDate->format('Y-m-d');
 
+        // Batch-hamta all data i 2 queries istallet for 3*N (N+1 fix)
+        // 1. Drifttid per dag
+        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', $toDateStr . ' 23:59:59');
+
+        // 2. IBC-data per dag
+        $ibcPerDag = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) AS dag,
+                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                FROM (
+                    SELECT DATE(datum) AS datum_dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
+            ");
+            $stmt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $ok = (int)($row['total_ok'] ?? 0);
+                $ejOk = (int)($row['total_ej_ok'] ?? 0);
+                $ibcPerDag[$row['dag']] = ['ok' => $ok, 'ej_ok' => $ejOk, 'total' => $ok + $ejOk];
+            }
+        } catch (\PDOException $e) {
+            error_log('MaskinhistorikController::getStationOeeTrend (batch ibc): ' . $e->getMessage());
+        }
+
+        $result = [];
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $toDate;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
 
-            $oee = $this->calcOee($dagStr, $dagStr);
+            // Berakna OEE med batch-data istallet for per-dag queries
+            $drifttidSek = $drifttidPerDag[$dagStr] ?? 0;
+            $ibcData     = $ibcPerDag[$dagStr] ?? ['ok' => 0, 'ej_ok' => 0, 'total' => 0];
+            $isWeekday   = ((int)(new \DateTime($dagStr))->format('N')) <= 5;
+            $planeradSek = $isWeekday ? self::SCHEMA_SEK_PER_DAG : 0;
+
+            $total   = $ibcData['total'];
+            $okAntal = $ibcData['ok'];
+
+            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
+            $prestanda = $drifttidSek > 0
+                ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSek)
+                : 0.0;
+            $kvalitet = $total > 0 ? ($okAntal / $total) : 0.0;
+            $oee = $tillganglighet * $prestanda * $kvalitet;
 
             $result[] = [
                 'datum'              => $dagStr,
-                'oee_pct'            => $oee['oee_pct'],
-                'tillganglighet_pct' => $oee['tillganglighet_pct'],
-                'prestanda_pct'      => $oee['prestanda_pct'],
-                'kvalitet_pct'       => $oee['kvalitet_pct'],
-                'total_ibc'          => $oee['total_ibc'],
+                'oee_pct'            => round($oee * 100, 1),
+                'tillganglighet_pct' => round($tillganglighet * 100, 1),
+                'prestanda_pct'      => round($prestanda * 100, 1),
+                'kvalitet_pct'       => round($kvalitet * 100, 1),
+                'total_ibc'          => $total,
             ];
         }
 

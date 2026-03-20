@@ -1,3 +1,40 @@
+## 2026-03-20 Session #201 Worker A — PHP classes/ caching + date/time edge case audit — 5 buggar fixade
+
+### Uppgift 1: PHP classes/ caching audit
+Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (100+ filer).
+
+Granskade omraden:
+- **Redundanta DB-anrop**: Samma query kors flera ganger i samma request
+- **Tunga queries utan caching**: Aggregerings-queries som kors vid varje request
+- **N+1 query-problem**: Loopar som gor en query per iteration istallet for batch-query
+- **Onodiga JOINs**: Queries som JOINar tabeller men bara anvander kolumner fran en
+- **Saknad index-hints**: Queries pa stora tabeller utan WHERE pa indexerade kolumner
+
+### Uppgift 2: PHP classes/ date/time edge case audit
+Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/.
+
+Granskade omraden:
+- **Midnight edge cases**: Queries med datum-janforelser som missar 00:00:00 eller 23:59:59
+- **Year boundary**: Berakningar som antar ar=ar utan att hantera arsskifte
+- **DST/timezone**: strtotime() utan explicit timezone, date() utan date_default_timezone_set
+- **Off-by-one**: BETWEEN som inkluderar/exkluderar gransvardet felaktigt
+- **Veckonummer**: ISO vs US veckonumrering
+
+### Fixade buggar:
+
+1. **NarvaroController.php rad 60** — Midnight edge case: `s.datum BETWEEN :start AND :end` anvande rena datumstrangar (t.ex. `2026-03-31`) mot en DATETIME-kolumn. MySQL tolkar `'2026-03-31'` som `'2026-03-31 00:00:00'`, vilket innebar att alla rader fran sista dagen i manaden efter midnatt (00:00:01-23:59:59) missades. Fixade till `DATE(s.datum) BETWEEN :start AND :end`.
+
+2. **ProduktionspulsController.php rad 281+305** — Redundant DB-anrop: `getLiveKpi()` korde `SHOW TABLES LIKE 'rebotling_onoff'` TVA ganger i samma request (en for driftstatus, en for senaste stopp). Slog ihop till en enda check som kor bada queries under samma villkor.
+
+3. **MaskinhistorikController.php rad 253-269 (getStationDrifttid)** — N+1 query-problem: For varje dag i perioden (upp till 365 dagar) kordes 2 separata DB-queries (getDrifttidSek + getIbcData), totalt upp till 730 queries per request. Fixade genom att batcha bade IBC-data och drifttid i 2 queries for hela perioden istallet.
+
+4. **MaskinhistorikController.php rad 288-303 (getStationOeeTrend)** — N+1 query-problem: For varje dag i perioden (upp till 365 dagar) kordes calcOee() som internt gor 3 queries (getDrifttidSek + getIbcData + raknaDagar), totalt upp till 1095 queries per request. Fixade med batch-queries och inline OEE-berakning.
+
+5. **StopporsakRegistreringController.php rad 99-110** — Redundanta DB-anrop: `ensureTablesExist()` (som kors pa VARJE request) kordes 3 separata COUNT-queries (COUNT(*), COUNT(DISTINCT namn), COUNT(*) igen for seed-check). Slog ihop till 1 query med `SELECT COUNT(*) AS total, COUNT(DISTINCT namn) AS unikt` och ateranvander resultatet for seed-checken.
+
+### Filer granskade utan buggar:
+HistorikController, AlarmHistorikController, CykeltidHeatmapController, EffektivitetController, FeedbackAnalysController, ForstaTimmeAnalysController, HeatmapController, HistoriskProduktionController, KassationskvotAlarmController, KassationsorsakController, KassationsorsakPerStationController, KvalitetsTrendbrottController, MalhistorikController, MyStatsController, VeckorapportController, WeeklyReportController, VeckotrendController, ProduktionskalenderController, DagligSammanfattningController, MorgonrapportController, samt alla ovriga classes/-filer (100+ filer totalt).
+
 ## 2026-03-20 Session #200 Worker B — Angular template type-safety + PHP error response consistency audit — 2 buggar fixade
 
 ### Uppgift 1: Angular template type-safety audit

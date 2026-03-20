@@ -275,11 +275,13 @@ class ProduktionspulsController {
             error_log('ProduktionspulsController::getLiveKpi (ibc_per_timme): ' . $e->getMessage());
         }
 
-        // 3. Driftstatus (senaste on/off-post)
+        // 3+4. Driftstatus + tid sedan senaste stopp (en SHOW TABLES-check istallet for tva)
         $driftstatus = ['running' => false, 'sedan' => null];
+        $senasteStopp = ['minuter' => null, 'senaste_stopp' => null];
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
             if ($check && $check->rowCount() > 0) {
+                // 3. Driftstatus (senaste on/off-post)
                 $stmt = $this->pdo->query("
                     SELECT datum, running
                     FROM rebotling_onoff
@@ -294,16 +296,8 @@ class ProduktionspulsController {
                         'sedan'   => $row['datum'],
                     ];
                 }
-            }
-        } catch (\PDOException $e) {
-            error_log('ProduktionspulsController::getLiveKpi (driftstatus): ' . $e->getMessage());
-        }
 
-        // 4. Tid sedan senaste stopp
-        $senasteStopp = ['minuter' => null, 'senaste_stopp' => null];
-        try {
-            $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
-            if ($check && $check->rowCount() > 0) {
+                // 4. Tid sedan senaste stopp
                 $stmt = $this->pdo->query("
                     SELECT datum
                     FROM rebotling_onoff
@@ -321,7 +315,7 @@ class ProduktionspulsController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('ProduktionspulsController::getLiveKpi (senaste_stopp): ' . $e->getMessage());
+            error_log('ProduktionspulsController::getLiveKpi (driftstatus/senaste_stopp): ' . $e->getMessage());
         }
 
         echo json_encode([

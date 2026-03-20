@@ -47,6 +47,7 @@ class NarvaroController {
         try {
             // Hämta alla skiftrapporter för månaden med operatörer
             // Varje rad har op1, op2, op3 som refererar till operators.number
+            // Anvander DATE() for att undvika midnight edge case (datum ar DATETIME)
             $sql = "
                 SELECT
                     DATE(s.datum) AS dag,
@@ -57,7 +58,7 @@ class NarvaroController {
                     s.op2,
                     s.op3
                 FROM rebotling_skiftrapport s
-                WHERE s.datum BETWEEN :start AND :end
+                WHERE DATE(s.datum) BETWEEN :start AND :end
                   AND s.ibc_ok IS NOT NULL
                 ORDER BY s.datum ASC
             ";
