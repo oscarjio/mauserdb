@@ -1,3 +1,26 @@
+## 2026-03-20 Session #196 Worker A — PHP classes/ SQL injection + numeric input validation audit — 5 buggar fixade
+
+Granskade 10 PHP-klasser i noreko-backend/classes/ for: SQL injection via string-interpolation, saknad numeric validation pa GET/POST-parametrar, saknad felhantering, felaktiga kolumnnamn, edge cases.
+
+### Fixade buggar:
+1. **BonusController.php rad 1668-1689** — SQL injection via string-interpolation i `simulate()`: `$periodStart` och `$periodEnd` fran POST-body interpolerades direkt i SQL-strang via `$dateFilter`. Andrade till prepared statement med namngivna parametrar (`:sim_from`, `:sim_to`). Trots regex-validering ar prepared statements den korrekta defense-in-depth-losningen.
+2. **OperatorDashboardController.php rad 774** — Felaktig IBC/h-berakning i `getMittTempo()`: anvande `* 3600.0` (sekunder) men `runtime_plc` ar i minuter. Resulterade i IBC/h-varden 60x for hoga. Andrade till `* 60.0`.
+3. **OperatorDashboardController.php rad 810** — Samma bugg i `getMittTempo()` for snittet over alla operatorer. Andrade `* 3600.0` till `* 60.0`.
+4. **OperatorDashboardController.php rad 893** — Samma bugg i `getMinBonus()`: IBC/h-berakning anvande `* 3600.0` istallet for `* 60.0`. Resulterade i felaktig tempo-bonus-berakning.
+5. **OperatorDashboardController.php rad 929** — Samma bugg i `getMinBonus()` for snittet over alla operatorer. Andrade `* 3600.0` till `* 60.0`.
+
+### Noteringar (inga buggar):
+- **OperatorsbonusController.php** — Alla queries anvander prepared statements med namngivna parametrar. Korrekt try-catch runt PDO-anrop. Korrekt division-by-zero-skydd.
+- **OperatorController.php** — Alla queries anvander prepared statements. Input valideras med intval(), strip_tags(), mb_strlen(). Korrekt transaktioner.
+- **OperatorCompareController.php** — Alla queries anvander prepared statements. Input valideras med intval(). Korrekt NULLIF-anvandning.
+- **VdDashboardController.php** — Alla queries anvander prepared statements. Korrekt tableExists()-check. NULLIF-skydd. htmlspecialchars pa run-parameter.
+- **AdminController.php** — Alla queries anvander prepared statements. Bcrypt via AuthHelper. Korrekt validering och transaktioner. Audit logging.
+- **LoginController.php** — Alla queries anvander prepared statements. Korrekt bcrypt, rate limiting, session fixation-skydd.
+- **RegisterController.php** — Alla queries anvander prepared statements. Bcrypt, rate limiting, transaktioner.
+- **ProfileController.php** — Alla queries anvander prepared statements. Rate limiting, bcrypt, transaktioner.
+
+---
+
 ## 2026-03-20 Session #196 Worker B — Angular template null-safety + subscription leak audit — 1 bugg fixad
 
 Granskade 10 Angular-komponenter (bade .ts och .html) for: saknad optional chaining i templates, saknade *ngIf-guards, subscribe() utan takeUntil, saknad OnDestroy, setTimeout/setInterval utan cleanup i ngOnDestroy, Chart.js-instanser utan destroy.

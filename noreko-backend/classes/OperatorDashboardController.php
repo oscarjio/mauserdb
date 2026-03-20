@@ -770,8 +770,8 @@ class OperatorDashboardController {
             $myRow = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $myIbc = (int)($myRow['total_ibc'] ?? 0);
-            $myRuntime = (float)($myRow['total_runtime_s'] ?? 0);
-            $myIbcPerH = ($myRuntime > 0) ? round($myIbc * 3600.0 / $myRuntime, 1) : 0;
+            $myRuntime = (float)($myRow['total_runtime_s'] ?? 0); // runtime_plc i minuter
+            $myIbcPerH = ($myRuntime > 0) ? round($myIbc * 60.0 / $myRuntime, 1) : 0;
 
             // Snitt för alla operatörer idag
             $sqlAll = "
@@ -804,10 +804,10 @@ class OperatorDashboardController {
             $sumRates = 0.0;
             $countOps = 0;
             foreach ($allRows as $ar) {
-                $r = (float)$ar['total_runtime_s'];
+                $r = (float)$ar['total_runtime_s']; // runtime_plc i minuter
                 $i = (int)$ar['total_ibc'];
                 if ($r > 0 && $i > 0) {
-                    $sumRates += ($i * 3600.0 / $r);
+                    $sumRates += ($i * 60.0 / $r);
                     $countOps++;
                 }
             }
@@ -889,8 +889,8 @@ class OperatorDashboardController {
             $okPct = ($totalIbc > 0) ? ($okIbc / $totalIbc * 100) : 0;
             $kvalitetsBonus = max(0, min(50, ($okPct - 90) * 5));
 
-            // IBC/h
-            $ibcPerH = ($runtimeS > 0) ? ($totalIbc * 3600.0 / $runtimeS) : 0;
+            // IBC/h (runtime_plc i minuter)
+            $ibcPerH = ($runtimeS > 0) ? ($totalIbc * 60.0 / $runtimeS) : 0;
 
             // Snitt IBC/h alla idag
             $sqlAll = "
@@ -923,10 +923,10 @@ class OperatorDashboardController {
             $sumRates = 0.0;
             $countOps = 0;
             foreach ($allRows as $ar) {
-                $r = (float)$ar['total_runtime_s'];
+                $r = (float)$ar['total_runtime_s']; // runtime_plc i minuter
                 $i = (int)$ar['total_ibc'];
                 if ($r > 0 && $i > 0) {
-                    $sumRates += ($i * 3600.0 / $r);
+                    $sumRates += ($i * 60.0 / $r);
                     $countOps++;
                 }
             }

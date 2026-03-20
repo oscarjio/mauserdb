@@ -1665,8 +1665,7 @@ class BonusController {
         // Sortera tiers fallande efter min_ibc_per_hour så vi matchar bästa tier först
         usort($cleanTiers, fn($a, $b) => $b['min_ibc_per_hour'] <=> $a['min_ibc_per_hour']);
 
-        // $periodStart/$periodEnd validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
-        $dateFilter = "DATE(datum) BETWEEN '" . $periodStart . "' AND '" . $periodEnd . "'";
+        $dateFilter = "DATE(datum) BETWEEN :sim_from AND :sim_to";
 
         try {
             // Hämta operatörsnamn för lookup
@@ -1687,7 +1686,7 @@ class BonusController {
                     FROM ($inner) AS ps
                     WHERE shift_runtime > 0
                 ");
-                $stmt->execute();
+                $stmt->execute([':sim_from' => $periodStart, ':sim_to' => $periodEnd]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows as $row) {
                     $key = $row['operator_id'] . '_' . $row['skiftraknare'] . '_' . $pos;
