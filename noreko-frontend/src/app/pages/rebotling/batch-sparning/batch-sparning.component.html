@@ -349,7 +349,7 @@
       <form (ngSubmit)="submitCreateBatch()">
         <div class="mb-3">
           <label class="form-label" for="batchNummer">Batch-nummer *</label>
-          <input type="text" id="batchNummer" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" #batchNumCtrl="ngModel" required placeholder="T.ex. BATCH-2026-0312" aria-required="true">
+          <input type="text" id="batchNummer" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" #batchNumCtrl="ngModel" required placeholder="T.ex. BATCH-2026-0312" aria-required="true" maxlength="100">
           <div class="text-danger small mt-1" *ngIf="batchNumCtrl.invalid && batchNumCtrl.touched">
             Batch-nummer krävs.
           </div>

@@ -397,7 +397,7 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label text-muted small">Batchnummer *</label>
-            <input type="text" class="cert-input" [(ngModel)]="genBatchNummer" placeholder="T.ex. B-2026-0326" required />
+            <input type="text" class="cert-input" [(ngModel)]="genBatchNummer" placeholder="T.ex. B-2026-0326" required maxlength="100" />
           </div>
           <div class="col-md-6">
             <label class="form-label text-muted small">Datum</label>
@@ -405,7 +405,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label text-muted small">Operator</label>
-            <input type="text" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" />
+            <input type="text" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" maxlength="200" />
           </div>
           <div class="col-md-6">
             <label class="form-label text-muted small">Antal IBC</label>

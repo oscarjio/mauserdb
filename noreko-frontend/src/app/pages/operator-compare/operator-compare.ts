@@ -371,9 +371,16 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
           </div><!-- /kpi-table -->
 
           <!-- Sammanfattning: vinnare -->
-          <div class="summary-row" *ngIf="getWinnerSummary() as summary">
+          <div class="summary-row" *ngIf="getWinnerData() as summary">
             <i class="fas fa-trophy me-2" style="color:#ffd700"></i>
-            <span [innerHTML]="summary"></span>
+            <span>
+              <ng-container *ngIf="summary.winnerName">
+                <strong>{{ summary.winnerName }}</strong> vinner {{ summary.wins }} av {{ summary.total }} mätetal.
+              </ng-container>
+              <ng-container *ngIf="!summary.winnerName">
+                Jämnt resultat — vardera operatör vinner {{ summary.wins }} mätetal.
+              </ng-container>
+            </span>
           </div>
         </div>
 
@@ -1453,11 +1460,35 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     const nameB = this.compareData.op_b.name;
 
     if (scoreA > scoreB) {
-      return `<strong>${nameA}</strong> vinner ${scoreA} av ${metrics.length} mätetal.`;
+      return `${nameA} vinner ${scoreA} av ${metrics.length} mätetal.`;
     } else if (scoreB > scoreA) {
-      return `<strong>${nameB}</strong> vinner ${scoreB} av ${metrics.length} mätetal.`;
+      return `${nameB} vinner ${scoreB} av ${metrics.length} mätetal.`;
     } else {
       return `Jämnt resultat — vardera operatör vinner ${scoreA} mätetal.`;
+    }
+  }
+
+  getWinnerData(): { winnerName: string; wins: number; total: number } | null {
+    if (!this.compareData) return null;
+    const metrics: Array<'total_ibc_ok' | 'kvalitet_pct' | 'snitt_ibc_per_h' | 'total_runtime_h'> =
+      ['total_ibc_ok', 'kvalitet_pct', 'snitt_ibc_per_h', 'total_runtime_h'];
+
+    let scoreA = 0;
+    let scoreB = 0;
+    for (const m of metrics) {
+      if (this.wins(m, 'a')) scoreA++;
+      else if (this.wins(m, 'b')) scoreB++;
+    }
+
+    const nameA = this.compareData.op_a.name;
+    const nameB = this.compareData.op_b.name;
+
+    if (scoreA > scoreB) {
+      return { winnerName: nameA, wins: scoreA, total: metrics.length };
+    } else if (scoreB > scoreA) {
+      return { winnerName: nameB, wins: scoreB, total: metrics.length };
+    } else {
+      return { winnerName: '', wins: scoreA, total: metrics.length };
     }
   }
 
