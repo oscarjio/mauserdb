@@ -13632,3 +13632,62 @@ Kontrollerade for: (1) HTTP utan catchError, (2) HTTP utan timeout, (3) Subscrip
 - service-intervals — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
 
 ### Totalt: 47 HTTP-anrop fixade over 8 komponenter. Bygge OK.
+
+## 2026-03-20 Session #209 Worker B — Angular subscription/CD audit + PHP error logging audit (14 buggar)
+
+### Uppgift 1: Angular change detection audit (2 buggar fixade)
+
+1. drifttids-timeline.component.ts/html: `[max]="todayStr()"` i template anropade funktionen varje change detection-cykel. Cachade vardet i `cachedTodayStr` som uppdateras vid datumbyten och init.
+
+2. drifttids-timeline.component.ts: `@HostListener('document:mousemove')` triggade Angular change detection pa VARJE musrorelse over hela sidan, aven utanfor tidslinjekomponenten. Tog bort — `onSegmentMouseMove()` hanterar redan tooltip-position vid hovring over segment.
+
+Andrade filer:
+- noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts
+- noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.html
+
+### Uppgift 2: PHP error logging audit (12 buggar fixade)
+
+Granskade ALLA PHP-filer i noreko-backend/classes/ for saknade error_log() i catch-block.
+
+Fynd — 12 catch-block saknade error_log():
+
+Datumparse-fallback catch-block (8 st):
+- OperatorsbonusController.php — datumberakning fallback
+- AuditController.php — datumberakning fallback
+- UnderhallsloggController.php — datumberakning fallback
+- BatchSparningController.php — datumberakning fallback
+- ProduktionskostnadController.php — datumberakning fallback
+- SkiftoverlamningController.php — datumberakning fallback
+- TidrapportController.php — datumberakning fallback
+- HistoriskProduktionController.php — datumparse fallback
+
+tableExists() catch-block (4 st):
+- TidrapportController.php
+- PrediktivtUnderhallController.php
+- GamificationController.php
+- KassationsorsakPerStationController.php
+
+Annan catch utan loggning:
+- UnderhallsprognosController.php — beraknaNextDatum() returnerade null utan loggning
+
+Ingen kanslig data (losenord/tokens) hittades i nagon error_log().
+
+### Uppgift 3: Angular subscription leak audit (4 buggar fixade)
+
+Granskade ALLA komponenter i noreko-frontend/src/app/pages/ (ej rebotling-live).
+
+Fynd — tidrapport.component.ts saknade timeout()+catchError() pa 4 HTTP-anrop:
+1. loadSammanfattning() — saknade timeout + catchError (subscription hangs vid natverksfel)
+2. loadPerOperator() — saknade timeout + catchError
+3. loadVeckodata() — saknade timeout + catchError
+4. loadDetaljer() — saknade timeout + catchError
+
+Fix: Lade till `timeout(15000), catchError(() => of(null))` pa alla 4 anrop.
+
+Andrad fil:
+- noreko-frontend/src/app/pages/tidrapport/tidrapport.component.ts
+
+### Sammanfattning
+- 6 Angular-buggar fixade (2 change detection + 4 subscription leak)
+- 12 PHP error logging-buggar fixade (8 datumparse + 4 tableExists + 1 beraknaNextDatum)
+- Bygge: OK
