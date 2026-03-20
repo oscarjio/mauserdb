@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #200):
-- [x] **PHP classes/ logging + audit trail audit** — 7 buggar: saknad AuditLogger i 6 controllers (Worker A)
-- [x] **PHP classes/ input sanitization audit** — 1 bugg: saknad strip_tags i NewsController category (Worker A)
-- [x] **Angular template type-safety audit** — inga buggar, alla templates har korrekt null-safety (Worker B)
-- [x] **PHP classes/ error response consistency audit** — 2 buggar: saknad error-nyckel i RebotlingController (Worker B)
+### Klart (session #201):
+- [x] **PHP classes/ caching audit** — 3 buggar: redundant SHOW TABLES, N+1 x2, redundanta COUNT (Worker A)
+- [x] **PHP classes/ date/time edge case audit** — 1 bugg: midnight edge case i NarvaroController (Worker A)
+- [x] **Angular lazy loading + bundle size audit** — inga buggar, alla routes lazy-loadade (Worker B)
+- [x] **Angular form validation audit** — 1 bugg: saknad losenordsvalidering i menu.ts (Worker B)
 
-### Nasta buggjakt-items (session #201+):
-- [ ] **Angular lazy loading + bundle size audit** — onodigt stora bundles, saknad lazy loading
-- [ ] **PHP classes/ caching audit** — saknad caching av tunga queries, redundanta DB-anrop
-- [ ] **Angular form validation audit** — saknade validators, felaktiga error messages
-- [ ] **PHP classes/ date/time edge case audit** — midnight, year boundaries, DST
+### Nasta buggjakt-items (session #202+):
 - [ ] **Angular accessibility audit** — saknade aria-labels, keyboard navigation
+- [ ] **PHP classes/ session/cookie security audit** — session fixation, cookie flags, CSRF
+- [ ] **Angular HTTP retry/timeout audit** — saknade retries, for langa timeouts
+- [ ] **PHP classes/ file path traversal audit** — saknad validering av filsokvagar
+- [ ] **Angular memory leak audit** — detached DOM, event listeners, chart instances
 
 ## Parkerade features (ta inte dessa nu)
 

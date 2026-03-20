@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #200)*
+*Senast uppdaterad: 2026-03-20 (session #201)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -67,28 +67,25 @@ Session #197: BUGGJAKT — 14 buggar (6 Worker A + 8 Worker B). DST/timezone i 4
 Session #198: BUGGJAKT — 8 buggar (3 Worker A + 5 Worker B). Auth-luckor, XSS i operator-compare, maxlength i 4 komponenter.
 Session #199: BUGGJAKT — 7 buggar (5 Worker A + 2 Worker B). N+1 queries (2), saknade LIMIT (3), hardkodade API-URLer (2). Transaction audit + routing guard audit: inga buggar.
 Session #200: BUGGJAKT — 10 buggar (8 Worker A + 2 Worker B). Saknade audit trails (7), XSS i category (1), saknade error-nycklar (2). Angular template audit: rent.
+Session #201: BUGGJAKT — 6 buggar (5 Worker A + 1 Worker B). N+1 queries (2), redundanta DB-anrop (2), midnight edge case (1), saknad losenordsvalidering (1). Lazy loading audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #201+):
-- [ ] Angular lazy loading + bundle size audit
-- [ ] PHP classes/ caching audit
-- [ ] Angular form validation audit
-- [ ] PHP classes/ date/time edge case audit
+### Kvarstaende buggjakt-items (session #202+):
 - [ ] Angular accessibility audit
+- [ ] PHP classes/ session/cookie security audit
+- [ ] Angular HTTP retry/timeout audit
+- [ ] PHP classes/ file path traversal audit
+- [ ] Angular memory leak audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #198 (klar)
-Worker A: 3 buggar — Auth-luckor i RebotlingController (3 saknade adminOnlyActions) + RebotlingAdminController (2 endpoints utan auth).
-Worker B: 5 buggar — XSS i operator-compare, maxlength i 4 komponenter. Subscription audit: alla 41 OK.
-
-### 2026-03-20 — Session #199 (klar)
-Worker A: 5 buggar — N+1 i ProduktionsDashboardController + SkiftjamforelseController, saknad LIMIT i StopporsakController + KassationsanalysController + UnderhallsloggController. Transaction audit: alla OK.
-Worker B: 2 buggar — hardkodade API-URLer i auth.service.ts (fetchStatus+logout) och skiftoverlamning.service.ts. HTTP error audit: alla 96 services OK. Routing guard audit: alla 137 routes OK.
 
 ### 2026-03-20 — Session #200 (klar)
 Worker A: 8 buggar — saknad AuditLogger i NewsController (3), MaintenanceController (3), CertificationController (2 error_log->AuditLogger), FeatureFlagController (2), ShiftHandoverController (1), AlertsController (1). Saknad strip_tags i NewsController category.
 Worker B: 2 buggar — saknad 'error'-nyckel i RebotlingController getEvents() och getTopStopp(). Angular template audit: alla templates har korrekt null-safety, inga buggar.
+
+### 2026-03-20 — Session #201 (klar)
+Worker A: 5 buggar — midnight edge case i NarvaroController, redundant SHOW TABLES i ProduktionspulsController, N+1 (730+ queries) i MaskinhistorikController getStationDrifttid(), N+1 (1095+ queries) i getStationOeeTrend(), redundanta COUNT i StopporsakRegistreringController.
+Worker B: 1 bugg — saknad losenordslangd/komplexitetsvalidering i menu.ts. Lazy loading audit: alla 100+ routes OK. Form validation audit: 20+ komponenter OK.
