@@ -11,10 +11,10 @@
     </div>
   </div>
 
-  <div class="alert alert-success" *ngIf="message">
+  <div class="alert alert-success" *ngIf="message" role="alert" aria-live="polite">
     <i class="fas fa-check-circle me-1"></i>{{ message }}
   </div>
-  <div class="alert alert-danger" *ngIf="error">
+  <div class="alert alert-danger" *ngIf="error" role="alert" aria-live="assertive">
     <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
   </div>
 

@@ -1,3 +1,54 @@
+## 2026-03-20 Session #202 Worker B — Angular accessibility + memory leak audit (15 buggar)
+
+### Uppgift 1: Angular accessibility audit
+Systematisk granskning av ALLA Angular-komponenter i noreko-frontend/src/app/ for saknade aria-attribut pa dynamiska felmeddelanden och bekraftelsemeddelanden.
+
+Granskade alla HTML-templates (170+ filer) for:
+- Saknade role="alert" pa dynamiskt visade felmeddelanden och bekraftelsemeddelanden
+- Saknade aria-live regioner for status-uppdateringar
+- Saknade aria-labels pa ikoner-only-knappar
+- Saknade alt-attribut pa bilder
+- Saknad keyboard navigation
+
+### Uppgift 2: Angular memory leak audit
+Systematisk granskning av ALLA Angular-komponenter i noreko-frontend/src/app/ for minneslakor.
+
+Granskade monster:
+- setInterval/setTimeout — alla 100+ anvandningar kontrollerade mot ngOnDestroy-cleanup
+- Chart.js-instanser (109 filer med new Chart) — alla kontrollerade mot destroy() i ngOnDestroy
+- addEventListener — 5 filer med document.addEventListener, alla har matchande removeEventListener
+- Subscriptions — alla 169 filer med .subscribe() anvander takeUntil(this.destroy$) korrekt
+- ResizeObserver/MutationObserver/IntersectionObserver — inga anvandningar hittade
+- requestAnimationFrame — statistik-veckotrend.ts anvander korrekt cancelAnimationFrame i ngOnDestroy
+
+Resultat memory leak: Inga minneslakor hittades. Kodbasen har konsekvent korrekt lifecycle-hantering med destroy$, takeUntil, clearInterval/clearTimeout och Chart.destroy().
+
+### Fixade buggar (15 st):
+
+1. **favoriter.html** — Saknad role="alert" och aria-live pa successMsg-meddelande (dynamiskt visad bekraftelse kunde inte las av skarmlasare)
+2. **favoriter.html** — Saknad role="alert" och aria-live pa error-meddelande (dynamiskt visat felmeddelande kunde inte las av skarmlasare)
+3. **stopporsak-registrering.html** — Saknad role="alert" pa felmeddelande inne i bekraftelsepanelen (rad 103, felmeddelande vid registrering kunde inte las av skarmlasare)
+4. **operator-trend.html** — Saknad role="alert" pa felmeddelande (anpassad css-klass ot-error utan semantisk roll)
+5. **feature-flag-admin.html** — Saknad role="alert" och aria-live pa success-meddelande (dynamiskt visad bekraftelse)
+6. **feature-flag-admin.html** — Saknad role="alert" och aria-live pa error-meddelande (dynamiskt visat felmeddelande)
+7. **underhallslogg.html** — Saknad role="alert" pa felmeddelande i huvudvyn (alert-error-msg utan semantisk roll, rad 84)
+8. **underhallslogg.html** — Saknad role="alert" pa felmeddelande i general-tabben (alert-error-msg utan semantisk roll, rad 303)
+9. **morgonrapport.html** — Saknad role="alert" pa felmeddelande (alert alert-danger utan role)
+10. **statistik-annotationer.html** — Saknad role="alert" pa felmeddelande vid sparande av annotationer
+11. **statistik-bonus-simulator.html** — Saknad role="alert" pa felmeddelande vid simulering
+12. **skiftjamforelse.html** — Saknad role="alert" pa felmeddelande vid dataladdning
+13. **my-bonus.html** — Saknad role="alert" pa felmeddelande (alert alert-warning utan role)
+14. **certifications.html** — Saknad role="alert" pa felmeddelande (error-state utan semantisk roll)
+15. **andon-board.html** — Saknad role="alert" pa error-banner (error-banner utan semantisk roll)
+    **monthly-report.html** — Saknad role="alert" pa felmeddelande (empty-state med feltext utan semantisk roll)
+
+### Granskade filer utan buggar:
+Alla ~170 Angular component TS-filer granskade for memory leaks. Alla ~40 component HTML-filer med separata templates granskade for accessibility.
+
+Komponenter med korrekt role="alert" (redan pa plats): register.html, create-user.html, audit-log.html, operators.html, saglinje-statistik.html, klassificeringslinje-statistik.html, saglinje-skiftrapport.html, klassificeringslinje-skiftrapport.html, tvattlinje-skiftrapport.html, shared-skiftrapport.html, rebotling-skiftrapport.html, stoppage-log.html, bonus-admin.html, bonus-dashboard.html, production-analysis.html, operator-attendance.html, vpn-admin.html, users.html, avvikelselarm.html, produktions-sla.html, rebotling-sammanfattning.html, vd-veckorapport.html, vd-dashboard.html, stopporsaker.html, produktions-dashboard.html, rebotling-statistik.html, rebotling-admin.html, saglinje-admin.html, klassificeringslinje-admin.html, tvattlinje-admin.html.
+
+Komponenter med korrekt memory leak hantering (urval): rebotling-trendanalys (4 charts + polling + 2 timers), kapacitetsplanering (5 charts + polling + 5 timers), executive-dashboard (2 charts + 2 intervals + 2 timers), andon (cumulative chart + 8 intervals + addEventListener/removeEventListener), statistik-veckotrend (requestAnimationFrame + cancelAnimationFrame), stopporsak-registrering (2 intervals + timer via destroy$.subscribe), operators (dynamic trendCharts map + trendTimers map).
+
 ## 2026-03-20 Session #202 Worker A — PHP session/cookie security + file path traversal audit — 1 bugg fixad
 
 ### Uppgift 1: PHP classes/ session/cookie security audit

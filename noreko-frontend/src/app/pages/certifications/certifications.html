@@ -64,7 +64,7 @@
   </div>
 
   <!-- Fel -->
-  <div class="error-state" *ngIf="error && !loading">
+  <div class="error-state" *ngIf="error && !loading" role="alert">
     <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
     <button class="btn btn-sm btn-outline-light ms-3" (click)="loadCertifications()">Försök igen</button>
   </div>
