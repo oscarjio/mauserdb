@@ -95,7 +95,7 @@
         <div class="col-md-2"><label class="form-label">Datum</label><input type="date" class="form-control" [(ngModel)]="newReport.datum" /></div>
         <div class="col-md-2"><label class="form-label">Antal OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0"  max="99999" /></div>
         <div class="col-md-2"><label class="form-label">Antal ej OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0"  max="99999" /></div>
-        <div class="col-md-5"><label class="form-label">Kommentar</label><input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." /></div>
+        <div class="col-md-5"><label class="form-label">Kommentar</label><input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." maxlength="500" /></div>
         <div class="col-md-1 d-flex align-items-end"><button class="btn btn-warning text-dark w-100" (click)="addReport()" aria-label="Lägg till rapport"><i class="fas fa-plus"></i></button></div>
       </div>
     </div>
@@ -190,7 +190,7 @@
                           <div class="col-md-2"><label class="form-label small">Datum</label><input type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" name="datum-{{report.id}}" /></div>
                           <div class="col-md-2"><label class="form-label small">Antal OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0"  max="99999" /></div>
                           <div class="col-md-2"><label class="form-label small">Antal ej OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0"  max="99999" /></div>
-                          <div class="col-md-4"><label class="form-label small">Kommentar</label><input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" /></div>
+                          <div class="col-md-4"><label class="form-label small">Kommentar</label><input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" maxlength="500" /></div>
                           <div class="col-md-2"><button class="btn btn-warning btn-sm text-dark w-100" type="submit" [disabled]="formRef.invalid"><i class="fas fa-save me-1"></i>Spara</button></div>
                         </div>
                       </form>

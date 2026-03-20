@@ -366,7 +366,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.isFetching) return;
     this.isFetching = true;
 
-    this.http.get<AndonStatus>(`${this.apiUrl}?action=andon&run=status`)
+    this.http.get<AndonStatus>(`${this.apiUrl}?action=andon&run=status`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => {
@@ -505,7 +505,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.isFetchingStoppages) return;
     this.isFetchingStoppages = true;
 
-    this.http.get<{ success: boolean; stoppages: Stoppage[] }>(`${this.apiUrl}?action=andon&run=recent-stoppages`)
+    this.http.get<{ success: boolean; stoppages: Stoppage[] }>(`${this.apiUrl}?action=andon&run=recent-stoppages`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -643,7 +643,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.isFetchingNotes = true;
 
     this.http.get<{ success: boolean; notes: HandoverNote[]; unread_count: number }>(
-      `${this.apiUrl}?action=andon&run=andon-notes`
+      `${this.apiUrl}?action=andon&run=andon-notes`,
+      { withCredentials: true }
     )
       .pipe(
         timeout(8000),
@@ -698,7 +699,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.isFetchingHourly) return;
     this.isFetchingHourly = true;
 
-    this.http.get<HourlyTodayResponse>(`${this.apiUrl}?action=andon&run=hourly-today`)
+    this.http.get<HourlyTodayResponse>(`${this.apiUrl}?action=andon&run=hourly-today`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -879,7 +880,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.isFetchingChallenge) return;
     this.isFetchingChallenge = true;
 
-    this.http.get<any>(`${this.apiUrl}?action=andon&run=daily-challenge`)
+    this.http.get<any>(`${this.apiUrl}?action=andon&run=daily-challenge`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),

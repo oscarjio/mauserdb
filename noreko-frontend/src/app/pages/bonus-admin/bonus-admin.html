@@ -354,7 +354,7 @@
         </p>
         <div class="input-group mb-3" style="max-width: 400px;">
           <input type="text" class="form-control" placeholder="Operatör-ID (t.ex. 42)"
-                 [(ngModel)]="forecastOperatorId"
+                 [(ngModel)]="forecastOperatorId" maxlength="10"
                  (keyup.enter)="loadOperatorForecast()">
           <button class="btn btn-info" (click)="loadOperatorForecast()" [disabled]="forecastLoading || !forecastOperatorId.trim()">
             <i class="fas fa-search me-1"></i>Beräkna

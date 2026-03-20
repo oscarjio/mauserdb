@@ -384,7 +384,7 @@
                           </div>
                           <div class="col-md-4">
                             <label class="form-label small">Kommentar</label>
-                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" />
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" maxlength="500" />
                           </div>
                           <div class="col-md-2">
                             <button class="btn btn-sm w-100" type="submit"

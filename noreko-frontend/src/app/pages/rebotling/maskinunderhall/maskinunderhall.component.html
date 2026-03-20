@@ -334,7 +334,7 @@
           <label class="form-label" for="maskinNamn">Namn <span class="text-danger">*</span></label>
           <input type="text" id="maskinNamn" class="form-control form-control-dark"
                  [(ngModel)]="addMachineForm.namn"
-                 name="namn" #maskinNamnCtrl="ngModel" required aria-required="true"
+                 name="namn" #maskinNamnCtrl="ngModel" required aria-required="true" maxlength="100"
                  placeholder="T.ex. Tvättmaskin 2..." />
           <div class="text-danger small mt-1" *ngIf="maskinNamnCtrl.invalid && maskinNamnCtrl.touched">
             Maskinnamn krävs.

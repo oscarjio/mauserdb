@@ -486,7 +486,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
     this.laddar = true;
     this.felmeddelande = '';
 
-    this.http.get<ProfileResponse>(`/noreko-backend/api.php?action=operator&run=profile&id=${id}`)
+    this.http.get<ProfileResponse>(`/noreko-backend/api.php?action=operator&run=profile&id=${id}`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),

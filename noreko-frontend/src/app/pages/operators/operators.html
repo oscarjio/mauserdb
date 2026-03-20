@@ -39,7 +39,7 @@
         <div class="col-md-4">
           <label class="form-label">Namn</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
-                 name="add-name" placeholder="Operatörens namn" required />
+                 name="add-name" placeholder="Operatörens namn" required maxlength="100" />
         </div>
         <div class="col-md-2">
           <label class="form-label">PLC-nummer</label>
@@ -412,7 +412,7 @@
                     <div class="col-md-4">
                       <label class="form-label">Namn</label>
                       <input type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
-                             [name]="'name-' + op.id" placeholder="Namn" required />
+                             [name]="'name-' + op.id" placeholder="Namn" required maxlength="100" />
                     </div>
                     <div class="col-md-2">
                       <label class="form-label">PLC-nummer</label>

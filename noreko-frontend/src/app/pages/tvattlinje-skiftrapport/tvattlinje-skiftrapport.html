@@ -126,7 +126,7 @@
         </div>
         <div class="col-md-5">
           <label class="form-label">Kommentar</label>
-          <input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." />
+          <input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." maxlength="500" />
         </div>
         <div class="col-md-1 d-flex align-items-end">
           <button class="btn btn-primary w-100" (click)="addReport()">
@@ -336,7 +336,7 @@
                           </div>
                           <div class="col-md-4">
                             <label class="form-label small">Kommentar</label>
-                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" />
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" maxlength="500" />
                           </div>
                           <div class="col-md-2">
                             <button class="btn btn-primary btn-sm w-100" type="submit" [disabled]="formRef.invalid">

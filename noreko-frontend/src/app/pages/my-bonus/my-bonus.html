@@ -21,7 +21,7 @@
     <p class="setup-desc">Sparas lokalt i webbläsaren — slipper anges igen nästa gång.</p>
     <div class="setup-input-row">
       <input type="text" class="form-control setup-input" placeholder="T.ex. 12345"
-             [(ngModel)]="operatorId" (keyup.enter)="saveAndLoad()">
+             [(ngModel)]="operatorId" maxlength="10" (keyup.enter)="saveAndLoad()">
       <button class="btn btn-primary" (click)="saveAndLoad()" [disabled]="!operatorId.trim()">
         <i class="fas fa-arrow-right"></i>
       </button>
