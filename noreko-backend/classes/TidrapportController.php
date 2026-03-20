@@ -184,14 +184,14 @@ class TidrapportController {
                     s.id,
                     COALESCE(u.username, CONCAT('Operator ', s.user_id)) AS operator_namn,
                     s.user_id,
-                    DATE(s.start_time) AS datum,
-                    s.start_time,
-                    s.end_time,
-                    COALESCE(s.station, '-') AS station,
-                    COALESCE(s.antal, 0) AS antal
+                    s.datum AS datum,
+                    s.start_tid AS start_time,
+                    s.slut_tid AS end_time,
+                    COALESCE(s.skift_typ, '-') AS station,
+                    0 AS antal
                 FROM skift_log s
                 LEFT JOIN users u ON s.user_id = u.id
-                WHERE DATE(s.start_time) BETWEEN :from_date AND :to_date
+                WHERE s.datum BETWEEN :from_date AND :to_date
             ";
             $params = [':from_date' => $from, ':to_date' => $to];
 
@@ -200,7 +200,7 @@ class TidrapportController {
                 $params[':op_id'] = $opFilter;
             }
 
-            $sql .= " ORDER BY s.start_time DESC";
+            $sql .= " ORDER BY s.start_tid DESC";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);

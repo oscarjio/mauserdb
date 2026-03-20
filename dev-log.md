@@ -1,3 +1,37 @@
+## 2026-03-20 Session #207 Worker A — SQL column verification + session fixation audit (4 buggar)
+
+### Uppgift 1: SQL column name verification (4 buggar)
+Systematisk granskning av alla PHP-filer i noreko-backend/classes/ och noreko-backend/controllers/.
+Verifierade SQL-queries mot faktiska tabellstrukturer i migrations/.
+
+Hittade och fixade 4 buggar:
+
+1. BatchSparningController.php: `SELECT id, namn FROM operators` — kolumnen heter `name`, inte `namn`. Orsakade SQL-fel vid batch-detalj med operatorsnamn.
+2. TidrapportController.php: `fetchFromSkiftLog()` refererade kolumner `start_time`, `end_time`, `station`, `antal` men skift_log-tabellen har `start_tid`, `slut_tid`, `skift_typ`, `timmar`. Orsakade SQL-fel vid tidrapport-generering fran skift_log.
+3. MinDagController.php: `SELECT name, initialer FROM operators` — kolumnen `initialer` finns inte i operators-tabellen. Orsakade SQL-fel i getOperatorInfo(). Fixad genom att generera initialer fran namn i PHP istallet.
+4. RebotlingController.php: `COALESCE(initialer, '')` i SELECT fran operators — kolumnen `initialer` finns inte. Fixad till `'' AS initialer` (koden genererar redan initialer fran namn i nasta steg).
+
+### Uppgift 2: Session fixation audit (0 buggar)
+Granskade all session-hantering i noreko-backend/:
+
+- session_regenerate_id(true) kallas korrekt vid login (LoginController.php rad 95)
+- session_set_cookie_params() i api.php (rad 80-87) sattar secure, httponly, samesite=Lax
+- session.use_strict_mode = 1 (api.php rad 89) — avvisar oinitierade session-ID:n
+- session.use_only_cookies = 1 (api.php rad 90) — forhindrar session-ID i URL
+- session.use_trans_sid = 0 (api.php rad 91) — forhindrar session-ID i URL-parametrar
+- Logout (LoginController::logout) raderar session-cookien med korrekta flaggor
+- AuthHelper::checkSessionTimeout() kontrollerar inaktivitet (8 timmar)
+- Rate limiting pa login (5 forsok, 15 min lockout)
+- Inga osukra session_start()-options hittades
+
+Slutsats: Session-hanteringen ar val implementerad, inga buggar hittades.
+
+Andrade filer:
+- noreko-backend/classes/BatchSparningController.php
+- noreko-backend/classes/TidrapportController.php
+- noreko-backend/classes/MinDagController.php
+- noreko-backend/classes/RebotlingController.php
+
 ## 2026-03-20 Session #207 Worker B — Angular pipe/transform + lazy loading audit (13 buggar)
 
 ### Uppgift 1: Pipe/transform audit (13 buggar)

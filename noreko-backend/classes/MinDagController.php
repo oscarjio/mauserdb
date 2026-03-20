@@ -66,13 +66,20 @@ class MinDagController {
     private function getOperatorInfo(int $opId): array {
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT name, initialer FROM operators WHERE number = ? LIMIT 1"
+                "SELECT name FROM operators WHERE number = ? LIMIT 1"
             );
             $stmt->execute([$opId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $name = $row['name'] ?? 'Operatör #' . $opId;
+            // Generera initialer från namn (operators-tabellen saknar initialer-kolumn)
+            $parts = explode(' ', trim($name));
+            $ini = '';
+            foreach ($parts as $p) {
+                if ($p !== '') $ini .= strtoupper(substr($p, 0, 1));
+            }
             return [
-                'name'      => $row['name']      ?? 'Operatör #' . $opId,
-                'initialer' => $row['initialer'] ?? '',
+                'name'      => $name,
+                'initialer' => substr($ini, 0, 3) ?: '',
             ];
         } catch (\PDOException $e) {
             error_log('MinDagController::getOperatorInfo: ' . $e->getMessage());

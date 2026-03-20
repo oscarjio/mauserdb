@@ -316,13 +316,13 @@ class BatchSparningController {
                 // Försök operators-tabellen (om den finns)
                 try {
                     $opStmt = $this->pdo->prepare(
-                        "SELECT id, namn FROM operators WHERE id IN ($placeholders)"
+                        "SELECT id, name FROM operators WHERE id IN ($placeholders)"
                     );
                     $opStmt->execute($ids);
                     while ($op = $opStmt->fetch(\PDO::FETCH_ASSOC)) {
                         $opId = (int)$op['id'];
                         if (isset($operatorer[$opId])) {
-                            $operatorer[$opId]['namn'] = $op['namn'];
+                            $operatorer[$opId]['namn'] = $op['name'];
                         }
                     }
                 } catch (\PDOException $e) {

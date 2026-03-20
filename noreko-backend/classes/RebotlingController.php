@@ -2147,7 +2147,7 @@ class RebotlingController {
 
             // Hämta alla aktiva operatörer
             $opStmt = $this->pdo->query(
-                "SELECT number AS id, name AS namn, COALESCE(initialer, '') AS initialer FROM operators WHERE active=1 ORDER BY name"
+                "SELECT number AS id, name AS namn, '' AS initialer FROM operators WHERE active=1 ORDER BY name"
             );
             $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
 
