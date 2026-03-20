@@ -76,7 +76,7 @@ Session #206: BUGGJAKT — 21 buggar (7 Worker A + 14 Worker B). CRLF header inj
 Session #207: BUGGJAKT — 17 buggar (4 Worker A + 13 Worker B). SQL felaktiga kolumnnamn (4), saknad sv-locale for pipes (2), pipe operator-precedens (11). Session fixation audit: rent. Lazy loading audit: rent.
 Session #208: BUGGJAKT — 16 buggar (2 Worker A + 14 Worker B). CSRF-token-mekanism (1), redundanta timeout/catchError i 8 komponenter (14). File inclusion audit: rent. Template strict null check: rent.
 Session #209: BUGGJAKT — 20 buggar (6 Worker A + 14 Worker B). Integer overflow bounds (1), password policy + brute force (3), N+1 query (1), DB migration (1), change detection (2), subscription leaks (4), error logging (8).
-Session #210: BUGGJAKT — pagaende. Worker A: date/time edge cases + concurrent access. Worker B: lazy loading + HTTP retry + memory profiling.
+Session #210: BUGGJAKT — 40 buggar (5 Worker A + 35 Worker B). strtotime month-overflow (2), DST timberakning (1), duplikat-kontroller (2), oanvand Subject (1), svenska UI-accentfel (34).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -95,6 +95,6 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 Worker A: 6 buggar — MaintenanceController intval bounds-check (1), AdminController losenordskomplexitet (1), AuthHelper username-baserad lockout + rate limiting (2), LoginController username-lockout + MAX_ATTEMPTS-referens (1), MaintenanceController N+1 query refaktoriserad (1). Migration: login_attempts username-index.
 Worker B: 14 buggar — drifttids-timeline change detection: cachad todayStr + borttagen HostListener (2), tidrapport subscription leaks: timeout+catchError pa 4 HTTP-anrop (4), error_log i 12 catch-block over 10 PHP-filer (8).
 
-### 2026-03-20 — Session #210 (pagaende)
-Worker A: PHP date/time edge case audit + concurrent access audit.
-Worker B: Angular lazy loading verification + HTTP retry logic audit + memory profiling.
+### 2026-03-20 — Session #210 (klar)
+Worker A: 5 buggar — strtotime month-overflow i UnderhallsloggController (1) + OperatorOnboardingController (1), DST timberakning i ProduktionsTaktController (1), duplikat-kontroll i MaintenanceController (1) + SkiftoverlamningController (1).
+Worker B: 35 buggar — oanvand pollTrigger$ Subject i statistik-oee-gauge (1), svenska UI-accentfel i 17 filer (34). Lazy loading audit: rent. HTTP retry audit: rent.

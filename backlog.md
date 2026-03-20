@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #210):
-- [ ] **PHP classes/ date/time edge case audit** — midnight, DST, timezone, date overflow (Worker A)
-- [ ] **PHP classes/ concurrent access audit** — race conditions, optimistic locking, deadlocks (Worker A)
-- [ ] **Angular lazy loading verification** — verifiera att alla routes lazy-loadar korrekt (Worker B)
-- [ ] **Angular HTTP retry logic audit** — verifiera retry-strategier i services (Worker B)
-- [ ] **Angular memory profiling** — identifiera komponenter med subscription/timer-lackor (Worker B)
+### Klart (session #210):
+- [x] **PHP classes/ date/time edge case audit** — strtotime month-overflow + DST timberakning (Worker A)
+- [x] **PHP classes/ concurrent access audit** — duplikat-kontroll serviceintervall + skiftprotokoll (Worker A)
+- [x] **Angular lazy loading verification** — alla 130+ routes korrekt lazy-loadade (Worker B, rent)
+- [x] **Angular HTTP retry logic audit** — alla services har timeout+retry+catchError (Worker B, rent)
+- [x] **Angular memory profiling + svenska UI-text** — oanvand Subject + 34 accentfel (Worker B)
 
 ### Nasta buggjakt-items (session #211+):
 - [ ] **PHP classes/ input sanitization audit** — htmlspecialchars, strip_tags, filter_var konsistens
