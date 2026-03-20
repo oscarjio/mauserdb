@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #204):
-- [x] **PHP classes/ race condition audit** — 3 buggar: CertificationController + UnderhallsloggController (Worker A)
-- [x] **PHP classes/ SQL LIKE injection audit** — 0 buggar, addcslashes() anvands korrekt (Worker A)
-- [x] **Angular router guard audit** — 0 buggar, alla routes har korrekt guards (Worker B)
-- [x] **Angular environment config audit** — 0 buggar, environment.prod.ts korrekt (Worker B)
+### Klart (session #205):
+- [x] **PHP date/timezone consistency audit** — 1 bugg: update-weather.php saknade timezone (Worker A)
+- [x] **PHP file upload validation audit** — 0 buggar, inga upload-endpoints finns (Worker A)
+- [x] **Angular i18n/hardcoded string audit** — 11 buggar: engelska UI-strangar i gamification, operator-ranking, produktions-sla (Worker B)
+- [x] **Angular change detection audit** — 0 buggar, trackBy korrekt, inga tunga template-berakningar (Worker B)
 
-### Nasta buggjakt-items (session #205+):
-- [ ] **PHP classes/ date/timezone consistency audit** — blandning av UTC/lokal tid, sommartid-buggar
-- [ ] **PHP classes/ file upload validation audit** — MIME-type, storlek, filnamn-sanering
-- [ ] **Angular change detection audit** — onodiga rerenders, saknad OnPush, tunga template-uttryck
+### Nasta buggjakt-items (session #206+):
 - [ ] **PHP classes/ header injection audit** — CRLF i Location/Set-Cookie-headers
-- [ ] **Angular i18n/hardcoded string audit** — icke-svenska strangar, saknade oversattningar
+- [ ] **PHP classes/ error handling consistency audit** — blandning av throw/return-false/die, saknade try-catch
+- [ ] **Angular HTTP error UX audit** — visar komponenter ratt felmeddelanden for anvandaren vid 4xx/5xx?
+- [ ] **PHP classes/ SQL column name verification** — kolumnnamn i queries matchar faktiska DB-kolumner?
+- [ ] **Angular form accessibility audit** — saknade for/id-par, aria-labels pa inputs, required-attribut
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #204)*
+*Senast uppdaterad: 2026-03-20 (session #205)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -71,24 +71,25 @@ Session #201: BUGGJAKT — 6 buggar (5 Worker A + 1 Worker B). N+1 queries (2), 
 Session #202: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). Saknad session timeout-check i api.php (1), saknade role="alert" pa 14 templates (15). File path traversal audit: rent. Memory leak audit: rent.
 Session #203: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade bounds pa floatval/intval (4), error disclosure via json_last_error_msg (1). HTTP retry/timeout audit: rent. Form XSS audit: rent.
 Session #204: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Race conditions i CertificationController + UnderhallsloggController (3). SQL LIKE injection audit: rent. Router guard audit: rent. Environment config audit: rent.
+Session #205: BUGGJAKT — 12 buggar (1 Worker A + 11 Worker B). Saknad timezone i update-weather.php (1), engelska UI-strangar i gamification/operator-ranking/produktions-sla (11). File upload audit: rent. Change detection audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #205+):
-- [ ] PHP classes/ date/timezone consistency audit
-- [ ] PHP classes/ file upload validation audit
-- [ ] Angular change detection audit
+### Kvarstaende buggjakt-items (session #206+):
 - [ ] PHP classes/ header injection audit
-- [ ] Angular i18n/hardcoded string audit
+- [ ] PHP classes/ error handling consistency audit
+- [ ] Angular HTTP error UX audit
+- [ ] PHP classes/ SQL column name verification
+- [ ] Angular form accessibility audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-20 — Session #203 (klar)
-Worker A: 5 buggar — saknade bounds pa floatval/intval i BonusAdminController (3), KvalitetstrendanalysController (1), TvattlinjeController (1), RebotlingAdminController (1) + error disclosure via json_last_error_msg i BonusAdminController (1). 117 PHP-filer granskade.
-Worker B: 0 buggar — HTTP retry/timeout audit: alla 97 services + 40+ komponenter har timeout(), catchError(), retry(1). Form XSS audit: 0 innerHTML, 0 bypassSecurityTrust, 0 eval(). Kodbasen ren.
-
 ### 2026-03-20 — Session #204 (klar)
-Worker A: 3 buggar — race condition i CertificationController addCertification() saknade duplicate-skydd (1), TOCTOU i UnderhallsloggController taBort() och deleteEntry() (2). SQL LIKE injection audit: 2 filer med dynamisk LIKE anvander redan addcslashes() korrekt. 100+ PHP-filer granskade.
-Worker B: 0 buggar — Router guard audit: alla 80+ routes har korrekt authGuard/adminGuard. Environment config audit: environment.prod.ts korrekt, inga hardkodade URLer eller API-nycklar. Kodbasen ren.
+Worker A: 3 buggar — race condition i CertificationController addCertification() saknade duplicate-skydd (1), TOCTOU i UnderhallsloggController taBort() och deleteEntry() (2). SQL LIKE injection audit: rent. 100+ PHP-filer granskade.
+Worker B: 0 buggar — Router guard audit: alla 80+ routes har korrekt authGuard/adminGuard. Environment config audit: rent.
+
+### 2026-03-20 — Session #205 (klar)
+Worker A: 1 bugg — update-weather.php saknade date_default_timezone_set('Europe/Stockholm'). Date/timezone audit: api.php har korrekt timezone, 750+ date()-anrop konsekvent. File upload audit: inga upload-endpoints finns i kodbasen.
+Worker B: 11 buggar — i18n audit: 9 engelska strangar i gamification.component.html ("Gamification"->"Spelifiering", "Leaderboard"->"Topplista", "Streak"->"Svit", "Badges"->"Utmarkelser"), 2 i operator-ranking + produktions-sla ("Streak"->"Svit"). Change detection audit: alla *ngFor har trackBy, inga tunga template-berakningar. OnPush saknas men ar for stort att fixa.
