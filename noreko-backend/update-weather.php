@@ -21,8 +21,8 @@ try {
     $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
-} catch (PDOException $e) {
-    error_log('[update-weather] Databasanslutning misslyckades: ' . $e->getMessage());
+} catch (\Throwable $e) {
+    error_log('[update-weather] Databasanslutning misslyckades: ' . get_class($e) . ': ' . $e->getMessage());
     header('Content-Type: application/json; charset=utf-8');
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
@@ -91,8 +91,9 @@ try {
         'timestamp' => date('Y-m-d H:i:s')
     ], JSON_UNESCAPED_UNICODE);
     
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     // Logga fel men returnera JSON för cron-loggar
+    // Fångar alla feltyper inkl. TypeError/Error — inte bara Exception
     header('Content-Type: application/json; charset=utf-8');
     http_response_code(500);
     echo json_encode([
@@ -100,8 +101,8 @@ try {
         'error' => 'Väderdata kunde inte uppdateras',
         'timestamp' => date('Y-m-d H:i:s')
     ], JSON_UNESCAPED_UNICODE);
-    
+
     // Skriv även till error log
-    error_log('[update-weather] Fel: ' . $e->getMessage());
+    error_log('[update-weather] Fel: ' . get_class($e) . ': ' . $e->getMessage());
 }
 

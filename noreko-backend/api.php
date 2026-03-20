@@ -37,6 +37,8 @@ if ($origin) {
     }
 }
 
+// Strip CRLF from origin to prevent header injection (defense-in-depth)
+$origin = str_replace(["\r", "\n"], '', $origin);
 $originAllowed = $origin && in_array($origin, $allowedOrigins, true);
 if ($originAllowed) {
     header("Access-Control-Allow-Origin: $origin");
@@ -103,8 +105,8 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
-} catch (PDOException $e) {
-    error_log('api.php: Databasanslutning misslyckades: ' . $e->getMessage());
+} catch (\Throwable $e) {
+    error_log('api.php: Databasanslutning misslyckades: ' . get_class($e) . ': ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
     exit;
@@ -270,13 +272,15 @@ if (class_exists($className)) {
     try {
         $controller = new $className();
         $controller->handle();
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
+        // Fånga ALLA fel inkl. TypeError, ValueError, Error — inte bara Exception.
+        // Förhindrar att interna felmeddelanden/stacktrace läcker till klienten.
         http_response_code(500);
         echo json_encode([
             'success' => false,
             'error' => 'Internt serverfel'
         ], JSON_UNESCAPED_UNICODE);
-        error_log("API Error [{$action}]: " . $e->getMessage());
+        error_log("API Error [{$action}]: " . get_class($e) . ': ' . $e->getMessage());
     }
 } else {
     http_response_code(404);

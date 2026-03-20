@@ -27,6 +27,8 @@ if ($origin) {
         }
     }
 }
+// Strip CRLF from origin to prevent header injection (defense-in-depth)
+$origin = str_replace(["\r", "\n"], '', $origin);
 $originAllowed = $origin && in_array($origin, $allowedOrigins, true);
 if ($originAllowed) {
     header("Access-Control-Allow-Origin: $origin");

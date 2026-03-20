@@ -1,3 +1,41 @@
+## 2026-03-20 Session #206 Worker A — PHP header injection + error handling audit (7 buggar)
+
+### Uppgift 1: Header injection audit (CRLF)
+Systematisk granskning av ALLA header()-anrop i noreko-backend/ (entry points + classes/ + controllers/).
+- Inga Location- eller Set-Cookie-headers med anvandarinput hittades
+- CSV-filnamn i BonusAdminController, TidrapportController, RebotlingAnalyticsController redan saniterade med preg_replace
+- CORS origin-hantering valideras via whitelist (in_array) + regex, men $origin fran HTTP_ORIGIN lades in i header() utan CRLF-strippning
+
+Fixade 3 buggar (defense-in-depth CRLF-sanitering):
+1. api.php: str_replace CRLF fran $origin fore header()-anrop
+2. login.php: str_replace CRLF fran $origin fore header()-anrop
+3. admin.php: str_replace CRLF fran $origin fore header()-anrop
+
+### Uppgift 2: Error handling consistency audit
+Systematisk granskning av error handling i entry points och classes/:
+- Inget die() i klasser (bra)
+- Alla DB-operationer i publika metoder har try-catch
+- Privata hjalpmetoder utan try-catch anropas fran publika metoder med try-catch (korrekt)
+- Undantagsmeddelanden loggas med error_log, laecker aldrig till klienten (bra)
+- exit i auth-guards ar etablerat monster i hela kodbasen (designval, inte bugg)
+
+Hittade 4 buggar: catch-block i entry points fangade bara Exception/PDOException, INTE Throwable.
+TypeError, ValueError, Error etc. kunde ga forbi och potentiellt laecka interna felmeddelanden.
+
+4. api.php: catch (PDOException) -> catch (\Throwable) vid DB-anslutning
+5. api.php: catch (Exception) -> catch (\Throwable) vid controller-exekvering (global felhanterare)
+6. update-weather.php: catch (PDOException) -> catch (\Throwable) vid DB-anslutning
+7. update-weather.php: catch (Exception) -> catch (\Throwable) i huvudlogiken
+
+Notering: 45 controller-klasser fangar bara PDOException internt, men api.php:s globala
+catch (\Throwable) nu fangar upp alla ohanterade fel fran controllers ocksa.
+
+Andrade filer:
+- noreko-backend/api.php
+- noreko-backend/login.php
+- noreko-backend/admin.php
+- noreko-backend/update-weather.php
+
 ## 2026-03-20 Session #205 Worker B — Angular i18n audit: engelska UI-strangar till svenska (11 buggar)
 
 ### Uppgift 1: I18N/hardcoded string audit
