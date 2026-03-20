@@ -6,6 +6,7 @@ import localeSv from '@angular/common/locales/sv';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
+import { csrfInterceptor } from './interceptors/csrf.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { AuthService } from './services/auth.service';
 import { FeatureFlagService } from './services/feature-flag.service';
@@ -26,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideHttpClient(withInterceptors([errorInterceptor]), withFetch()),
+    provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]), withFetch()),
     { provide: APP_INITIALIZER, useFactory: initApp, deps: [AuthService, FeatureFlagService], multi: true },
     { provide: LOCALE_ID, useValue: 'sv' }
   ]

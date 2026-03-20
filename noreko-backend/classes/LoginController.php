@@ -102,6 +102,9 @@ class LoginController {
                 $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
                 $_SESSION['last_activity'] = time();
 
+                // Generera CSRF-token för sessionen
+                $csrfToken = AuthHelper::generateCsrfToken();
+
                 // Audit log
                 AuditLogger::log($pdo, 'login', 'user', $user['id'], "Inloggning: {$user['username']}");
 
@@ -111,7 +114,7 @@ class LoginController {
                     'email' => $user['email'] ?? null,
                     'role' => $_SESSION['role'],
                     'operator_id' => $_SESSION['operator_id']
-                ]], JSON_UNESCAPED_UNICODE);
+                ], 'csrfToken' => $csrfToken], JSON_UNESCAPED_UNICODE);
             } else {
                 AuthHelper::recordAttempt($pdo, $ip, $username, false);
                 $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);

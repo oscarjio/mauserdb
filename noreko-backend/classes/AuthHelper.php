@@ -133,6 +133,42 @@ class AuthHelper {
         return true;
     }
 
+    // ================================================================
+    // CSRF-token-hantering
+    // ================================================================
+
+    /**
+     * Generera en ny CSRF-token och spara i sessionen.
+     * Anropas vid login (efter session_start + session_regenerate_id).
+     */
+    public static function generateCsrfToken(): string {
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token'] = $token;
+        return $token;
+    }
+
+    /**
+     * Hämta aktuell CSRF-token från sessionen (eller generera en ny om den saknas).
+     */
+    public static function getCsrfToken(): string {
+        if (empty($_SESSION['csrf_token'])) {
+            return self::generateCsrfToken();
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validera CSRF-token från request-header mot sessionen.
+     * Returnerar true om token är giltig.
+     */
+    public static function validateCsrfToken(): bool {
+        $headerToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if ($headerToken === '' || empty($_SESSION['csrf_token'])) {
+            return false;
+        }
+        return hash_equals($_SESSION['csrf_token'], $headerToken);
+    }
+
     /**
      * Cleanup old attempts (call periodically).
      */

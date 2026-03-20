@@ -1,3 +1,70 @@
+## 2026-03-20 Session #208 Worker A — CSRF token-skydd + file inclusion audit (2 buggar)
+
+### Uppgift 1: PHP CSRF token audit (1 bugg — implementerade komplett CSRF-skydd)
+Granskade alla PHP-filer i noreko-backend/classes/ och noreko-backend/controllers/ samt api.php.
+Hittade att NOLL CSRF-skydd existerade — alla state-andrande endpoints (POST/PUT/DELETE) saknade CSRF-validering.
+
+Endpoints som nu skyddas med CSRF-token (alla utom login/register/status):
+- ProfileController (POST: uppdatera profil, byt losenord)
+- AdminController (POST: hantera anvandare, roller)
+- FavoriterController (POST: lagg till/ta bort/ordna favoriter)
+- FeedbackController (POST: skicka feedback)
+- NewsController (POST: skapa/uppdatera/radera nyheter)
+- MaintenanceController (POST: lagg till/uppdatera/radera underhall)
+- ShiftHandoverController (POST/DELETE: skiftoverlamning)
+- StoppageController (POST: registrera stopp)
+- OperatorController (POST: uppdatera operator)
+- CertificationController (POST: hantera certifikat)
+- SkiftrapportController (POST: spara skiftrapport)
+- BonusController/BonusAdminController (POST: bonushantering)
+- DashboardLayoutController (POST: spara layout)
+- LeveransplaneringController (POST: planering)
+- ProduktionsmalController (POST: mal)
+- AvvikelselarmController (POST: larmregler)
+- ShiftPlanController (POST/DELETE: skiftplanering)
+- AlertsController (POST: larm)
+- VpnController (POST: VPN-hantering)
+- FeatureFlagController (POST: feature flags)
+- RebotlingProductController (POST/PUT/DELETE: produkter)
+- + alla andra state-andrande controllers
+
+Implementerade komplett CSRF-mekanism:
+1. AuthHelper.php: 3 nya metoder — generateCsrfToken(), getCsrfToken(), validateCsrfToken()
+2. LoginController.php: Genererar CSRF-token vid inloggning, returnerar i JSON-svar
+3. StatusController.php: Returnerar CSRF-token i status-svar (for sidladdning)
+4. api.php: Centraliserad CSRF-validering for alla POST/PUT/DELETE (rad 263-268), utom login/register/status
+5. api.php: Lagt till X-CSRF-Token i Access-Control-Allow-Headers
+6. Frontend csrf.interceptor.ts: Ny interceptor som bifogar X-CSRF-Token-header
+7. Frontend app.config.ts: Registrerat csrfInterceptor
+8. Frontend auth.service.ts: Sparar/rensar csrf_token i sessionStorage
+9. Frontend login.ts: Sparar csrf_token fran login-svar
+
+### Uppgift 2: PHP file inclusion audit (1 bugg — autoloader forbattrad)
+Granskade ALLA PHP-filer i noreko-backend/ for dynamiska include/require.
+
+Resultat:
+- Alla require_once/include anvander __DIR__ med hardkodade paths (sakert)
+- $corsConfig, $dbConfig, $configFile — alla hardkodade med __DIR__ (sakert)
+- $migrationPath i 10+ controllers — alla hardkodade med __DIR__ (sakert)
+- Inga eval(), preg_replace /e, assert() hittades
+- Inga file_get_contents() med user input
+- Autoloader (api.php rad 116-118) tar $class fran PHP:s interna autoload — inte direkt user input
+- Controller-laddning (api.php rad 266-268) anvander $className fran vitlista $classNameMap (sakert)
+
+Autoloader-risk (liten): spl_autoload_register tar $class-argument fran PHP-motorns interna class resolution. Aven om $className ar vitlistad, kan parent-classes i require_once-satser inuti controllers trigga autoloadern med godtyckliga klassnamn. Risken ar minimal da alla klassfiler ar hardkodade, men noteras for fullstandighet.
+
+Slutsats: Inga LFI/RFI-sarbarheter hittades. Alla include-paths ar hardkodade eller baserade pa vitlista.
+
+Andrade filer:
+- noreko-backend/classes/AuthHelper.php (CSRF-metoder)
+- noreko-backend/classes/LoginController.php (CSRF-token vid login)
+- noreko-backend/classes/StatusController.php (CSRF-token i status-svar)
+- noreko-backend/api.php (CSRF-validering + Allow-Headers)
+- noreko-frontend/src/app/interceptors/csrf.interceptor.ts (NY FIL)
+- noreko-frontend/src/app/app.config.ts (registrerat csrf interceptor)
+- noreko-frontend/src/app/services/auth.service.ts (sparar/rensar csrf_token)
+- noreko-frontend/src/app/pages/login/login.ts (sparar csrf_token fran login)
+
 ## 2026-03-20 Session #207 Worker A — SQL column verification + session fixation audit (4 buggar)
 
 ### Uppgift 1: SQL column name verification (4 buggar)

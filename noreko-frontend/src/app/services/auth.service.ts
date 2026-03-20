@@ -63,7 +63,7 @@ export class AuthService {
   }
 
   fetchStatus(): Observable<void> {
-    return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null }>(`${environment.apiUrl}?action=status`, { withCredentials: true }).pipe(
+    return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null; csrfToken?: string }>(`${environment.apiUrl}?action=status`, { withCredentials: true }).pipe(
       timeout(8000),
       retry(1),
       catchError(() => of(null)), // null = transient error, ändra inte auth-state
@@ -80,8 +80,12 @@ export class AuthService {
         this.initialized$.next(true);
         if (loggedIn && res?.user) {
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
+          if (res.csrfToken) {
+            sessionStorage.setItem('csrf_token', res.csrfToken);
+          }
         } else {
           sessionStorage.removeItem('auth_user');
+          sessionStorage.removeItem('csrf_token');
         }
       }),
       map(() => void 0)
@@ -93,6 +97,7 @@ export class AuthService {
     // att polling inte fortsätter om logout-anropet misslyckas.
     this.stopPolling();
     sessionStorage.removeItem('auth_user');
+    sessionStorage.removeItem('csrf_token');
     this.loggedIn$.next(false);
     this.user$.next(null);
 
@@ -112,6 +117,7 @@ export class AuthService {
   clearSession(): void {
     this.stopPolling();
     sessionStorage.removeItem('auth_user');
+    sessionStorage.removeItem('csrf_token');
     this.loggedIn$.next(false);
     this.user$.next(null);
   }

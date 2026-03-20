@@ -123,6 +123,9 @@ export class LoginPage implements OnDestroy {
           this.auth.user$.next(res.user);
           this.auth.initialized$.next(true);
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
+          if (res.csrfToken) {
+            sessionStorage.setItem('csrf_token', res.csrfToken);
+          }
           this.auth.onLoginSuccess();
           this.router.navigateByUrl(this.returnUrl);
           this.auth.fetchStatus().pipe(

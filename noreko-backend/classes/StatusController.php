@@ -47,6 +47,8 @@ class StatusController {
             session_start();
         }
         $_SESSION['last_activity'] = time();
+        // Säkerställ att CSRF-token finns (genereras om den saknas, t.ex. efter uppgradering)
+        $csrfToken = AuthHelper::getCsrfToken();
         session_write_close();
 
         $userId = (int)$_SESSION['user_id'];
@@ -79,7 +81,8 @@ class StatusController {
                     'email' => $user['email'] ?? null,
                     'role' => $role,
                     'operator_id' => $user['operator_id'] ? (int)$user['operator_id'] : null
-                ]
+                ],
+                'csrfToken' => $csrfToken
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('StatusController::handle: ' . $e->getMessage());

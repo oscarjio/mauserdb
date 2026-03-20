@@ -44,7 +44,7 @@ if ($originAllowed) {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 }
 
 // Hantera preflight OPTIONS-request
@@ -258,6 +258,13 @@ if (!in_array($actionKey, $publicActions, true) && in_array($_SERVER['REQUEST_ME
     if (!AuthHelper::checkSessionTimeout()) {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    // CSRF-token-validering för alla state-ändrande requests (POST/PUT/DELETE).
+    // Token skickas via X-CSRF-Token-headern och jämförs mot sessionen.
+    if (!AuthHelper::validateCsrfToken()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Ogiltig CSRF-token. Ladda om sidan och försök igen.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
