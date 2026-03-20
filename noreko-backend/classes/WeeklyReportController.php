@@ -271,7 +271,9 @@ class WeeklyReportController {
                 $week = intval($m[2]);
             } else {
                 // Default: förra veckan
-                $dt = new DateTime('last monday -1 week', new DateTimeZone('Europe/Stockholm'));
+                // -7 days från idag hamnar alltid i "förra veckan" oavsett veckodag
+                $dt = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
+                $dt->modify('-7 days');
                 $year = intval($dt->format('o'));
                 $week = intval($dt->format('W'));
             }

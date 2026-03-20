@@ -5594,8 +5594,8 @@ HTML;
     public function getWeeklySummaryEmail(): void {
         $week = trim($_GET['week'] ?? '');
         if (empty($week)) {
-            // Default: förra veckan
-            $dt = new DateTime('last monday', new DateTimeZone('Europe/Stockholm'));
+            // Default: förra veckan — -7 days hamnar alltid i förra veckan oavsett veckodag
+            $dt = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
             $dt->modify('-7 days');
             $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
         }
@@ -5624,7 +5624,8 @@ HTML;
         $week = $data['week'] ?? '';
 
         if (empty($week)) {
-            $dt = new DateTime('last monday', new DateTimeZone('Europe/Stockholm'));
+            // -7 days hamnar alltid i förra veckan oavsett veckodag
+            $dt = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
             $dt->modify('-7 days');
             $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
         }
