@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #208)*
+*Senast uppdaterad: 2026-03-20 (session #209)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,18 +75,11 @@ Session #205: BUGGJAKT — 12 buggar (1 Worker A + 11 Worker B). Saknad timezone
 Session #206: BUGGJAKT — 21 buggar (7 Worker A + 14 Worker B). CRLF header injection (3), catch Exception->Throwable (4), HTTP error UX (3), form accessibility for/id-par (11). Error handling audit: rent.
 Session #207: BUGGJAKT — 17 buggar (4 Worker A + 13 Worker B). SQL felaktiga kolumnnamn (4), saknad sv-locale for pipes (2), pipe operator-precedens (11). Session fixation audit: rent. Lazy loading audit: rent.
 Session #208: BUGGJAKT — 16 buggar (2 Worker A + 14 Worker B). CSRF-token-mekanism (1), redundanta timeout/catchError i 8 komponenter (14). File inclusion audit: rent. Template strict null check: rent.
-Session #209: BUGGJAKT — pagaende. Worker A: integer overflow + password policy + SQL subquery audit. Worker B: change detection + error logging + subscription leak audit.
+Session #209: BUGGJAKT — 20 buggar (6 Worker A + 14 Worker B). Integer overflow bounds (1), password policy + brute force (3), N+1 query (1), DB migration (1), change detection (2), subscription leaks (4), error logging (8).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-
-### Pagaende (session #209):
-- [ ] PHP classes/ integer overflow audit (Worker A)
-- [ ] PHP classes/ password policy audit (Worker A)
-- [ ] PHP classes/ SQL UNION/subquery audit (Worker A)
-- [ ] Angular change detection audit (Worker B)
-- [ ] PHP classes/ error logging audit (Worker B)
 
 ### Kvarstaende buggjakt-items (session #210+):
 - [ ] Angular lazy loading verification
@@ -98,9 +91,8 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 ## BESLUTSDAGBOK (senaste 3)
 
 ### 2026-03-20 — Session #208 (klar)
-Worker A: 2 buggar — Komplett CSRF-token-mekanism implementerad (AuthHelper + api.php + LoginController + StatusController + csrf.interceptor.ts + auth.service.ts + login.ts). File inclusion audit: rent, alla paths hardkodade.
-Worker B: 14 buggar — Redundanta timeout(15000)/catchError i 8 komponenter (avvikelselarm/historisk-produktion/leveransplanering/batch-sparning/kvalitetscertifikat/produktionskostnad/tidrapport/skiftoverlamning) — orsakade TimeoutError mid-retry + blank UI. Template strict null check: rent.
+Worker A: 2 buggar — CSRF-token-mekanism. Worker B: 14 buggar — redundanta timeout/catchError i 8 komponenter.
 
-### 2026-03-20 — Session #209 (pagaende)
-Worker A: integer overflow audit + password policy audit + SQL UNION/subquery audit i noreko-backend/classes/.
-Worker B: Angular change detection audit + PHP error logging audit + subscription leak audit.
+### 2026-03-20 — Session #209 (klar)
+Worker A: 6 buggar — MaintenanceController intval bounds-check (1), AdminController losenordskomplexitet (1), AuthHelper username-baserad lockout + rate limiting (2), LoginController username-lockout + MAX_ATTEMPTS-referens (1), MaintenanceController N+1 query refaktoriserad (1). Migration: login_attempts username-index.
+Worker B: 14 buggar — drifttids-timeline change detection: cachad todayStr + borttagen HostListener (2), tidrapport subscription leaks: timeout+catchError pa 4 HTTP-anrop (4), error_log i 12 catch-block over 10 PHP-filer (8).
