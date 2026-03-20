@@ -7,18 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #216):
-- [x] **PHP classes/ SQL ORDER BY injection audit** — RENT, alla redan whitelist-skyddade (Worker A)
-- [x] **PHP classes/ file_get_contents/curl SSRF audit** — RENT, ingen user-input till URL (Worker A)
-- [x] **Angular HTTP retry logic audit** — RENT, redan fixat i session #208 (Worker B)
-- [x] **Angular memory leak audit (re-audit)** — 4 setTimeout-lackor fixade (Worker B)
+### Klart (session #217):
+- [x] **PHP classes/ session handling audit** — RENT, alla sakerhetsatgarder korrekt implementerade (Worker A)
+- [x] **PHP classes/ error response consistency audit** — RENT, alla endpoints returnerar JSON med HTTP-statuskoder (Worker A)
+- [x] **PHP classes/ SQL UNION injection audit** — RENT, alla 100+ UNION hardkodade (Worker A)
+- [x] **Angular form validation audit** — 2 buggar fixade i underhallslogg (Worker B)
+- [x] **Angular lazy loading + bundle size audit** — 2 XLSX tree-shaking fixar (Worker B)
 
-### Nasta buggjakt-items (session #217+):
-- [ ] **PHP classes/ session handling audit** — session fixation, saknad regenerate_id
-- [ ] **PHP classes/ error response consistency audit** — blandade JSON/text-svar, saknade HTTP-statuskoder
-- [ ] **Angular form validation audit** — saknad client-side validering pa formuler
-- [ ] **PHP classes/ SQL UNION injection audit** — dynamiska UNION-klausuler utan sanitering
-- [ ] **Angular lazy loading + bundle size audit** — onodigt stora imports, saknad tree-shaking
+### Nasta buggjakt-items (session #218+):
+- [ ] **PHP classes/ date/time edge case audit** — felaktiga strtotime, DST-problem, midnight edge cases
+- [ ] **Angular chart.js configuration audit** — felaktiga options, saknad responsivitet, minneslakor
+- [ ] **PHP classes/ input sanitization completeness audit** — saknad trim/strip_tags/htmlspecialchars
+- [ ] **Angular HTTP error UX audit** — saknade anvandardvandliga felmeddelanden vid 4xx/5xx
+- [ ] **PHP classes/ file permission + path validation audit** — saknad kontroll av skrivbara kataloger
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #216)*
+*Senast uppdaterad: 2026-03-20 (session #217)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -83,24 +83,25 @@ Session #213: BUGGJAKT — 34 buggar (34 Worker A + 0 Worker B). Error logging: 
 Session #214: BUGGJAKT — 24 buggar (3 Worker A + 21 Worker B). Date/time: 3 felaktiga "last monday"-berakningar. SQL JOIN: rent. withCredentials: 8 saknade. maxlength: 13 saknade.
 Session #215: BUGGJAKT — 12 buggar (5 Worker A + 7 Worker B). Integer overflow bounds (4), array key null-check (1), pipe null-check (7). Routing guard audit: rent.
 Session #216: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL ORDER BY: rent. SSRF: rent. HTTP retry: rent. Memory leak: 4 setTimeout-lackor fixade.
+Session #217: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). Session handling: rent. Error response: rent. SQL UNION: rent. Form validation: 2 fixar. Tree-shaking: 2 fixar.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #217+):
-- [ ] PHP classes/ session handling audit
-- [ ] PHP classes/ error response consistency audit
-- [ ] Angular form validation audit
-- [ ] PHP classes/ SQL UNION injection audit
-- [ ] Angular lazy loading + bundle size audit
+### Kvarstaende buggjakt-items (session #218+):
+- [ ] PHP classes/ date/time edge case audit
+- [ ] Angular chart.js configuration audit
+- [ ] PHP classes/ input sanitization completeness audit
+- [ ] Angular HTTP error UX audit
+- [ ] PHP classes/ file permission + path validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #215 (klar)
-Worker A: 5 buggar — bounds-check i MaintenanceController (3) + OperatorsbonusController (1) + array key null-check i OperatorCompareController (1).
-Worker B: 7 buggar — date pipe null-check i rebotling-admin/batch-sparning/skiftrapport/produktionsprognos/stopptidsanalys (7). Routing guard audit: rent.
 
 ### 2026-03-20 — Session #216 (klar)
 Worker A: 0 buggar — SQL ORDER BY injection audit: alla 4 dynamiska ORDER BY redan whitelist-skyddade. SSRF audit: inga file_get_contents/curl med user-input.
 Worker B: 4 buggar — setTimeout-lackor i kvalitetscertifikat (1), produktionskostnad (3), stopptidsanalys (3), prediktivt-underhall (2). HTTP retry: rent (fixat i #208).
+
+### 2026-03-20 — Session #217 (klar)
+Worker A: 0 buggar — session handling: rent (regenerate_id, cookie-flags, timeout, CSRF alla korrekt). Error response consistency: rent (alla JSON med HTTP-statuskoder). SQL UNION: rent (100+ hardkodade, inga dynamiska).
+Worker B: 4 buggar — form validation: 2 fixar (underhallslogg saknade validering av station_id/datum + submit-knapp). Tree-shaking: 2 fixar (XLSX wildcard-import i production-calendar + historik).
