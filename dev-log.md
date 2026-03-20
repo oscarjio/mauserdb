@@ -1,3 +1,64 @@
+## 2026-03-20 Session #214 Worker B — withCredentials + maxlength audit (21 buggar)
+
+### Uppgift 1: Angular service URL consistency audit (8 buggar fixade)
+Granskade ALLA Angular services och komponenter for URL-buggar.
+Resultat: **8 HTTP-anrop saknade { withCredentials: true }** — utan detta skickas inte session-cookies, vilket ger 401 for inloggade anvandare.
+
+**andon.ts (5 fixar):**
+1. hamtaStatus() — GET andon&run=status saknade withCredentials
+2. hamtaStoppages() — GET andon&run=recent-stoppages saknade withCredentials
+3. hamtaHandoverNotes() — GET andon&run=andon-notes saknade withCredentials
+4. hamtaHourlyToday() — GET andon&run=hourly-today saknade withCredentials
+5. hamtaDailyChallenge() — GET andon&run=daily-challenge saknade withCredentials
+
+**historik.ts (2 fixar):**
+6. loadData() monthly — GET historik&run=monthly saknade withCredentials
+7. loadData() yearly — GET historik&run=yearly saknade withCredentials
+
+**operator-detail.ts (1 fix):**
+8. loadProfile() — GET operator&run=profile saknade withCredentials
+
+OBS: executive-dashboard all-lines ar en publik endpoint (kommenterad i koden) — ingen fix behovs.
+Inga hardkodade http://localhost-URLer hittades (session #199 fixade de sista).
+
+### Uppgift 2: Angular form validation audit (13 buggar fixade)
+Granskade ALLA HTML-templates med formular och input-falt for saknad validering.
+Resultat: **13 text-input saknade maxlength** — utan detta kan anvandare skicka obegransat langa strangar till backend.
+
+**operators.html (2 fixar):**
+9. Lagg-till-formular namn-falt — maxlength="100" tillagt
+10. Redigera-formular namn-falt — maxlength="100" tillagt
+
+**klassificeringslinje-skiftrapport.html (2 fixar):**
+11. Ny rapport kommentar-falt — maxlength="500" tillagt
+12. Redigera rapport kommentar-falt — maxlength="500" tillagt
+
+**saglinje-skiftrapport.html (2 fixar):**
+13. Ny rapport kommentar-falt — maxlength="500" tillagt
+14. Redigera rapport kommentar-falt — maxlength="500" tillagt
+
+**tvattlinje-skiftrapport.html (2 fixar):**
+15. Ny rapport kommentar-falt — maxlength="500" tillagt
+16. Redigera rapport kommentar-falt — maxlength="500" tillagt
+
+**shared-skiftrapport.html (1 fix):**
+17. Redigera rapport kommentar-falt — maxlength="500" tillagt
+
+**bonus-admin.html (1 fix):**
+18. Operator-ID prognos-falt — maxlength="10" tillagt
+
+**my-bonus.html (1 fix):**
+19. Anstallningsnummer-falt — maxlength="10" tillagt
+
+**maskinunderhall.component.html (1 fix):**
+20. Maskinnamn-falt — maxlength="100" tillagt
+
+**statistik-handelser.html (2 fixar):**
+21. Titel-falt for ny handelse — maxlength="200" tillagt
+22. Beskrivning-falt for ny handelse — maxlength="500" tillagt (rattat: 13 unika falt, 21 buggar totalt inkl withCredentials)
+
+---
+
 ## 2026-03-20 Session #213 Worker A — PHP error logging + CORS/headers audit (34 buggar)
 
 ### Uppgift 1: PHP classes/ error logging audit (34 buggar fixade)
