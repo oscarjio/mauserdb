@@ -129,6 +129,7 @@ class ProduktionsTaktController {
 
             // Dagens snitt
             // Bugfix: anvand DateTime-diff for DST-korrekt timberakning
+            $nowDt = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
             $dayStart = date('Y-m-d 00:00:00');
             $dayStartDt = new \DateTime($dayStart, new \DateTimeZone('Europe/Stockholm'));
             $hoursToday = max(1, ($nowDt->getTimestamp() - $dayStartDt->getTimestamp()) / 3600);
@@ -140,7 +141,6 @@ class ProduktionsTaktController {
             // time() - strtotime() ar av med 1 timme nar veckan spanner DST-overgangen (mars/oktober).
             $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
             $weekStartDt = new \DateTime($weekStart, new \DateTimeZone('Europe/Stockholm'));
-            $nowDt       = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
             $hoursThisWeek = max(1, ($nowDt->getTimestamp() - $weekStartDt->getTimestamp()) / 3600);
             $countWeek = $this->countIbcBetween($weekStart, $now);
             $avgWeek = round($countWeek / $hoursThisWeek, 1);

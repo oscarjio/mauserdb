@@ -19,7 +19,6 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
 
   private destroy$ = new Subject<void>();
   private gaugeChart: Chart | null = null;
-  private pollTrigger$ = new Subject<void>();
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -53,8 +52,8 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
     this.rebotlingService.getRealtimeOee(this.selectedPeriod).pipe(
       timeout(15000),
       takeUntil(this.destroy$),
-      catchError(err => {
-        this.error = 'Kunde inte hamta OEE-data';
+      catchError((_err) => {
+        this.error = 'Kunde inte hämta OEE-data';
         return of(null);
       })
     ).subscribe((res: RealtimeOeeResponse | null) => {
@@ -65,7 +64,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
           if (!this.destroy$.closed) this.renderGauge();
         }, 50);
       } else if (!this.error) {
-        this.error = res?.error || 'Ingen data tillganglig';
+        this.error = res?.error || 'Ingen data tillgänglig';
       }
     });
   }
