@@ -1,3 +1,43 @@
+## 2026-03-20 Session #215 Worker A — PHP bounds-check + array key existence audit (5 buggar)
+
+### Uppgift 1: PHP classes/ integer overflow/bounds audit
+Granskade ALLA 54 PHP-filer i noreko-backend/classes/ (utom redan fixade fran session #203/#209) for saknade range-checks pa intval()/floatval().
+Kontrollerade: intval/floatval utan bounds, $_GET/$_POST utan range-validering, LIMIT/OFFSET utan max, division utan noll-check.
+
+Resultat: **4 bounds-buggar hittade och fixade.**
+
+**MaintenanceController.php (3 fixar):**
+1. `addEntry()` rad 143 — `duration_minutes` fran POST-body anvandes som `intval()` utan bounds.
+   Update-endpointen hade redan `max(0, min(14400, ...))` men create saknade det. Fix: samma bounds tillagda.
+2. `addEntry()` rad 146 — `cost_sek` fran POST-body anvandes som `floatval()` utan bounds.
+   Update-endpointen validerade `0–99999999` men create saknade det. Fix: `max(0, min(99999999, ...))` tillagt.
+3. `addEntry()` rad 156 — `downtime_minutes` fran POST-body anvandes som `intval()` utan bounds.
+   Update-endpointen hade redan `max(0, min(14400, ...))` men create saknade det. Fix: samma bounds tillagda.
+
+**OperatorsbonusController.php (1 fix):**
+4. `getSimulering()` rad 733-736 — Simuleringsparametrar (`ibc_per_timme`, `kvalitet`, `narvaro`, `team_mal`)
+   fran GET utan bounds. Negativa varden gav negativ bonus via `beraknaBonus()`.
+   Fix: `max(0, min(...))`-clamp tillagd (9999 for ibc/team, 100 for kvalitet/narvaro).
+
+OBS: De flesta andra controllers hade redan korrekta bounds (whitelists, in_array, eller explicit min/max).
+Redan fixade i session #203/#209: BonusAdminController, KvalitetstrendanalysController, RebotlingAdminController, TvattlinjeController, MaintenanceController (setServiceInterval).
+
+### Uppgift 2: PHP classes/ array key existence audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for saknade isset()/array_key_exists() fore array-access.
+Kontrollerade: $_GET/$_POST utan isset, $row fran DB utan null-check, count() pa potentiellt null-varden.
+
+Resultat: **1 bugg hittad och fixad.**
+
+**OperatorCompareController.php (1 fix):**
+5. `getOperatorStats()` rad 393-405 — `$row` fran `fetch()` anvandes direkt utan null-guard.
+   Om operatoren saknade skiftdata kunde `$row` bli `false`, och `$row['total_ibc_ok']` etc. kraschar med
+   "Trying to access array offset on value of type bool". Fix: explicit `if (!$row)` med default-varden.
+
+OBS: Overlag ar kodbasen val skyddad — nastan alla $_GET anvander `?? default`, DB-resultat anvander `?? 0`,
+och count() anvands bara pa fetchAll()-resultat (alltid array). Inga ytterligare array-key-buggar hittades.
+
+---
+
 ## 2026-03-20 Session #215 Worker B — Angular pipe null-check + routing guard audit (7 buggar)
 
 ### Uppgift 1: Angular pipe/filter edge case audit
