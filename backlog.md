@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #207):
-- [x] **PHP classes/ SQL column name verification** — 4 buggar: felaktiga kolumnnamn i 4 controllers (Worker A)
-- [x] **PHP classes/ session fixation audit** — rent, redan korrekt (Worker A)
-- [x] **Angular pipe/transform audit** — 13 buggar: saknad sv-locale + operator-precedens (Worker B)
-- [x] **Angular lazy loading + route preload audit** — rent, redan korrekt (Worker B)
+### Klart (session #208):
+- [x] **PHP classes/ CSRF token audit** — komplett CSRF-mekanism implementerad (Worker A)
+- [x] **PHP classes/ file inclusion audit** — rent, alla paths hardkodade (Worker A)
+- [x] **Angular HTTP interceptor audit** — 14 redundanta timeout/catchError fixade (Worker B)
+- [x] **Angular template strict null check** — rent, alla templates korrekt guardade (Worker B)
 
-### Nasta buggjakt-items (session #208+):
-- [ ] **PHP classes/ CSRF token audit** — saknade CSRF-tokens pa state-changing endpoints
-- [ ] **PHP classes/ file inclusion audit** — include/require med dynamiska paths, LFI-risker
-- [ ] **Angular HTTP interceptor audit** — saknade interceptors for auth/error/retry
+### Nasta buggjakt-items (session #209+):
 - [ ] **PHP classes/ integer overflow audit** — intval/floatval pa stora tal, saknade bounds-checks
-- [ ] **Angular template strict null check** — ?. vs ! i templates, potentiella runtime-fel
 - [ ] **PHP classes/ password policy audit** — minlangd, komplexitet, account lockout
+- [ ] **PHP classes/ SQL UNION/subquery audit** — felaktiga JOINs, saknade GROUP BY, N+1 i rapporter
+- [ ] **Angular change detection audit** — onPush-strategier, zone.js-lackor, overflodiga renderings
+- [ ] **PHP classes/ error logging audit** — saknade error_log(), inkonsekvent loggformat
 
 ## Parkerade features (ta inte dessa nu)
 
