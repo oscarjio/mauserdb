@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   HistoriskSammanfattningService,
@@ -95,7 +95,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
   loadPerioder(): void {
     this.loadingPerioder = true;
     this.errorPerioder = false;
-    this.svc.getPerioder().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPerioder().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPerioder = false;
       if (res?.success) {
         this.manadOptions = res.data.manader || [];
@@ -138,7 +138,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.loadingRapport = true;
     this.errorRapport = false;
     this.svc.getRapport(this.selectedTyp, this.selectedPeriod)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingRapport = false;
         if (res?.success) {
           this.rapport = res.data;
@@ -152,7 +152,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.loadingTrend = true;
     this.errorTrend = false;
     this.svc.getTrend(this.selectedTyp, this.selectedPeriod)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
@@ -168,7 +168,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.loadingOperatorer = true;
     this.errorOperatorer = false;
     this.svc.getOperatorer(this.selectedTyp, this.selectedPeriod)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOperatorer = false;
         if (res?.success) {
           this.operatorer = res.data.operatorer || [];
@@ -182,7 +182,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.loadingStationer = true;
     this.errorStationer = false;
     this.svc.getStationer(this.selectedTyp, this.selectedPeriod)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStationer = false;
         if (res?.success) {
           this.stationer = res.data.stationer || [];
@@ -196,7 +196,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.loadingStopporsaker = true;
     this.errorStopporsaker = false;
     this.svc.getStopporsaker(this.selectedTyp, this.selectedPeriod)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStopporsaker = false;
         if (res?.success) {
           this.stopporsaker = res.data.stopporsaker || [];

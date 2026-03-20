@@ -12685,3 +12685,43 @@ StatistikOverblickController, DagligBriefingController.
 - StopptidsanalysController — korrekt felhantering i alla metoder
 - StopporsakController — korrekt felhantering i alla metoder
 - StatistikOverblickController — korrekt felhantering i alla metoder
+
+## 2026-03-20 Session #197 Worker B — Angular statistik/ HTTP + lifecycle audit — 8 buggar fixade
+
+Granskade 20 Angular-komponenter som EJ granskats i session #195/#196: produktionsflode, produktionsmal, statistik-dashboard, kassationskvot-alarm, produktionskostnad, maskinunderhall, kvalitetscertifikat, produktions-sla, maskinhistorik, statistik-overblick, tidrapport, oee-trendanalys, operator-ranking, historisk-sammanfattning, drifttids-timeline, equipment-stats, kpi-analysis, maintenance-list, maintenance-form, service-intervals.
+
+Kontrollerade for: (1) HTTP utan catchError, (2) HTTP utan timeout, (3) Subscriptions utan takeUntil(destroy$), (4) Saknad OnDestroy, (5) setInterval/setTimeout utan cleanup, (6) Chart.js utan destroy, (7) Template null-safety, (8) Saknad trackBy pa ngFor.
+
+### Buggar fixade:
+
+1. **kassationskvot-alarm.component.ts** — Saknad `timeout` pa 6 HTTP-anrop (getAktuellKvot, getAlarmHistorik, getTimvisTrend, getPerSkift, getTopOrsaker, sparaTroskel). Importerade `timeout` och lade till `timeout(15000)` i alla 6 pipe-kedjor.
+
+2. **tidrapport.component.ts** — Saknad `timeout` pa 4 HTTP-anrop (getSammanfattning, getPerOperator, getVeckodata, getDetaljer). Importerade `timeout` och lade till `timeout(15000)` i alla 4 pipe-kedjor.
+
+3. **oee-trendanalys.component.ts** — Saknad `timeout` pa 6 HTTP-anrop (getSammanfattning, getPerStation, getTrend, getFlaskhalsar, getJamforelse, getPrediktion). Importerade `timeout` och lade till `timeout(15000)` i alla 6 pipe-kedjor.
+
+4. **operator-ranking.component.ts** — Saknad `timeout` pa 6 HTTP-anrop (getSammanfattning, getTopplista, getRanking, getPoangfordelning, getHistorik, getMvp). Importerade `timeout` och lade till `timeout(15000)` i alla 6 pipe-kedjor.
+
+5. **historisk-sammanfattning.component.ts** — Saknad `timeout` pa 6 HTTP-anrop (getPerioder, getRapport, getTrend, getOperatorer, getStationer, getStopporsaker). Importerade `timeout` och lade till `timeout(15000)` i alla 6 pipe-kedjor.
+
+6. **produktionskostnad.component.ts** — Saknad `catchError` i pipe pa 7 HTTP-anrop (getOverview, getBreakdown, getTrend, getDailyTable, getShiftComparison, getConfig, updateConfig). Anvande subscribe({error:})-monster som inte integrerar med RxJS error propagation-kedjan korrekt. Importerade `catchError` och `of`, konverterade alla 7 till pipe(catchError)-monster.
+
+7. **kvalitetscertifikat.component.ts** — Saknad `catchError` i pipe pa 6 HTTP-anrop (getOverview, getLista, getDetalj, bedom, generera, getStatistik). Samma problem som produktionskostnad. Importerade `catchError` och `of`, konverterade alla 6 till pipe(catchError)-monster.
+
+8. **produktions-sla.component.ts** — Saknad `catchError` i pipe pa 6 HTTP-anrop (getOverview, getDailyProgress, getWeeklyProgress, getHistory, getGoals, setGoal). Samma problem. Importerade `catchError` och `of`, konverterade alla 6 till pipe(catchError)-monster.
+
+### Kontrollerade utan buggar (redan korrekta):
+- produktionsflode — korrekt: timeout + catchError + takeUntil + destroy$ + clearInterval + trackBy
+- produktionsmal — korrekt: timeout + catchError + takeUntil + destroy$ + clearInterval/clearTimeout + chart.destroy + trackBy
+- statistik-dashboard — korrekt: timeout + catchError + takeUntil + destroy$ + clearInterval/clearTimeout + chart.destroy + trackBy
+- maskinunderhall — korrekt: timeout + catchError + takeUntil + destroy$ + clearInterval/clearTimeout + chart.destroy + trackBy
+- maskinhistorik — korrekt: timeout + catchError + takeUntil + destroy$ + clearTimeout + chart.destroy + trackBy
+- statistik-overblick — korrekt: timeout + catchError + takeUntil + destroy$ + clearInterval/clearTimeout + charts.destroy + trackBy
+- drifttids-timeline — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy (ingen setInterval, inga charts)
+- equipment-stats — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
+- kpi-analysis — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
+- maintenance-list — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
+- maintenance-form — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
+- service-intervals — korrekt: timeout + catchError + takeUntil + destroy$ + trackBy
+
+### Totalt: 47 HTTP-anrop fixade over 8 komponenter. Bygge OK.

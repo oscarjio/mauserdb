@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -150,7 +150,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
     const to = this.period === 'anpassat' ? this.customTo : undefined;
 
     this.svc.getSammanfattning(this.period, from, to)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sammanfattningLoading = false;
         this.isFetching = false;
@@ -169,7 +169,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
     const to = this.period === 'anpassat' ? this.customTo : undefined;
 
     this.svc.getPerOperator(this.period, from, to)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.operatorLoading = false;
         if (res?.success) {
@@ -184,7 +184,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
     this.veckoLoading = true;
     this.veckoError = false;
     this.svc.getVeckodata(4)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.veckoLoading = false;
         if (res?.success) {
@@ -207,7 +207,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
     const opId = this.filterOperatorId > 0 ? this.filterOperatorId : undefined;
 
     this.svc.getDetaljer(this.period, from, to, opId)
-      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detaljerLoading = false;
         if (res?.success) {

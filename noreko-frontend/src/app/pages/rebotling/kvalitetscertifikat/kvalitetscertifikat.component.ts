@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KvalitetscertifikatService,
@@ -118,14 +118,11 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getOverview().pipe(timeout(15000), catchError(() => { this.errorData = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOverview = false;
         this.isFetching = false;
         if (res?.success) { this.overview = res.data; }
-        else { this.errorData = true; }
-      },
-      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
+        else if (res !== null) { this.errorData = true; }
     });
   }
 
@@ -138,18 +135,15 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     const period = this.filterPeriod || undefined;
     const opId   = this.filterOperator > 0 ? this.filterOperator : undefined;
 
-    this.svc.getLista(status, period, opId).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getLista(status, period, opId).pipe(timeout(15000), catchError(() => { this.errorLista = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingLista = false;
         if (res?.success) {
           this.certifikat = res.data.certifikat;
           this.operatorer = res.data.operatorer;
           this.sortCertifikat();
-        } else {
+        } else if (res !== null) {
           this.errorLista = true;
         }
-      },
-      error: () => { this.loadingLista = false; this.errorLista = true; }
     });
   }
 
@@ -200,17 +194,14 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   loadDetalj(id: number): void {
     this.loadingDetalj = true;
     this.errorDetalj = false;
-    this.svc.getDetalj(id).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getDetalj(id).pipe(timeout(15000), catchError(() => { this.errorDetalj = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingDetalj = false;
         if (res?.success) {
           this.selectedCert = res.data.certifikat as Certifikat;
           this.selectedKriterier = res.data.kriterier;
-        } else {
+        } else if (res !== null) {
           this.errorDetalj = true;
         }
-      },
-      error: () => { this.loadingDetalj = false; this.errorDetalj = true; }
     });
   }
 
@@ -232,8 +223,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.selectedCert.id,
       this.bedomStatus as 'godkand' | 'underkand',
       this.bedomKommentar
-    ).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.bedomLoading = false;
         if (res?.success) {
           this.bedomMessage = res.message || 'Bedomning sparad';
@@ -248,8 +238,6 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
         } else {
           this.bedomError = res?.error || 'Kunde inte spara bedomning';
         }
-      },
-      error: () => { this.bedomLoading = false; this.bedomError = 'Kunde inte spara bedomning'; }
     });
   }
 
@@ -287,8 +275,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       antal_ibc: this.genAntalIbc,
       kassation_procent: this.genKassationPct,
       cykeltid_snitt: this.genCykeltidSnitt,
-    }).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    }).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.genLoading = false;
         if (res?.success) {
           this.genMessage = `Certifikat skapat (Kvalitetspoang: ${res.kvalitetspoang})`;
@@ -303,8 +290,6 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
         } else {
           this.genError = res?.error || 'Kunde inte skapa certifikat';
         }
-      },
-      error: () => { this.genLoading = false; this.genError = 'Kunde inte skapa certifikat'; }
     });
   }
 
@@ -313,17 +298,14 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   loadStatistik(): void {
     this.loadingStatistik = true;
     this.errorStatistik = false;
-    this.svc.getStatistik(30).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getStatistik(30).pipe(timeout(15000), catchError(() => { this.errorStatistik = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStatistik = false;
         if (res?.success) {
           this.statistik = res.data;
           setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
-        } else {
+        } else if (res !== null) {
           this.errorStatistik = true;
         }
-      },
-      error: () => { this.loadingStatistik = false; this.errorStatistik = true; }
     });
   }
 

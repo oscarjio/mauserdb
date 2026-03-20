@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ProduktionsSlaService,
@@ -110,14 +110,11 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
   loadOverview(): void {
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getOverview().pipe(timeout(15000), catchError(() => { this.errorData = true; return of(null); }), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOverview = false;
         this.isFetching = false;
         if (res?.success) { this.overview = res.data; }
-        else { this.errorData = true; }
-      },
-      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
+        else if (res !== null) { this.errorData = true; }
     });
   }
 
@@ -125,16 +122,13 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadDailyProgress(): void {
     this.loadingDaily = true;
-    this.svc.getDailyProgress().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getDailyProgress().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingDaily = false;
         if (res?.success) {
           this.daily = res.data;
           if (this.gaugeChartTimer !== null) { clearTimeout(this.gaugeChartTimer); }
           this.gaugeChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
         }
-      },
-      error: () => { this.loadingDaily = false; }
     });
   }
 
@@ -142,16 +136,13 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadWeeklyProgress(): void {
     this.loadingWeekly = true;
-    this.svc.getWeeklyProgress().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getWeeklyProgress().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingWeekly = false;
         if (res?.success) {
           this.weekly = res.data;
           if (this.weeklyChartTimer !== null) { clearTimeout(this.weeklyChartTimer); }
           this.weeklyChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
         }
-      },
-      error: () => { this.loadingWeekly = false; }
     });
   }
 
@@ -159,16 +150,13 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadHistory(): void {
     this.loadingHistory = true;
-    this.svc.getHistory(this.historyPeriod).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getHistory(this.historyPeriod).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingHistory = false;
         if (res?.success) {
           this.historyData = res.data;
           if (this.historyChartTimer !== null) { clearTimeout(this.historyChartTimer); }
           this.historyChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
         }
-      },
-      error: () => { this.loadingHistory = false; }
     });
   }
 
@@ -180,14 +168,11 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadGoals(): void {
     this.loadingGoals = true;
-    this.svc.getGoals().pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.getGoals().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingGoals = false;
         if (res?.success) {
           this.goals = res.goals;
         }
-      },
-      error: () => { this.loadingGoals = false; }
     });
   }
 
@@ -208,8 +193,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     this.savingGoal = true;
     this.goalError = '';
     this.goalMessage = '';
-    this.svc.setGoal(this.goalForm).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe({
-      next: res => {
+    this.svc.setGoal(this.goalForm).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.savingGoal = false;
         if (res?.success) {
           this.goalMessage = 'Mal sparat!';
@@ -218,8 +202,6 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         } else {
           this.goalError = res?.error || 'Kunde inte spara mal';
         }
-      },
-      error: () => { this.savingGoal = false; this.goalError = 'Kunde inte spara mal'; }
     });
   }
 
