@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #212):
-- [x] **PHP classes/ file path traversal re-audit** — RENT, inga user-controlled paths (Worker A)
-- [x] **PHP classes/ session handling audit** — RENT, korrekt konfigurerat (Worker A)
-- [x] **PHP classes/ SQL query parameter binding audit** — RENT, alla prepared statements (Worker A)
-- [x] **Angular change detection audit** — RENT, inga OnPush-problem (Worker B)
-- [x] **Angular a11y audit** — 20 buggar fixade: aria-labels, visually-hidden, role="alert" (Worker B)
+### Klart (session #213):
+- [x] **PHP classes/ error logging audit** — 34 buggar fixade: tomma catch-block i 5 PHP-klasser (Worker A)
+- [x] **PHP classes/ CORS/headers audit** — RENT, centraliserad i api.php (Worker A)
+- [x] **Angular HTTP interceptor audit** — RENT, korrekt retry/401/CSRF (Worker B)
+- [x] **Angular template strict null check** — RENT, konsekvent ?. och *ngIf (Worker B)
 
-### Nasta buggjakt-items (session #213+):
-- [ ] **PHP classes/ error logging audit** — konsekvent error_log() + saknade try/catch
-- [ ] **Angular HTTP interceptor audit** — felhantering, retry-logik, token refresh
+### Nasta buggjakt-items (session #214+):
 - [ ] **PHP classes/ date/time edge case re-audit** — DST, midnight, month boundaries
-- [ ] **Angular template strict null check** — safe navigation (?.) i alla bindings
-- [ ] **PHP classes/ CORS/headers audit** — saknade Content-Type, CORS-policyer
+- [ ] **Angular service URL consistency audit** — hardkodade vs environment-baserade API-URLer
+- [ ] **PHP classes/ integer overflow/bounds audit** — saknade range-checks pa intval/floatval
+- [ ] **Angular form validation audit** — saknade required/minlength/maxlength attribut
+- [ ] **PHP classes/ SQL JOIN audit** — felaktiga LEFT/INNER JOINs, saknade ON-villkor
 
 ## Parkerade features (ta inte dessa nu)
 
