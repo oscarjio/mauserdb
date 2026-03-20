@@ -1,3 +1,44 @@
+## 2026-03-20 Session #197 Worker A — PHP classes/ date/time edge cases + error response audit — 6 buggar fixade
+
+Granskade 10 PHP-klasser i noreko-backend/classes/ for: date/time edge cases (saknad timezone, DST-problem, strtotime med stora intervall), error response audit (saknade HTTP-statuskoder, inkonsistent JSON-format, saknade Content-Type headers, saknade exit/die, JSON_PRETTY_PRINT i produktion).
+
+Granskade filer:
+- RebotlingAnalyticsController.php (6874 rader)
+- RebotlingController.php (3059 rader)
+- BonusController.php (2585 rader)
+- BonusAdminController.php (1898 rader)
+- KassationsanalysController.php (1515 rader)
+- RebotlingAdminController.php (1450 rader)
+- SkiftoverlamningController.php (1304 rader)
+- KapacitetsplaneringController.php (1236 rader)
+- SkiftrapportController.php (1171 rader)
+- TvattlinjeController.php (1153 rader)
+
+### Fixade buggar:
+
+1. **SkiftoverlamningController.php rad 182-187** — `detectSkiftTyp()` anvande `date('G')` utan timezone-aware DateTime. Under DST-overgangen (sista sondagen i mars/oktober) kan timvarde bli felaktigt om PHP-processen startades fore overgangen. Andrade till `new DateTime('now', new DateTimeZone('Europe/Stockholm'))` for konsistens med resten av kontrollern.
+
+2. **SkiftoverlamningController.php rad 279-283** — `getAktuelltSkift()` anvande `time()` och `strtotime()` for tidsberakningar istallet for timezone-aware DateTime-objekt. Inkonsistent med resten av filen som anvander `DateTime('now', $tz)`. Andrade till DateTime med explicit tidszon.
+
+3. **SkiftoverlamningController.php rad 1134** — `getSkiftdata()` anvande `date('Y-m-d')` for skift_datum i svaret. Andrade till timezone-aware DateTime for konsistens.
+
+4. **RebotlingController.php rad 540** — `getLiveStats()` anvande `date('G')` for att kontrollera timme (rekordnyhet efter 18:00). Samma DST-risk som bugg 1. Andrade till `DateTime('now', new DateTimeZone('Europe/Stockholm'))->format('G')`.
+
+5. **KassationsanalysController.php rad 150-153, 254-257** — `getSummary()` och `getByCause()` anvande `strtotime("-" . ($days * 2) . " days")` for att berakna foregaende periods startdatum. Med stora intervall (365 dagar = 730 dagars offset) kan strtotime() drifta en dag vid DST-overgangen. Andrade till DateTime med `->modify()` for exakt datummanipulation. Aven andrade `sendSuccess`/`sendError` timestamp till timezone-aware DateTime.
+
+6. **BonusAdminController.php rad 1835** — `sendSuccess()` anvande `JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE` vilket ger onodigt stor svarsstorlek i produktion (extra whitespace/indentation for varje JSON-respons). Alla andra kontroller anvander bara `JSON_UNESCAPED_UNICODE`. Tog bort `JSON_PRETTY_PRINT`.
+
+### Noteringar (inga buggar):
+- **RebotlingAnalyticsController.php** — Anvander redan korrekt DateTimeZone('Europe/Stockholm') i getExecDashboard, getOEETrend etc. CSV-export har korrekt return efter output. try-catch med error_log och http_response_code(500) overallt.
+- **RebotlingAdminController.php** — Anvander DateTimeZone('Europe/Stockholm') i getTodaySnapshot. Konsekvent error handling. Korrekt transaction rollback i saveShiftTimes/saveWeekdayGoals.
+- **BonusController.php** — Konsekvent sendSuccess/sendError med http_response_code. DateTimeZone('Europe/Stockholm') anvands i getStreak/getAchievements. getDateFilter() har korrekt 365-dagars-limit.
+- **KapacitetsplaneringController.php** — Anvander DateTime-objekt for periodberakningar i getDagligKapacitet, getTidFordelning, getVeckoOversikt. Konsekvent error handling.
+- **SkiftrapportController.php** — Konsekvent error handling med http_response_code + exit i checkAdmin/checkOwnerOrAdmin. Transaction rollback overallt. DateTime anvands i getSkiftTider fallback.
+- **TvattlinjeController.php** — Anvander DateTimeZone('Europe/Stockholm') i getSystemStatus, getTodaySnapshot. Konsekvent error handling.
+- api.php satter `date_default_timezone_set('Europe/Stockholm')` och `Content-Type: application/json` globalt, sa enkla `date()`-anrop och saknade Content-Type headers i enskilda kontroller ar inte buggar.
+
+---
+
 ## 2026-03-20 Session #196 Worker A — PHP classes/ SQL injection + numeric input validation audit — 5 buggar fixade
 
 Granskade 10 PHP-klasser i noreko-backend/classes/ for: SQL injection via string-interpolation, saknad numeric validation pa GET/POST-parametrar, saknad felhantering, felaktiga kolumnnamn, edge cases.

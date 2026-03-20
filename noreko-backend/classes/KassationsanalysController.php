@@ -66,19 +66,21 @@ class KassationsanalysController {
     }
 
     private function sendSuccess(array $data): void {
+        $now = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d H:i:s');
         echo json_encode([
             'success'   => true,
             'data'      => $data,
-            'timestamp' => date('Y-m-d H:i:s'),
+            'timestamp' => $now,
         ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
+        $now = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d H:i:s');
         echo json_encode([
             'success'   => false,
             'error'     => $message,
-            'timestamp' => date('Y-m-d H:i:s'),
+            'timestamp' => $now,
         ], JSON_UNESCAPED_UNICODE);
     }
 
@@ -147,10 +149,12 @@ class KassationsanalysController {
      */
     private function getSummary(): void {
         $days     = $this->getDays();
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
-        $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+        $tz       = new \DateTimeZone('Europe/Stockholm');
+        $now      = new \DateTime('now', $tz);
+        $toDate   = $now->format('Y-m-d');
+        $fromDate = (clone $now)->modify("-{$days} days")->format('Y-m-d');
+        $prevTo   = (new \DateTime($fromDate, $tz))->modify('-1 day')->format('Y-m-d');
+        $prevFrom = (clone $now)->modify('-' . ($days * 2) . ' days')->format('Y-m-d');
 
         try {
             // Totala registrerade kassationer (från kassationsregistrering)
@@ -251,10 +255,12 @@ class KassationsanalysController {
      */
     private function getByCause(): void {
         $days     = $this->getDays();
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        $prevTo   = date('Y-m-d', strtotime($fromDate . ' -1 day'));
-        $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+        $tz       = new \DateTimeZone('Europe/Stockholm');
+        $now      = new \DateTime('now', $tz);
+        $toDate   = $now->format('Y-m-d');
+        $fromDate = (clone $now)->modify("-{$days} days")->format('Y-m-d');
+        $prevTo   = (new \DateTime($fromDate, $tz))->modify('-1 day')->format('Y-m-d');
+        $prevFrom = (clone $now)->modify('-' . ($days * 2) . ' days')->format('Y-m-d');
 
         try {
             // Nuvarande period

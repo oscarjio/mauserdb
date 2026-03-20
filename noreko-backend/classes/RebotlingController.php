@@ -537,7 +537,7 @@ class RebotlingController {
             ], JSON_UNESCAPED_UNICODE);
 
             // Auto-kontroll: skapa rekordnyhet om klockan är efter 18:00 och det finns produktion
-            $currentHour = (int)date('G');
+            $currentHour = (int)(new DateTime('now', new DateTimeZone('Europe/Stockholm')))->format('G');
             if ($currentHour >= 18 && $ibcToday > 0) {
                 $this->checkAndCreateRecordNews();
             }

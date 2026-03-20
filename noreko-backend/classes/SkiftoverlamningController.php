@@ -178,9 +178,11 @@ class SkiftoverlamningController {
     /**
      * Bestäm skifttyp baserat på timme.
      * dag=06-14, kväll=14-22, natt=22-06
+     * Använder timezone-aware DateTime för korrekt hantering vid DST-övergångar.
      */
     private function detectSkiftTyp(): string {
-        $h = (int)date('G');
+        $now = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
+        $h = (int)$now->format('G');
         if ($h >= 6 && $h < 14) return 'dag';
         if ($h >= 14 && $h < 22) return 'kvall';
         return 'natt';
@@ -275,11 +277,13 @@ class SkiftoverlamningController {
             $kasserade = (int)($ibc['kasserade'] ?? 0);
             $total     = $okAntal + $kasserade;
 
-            // Beräkna tid som gått sedan skift-start
-            $startTs = strtotime($tider['start']);
-            $nu = time();
-            $tidGattMin = max(0, ($nu - $startTs) / 60);
-            $tidKvarMin = max(0, (strtotime($tider['slut']) - $nu) / 60);
+            // Beräkna tid som gått sedan skift-start (timezone-aware)
+            $tz = new \DateTimeZone('Europe/Stockholm');
+            $nu = new \DateTime('now', $tz);
+            $startDt = new \DateTime($tider['start'], $tz);
+            $slutDt  = new \DateTime($tider['slut'], $tz);
+            $tidGattMin = max(0, ($nu->getTimestamp() - $startDt->getTimestamp()) / 60);
+            $tidKvarMin = max(0, ($slutDt->getTimestamp() - $nu->getTimestamp()) / 60);
             $ibcPerH = $tidGattMin > 0 ? round($okAntal / ($tidGattMin / 60), 1) : 0.0;
 
             // Drifttid från rebotling_onoff (datum + running kolumner)
@@ -1131,7 +1135,7 @@ class SkiftoverlamningController {
             }
 
             $this->sendSuccess([
-                'skift_datum'      => date('Y-m-d'),
+                'skift_datum'      => (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d'),
                 'skift_typ'        => $skiftTyp,
                 'skift_typ_label'  => $this->skiftTypLabel($skiftTyp),
                 'skift_start'      => $tider['start'],
