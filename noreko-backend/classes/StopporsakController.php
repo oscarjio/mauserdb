@@ -531,6 +531,7 @@ class StopporsakController {
                         FROM rebotling_underhallslogg
                         WHERE DATE(datum) BETWEEN :from_date AND :to_date
                         ORDER BY datum DESC
+                        LIMIT 500
                     ");
                     $uStmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
                     $uRows = $uStmt->fetchAll();

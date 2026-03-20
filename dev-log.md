@@ -1,3 +1,28 @@
+## 2026-03-20 Session #199 Worker A — PHP classes/ SQL performance + transaction audit — 4 buggar fixade
+
+Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (117 filer) for:
+1. SQL query performance: N+1 queries, saknade LIMIT, ineffektiva JOINs, SELECT *, saknade WHERE, string-konkatenering (SQL injection)
+2. Transaction audit: saknade transaktioner, fel transaction-hantering, race conditions
+
+### Fixade buggar:
+
+1. **ProduktionsDashboardController.php rad 524-581** — N+1 query: `getStationerStatus()` korde en separat SQL-query per station i en foreach-loop for att hamta dagens produktion. Med 5+ stationer innebar detta 5+ individuella queries mot rebotling_ibc. Ersatte med en enda query som hamtar alla stationers data grupperat pa station, och bygger sedan resultatet fran en PHP-array-lookup. Reducerar fran N+1 till 1 query.
+
+2. **SkiftjamforelseController.php rad 486-538** — N+1 query: `bestPractices()` hade en nasted foreach (3 skift x 5 stationer = 15 queries) dar varje iteration korde en separat query mot rebotling_ibc for att hamta station-specifik data per skift. Ersatte med en enda query som hamtar all data grupperat pa station_id och skift (beraknat via CASE WHEN pa HOUR(datum)), och bygger sedan resultatet fran en PHP-array-lookup. Reducerar fran 15 till 1 query.
+
+3. **StopporsakController.php rad 529-534** — Saknad LIMIT: query mot `rebotling_underhallslogg` i `getDetaljer()` saknade LIMIT. Med upp till 365 dagars datumintervall (styrt av user-input `$days`) kunde queryn returnera obegransat antal rader och orsaka minnesexplosion. Lade till `LIMIT 500`.
+
+4. **KassationsanalysController.php rad 490-503** — Saknad LIMIT: query mot `kassationsregistrering` i detaljvyn saknade LIMIT. Med upp till 365 dagars datumintervall for en specifik orsak kunde queryn returnera tusentals rader. Lade till `LIMIT 1000`.
+
+### Granskade omraden utan buggar:
+
+- **SQL injection**: Alla queries anvander prepared statements med parameter-binding. De fall dar variabelnamn interpoleras i SQL (BonusController buildDateFilter, RuntimeController tableName, LineSkiftrapportController table, BonusAdminController kolumnnamn, SkiftrapportController ALTER TABLE) valideras alla mot whitelists eller hardkodade varden fore interpolering.
+- **Transaktioner**: Alla multi-write-operationer (INSERT+AuditLog, DELETE+AuditLog, read-modify-write) anvander beginTransaction/commit/rollBack med try-catch. FOR UPDATE anvands korrekt for race condition-skydd (RegisterController, AdminController, StopporsakRegistreringController, FavoriterController, RebotlingController rekordnyhet).
+- **SELECT ***: Endast 5 forekomster, alla pa config/settings-tabeller med LIMIT 1. Acceptabelt.
+- **Saknade WHERE**: Inga obegransade full-table-scans hittades. Alla queries har antingen WHERE, GROUP BY med datumfilter, eller LIMIT.
+
+---
+
 ## 2026-03-20 Session #199 Worker B — Angular HTTP error consistency + routing guard audit — 2 buggar fixade
 
 ### Uppgift 1: Angular HTTP error consistency audit

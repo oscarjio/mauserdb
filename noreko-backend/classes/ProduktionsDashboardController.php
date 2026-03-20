@@ -520,33 +520,39 @@ class ProduktionsDashboardController {
         $drifttidSekIdag = $this->getDrifttidSek($idag . ' 00:00:00', $idag . ' 23:59:59');
         $periodSek = self::PLANERAD_DAG_SEK;
 
+        // Hamta alla stationers data i en enda query (istallet for N+1)
+        $stationData = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    station,
+                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal,
+                    MAX(senaste) AS senaste_datum
+                FROM (
+                    SELECT station, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
+                           MAX(datum) AS senaste
+                    FROM rebotling_ibc
+                    WHERE station IS NOT NULL AND station != ''
+                      AND DATE(datum) = :idag
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY station, skiftraknare
+                ) sub
+                GROUP BY station
+            ");
+            $stmt->execute([':idag' => $idag]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $stationData[$row['station']] = $row;
+            }
+        } catch (\PDOException $e) {
+            error_log('ProduktionsDashboardController::stationer-status idag: ' . $e->getMessage());
+        }
+
         $result = [];
         foreach ($stationer as $station) {
-            // Dagens produktion for stationen
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                        COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal,
-                        MAX(senaste) AS senaste_datum
-                    FROM (
-                        SELECT skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                               MAX(datum) AS senaste
-                        FROM rebotling_ibc
-                        WHERE station = :station
-                          AND DATE(datum) = :idag
-                          AND skiftraknare IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) sub
-                ");
-                $stmt->execute([':station' => $station, ':idag' => $idag]);
-                $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-            } catch (\PDOException $e) {
-                error_log('ProduktionsDashboardController::stationer-status idag: ' . $e->getMessage());
-                $rad = ['total' => 0, 'ok_antal' => 0, 'senaste_datum' => null];
-            }
+            $rad = $stationData[$station] ?? ['ok_antal' => 0, 'ej_ok_antal' => 0, 'senaste_datum' => null];
 
             $okAntal     = (int)($rad['ok_antal']      ?? 0);
             $total       = $okAntal + (int)($rad['ej_ok_antal'] ?? 0);

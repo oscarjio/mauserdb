@@ -501,6 +501,7 @@ class KassationsanalysController {
                 WHERE r.orsak_id = :cause_id
                   AND r.datum BETWEEN :from_date AND :to_date
                 ORDER BY r.datum DESC, r.created_at DESC
+                LIMIT 1000
             ");
             $stmtDetalj->execute([
                 ':cause_id'  => $causeId,

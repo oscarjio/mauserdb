@@ -480,11 +480,50 @@ class SkiftjamforelseController {
             $from    = date('Y-m-d', strtotime("-{$days} days"));
 
             $stationer = $this->getStationer();
+            $stationMap = [];
+            foreach ($stationer as $st) {
+                $stationMap[(int)$st['id']] = $st['namn'];
+            }
             $practices = [];
+
+            // Hamta alla stationer och skift i en enda query (istallet for N+1)
+            // Berakna skift via HOUR(datum) i SQL med CASE
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    COALESCE(station_id, 1) AS sid,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                        ELSE 'Natt'
+                    END AS skift,
+                    COALESCE(SUM(max_ok),    0) AS ibc_ok,
+                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                    COUNT(DISTINCT skiftraknare) AS antal_pass
+                 FROM (
+                    SELECT
+                        COALESCE(station_id, 1) AS station_id,
+                        datum,
+                        skiftraknare,
+                        MAX(ibc_ok)      AS max_ok,
+                        MAX(ibc_ej_ok)   AS max_ej_ok,
+                        MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY COALESCE(station_id, 1), skiftraknare, datum
+                    HAVING COUNT(*) > 1
+                 ) s
+                 GROUP BY sid, skift"
+            );
+            $stmt->execute([$from, $today]);
+            $allStationSkift = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $key = $row['skift'] . '_' . $row['sid'];
+                $allStationSkift[$key] = $row;
+            }
 
             // For varje skift, hitta basta station
             foreach (array_keys(self::SKIFT) as $skift) {
-                $timeCond = $this->skiftTimewhere($skift, 'datum');
                 $skiftLabel = self::SKIFT[$skift]['label'];
 
                 $bastaStation = null;
@@ -494,29 +533,8 @@ class SkiftjamforelseController {
                     $sid = (int)$st['id'];
                     $sNamn = $st['namn'];
 
-                    // Hamta station-specifik data
-                    $stmt = $this->pdo->prepare(
-                        "SELECT
-                            COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                            COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
-                            COALESCE(SUM(max_runtime), 0) AS runtime_min,
-                            COUNT(DISTINCT skiftraknare) AS antal_pass
-                         FROM (
-                            SELECT
-                                skiftraknare,
-                                MAX(ibc_ok)      AS max_ok,
-                                MAX(ibc_ej_ok)   AS max_ej_ok,
-                                MAX(runtime_plc) AS max_runtime
-                            FROM rebotling_ibc
-                            WHERE DATE(datum) BETWEEN ? AND ?
-                              AND {$timeCond}
-                              AND COALESCE(station_id, 1) = ?
-                            GROUP BY skiftraknare
-                            HAVING COUNT(*) > 1
-                         ) s"
-                    );
-                    $stmt->execute([$from, $today, $sid]);
-                    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $key = $skift . '_' . $sid;
+                    $row = $allStationSkift[$key] ?? ['ibc_ok' => 0, 'ibc_ej_ok' => 0, 'runtime_min' => 0, 'antal_pass' => 0];
 
                     $ibcOk    = (int)($row['ibc_ok']    ?? 0);
                     $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);

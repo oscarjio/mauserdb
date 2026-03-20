@@ -641,7 +641,8 @@ class UnderhallsloggController {
                     FROM underhallslogg u
                     LEFT JOIN users usr ON u.user_id = usr.id
                     WHERE {$whereClause}
-                    ORDER BY u.created_at DESC";
+                    ORDER BY u.created_at DESC
+                    LIMIT 500";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
