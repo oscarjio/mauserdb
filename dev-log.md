@@ -1,3 +1,21 @@
+## 2026-03-20 Session #196 Worker B — Angular template null-safety + subscription leak audit — 1 bugg fixad
+
+Granskade 10 Angular-komponenter (bade .ts och .html) for: saknad optional chaining i templates, saknade *ngIf-guards, subscribe() utan takeUntil, saknad OnDestroy, setTimeout/setInterval utan cleanup i ngOnDestroy, Chart.js-instanser utan destroy.
+
+### Fixade buggar:
+1. **stationsdetalj.component.ts rad 190** — `setTimeout()` utan lagrad timer-referens. Anropet `setTimeout(() => byggTrendChart(), 0)` i `laddaOeeTrend()` sparade inte timer-referensen, vilket gor att timern inte kan rensas i ngOnDestroy(). La till `trendChartTimer`-falt och `clearTimeout` i ngOnDestroy(), samt sparar referensen vid varje setTimeout-anrop. Foljer nu samma monster som alla andra komponenter i projektet.
+
+### Noteringar (inga buggar):
+- **vd-dashboard** (.ts + .html) — Korrekt: OnInit/OnDestroy, destroy$ + takeUntil, refreshInterval + clearInterval, stationChartTimer + trendChartTimer rensas, Charts destroyas. Template har *ngIf-guards pa alla nullable objekt (oversikt, stoppNu, topOperatorer, skiftstatus). Optional chaining anvands korrekt (stoppNu?.allt_kor, stoppNu.aktiva_stopp ?? []).
+- **produktions-dashboard** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), pollInterval rensas, Charts destroyas, alla timers rensas. Template har korrekta *ngIf-guards och loading/error-hantering.
+- **rebotling-sammanfattning** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshInterval + chartTimer rensas, Chart destroyas. Template har *ngIf-guards med loading/error-villkor.
+- **operatorsbonus** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshInterval + 3 chart-timers rensas, destroyCharts() anropas. Template anvander optional chaining korrekt (overview?.snitt_bonus, selectedOperator?.operator_id).
+- **operators-prestanda** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), 3 chart-timers rensas, destroyAllCharts() anropas. Template anvander @if/@for syntax korrekt med null-guards.
+- **kapacitetsplanering** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshInterval + 5 chart-timers rensas, destroyCharts() anropas. Template har *ngIf-guards pa alla dataobjekt.
+- **skiftplanering** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshInterval + 2 timers rensas, Chart destroyas. Template har *ngIf-guards och ng-container for nullable shiftDetail.
+- **historisk-produktion** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshInterval + chartTimer rensas, Chart destroyas. Template har *ngIf-guards pa overview, periodData, jamforelse, tabell.
+- **avvikelselarm** (.ts + .html) — Korrekt: alla subscriptions har takeUntil(destroy$), refreshTimer + trendChartTimer rensas, Chart destroyas. Template har *ngIf-guards pa overview, aktivaLarm, historikData, kvitteraLarm.
+
 ## 2026-03-20 Session #195 Worker B — Angular HTTP retry + change detection audit — 3 buggar fixade
 
 Granskade 26 Angular-komponenter for: HTTP-anrop utan catchError, saknad timeout, felaktig retry-logik, tyst felhantering, dubbla subscriptions, saknad OnPush, manuell DOM-manipulation, saknad trackBy, setTimeout for CD-trigger, upprepade async pipe-anrop.

@@ -60,6 +60,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
 
   // Graf
   private trendChart: Chart | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   private destroy$ = new Subject<void>();
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
@@ -84,6 +85,10 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
     if (this.pollingInterval !== null) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+    }
+    if (this.trendChartTimer !== null) {
+      clearTimeout(this.trendChartTimer);
+      this.trendChartTimer = null;
     }
     this.destroyCharts();
   }
@@ -187,7 +192,8 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data.trend;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+          if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
         } else {
           this.errorTrend = true;
         }
