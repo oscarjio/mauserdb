@@ -4,6 +4,10 @@
  * Anropas via: wget http://localhost/noreko-backend/update-weather.php
  */
 
+// Säkerställ konsekvent timezone — samma som api.php.
+// Utan detta kan date() returnera fel tid beroende på serverns php.ini-inställning.
+date_default_timezone_set('Europe/Stockholm');
+
 // Databasanslutning via db_config.php (inga hårdkodade credentials)
 $dbConfig = __DIR__ . '/db_config.php';
 if (!file_exists($dbConfig)) {

@@ -1,3 +1,36 @@
+## 2026-03-20 Session #205 Worker A — PHP date/timezone + file upload audit (1 bugg)
+
+### Uppgift 1: PHP classes/ date/timezone consistency audit
+Systematisk granskning av ALLA 100+ PHP-filer i noreko-backend/classes/ och alla entry-points for:
+- Blandning av UTC och lokal tid (date() vs gmdate(), time() vs gmmktime())
+- Saknad timezone-hantering i date()-anrop
+- Sommartid-buggar (DST): datumintervall-berakningar som inte hanterar DST-skiften
+- strtotime() med relativa datum som kan ge fel vid DST-byten
+- Hardkodade timezone-offsetar istallet for named timezones
+- date_default_timezone_set() som saknas eller ar inkonsekvent
+
+Granskade monster:
+- api.php satter date_default_timezone_set('Europe/Stockholm') — alla classes/ gar genom api.php
+- 750+ date()/strtotime()-anrop i classes/ — alla konsekvent med Stockholm-tid via default timezone
+- 30+ new DateTime()-anrop utan explicit timezone — korrekta da default timezone ar satt
+- Explicit DateTimeZone('Europe/Stockholm') anvands konsekvent i RuntimeController, StatusController, StoppageController, RebotlingController, ShiftHandoverController, VDVeckorapportController, ForstaTimmeAnalysController, WeeklyReportController, TvattlinjeController, RebotlingAdminController, ShiftPlanController, OperatorController
+- 86400-konstanter: anvands som planeringskapacitet (3 skift), inte som datumberakning — korrekt
+- strtotime('-1 day') for date-only berakningar — korrekt (ger kalenderdagar, inte 24h)
+- Timestamp-differenser (drifttid = sista_cykel - forsta_cykel) — korrekt da de ar inom samma dag/skift
+
+Hittade och fixade 1 bugg:
+1. **update-weather.php** — Saknad date_default_timezone_set('Europe/Stockholm'). Detta cron-script (enda entry-point utanfor api.php som anvander date()) hade ingen timezone-setting. Om serverns php.ini har en annan default timezone (t.ex. UTC) skulle timestamp i JSON-svar och loggning visa fel tid. Fixat med date_default_timezone_set('Europe/Stockholm') langst upp.
+
+### Uppgift 2: PHP file upload validation audit
+Systematisk granskning av ALLA PHP-filer i noreko-backend/classes/ och noreko-backend/api/ for:
+- $_FILES, move_uploaded_file(), is_uploaded_file(), file_put_contents(), base64_decode(), imagecreatefrom*
+- MIME-type validering, filstorlek-validering, filnamn-sanering, directory traversal
+
+Resultat:
+- **Inga file upload-endpoints finns i hela kodbasen** — sokning efter $_FILES, move_uploaded_file, is_uploaded_file, file_put_contents, base64_decode, imagecreatefrom gav noll traffar i classes/ och api/
+- Enda fwrite()-anvandning ar VpnController.php som skriver till en Unix-socket (OpenVPN management), inte filuppladdning
+- **Inga buggar att fixa — kodbasen har ingen filuppladdningsfunktionalitet**
+
 ## 2026-03-20 Session #204 Worker A — PHP race condition + SQL LIKE injection audit (3 buggar)
 
 ### Uppgift 1: PHP classes/ race condition audit
