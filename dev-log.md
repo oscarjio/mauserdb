@@ -1,3 +1,37 @@
+## 2026-03-20 Session #216 Worker A — SQL ORDER BY injection + SSRF audit (0 buggar)
+
+### Uppgift 1: PHP classes/ SQL ORDER BY injection audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for dynamiska ORDER BY-klausuler som anvander variabler istallet for hardkodade kolumnnamn.
+
+Hittade 4 dynamiska ORDER BY-anvandningar — samtliga redan sakra:
+
+1. **KassationsanalysController.php** rad 777, 1247: `ORDER BY {$orderExpr}` — `$orderExpr` skapas fran `$group` som forst whitelist-valideras med `in_array($group, ['week', 'month'], true)`, sedan mappas till hardkodade SQL-uttryck (t.ex. `YEAR(datum), WEEK(datum, 3)`). Sakert.
+
+2. **ForstaTimmeAnalysController.php** rad 151, 311: `ORDER BY {$ibcCol}` — `$ibcCol` kommer fran `getIbcTimestampColumn()` som gor `SHOW COLUMNS` pa tabellen och returnerar enbart `'timestamp'` eller `'datum'`. Ingen user input. Sakert.
+
+3. **HistoriskProduktionController.php** rad 383-384: `$sort` fran `$_GET['sort']` whitelist-valideras med `in_array()` och `$order` accepterar enbart `'ASC'` eller `'DESC'`. Dessutom anvands PHP `usort()` istallet for SQL ORDER BY. Sakert.
+
+4. **OperatorsPrestandaController.php** rad 429-431: `$sortBy` fran `$_GET['sort_by']` whitelist-valideras med `in_array($sortBy, ['ibc', 'kassation', 'oee', 'cykeltid'], true)`. Anvands i PHP `usort()`, inte SQL. Sakert.
+
+Alla ovriga ORDER BY i codebasen anvander hardkodade kolumnnamn direkt i SQL-strangar.
+
+Resultat: **0 buggar — alla dynamiska ORDER BY ar korrekt skyddade.**
+
+### Uppgift 2: PHP classes/ file_get_contents/curl SSRF audit
+Granskade ALLA PHP-filer i noreko-backend/ (hela backend) for `file_get_contents()` med URL fran user input, `curl_init()`/`curl_setopt()`, och saknad URL-validering.
+
+Resultat:
+- **Inga `curl_init()` eller `curl_setopt()` anrop finns** i hela backend.
+- `file_get_contents()` anvands pa 3 satt, samtliga sakra:
+  1. `file_get_contents('php://input')` — standard POST-body-lasning (ca 20 forekomster). Ingen SSRF-risk.
+  2. `file_get_contents($migrationPath)` — lokal filsokvag med `__DIR__ . '/../migrations/...'` prefix (ca 10 forekomster). Ingen user input i sokvagen.
+  3. `file_get_contents($apiUrl)` i `update-weather.php` — hardkodad URL till `api.open-meteo.com`. Ingen user input.
+- Inga `fopen()`, `readfile()`, `include`/`require` med user-kontrollerade sokavagar hittades.
+
+Resultat: **0 SSRF-sarbarheter — inga nätverksanrop med user-kontrollerad URL.**
+
+---
+
 ## 2026-03-20 Session #215 Worker A — PHP bounds-check + array key existence audit (5 buggar)
 
 ### Uppgift 1: PHP classes/ integer overflow/bounds audit
