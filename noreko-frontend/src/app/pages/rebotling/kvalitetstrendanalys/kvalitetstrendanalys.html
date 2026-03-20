@@ -57,7 +57,7 @@
       <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
     </div>
   </div>
-  <div *ngIf="errorOverview" class="alert alert-danger mb-4">Kunde inte hamta oversiktsdata.</div>
+  <div *ngIf="errorOverview" class="alert alert-danger mb-4">Kunde inte hämta översiktsdata.</div>
 
   <!-- Station trend diagram -->
   <div class="chart-card mb-4">
@@ -82,7 +82,7 @@
     <div *ngIf="loadingTrend" class="text-center py-4">
       <div class="spinner-border spinner-border-sm text-info" role="status"></div>
     </div>
-    <div *ngIf="errorTrend" class="text-danger small mt-2">Kunde inte hamta trenddata.</div>
+    <div *ngIf="errorTrend" class="text-danger small mt-2">Kunde inte hämta trenddata.</div>
   </div>
 
   <div class="row g-3 mb-4">
@@ -93,7 +93,7 @@
         <div *ngIf="loadingOperators" class="text-center py-4">
           <div class="spinner-border spinner-border-sm text-info" role="status"></div>
         </div>
-        <div *ngIf="errorOperators" class="text-danger small">Kunde inte hamta operatorsdata.</div>
+        <div *ngIf="errorOperators" class="text-danger small">Kunde inte hämta operatörsdata.</div>
         <div class="table-responsive" *ngIf="operatorData && !loadingOperators">
           <table class="table table-dark table-sm mb-0">
             <thead>
@@ -169,7 +169,7 @@
         <div *ngIf="loadingAlarm" class="text-center py-3">
           <div class="spinner-border spinner-border-sm text-info" role="status"></div>
         </div>
-        <div *ngIf="errorAlarm" class="text-danger small">Kunde inte hamta larmdata.</div>
+        <div *ngIf="errorAlarm" class="text-danger small">Kunde inte hämta larmdata.</div>
         <div *ngIf="alarmData && !loadingAlarm">
           <div class="d-flex gap-2 mb-3">
             <span class="badge bg-danger">{{ alarmData.critical_count }} kritiska</span>
@@ -209,7 +209,7 @@
     <div *ngIf="loadingHeatmap" class="text-center py-4">
       <div class="spinner-border spinner-border-sm text-info" role="status"></div>
     </div>
-    <div *ngIf="errorHeatmap" class="text-danger small">Kunde inte hamta heatmap-data.</div>
+    <div *ngIf="errorHeatmap" class="text-danger small">Kunde inte hämta heatmap-data.</div>
     <div class="table-responsive" *ngIf="heatmapData && !loadingHeatmap && heatmapData.weeks.length > 0">
       <table class="table table-dark table-sm heatmap-table mb-0">
         <thead>

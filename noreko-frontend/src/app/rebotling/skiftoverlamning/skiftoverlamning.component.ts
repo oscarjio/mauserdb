@@ -139,7 +139,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
       next: res => {
         this.isSubmitting = false;
         if (res?.success) {
-          this.toast.success('Skiftoverlamningsprotokoll sparat!');
+          this.toast.success('Skiftöverlämningsprotokoll sparat!');
           this.resetForm();
           this.loadHistorik();
         } else {
@@ -182,7 +182,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
           this.selectedDetail = res.item;
         }
       },
-      error: () => { this.toast.error('Kunde inte hamta detalj'); }
+      error: () => { this.toast.error('Kunde inte hämta detalj'); }
     });
   }
 

@@ -4,7 +4,7 @@
   <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
       <h1 class="page-title mb-1">
-        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamningsprotokoll
+        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftöverlämningsprotokoll
       </h1>
       <p class="text-muted mb-0 small">Digital checklista och statusrapport vid skiftbyte</p>
     </div>
@@ -16,13 +16,13 @@
   <!-- LADDAR -->
   <div *ngIf="isLoading && !errorSkiftdata" class="text-center py-4">
     <div class="spinner-border text-info" role="status"></div>
-    <p class="text-muted mt-2 mb-0 small">Hamtar skiftdata...</p>
+    <p class="text-muted mt-2 mb-0 small">Hämtar skiftdata...</p>
   </div>
 
   <!-- FEL -->
   <div *ngIf="errorSkiftdata && !skiftdata" class="text-center py-4">
     <i class="fas fa-exclamation-triangle text-danger" style="font-size:1.5rem"></i>
-    <p class="text-danger mt-2 mb-2 small">Kunde inte hamta skiftdata</p>
+    <p class="text-danger mt-2 mb-2 small">Kunde inte hämta skiftdata</p>
     <button class="btn btn-outline-secondary btn-sm" (click)="loadSkiftdata()">
       <i class="fas fa-sync-alt me-1"></i>Forsok igen
     </button>

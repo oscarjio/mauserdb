@@ -42,7 +42,7 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
     const labels = this.oeeComponentsData.map(d => { const p = d.datum.split('-'); return p[2]+'/'+p[1]; });
     if (this.oeeComponentsChart) { (this.oeeComponentsChart as any).destroy(); }
     this.oeeComponentsChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [
-      { label: 'Tillganglighet %', data: this.oeeComponentsData.map(d => d.tillganglighet), borderColor: 'rgba(72,187,120,1)', backgroundColor: 'rgba(72,187,120,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },
+      { label: 'Tillgänglighet %', data: this.oeeComponentsData.map(d => d.tillganglighet), borderColor: 'rgba(72,187,120,1)', backgroundColor: 'rgba(72,187,120,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },
       { label: 'Kvalitet %', data: this.oeeComponentsData.map(d => d.kvalitet), borderColor: 'rgba(99,179,237,1)', backgroundColor: 'rgba(99,179,237,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },
       { label: 'WCM 85%', data: this.oeeComponentsData.map(() => 85), borderColor: 'rgba(246,224,94,0.6)', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false, tension: 0 }
     ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e2e8f0' } },
@@ -61,7 +61,7 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
 
   exportOeeComponentsCSV(): void {
     if (!this.oeeComponentsData || this.oeeComponentsData.length === 0) return;
-    const headers = ['Datum','Tillganglighet %','Kvalitet %'];
+    const headers = ['Datum','Tillgänglighet %','Kvalitet %'];
     const rows = this.oeeComponentsData.map(d => [d.datum, d.tillganglighet != null ? d.tillganglighet.toFixed(1) : '', d.kvalitet != null ? d.kvalitet.toFixed(1) : '']);
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });

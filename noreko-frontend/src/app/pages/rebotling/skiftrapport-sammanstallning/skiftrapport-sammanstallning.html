@@ -105,7 +105,7 @@
       <div class="totalt-bar">
         <span><strong>Dagstotalt:</strong></span>
         <span>Producerade: <strong>{{ dagligData.totalt.producerade }}</strong></span>
-        <span>Godkanda: <strong>{{ dagligData.totalt.godkanda }}</strong></span>
+        <span>Godkända: <strong>{{ dagligData.totalt.godkanda }}</strong></span>
         <span>Kasserade: <strong style="color:#fc8181">{{ dagligData.totalt.kasserade }}</strong></span>
         <span>Kassationsgrad: <strong>{{ dagligData.totalt.kassationsgrad_pct }}%</strong></span>
       </div>
@@ -207,7 +207,7 @@
           <div *ngIf="!loadingVecko && !errorVecko && (!veckoData || veckoData!.dagar.length === 0)"
                class="text-center py-4 text-muted">
             <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-            Ingen veckodata tillganglig
+            Ingen veckodata tillgänglig
           </div>
         </div>
       </div>
