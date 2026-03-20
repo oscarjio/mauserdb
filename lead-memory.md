@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #202)*
+*Senast uppdaterad: 2026-03-20 (session #203)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -69,23 +69,25 @@ Session #199: BUGGJAKT — 7 buggar (5 Worker A + 2 Worker B). N+1 queries (2), 
 Session #200: BUGGJAKT — 10 buggar (8 Worker A + 2 Worker B). Saknade audit trails (7), XSS i category (1), saknade error-nycklar (2). Angular template audit: rent.
 Session #201: BUGGJAKT — 6 buggar (5 Worker A + 1 Worker B). N+1 queries (2), redundanta DB-anrop (2), midnight edge case (1), saknad losenordsvalidering (1). Lazy loading audit: rent.
 Session #202: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). Saknad session timeout-check i api.php (1), saknade role="alert" pa 14 templates (15). File path traversal audit: rent. Memory leak audit: rent.
+Session #203: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade bounds pa floatval/intval (4), error disclosure via json_last_error_msg (1). HTTP retry/timeout audit: rent. Form XSS audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #203+):
-- [ ] Angular HTTP retry/timeout audit
-- [ ] PHP classes/ integer overflow/type juggling audit
-- [ ] PHP classes/ error disclosure audit
-- [ ] Angular form XSS audit
+### Kvarstaende buggjakt-items (session #204+):
+- [ ] PHP classes/ race condition audit
+- [ ] Angular router guard audit
+- [ ] PHP classes/ SQL LIKE injection audit
+- [ ] Angular environment config audit
+- [ ] PHP classes/ date/timezone consistency audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #201 (klar)
-Worker A: 5 buggar — midnight edge case i NarvaroController, redundant SHOW TABLES i ProduktionspulsController, N+1 (730+ queries) i MaskinhistorikController getStationDrifttid(), N+1 (1095+ queries) i getStationOeeTrend(), redundanta COUNT i StopporsakRegistreringController.
-Worker B: 1 bugg — saknad losenordslangd/komplexitetsvalidering i menu.ts. Lazy loading audit: alla 100+ routes OK. Form validation audit: 20+ komponenter OK.
 
 ### 2026-03-20 — Session #202 (klar)
 Worker A: 1 bugg — saknad centraliserad session timeout-check i api.php for POST/PUT/DELETE (34 controllers exponerade). Session fixation, cookie flags, CSRF, path traversal: allt rent. 114 PHP-filer granskade.
 Worker B: 15 buggar — saknade role="alert" pa dynamiska meddelanden i 14 HTML-templates. Memory leak audit: alla 169 komponenter har korrekt destroy$/takeUntil/clearInterval/Chart.destroy.
+
+### 2026-03-20 — Session #203 (klar)
+Worker A: 5 buggar — saknade bounds pa floatval/intval i BonusAdminController (3), KvalitetstrendanalysController (1), TvattlinjeController (1), RebotlingAdminController (1) + error disclosure via json_last_error_msg i BonusAdminController (1). 117 PHP-filer granskade.
+Worker B: 0 buggar — HTTP retry/timeout audit: alla 97 services + 40+ komponenter har timeout(), catchError(), retry(1). Form XSS audit: 0 innerHTML, 0 bypassSecurityTrust, 0 eval(). Kodbasen ren.
