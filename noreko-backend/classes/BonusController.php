@@ -1318,6 +1318,7 @@ class BonusController {
                 try {
                     $dag = new DateTime($row['dag'], $tzBon);
                 } catch (Exception $e) {
+                    error_log('BonusController streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     continue;
                 }
                 if ($row['ibc_dag'] <= 0) {
@@ -1343,6 +1344,7 @@ class BonusController {
                 try {
                     $d = new DateTime($row['dag'], $tzBon);
                 } catch (Exception $e) {
+                    error_log('BonusController longest-streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     $current = 0;
                     continue;
                 }
@@ -1484,6 +1486,7 @@ class BonusController {
                 try {
                     $dag = new DateTime($row['dag'], $tzBon2);
                 } catch (Exception $e) {
+                    error_log('BonusController current-streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     continue;
                 }
                 if ($row['ibc_dag'] <= 0) {

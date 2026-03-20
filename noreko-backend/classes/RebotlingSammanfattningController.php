@@ -65,7 +65,8 @@ class RebotlingSammanfattningController {
             $stmt = $this->pdo->prepare("SHOW TABLES LIKE :tbl");
             $stmt->execute([':tbl' => $tableName]);
             return $stmt->rowCount() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log("RebotlingSammanfattningController::tableExists({$tableName}): " . $e->getMessage());
             return false;
         }
     }

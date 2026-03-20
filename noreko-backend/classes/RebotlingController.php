@@ -578,8 +578,9 @@ class RebotlingController {
                 ");
                 $rastRow = $rastStmt->fetch(PDO::FETCH_ASSOC);
                 $onRast = $rastRow ? (bool)$rastRow['rast_status'] : false;
-            } catch (Exception) {
+            } catch (Exception $e) {
                 // Tabellen kanske inte finns ännu
+                error_log('RebotlingController::getRunningStatus rast-check: ' . $e->getMessage());
             }
 
             echo json_encode([
@@ -860,8 +861,8 @@ class RebotlingController {
                         $rs = null;
                     }
                 }
-            } catch (Exception) {
-                // Tabellen saknas eller fel – ignorera
+            } catch (Exception $e) {
+                error_log('RebotlingController rast-events query: ' . $e->getMessage());
             }
 
             // Beräkna sammanfattning
@@ -1031,8 +1032,8 @@ class RebotlingController {
                     }
                 }
                 $rast_data = array_map(fn($e) => ['time' => $e['time'], 'rast_status' => (int)$e['rast_status']], $rast_events);
-            } catch (Exception) {
-                // Tabellen kanske saknas – ignorera tyst
+            } catch (Exception $e) {
+                error_log('RebotlingController rast-data query: ' . $e->getMessage());
             }
 
             // Hämta totalt rasttime från PLC (D4008) för dagen
@@ -1048,7 +1049,8 @@ class RebotlingController {
                 $plcRast = $plcRastStmt->fetch(PDO::FETCH_ASSOC);
                 $plc_rast_min = round($plcRast['total_rast_plc'] ?? 0, 1);
                 $plc_runtime_min = round($plcRast['total_runtime_plc'] ?? 0, 1);
-            } catch (Exception) {
+            } catch (Exception $e) {
+                error_log('RebotlingController plc-rast query: ' . $e->getMessage());
                 $plc_rast_min = 0;
                 $plc_runtime_min = 0;
             }
@@ -2797,8 +2799,8 @@ class RebotlingController {
                 if ($sr && isset($sr['min_operators'])) {
                     $minOps = max(1, (int)$sr['min_operators']);
                 }
-            } catch (\Exception) {
-                // Kolumnen finns inte än — använd default
+            } catch (\Exception $e) {
+                error_log('RebotlingController::getStaffingWarning min_operators: ' . $e->getMessage());
             }
 
             $today    = date('Y-m-d');
