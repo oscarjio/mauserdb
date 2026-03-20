@@ -1,3 +1,37 @@
+## 2026-03-20 Session #214 Worker A — PHP date/time edge case + SQL JOIN audit (3 buggar)
+
+### Uppgift 1: PHP classes/ date/time edge case re-audit
+Granskade ALLA 97 PHP-filer i noreko-backend/classes/ for date/time-buggar:
+DST-problem, midnight edge cases, month boundary, timezone-inkonsekvenser, felaktiga date formats.
+
+Resultat: **3 buggar hittade och fixade.**
+
+**WeeklyReportController.php (1 fix):**
+1. `getSummary()` rad 274 — "Default: forra veckan" anvande `new DateTime('last monday -1 week')`.
+   Pa mandagar ger `last monday` forra mandagen (7 dagar sedan), sedan `-1 week` ytterligare 7 dagar = 2 veckor tillbaka.
+   Fix: Ersatt med `new DateTime('now') + modify('-7 days')` — -7 dagar hamnar alltid i forra veckan oavsett veckodag.
+
+**RebotlingAnalyticsController.php (2 fixar):**
+2. `getWeeklySummaryEmail()` rad 5598 — Samma bugg: `new DateTime('last monday') + modify('-7 days')` gar tillbaka 2 veckor pa mandagar.
+   Fix: Ersatt med `new DateTime('now') + modify('-7 days')`.
+3. `sendWeeklySummaryEmail()` rad 5627 — Identisk bugg i POST-endpointen.
+   Fix: Ersatt med `new DateTime('now') + modify('-7 days')`.
+
+### Uppgift 2: PHP classes/ SQL JOIN audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for SQL JOIN-buggar:
+Felaktiga LEFT/INNER JOIN, saknade ON-villkor, JOIN pa fel kolumn, ambiguous columns, saknade WHERE-filter.
+
+Resultat: **Inga JOIN-buggar hittade.**
+
+Detaljerad genomgang:
+- INNER JOIN pa `stoppage_reasons` (StoppageController, VeckorapportController, m.fl.) — sakert: `reason_id` ar NOT NULL med FK RESTRICT
+- INNER JOIN pa `kassationsorsak_typer` (SkiftrapportController, RebotlingController, m.fl.) — sakert: `orsak_id` ar NOT NULL med FK
+- INNER JOIN pa `operators` (OperatorController, RebotlingController, WeeklyReportController, m.fl.) — korrekt for ranking/namnuppslag
+- INNER JOIN pa `maskin_oee_config` (MaskinOeeController) — korrekt: OEE-seeding kraver config
+- `bonus_payouts.op_id` joinar korrekt pa `operators.id` (inte `number`) — konsekvent i BonusAdminController och NewsController
+- Alla JOINs har korrekta table aliases — inga ambiguous column-risker
+- Inga `SELECT * ... JOIN`-monster hittade
+
 ## 2026-03-20 Session #214 Worker B — withCredentials + maxlength audit (21 buggar)
 
 ### Uppgift 1: Angular service URL consistency audit (8 buggar fixade)
