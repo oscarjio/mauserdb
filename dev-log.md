@@ -1,3 +1,65 @@
+## 2026-03-20 Session #210 Worker B — Angular lazy loading + HTTP retry + memory leak + Swedish UI text audit (35 buggar)
+
+### Uppgift 1: Lazy loading-verifiering
+Granskade app.routes.ts (130+ routes) och alla routing-konfigurationer.
+Resultat: RENT — alla routes anvander loadComponent(() => import(...)), Layout-komponenten laddas eagerly som shell-wrapper (korrekt arkitektur), inga cirkuär beroenden.
+
+### Uppgift 2: HTTP retry-audit
+Granskade ALLA services i noreko-frontend/src/app/services/ for saknad retry(), timeout(), catchError().
+Resultat: RENT — alla services har konsekvent timeout(15000), retry(1), catchError(() => of(null)) pa GET-anrop, POST-anrop saknar retry() korrekt (mutating ops ska ej retries).
+
+### Uppgift 3: Memory leak-detektion (1 bugg)
+
+1. **statistik-oee-gauge.ts (rad 22)** — oanvänd Subject aldrig completad.
+   `private pollTrigger$ = new Subject<void>()` deklarerades men anvandes aldrig och completades ej i ngOnDestroy.
+   Risk: Subject haller referens till garbage collector, forhindrar garbage collection av hela komponenttrad.
+   Fix: Tog bort den oanvanda Subject-deklarationen.
+
+### Uppgift 4: Svenska UI-text buggar (34 buggar)
+Fixade saknade svenska accenttecken (ä, ö, å) i 16 template- och TypeScript-filer.
+
+Specifika fynd:
+- statistik-oee-gauge.ts: 'hamta OEE-data', 'tillganglig' → hämta, tillgänglig (2 buggar)
+- statistik-oee-komponenter.ts: 'Tillganglighet %' i chart + CSV → Tillgänglighet (2 buggar)
+- statistik-oee-komponenter.html: 5 instanser av hamta/tillganglig/kortid/godkand → korrekt svenska
+- skiftoverlamning.component.ts: 'hamta detalj', 'Skiftoverlamningsprotokoll sparat' → hämta, överlämning (2 buggar)
+- skiftoverlamning.component.html: titel, 'Hamtar skiftdata', 'hamta skiftdata' → korrekt svenska (3 buggar)
+- oee-jamforelse.html: 'Tillganglighet %', 'tillganglig for vald period' → Tillgänglighet, tillgänglig för (2 buggar)
+- kvalitetstrendanalys.html: 5 x 'hamta *data' → hämta (5 buggar)
+- produktionspuls.html: 'Hamtar produktionsdata' → Hämtar (1 bugg)
+- produktionstakt.html: 'Hamtar', 'tillganglig', 'hamta' → korrekt svenska (3 buggar)
+- produktionskostnad.html: 'hamta kostnadsdata... forsok igen' → hämta, försök (2 buggar)
+- kvalitetscertifikat.html: 'hamta/forsok', 'Godkand/Underkand', 'tillganglig' → korrekt svenska (4 buggar)
+- kapacitetsplanering.html: 3 x 'tillganglig' → tillgänglig (3 buggar)
+- prediktivt-underhall.html: 3 x 'tillganglig' → tillgänglig (3 buggar)
+- kassationsorsak-statistik.html: 'operatorsdata/skiftdata tillganglig for perioden' → operatörsdata, tillgänglig för (4 buggar)
+- skiftrapport-sammanstallning.html: 'Godkanda', 'tillganglig' → Godkända, tillgänglig (2 buggar)
+- produktions-sla.html: 'hamta maldata... forsok igen' → hämta måldata, försök (2 buggar)
+- historisk-produktion.html: 'hamta produktionsdata... forsok igen' → hämta, försök (2 buggar)
+- gamification.html: 'hamta din profil... du ar inloggad', 'hamta engagemangsoversikt' → hämta, är, engagemangsöversikt (3 buggar)
+
+Andrade filer:
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-oee-komponenter/statistik-oee-komponenter.ts
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-oee-komponenter/statistik-oee-komponenter.html
+- noreko-frontend/src/app/pages/rebotling/oee-jamforelse/oee-jamforelse.html
+- noreko-frontend/src/app/pages/rebotling/kvalitetstrendanalys/kvalitetstrendanalys.html
+- noreko-frontend/src/app/pages/rebotling/produktionspuls/produktionspuls.html
+- noreko-frontend/src/app/pages/rebotling/produktionstakt/produktionstakt.html
+- noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskostnad.component.html
+- noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.html
+- noreko-frontend/src/app/pages/rebotling/kapacitetsplanering/kapacitetsplanering.component.html
+- noreko-frontend/src/app/pages/rebotling/kassationsorsak-statistik/kassationsorsak-statistik.html
+- noreko-frontend/src/app/pages/rebotling/skiftrapport-sammanstallning/skiftrapport-sammanstallning.html
+- noreko-frontend/src/app/pages/rebotling/produktions-sla/produktions-sla.component.html
+- noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.html
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.ts
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.html
+- noreko-frontend/src/app/rebotling/prediktivt-underhall/prediktivt-underhall.component.html
+- noreko-frontend/src/app/rebotling/gamification/gamification.component.html
+(statistik-oee-gauge.ts committed separately via Lead cleanup session #210)
+
+----
+
 ## 2026-03-20 Session #210 Worker A — PHP date/time edge case + concurrent access audit (5 buggar)
 
 ### Uppgift 1: Date/time edge case audit
