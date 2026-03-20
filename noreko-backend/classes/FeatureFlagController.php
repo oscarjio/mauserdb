@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/AuditController.php';
 
 /**
  * FeatureFlagController - Hanterar feature flags för rollbaserad synlighet
@@ -137,6 +138,9 @@ class FeatureFlagController {
                 return;
             }
 
+            AuditLogger::log($this->pdo, 'update_feature_flag', 'feature_flags', null,
+                "Uppdaterade feature flag: $featureKey -> min_role: $minRole",
+                null, ['feature_key' => $featureKey, 'min_role' => $minRole]);
             echo json_encode(['success' => true, 'message' => 'Uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             error_log('FeatureFlagController::updateFlag: ' . $e->getMessage());
@@ -177,6 +181,8 @@ class FeatureFlagController {
             }
 
             $this->pdo->commit();
+            AuditLogger::log($this->pdo, 'bulk_update_feature_flags', 'feature_flags', null,
+                "Batch-uppdaterade $updated funktionsflaggor");
             echo json_encode(['success' => true, 'message' => "$updated funktionsflaggor uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             if ($this->pdo->inTransaction()) {

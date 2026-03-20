@@ -15,6 +15,8 @@
  * POST ?action=maintenance&run=set-service-interval → Skapa/uppdatera serviceintervall (admin)
  * POST ?action=maintenance&run=reset-service-counter → Nollställ räknare efter utförd service (admin)
  */
+require_once __DIR__ . '/AuditController.php';
+
 class MaintenanceController {
     private $pdo;
 
@@ -227,6 +229,8 @@ class MaintenanceController {
             ]);
 
             $newId = (int)$this->pdo->lastInsertId();
+            AuditLogger::log($this->pdo, 'create_maintenance', 'maintenance_log', $newId,
+                "Skapad underhållspost: $title (linje: $line, typ: $maintenanceType)");
             echo json_encode([
                 'success' => true,
                 'message' => 'Underhållspost sparad',
@@ -355,6 +359,8 @@ class MaintenanceController {
             $sql = 'UPDATE maintenance_log SET ' . implode(', ', $fields) . ' WHERE id = :id';
             $this->pdo->prepare($sql)->execute($params);
 
+            AuditLogger::log($this->pdo, 'update_maintenance', 'maintenance_log', $id,
+                "Uppdaterade underhållspost (ID: $id): " . implode(', ', array_map(fn($f) => strtok($f, ' '), $fields)));
             echo json_encode(['success' => true, 'message' => 'Underhållspost uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::updateEntry: ' . $e->getMessage());
@@ -379,6 +385,8 @@ class MaintenanceController {
                 return;
             }
 
+            AuditLogger::log($this->pdo, 'delete_maintenance', 'maintenance_log', $id,
+                "Tog bort underhållspost (ID: $id)");
             echo json_encode(['success' => true, 'message' => 'Underhållspost borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::deleteEntry: ' . $e->getMessage());

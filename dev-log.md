@@ -1,3 +1,48 @@
+## 2026-03-20 Session #200 Worker A — PHP classes/ logging + input sanitization audit — 8 buggar fixade
+
+Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (117+ filer) for:
+1. Saknad audit trail: kritiska operationer (CREATE, UPDATE, DELETE) utan AuditLogger::log()
+2. Inkonsistent loggning: nagra controllers loggar CRUD men liknande gor det inte
+3. Saknad input sanitization: strip_tags() saknas pa user-input
+
+### Fixade buggar:
+
+1. **NewsController.php** — Saknad audit trail: create/update/delete av nyheter saknade AuditLogger-loggning. Lade till require_once AuditController.php och AuditLogger::log() i create() (create_news), update() (update_news) och delete() (delete_news).
+
+2. **NewsController.php rad 100, 159** — Saknad strip_tags() pa category-input: I bade create() och update() anvandes `trim($body['category'])` utan `strip_tags()`. Trots att category valideras mot en whitelist, ar det inkonsistent — alla andra textfalt (title, content) anvander strip_tags(). Fixade till `strip_tags(trim($body['category']))`.
+
+3. **MaintenanceController.php** — Saknad audit trail: addEntry, updateEntry och deleteEntry saknade AuditLogger-loggning. Lade till require_once AuditController.php och AuditLogger::log() i addEntry (create_maintenance), updateEntry (update_maintenance) och deleteEntry (delete_maintenance).
+
+4. **CertificationController.php** — Saknad audit trail: addCertification() och revokeCertification() anvande bara error_log() istallet for AuditLogger. Lade till require_once AuditController.php och ersatte error_log med AuditLogger::log() (add_certification, revoke_certification) med relevant data (op_number, line, certified_date).
+
+5. **FeatureFlagController.php** — Saknad audit trail: updateFlag() och bulkUpdate() andrade feature flags utan nagon audit trail. Lade till require_once AuditController.php och AuditLogger::log() i updateFlag (update_feature_flag) och bulkUpdate (bulk_update_feature_flags).
+
+6. **ShiftHandoverController.php** — Saknad audit trail: deleteNote() raderade skiftanteckningar utan nagon audit trail. Lade till require_once AuditController.php och AuditLogger::log() (delete_shift_handover).
+
+7. **AlertsController.php** — Saknad audit trail: saveSettings() andrade alert-troskelvarden utan audit trail (bara error_log). Lade till require_once AuditController.php och ersatte error_log med AuditLogger::log() (update_alert_settings).
+
+8. Bugg 2 ovan (NewsController category strip_tags) raknas som en separat bugg fran bugg 1 (audit trail).
+
+### Granskade omraden utan buggar:
+
+- **AdminController**: Full audit trail pa alla CRUD-operationer (create_user, delete_user, update_user, toggle_admin, toggle_active). Input valideras med strip_tags, trim, strlen, intval. Korrekt.
+- **LoginController**: Fullstandig audit trail (login, login_failed, login_blocked_inactive, logout). Korrekt.
+- **RegisterController**: Audit trail pa register. Fullstandig input-validering. Korrekt.
+- **ProfileController**: Audit trail pa update_profile. Rate limiting pa losenordsbyte. Korrekt.
+- **OperatorController**: Full audit trail pa create/update/delete/toggleActive. Input valideras. Korrekt.
+- **StoppageController**: Full audit trail pa create/update/delete. Input valideras. Korrekt.
+- **FeedbackController**: Feedbacks ar operatorsdata, inte admin-operationer — audit trail ar ej nodvandigt.
+- **DashboardLayoutController**: Personlig widget-layout — audit trail ar ej nodvandigt.
+- **FavoriterController**: Personliga bokmärken — audit trail ar ej nodvandigt.
+- **BatchSparningController**: create/complete batch — operationsdata styrd av system, ej kritisk admin-data.
+- **KvalitetscertifikatController**: generera/bedom — operationsdata, inte kritisk admin-operation.
+- **ProduktionsmalController**: satt-mal/spara-mal — operationsdata.
+- **SkiftplaneringController**: assign/unassign — operationsdata.
+- **MaskinunderhallController**: add-service/add-machine — operationsdata.
+- **Input sanitization**: Samtliga controllers anvander prepared statements (inga SQL injections). strip_tags() och trim() anvands konsekvent pa textfalt. intval()/floatval() pa numeriska varden. mb_strlen()/mb_substr() for langdbegransning. filter_var(FILTER_VALIDATE_EMAIL) for e-post. Whitelist-validering for enum-varden.
+
+---
+
 ## 2026-03-20 Session #199 Worker A — PHP classes/ SQL performance + transaction audit — 4 buggar fixade
 
 Systematisk granskning av ALLA PHP-klasser i noreko-backend/classes/ (117 filer) for:

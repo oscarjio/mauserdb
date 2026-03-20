@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 /**
  * AlertsController.php
  * Realtidsvarningar — OEE-låg, lång stopptid, hög kassationsrate
@@ -329,7 +331,8 @@ class AlertsController {
             }
 
             $this->pdo->commit();
-            error_log("AlertsController::saveSettings — uppdaterad av user_id=$userId: " . json_encode($body));
+            AuditLogger::log($this->pdo, 'update_alert_settings', 'alert_settings', null,
+                "Uppdaterade alert-inställningar");
             $this->sendSuccess(['saved' => true]);
         } catch (\PDOException $e) {
             if ($this->pdo->inTransaction()) {

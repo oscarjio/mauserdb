@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/AuditController.php';
 
 class NewsController {
     private $pdo;
@@ -96,7 +97,7 @@ class NewsController {
 
         $title     = strip_tags(trim($body['title'] ?? ''));
         $content   = strip_tags(trim($body['content'] ?? ''));
-        $category  = trim($body['category'] ?? 'info');
+        $category  = strip_tags(trim($body['category'] ?? 'info'));
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
         $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
@@ -132,6 +133,8 @@ class NewsController {
                 ':priority'  => $priority,
             ]);
             $id = (int)$this->pdo->lastInsertId();
+            AuditLogger::log($this->pdo, 'create_news', 'news', $id,
+                "Skapade nyhet: $title", null, ['title' => $title, 'category' => $category]);
             echo json_encode(['success' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController::create: " . $e->getMessage());
@@ -153,7 +156,7 @@ class NewsController {
         $id        = intval($body['id'] ?? 0);
         $title     = strip_tags(trim($body['title'] ?? ''));
         $content   = strip_tags(trim($body['content'] ?? ''));
-        $category  = trim($body['category'] ?? 'info');
+        $category  = strip_tags(trim($body['category'] ?? 'info'));
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
         $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
@@ -197,6 +200,8 @@ class NewsController {
                 ':priority'  => $priority,
                 ':id'        => $id,
             ]);
+            AuditLogger::log($this->pdo, 'update_news', 'news', $id,
+                "Uppdaterade nyhet (ID: $id): $title", null, ['title' => $title, 'category' => $category]);
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController::update: " . $e->getMessage());
@@ -220,6 +225,7 @@ class NewsController {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM news WHERE id = :id");
             $stmt->execute([':id' => $id]);
+            AuditLogger::log($this->pdo, 'delete_news', 'news', $id, "Tog bort nyhet (ID: $id)");
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController::delete: " . $e->getMessage());

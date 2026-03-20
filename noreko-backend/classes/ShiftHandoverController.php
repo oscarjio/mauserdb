@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/AuditController.php';
 
 class ShiftHandoverController {
     private $pdo;
@@ -427,6 +428,8 @@ class ShiftHandoverController {
             $delStmt = $this->pdo->prepare('DELETE FROM shift_handover WHERE id = ?');
             $delStmt->execute([$id]);
 
+            AuditLogger::log($this->pdo, 'delete_shift_handover', 'shift_handover', $id,
+                "Tog bort skiftanteckning (ID: $id)");
             echo json_encode(['success' => true, 'message' => 'Anteckning borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('ShiftHandoverController::deleteNote: ' . $e->getMessage());
