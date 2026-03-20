@@ -1,3 +1,48 @@
+## 2026-03-20 Session #211 Worker B — Angular form validation + auth guard + Swedish UI text (12 buggar)
+
+### Uppgift 1: Angular form validation audit
+Granskade alla Angular-komponenter med formuler (template-driven forms med FormsModule).
+Hittade och fixade:
+
+1. **login.ts** — username skickades utan trim() till API:t. Kunde orsaka misslyckad inloggning med osynliga mellanslag.
+
+### Uppgift 2: Angular route guard audit — prematur redirect-bugg (4 st)
+Granskade alla admin-sidor som gor manuell rollkontroll i ngOnInit.
+Hittade allvarlig bugg: user$ prenumererades UTAN att vanta pa initialized$ fran AuthService.
+Detta innebar att vid langsammare natverk redirectades admins tillbaka till / innan auth-check hunnit klart.
+Fixade med initialized$.pipe(filter(true), switchMap(() => user$)) — samma monster som auth.guard.ts anvander.
+
+2. **users.ts** — prematur redirect for admin-sidan.
+3. **create-user.ts** — prematur redirect for skapa-anvandare-sidan.
+4. **operators.ts** — prematur redirect for operatorssidan.
+5. **vpn-admin.ts** — prematur redirect + loadVpnStatus() anropades fore auth-check.
+   Omstrukturerade sa VPN-polling startas forst efter bekraftad admin-roll.
+
+### Svensk UI-text — ersatte engelska stringar (7 st)
+6. **users.html** — kolumnrubrik "Email" andrad till "E-post".
+7. **users.html** — redigeringsformular label+placeholder "Email" till "E-post".
+8. **feature-flag-admin.ts** — roleLabel returnerade "Developer" istallet for "Utvecklare".
+9. **feature-flag-admin.html** — sidrubrik "Feature Flags" till "Funktionsflaggor", tabellrubrik "Feature" till "Funktion".
+10. **feature-flag-admin.html** — laddningstext och tom-text "feature flags" till "funktionsflaggor".
+11. **bonus-admin.html** — tabellrubrik "Success Rate" andrad till "Godkand andel".
+12. **avvikelselarm.component.html** — fliktext "Dashboard" andrad till "Instrumentpanel".
+13. **stoppage-log.html** — aria-label "Valj category" andrad till "Valj kategori".
+
+Andrade filer:
+- noreko-frontend/src/app/pages/login/login.ts
+- noreko-frontend/src/app/pages/users/users.ts
+- noreko-frontend/src/app/pages/users/users.html
+- noreko-frontend/src/app/pages/create-user/create-user.ts
+- noreko-frontend/src/app/pages/operators/operators.ts
+- noreko-frontend/src/app/pages/vpn-admin/vpn-admin.ts
+- noreko-frontend/src/app/pages/feature-flag-admin/feature-flag-admin.ts
+- noreko-frontend/src/app/pages/feature-flag-admin/feature-flag-admin.html
+- noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html
+- noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.html
+- noreko-frontend/src/app/pages/stoppage-log/stoppage-log.html
+
+----
+
 ## 2026-03-20 Session #211 Worker A — PHP backend input sanitization + float precision audit (7 buggar)
 
 ### Uppgift 1: PHP classes/ input sanitization audit
