@@ -3,11 +3,11 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="page-title mb-0">
-      <i class="fas fa-gamepad me-2" style="color:#b794f4"></i>Gamification
+      <i class="fas fa-gamepad me-2" style="color:#b794f4"></i>Spelifiering
     </h1>
     <div class="d-flex gap-2 align-items-center flex-wrap">
       <button class="tab-btn" [class.active]="activeTab === 'leaderboard'" (click)="setTab('leaderboard')">
-        <i class="fas fa-trophy me-1"></i>Leaderboard
+        <i class="fas fa-trophy me-1"></i>Topplista
       </button>
       <button class="tab-btn" [class.active]="activeTab === 'min-profil'" (click)="setTab('min-profil')">
         <i class="fas fa-user me-1"></i>Min profil
@@ -95,7 +95,7 @@
               <th scope="col" class="text-end">Kvalitet</th>
               <th scope="col" class="text-end">Stopp</th>
               <th scope="col" class="text-end">Poang</th>
-              <th scope="col" class="text-center">Streak</th>
+              <th scope="col" class="text-center">Svit</th>
             </tr>
           </thead>
           <tbody>
@@ -176,7 +176,7 @@
                 <span class="profil-stat-value" [style.color]="getStreakColor(profilData.streak)">
                   <i [class]="getStreakIcon(profilData.streak)" class="me-1"></i>{{ profilData.streak }}d
                 </span>
-                <span class="profil-stat-label">Streak</span>
+                <span class="profil-stat-label">Svit</span>
               </div>
             </div>
           </div>
@@ -185,7 +185,7 @@
 
       <!-- Badges -->
       <div class="chart-card mb-4">
-        <h6 class="mb-3"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Badges ({{ profilData.antal_badges }})</h6>
+        <h6 class="mb-3"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Utmarkelser ({{ profilData.antal_badges }})</h6>
         <div class="row g-3">
           <div class="col-6 col-md-4 col-lg-2" *ngFor="let badge of profilData.badges; trackBy: trackByIndex">
             <div class="badge-card" [class.badge-earned]="badge.uppnadd" [class.badge-locked]="!badge.uppnadd">
@@ -196,7 +196,7 @@
               <div class="badge-desc">{{ badge.beskrivning }}</div>
               <div class="badge-date" *ngIf="badge.tilldelad">{{ badge.tilldelad }}</div>
               <div class="badge-locked-label" *ngIf="!badge.uppnadd">
-                <i class="fas fa-lock me-1"></i>Last
+                <i class="fas fa-lock me-1"></i>Låst
               </div>
             </div>
           </div>
@@ -261,13 +261,13 @@
         </div>
         <div class="col-6 col-lg-3">
           <div class="kpi-card">
-            <div class="kpi-label">Badges utdelade</div>
+            <div class="kpi-label">Utmarkelser utdelade</div>
             <div class="kpi-value" style="color:#ecc94b">{{ overviewData.total_badges_utdelade }}</div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
           <div class="kpi-card">
-            <div class="kpi-label">Langsta streak</div>
+            <div class="kpi-label">Langsta svit</div>
             <div class="kpi-value" style="color:#fc8181">{{ overviewData.max_streak }}d</div>
           </div>
         </div>
@@ -283,7 +283,7 @@
               <span class="overview-stat-value">{{ overviewData.avg_poang }}</span>
             </div>
             <div class="overview-stat-row">
-              <span class="overview-stat-label">Snitt-streak</span>
+              <span class="overview-stat-label">Snitt-svit</span>
               <span class="overview-stat-value">{{ overviewData.avg_streak }}d</span>
             </div>
             <div class="overview-stat-row">

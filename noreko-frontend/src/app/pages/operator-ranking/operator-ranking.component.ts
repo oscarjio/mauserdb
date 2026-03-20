@@ -289,7 +289,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
             backgroundColor: '#b794f4',
           },
           {
-            label: 'Streak',
+            label: 'Svit',
             data: items.map(i => i.streak_bonus),
             backgroundColor: '#fc8181',
           },
