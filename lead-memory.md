@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-19 (session #194)*
+*Senast uppdaterad: 2026-03-20 (session #196)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -61,25 +61,26 @@ Session #105-#131: BUGGJAKT — ~700 buggar totalt. Se lead-memory-archive.md.
 Session #132-#154: BUGGJAKT — ~800+ buggar. Se lead-memory-archive.md.
 Session #155-#170: BUGGJAKT — ~500+ buggar. Se lead-memory-archive.md.
 Session #190-#194: BUGGJAKT — 40 buggar. Se lead-memory-archive.md.
-Session #195: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). PHP file I/O + array key (0: controllers ar tunna proxys, logik i classes/). Angular HTTP retry + change detection (3: produktionstakt POST timeout+catchError, batch-sparning 2x timeout).
+Session #195: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). Controllers ar tunna proxys — logik i classes/.
+Session #196: BUGGJAKT — 6 buggar (5 Worker A + 1 Worker B). SQL injection i BonusController simulate(), IBC/h berakning 60x fel i OperatorDashboardController (4 stallen), setTimeout-lacka i stationsdetalj.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #196+):
+### Kvarstaende buggjakt-items (session #197+):
 - [ ] Angular memory profiling — tunga sidor
-- [ ] PHP classes/ file I/O + array key audit — logiken ligger i classes/, inte controllers/
-- [ ] PHP classes/ numeric input validation audit
-- [ ] Angular template null-safety audit
-- [ ] PHP classes/ SQL injection deep audit
+- [ ] PHP classes/ date/time edge cases — DST, timezone, datum-validering
+- [ ] PHP classes/ error response audit — saknade HTTP-statuskoder
+- [ ] Angular HTTP error handling audit — saknade catchError/timeout
+- [ ] PHP classes/ authorization audit — saknade auth-kontroller
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-19 — Session #194 (klar)
-Worker A: 4 buggar — ProduktionskostnadController skottar, SkiftrapportController DST, DrifttidsTimelineController gap, LeveransplaneringController DDL-transaktion.
-Worker B: 2 buggar — maskinhistorik dead-code Chart.destroy x2.
-
 ### 2026-03-20 — Session #195 (klar)
-Worker A: 0 buggar — alla 18 controllers ar tunna proxy-filer (bara require_once classes/). VIKTIGT: framtida PHP-granskning maste riktas mot noreko-backend/classes/ istallet.
-Worker B: 3 buggar — produktionstakt saveTarget() saknade timeout+catchError pa POST, batch-sparning selectBatch()+completeBatch() saknade timeout.
+Worker A: 0 buggar — alla 18 controllers ar tunna proxy-filer. Framtida PHP-granskning mot classes/.
+Worker B: 3 buggar — produktionstakt + batch-sparning saknade timeout+catchError.
+
+### 2026-03-20 — Session #196 (klar)
+Worker A: 5 buggar — BonusController simulate() SQL injection (string-interpolation -> prepared stmt). OperatorDashboardController getMittTempo()+getMinBonus() IBC/h berakning 60x fel (runtime_plc ar minuter, inte sekunder, 4 stallen).
+Worker B: 1 bugg — stationsdetalj setTimeout i laddaOeeTrend() sparade inte timer-referens, kunde inte rensas i ngOnDestroy. VIKTIGT: ovriga 9 komponenter var rena — null-safety och lifecycle korrekt.
