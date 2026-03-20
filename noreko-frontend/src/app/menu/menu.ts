@@ -260,6 +260,14 @@ export class Menu implements OnInit, OnDestroy {
     }
 
     if (this.profileForm.newPassword || this.profileForm.confirmPassword) {
+      if (this.profileForm.newPassword.length < 8) {
+        this.profileError = 'Nytt lösenord måste vara minst 8 tecken.';
+        return;
+      }
+      if (!/[a-zA-Z]/.test(this.profileForm.newPassword) || !/[0-9]/.test(this.profileForm.newPassword)) {
+        this.profileError = 'Nytt lösenord måste innehålla minst en bokstav och en siffra.';
+        return;
+      }
       if (this.profileForm.newPassword !== this.profileForm.confirmPassword) {
         this.profileError = 'Nya lösenord matchar inte.';
         return;

@@ -1,3 +1,27 @@
+## 2026-03-20 Session #201 Worker B — Angular lazy loading + form validation audit — 1 bugg fixad
+
+### Uppgift 1: Angular lazy loading + bundle size audit
+Systematisk granskning av Angular-appens modul-struktur i noreko-frontend/src/app/.
+
+Granskade omraden:
+- **app.routes.ts**: Alla 100+ routes anvander `loadComponent` med dynamisk import — korrekt lazy loading overallt. Inga eagerly-importerade sidkomponenter.
+- **app.config.ts**: Anvander `PreloadAllModules` — medveten strategi som preloadar lazy routes i bakgrunden efter initial laddning.
+- **Layout-komponenten** (`layout.ts`): Eagerly importerar Header, Menu, RouterOutlet, CommonModule, ToastComponent — alla ar latta komponenter. Korrekt.
+- **Chart.js-imports**: Alla ~100 komponenter som importerar Chart.js ar lazy-loadade via `loadComponent`. Korrekt.
+- **Tredjepartsbibliotek**: `xlsx` importeras med dynamisk `import('xlsx')`. QRCode i lazy-loaded komponent. Inga tunga tredjepartsbibliotek i huvudbundlen.
+- **Oanvanda/duplicerade imports**: Inga problem hittades.
+
+Resultat: Inga lazy loading-buggar. Arkitekturen ar korrekt med standalone-komponenter och loadComponent.
+
+### Uppgift 2: Angular form validation audit
+Systematisk granskning av ALLA Angular-komponenter med formular (20+ form-komponenter).
+
+Granskade filer utan buggar: login.ts, register.ts+html, create-user.ts+html, users.ts+html, operators.ts+html, stoppage-log.ts+html, maintenance-form.component.ts, service-intervals.component.ts, news-admin.ts, maskinunderhall.component.html, batch-sparning.component.html, kassationskvot-alarm.component.html, shift-handover.ts+html, stopporsak-registrering.ts, leveransplanering.component.html, shared-skiftrapport.html, rebotling-skiftrapport.html, skiftplanering.component.ts.
+
+### Fixade buggar:
+
+1. **menu/menu.ts rad 262-271** — Saknad losenordsvalidering vid profilbyte: Formularet for att byta losenord (i menyn) hade `novalidate` pa `<form>`-taggen, vilket inaktiverade webbläsarens inbyggda validering av `minlength="8"`. Metoden `updateProfile()` kontrollerade att nya losenord matchade och att nuvarande losenord angavs, men validerade INTE att det nya losenordet uppfyllde minimilangd (8 tecken) eller komplexitetskrav (bokstav + siffra). En anvandare kunde alltsa byta till ett 1-teckens losenord. Fixade genom att lagga till langd- och komplexitetsvalidering fore matchnings-checken.
+
 ## 2026-03-20 Session #201 Worker A — PHP classes/ caching + date/time edge case audit — 5 buggar fixade
 
 ### Uppgift 1: PHP classes/ caching audit
