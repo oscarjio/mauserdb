@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #196)*
+*Senast uppdaterad: 2026-03-20 (session #197)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -63,24 +63,25 @@ Session #155-#170: BUGGJAKT — ~500+ buggar. Se lead-memory-archive.md.
 Session #190-#194: BUGGJAKT — 40 buggar. Se lead-memory-archive.md.
 Session #195: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). Controllers ar tunna proxys — logik i classes/.
 Session #196: BUGGJAKT — 6 buggar (5 Worker A + 1 Worker B). SQL injection i BonusController simulate(), IBC/h berakning 60x fel i OperatorDashboardController (4 stallen), setTimeout-lacka i stationsdetalj.
+Session #197: BUGGJAKT — 14 buggar (6 Worker A + 8 Worker B). DST/timezone-buggar i 4 PHP-klasser. Saknad timeout/catchError i 8 Angular-komponenter.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #197+):
-- [ ] Angular memory profiling — tunga sidor
-- [ ] PHP classes/ date/time edge cases — DST, timezone, datum-validering
-- [ ] PHP classes/ error response audit — saknade HTTP-statuskoder
-- [ ] Angular HTTP error handling audit — saknade catchError/timeout
+### Kvarstaende buggjakt-items (session #198+):
 - [ ] PHP classes/ authorization audit — saknade auth-kontroller
+- [ ] Angular memory profiling — tunga sidor
+- [ ] PHP classes/ file upload + path traversal audit
+- [ ] Angular form validation audit
+- [ ] PHP classes/ SQL query performance audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-20 — Session #195 (klar)
-Worker A: 0 buggar — alla 18 controllers ar tunna proxy-filer. Framtida PHP-granskning mot classes/.
-Worker B: 3 buggar — produktionstakt + batch-sparning saknade timeout+catchError.
-
 ### 2026-03-20 — Session #196 (klar)
 Worker A: 5 buggar — BonusController simulate() SQL injection (string-interpolation -> prepared stmt). OperatorDashboardController getMittTempo()+getMinBonus() IBC/h berakning 60x fel (runtime_plc ar minuter, inte sekunder, 4 stallen).
-Worker B: 1 bugg — stationsdetalj setTimeout i laddaOeeTrend() sparade inte timer-referens, kunde inte rensas i ngOnDestroy. VIKTIGT: ovriga 9 komponenter var rena — null-safety och lifecycle korrekt.
+Worker B: 1 bugg — stationsdetalj setTimeout i laddaOeeTrend() sparade inte timer-referens, kunde inte rensas i ngOnDestroy.
+
+### 2026-03-20 — Session #197 (klar)
+Worker A: 6 buggar — DST/timezone i SkiftoverlamningController (3 stallen date('G')/strtotime -> DateTime Europe/Stockholm), RebotlingController (date('G') -> DateTime), KassationsanalysController (strtotime -> DateTime), BonusAdminController (JSON_PRETTY_PRINT i prod).
+Worker B: 8 buggar — 5 komponenter saknade timeout (28 HTTP-anrop), 3 komponenter saknade catchError (19 HTTP-anrop). Kassationskvot-alarm, tidrapport, oee-trendanalys, operator-ranking, historisk-sammanfattning, produktionskostnad, kvalitetscertifikat, produktions-sla.

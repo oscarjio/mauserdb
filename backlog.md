@@ -7,16 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #196):
-- [x] **PHP classes/ SQL injection + validation audit** — 5 buggar (Worker A)
-- [x] **Angular template null-safety + subscription audit** — 1 bugg (Worker B)
+### Klart (session #197):
+- [x] **PHP classes/ date/time + error response audit** — 6 buggar (Worker A)
+- [x] **Angular statistik/ HTTP + lifecycle audit** — 8 buggar (Worker B)
 
-### Nasta buggjakt-items (session #197+):
-- [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor
-- [ ] **PHP classes/ date/time edge cases** — DST, timezone, datum-validering i classes/
-- [ ] **PHP classes/ error response audit** — saknade HTTP-statuskoder, inkonsistent JSON-format
-- [ ] **Angular HTTP error handling audit** — saknade catchError/timeout pa HTTP-anrop
+### Nasta buggjakt-items (session #198+):
 - [ ] **PHP classes/ authorization audit** — saknade auth-kontroller pa endpoints
+- [ ] **Angular memory profiling** — kora memory profiling pa tunga sidor
+- [ ] **PHP classes/ file upload + path traversal audit** — saknad validering pa filuppladdning
+- [ ] **Angular form validation audit** — saknad/inkonsistent input-validering i formularsidor
+- [ ] **PHP classes/ SQL query performance audit** — saknade index, N+1-queries, onodiga JOINs
 
 ## Parkerade features (ta inte dessa nu)
 
