@@ -1,3 +1,68 @@
+## 2026-03-20 Session #217 Worker B — Angular form validation + lazy loading/bundle size audit (4 buggar)
+
+### Uppgift 1: Angular form validation audit
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/ for formular med saknad validering.
+
+Resultat: **2 buggar fixade.**
+
+Granskade komponenter med formulär (ngSubmit, ngModel + HTTP POST):
+- login.ts — OK (validering + disabled-knapp)
+- register.html — OK (required, minlength, maxlength, password strength check, disabled-knapp)
+- create-user.html — OK (required, minlength, maxlength, canSubmit check)
+- users.html — OK (required, minlength, maxlength pa edit-form)
+- operators.html — OK (required, min, max pa number, disabled-check)
+- stoppage-log.html — OK (required + validering i addStoppage())
+- maintenance-form.component.ts — OK (required + explicit validering i saveEntry())
+- batch-sparning.component.html — OK (required + validation feedback)
+- maskinunderhall.component.html — OK (required + disabled-check)
+- kassationskvot-alarm.component.html — OK (required, min, max, troskelvalidering)
+- avvikelselarm.component.html — OK (required + disabled-check)
+- shift-handover.html — OK (disabled nar tom text)
+- stopporsak-registrering.html — OK (kategori-val + bekraftelse-steg)
+- skiftplanering.component.html — OK (select + disabled-check)
+- rebotling-skiftrapport.html — OK (formRef.invalid pa submit-knapp)
+
+**Bugg 1: underhallslogg.ts rad 281 — spara() saknade validering av formStationId och formDatum**
+- Formularet kunde submittas med station_id=0 ("Valj station") och tomt datum
+- Fix: Lade till validering av formStationId och formDatum fore varaktighetskontroll
+
+**Bugg 2: underhallslogg.html rad 145 — submit-knapp ej disabled vid ofullstandigt formular**
+- Knappen var bara disabled vid `submitting`, inte nar station/datum/varaktighet saknades
+- Fix: Lade till `[disabled]="submitting || !formStationId || !formDatum || !formVaraktighet || formVaraktighet <= 0"`
+
+### Uppgift 2: Angular lazy loading + bundle size audit
+Granskade noreko-frontend/src/app/ for tunga imports, saknad lazy loading, och tree-shaking-problem.
+
+Resultat: **2 buggar fixade, 0 lazy loading-buggar.**
+
+**Routing (app.routes.ts):** Alla 80+ routes anvander `loadComponent` med dynamisk import — korrekt lazy loading. Inga eagerly-loaded routes hittades.
+
+**Chart.js-imports:** Alla komponenter importerar fran `chart.js` eller `chart.js/auto` — detta ar korrekt da Chart.js v4 stodjer tree-shaking via named exports (`import { Chart, registerables } from 'chart.js'`).
+
+**html2canvas + jsPDF:** Importeras i pdf-export.service.ts som lazy-laddas via komponent-import — acceptabelt.
+
+**Barrel-filer (index.ts):** Inga barrel-filer hittades i src/app/.
+
+**Duplicerade modul-imports:** Inga Angular-moduler importeras i flera feature-moduler (alla komponenter ar standalone).
+
+**Bugg 3: production-calendar.ts rad 7 — `import * as XLSX from 'xlsx'` forhindrar tree-shaking**
+- Fix: Ersatt med `import { utils as XLSXUtils, writeFile as XLSXWriteFile } from 'xlsx'`
+- Uppdaterade alla anvandningar: XLSX.utils -> XLSXUtils, XLSX.writeFile -> XLSXWriteFile
+
+**Bugg 4: historik.ts rad 11 — `import * as XLSX from 'xlsx'` forhindrar tree-shaking**
+- Fix: Ersatt med `import { utils as XLSXUtils, writeFile as XLSXWriteFile } from 'xlsx'`
+- Uppdaterade alla anvandningar: XLSX.utils -> XLSXUtils, XLSX.writeFile -> XLSXWriteFile
+
+**OBS:** `PreloadAllModules` i app.config.ts (rad 29) ar en medveten strategi-val — alla lazy-laddade chunks preloadas i bakgrunden efter initial load. Detta forlanger inte initial load men okar total bandbredd. Inte andrat da det ar en arkitektur-beslut.
+
+Filer andrade:
+- noreko-frontend/src/app/pages/underhallslogg/underhallslogg.ts
+- noreko-frontend/src/app/pages/underhallslogg/underhallslogg.html
+- noreko-frontend/src/app/pages/production-calendar/production-calendar.ts
+- noreko-frontend/src/app/pages/historik/historik.ts
+
+Bygge: OK (npx ng build — inga fel)
+
 ## 2026-03-20 Session #217 Worker A — Session handling + error response + SQL UNION injection audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ session handling audit
