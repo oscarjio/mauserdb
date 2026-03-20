@@ -364,7 +364,7 @@ class StopporsakTrendController {
     // ================================================================
 
     private function getDetail(): void {
-        $reason = trim($_GET['reason'] ?? '');
+        $reason = mb_substr(trim($_GET['reason'] ?? ''), 0, 200);
         $weeks  = $this->getWeeks();
 
         if ($reason === '') {

@@ -111,7 +111,7 @@ class FeatureFlagController {
         }
 
         $featureKey = strip_tags(trim($data['feature_key'] ?? ''));
-        $minRole = trim($data['min_role'] ?? '');
+        $minRole = strip_tags(trim($data['min_role'] ?? ''));
         $validRoles = ['public', 'user', 'admin', 'developer'];
 
         if (strlen($featureKey) > 100) {

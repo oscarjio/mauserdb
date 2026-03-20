@@ -67,7 +67,7 @@ class ProfileController {
         }
 
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
-        $email = isset($data['email']) ? trim($data['email']) : null;
+        $email = isset($data['email']) ? strip_tags(trim($data['email'])) : null;
         $currentPassword = $data['currentPassword'] ?? '';
         $newPassword = $data['newPassword'] ?? '';
         $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';

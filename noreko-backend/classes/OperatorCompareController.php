@@ -187,7 +187,7 @@ class OperatorCompareController {
         // 4. Cykeltid — inverterad (lägre = bättre)
         $cykelScore = $maxCykeltid > 0 && $raw['cykeltid'] > 0
             ? (int)round(max(0, 100 - (($raw['cykeltid'] / $maxCykeltid) * 100)))
-            : ((float)$raw['cykeltid'] === 0.0 ? 0 : 100);
+            : ((float)$raw['cykeltid'] < 0.001 ? 0 : 100);
 
         // 5. Bonus-rank — invertering (rank 1 = 100, sista = 0)
         $rankScore = $totalOps > 1

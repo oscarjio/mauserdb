@@ -1,3 +1,59 @@
+## 2026-03-20 Session #211 Worker A — PHP backend input sanitization + float precision audit (7 buggar)
+
+### Uppgift 1: PHP classes/ input sanitization audit
+Granskade ALLA 100+ PHP-filer i noreko-backend/classes/ for inkonsekvent sanitization.
+Resultat: De flesta filer ar val saniterade med strip_tags(), intval(), htmlspecialchars(), filter_var() och allowlist-validering. Hittade 3 buggar:
+
+1. **ProfileController.php rad 70** — saknade strip_tags() pa email-input fran POST-body.
+   `trim($data['email'])` andrades till `strip_tags(trim($data['email']))`.
+   Risk: HTML-injektion i e-postfalt vid profiluppdatering.
+
+2. **FeatureFlagController.php rad 114** — saknade strip_tags() pa min_role-input fran POST-body.
+   `trim($data['min_role'])` andrades till `strip_tags(trim($data['min_role']))`.
+   Risk: HTML-injektion i rollvarde (redan validerad mot allowlist, men defense-in-depth).
+
+3. **StopporsakTrendController.php rad 367** — saknade langdbegransning pa reason-parameter fran GET.
+   `trim($_GET['reason'])` andrades till `mb_substr(trim(...), 0, 200)`.
+   Risk: Obegransad strang kunde orsaka minnesanvandning.
+
+### Uppgift 2: PHP classes/ error response consistency
+Granskade felhantering i alla controllers.
+Resultat: KONSEKVENT — alla controllers anvander antingen:
+- Dedikerad sendError()-metod med http_response_code() + json_encode(['success' => false, 'error' => ...])
+- Inline json_encode(['success' => false, 'error' => ...]) med http_response_code()
+- Lyckade svar med 'message'-nyckel anvands konsekvent for bekraftelse-meddelanden (ej felsvar).
+Inga inkonsistenser hittade som behover fixas.
+
+### Uppgift 3: PHP classes/ numeric precision audit
+Granskade float-jamforelser och avrundningsproblem i alla controllers.
+Hittade 4 buggar med float === 0.0 jamforelser:
+
+4. **OperatorsPrestandaController.php rad 473-475** — float === 0.0 jamforelse for medel_cykeltid.
+   Andrades till < 0.001 for att undvika floating-point precision-problem.
+
+5. **OperatorCompareController.php rad 190** — float === 0.0 jamforelse for cykeltid.
+   Andrades till < 0.001.
+
+6. **TvattlinjeController.php rad 555, 860** — float === 0.0 jamforelse for totalRuntimeMinutes.
+   Andrades till < 0.001 pa bada stallena.
+
+7. **RebotlingController.php rad 929** — float === 0.0 jamforelse for totalRuntimeMinutes.
+   Andrades till < 0.001.
+
+Bonus-fix: **RebotlingController.php rad 1639** — mb_substr()-trunkering pa 5000 tecken men validering pa 500 tecken.
+   Andrades trunkering till 500 for att matcha valideringsgransen.
+
+Andrade filer:
+- noreko-backend/classes/ProfileController.php
+- noreko-backend/classes/FeatureFlagController.php
+- noreko-backend/classes/StopporsakTrendController.php
+- noreko-backend/classes/OperatorsPrestandaController.php
+- noreko-backend/classes/OperatorCompareController.php
+- noreko-backend/classes/TvattlinjeController.php
+- noreko-backend/classes/RebotlingController.php
+
+----
+
 ## 2026-03-20 Session #210 Worker B — Angular lazy loading + HTTP retry + memory leak + Swedish UI text audit (35 buggar)
 
 ### Uppgift 1: Lazy loading-verifiering

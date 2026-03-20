@@ -926,7 +926,7 @@ class RebotlingController {
             
             // Alternativ beräkning: Om vi inte fick runtime från events men har cykler,
             // uppskatta runtime från första till sista cykeln
-            if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
+            if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
                 $firstCycle = new DateTime($cycles[0]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $diff = $firstCycle->diff($lastCycle);
@@ -1636,7 +1636,7 @@ class RebotlingController {
 
         $datum     = $body['datum']     ?? '';
         $skiftNr   = intval($body['skift_nr'] ?? 0);
-        $kommentar = mb_substr(strip_tags(trim($body['kommentar'] ?? '')), 0, 5000);
+        $kommentar = mb_substr(strip_tags(trim($body['kommentar'] ?? '')), 0, 500);
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);

@@ -552,7 +552,7 @@ class TvattlinjeController {
                 }
             }
 
-            if ((float)$totalRuntimeMinutes === 0.0 && $ibcToday > 0) {
+            if ((float)$totalRuntimeMinutes < 0.001 && $ibcToday > 0) {
                 $stmt = $this->pdo->prepare(
                     'SELECT MIN(datum) as first_ibc, MAX(datum) as last_ibc FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()'
                 );
@@ -857,7 +857,7 @@ class TvattlinjeController {
                 }
             }
 
-            if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
+            if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
                 $firstCycle = new DateTime($cycles[0]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                 $diff = $firstCycle->diff($lastCycle);
