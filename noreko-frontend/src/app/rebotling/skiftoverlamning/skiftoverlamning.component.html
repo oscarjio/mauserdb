@@ -171,30 +171,30 @@
     </div>
     <div class="card-body">
       <div class="mb-3">
-        <label class="form-label">
+        <label class="form-label" for="kommentarHande">
           <i class="fas fa-exclamation-circle text-warning me-1"></i>Vad hande under skiftet?
         </label>
-        <textarea class="form-control dark-input" rows="3"
+        <textarea class="form-control dark-input" rows="3" id="kommentarHande"
                   placeholder="Beskriv vad som hande under skiftet, viktiga handelser, incidenter..."
                   [(ngModel)]="kommentarHande" maxlength="5000"></textarea>
         <div class="small text-muted mt-1">{{ kommentarHande.length }}/5000</div>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">
+        <label class="form-label" for="kommentarAtgarda">
           <i class="fas fa-wrench text-danger me-1"></i>Vad behover atgardas?
         </label>
-        <textarea class="form-control dark-input" rows="3"
+        <textarea class="form-control dark-input" rows="3" id="kommentarAtgarda"
                   placeholder="Beskriv vad som behover fixas, repareras, foljas upp..."
                   [(ngModel)]="kommentarAtgarda" maxlength="5000"></textarea>
         <div class="small text-muted mt-1">{{ kommentarAtgarda.length }}/5000</div>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">
+        <label class="form-label" for="kommentarOvrigt">
           <i class="fas fa-info-circle text-secondary me-1"></i>Ovrigt att tanka pa
         </label>
-        <textarea class="form-control dark-input" rows="3"
+        <textarea class="form-control dark-input" rows="3" id="kommentarOvrigt"
                   placeholder="Ovrig information till nasta skift..."
                   [(ngModel)]="kommentarOvrigt" maxlength="5000"></textarea>
         <div class="small text-muted mt-1">{{ kommentarOvrigt.length }}/5000</div>

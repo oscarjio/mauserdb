@@ -27,13 +27,13 @@
   <!-- Anpassat datumintervall -->
   <div class="row g-3 mb-4" *ngIf="period === 'anpassat'">
     <div class="col-auto">
-      <label class="form-label" style="color:#a0aec0; font-size:0.8rem;">Fran</label>
-      <input type="date" class="form-control form-control-sm form-control-dark"
+      <label class="form-label" for="tidrapportFrom" style="color:#a0aec0; font-size:0.8rem;">Fran</label>
+      <input type="date" id="tidrapportFrom" class="form-control form-control-sm form-control-dark"
              [(ngModel)]="customFrom" (change)="loadAll()">
     </div>
     <div class="col-auto">
-      <label class="form-label" style="color:#a0aec0; font-size:0.8rem;">Till</label>
-      <input type="date" class="form-control form-control-sm form-control-dark"
+      <label class="form-label" for="tidrapportTo" style="color:#a0aec0; font-size:0.8rem;">Till</label>
+      <input type="date" id="tidrapportTo" class="form-control form-control-sm form-control-dark"
              [(ngModel)]="customTo" (change)="loadAll()">
     </div>
   </div>

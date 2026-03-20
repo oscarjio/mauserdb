@@ -246,15 +246,15 @@
       </h5>
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
-          <label class="form-label text-muted small">Typ</label>
-          <select aria-label="Valj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
+          <label class="form-label text-muted small" for="malFormTyp">Typ</label>
+          <select id="malFormTyp" aria-label="Valj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
             <option value="dag">Dagsmal (alla vardagar)</option>
             <option value="vecka">Veckomal</option>
           </select>
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label text-muted small">Antal IBC *</label>
-          <input type="number" class="form-control form-control-dark"
+          <label class="form-label text-muted small" for="malFormAntal">Antal IBC *</label>
+          <input type="number" id="malFormAntal" class="form-control form-control-dark"
                  [(ngModel)]="formAntal" name="formAntal" #formAntalCtrl="ngModel"
                  placeholder="t.ex. 120" min="1" max="99999" required>
           <div class="text-danger small mt-1" *ngIf="formAntalCtrl.invalid && formAntalCtrl.touched">

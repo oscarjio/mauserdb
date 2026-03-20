@@ -262,8 +262,9 @@
             </div>
             <div class="small text-muted mb-2">{{ regel.beskrivning }}</div>
             <div class="d-flex align-items-center gap-2">
-              <label class="small text-muted text-nowrap">Gransvarde:</label>
+              <label class="small text-muted text-nowrap" [attr.for]="'grans_' + regel.id">Gransvarde:</label>
               <input type="number" class="form-control form-control-sm"
+                     [id]="'grans_' + regel.id"
                      style="max-width:120px"
                      [value]="regel.grans_varde"
                      step="0.5"
@@ -299,8 +300,8 @@
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label small text-muted">Kommentar (valfritt)</label>
-        <textarea class="form-control form-control-sm" rows="3" [(ngModel)]="kvitteraKommentar" placeholder="Beskriv vidtagen atgard..." maxlength="2000"></textarea>
+        <label class="form-label small text-muted" for="kvitteraKommentar">Kommentar (valfritt)</label>
+        <textarea class="form-control form-control-sm" id="kvitteraKommentar" rows="3" [(ngModel)]="kvitteraKommentar" placeholder="Beskriv vidtagen atgard..." maxlength="2000"></textarea>
       </div>
       <div *ngIf="kvitteraError" class="text-danger small mb-2">
         <i class="fas fa-exclamation-circle me-1"></i>{{ kvitteraError }}

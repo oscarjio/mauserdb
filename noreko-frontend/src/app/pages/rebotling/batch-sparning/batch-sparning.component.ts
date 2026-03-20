@@ -154,27 +154,38 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     }
   }
 
+  errorDetail = false;
+  completeError = '';
+
   selectBatch(batchId: number): void {
     this.loadingDetail = true;
+    this.errorDetail = false;
     this.selectedBatchDetail = null;
     this.svc.getBatchDetail(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetail = false;
       if (res?.success) {
         this.selectedBatchDetail = res;
+      } else {
+        this.errorDetail = true;
       }
     });
   }
 
   closeDetail(): void {
     this.selectedBatchDetail = null;
+    this.errorDetail = false;
+    this.completeError = '';
   }
 
   completeBatch(batchId: number): void {
     if (!confirm('Vill du markera denna batch som klar?')) return;
+    this.completeError = '';
     this.svc.completeBatch(batchId).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
         this.closeDetail();
+      } else {
+        this.completeError = 'Kunde inte markera batchen som klar. Forsok igen.';
       }
     });
   }

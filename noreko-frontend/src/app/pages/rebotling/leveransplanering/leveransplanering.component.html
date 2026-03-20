@@ -175,6 +175,11 @@
     <div class="text-center text-muted py-3" *ngIf="!loadingOrdrar && !ordrarData?.ordrar?.length">
       Inga ordrar matchar filtret.
     </div>
+
+    <!-- Error vid statusuppdatering -->
+    <div class="alert alert-danger mt-2" *ngIf="updateStatusError">
+      <i class="fas fa-exclamation-triangle me-1"></i>{{ updateStatusError }}
+    </div>
   </div>
 
   <!-- Error kapacitet -->

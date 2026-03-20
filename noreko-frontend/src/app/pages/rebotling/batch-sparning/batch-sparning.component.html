@@ -139,16 +139,16 @@
     <div class="filter-bar mb-3">
       <div class="row g-2 align-items-end">
         <div class="col-auto">
-          <label class="form-label small text-muted">Från</label>
-          <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="historyFrom">
+          <label class="form-label small text-muted" for="batchHistoryFrom">Från</label>
+          <input type="date" id="batchHistoryFrom" class="form-control form-control-sm dark-input" [(ngModel)]="historyFrom">
         </div>
         <div class="col-auto">
-          <label class="form-label small text-muted">Till</label>
-          <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="historyTo">
+          <label class="form-label small text-muted" for="batchHistoryTo">Till</label>
+          <input type="date" id="batchHistoryTo" class="form-control form-control-sm dark-input" [(ngModel)]="historyTo">
         </div>
         <div class="col-auto">
-          <label class="form-label small text-muted">Sök</label>
-          <input type="text" class="form-control form-control-sm dark-input" placeholder="Batch-nummer..." [(ngModel)]="historySearch">
+          <label class="form-label small text-muted" for="batchHistorySearch">Sök</label>
+          <input type="text" id="batchHistorySearch" class="form-control form-control-sm dark-input" placeholder="Batch-nummer..." [(ngModel)]="historySearch">
         </div>
         <div class="col-auto">
           <button class="btn btn-sm btn-info" (click)="applyHistoryFilter()">
@@ -216,13 +216,20 @@
   </div>
 
   <!-- ===== Batch-detaljvy (modal-liknande overlay) ===== -->
-  <div class="detail-overlay" *ngIf="selectedBatchDetail || loadingDetail" (click)="closeDetail()" role="dialog" aria-modal="true" aria-label="Batch-detaljvy">
+  <div class="detail-overlay" *ngIf="selectedBatchDetail || loadingDetail || errorDetail" (click)="closeDetail()" role="dialog" aria-modal="true" aria-label="Batch-detaljvy">
     <div class="detail-panel" (click)="$event.stopPropagation()">
 
       <!-- Loading -->
-      <div class="text-center py-5" *ngIf="loadingDetail && !selectedBatchDetail">
+      <div class="text-center py-5" *ngIf="loadingDetail && !selectedBatchDetail && !errorDetail">
         <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
         <p class="mt-2 text-muted">Laddar batch-detaljer...</p>
+      </div>
+
+      <!-- Error vid laddning av detalj -->
+      <div *ngIf="errorDetail && !loadingDetail" class="text-center py-4">
+        <i class="fas fa-exclamation-triangle fa-2x mb-2" style="color:#fc8181"></i>
+        <p style="color:#fc8181">Kunde inte ladda batch-detaljer. Forsok igen.</p>
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">Stang</button>
       </div>
 
       <ng-container *ngIf="selectedBatchDetail">
@@ -331,6 +338,9 @@
           <button class="btn btn-sm btn-primary" (click)="completeBatch(selectedBatchDetail.batch.id)">
             <i class="fas fa-check me-1"></i>Markera som klar
           </button>
+        </div>
+        <div class="text-danger small mt-2" *ngIf="completeError">
+          <i class="fas fa-exclamation-triangle me-1"></i>{{ completeError }}
         </div>
       </ng-container>
     </div>

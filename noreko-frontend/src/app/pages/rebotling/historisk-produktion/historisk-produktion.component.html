@@ -39,10 +39,10 @@
               (click)="selectPeriod(365)">365d</button>
       <span class="text-muted mx-1">|</span>
       <input type="date" class="form-control form-control-sm custom-date"
-             [(ngModel)]="customFrom" />
+             [(ngModel)]="customFrom" aria-label="Fran datum" />
       <span class="text-muted">-</span>
       <input type="date" class="form-control form-control-sm custom-date"
-             [(ngModel)]="customTo" />
+             [(ngModel)]="customTo" aria-label="Till datum" />
       <button class="btn btn-sm"
               [class]="useCustom ? 'btn-warning' : 'btn-outline-warning'"
               (click)="applyCustom()">

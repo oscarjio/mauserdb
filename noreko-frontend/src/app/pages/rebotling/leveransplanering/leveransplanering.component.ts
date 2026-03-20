@@ -247,10 +247,15 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
 
   // ---- Update order status ----
 
+  updateStatusError = '';
+
   updateStatus(id: number, status: string): void {
+    this.updateStatusError = '';
     this.svc.uppdateraOrder(id, status).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
+      } else {
+        this.updateStatusError = 'Kunde inte uppdatera orderstatus. Forsok igen.';
       }
     });
   }

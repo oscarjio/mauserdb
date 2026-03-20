@@ -1,3 +1,46 @@
+## 2026-03-20 Session #206 Worker B — Angular HTTP error UX + form accessibility audit (14 buggar)
+
+### Uppgift 1: HTTP error UX audit (3 buggar)
+Systematisk granskning av alla Angular-komponenter med HTTP-anrop. De flesta komponenter
+anvander catchError(() => of(null)) + null-kontroll i subscribe, vilket ar korrekt.
+
+Hittade 3 buggar dar misslyckade API-anrop svaljdes tyst utan anvanderfeedback:
+1. leveransplanering: updateStatus() — misslyckad statusuppdatering gav ingen feedback
+2. batch-sparning: completeBatch() — misslyckad batch-markering gav ingen feedback
+3. batch-sparning: selectBatch() — misslyckad detalj-laddning visade varken fel eller stangningsknapp
+
+### Uppgift 2: Form accessibility audit (11 buggar)
+Systematisk granskning av alla formularelement (input/select/textarea) i HTML-templates.
+
+Hittade och fixade 11 saknade for/id-par och aria-labels:
+4. kvalitetscertifikat generera-formular: 6 label+input utan for/id (batchnummer, datum, operator, antal, kassation, cykeltid)
+5. kvalitetscertifikat bedomning: 1 label+textarea utan for/id
+6. produktions-sla malformular: 3 label+input utan for/id (IBC-mal, max kassation, giltigt fran)
+7. tidrapport anpassat datumintervall: 2 label+input utan for/id (fran, till)
+8. batch-sparning historikfilter: 3 label+input utan for/id (fran, till, sok)
+9. produktionsmal formular: 1 label+input och 1 label+select utan for/id
+10. historisk-produktion datumval: 2 date-inputs utan label eller aria-label
+11. produktionskostnad konfiginputs: ngFor-inputs utan aria-label
+12. produktionskostnad datumfilter: 2 label+input utan for/id
+13. skiftoverlamning kommentarer: 3 label+textarea utan for/id
+14. avvikelselarm gransvarde+kvitterakommentar: 1 label+input och 1 label+textarea utan for/id
+
+Andrade filer:
+- noreko-frontend/src/app/pages/rebotling/leveransplanering/leveransplanering.component.ts
+- noreko-frontend/src/app/pages/rebotling/leveransplanering/leveransplanering.component.html
+- noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.ts
+- noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.html
+- noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.html
+- noreko-frontend/src/app/pages/rebotling/produktions-sla/produktions-sla.component.html
+- noreko-frontend/src/app/pages/tidrapport/tidrapport.component.html
+- noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.html
+- noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskostnad.component.html
+- noreko-frontend/src/app/pages/rebotling/produktionsmal/produktionsmal.component.html
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.html
+- noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.html
+
+Byggt och verifierat: `npx ng build` OK (inga fel).
+
 ## 2026-03-20 Session #206 Worker A — PHP header injection + error handling audit (7 buggar)
 
 ### Uppgift 1: Header injection audit (CRLF)

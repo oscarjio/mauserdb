@@ -353,8 +353,8 @@
             </button>
           </div>
           <div class="mb-3">
-            <label class="form-label text-muted small">Kommentar</label>
-            <textarea class="cert-textarea" rows="3" [(ngModel)]="bedomKommentar"
+            <label class="form-label text-muted small" for="bedomKommentar">Kommentar</label>
+            <textarea class="cert-textarea" id="bedomKommentar" rows="3" [(ngModel)]="bedomKommentar"
                       placeholder="Valfri kommentar..." maxlength="2000"></textarea>
           </div>
           <button class="btn btn-sm btn-info" (click)="submitBedom()"
@@ -396,28 +396,28 @@
       <div class="gen-form">
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label text-muted small">Batchnummer *</label>
-            <input type="text" class="cert-input" [(ngModel)]="genBatchNummer" placeholder="T.ex. B-2026-0326" required maxlength="100" />
+            <label class="form-label text-muted small" for="genBatchNummer">Batchnummer *</label>
+            <input type="text" id="genBatchNummer" class="cert-input" [(ngModel)]="genBatchNummer" placeholder="T.ex. B-2026-0326" required maxlength="100" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small">Datum</label>
-            <input type="date" class="cert-input" [(ngModel)]="genDatum" />
+            <label class="form-label text-muted small" for="genDatum">Datum</label>
+            <input type="date" id="genDatum" class="cert-input" [(ngModel)]="genDatum" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small">Operator</label>
-            <input type="text" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" maxlength="200" />
+            <label class="form-label text-muted small" for="genOperatorNamn">Operator</label>
+            <input type="text" id="genOperatorNamn" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" maxlength="200" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small">Antal IBC</label>
-            <input type="number" class="cert-input" [(ngModel)]="genAntalIbc" min="1"  max="99999" />
+            <label class="form-label text-muted small" for="genAntalIbc">Antal IBC</label>
+            <input type="number" id="genAntalIbc" class="cert-input" [(ngModel)]="genAntalIbc" min="1"  max="99999" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small">Kassation (%)</label>
-            <input type="number" class="cert-input" [(ngModel)]="genKassationPct" min="0" max="100" step="0.1" />
+            <label class="form-label text-muted small" for="genKassationPct">Kassation (%)</label>
+            <input type="number" id="genKassationPct" class="cert-input" [(ngModel)]="genKassationPct" min="0" max="100" step="0.1" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small">Genomsnittlig cykeltid (s)</label>
-            <input type="number" class="cert-input" [(ngModel)]="genCykeltidSnitt" min="0" step="0.1"  max="99999" />
+            <label class="form-label text-muted small" for="genCykeltidSnitt">Genomsnittlig cykeltid (s)</label>
+            <input type="number" id="genCykeltidSnitt" class="cert-input" [(ngModel)]="genCykeltidSnitt" min="0" step="0.1"  max="99999" />
           </div>
         </div>
 

@@ -93,18 +93,18 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">IBC-mal</label>
-          <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary"
+          <label class="form-label" for="slaTargetIbc">IBC-mal</label>
+          <input type="number" id="slaTargetIbc" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.target_ibc" min="1" required max="99999">
         </div>
         <div class="col-md-3">
-          <label class="form-label">Max kassation %</label>
-          <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary"
+          <label class="form-label" for="slaTargetKassation">Max kassation %</label>
+          <input type="number" id="slaTargetKassation" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.target_kassation_pct" min="0" max="100" step="0.5">
         </div>
         <div class="col-md-3">
-          <label class="form-label">Giltigt fran</label>
-          <input type="date" class="form-control form-control-sm bg-dark text-light border-secondary"
+          <label class="form-label" for="slaGiltigFrom">Giltigt fran</label>
+          <input type="date" id="slaGiltigFrom" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.giltig_from">
         </div>
       </div>
