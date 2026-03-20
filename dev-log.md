@@ -1,3 +1,56 @@
+## 2026-03-20 Session #213 Worker A — PHP error logging + CORS/headers audit (34 buggar)
+
+### Uppgift 1: PHP classes/ error logging audit (34 buggar fixade)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for catch-block som svaljer DB-fel utan loggning.
+Resultat: **34 buggar fixade — error_log() tillagt i alla tysta catch-block.**
+
+**RebotlingSammanfattningController.php (1 fix):**
+1. tableExists() — PDOException fangades utan loggning, returnerade bara false
+
+**RebotlingController.php (5 fixar):**
+2. getRunningStatus rast-check — Exception fangades utan loggning
+3. rast-events query — Exception fangades utan loggning
+4. rast-data query — Exception fangades utan loggning
+5. plc-rast query — Exception fangades utan loggning, satte bara 0
+6. getStaffingWarning min_operators — Exception fangades utan loggning
+
+**RebotlingAnalyticsController.php (13 fixar):**
+7. rebotling_settings query (dagmal) — Exception ignorerad
+8. produktionsmal_undantag query — Exception ignorerad
+9. rebotling_shift_times query — Exception ignorerad
+10. rebotling_settings shift_hours — Exception ignorerad
+11. operators name lookup — Exception ignorerad
+12. rebotling_weekday_goals query — Exception ignorerad
+13. rebotling_settings default goal — Exception ignorerad
+14. skift_kommentar query — Exception ignorerad
+15. pareto-data kassationsorsak — Exception ignorerad
+16. pareto-trend prev period — Exception ignorerad
+17. stoppage_log query — Exception ignorerad
+18. median-rate query — Exception ignorerad
+19. kassation-pareto second endpoint — Exception ignorerad
+
+**RebotlingAdminController.php (12 fixar):**
+20. rebotling_weekday_goals — Exception ignorerad
+21. produktionsmal_undantag — Exception ignorerad
+22-31. 10 st settings/onoff/rate/shift queries — Exception ignorerad
+
+**BonusController.php (3 fixar):**
+32. streak date parsing — Exception i DateTime utan loggning
+33. longest-streak date parsing — Exception i DateTime utan loggning
+34. current-streak date parsing — Exception i DateTime utan loggning
+
+### Uppgift 2: PHP classes/ CORS/headers audit (0 buggar)
+Granskade api.php och alla entry points for saknade/felaktiga HTTP-headers.
+Resultat: **0 buggar — CORS och security headers ar korrekt implementerade.**
+- api.php satter alla CORS-headers centraliserat (origin-validerad, credentials, methods, headers)
+- Alla security headers finns: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Cache-Control, CSP, HSTS
+- Inga controllers satter egna CORS-headers (korrekt centraliserat)
+- Redundanta Content-Type: application/json i ~14 controllers ar ofarliga (api.php satter redan)
+- CSV/HTML content-type overrides i BonusAdminController, TidrapportController, RebotlingAnalyticsController ar korrekta
+- Session-cookie parametrar korrekta (httponly, samesite=Lax, secure vid HTTPS)
+
+---
+
 ## 2026-03-20 Session #213 Worker B — HTTP interceptor + template null safety audit (0 buggar)
 
 ### Uppgift 1: Angular HTTP interceptor audit
