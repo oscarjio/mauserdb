@@ -75,24 +75,32 @@ Session #205: BUGGJAKT — 12 buggar (1 Worker A + 11 Worker B). Saknad timezone
 Session #206: BUGGJAKT — 21 buggar (7 Worker A + 14 Worker B). CRLF header injection (3), catch Exception->Throwable (4), HTTP error UX (3), form accessibility for/id-par (11). Error handling audit: rent.
 Session #207: BUGGJAKT — 17 buggar (4 Worker A + 13 Worker B). SQL felaktiga kolumnnamn (4), saknad sv-locale for pipes (2), pipe operator-precedens (11). Session fixation audit: rent. Lazy loading audit: rent.
 Session #208: BUGGJAKT — 16 buggar (2 Worker A + 14 Worker B). CSRF-token-mekanism (1), redundanta timeout/catchError i 8 komponenter (14). File inclusion audit: rent. Template strict null check: rent.
+Session #209: BUGGJAKT — pagaende. Worker A: integer overflow + password policy + SQL subquery audit. Worker B: change detection + error logging + subscription leak audit.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #209+):
-- [ ] PHP classes/ integer overflow audit
-- [ ] PHP classes/ password policy audit
-- [ ] PHP classes/ SQL UNION/subquery audit
-- [ ] Angular change detection audit
-- [ ] PHP classes/ error logging audit
+### Pagaende (session #209):
+- [ ] PHP classes/ integer overflow audit (Worker A)
+- [ ] PHP classes/ password policy audit (Worker A)
+- [ ] PHP classes/ SQL UNION/subquery audit (Worker A)
+- [ ] Angular change detection audit (Worker B)
+- [ ] PHP classes/ error logging audit (Worker B)
+
+### Kvarstaende buggjakt-items (session #210+):
+- [ ] Angular lazy loading verification
+- [ ] PHP classes/ date/time edge case audit
+- [ ] Angular HTTP retry logic audit
+- [ ] PHP classes/ concurrent access audit
+- [ ] Angular memory profiling
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-20 — Session #207 (klar)
-Worker A: 4 buggar — SQL felaktiga kolumnnamn: BatchSparningController namn->name (1), TidrapportController start_time/end_time/station/antal->start_tid/slut_tid/skift_typ/timmar (1), MinDagController/RebotlingController icke-existerande initialer-kolumn (2). Session fixation audit: rent.
-Worker B: 13 buggar — Saknad sv-locale i app.config.ts (2), pipe operator-precedens || 0 | number i my-bonus/tvattlinje-statistik/rebotling-statistik/alarm-historik/stoppage-log/kassationsorsak (11). Lazy loading audit: rent.
 
 ### 2026-03-20 — Session #208 (klar)
 Worker A: 2 buggar — Komplett CSRF-token-mekanism implementerad (AuthHelper + api.php + LoginController + StatusController + csrf.interceptor.ts + auth.service.ts + login.ts). File inclusion audit: rent, alla paths hardkodade.
 Worker B: 14 buggar — Redundanta timeout(15000)/catchError i 8 komponenter (avvikelselarm/historisk-produktion/leveransplanering/batch-sparning/kvalitetscertifikat/produktionskostnad/tidrapport/skiftoverlamning) — orsakade TimeoutError mid-retry + blank UI. Template strict null check: rent.
+
+### 2026-03-20 — Session #209 (pagaende)
+Worker A: integer overflow audit + password policy audit + SQL UNION/subquery audit i noreko-backend/classes/.
+Worker B: Angular change detection audit + PHP error logging audit + subscription leak audit.
