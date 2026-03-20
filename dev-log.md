@@ -1,3 +1,49 @@
+## 2026-03-20 Session #205 Worker B — Angular i18n audit: engelska UI-strangar till svenska (11 buggar)
+
+### Uppgift 1: I18N/hardcoded string audit
+Systematisk granskning av ALLA 42 Angular-komponenter (.component.html) i noreko-frontend/src/app/ for:
+- Icke-svenska strangar synliga for anvandare (engelska labels, placeholders, knappar, felmeddelanden)
+- Blandning av svenska och engelska i samma vy
+
+Hittade och fixade 11 buggar:
+
+**gamification.component.html (8 buggar):**
+1. "Gamification" -> "Spelifiering" (sidtitel)
+2. "Leaderboard" -> "Topplista" (flik-knapp)
+3. "Streak" -> "Svit" (tabellrubrik)
+4. "Streak" -> "Svit" (profil-label)
+5. "Badges (N)" -> "Utmarkelser (N)" (rubrik)
+6. "Last" -> "Last" (last badge-label, felstavning av "Last")
+7. "Badges utdelade" -> "Utmarkelser utdelade" (KPI-label i VD-vy)
+8. "Langsta streak" -> "Langsta svit" (KPI-label i VD-vy)
+9. "Snitt-streak" -> "Snitt-svit" (statistik-label i VD-vy)
+
+**operator-ranking.component.html + .ts (2 buggar):**
+10. "Streak" -> "Svit" (tabellrubrik + MVP-label)
+11. "Streak" -> "Svit" (chart dataset-label i .ts)
+
+**produktions-sla.component.html (1 bugg — ingick i #10-raknig ovan, totalt 11 unika):**
+- "Streak" -> "Svit" (KPI-label)
+
+### Uppgift 2: Change detection audit
+Systematisk granskning av ALLA 42 Angular-komponenter for:
+- Saknad ChangeDetectionStrategy.OnPush (inga komponenter anvander OnPush)
+- Tunga berakningar direkt i templates
+- Saknad trackBy pa *ngFor / @for loopar
+
+Resultat:
+- **OnPush**: Ingen komponent anvander OnPush. Alla 25+ komponenter med setInterval/polling saknar det. Dock ar detta ett storre refaktoreringsarbete som kraver ChangeDetectorRef.markForCheck() i varje subscribe-callback — for stort for en buggfix-session.
+- **trackBy**: ALLA *ngFor-loopar har trackBy och ALLA @for-loopar har track — korrekt implementerat.
+- **Template-berakningar**: Inga tunga getters/metoder i templates — alla berakningar sker i subscribe-callbacks och sparas i komponentvariabler.
+
+Andrade filer:
+- noreko-frontend/src/app/rebotling/gamification/gamification.component.html
+- noreko-frontend/src/app/pages/operator-ranking/operator-ranking.component.html
+- noreko-frontend/src/app/pages/operator-ranking/operator-ranking.component.ts
+- noreko-frontend/src/app/pages/rebotling/produktions-sla/produktions-sla.component.html
+
+Byggt och verifierat: `npx ng build` OK (inga fel).
+
 ## 2026-03-20 Session #205 Worker A — PHP date/timezone + file upload audit (1 bugg)
 
 ### Uppgift 1: PHP classes/ date/timezone consistency audit
