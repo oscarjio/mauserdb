@@ -410,8 +410,8 @@ class KvalitetstrendanalysController {
         $days = $this->getDays();
         [$fromDate, $toDate] = $this->getDateRange($days);
 
-        $warningThreshold  = floatval($_GET['warning'] ?? 3);
-        $criticalThreshold = floatval($_GET['critical'] ?? 5);
+        $warningThreshold  = max(0.0, min(100.0, floatval($_GET['warning'] ?? 3)));
+        $criticalThreshold = max(0.0, min(100.0, floatval($_GET['critical'] ?? 5)));
 
         $stationer = $this->getStationer();
         $stationMap = [];

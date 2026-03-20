@@ -63,8 +63,8 @@ class RebotlingAdminController {
         try {
             $this->ensureSettingsTable();
 
-            $rebotlingTarget = isset($data['rebotlingTarget']) ? max(1, intval($data['rebotlingTarget'])) : null;
-            $hourlyTarget    = isset($data['hourlyTarget'])    ? max(1, intval($data['hourlyTarget']))    : null;
+            $rebotlingTarget = isset($data['rebotlingTarget']) ? max(1, min(99999, intval($data['rebotlingTarget']))) : null;
+            $hourlyTarget    = isset($data['hourlyTarget'])    ? max(1, min(9999, intval($data['hourlyTarget'])))    : null;
             $shiftHours      = isset($data['shiftHours'])      ? max(1.0, min(24.0, floatval($data['shiftHours']))) : null;
             $sys             = $data['systemSettings'] ?? [];
             $autoStart       = isset($sys['autoStart'])       ? ($sys['autoStart']       ? 1 : 0) : null;

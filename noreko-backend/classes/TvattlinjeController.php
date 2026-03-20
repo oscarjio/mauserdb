@@ -696,18 +696,16 @@ class TvattlinjeController {
                 return;
             }
 
-            $antal_per_dag = intval($data['antal_per_dag']);
-            $timtakt       = isset($data['timtakt'])    ? intval($data['timtakt'])         : 20;
-            $skiftlangd    = isset($data['skiftlangd']) ? floatval($data['skiftlangd'])     : 8.0;
+            $antal_per_dag = max(0, min(99999, intval($data['antal_per_dag'])));
+            $timtakt       = isset($data['timtakt'])    ? max(1, min(999, intval($data['timtakt'])))         : 20;
+            $skiftlangd    = isset($data['skiftlangd']) ? max(1.0, min(24.0, floatval($data['skiftlangd']))) : 8.0;
 
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
             } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
-            error_log('TvattlinjeController::saveAdminSettings: ' . $e->getMessage());
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
             } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
-                error_log('TvattlinjeController::saveAdminSettings: ' . $e->getMessage());
 
             // Använd INSERT ... ON DUPLICATE KEY UPDATE för att undvika race condition
             // (concurrent requests som båda ser COUNT=0 och försöker INSERT)

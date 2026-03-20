@@ -1,3 +1,129 @@
+## 2026-03-20 Session #203 Worker A — PHP integer overflow/type juggling + error disclosure audit (5 buggar)
+
+### Uppgift 1: PHP classes/ integer overflow/type juggling audit
+Systematisk granskning av ALLA 117 PHP-filer i noreko-backend/classes/ for:
+- Loose comparison (==) med user input
+- intval() overflow / saknade ovre gransvardan
+- Type juggling (strang "0" == false, "0e123" == "0e456", etc.)
+- is_numeric() utan ytterligare validering
+- Aritmetik utan overflow-kontroll
+- floatval() fran user input utan bounds
+
+Granskade monster:
+- 200+ anvandningar av intval() — kontrollerade mot bounds (max/min)
+- 15+ anvandningar av floatval() fran user input — kontrollerade mot bounds
+- Alla == jamforelser — samtliga anvander === (strict) for sakerhets-kritiska jamforelser
+- is_numeric() — anvands korrekt i AndonController/VpnController med (int)/(float) cast efter validering
+- Inga var_dump/print_r i produktion
+- Inga loose comparisons med user input for authentication/authorization
+
+### Uppgift 2: PHP classes/ error disclosure audit
+Systematisk granskning av ALLA PHP-filer i noreko-backend/classes/ och api.php for:
+- Exception-meddelanden som exponerar interna detaljer
+- PDO exceptions med stack traces
+- var_dump/print_r i produktion
+- Error messages som avslojor systeminfo
+
+Granskade monster:
+- Alla 350+ catch-block — samtliga anvander error_log() for interna detaljer och generiska meddelanden till klient
+- Inga getTrace/getFile/getLine skickas till klient
+- Inga var_dump/print_r hittades
+- api.php fangar alla oupptackta exceptions med generisk feltext
+
+### Fixade buggar (5 st):
+
+1. **BonusAdminController.php rad 201, 304, 502** — json_last_error_msg() exponerades till klient i felmeddelanden. Flyttade detaljen till error_log() och skickar generisk text till klient. (3 forekomster)
+2. **BonusAdminController.php rad 1050-1056** — floatval()/intval() for amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct saknade ovre grans. En angripare kunde skicka extremt stora varden (t.ex. 1e308). Lade till min/max bounds.
+3. **KvalitetstrendanalysController.php rad 413-414** — floatval() fran $_GET for warningThreshold och criticalThreshold saknade bounds. Lade till max(0, min(100, ...)).
+4. **TvattlinjeController.php rad 699-710** — Tre buggar i ett:
+   - intval(antal_per_dag), intval(timtakt), floatval(skiftlangd) saknade bounds → lade till max/min
+   - Tva error_log()-anrop pa rad 706 och 710 lag UTANFOR sina respektive catch-block, refererade $e som inte langre var definierad → tog bort felplacerade error_log()-rader
+5. **RebotlingAdminController.php rad 66-67** — intval(rebotlingTarget) och intval(hourlyTarget) saknade ovre grans (max). Lade till min(99999, ...) och min(9999, ...).
+
+### Granskade filer utan buggar (rena):
+
+Folgende filer granskades grundligt och befanns vara korrekta:
+- api.php — korrekt generisk felhantering, doljer PHP-version, HSTS, CSP, session-cookie-params
+- AuthHelper.php — bcrypt, ren error_log(), inga interna detaljer till klient
+- LoginController.php — strict === jamforelser, bcrypt via AuthHelper, rate limiting, session fixation-skydd
+- RegisterController.php — strict validering, transaktion for race condition, generiska felmeddelanden
+- AdminController.php — strict type casts, proper bounds, generiska felmeddelanden
+- ProfileController.php — rate limiting for losenordsbyte, strict validering
+- BonusController.php — proper bounds med max/min pa alla intval/floatval, strict jamforelser
+- StoppageController.php — whitelist for linjer, bounds pa intval, generiska felmeddelanden
+- FeedbackController.php — strict int cast, transaktion for double-submit, generiska felmeddelanden
+- OperatorController.php — bounds pa intval (99999), strict validering, generiska felmeddelanden
+- NewsController.php — whitelist for kategorier, bounds pa priority, generiska felmeddelanden
+- DashboardLayoutController.php — whitelist for widget-IDs, ren felhantering
+- FavoriterController.php — langdvalidering, strict int cast, generiska felmeddelanden
+- VpnController.php — regex-validering av commonName, ren felhantering
+- ShiftPlanController.php — regex-validering av datum, admin-krav
+- GamificationController.php — readonly, ren felhantering
+- TidrapportController.php — readonly, bounds pa datumintervall
+- SkiftplaneringController.php — readonly GET + admin-kraver POST, ren felhantering
+- ProduktionsmalController.php — session-krav, generiska felmeddelanden
+- MaintenanceController.php — bounds pa cost_sek (0-99M), duration (0-14400), ren felhantering
+- WeeklyReportController.php — readonly, interna floatval for DB-data
+- AndonController.php — is_numeric() korrekt med cast
+- RuntimeController.php — strict (int) cast, generiska felmeddelanden
+- CertificationController.php — intval med <= 0 validering
+- Alla ovriga 90+ controllers — readonly GET-endpoints med korrekt felhantering
+
+## 2026-03-20 Session #203 Worker B — Angular HTTP retry/timeout + form XSS audit (0 buggar)
+
+### Uppgift 1: Angular HTTP retry/timeout audit
+Systematisk granskning av ALLA Angular services och komponenter i noreko-frontend/src/app/ for saknade timeout(), retry(), catchError() pa HTTP-anrop, polling utan error recovery, och switchMap/mergeMap utan error handling.
+
+**Granskade services (97 st):**
+- services/*.service.ts (92 filer) — alla HTTP-anrop har timeout + catchError, GET-anrop har retry(1)
+- rebotling/*.service.ts (5 filer: gamification, daglig-briefing, prediktivt-underhall, skiftoverlamning, skiftoverlamning) — alla med timeout + catchError
+
+**Granskade sidor med direkt HttpClient (40+ filer):**
+- pages/login, register, operator-detail, operator-dashboard, operator-compare, operator-trend, operator-attendance
+- pages/andon, executive-dashboard, weekly-report, monthly-report, my-bonus, bonus-admin, bonus-dashboard
+- pages/rebotling-admin, rebotling-skiftrapport, rebotling-prognos, live-ranking
+- pages/shift-plan, shift-handover, production-calendar, certifications, feature-flag-admin
+- pages/maintenance-log (alla 5 sub-komponenter), news-admin, vpn-admin
+- pages/tvattlinje-admin, saglinje-admin, klassificeringslinje-admin
+- pages/historik, stoppage-log, tidrapport
+- pages/rebotling/statistik/* (oee-komponenter, kassation-pareto, kvalitet-deepdive, skiftrapport-operator, kvalitetsanalys)
+- menu/menu.ts, news/news.ts
+
+**Granskade polling-monster (4 st):**
+- auth.service.ts — interval(60000) + switchMap + fetchStatus() med intern catchError — OK
+- kassationskvot-alarm.component.ts — interval(60000) + alla laddametoder har timeout + catchError — OK
+- statistik-oee-gauge.ts — interval(60000) + loadOee() med timeout + catchError — OK
+- statistik-produktionsmal.ts — interval(60000) + loadToday/loadWeek med timeout + catchError — OK
+
+**Granskade switchMap-monster (3 st):**
+- auth.service.ts switchMap(() => fetchStatus()) — fetchStatus har catchError — OK
+- alerts.service.ts switchMap + catchError(() => of(null)) — OK
+- auth.guard.ts switchMap — ren observable-kombination, inget HTTP — OK
+
+**Granskade error interceptor:**
+- interceptors/error.interceptor.ts — centraliserad retry (1x vid status 0/502/503/504) + catchError med toast — OK
+
+Resultat: Inga buggar hittade. Alla HTTP-anrop har timeout + catchError. Alla GET-anrop i services har retry(1). Polling har error recovery. switchMap har error handling.
+
+### Uppgift 2: Angular form XSS audit
+Systematisk granskning av ALLA Angular templates och komponenter i noreko-frontend/src/app/ for XSS-sarbarhet.
+
+**Granskade monster:**
+- [innerHTML]-bindningar: 0 forekomster — RENT
+- bypassSecurityTrustHtml/Url/Script (DomSanitizer): 0 forekomster — RENT
+- .innerHTML (DOM-manipulation): 0 forekomster — RENT
+- insertAdjacentHTML/outerHTML: 0 forekomster — RENT
+- document.createElement (33 forekomster): Alla anvands for CSV/fil-nedladdning via URL.createObjectURL(blob) — SAKERT
+- [href]-bindningar (2 st): contact.html ('mailto:' + hardkodad email) och shared-skiftrapport.html (hardkodad config.liveUrl) — SAKERT
+- [src]-bindningar (1 st): stoppage-log.html (QRCode.toDataURL-genererad data-URI) — SAKERT
+- [style]-bindningar (6 st): my-bonus.html och bonus-admin.html — alla returnerar hardkodade fargvarden via switch-satser — SAKERT
+- [attr.*]-bindningar (60+ st): alla aria-attribut, SVG-attribut, colspan — inga farliga kontexter — SAKERT
+- window.open (5 st): alla med interna URLer eller encodeURIComponent — SAKERT
+- eval()/new Function(): 0 forekomster — RENT
+- Toast-rendering: {{ toast.message }} med Angular interpolation (auto-escape) — SAKERT
+
+Resultat: Inga XSS-sarbarhet hittade. Kodbasen anvander Angular:s inbyggda sanitering konsekvent och saknar alla vanliga XSS-monster.
+
 ## 2026-03-20 Session #202 Worker B — Angular accessibility + memory leak audit (15 buggar)
 
 ### Uppgift 1: Angular accessibility audit

@@ -198,7 +198,8 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
+                error_log('BonusAdminController: Ogiltigt JSON-format: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format');
                 return;
             }
 
@@ -301,7 +302,8 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
+                error_log('BonusAdminController: Ogiltigt JSON-format: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format');
                 return;
             }
 
@@ -499,7 +501,8 @@ class BonusAdminController {
 
             // Validate JSON decode
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->sendError('Ogiltigt JSON-format: ' . json_last_error_msg());
+                error_log('BonusAdminController: Ogiltigt JSON-format: ' . json_last_error_msg());
+                $this->sendError('Ogiltigt JSON-format');
                 return;
             }
 
@@ -1047,10 +1050,10 @@ class BonusAdminController {
         $op_id          = isset($body['op_id'])          ? intval($body['op_id'])          : 0;
         $period_start   = $body['period_start']   ?? '';
         $period_end     = $body['period_end']     ?? '';
-        $amount_sek     = isset($body['amount_sek'])     ? floatval($body['amount_sek'])     : 0;
-        $ibc_count      = isset($body['ibc_count'])      ? intval($body['ibc_count'])        : 0;
-        $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? floatval($body['avg_ibc_per_h'])  : 0;
-        $avg_quality_pct= isset($body['avg_quality_pct'])? floatval($body['avg_quality_pct']): 0;
+        $amount_sek     = isset($body['amount_sek'])     ? min(9999999.99, max(0, floatval($body['amount_sek'])))     : 0;
+        $ibc_count      = isset($body['ibc_count'])      ? min(9999999, max(0, intval($body['ibc_count'])))           : 0;
+        $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? min(9999.99, max(0, floatval($body['avg_ibc_per_h'])))     : 0;
+        $avg_quality_pct= isset($body['avg_quality_pct'])? min(100.0, max(0, floatval($body['avg_quality_pct'])))     : 0;
         $notes          = mb_substr(strip_tags(trim($body['notes'] ?? '')), 0, 2000);
         $period_label   = mb_substr(strip_tags(trim($body['period_label'] ?? '')), 0, 50);
         $bonus_level_raw = $body['bonus_level'] ?? 'none';
