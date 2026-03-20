@@ -1,3 +1,42 @@
+## 2026-03-20 Session #212 Worker A — PHP backend security re-audit (0 buggar)
+
+### Uppgift 1: PHP classes/ file path traversal re-audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ som hanterar filsokvagar, uppladdningar eller fil-I/O.
+Kontrollerade: file_get_contents, file_put_contents, fopen, fwrite, include/require, move_uploaded_file.
+Resultat: **0 buggar.**
+- Alla file_get_contents()-anrop anvander antingen 'php://input' (saker) eller __DIR__-baserade sokvagar (hardkodade).
+- Inga fil-uppladdningar finns (inga $_FILES-anrop i hela backend).
+- require/include anvander hardkodade sokvagar eller whitelist-mappade klassnamn via $classNameMap i api.php.
+- VpnController validerar commonName med regex-whitelist och CRLF-kontroll innan fwrite till socket.
+- CSV-export i TidrapportController och BonusAdminController saniterar filnamn korrekt med preg_replace/basename.
+
+### Uppgift 2: PHP classes/ session handling audit
+Granskade session-hantering i noreko-backend/ (LoginController, AuthHelper, api.php, och alla controllers med sessions).
+Resultat: **0 buggar.**
+- session_regenerate_id(true) anropas korrekt efter lyckad inloggning (LoginController rad 105).
+- session_unset() + session_destroy() + cookie-rensning vid utloggning (LoginController rad 163-182).
+- Session timeout via AuthHelper::checkSessionTimeout() (8 timmar, kontrolleras i api.php for state-andrande requests).
+- use_strict_mode=1, use_only_cookies=1, use_trans_sid=0 konfigurerade i api.php (rad 89-91).
+- CSRF-token-validering pa alla POST/PUT/DELETE via AuthHelper::validateCsrfToken() i api.php (rad 265).
+- Session cookies konfigurerade med httponly=true, samesite=Lax, secure baserat pa HTTPS-status.
+
+### Uppgift 3: PHP classes/ SQL query parameter binding audit
+Granskade ALLA SQL-fragor i noreko-backend/classes/ (100+ filer, hundratals fragor).
+Resultat: **0 buggar.**
+- Alla fragor anvander prepared statements med parameterplaceholders (? eller :named).
+- Dar dynamiska SQL-element finns (tabellnamn, kolumnnamn, ORDER BY) kommer de fran interna whitelists:
+  - LineSkiftrapportController: $table valideras mot self::$allowedLines whitelist.
+  - OperatorsPrestandaController: $skiftCond byggs fran getValidSkift() som whitelist-validerar mot ['dag','kvall','natt'].
+  - KassationsanalysController: $orderExpr ar hardkodade SQL-uttryck baserat pa intern logik.
+  - ForstaTimmeAnalysController: $ibcCol returneras av getIbcTimestampColumn() som returnerar antingen 'timestamp' eller 'datum'.
+- intval()/floatval() anvands korrekt for numeriska varden.
+- Strangvarden anvander alltid prepared statements.
+- Alla $placeholders for IN-klausuler byggs med array_fill(0, count($ids), '?').
+
+Inga filer andrade.
+
+----
+
 ## 2026-03-20 Session #211 Worker B — Angular form validation + auth guard + Swedish UI text (12 buggar)
 
 ### Uppgift 1: Angular form validation audit
