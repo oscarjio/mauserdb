@@ -1,3 +1,59 @@
+## 2026-03-20 Session #215 Worker B — Angular pipe null-check + routing guard audit (7 buggar)
+
+### Uppgift 1: Angular pipe/filter edge case audit
+Granskade ALLA Angular templates (.html) i noreko-frontend/src/app/ for pipe-relaterade buggar:
+date pipe utan null-check, number pipe utan null-check, felaktiga date-format (YYYY vs yyyy),
+operator-precedens med pipes, saknade locale-settings.
+
+Resultat: **7 buggar hittade och fixade.**
+
+**rebotling-admin.html (1 fix):**
+1. Rad 201 — `systemStatus.server_time | date:'HH:mm:ss'` utan null-guard. Om server_time ar null
+   kastar date pipe ett error. Fix: La till `*ngIf="systemStatus.server_time"` pa wrapper-div.
+
+**batch-sparning.component.html (2 fixar):**
+2. Rad 210 — `b.avslutad_datum | date:'yyyy-MM-dd HH:mm'` i historik-tabellen utan null-check.
+   avslutad_datum kan vara null om batch avbrutits. Fix: Ternary null-guard med fallback '–'.
+3. Rad 322 — `ibc.startad | date:'HH:mm'` utan null-check. startad kan vara null.
+   Fix: Ternary null-guard med fallback '-'.
+
+**rebotling-skiftrapport.html (1 fix):**
+4. Rad 916 — `(report.datum || '') | date:'yyyy-MM-dd'` — skickar tom strang till date pipe
+   om datum ar null/undefined, vilket ger "Invalid Date" i output.
+   Fix: Ersatt med ternary `report.datum ? (report.datum | date:'yyyy-MM-dd') : '–'`.
+
+**produktionsprognos.html (2 fixar):**
+5. Rad 128 — `forecast.skift_start | date:'HH:mm'` utan null-check. Fix: Ternary null-guard.
+6. Rad 130 — `forecast.skift_slut | date:'HH:mm'` utan null-check. Fix: Ternary null-guard.
+
+**stopptidsanalys.component.html (1 fix):**
+7. Rad 260 — `s.startad_at | date:'yyyy-MM-dd HH:mm'` utan null-check.
+   Fix: Ternary null-guard med fallback '–'.
+
+Ovriga observationer (ej buggar):
+- Inga felaktiga YYYY date-format hittades (alla anvander korrekt yyyy)
+- Operator-precedens med `+` och `| number` i statistik-skiftjamforelse/statistik-produkttyp-effektivitet
+  ar korrekt tack vare explicita parenteser runt pipe-uttrycken
+- Ingen `| currency` eller `| percent` anvands i projektet
+- Manga templates har redan bra null-guards (t.ex. *ngIf, ternary operators)
+
+### Uppgift 2: Angular routing guard audit
+Granskade app.routes.ts och guards/auth.guard.ts for routing-buggar.
+
+Resultat: **Inga routing-buggar hittade.**
+
+Detaljerad genomgang:
+- Wildcard route `**` finns (rad 160) — pekar pa NotFoundPage. OK.
+- PreloadAllModules ar konfigurerat i app.config.ts. OK.
+- authGuard och adminGuard implementerade korrekt med initialized$-vant (forhindrar race condition).
+- Alla admin-routes har adminGuard. Alla autentiserade routes har authGuard.
+- Publika routes (login, register, about, contact, live-vyer, skiftrapporter, statistik) saknar
+  medvetet guard — korrekt for publik atkomst.
+- pathMatch: 'full' satt korrekt pa root-route.
+- Inga redirects som pekar pa icke-existerande routes.
+- canDeactivate saknas pa formularsidor (create-user, register, shift-handover, skiftplanering)
+  men detta ar en forbattringsmojlighet snarare an en bugg — noteras for framtida session.
+
 ## 2026-03-20 Session #214 Worker A — PHP date/time edge case + SQL JOIN audit (3 buggar)
 
 ### Uppgift 1: PHP classes/ date/time edge case re-audit
