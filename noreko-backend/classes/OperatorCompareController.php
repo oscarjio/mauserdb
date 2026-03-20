@@ -392,6 +392,20 @@ class OperatorCompareController {
         $stmt->execute([$days, $opNumber, $opNumber, $opNumber]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if (!$row) {
+            return [
+                'id'             => (int)$op['id'],
+                'name'           => $op['name'],
+                'total_ibc_ok'   => 0,
+                'total_ibc_ej_ok'=> 0,
+                'total_ibc'      => 0,
+                'total_runtime_h'=> 0.0,
+                'antal_skift'    => 0,
+                'snitt_ibc_per_h'=> 0.0,
+                'kvalitet_pct'   => 0.0,
+            ];
+        }
+
         return [
             'id'             => (int)$op['id'],
             'name'           => $op['name'],

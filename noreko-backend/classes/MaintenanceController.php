@@ -140,10 +140,10 @@ class MaintenanceController {
             $description     = strip_tags(trim($data['description'] ?? ''));
             $startTime       = $data['start_time'] ?? '';
             $durationMinutes = isset($data['duration_minutes']) && $data['duration_minutes'] !== '' && $data['duration_minutes'] !== null
-                               ? intval($data['duration_minutes']) : null;
+                               ? max(0, min(14400, intval($data['duration_minutes']))) : null;
             $performedBy     = strip_tags(trim($data['performed_by'] ?? ''));
             $costSek         = isset($data['cost_sek']) && $data['cost_sek'] !== '' && $data['cost_sek'] !== null
-                               ? floatval($data['cost_sek']) : null;
+                               ? max(0, min(99999999, floatval($data['cost_sek']))) : null;
             $status          = $data['status'] ?? 'klart';
             $createdBy       = intval($_SESSION['user_id']);
 
@@ -153,7 +153,7 @@ class MaintenanceController {
                 $equipment = mb_substr($equipment, 0, 100);
             }
             $downtimeMinutes = isset($data['downtime_minutes']) && $data['downtime_minutes'] !== '' && $data['downtime_minutes'] !== null
-                               ? intval($data['downtime_minutes']) : 0;
+                               ? max(0, min(14400, intval($data['downtime_minutes']))) : 0;
             $resolved        = isset($data['resolved']) ? ($data['resolved'] ? 1 : 0) : 0;
 
             // Validering

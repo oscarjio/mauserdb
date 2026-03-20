@@ -730,10 +730,10 @@ class OperatorsbonusController {
         try {
             $konfig = $this->loadKonfig();
 
-            $ibcPerTimme = isset($_GET['ibc_per_timme']) ? (float)$_GET['ibc_per_timme'] : $konfig['ibc_per_timme']['mal_varde'];
-            $kvalitet    = isset($_GET['kvalitet'])      ? (float)$_GET['kvalitet']      : $konfig['kvalitet']['mal_varde'];
-            $narvaro     = isset($_GET['narvaro'])        ? (float)$_GET['narvaro']       : $konfig['narvaro']['mal_varde'];
-            $teamMal     = isset($_GET['team_mal'])       ? (float)$_GET['team_mal']      : $konfig['team_bonus']['mal_varde'];
+            $ibcPerTimme = isset($_GET['ibc_per_timme']) ? max(0, min(9999, (float)$_GET['ibc_per_timme'])) : $konfig['ibc_per_timme']['mal_varde'];
+            $kvalitet    = isset($_GET['kvalitet'])      ? max(0, min(100, (float)$_GET['kvalitet']))      : $konfig['kvalitet']['mal_varde'];
+            $narvaro     = isset($_GET['narvaro'])        ? max(0, min(100, (float)$_GET['narvaro']))       : $konfig['narvaro']['mal_varde'];
+            $teamMal     = isset($_GET['team_mal'])       ? max(0, min(9999, (float)$_GET['team_mal']))      : $konfig['team_bonus']['mal_varde'];
 
             $bonusIbc      = $this->beraknaBonus($ibcPerTimme, $konfig['ibc_per_timme']['mal_varde'], $konfig['ibc_per_timme']['max_bonus_kr']);
             $bonusKvalitet = $this->beraknaBonus($kvalitet,    $konfig['kvalitet']['mal_varde'],      $konfig['kvalitet']['max_bonus_kr']);
