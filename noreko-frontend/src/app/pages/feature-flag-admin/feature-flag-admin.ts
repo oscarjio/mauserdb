@@ -61,7 +61,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
     ).pipe(
       timeout(10000),
       catchError(err => {
-        this.error = 'Kunde inte ladda feature flags.';
+        this.error = 'Kunde inte ladda funktionsflaggor.';
         this.loading = false;
         return of(null);
       }),
@@ -140,7 +140,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
 
   roleLabel(role: string): string {
     switch (role) {
-      case 'developer': return 'Developer';
+      case 'developer': return 'Utvecklare';
       case 'admin': return 'Admin';
       case 'user': return 'Användare';
       case 'public': return 'Publik';

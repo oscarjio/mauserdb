@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subject, of } from 'rxjs';
-import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { takeUntil, timeout, catchError, filter, switchMap } from 'rxjs/operators';
 import { UsersService } from '../../services/users.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -42,8 +42,12 @@ export class UsersPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
-      if (user !== undefined && (!user || user.role !== 'admin')) {
+    this.auth.initialized$.pipe(
+      filter(init => init === true),
+      switchMap(() => this.auth.user$),
+      takeUntil(this.destroy$)
+    ).subscribe(user => {
+      if (!user || user.role !== 'admin') {
         this.router.navigate(['/']);
       }
     });

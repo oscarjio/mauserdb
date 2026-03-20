@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, of } from 'rxjs';
-import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { takeUntil, timeout, catchError, filter, switchMap } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
@@ -50,26 +50,30 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     private router: Router
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
-    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
-      this.user = val;
-      this.isAdmin = val?.role === 'admin';
-
-      if (!this.isAdmin && val) {
-        this.router.navigate(['/']);
-      }
-    });
   }
 
   ngOnInit() {
-    if (!this.isAdmin) {
-      return;
-    }
+    this.auth.initialized$.pipe(
+      filter(init => init === true),
+      switchMap(() => this.auth.user$),
+      takeUntil(this.destroy$)
+    ).subscribe(val => {
+      this.user = val;
+      this.isAdmin = val?.role === 'admin';
 
-    this.loadVpnStatus();
-    // Uppdatera var 30:e sekund
-    this.refreshInterval = setInterval(() => {
-      if (!this.destroy$.closed) this.loadVpnStatus();
-    }, 30000);
+      if (!this.isAdmin) {
+        this.router.navigate(['/']);
+        return;
+      }
+
+      // Ladda VPN-status forsta gang + starta polling
+      if (!this.refreshInterval) {
+        this.loadVpnStatus();
+        this.refreshInterval = setInterval(() => {
+          if (!this.destroy$.closed) this.loadVpnStatus();
+        }, 30000);
+      }
+    });
   }
 
   ngOnDestroy() {

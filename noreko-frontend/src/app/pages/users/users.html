@@ -96,7 +96,7 @@
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'username'">{{ getSortIcon('username') }}</span>
                   </th>
                   <th class="sortable-header" (click)="toggleSort('email')" scope="col">
-                    Email
+                    E-post
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'email'">{{ getSortIcon('email') }}</span>
                   </th>
                   <th scope="col">Telefon</th>
@@ -170,8 +170,8 @@
                                 <input class="form-control form-control-sm" [(ngModel)]="user.username" name="username-{{user.id}}" placeholder="Användarnamn" required minlength="3" maxlength="50" />
                               </div>
                               <div class="col-md-3">
-                                <label class="form-label">Email</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.email" name="email-{{user.id}}" placeholder="Email" type="email" maxlength="255" />
+                                <label class="form-label">E-post</label>
+                                <input class="form-control form-control-sm" [(ngModel)]="user.email" name="email-{{user.id}}" placeholder="E-post" type="email" maxlength="255" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Telefon</label>

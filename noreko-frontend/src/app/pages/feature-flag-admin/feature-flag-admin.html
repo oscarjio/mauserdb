@@ -1,11 +1,11 @@
 <div class="container-fluid py-4">
   <div class="row mb-4">
     <div class="col">
-      <h2 class="page-title"><i class="fas fa-toggle-on me-2"></i>Feature Flags</h2>
+      <h2 class="page-title"><i class="fas fa-toggle-on me-2"></i>Funktionsflaggor</h2>
       <p class="text-muted-custom">Hantera vilka funktioner som är synliga och vilken rollnivå som krävs.</p>
     </div>
     <div class="col-auto d-flex align-items-center">
-      <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara feature flag-andringar">
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara funktionsflaggor">
         <i class="fas fa-save me-1"></i>{{ saving ? 'Sparar...' : 'Spara ändringar' }}
       </button>
     </div>
@@ -20,11 +20,11 @@
 
   <div class="text-center py-5" *ngIf="loading">
     <div class="spinner-border text-info" role="status"></div>
-    <p class="mt-2 text-muted-custom">Laddar feature flags...</p>
+    <p class="mt-2 text-muted-custom">Laddar funktionsflaggor...</p>
   </div>
 
   <div *ngIf="!loading && groups.length === 0 && !error" class="text-center py-5">
-    <p class="text-muted-custom">Inga feature flags hittades.</p>
+    <p class="text-muted-custom">Inga funktionsflaggor hittades.</p>
   </div>
 
   <div *ngFor="let group of groups; trackBy: trackByIndex" class="card dark-card mb-4">
@@ -37,7 +37,7 @@
           <thead>
             <tr>
               <th scope="col" style="width:40px">Aktiv</th>
-              <th scope="col">Feature</th>
+              <th scope="col">Funktion</th>
               <th scope="col">Nyckel</th>
               <th scope="col" style="width:180px">Minsta roll</th>
             </tr>
@@ -69,7 +69,7 @@
   </div>
 
   <div class="text-end mt-3" *ngIf="!loading && groups.length > 0">
-    <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara feature flag-andringar">
+    <button class="btn btn-primary" (click)="save()" [disabled]="saving || !hasChanges()" aria-label="Spara funktionsflaggor">
       <i class="fas fa-save me-1"></i>{{ saving ? 'Sparar...' : 'Spara ändringar' }}
     </button>
   </div>

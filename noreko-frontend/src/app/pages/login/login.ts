@@ -101,7 +101,7 @@ export class LoginPage implements OnDestroy {
     this.loading = true;
 
     this.http.post<any>('/noreko-backend/api.php?action=login', {
-      username: this.username,
+      username: this.username.trim(),
       password: this.password
     }, { withCredentials: true }).pipe(
       takeUntil(this.destroy$),
