@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #205):
-- [x] **PHP date/timezone consistency audit** — 1 bugg: update-weather.php saknade timezone (Worker A)
-- [x] **PHP file upload validation audit** — 0 buggar, inga upload-endpoints finns (Worker A)
-- [x] **Angular i18n/hardcoded string audit** — 11 buggar: engelska UI-strangar i gamification, operator-ranking, produktions-sla (Worker B)
-- [x] **Angular change detection audit** — 0 buggar, trackBy korrekt, inga tunga template-berakningar (Worker B)
+### Klart (session #206):
+- [x] **PHP classes/ header injection audit** — 3 buggar: CRLF i CORS-headers (Worker A)
+- [x] **PHP classes/ error handling consistency audit** — 4 buggar: catch Exception->Throwable (Worker A)
+- [x] **Angular HTTP error UX audit** — 3 buggar: tysta fel i leveransplanering/batch-sparning (Worker B)
+- [x] **Angular form accessibility audit** — 11 buggar: saknade for/id-par i 9 komponenter (Worker B)
 
-### Nasta buggjakt-items (session #206+):
-- [ ] **PHP classes/ header injection audit** — CRLF i Location/Set-Cookie-headers
-- [ ] **PHP classes/ error handling consistency audit** — blandning av throw/return-false/die, saknade try-catch
-- [ ] **Angular HTTP error UX audit** — visar komponenter ratt felmeddelanden for anvandaren vid 4xx/5xx?
+### Nasta buggjakt-items (session #207+):
 - [ ] **PHP classes/ SQL column name verification** — kolumnnamn i queries matchar faktiska DB-kolumner?
-- [ ] **Angular form accessibility audit** — saknade for/id-par, aria-labels pa inputs, required-attribut
+- [ ] **PHP classes/ session fixation audit** — session_regenerate_id vid login, secure/httponly pa cookies
+- [ ] **Angular pipe/transform audit** — felaktiga DecimalPipe/DatePipe-format, saknade locale-settings
+- [ ] **PHP classes/ CSRF token audit** — saknade CSRF-tokens pa state-changing endpoints
+- [ ] **Angular lazy loading + route preload audit** — moduler som borde lazy-loadas men inte gor det
 
 ## Parkerade features (ta inte dessa nu)
 

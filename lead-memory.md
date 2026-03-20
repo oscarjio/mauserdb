@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #205)*
+*Senast uppdaterad: 2026-03-20 (session #206)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -72,24 +72,25 @@ Session #202: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). Saknad session 
 Session #203: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade bounds pa floatval/intval (4), error disclosure via json_last_error_msg (1). HTTP retry/timeout audit: rent. Form XSS audit: rent.
 Session #204: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). Race conditions i CertificationController + UnderhallsloggController (3). SQL LIKE injection audit: rent. Router guard audit: rent. Environment config audit: rent.
 Session #205: BUGGJAKT — 12 buggar (1 Worker A + 11 Worker B). Saknad timezone i update-weather.php (1), engelska UI-strangar i gamification/operator-ranking/produktions-sla (11). File upload audit: rent. Change detection audit: rent.
+Session #206: BUGGJAKT — 21 buggar (7 Worker A + 14 Worker B). CRLF header injection (3), catch Exception->Throwable (4), HTTP error UX (3), form accessibility for/id-par (11). Error handling audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #206+):
-- [ ] PHP classes/ header injection audit
-- [ ] PHP classes/ error handling consistency audit
-- [ ] Angular HTTP error UX audit
+### Kvarstaende buggjakt-items (session #207+):
 - [ ] PHP classes/ SQL column name verification
-- [ ] Angular form accessibility audit
+- [ ] PHP classes/ session fixation audit
+- [ ] Angular pipe/transform audit
+- [ ] PHP classes/ CSRF token audit
+- [ ] Angular lazy loading + route preload audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-20 — Session #204 (klar)
-Worker A: 3 buggar — race condition i CertificationController addCertification() saknade duplicate-skydd (1), TOCTOU i UnderhallsloggController taBort() och deleteEntry() (2). SQL LIKE injection audit: rent. 100+ PHP-filer granskade.
-Worker B: 0 buggar — Router guard audit: alla 80+ routes har korrekt authGuard/adminGuard. Environment config audit: rent.
-
 ### 2026-03-20 — Session #205 (klar)
-Worker A: 1 bugg — update-weather.php saknade date_default_timezone_set('Europe/Stockholm'). Date/timezone audit: api.php har korrekt timezone, 750+ date()-anrop konsekvent. File upload audit: inga upload-endpoints finns i kodbasen.
-Worker B: 11 buggar — i18n audit: 9 engelska strangar i gamification.component.html ("Gamification"->"Spelifiering", "Leaderboard"->"Topplista", "Streak"->"Svit", "Badges"->"Utmarkelser"), 2 i operator-ranking + produktions-sla ("Streak"->"Svit"). Change detection audit: alla *ngFor har trackBy, inga tunga template-berakningar. OnPush saknas men ar for stort att fixa.
+Worker A: 1 bugg — update-weather.php saknade date_default_timezone_set('Europe/Stockholm'). File upload audit: rent.
+Worker B: 11 buggar — i18n audit: engelska strangar i gamification/operator-ranking/produktions-sla. Change detection audit: rent.
+
+### 2026-03-20 — Session #206 (klar)
+Worker A: 7 buggar — CRLF header injection i api.php/login.php/admin.php CORS-headers (3), catch Exception->Throwable i api.php/update-weather.php (4). Error handling audit: rent i classes/.
+Worker B: 14 buggar — HTTP error UX: tysta fel i leveransplanering/batch-sparning (3). Form accessibility: saknade for/id-par i kvalitetscertifikat/produktions-sla/tidrapport/batch-sparning/produktionsmal/historisk-produktion/produktionskostnad/skiftoverlamning/avvikelselarm (11).
