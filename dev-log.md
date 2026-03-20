@@ -1,3 +1,37 @@
+## 2026-03-20 Session #198 Worker B — Angular form validation + subscription audit — 5 buggar fixade
+
+Granskade ALLA 41 Angular-komponenter i noreko-frontend/src/app/ (exkl. live-sidor) for:
+1. Formularvalidering: required/min/max/maxlength/pattern, felmeddelanden, disabled-state pa submit-knappar, XSS via innerHTML
+2. Subscription/memory-lackor: takeUntil/destroy$, clearInterval/clearTimeout i ngOnDestroy, Chart.js destroy(), duplicerade subscriptions
+
+### Fixade buggar:
+
+1. **operator-compare.ts rad 376** — `[innerHTML]="summary"` dar `summary` var en HTML-strang genererad av `getWinnerSummary()` med operatorsnamn inlindade i `<strong>`-taggar. XSS-risk om operatorsnamn innehaller HTML-specialtecken. Lade till ny metod `getWinnerData()` som returnerar separata datavarden (winnerName, wins, total) och andrade template till ren textinterpolation med `{{ }}` utan innerHTML.
+
+2. **maskinunderhall.component.html rad 298** — `utfort_av`-falt i "Registrera service"-modal saknade `maxlength`-attribut. Backend accepterar max 200 tecken. Lade till `maxlength="200"`.
+
+3. **avvikelselarm.component.html rad 296** — `kvitteraNamn`-falt i kvittera-dialog saknade `maxlength`-attribut. Lade till `maxlength="200"`.
+
+4. **batch-sparning.component.html rad 352** — `batch_nummer`-falt i "Skapa ny batch"-modal saknade `maxlength`-attribut. Lade till `maxlength="100"`.
+
+5. **kvalitetscertifikat.component.html rad 400, 408** — `genBatchNummer` och `genOperatorNamn` saknade `maxlength`. Lade till `maxlength="100"` resp. `maxlength="200"`.
+
+### Subscription/memory audit — inga buggar:
+Alla 41 komponenter anvander destroy$ + takeUntil-monster korrekt. Alla setInterval/setTimeout rensas i ngOnDestroy. Alla Chart.js-diagram destroyas korrekt. Inga subscriptions utan takeUntil hittades. Inga EventListeners utan cleanup. Inga duplicerade subscriptions.
+
+### Granskade komponenter (alla OK utom ovan):
+- maintenance-form, maintenance-list, service-intervals, equipment-stats, kpi-analysis (maintenance-log/)
+- maskinunderhall, produktionsmal, statistik-dashboard, leveransplanering, skiftplanering
+- avvikelselarm, batch-sparning, kassationskvot-alarm, kapacitetsplanering, stopporsaker
+- stopptidsanalys, rebotling-trendanalys, historisk-produktion, maskin-oee, operatorsbonus
+- operators-prestanda, vd-veckorapport, rebotling-sammanfattning, maskinhistorik, stationsdetalj
+- produktions-dashboard, produktions-sla, produktionskostnad, kvalitetscertifikat
+- tidrapport, oee-trendanalys, operator-ranking, historisk-sammanfattning, statistik-overblick
+- vd-dashboard, drifttids-timeline, gamification, prediktivt-underhall, daglig-briefing
+- skiftoverlamning, pdf-export-button
+
+---
+
 ## 2026-03-20 Session #198 Worker A — PHP classes/ authorization + file upload audit — 3 buggar fixade
 
 Systematisk granskning av ALLA 117 PHP-klasser i noreko-backend/classes/ for:
