@@ -1,3 +1,59 @@
+## 2026-03-21 Session #220 Worker B — Angular form validation + route guard audit (4 buggar fixade)
+
+### Uppgift 1: Angular form validation completeness audit
+Granskade ALLA relevanta HTML-templates i noreko-frontend/src/app/ (exkluderade rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Totalt ~90+ HTML-filer lasta och analyserade.
+
+Kontrollerade:
+- input-falt med saknade required-attribut pa obligatoriska falt
+- Numeriska input saknade min/max-attribut
+- Textfalt utan maxlength
+- select-falt utan default/disabled option
+- Formular utan submit-knapp disabled-check nar form ar invalid
+- Datum-input utan validering
+
+Buggar hittade och fixade:
+1. **produktionsmal.html rad 44**: Startdatum-input saknade `required` — kunde skicka produktionsmal utan startdatum. Lade aven till `!formStartdatum` i submit-knappens disabled-villkor (rad 48).
+2. **skiftoverlamning.html rad 472**: Datum-input i ny overlamning-formular saknade `required` — kunde skapa overlamning utan datum.
+3. **bonus-admin.html rad 1245, 1250**: Utbetalningsformulaet markerade period start/slut med "*" (obligatoriskt) men saknade `required`-attribut pa date-inputs. Lade aven till komplett disabled-check pa submit-knappen (rad 1283) som saknade validering av op_id, period_start, period_end och amount_sek.
+4. **rebotling-admin.html rad 1700**: Kassation-registrerings-knappens disabled-villkor saknade check for `kassationForm.datum` trots att datum-faltet var markerat som `required`.
+
+Ovriga observationer (ej buggar):
+- create-user.html: Valskrivet med required, minlength, maxlength pa alla obligatoriska falt + `canSubmit` guard
+- register.html: Korrekt validering med required pa alla falt + inline disabled-check
+- login.ts (inline template): Korrekt med required pa username/password + disabled-check
+- operators.html: Korrekt med required, maxlength, min/max pa alla falt
+- certifications.html: Korrekt med required pa obligatoriska falt + disabled submit-knapp
+- alerts.html: Troskelinstallningar har korrekt min/max/step
+- kassationskvot-alarm.html: Troskelformular har korrekt validering med min/max + submit disabled-check
+- leveransplanering.html: Ny order-modal har korrekt required + disabled-check
+- stoppage-log.html: Korrekt med required + disabled-check
+- underhallslogg.html: Korrekt med validering pa submit-knapp
+- shift-handover.html: textarea med maxlength, select med default options, submit disabled nar tom
+
+### Uppgift 2: Angular route guard + lazy loading consistency audit
+Granskade app.routes.ts (163 rader) och guards/auth.guard.ts (51 rader).
+
+Guards:
+- authGuard: Vantar pa initialized$ (undviker race condition med initial false), kontrollerar loggedIn$, omdirigerar till /login med returnUrl
+- adminGuard: Vantar pa initialized$, kontrollerar bade loggedIn$ och user$.role (admin/developer), omdirigerar korrekt
+
+Route-analys:
+- Public routes (ingen guard): / (news), /login, /register, /about, /contact, live-vyer (rebotling/tvattlinje/saglinje/klassificeringslinje), skiftrapporter, statistik, historik — KORREKT
+- authGuard-routes: Alla autentiserade sidor (min-dag, kassationsanalys, operatorsportal, etc) — KORREKT
+- adminGuard-routes: oversikt, rebotling/admin, bonus, bonus-admin, analys, kalender, prognos, tvattlinje/saglinje/klassificeringslinje admin, admin/users, admin/create-user, admin/vpn, admin/audit, admin/news, admin/operators, admin/skiftplan, admin/certifiering, admin/operator-dashboard, admin/operator-compare, admin/operator-attendance, admin/operator-trend, admin/kvalitetstrend, admin/stopporsak-trend, admin/operator/:id, admin/underhall, admin/feature-flags, vd-veckorapport, vd-dashboard — KORREKT
+- Wildcard route (**) pekar pa not-found component — KORREKT
+- Lazy loading: Alla routes anvander loadComponent() med dynamisk import — KORREKT
+
+Resultat: 0 routing-buggar hittade. Alla admin-sidor skyddas med adminGuard, alla autentiserade sidor med authGuard, och publika sidor ar korrekt oguardade.
+
+Filer andrade:
+- /home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/produktionsmal/produktionsmal.html
+- /home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/skiftoverlamning/skiftoverlamning.html
+- /home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html
+- /home/clawd/clawd/mauserdb/noreko-frontend/src/app/pages/rebotling-admin/rebotling-admin.html
+
+---
+
 ## 2026-03-21 Session #220 Worker A — PHP SQL transaction consistency + error message information disclosure audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ SQL transaction consistency audit
