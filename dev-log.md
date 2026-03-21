@@ -1,3 +1,36 @@
+## 2026-03-21 Session #232 Worker B — Angular HTTP caching/stale data audit + router navigation guard audit (2 buggar)
+
+### Uppgift 1: Angular HTTP caching/stale data audit
+
+Granskade ALLA service-filer (93 st) och komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Kontrollerade:**
+- **Services som cacchar HTTP-responses utan invalidering** — Inga services använder shareReplay, BehaviorSubject-cache eller lokal cachnig av HTTP-svar. Alla services är stateless och gör direkta HTTP-anrop varje gång. OK.
+- **Polling (setInterval) som visar gammal data efter mutation** — Granskat ~50 komponenter med setInterval-polling. Alla mutationer (POST/PUT/DELETE) kallar explicit loadAll()/fetchAll() direkt i subscribe-callbacken för att uppdatera datan. Inga fall hittades där polling visar stale data efter mutation. OK.
+- **Komponenter som inte refreshar efter edit/create** — users.ts, operators.ts, rebotling-admin.ts och alla formulärkomponenter anropar fetch-metoden direkt efter lyckad mutation. OK.
+- **BehaviorSubjects som initieras med default-värde men aldrig uppdateras** — auth.service.ts: loggedIn$(false), user$(undefined), initialized$(false) — alla uppdateras korrekt av fetchStatus(). alerts.service.ts: activeAlerts$([]), activeCount$(0) — uppdateras av polling. OK.
+- **Stale data efter navigation** — Alla data-hämtande komponenter hämtar data i ngOnInit, dvs. vid varje navigation till komponenten. Ingen cachning på komponentnivå. OK.
+- **ETag/If-None-Match** — Ingen ETag-hantering finns. Not implemented, noterat som förbättringsområde (ej bugg).
+
+**Bugg hittad:**
+- `stopporsak-registrering.ts` — `refreshInterval` (setInterval var 30s) registrerades med `destroy$.subscribe(() => clearInterval(...))` — ett anti-pattern som (1) skapar en läckt subscription på destroy$-subjectet som aldrig avprenumereras, och (2) antar att next() alltid anropas före complete(). Fixat: refreshInterval är nu ett klassfält som clearas i ngOnDestroy() konsekvent med componentens övriga intervalhantering.
+
+### Uppgift 2: Angular router navigation guard audit
+
+Granskade app.routes.ts (163 rader, ~110 routes) och guards/auth.guard.ts.
+
+**Kontrollerade:**
+- **Routes som borde ha authGuard/adminGuard men saknar det** — Alla känsliga routes har korrekt guard. Public routes (news, login, register, about, contact, live-views, skiftrapporter, statistik) är avsiktligt publika. OK.
+- **Guards som inte hanterar edge cases** — authGuard och adminGuard väntar på initialized$=true (filter+take(1)) innan de avgör auth-status, vilket hanterar token-expired och network-error korrekt (fetchStatus returnerar null vid fel och sätter initialized=true). OK.
+- **canDeactivate guards** — Ingen canDeactivate-guard finns. Formulärsidor (rebotling-admin, bonus-admin, create-user, shift-plan, certifications, news-admin, etc.) har inte canDeactivate. Noterat som förbättringsområde — implementering är en stor feature och inte en akut bugg eftersom formulären inte har osparade tillstånds-indikatorer som skapas implicit utan explicit brukaraction.
+- **Redirect-loopar** — Inga loopar: authGuard redirectar till /login, adminGuard redirectar till /login eller /, inga av dessa routes är skyddade av guards. OK.
+- **CanActivate returnerar true/false istället för UrlTree** — BUGG: Båda guardarna anropade `router.navigate(['/login'], ...)` och returnerade `false`, istället för att returnera en `UrlTree`. Angular-best practice är att returnera UrlTree så att routern hanterar omdirigering atomärt och dubbla navigationer undviks. Fixat.
+- **Saknade resolvers** — Inga resolvers används. Komponenter hämtar data i ngOnInit med loading-state. Acceptabelt mönster för detta projekt. OK.
+
+**Resultat: 2 buggar fixade.**
+
+---
+
 ## 2026-03-21 Session #231 Worker A — PHP classes/ SQL transaction isolation audit + date/time edge case audit (0 buggar)
 
 ### Uppgift 1: SQL transaction isolation audit (47 filer med skrivoperationer granskade)
