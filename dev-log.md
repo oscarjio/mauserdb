@@ -1,3 +1,47 @@
+## 2026-03-21 Session #231 Worker B — Angular lazy loading + bundle size audit + form state consistency audit (0 buggar)
+
+### Uppgift 1: Angular lazy loading + bundle size audit (app.routes.ts + app.config.ts + 160+ komponenter granskade)
+Granskade ALLA moduler/routes i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Kontrollerade:**
+- **Lazy loading av routes** — Alla 100+ routes i app.routes.ts anvander `loadComponent` med dynamic import. Inga eagerly-laddade page-komponenter. Layout-komponenten (layout.ts) ar den enda eagerly-laddade containern, och den ar latt (Header, Menu, RouterOutlet, Toast). Korrekt.
+- **PreloadAllModules** — app.config.ts anvander `withPreloading(PreloadAllModules)`. Detta preloadar alla lazy chunks efter initial render. For en intern produktionsapp med stabilt nattverk ar detta rimligt — snabbare navigation. INTE en bugg, men noteras som strukturell observation. Om bundle-storlek blir ett problem kan `PreloadAllModules` bytas mot selektiv preloading.
+- **SharedModule som importerar for mycket** — Ingen SharedModule existerar. Enda delade filen ar `shared/chart-export.util.ts` (en enstaka utility-fil). Inga tunga delade moduler som dras in overallt. Korrekt.
+- **Duplicerade imports** — Varje standalone-komponent importerar sina egna beroenden (CommonModule, FormsModule, etc.). Detta ar Angulars standalone-pattern — inte duplicering utan design. Inga onodiga imports.
+- **Barrel exports (index.ts)** — Inga index.ts-filer hittade i hela app-katalogen. Ingen risk for "deep import"-problem. Korrekt.
+- **Chart.js-imports** — 239 filer refererar till Chart.js/canvas, men alla ar lazy-laddade via `loadComponent`. Chart.js-bundlen delas bara med de routes som behover den. Korrekt.
+- **Eagerly-laddade services** — AuthService och FeatureFlagService laddas via APP_INITIALIZER (nodvandigt for auth-guards och feature flags). Interceptors (csrf, error) ar ocksa eagerly-laddade. Alla ar latta services utan tunga beroenden. Korrekt.
+
+**0 buggar hittade** — lazy loading-arkitekturen ar korrekt implementerad med standalone components och dynamic imports.
+
+### Uppgift 2: Angular form state consistency audit (14 formular-filer + 40+ template-filer granskade)
+Granskade ALLA komponent-filer med formular i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Formular granskade (inuti <form> tag med ngSubmit):**
+- login.ts — ngModel med name, submit disabled vid !username || !password + loading. Korrekt.
+- register.html — ngModel med name, submit disabled vid ogiltig validering. Korrekt.
+- create-user.html — ngModel med name, submit disabled via canSubmit getter. Korrekt.
+- operators.html — Bade add-form och inline-edit forms: ngModel med [name], submit disabled. Korrekt.
+- users.html — Inline edit form: ngModel med name (template-expr), submit disabled. Korrekt.
+- stoppage-log.html — Add form: ngModel med name, submit disabled. Korrekt.
+- batch-sparning.component.html — Create form: ngModel med name + #ctrl="ngModel" + valideringsfel. Korrekt.
+- maskinunderhall.component.html — Service-form + machine-form: ngModel med name + valideringsfel. Korrekt.
+- leveransplanering.component.html — New order modal: ngModel med name + valideringsfel. Korrekt.
+- kassationskvot-alarm.component.html — Troskel-form: ngModel med name + valideringsfel. Korrekt.
+- maintenance-form.component.ts — ngModel med name + valideringsfel. Korrekt.
+- menu.html — Profile form: ngModel med name, submit disabled. Korrekt.
+
+**Kontrollerade:**
+- **Submit-knapp utan disabled-logik** — Alla formular med submit-knappar har [disabled]-logik som hindrar submission vid ogiltigt tillstand (loading, tomma falt, valideringsfel). 0 fall utan disabled-logik.
+- **ngModel utan name inuti <form>** — Alla ngModel-bindningar inuti <form>-taggar har korrekta name-attribut. 0 saknade name-attribut.
+- **ngModel utan name utanfor <form>** — Manga ngModel-bindningar utanfor <form> (filter-selects, date-inputs, textareas) saknar name-attribut. Detta ar KORREKT — Angular kraver name bara inuti ngForm-kontext.
+- **Formular som submittar utan valid-kontroll** — Alla onSubmit/saveNews/submitAdd/etc. metoder kontrollerar obligatoriska falt manuellt (if (!field.trim()) return). Inga blinda submissions.
+- **Select/dropdown utan default-varde** — Alla select-element har antingen default-varden i komponenten (t.ex. form.category = 'info') eller disabled placeholder-options ([ngValue]="0" disabled). Korrekt.
+- **Reset av formular** — Alla formular som aterstar data (register, create-user, news-admin, certifications, batch-sparning) aterstar ALLA falt korrekt. Korrekt.
+- **Valideringsfel-meddelanden** — De viktigaste formularen (batch-sparning, maskinunderhall, leveransplanering, kassationskvot-alarm, maintenance-form) visar valideringsfel via #ctrl="ngModel" + *ngIf="ctrl.invalid && ctrl.touched". Korrekt. Enklare formular (login, operators add) anvander submit-disabled istallet for inline-felmeddelanden — acceptabelt.
+
+**0 buggar hittade** — formularen ar konsekvent implementerade med korrekt validering, disabled-logik och felhantering.
+
 ## 2026-03-21 Session #230 Worker B — Angular HTTP retry logic + change detection audit (1 bugg fixad)
 
 ### Uppgift 1: Angular HTTP retry logic audit (92 service-filer + 1 interceptor granskade)
