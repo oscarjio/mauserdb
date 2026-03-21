@@ -15294,3 +15294,31 @@ Kontrollerade:
 - **Uppgift 1:** 0 buggar — alla SQL-queries ar korrekt parametriserade
 - **Uppgift 2:** 0 buggar — inga type juggling-risker, === anvands genomgaende
 - Med session #227 (A-M) och #228 (N-Z) ar hela classes/-katalogen granskad for SQL injection och type juggling
+
+## 2026-03-21 Session #228 Worker B — PHP error response consistency + Angular HTTP error consistency audit (4 buggar fixade i 2 filer)
+
+### Uppgift 1: PHP classes/ error response consistency audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ (100+ filer) for inkonsistenta error JSON-format.
+
+**Resultat: Inga buggar.** Kodbasen ar konsekvent:
+- **Error JSON-format:** Alla controllers anvander `['success' => false, 'error' => $message]` — inga avvikande nycklar ("message", "msg", "detail")
+- **HTTP-statuskoder:** Alla felfall satter http_response_code() korrekt (400/401/403/404/500)
+- **Content-Type header:** Setts centralt i api.php rad 56 (`Content-Type: application/json; charset=utf-8`) — ingen controller behover satta den sjalv
+- **try/catch:** Alla catch-block i endpoint-metoder satter http_response_code(500) + returnerar standard error JSON. Catch-block i interna hjalp-metoder returnerar fallback-varden (acceptabelt monster da api.php har global Throwable-catch pa rad 282-291)
+- **sendError()-helper:** ~15 controllers anvander en privat sendError(message, code)-metod — alla foljer samma monster
+
+### Uppgift 2: Angular HTTP error message consistency audit
+Granskade Angular komponenter i noreko-frontend/src/app/pages/ och rebotling/ for felhanteringsproblem.
+Fokuserade pa komponenter (inte services, som fixades i session #225).
+
+**4 buggar fixade i 2 filer:**
+
+1. **news-admin.ts rad 642** — `alert()` ersatt med `this.loadError` (inline error display, konsekvent med resten av komponenten)
+2. **news-admin.ts rad 612, 636** — POST-operationer (save/delete) hade `catchError(() => of(null))` utan console.error — lagt till `console.error('methodName failed', err)`
+3. **certifications.ts rad 469** — `alert()` ersatt med `this.error` (visas i template rad 67-68)
+4. **certifications.ts rad 457, 514** — POST-operationer (revoke/add) hade `catchError(() => of(null/{...}))` utan console.error — lagt till `console.error('methodName failed', err)`
+
+**Ovriga komponenter ar rena:**
+- Alla felmeddelanden ar pa svenska (inga engelska)
+- Alla komponenter med POST/DELETE-operationer (shift-handover, users, operators, rebotling-admin, stoppage-log, m.fl.) hanterar null-svar korrekt med toast.error() eller inline error-visning
+- Inga fler alert()-anrop finns i kodbasen

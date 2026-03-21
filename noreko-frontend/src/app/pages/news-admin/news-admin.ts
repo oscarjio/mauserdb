@@ -609,7 +609,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       { withCredentials: true }
     ).pipe(
       timeout(8000),
-      catchError(() => of(null)),
+      catchError(err => { console.error('saveNews failed', err); return of(null); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       this.saving = false;
@@ -633,13 +633,14 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       { withCredentials: true }
     ).pipe(
       timeout(8000),
-      catchError(() => of(null)),
+      catchError(err => { console.error('deleteNews failed', err); return of(null); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res && res.success) {
+        this.loadError = '';
         this.adminNews = this.adminNews.filter(n => n.id !== item.id);
       } else {
-        alert('Kunde inte ta bort nyheten. Försök igen.');
+        this.loadError = res?.error ?? 'Kunde inte ta bort nyheten. Försök igen.';
       }
     });
   }

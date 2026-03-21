@@ -454,7 +454,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
       { withCredentials: true }
     ).pipe(
       timeout(5000),
-      catchError(() => of({ success: false, error: 'Nätverksfel' })),
+      catchError(err => { console.error('revoke failed', err); return of({ success: false, error: 'Nätverksfel' }); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success) {
@@ -466,7 +466,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
           this.matrixData = null; // Tvinga omladdning nästa gång
         }
       } else {
-        alert(res?.error || 'Kunde inte återkalla certifiering');
+        this.error = res?.error || 'Kunde inte återkalla certifiering';
       }
     });
   }
@@ -511,7 +511,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
       { withCredentials: true }
     ).pipe(
       timeout(8000),
-      catchError(() => of({ success: false, error: 'Nätverksfel' })),
+      catchError(err => { console.error('submitAdd failed', err); return of({ success: false, error: 'Nätverksfel' }); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       this.addLoading = false;
