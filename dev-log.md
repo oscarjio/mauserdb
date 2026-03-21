@@ -1,3 +1,36 @@
+## 2026-03-21 Session #237 Worker B — HTTP retry audit + form dirty-state guard (2 buggar)
+
+### Uppgift 1: Angular HTTP retry idempotency audit
+Granskade alla .service.ts-filer i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/.
+Kontrollerade samtliga ~450 retry()-anrop mot HTTP-metod (GET/POST/PUT/DELETE).
+
+**Inga buggar hittade.** Alla retry(1)-anrop ar korrekt placerade pa GET-anrop.
+Alla POST-anrop (ca 70 st over alla services) har redan korrekt pipe utan retry — bara timeout + catchError.
+Tjanstefiler som verifierades: auth, rebotling, operators, users, skiftrapport, leveransplanering,
+kvalitetscertifikat, bonus-admin, underhallslogg, stoppage, avvikelselarm, kassationskvot-alarm,
+produktionsmal, stopporsak-registrering, favoriter, skiftoverlamning, line-skiftrapport, maskinunderhall,
+skiftplanering, operatorsbonus, produktions-sla, produktionstakt, batch-sparning, produktionskostnad m.fl.
+
+### Uppgift 2: Angular form dirty-state warning audit
+Granskade alla .component.ts och .component.html med formular (ngModel, FormGroup, ngForm).
+Identifierade ca 25 komponenter med ngModel-bindningar.
+
+**2 buggar fixade:**
+1. **SkiftoverlamningProtokollPage** — Skiftoverlamningsprotokollet (checklista med 6 falt + 3 kommentar-textareas)
+   saknade dirty-state-varning. Anvandaren kunde navigera bort och forlora all ifylld data.
+   Fix: Implementerade ComponentCanDeactivate-interface + canDeactivate() som kontrollerar checklista och kommentarer.
+2. **LeveransplaneringPage** — Orderformuaret (kundnamn, antal IBC, leveransdatum, notering m.fl.)
+   i modal saknade dirty-state-varning. Anvandaren kunde navigera bort med oppet formular och forlora orderdata.
+   Fix: Implementerade ComponentCanDeactivate-interface + canDeactivate() som kontrollerar om modalen har ifylld data.
+
+**Skapade ny guard:**
+- noreko-frontend/src/app/guards/pending-changes.guard.ts — Generisk PendingChangesGuard med confirm()-dialog.
+  Lagt till i app.routes.ts pa bada sidor.
+
+**Ej bugg (motivering):** Ovriga ngModel-formular ar antingen triviala filter/sokrutor (avvikelselarm, kvalitetscertifikat filter,
+statistik-overblick, drifttids-timeline), modaler inuti child-komponenter (maintenance-form), eller enkla 1-2-falt-formular
+som submittas omedelbart (produktionsmal, kassationskvot-alarm troskel, skiftplanering assign-modal).
+
 ## 2026-03-21 Session #237 Worker A — PHP file locking + PDO error mode + timezone audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ file locking audit
