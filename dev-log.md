@@ -1,3 +1,27 @@
+## 2026-03-21 Session #219 Worker A — PHP file permission/path validation + array bounds/isset audit (5 buggar)
+
+### Uppgift 1: PHP classes/ file permission + path validation audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for file operations (file_get_contents, file_put_contents, fopen, fwrite, unlink, mkdir). Resultat:
+- file_get_contents('php://input') anvands korrekt overallt — inga path traversal-risker.
+- Migrationsfil-lasningar (file_get_contents($migrationPath)) anvander __DIR__ + hardkodade filnamn, kontrollerar false-retur — OK.
+- VpnController socket-operationer (fsockopen, fwrite, fclose) har korrekt felhantering.
+- BonusAdminController + TidrapportController anvander fopen('php://output') for CSV-export — OK.
+- Inga tmpfile/tempnam utan cleanup hittades.
+- Inga path traversal-sarbarheter med anvandardata i filsokvagar.
+Inga buggar hittade i denna kategori.
+
+### Uppgift 2: PHP classes/ array bounds + isset audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for array-access utan isset, fetch()-resultat utan null-check, felaktiga kolumnnamn. Hittade 5 buggar:
+
+1. **VDVeckorapportController.php:210** — `$rad['forsta']` accessat nar `$rad` fran `fetch()` kunde vara `false` (inga rader). Fixade med `!$rad ||` null-check.
+2. **MyStatsController.php:99-100** — `$row['name'] ?? fallback` nar `$row` fran `fetch()` kunde vara `false`. I PHP 8+ ger `false['name']` warning aven med `??`. Fixade med explicit `$row && isset($row['name'])`.
+3. **StopporsakController.php:162-163** — `$topRow['orsak'] ?? null` nar `$topRow` fran `fetch()` kunde vara `false` (inga stopp). Fixade med explicit null-check.
+4. **WeeklyReportController.php:292** — `SELECT dagmal FROM rebotling_settings` — kolumnen `dagmal` existerar inte i tabellen (korrekt kolumnnamn ar `rebotling_target`). Resulterade i SQL-fel som fangades av try-catch men anvande fallback istallet for ratt varde. Fixade kolumnnamnet.
+5. **OperatorsbonusController.php:389** — `SELECT daily_goal FROM rebotling_settings` — kolumnen `daily_goal` existerar inte (korrekt ar `rebotling_target`). Samma typ av bugg som #4. Fixade kolumnnamnet.
+
+### Sammanfattning
+5 buggar fixade (3 fetch null-check + 2 felaktiga kolumnnamn). Backend-only — ingen frontend-build behovdes. Committade och pushade.
+
 ## 2026-03-21 Session #218 Worker B — Angular chart.js configuration + HTTP error UX audit (6 buggar)
 
 ### Uppgift 1: Angular chart.js configuration audit
