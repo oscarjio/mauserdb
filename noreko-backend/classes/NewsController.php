@@ -62,6 +62,7 @@ class NewsController {
                 SELECT id, title, body, category, pinned, published, priority, created_at, updated_at
                 FROM news
                 ORDER BY priority DESC, created_at DESC
+                LIMIT 500
             ");
             $rows = $stmt->fetchAll();
             $news = array_map(function($row) {

@@ -153,7 +153,8 @@ class MalhistorikController {
                     changed_by,
                     changed_at
                  FROM rebotling_goal_history
-                 ORDER BY changed_at ASC"
+                 ORDER BY changed_at ASC
+                 LIMIT 1000"
             );
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -218,7 +219,8 @@ class MalhistorikController {
             $stmt = $this->pdo->query(
                 "SELECT id, goal_type, value, changed_by, changed_at
                  FROM rebotling_goal_history
-                 ORDER BY changed_at ASC"
+                 ORDER BY changed_at ASC
+                 LIMIT 1000"
             );
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

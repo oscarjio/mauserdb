@@ -182,6 +182,7 @@ class StoppageController {
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE s.line = ? AND s.start_time >= ?
                 ORDER BY s.start_time DESC
+                LIMIT 2000
             ");
             $stmt->execute([$line, $dateFilter]);
 

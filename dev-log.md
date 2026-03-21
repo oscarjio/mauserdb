@@ -1,3 +1,53 @@
+## 2026-03-21 Session #233 Worker A — PHP classes/ SQL LIMIT/OFFSET + error response audit (5 buggar)
+
+### Uppgift 1: SQL LIMIT/OFFSET pagination audit
+
+Granskade ALLA PHP-filer i noreko-backend/classes/ (exkl. plcbackend/) — totalt 109 filer med SELECT-queries systematiskt.
+
+**Buggar hittade och fixade:**
+
+1. **`TidrapportController.php::fetchFromRebotlingData()`** — SELECT mot `rebotling_data` utan LIMIT. Datumintervall upp till 365 dagar, tabellen växer kontinuerligt. Risk: obegränsad resultatmängd → OOM. Fix: lade till `LIMIT 5000`.
+
+2. **`TidrapportController.php::fetchFromSkiftLog()`** — SELECT mot `skift_log` utan LIMIT. Samma risk som ovan. Fix: `LIMIT 5000`.
+
+3. **`TidrapportController.php::fetchFromStopporsak()`** — SELECT mot `stopporsak_registreringar` utan LIMIT. Samma risk. Fix: `LIMIT 5000`.
+
+4. **`MalhistorikController.php::getGoalHistory()` + `getGoalImpact()`** — Två queries mot `rebotling_goal_history` utan LIMIT. Tabellen växer varje gång admin ändrar produktionsmål. Fix: `LIMIT 1000` på båda.
+
+5. **`NewsController.php::adminList()`** — SELECT mot `news` utan LIMIT. Tabellen växer obegränsat. Fix: `LIMIT 500`.
+
+**Ytterligare fixade (defensivt):**
+
+6. **`StoppageController.php::getStoppages()`** — SELECT mot `stoppage_log` med datumfilter men utan LIMIT. Period kan vara 365 dagar. Fix: `LIMIT 2000`.
+
+7. **`AlertsController.php::getActiveAlerts()`** — SELECT mot `alerts` WHERE acknowledged=0 utan LIMIT. Om larm ackumuleras utan kvittering kan resultatet växa. Fix: `LIMIT 500`.
+
+**Rent (inga buggar):** Alla andra filer i classes/ har antingen:
+- LIMIT på alla SELECT med fetchAll() mot växande tabeller
+- Datumbundna queries med naturligt begränsade resultatmängder (max dagar)
+- GROUP BY-aggregering som begränsar resultatmängden
+- Queries mot små lookup-tabeller (operators, users, feature_flags, etc.)
+- Korrekt LIMIT/OFFSET-validering med max()/min() och PDO::PARAM_INT
+
+LIMIT utan ORDER BY: Inga fall hittade (alla LIMIT > 1 har ORDER BY).
+Negativt offset: Inga fall (alla offset valideras med max(0, ...)).
+Integer overflow: Inga fall (alla limit/offset har min()-gräns).
+
+### Uppgift 2: Error response consistency audit
+
+Granskade ALLA PHP-filer i noreko-backend/classes/ (exkl. plcbackend/) för inkonsekvent felhantering.
+
+**Inga buggar hittade.** Samtliga controllers är konsekventa:
+
+- **HTTP-statuskoder:** Alla felresponser sätter `http_response_code()` korrekt (400/401/403/404/500) innan echo. Verifierat via automatisk analys av alla `echo json_encode(['success' => false` med 5 raders kontext bakåt.
+- **JSON-format:** Konsekvent `['success' => false, 'error' => '...']` för alla fel. Inga fall av `'message'` i error-kontext (message används enbart i success-svar).
+- **Content-Type:** Sätts globalt i `api.php` linje 56: `header('Content-Type: application/json; charset=utf-8')`. Controllers som sätter egna headers gör det korrekt (CSV/HTML-endpoints).
+- **echo utan json_encode:** Enbart i CSV/HTML-endpoints med korrekt Content-Type (BonusAdminController CSV, RebotlingAnalyticsController CSV/HTML).
+- **exit() utan statuskod:** Alla `exit;`-anrop föregås av korrekt `http_response_code()` + JSON-svar.
+- **sendError-metoder:** Alla controllers med sendError() sätter http_response_code($code) internt.
+
+---
+
 ## 2026-03-21 Session #233 Worker B — Angular service URL consistency + template accessibility audit (125 buggar)
 
 ### Uppgift 1: Angular service URL consistency audit

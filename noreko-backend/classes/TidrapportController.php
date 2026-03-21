@@ -168,7 +168,7 @@ class TidrapportController {
                 $params[':op_id'] = $opFilter;
             }
 
-            $sql .= " ORDER BY r.datum DESC";
+            $sql .= " ORDER BY r.datum DESC LIMIT 5000";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
@@ -202,7 +202,7 @@ class TidrapportController {
                 $params[':op_id'] = $opFilter;
             }
 
-            $sql .= " ORDER BY s.start_tid DESC";
+            $sql .= " ORDER BY s.start_tid DESC LIMIT 5000";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
@@ -236,7 +236,7 @@ class TidrapportController {
                 $params[':op_id'] = $opFilter;
             }
 
-            $sql .= " ORDER BY r.start_time DESC";
+            $sql .= " ORDER BY r.start_time DESC LIMIT 5000";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);

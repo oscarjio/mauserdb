@@ -121,6 +121,7 @@ class AlertsController {
                 ORDER BY
                     CASE severity WHEN 'critical' THEN 0 ELSE 1 END ASC,
                     created_at DESC
+                LIMIT 500
             ");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
