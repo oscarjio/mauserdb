@@ -698,7 +698,8 @@ class TvattlinjeController {
 
             $antal_per_dag = max(0, min(99999, intval($data['antal_per_dag'])));
             $timtakt       = isset($data['timtakt'])    ? max(1, min(999, intval($data['timtakt'])))         : 20;
-            $skiftlangd    = isset($data['skiftlangd']) ? max(1.0, min(24.0, floatval($data['skiftlangd']))) : 8.0;
+            $skiftlangdRaw = isset($data['skiftlangd']) ? floatval($data['skiftlangd']) : 8.0;
+            $skiftlangd    = is_finite($skiftlangdRaw) ? max(1.0, min(24.0, $skiftlangdRaw)) : 8.0;
 
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
@@ -760,7 +761,8 @@ class TvattlinjeController {
         }
 
         $settings['timtakt']    = isset($settings['timtakt'])    ? intval($settings['timtakt'])      : 20;
-        $settings['skiftlangd'] = isset($settings['skiftlangd']) ? floatval($settings['skiftlangd']) : 8.0;
+        $skiftlangdDb = isset($settings['skiftlangd']) ? floatval($settings['skiftlangd']) : 8.0;
+        $settings['skiftlangd'] = is_finite($skiftlangdDb) ? max(1.0, min(24.0, $skiftlangdDb)) : 8.0;
 
         return $settings;
     }

@@ -1050,10 +1050,13 @@ class BonusAdminController {
         $op_id          = isset($body['op_id'])          ? intval($body['op_id'])          : 0;
         $period_start   = trim($body['period_start']   ?? '');
         $period_end     = trim($body['period_end']     ?? '');
-        $amount_sek     = isset($body['amount_sek'])     ? min(9999999.99, max(0, floatval($body['amount_sek'])))     : 0;
+        $amount_sek_raw = isset($body['amount_sek'])     ? floatval($body['amount_sek'])     : 0.0;
+        $amount_sek     = is_finite($amount_sek_raw) ? min(9999999.99, max(0, $amount_sek_raw)) : 0;
         $ibc_count      = isset($body['ibc_count'])      ? min(9999999, max(0, intval($body['ibc_count'])))           : 0;
-        $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? min(9999.99, max(0, floatval($body['avg_ibc_per_h'])))     : 0;
-        $avg_quality_pct= isset($body['avg_quality_pct'])? min(100.0, max(0, floatval($body['avg_quality_pct'])))     : 0;
+        $avg_ibc_raw    = isset($body['avg_ibc_per_h'])  ? floatval($body['avg_ibc_per_h'])     : 0.0;
+        $avg_ibc_per_h  = is_finite($avg_ibc_raw) ? min(9999.99, max(0, $avg_ibc_raw)) : 0;
+        $avg_qual_raw   = isset($body['avg_quality_pct'])? floatval($body['avg_quality_pct'])   : 0.0;
+        $avg_quality_pct= is_finite($avg_qual_raw) ? min(100.0, max(0, $avg_qual_raw)) : 0;
         $notes          = mb_substr(strip_tags(trim($body['notes'] ?? '')), 0, 2000);
         $period_label   = mb_substr(strip_tags(trim($body['period_label'] ?? '')), 0, 50);
         $bonus_level_raw = trim($body['bonus_level'] ?? 'none');

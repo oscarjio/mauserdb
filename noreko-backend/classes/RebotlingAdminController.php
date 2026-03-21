@@ -65,7 +65,8 @@ class RebotlingAdminController {
 
             $rebotlingTarget = isset($data['rebotlingTarget']) ? max(1, min(99999, intval($data['rebotlingTarget']))) : null;
             $hourlyTarget    = isset($data['hourlyTarget'])    ? max(1, min(9999, intval($data['hourlyTarget'])))    : null;
-            $shiftHours      = isset($data['shiftHours'])      ? max(1.0, min(24.0, floatval($data['shiftHours']))) : null;
+            $shiftHoursRaw   = isset($data['shiftHours'])      ? floatval($data['shiftHours']) : null;
+            $shiftHours      = ($shiftHoursRaw !== null && is_finite($shiftHoursRaw)) ? max(1.0, min(24.0, $shiftHoursRaw)) : null;
             $sys             = $data['systemSettings'] ?? [];
             $autoStart       = isset($sys['autoStart'])       ? ($sys['autoStart']       ? 1 : 0) : null;
             $maintenanceMode = isset($sys['maintenanceMode']) ? ($sys['maintenanceMode'] ? 1 : 0) : null;

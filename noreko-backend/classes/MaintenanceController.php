@@ -142,8 +142,10 @@ class MaintenanceController {
             $durationMinutes = isset($data['duration_minutes']) && $data['duration_minutes'] !== '' && $data['duration_minutes'] !== null
                                ? max(0, min(14400, intval($data['duration_minutes']))) : null;
             $performedBy     = strip_tags(trim($data['performed_by'] ?? ''));
-            $costSek         = isset($data['cost_sek']) && $data['cost_sek'] !== '' && $data['cost_sek'] !== null
-                               ? max(0, min(99999999, floatval($data['cost_sek']))) : null;
+            $costSekRaw      = isset($data['cost_sek']) && $data['cost_sek'] !== '' && $data['cost_sek'] !== null
+                               ? floatval($data['cost_sek']) : null;
+            $costSek         = ($costSekRaw !== null && is_finite($costSekRaw))
+                               ? max(0, min(99999999, $costSekRaw)) : null;
             $status          = trim($data['status'] ?? 'klart');
             $createdBy       = intval($_SESSION['user_id']);
 
@@ -318,7 +320,7 @@ class MaintenanceController {
             if (array_key_exists('cost_sek', $data)) {
                 $cost = $data['cost_sek'];
                 $costVal = ($cost !== null && $cost !== '') ? floatval($cost) : null;
-                if ($costVal !== null && ($costVal < 0 || $costVal > 99999999)) {
+                if ($costVal !== null && (!is_finite($costVal) || $costVal < 0 || $costVal > 99999999)) {
                     $this->sendError('Kostnad måste vara 0–99 999 999 kr', 400);
                     return;
                 }
