@@ -1,3 +1,105 @@
+## 2026-03-21 Session #234 Worker B — Angular reactive state management + form dirty-state audit (0 buggar)
+
+### Uppgift 1: Angular reactive state management audit
+
+Granskade ALLA Angular-komponenter (41 .component.ts + 128 .ts sidkomponenter) och services (87+ st) i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/).
+
+**Inga buggar hittade.** Samtliga komponenter och services foljer korrekt monster:
+
+**BehaviorSubject/ReplaySubject race conditions:**
+- `auth.service.ts` — BehaviorSubject<boolean>(false) for loggedIn$, BehaviorSubject<AuthUser|null|undefined>(undefined) for user$, BehaviorSubject<boolean>(false) for initialized$. Korrekt initialvarden. Cachad sessionStorage-data aterstatts i konstruktorn for att undvika race vid sidomladdning. Korrekt.
+- `alerts.service.ts` — BehaviorSubject<Alert[]>([]) for activeAlerts$, BehaviorSubject<number>(0) for activeCount$. Korrekta initialvarden. Korrekt.
+- 41 .component.ts-filer anvander Subject<void> for destroy$ — korrekt (inget initialvarde behovs).
+
+**Stale subscriptions (saknad takeUntil/unsubscribe):**
+- 165 av 169 filer med .subscribe() har takeUntil(this.destroy$) eller unsubscribe().
+- De 4 filer utan takeUntil ar rebotling-live.ts, tvattlinje-live.ts, saglinje-live.ts, klassificeringslinje-live.ts — EXKLUDERADE fran audit per regler.
+- `auth.service.ts` — pollSub hanteras via explicit unsubscribe() i stopPolling(). logoutSub hanteras via explicit unsubscribe() fore ny prenumeration. Korrekt.
+
+**Shared observables utan shareReplay:**
+- Inga services anvander shareReplay. ALLA HTTP-anrop gor enskilda requests per subscribe. Inget fall av delade observables som gor multipla onskade HTTP-anrop hittades — varje komponent gor egna anrop med individuell takeUntil. Korrekt for denna arkitektur.
+
+**switchMap/mergeMap/concatMap anvandning:**
+- `auth.service.ts` — switchMap i status-polling (interval + switchMap(fetchStatus)). Korrekt: switchMap ar ratt val har da vi vill avbryta foregaende statusanrop om det tar for lang tid.
+- `alerts.service.ts` — switchMap i alert-polling (timer + switchMap(getActiveAlerts)). Korrekt: samma resonemang.
+- `auth.guard.ts` — switchMap for att vanta pa initialized$ sedan lasa loggedIn$/user$. Korrekt: take(1) garanterar att inget langvarigt abonnemang skapas.
+- Inga fall av felaktig switchMap dar concatMap kravs (alla switchMap-anvandningar ar for polling/status dar det ar korrekt att avbryta foregaende anrop).
+
+**combineLatest/forkJoin som aldrig emittar:**
+- `vd-dashboard.component.ts` — forkJoin med 6 parallella anrop, alla med catchError(() => of(null)). Korrekt: catchError garanterar att alla observables completes aven vid fel.
+- Inga andra combineLatest/forkJoin-anvandningar hittades.
+
+**async pipe + manuell subscribe:**
+- Inga komponenter anvander async pipe — alla anvander manuell subscribe med takeUntil. Konsekvent monster, inga dubbla anrop.
+
+**Subject.next() efter Subject.complete():**
+- Alla destroy$-Subjects follows korrekta lifecycle: next() i ngOnDestroy, sedan complete(). Inget fall av next() efter complete().
+- `alerts.service.ts` — stopPolling() anropar destroy$.next() utan complete(), vilket ar korrekt for ateranvandning. ngOnDestroy anropar bade next() och complete().
+
+**Rent (41 .component.ts-filer granskade):**
+maintenance-form.component.ts, maintenance-list.component.ts, service-intervals.component.ts, kpi-analysis.component.ts, equipment-stats.component.ts, vd-dashboard.component.ts, tidrapport.component.ts, oee-trendanalys.component.ts, statistik-overblick.component.ts, drifttids-timeline.component.ts, operator-ranking.component.ts, historisk-sammanfattning.component.ts, skiftplanering.component.ts, batch-sparning.component.ts, leveransplanering.component.ts, maskinunderhall.component.ts, produktionsmal.component.ts, kassationskvot-alarm.component.ts, avvikelselarm.component.ts, kvalitetscertifikat.component.ts, operatorsbonus.component.ts, gamification.component.ts, daglig-briefing.component.ts, skiftoverlamning.component.ts, produktionsflode.component.ts, statistik-dashboard.component.ts, operators-prestanda.component.ts, vd-veckorapport.component.ts, prediktivt-underhall.component.ts, stopporsaker.component.ts, rebotling-sammanfattning.component.ts, produktions-dashboard.component.ts, maskinhistorik.component.ts, stationsdetalj.component.ts, maskin-oee.component.ts, rebotling-trendanalys.component.ts, kapacitetsplanering.component.ts, historisk-produktion.component.ts, produktions-sla.component.ts, stopptidsanalys.component.ts, produktionskostnad.component.ts, pdf-export-button.component.ts
+
+**Rent (services granskade):**
+auth.service.ts, alerts.service.ts, auth.guard.ts (authGuard + adminGuard)
+
+**Rent (sidkomponenter .ts granskade):**
+login.ts, create-user.ts, users.ts, operators.ts, stopporsak-registrering.ts + 128 ytterligare sidkomponenter som alla foljer samma korrekta destroy$/takeUntil/clearInterval-monster.
+
+### Uppgift 2: Angular form dirty-state/unsaved changes audit
+
+Granskade ALLA Angular-komponenter med formular (template-driven och reactive) i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Inga buggar hittade.** Alla formular ar korrekt implementerade:
+
+**Formularkomponenter granskade (med formuler som sparar data):**
+
+1. **maintenance-form.component.ts** — isSaving guard pa submit-knapp, form.title + form.start_time validering, disabled-attribut pa submit ([disabled]="isSaving || !form.title.trim() || !form.start_time"), felmeddelanden (formError), formularet stongs efter sparning (close()), inga dirty-state-problem da formularet ar en modal som aterstartas vid varje oppning. Korrekt.
+
+2. **service-intervals.component.ts** — isSavingService guard, validering i submitHandler + disabled pa submit-knapp, serviceFormError for felmeddelanden, formularet stangs och data laddas om efter sparning. Korrekt.
+
+3. **maintenance-list.component.ts** — Inga redigerbara formular, bara filter-dropdowns och delete med confirm(). Korrekt.
+
+4. **kassationskvot-alarm.component.ts** — sparaTroskelLoading guard, validering av troskelForm.varning/alarm, sparaTroskelFel for fel, sparaTroskelMeddelande for success. Korrekt.
+
+5. **skiftplanering.component.ts** — savingAssign guard pa tilldelningsmodal, assignOperatorId validering, assignError/assignMessage for feedback, modal stangs automatiskt efter sparning. Korrekt.
+
+6. **batch-sparning.component.ts** — savingBatch guard, createForm.batch_nummer/planerat_antal validering, createError/createMessage for feedback, modal stangs efter sparning. Korrekt.
+
+7. **leveransplanering.component.ts** — savingOrder guard, newOrder.kundnamn/onskat_leveransdatum validering, newOrderError for feedback, modal stangs och form aterstatts efter sparning. Korrekt.
+
+8. **maskinunderhall.component.ts** — savingService/savingMachine guards, emptyServiceForm()/emptyMachineForm() for aterstavllning, serviceError/maskinError for feedback. Korrekt.
+
+9. **produktionsmal.component.ts** — sparLoading guard, formAntal validering, sparFel/sparMeddelande for feedback, formAntal nullstatts efter sparning. Korrekt.
+
+10. **avvikelselarm.component.ts** — savingKvittera guard, kvitteraNamn.trim() validering, kvitteraError for feedback, kvitteraLarm nullstatts efter sparning. Korrekt.
+
+11. **kvalitetscertifikat.component.ts** — bedomLoading/genLoading guards, validering av genBatchNummer/genAntalIbc, bedomError/genError for feedback, formularet aterstatts efter sparning. Korrekt.
+
+12. **operatorsbonus.component.ts** — savingKonfig guard, konfigError/konfigMessage for feedback. Korrekt.
+
+13. **skiftoverlamning.component.ts** — isSubmitting guard, bekraftelsemodal (showConfirm) fore submit, resetForm() efter sparning, toast for feedback. Korrekt.
+
+14. **login.ts** — loading guard, error for feedback, disabled pa submit-knapp ([disabled]="loading || !username || !password"). Korrekt.
+
+15. **create-user.ts** — isLoading guard, canSubmit getter med validering, errorMessage/successMessage for feedback, formularet aterstatts efter lyckad sparning. Korrekt.
+
+16. **users.ts** — savingUser guard i saveUser(), toast for feedback, deleteUser med confirm(). Korrekt.
+
+17. **operators.ts** — toast for feedback, confirm() for delete, addForm aterstatts efter createOperator(). Korrekt.
+
+18. **stopporsak-registrering.ts** — submitting guard, endingStopId guard for avsluta-knapp, errorMessage/successMessage for feedback, formularet aterstatts (valdKategori/kommentar/visaKommentarFalt). Korrekt.
+
+**canDeactivate guard (varning vid navigation med osparade andringar):**
+- Inget formular i applikationen anvander canDeactivate guard. DOCK ar alla formular antingen modaler (som inte paverkas av routing) eller har enkla varden som aterstatts vid load/init. Ingen komplex formulardata riskerar att forsvinna vid navigation — alla formuler ar korta och modulbaserade. Bedoming: ingen bugg, men eventuellt forbattringspotential for framtiden.
+
+**ngModel-bindningar utan null-hantering:**
+- Alla ngModel-bindningar anvander primitiva typer (string, number, boolean) med korrekta initialvarden ('', 0, false, null). Inga fall av undefined-bindningar som skulle orsaka template-fel.
+
+**Sammanfattning:**
+0 buggar hittade i 165+ granskade filer. Kodbsen ar val strukturerad med konsekventa monster for lifecycle-hantering, subscription-management och formularhantering.
+
+---
+
 ## 2026-03-21 Session #233 Worker A — PHP classes/ SQL LIMIT/OFFSET + error response audit (5 buggar)
 
 ### Uppgift 1: SQL LIMIT/OFFSET pagination audit
