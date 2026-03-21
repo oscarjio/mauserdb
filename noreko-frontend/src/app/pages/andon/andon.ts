@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { RebotlingService } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -64,7 +65,7 @@ interface HourlyTodayResponse {
 export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   Math = Math;
 
-  private readonly apiUrl = '/noreko-backend/api.php';
+  private readonly apiUrl = environment.apiUrl;
 
   // Befintlig state
   status: AndonStatus | null = null;

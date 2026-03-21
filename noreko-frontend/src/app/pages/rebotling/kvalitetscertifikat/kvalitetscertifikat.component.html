@@ -139,25 +139,25 @@
       <table class="table-dark-custom">
         <thead>
           <tr>
-            <th scope="col" class="sortable-th" (click)="sortBy('batch_nummer')">
+            <th scope="col" class="sortable-th" (click)="sortBy('batch_nummer')" tabindex="0" (keydown.enter)="sortBy('batch_nummer')">
               Batch <i [class]="sortIcon('batch_nummer')"></i>
             </th>
-            <th scope="col" class="sortable-th" (click)="sortBy('datum')">
+            <th scope="col" class="sortable-th" (click)="sortBy('datum')" tabindex="0" (keydown.enter)="sortBy('datum')">
               Datum <i [class]="sortIcon('datum')"></i>
             </th>
-            <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')">
+            <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')" tabindex="0" (keydown.enter)="sortBy('operator_namn')">
               Operator <i [class]="sortIcon('operator_namn')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('antal_ibc')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('antal_ibc')" tabindex="0" (keydown.enter)="sortBy('antal_ibc')">
               IBC <i [class]="sortIcon('antal_ibc')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('kassation_procent')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('kassation_procent')" tabindex="0" (keydown.enter)="sortBy('kassation_procent')">
               Kass.% <i [class]="sortIcon('kassation_procent')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('cykeltid_snitt')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('cykeltid_snitt')" tabindex="0" (keydown.enter)="sortBy('cykeltid_snitt')">
               Cykeltid <i [class]="sortIcon('cykeltid_snitt')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('kvalitetspoang')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('kvalitetspoang')" tabindex="0" (keydown.enter)="sortBy('kvalitetspoang')">
               Poang <i [class]="sortIcon('kvalitetspoang')"></i>
             </th>
             <th scope="col">Status</th>

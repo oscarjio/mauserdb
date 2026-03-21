@@ -1042,7 +1042,7 @@
 
     <!-- Hur bonus beräknas -->
     <div class="chart-card">
-      <div class="chart-card-header clickable" (click)="showFormula = !showFormula">
+      <div class="chart-card-header clickable" (click)="showFormula = !showFormula" role="button" tabindex="0" (keydown.enter)="showFormula = !showFormula">
         <span><i class="fas fa-info-circle me-2 text-muted"></i>Hur beräknas bonusen?</span>
         <i class="fas float-end mt-1" [class.fa-chevron-down]="!showFormula" [class.fa-chevron-up]="showFormula"></i>
       </div>

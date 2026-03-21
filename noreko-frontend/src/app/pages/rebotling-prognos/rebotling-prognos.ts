@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { localToday, localDateStr } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 interface ProductionRate {
   avg_ibc_per_day_7d: number;
@@ -67,7 +68,7 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
     this.loading = true;
     this.loadError = false;
     this.http
-      .get<any>('/noreko-backend/api.php?action=rebotling&run=production-rate', { withCredentials: true })
+      .get<any>(`${environment.apiUrl}?action=rebotling&run=production-rate`, { withCredentials: true })
       .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;

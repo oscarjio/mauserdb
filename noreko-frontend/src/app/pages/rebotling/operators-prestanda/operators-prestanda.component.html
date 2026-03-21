@@ -109,12 +109,12 @@
           <table class="table table-dark table-hover mb-0 ranking-table">
             <thead>
               <tr>
-                <th scope="col" class="sortable" (click)="sortRanking('rank')">#  {{ sortIkon('rank') }}</th>
-                <th scope="col" class="sortable" (click)="sortRanking('operator_namn')">Namn {{ sortIkon('operator_namn') }}</th>
-                <th scope="col" class="sortable text-end" (click)="sortRanking('antal_ibc')">Antal IBC {{ sortIkon('antal_ibc') }}</th>
-                <th scope="col" class="sortable text-end" (click)="sortRanking('medel_cykeltid')">Cykeltid {{ sortIkon('medel_cykeltid') }}</th>
-                <th scope="col" class="sortable text-end" (click)="sortRanking('kassationsgrad')">Kassation {{ sortIkon('kassationsgrad') }}</th>
-                <th scope="col" class="sortable text-end" (click)="sortRanking('oee')">OEE {{ sortIkon('oee') }}</th>
+                <th scope="col" class="sortable" (click)="sortRanking('rank')" tabindex="0" (keydown.enter)="sortRanking('rank')">#  {{ sortIkon('rank') }}</th>
+                <th scope="col" class="sortable" (click)="sortRanking('operator_namn')" tabindex="0" (keydown.enter)="sortRanking('operator_namn')">Namn {{ sortIkon('operator_namn') }}</th>
+                <th scope="col" class="sortable text-end" (click)="sortRanking('antal_ibc')" tabindex="0" (keydown.enter)="sortRanking('antal_ibc')">Antal IBC {{ sortIkon('antal_ibc') }}</th>
+                <th scope="col" class="sortable text-end" (click)="sortRanking('medel_cykeltid')" tabindex="0" (keydown.enter)="sortRanking('medel_cykeltid')">Cykeltid {{ sortIkon('medel_cykeltid') }}</th>
+                <th scope="col" class="sortable text-end" (click)="sortRanking('kassationsgrad')" tabindex="0" (keydown.enter)="sortRanking('kassationsgrad')">Kassation {{ sortIkon('kassationsgrad') }}</th>
+                <th scope="col" class="sortable text-end" (click)="sortRanking('oee')" tabindex="0" (keydown.enter)="sortRanking('oee')">OEE {{ sortIkon('oee') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -122,7 +122,7 @@
                 <tr
                   class="ranking-row {{ getRadFarg(op) }}"
                   [class.rad-expanderad]="detaljOperator === op.operator_id"
-                  (click)="toggleDetalj(op)">
+                  (click)="toggleDetalj(op)" tabindex="0" (keydown.enter)="toggleDetalj(op)">
                   <td>
                     @if (op.rank === 1) {
                       <span class="rank-badge rank-gold">{{ op.rank }}</span>

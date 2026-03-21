@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface WeekdayGoal {
   weekday: number;
@@ -142,7 +143,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   loadSettings() {
     this.loading = true;
     this.settingsError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=admin-settings`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -171,7 +172,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     }
     this.settingsSaving = true;
     this.settingsError = '';
-    this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', this.settings, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=admin-settings`, this.settings, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -201,7 +202,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   loadNewSettings() {
     this.newSettingsLoading = true;
     this.newSettingsError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=settings`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -231,7 +232,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     }
     this.newSettingsSaving = true;
     this.newSettingsError = '';
-    this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=settings', this.newSettings, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=settings`, this.newSettings, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -254,7 +255,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   loadWeekdayGoals() {
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=weekday-goals', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=weekday-goals`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -281,7 +282,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.weekdayGoalsSaving = true;
     this.weekdayGoalsError = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
-    this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=weekday-goals', payload, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=weekday-goals`, payload, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -313,7 +314,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
       this.systemStatusLoading = true;
       this.systemStatusError = '';
     }
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=system-status', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=system-status`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({
         next: (response) => {
@@ -361,7 +362,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     if (this.isFetchingSnapshot) return;
     this.isFetchingSnapshot = true;
     if (!silent) this.todaySnapshotLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=today-snapshot', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=today-snapshot`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({
         next: (res) => {
@@ -397,7 +398,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   loadAlertThresholds() {
     this.alertThresholdsLoading = true;
     this.alertThresholdsError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=alert-thresholds', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=alert-thresholds`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({
         next: (res) => {
@@ -414,7 +415,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.alertThresholdsSaving = true;
     this.alertThresholdsSaved  = false;
     this.alertThresholdsError  = '';
-    this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=save-alert-thresholds',
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=save-alert-thresholds`,
       this.alertThresholds, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({

@@ -535,7 +535,7 @@
           <div class="col-12 col-md-4" *ngFor="let preset of simPresets; trackBy: trackByName">
             <div class="sim-preset-card"
                  [class.sim-preset-active]="simActivePreset === preset.name"
-                 (click)="applyPreset(preset)">
+                 (click)="applyPreset(preset)" role="button" tabindex="0" (keydown.enter)="applyPreset(preset)">
               <div class="sim-preset-icon"><i class="fas" [ngClass]="preset.icon"></i></div>
               <div class="sim-preset-name">{{ preset.name }}</div>
               <div class="sim-preset-desc">{{ preset.desc }}</div>

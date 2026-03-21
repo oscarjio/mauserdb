@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -318,7 +319,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadSettings() {
     this.settingsLoading = true;
     this.settingsError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -362,7 +363,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', this.settings, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, this.settings, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -386,7 +387,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadWeekdayGoals() {
     this.weekdayLoading = true;
     this.weekdayError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=weekday-goals', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=weekday-goals`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -406,7 +407,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.weekdaySaving = true;
     this.weekdayError  = '';
     this.weekdaySaved  = false;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=weekday-goals',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=weekday-goals`,
       { goals: this.weekdayGoals }, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
@@ -460,7 +461,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadShiftTimes() {
     this.shiftTimesLoading = true;
     this.shiftTimesError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=shift-times', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=shift-times`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -483,7 +484,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.shiftTimesSaving = true;
     this.shiftTimesError  = '';
     this.shiftTimesSaved  = false;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=shift-times',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=shift-times`,
       { shifts: this.shiftTimes }, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
@@ -518,7 +519,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.systemStatusLoading) return;
     this.systemStatusLoading = true;
     this.systemStatusError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=system-status', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=system-status`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -580,7 +581,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   // ========== Produkthantering ==========
   private loadProducts() {
     this.loading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotlingproduct', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotlingproduct`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -603,7 +604,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   addProduct() {
     if (!this.newProduct.name || !this.newProduct.cycle_time_minutes) return;
     this.loading = true;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct', this.newProduct, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=rebotlingproduct`, this.newProduct, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -638,7 +639,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (!product.name || !product.cycle_time_minutes) return;
     this.loading = true;
     const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes };
-    this.http.put<any>('/noreko-backend/api.php?action=rebotlingproduct', updateData, { withCredentials: true })
+    this.http.put<any>(`${environment.apiUrl}?action=rebotlingproduct`, updateData, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -665,7 +666,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   deleteProduct(product: any) {
     if (!confirm(`Är du säker på att du vill ta bort produkten "${product.name}"?`)) return;
     this.loading = true;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct&run=delete', { id: product.id }, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=rebotlingproduct&run=delete`, { id: product.id }, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -689,7 +690,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadMaintenanceIndicator() {
     if (this.maintenanceLoading) return;
     this.maintenanceLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=maintenance-indicator', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=maintenance-indicator`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of({ success: false, error: 'Timeout eller serverfel' })),
@@ -792,7 +793,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.maintenanceLogError  = '';
     this.maintenanceLogSaved  = false;
     this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=save-maintenance-log',
+      `${environment.apiUrl}?action=rebotling&run=save-maintenance-log`,
       { action_text: text },
       { withCredentials: true }
     )
@@ -819,7 +820,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadTodaySnapshot() {
     if (this.todaySnapshotLoading) return;
     this.todaySnapshotLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=today-snapshot', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=today-snapshot`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -854,7 +855,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadAlertThresholds() {
     this.alertThresholdsLoading = true;
     this.alertThresholdsError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=alert-thresholds', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=alert-thresholds`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -875,7 +876,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.alertThresholdsSaving = true;
     this.alertThresholdsSaved  = false;
     this.alertThresholdsError  = '';
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-alert-thresholds',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-alert-thresholds`,
       this.alertThresholds, { withCredentials: true })
       .pipe(
         timeout(8000),
@@ -904,7 +905,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadNotificationSettings() {
     this.notificationSettingsLoading = true;
     this.notificationSettingsError   = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=notification-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=notification-settings`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -933,7 +934,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.notificationSettingsSaving = true;
     this.notificationSettingsError  = '';
     this.notificationSettingsSaved  = false;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-notification-settings`,
       this.notificationSettings, { withCredentials: true })
       .pipe(
         timeout(8000),
@@ -966,7 +967,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
   loadGoalHistory() {
     this.goalHistoryLoading = true;
-    this.http.get<any>(`/noreko-backend/api.php?action=rebotling&run=goal-history&days=${this.goalHistoryPeriod}`, { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-history&days=${this.goalHistoryPeriod}`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe(res => {
         this.goalHistoryLoading = false;
@@ -1058,7 +1059,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   toggleLrPanel() { this.showLrPanel = !this.showLrPanel; }
 
   loadLrSettings() {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-settings`, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
         timeout(8000),
@@ -1071,7 +1072,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
   saveLrSettings() {
     this.lrSettingsSaving = true;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-live-ranking-settings',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-live-ranking-settings`,
       this.lrSettings, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
@@ -1088,7 +1089,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   toggleLrConfigPanel() { this.showLrConfigPanel = !this.showLrConfigPanel; }
 
   loadLrConfig() {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-config', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-config`, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
         timeout(8000),
@@ -1101,7 +1102,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
   saveLrConfig() {
     this.lrConfigSaving = true;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=set-live-ranking-config',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=set-live-ranking-config`,
       this.lrConfig, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
@@ -1121,7 +1122,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   createRecordNews(): void {
     this.recordNewsCreating = true;
     this.recordNewsResult = null;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=create-record-news', {},
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=create-record-news`, {},
       { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
@@ -1161,7 +1162,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   };
 
   loadKassationTyper() {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=kassation-typer', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-typer`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe((res: any) => {
         if (res?.success) {
@@ -1175,7 +1176,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
   loadKassationSenaste() {
     this.kassationLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=kassation-senaste&limit=10', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-senaste&limit=10`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe((res: any) => {
         this.kassationLoading = false;
@@ -1191,7 +1192,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.kassationLoading = true;
     this.kassationError   = '';
     this.kassationSaved   = false;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=kassation-register',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=kassation-register`,
       this.kassationForm, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe((res: any) => {
@@ -1213,7 +1214,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   // ========== Anpassade dagsmål (datum-undantag) ==========
   loadGoalExceptions() {
     this.goalExceptionsLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=goal-exceptions', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-exceptions`, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
         timeout(8000),
@@ -1239,7 +1240,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       justerat_mal: this.newExceptionMal,
       orsak: this.newExceptionOrsak
     };
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-goal-exception', body, { withCredentials: true })
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-goal-exception`, body, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
         timeout(8000),
@@ -1262,7 +1263,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   deleteGoalException(datum: string) {
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=delete-goal-exception',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=delete-goal-exception`,
       { datum }, { withCredentials: true })
       .pipe(
         takeUntil(this.destroy$),
@@ -1280,7 +1281,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   // ========== Prediktivt underhåll — Serviceintervall ==========
   loadServiceStatus(): void {
     this.serviceStatusLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=service-status', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=service-status`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.serviceStatusLoading = false;
@@ -1295,7 +1296,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (!confirm('Registrera service utförd? IBC-räknaren nollställs.')) return;
     this.savingServiceReset = true;
     this.serviceResetMsg = '';
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=reset-service',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=reset-service`,
       { note: this.serviceNote }, { withCredentials: true })
       .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -1314,7 +1315,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   saveServiceInterval(): void {
     this.savingServiceInterval = true;
     this.serviceIntervalError = '';
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-service-interval',
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-service-interval`,
       { service_interval_ibc: this.serviceInterval }, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -1332,7 +1333,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   loadMaintenanceCorrelation() {
     this.correlationLoading = true;
     this.correlationError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=maintenance-correlation&weeks=12', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=maintenance-correlation&weeks=12`, { withCredentials: true })
       .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.correlationLoading = false;
@@ -1453,7 +1454,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.shiftReportSending = true;
     this.shiftReportError   = '';
     this.shiftReportSuccess = '';
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=auto-shift-report', {
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=auto-shift-report`, {
       date: this.shiftReportTestDate,
       shift: this.shiftReportTestShift
     }, { withCredentials: true })

@@ -109,7 +109,7 @@
           <!-- Operatörskortet -->
           <div class="op-card" [class.op-card--expanded]="expandedStatId === s.id"
                [class.op-card--inactive]="s.active == 0">
-            <div class="op-card-top" (click)="toggleStatDetail(s)">
+            <div class="op-card-top" (click)="toggleStatDetail(s)" role="button" tabindex="0" (keydown.enter)="toggleStatDetail(s)">
               <!-- Ranknummer / medalj -->
               <div class="op-rank">
                 <span *ngIf="getRankMedal(i) === 'gold'" class="medal medal-gold">1</span>
@@ -352,7 +352,7 @@
               <th scope="col">Namn</th>
               <th scope="col">Nummer</th>
               <th scope="col">Status</th>
-              <th class="sortable-col" (click)="sortBy('senaste_aktivitet')" title="Sortera efter senaste aktivitet" scope="col">
+              <th class="sortable-col" (click)="sortBy('senaste_aktivitet')" title="Sortera efter senaste aktivitet" scope="col" tabindex="0" (keydown.enter)="sortBy('senaste_aktivitet')">
                 Senast aktiv <i class="fas" [class]="'fas ' + sortIcon('senaste_aktivitet')"></i>
               </th>
               <th scope="col">Aktiva dagar (30d)</th>

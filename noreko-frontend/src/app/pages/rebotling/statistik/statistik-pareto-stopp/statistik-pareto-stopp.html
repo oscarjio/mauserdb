@@ -95,7 +95,7 @@
                     [class.pareto-vital-row]="item.kumulativ_pct <= 80"
                     class="pareto-clickable-row"
                     (click)="onTableRowClick(item)"
-                    title="Klicka for detaljer">
+                    title="Klicka for detaljer" tabindex="0" (keydown.enter)="onTableRowClick(item)">
                   <td class="pareto-row-num">{{ i + 1 }}</td>
                   <td class="fw-bold" [style.color]="item.kumulativ_pct <= 80 ? '#ed8936' : '#a0aec0'">
                     <i class="fas fa-search-plus me-1 small" style="opacity: 0.5;"></i>{{ item.orsak }}

@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Chart } from 'chart.js';
 import { localToday, localDateStr } from '../../../../utils/date-utils';
 import { exportChartAsPng } from '../../../../shared/chart-export.util';
+import { environment } from '../../../../../environments/environment';
 
 interface OrsakItem {
   id: number;
@@ -111,7 +112,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
   private loadBreakdown(): void {
     this.loading = true;
     this.http.get<BreakdownResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=quality-rejection-breakdown&days=' + this.days,
+      `${environment.apiUrl}?action=rebotling&run=quality-rejection-breakdown&days=` + this.days,
       { withCredentials: true }
     ).pipe(
       timeout(10000),
@@ -137,7 +138,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
   private loadTrend(): void {
     this.trendLoading = true;
     this.http.get<TrendResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=quality-rejection-trend&days=' + this.days,
+      `${environment.apiUrl}?action=rebotling&run=quality-rejection-trend&days=` + this.days,
       { withCredentials: true }
     ).pipe(
       timeout(10000),

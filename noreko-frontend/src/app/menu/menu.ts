@@ -8,6 +8,7 @@ import { AlertsService } from '../services/alerts.service';
 import { FeatureFlagService } from '../services/feature-flag.service';
 import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 interface LineStatusApiResponse {
   success?: boolean;
@@ -173,7 +174,7 @@ export class Menu implements OnInit, OnDestroy {
 
   private loadAlertsCount(): void {
     if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
-    this.http.get<any>('/noreko-backend/api.php?action=alerts&run=active', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=alerts&run=active`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
@@ -184,8 +185,8 @@ export class Menu implements OnInit, OnDestroy {
 
   loadLineStatus() {
     forkJoin({
-      rebotling: this.http.get<LineStatusApiResponse>('/noreko-backend/api.php?action=rebotling&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
-      tvattlinje: this.http.get<LineStatusApiResponse>('/noreko-backend/api.php?action=tvattlinje&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
+      rebotling: this.http.get<LineStatusApiResponse>(`${environment.apiUrl}?action=rebotling&run=status`, { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
+      tvattlinje: this.http.get<LineStatusApiResponse>(`${environment.apiUrl}?action=tvattlinje&run=status`, { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
     }).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.rebotlingRunning = res.rebotling?.data?.running ?? false;
       this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
@@ -197,7 +198,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadUrgentCount(): void {
-    this.http.get<{ antal?: number }>('/noreko-backend/api.php?action=shift-handover&run=unread-count', { withCredentials: true }).pipe(
+    this.http.get<{ antal?: number }>(`${environment.apiUrl}?action=shift-handover&run=unread-count`, { withCredentials: true }).pipe(
       timeout(4000),
       catchError(() => of({ antal: 0 })),
       takeUntil(this.destroy$)
@@ -208,7 +209,7 @@ export class Menu implements OnInit, OnDestroy {
 
   loadCertExpiryCount(): void {
     if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
-    this.http.get<{ success?: boolean; count?: number }>('/noreko-backend/api.php?action=certification&run=expiry-count', { withCredentials: true })
+    this.http.get<{ success?: boolean; count?: number }>(`${environment.apiUrl}?action=certification&run=expiry-count`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) this.certExpiryCount = res.count ?? 0;
@@ -225,7 +226,7 @@ export class Menu implements OnInit, OnDestroy {
     }
 
     // Ladda i bakgrunden utan att visa loading
-    this.http.get<VpnApiResponse>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
+    this.http.get<VpnApiResponse>(`${environment.apiUrl}?action=vpn`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -288,7 +289,7 @@ export class Menu implements OnInit, OnDestroy {
     }
 
     this.savingProfile = true;
-    this.http.post<ProfileApiResponse>('/noreko-backend/api.php?action=profile', payload, { withCredentials: true })
+    this.http.post<ProfileApiResponse>(`${environment.apiUrl}?action=profile`, payload, { withCredentials: true })
       .pipe(
         timeout(10000),
         catchError((error) => {

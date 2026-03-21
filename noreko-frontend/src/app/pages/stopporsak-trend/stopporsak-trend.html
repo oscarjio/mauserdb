@@ -162,7 +162,7 @@
             *ngFor="let row of summaryData.summaries; trackBy: trackByReason"
             [class.selected-row]="selectedReason === row.reason"
             style="cursor: pointer;"
-            (click)="loadDetail(row.reason)">
+            (click)="loadDetail(row.reason)" tabindex="0" (keydown.enter)="loadDetail(row.reason)">
             <td>
               <div class="d-flex align-items-center gap-2">
                 <span class="reason-dot" [style.background-color]="getReasonColor(row.reason)"></span>

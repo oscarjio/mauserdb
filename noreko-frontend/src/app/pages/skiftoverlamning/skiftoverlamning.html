@@ -248,7 +248,7 @@
     <!-- ---- HISTORIK (expanderbar) ---- -->
     <div class="card section-card mb-4">
       <div class="card-header clickable-header d-flex justify-content-between align-items-center"
-           (click)="toggleHistorik()">
+           (click)="toggleHistorik()" role="button" tabindex="0" (keydown.enter)="toggleHistorik()">
         <h5 class="mb-0">
           <i class="fas fa-history me-2 text-secondary"></i>Senaste overlamningar
           <span class="badge bg-secondary ms-2">{{ historikItems.length }}</span>
@@ -274,7 +274,7 @@
             <tr *ngFor="let item of historikItems; trackBy: trackByIndex"
                 [class.row-problem]="item.har_pagaende_problem"
                 class="clickable-row"
-                (click)="loadDetail(item.id)">
+                (click)="loadDetail(item.id)" tabindex="0" (keydown.enter)="loadDetail(item.id)">
               <td>{{ formatDate(item.datum) }}</td>
               <td><span class="badge" [ngClass]="skiftBadgeClass(item.skift_typ)">{{ skiftLabel(item.skift_typ) }}</span></td>
               <td>{{ item.operator_namn }}</td>
@@ -507,7 +507,7 @@
             <div class="progress-bar" [class.bg-success]="allChecked" [class.bg-info]="!allChecked"
                  [style.width.%]="checklistaProgress"></div>
           </div>
-          <div *ngFor="let c of checklista; let i = index; trackBy: trackByIndex" class="checklista-item mb-2" (click)="toggleChecklista(i)">
+          <div *ngFor="let c of checklista; let i = index; trackBy: trackByIndex" class="checklista-item mb-2" (click)="toggleChecklista(i)" role="button" tabindex="0" (keydown.enter)="toggleChecklista(i)">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" [checked]="c.checked"
                      (change)="toggleChecklista(i)" (click)="$event.stopPropagation()">

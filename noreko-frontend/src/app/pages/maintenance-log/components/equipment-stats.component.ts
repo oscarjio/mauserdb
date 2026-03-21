@@ -68,25 +68,25 @@ import {
           <table class="table table-dark table-stats">
             <thead>
               <tr>
-                <th (click)="sortStats('namn')" class="sortable">
+                <th (click)="sortStats('namn')" class="sortable" tabindex="0" (keydown.enter)="sortStats('namn')">
                   Utrustning <i class="fas" [class]="getSortIcon('namn')"></i>
                 </th>
-                <th (click)="sortStats('kategori')" class="sortable">
+                <th (click)="sortStats('kategori')" class="sortable" tabindex="0" (keydown.enter)="sortStats('kategori')">
                   Kategori <i class="fas" [class]="getSortIcon('kategori')"></i>
                 </th>
-                <th (click)="sortStats('antal_handelser')" class="sortable text-end">
+                <th (click)="sortStats('antal_handelser')" class="sortable text-end" tabindex="0" (keydown.enter)="sortStats('antal_handelser')">
                   Händelser <i class="fas" [class]="getSortIcon('antal_handelser')"></i>
                 </th>
-                <th (click)="sortStats('total_driftstopp_min')" class="sortable text-end">
+                <th (click)="sortStats('total_driftstopp_min')" class="sortable text-end" tabindex="0" (keydown.enter)="sortStats('total_driftstopp_min')">
                   Total driftstopp <i class="fas" [class]="getSortIcon('total_driftstopp_min')"></i>
                 </th>
-                <th (click)="sortStats('snitt_driftstopp_min')" class="sortable text-end">
+                <th (click)="sortStats('snitt_driftstopp_min')" class="sortable text-end" tabindex="0" (keydown.enter)="sortStats('snitt_driftstopp_min')">
                   Snitt/händelse <i class="fas" [class]="getSortIcon('snitt_driftstopp_min')"></i>
                 </th>
-                <th (click)="sortStats('total_kostnad')" class="sortable text-end">
+                <th (click)="sortStats('total_kostnad')" class="sortable text-end" tabindex="0" (keydown.enter)="sortStats('total_kostnad')">
                   Total kostnad <i class="fas" [class]="getSortIcon('total_kostnad')"></i>
                 </th>
-                <th (click)="sortStats('senaste_handelse')" class="sortable">
+                <th (click)="sortStats('senaste_handelse')" class="sortable" tabindex="0" (keydown.enter)="sortStats('senaste_handelse')">
                   Senaste händelse <i class="fas" [class]="getSortIcon('senaste_handelse')"></i>
                 </th>
               </tr>

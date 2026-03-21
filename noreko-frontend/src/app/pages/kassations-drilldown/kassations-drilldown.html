@@ -118,7 +118,7 @@
             <!-- Orsaksrad -->
             <tr class="reason-row"
                 [class.reason-expanded]="expandedReasonId === reason.reason_id"
-                (click)="toggleReason(reason)">
+                (click)="toggleReason(reason)" tabindex="0" (keydown.enter)="toggleReason(reason)">
               <td class="td-rank">{{ i + 1 }}</td>
               <td class="td-reason">{{ reason.reason }}</td>
               <td class="td-count-val">{{ reason.antal }}</td>

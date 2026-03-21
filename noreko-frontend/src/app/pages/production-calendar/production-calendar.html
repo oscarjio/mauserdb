@@ -131,7 +131,7 @@
               [title]="getTooltip(cell, mb.month, wi, di)"
               [class.has-data]="!!cell"
               (click)="selectDay(cell)"
-            >
+             role="button" tabindex="0" (keydown.enter)="selectDay(cell)">
               <span class="day-num" *ngIf="cell">{{ getDayNum(cell.date) }}</span>
               <span class="day-num empty-num" *ngIf="!cell">
                 {{ getCellDate(mb.month, wi, di) ? getDayNum(getCellDate(mb.month, wi, di)) : '' }}

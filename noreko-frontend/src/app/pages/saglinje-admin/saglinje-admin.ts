@@ -6,6 +6,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { SaglinjeService } from '../../services/saglinje.service';
+import { environment } from '../../../environments/environment';
 
 interface WeekdayGoal {
   weekday: number;
@@ -269,7 +270,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
     if (this.isFetchingSnapshot) return;
     this.isFetchingSnapshot  = true;
     this.todaySnapshotLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=saglinje&run=today-snapshot', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=saglinje&run=today-snapshot`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({
         next: (res) => {

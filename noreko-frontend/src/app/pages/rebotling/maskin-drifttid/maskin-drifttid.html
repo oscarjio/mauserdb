@@ -155,7 +155,7 @@
              *ngFor="let rad of heatmapData.rader; trackBy: trackByDatum"
              [class.mdt-row-selected]="isSelectedRow(rad.datum)"
              (click)="valjDag(rad.datum)"
-             style="cursor:pointer">
+             style="cursor:pointer" role="button" tabindex="0" (keydown.enter)="valjDag(rad.datum)">
           <div class="mdt-heatmap-label-dag">{{ rad.datum_kort }}</div>
           <div class="mdt-heatmap-label-veckodag">{{ rad.veckodag }}</div>
           <div class="mdt-heatmap-cell"

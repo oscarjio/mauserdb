@@ -5,6 +5,7 @@ import { takeUntil, timeout, catchError, filter, switchMap } from 'rxjs/operator
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface VpnClient {
   common_name: string;
@@ -94,7 +95,7 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     }
     this.error = null;
 
-    this.http.get<any>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=vpn`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -134,7 +135,7 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     this.disconnectError = null;
     this.disconnecting[commonName] = true;
 
-    this.http.post<any>('/noreko-backend/api.php?action=vpn', {
+    this.http.post<any>(`${environment.apiUrl}?action=vpn`, {
       command: 'disconnect',
       commonName
     }, { withCredentials: true })

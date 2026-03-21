@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -100,7 +101,7 @@ export class LoginPage implements OnDestroy {
     this.error = '';
     this.loading = true;
 
-    this.http.post<any>('/noreko-backend/api.php?action=login', {
+    this.http.post<any>(`${environment.apiUrl}?action=login`, {
       username: this.username.trim(),
       password: this.password
     }, { withCredentials: true }).pipe(

@@ -9,6 +9,7 @@ import { AuthService } from '../../services/auth.service';
 import { RebotlingService, ExecDashboardResponse, FeedbackSummaryDayEntry, StaffingWarningDay, WeeklySummaryData } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -174,7 +175,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.linesSub?.unsubscribe();
     // Publik endpoint — ingen session kravs (VD-dashboard)
     this.linesSub = this.http.get<any>(
-      '/noreko-backend/api.php?action=status&run=all-lines'
+      `${environment.apiUrl}?action=status&run=all-lines`
     )
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
@@ -191,7 +192,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   }
 
   loadCertExpiry(): void {
-    this.http.get<any>('/noreko-backend/api.php?action=certification&run=expiry-count',
+    this.http.get<any>(`${environment.apiUrl}?action=certification&run=expiry-count`,
       { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -200,7 +201,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   }
 
   loadServiceWarnings(): void {
-    this.http.get<any>('/noreko-backend/api.php?action=maintenance&run=service-intervals',
+    this.http.get<any>(`${environment.apiUrl}?action=maintenance&run=service-intervals`,
       { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -220,7 +221,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   loadLatestNews(): void {
     if (this.isFetchingNews) return;
     this.isFetchingNews = true;
-    this.http.get<any>('/noreko-backend/api.php?action=news&run=admin-list',
+    this.http.get<any>(`${environment.apiUrl}?action=news&run=admin-list`,
       { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {

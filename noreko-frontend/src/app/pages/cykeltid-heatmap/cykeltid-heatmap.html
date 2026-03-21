@@ -123,7 +123,7 @@
                     <tr class="heatmap-row"
                         [class.expanded]="expandedOperatorId === op.id"
                         (click)="toggleOperatorDetail(op)"
-                        title="Klicka för att visa detaljer för {{ op.namn }}">
+                        title="Klicka för att visa detaljer för {{ op.namn }}" tabindex="0" (keydown.enter)="toggleOperatorDetail(op)">
                       <td class="op-cell">
                         <span class="op-name">{{ op.namn }}</span>
                         <i class="fas ms-1 small"

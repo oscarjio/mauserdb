@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import { localDateStr } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -260,10 +261,10 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     try { this.oeeLineChart?.destroy(); } catch (e) {}
     this.oeeLineChart = null;
 
-    const reportUrl  = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
-    const compareUrl = `/noreko-backend/api.php?action=rebotling&run=month-compare&month=${this.selectedMonth}`;
+    const reportUrl  = `${environment.apiUrl}?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
+    const compareUrl = `${environment.apiUrl}?action=rebotling&run=month-compare&month=${this.selectedMonth}`;
 
-    const reportUrl2 = `/noreko-backend/api.php?action=rebotling&run=monthly-stop-summary&month=${this.selectedMonth}`;
+    const reportUrl2 = `${environment.apiUrl}?action=rebotling&run=monthly-stop-summary&month=${this.selectedMonth}`;
 
     const report$ = this.http.get<any>(reportUrl, { withCredentials: true }).pipe(
       timeout(20000),

@@ -281,13 +281,13 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th scope="col" class="sortable" (click)="sortBy('datum')">
+            <th scope="col" class="sortable" (click)="sortBy('datum')" tabindex="0" (keydown.enter)="sortBy('datum')">
               Datum <i [class]="getSortIcon('datum')"></i>
             </th>
-            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')">
+            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')" tabindex="0" (keydown.enter)="sortBy('maskin_namn')">
               Maskin <i [class]="getSortIcon('maskin_namn')"></i>
             </th>
-            <th scope="col" class="text-end sortable" (click)="sortBy('oee')">
+            <th scope="col" class="text-end sortable" (click)="sortBy('oee')" tabindex="0" (keydown.enter)="sortBy('oee')">
               OEE% <i [class]="getSortIcon('oee')"></i>
             </th>
             <th scope="col" class="text-end">T%</th>

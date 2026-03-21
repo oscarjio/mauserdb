@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { utils as XLSXUtils, writeFile as XLSXWriteFile } from 'xlsx';
 import Chart from 'chart.js/auto';
+import { environment } from '../../../environments/environment';
 
 interface CalendarDay {
   date: string;
@@ -171,7 +172,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
     this.dayMap = new Map();
     this.monthBlocks = [];
 
-    const url = `/noreko-backend/api.php?action=rebotling&run=year-calendar&year=${this.selectedYear}`;
+    const url = `${environment.apiUrl}?action=rebotling&run=year-calendar&year=${this.selectedYear}`;
 
     this.http.get<CalendarResponse>(url, { withCredentials: true })
       .pipe(
@@ -231,7 +232,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
     try { this.dayDetailChart?.destroy(); } catch (e) {}
     this.dayDetailChart = null;
 
-    const url = `/noreko-backend/api.php?action=rebotling&run=day-detail&date=${date}`;
+    const url = `${environment.apiUrl}?action=rebotling&run=day-detail&date=${date}`;
 
     this.http.get<DayDetailResponse>(url, { withCredentials: true })
       .pipe(

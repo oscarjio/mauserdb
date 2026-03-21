@@ -6,8 +6,9 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { ToastService } from '../../services/toast.service';
 import { parseLocalDate } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
-const API = '/noreko-backend/api.php?action=shift-plan';
+const API = `${environment.apiUrl}?action=shift-plan`;
 
 interface ShiftEntry {
   op_number: number;

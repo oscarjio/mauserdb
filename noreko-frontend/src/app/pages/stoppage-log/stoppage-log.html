@@ -284,7 +284,7 @@
 
       <!-- Mönster & Analys — Collapsible Section -->
       <div class="pattern-section mb-4">
-        <div class="pattern-header" (click)="togglePatternSection()" role="button" [attr.aria-expanded]="patternOpen">
+        <div class="pattern-header" (click)="togglePatternSection()" role="button" [attr.aria-expanded]="patternOpen" role="button" tabindex="0" (keydown.enter)="togglePatternSection()">
           <span class="pattern-header-icon">
             <i class="fas fa-search-plus"></i>
           </span>
@@ -402,13 +402,13 @@
             <table class="stoppage-table">
               <thead>
                 <tr>
-                  <th class="sortable" (click)="toggleSort('reason_name')" scope="col">Orsak <i [class]="getSortIcon('reason_name')"></i></th>
-                  <th class="sortable" (click)="toggleSort('category')" scope="col">Kategori <i [class]="getSortIcon('category')"></i></th>
-                  <th class="sortable" (click)="toggleSort('start_time')" scope="col">Start <i [class]="getSortIcon('start_time')"></i></th>
-                  <th class="sortable" (click)="toggleSort('end_time')" scope="col">Slut <i [class]="getSortIcon('end_time')"></i></th>
-                  <th class="sortable text-end" (click)="toggleSort('duration_minutes')" scope="col">Varaktighet <i [class]="getSortIcon('duration_minutes')"></i></th>
+                  <th class="sortable" (click)="toggleSort('reason_name')" scope="col" tabindex="0" (keydown.enter)="toggleSort('reason_name')">Orsak <i [class]="getSortIcon('reason_name')"></i></th>
+                  <th class="sortable" (click)="toggleSort('category')" scope="col" tabindex="0" (keydown.enter)="toggleSort('category')">Kategori <i [class]="getSortIcon('category')"></i></th>
+                  <th class="sortable" (click)="toggleSort('start_time')" scope="col" tabindex="0" (keydown.enter)="toggleSort('start_time')">Start <i [class]="getSortIcon('start_time')"></i></th>
+                  <th class="sortable" (click)="toggleSort('end_time')" scope="col" tabindex="0" (keydown.enter)="toggleSort('end_time')">Slut <i [class]="getSortIcon('end_time')"></i></th>
+                  <th class="sortable text-end" (click)="toggleSort('duration_minutes')" scope="col" tabindex="0" (keydown.enter)="toggleSort('duration_minutes')">Varaktighet <i [class]="getSortIcon('duration_minutes')"></i></th>
                   <th scope="col">Kommentar</th>
-                  <th class="sortable" (click)="toggleSort('user_name')" scope="col">Användare <i [class]="getSortIcon('user_name')"></i></th>
+                  <th class="sortable" (click)="toggleSort('user_name')" scope="col" tabindex="0" (keydown.enter)="toggleSort('user_name')">Användare <i [class]="getSortIcon('user_name')"></i></th>
                   <th *ngIf="loggedIn" class="text-center" scope="col">Åtgärd</th>
                 </tr>
               </thead>
@@ -795,7 +795,7 @@
   <!-- QR-koder för stopplogg (admin) -->
   <div *ngIf="isAdmin" class="container-fluid pb-4 no-print">
     <div class="dark-card">
-      <div class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;" (click)="toggleQRSection()">
+      <div class="card-header d-flex justify-content-between align-items-center" style="cursor:pointer;" (click)="toggleQRSection()" role="button" tabindex="0" (keydown.enter)="toggleQRSection()">
         <h6 class="mb-0">
           <i class="fas fa-qrcode me-2 text-info"></i>QR-koder till stopplogg
           <small class="text-muted ms-2 fw-normal">Skriv ut och sätt upp vid maskinerna</small>

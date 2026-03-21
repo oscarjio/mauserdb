@@ -130,7 +130,7 @@
         <tbody>
           <tr *ngFor="let o of orsaker; trackBy: trackByIndex" class="ka-orsak-row"
             [class.ka-orsak-selected]="selectedCause?.id === o.id"
-            (click)="selectCause(o)">
+            (click)="selectCause(o)" tabindex="0" (keydown.enter)="selectCause(o)">
             <td class="ka-orsak-name">
               <i class="fas fa-chevron-right ka-chevron"
                 [class.ka-chevron-open]="selectedCause?.id === o.id"></i>

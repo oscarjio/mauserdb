@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 interface RankingEntry {
   op_number: number;
@@ -99,7 +100,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     refresh_interval: 30
   };
 
-  private readonly apiUrl = '/noreko-backend/api.php?action=rebotling&run=live-ranking';
+  private readonly apiUrl = `${environment.apiUrl}?action=rebotling&run=live-ranking`;
 
   // Live Ranking-inställningar (från rebotling_settings)
   lrSettings: {
@@ -151,7 +152,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   }
 
   loadLrSettings(): void {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-settings`, { withCredentials: true })
       .pipe(
         timeout(5000),
         catchError(() => of(null)),
@@ -171,7 +172,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   }
 
   loadLrConfig(): void {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-config', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-config`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),

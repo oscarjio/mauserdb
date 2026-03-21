@@ -424,7 +424,7 @@
                   <tr
                     *ngFor="let row of tableData; trackBy: trackByIndex"
                     [class.clickable]="row.clickable"
-                    (click)="onTableRowClick(row)">
+                    (click)="onTableRowClick(row)" tabindex="0" (keydown.enter)="onTableRowClick(row)">
                     <td>
                       <i class="fas fa-calendar-day me-2 text-muted"></i>
                       {{ row.period }}

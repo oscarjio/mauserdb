@@ -143,12 +143,12 @@
                 <th scope="col">#</th>
                 <th scope="col">Operatör</th>
                 <th scope="col">Position</th>
-                <th class="sortable" (click)="toggleSort('total_cycles')" scope="col">Cykler <i [class]="getSortIcon('total_cycles')"></i></th>
-                <th class="sortable" (click)="toggleSort('total_ibc_ok')" scope="col">IBC OK <i [class]="getSortIcon('total_ibc_ok')"></i></th>
-                <th class="sortable" (click)="toggleSort('effektivitet')" scope="col">Eff. <i [class]="getSortIcon('effektivitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('produktivitet')" scope="col">Prod. <i [class]="getSortIcon('produktivitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('kvalitet')" scope="col">Kval. <i [class]="getSortIcon('kvalitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('bonus_avg')" scope="col">Bonus <i [class]="getSortIcon('bonus_avg')"></i></th>
+                <th class="sortable" (click)="toggleSort('total_cycles')" scope="col" tabindex="0" (keydown.enter)="toggleSort('total_cycles')">Cykler <i [class]="getSortIcon('total_cycles')"></i></th>
+                <th class="sortable" (click)="toggleSort('total_ibc_ok')" scope="col" tabindex="0" (keydown.enter)="toggleSort('total_ibc_ok')">IBC OK <i [class]="getSortIcon('total_ibc_ok')"></i></th>
+                <th class="sortable" (click)="toggleSort('effektivitet')" scope="col" tabindex="0" (keydown.enter)="toggleSort('effektivitet')">Eff. <i [class]="getSortIcon('effektivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('produktivitet')" scope="col" tabindex="0" (keydown.enter)="toggleSort('produktivitet')">Prod. <i [class]="getSortIcon('produktivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('kvalitet')" scope="col" tabindex="0" (keydown.enter)="toggleSort('kvalitet')">Kval. <i [class]="getSortIcon('kvalitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('bonus_avg')" scope="col" tabindex="0" (keydown.enter)="toggleSort('bonus_avg')">Bonus <i [class]="getSortIcon('bonus_avg')"></i></th>
               </tr>
             </thead>
             <tbody>
@@ -398,7 +398,7 @@
             </thead>
             <tbody>
               <ng-container *ngFor="let shift of allShifts; trackBy: trackByShiftNumber">
-                <tr class="shift-row" (click)="toggleShiftExpand(shift.shift_number)">
+                <tr class="shift-row" (click)="toggleShiftExpand(shift.shift_number)" tabindex="0" (keydown.enter)="toggleShiftExpand(shift.shift_number)">
                   <td><i class="fas" [class.fa-chevron-right]="expandedShift !== shift.shift_number" [class.fa-chevron-down]="expandedShift === shift.shift_number"></i></td>
                   <td>{{ shift.shift_number }}</td>
                   <td>{{ shift.shift_start.substring(0, 10) }}</td>

@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService, AuthUser } from '../../services/auth.service';
 import { BonusAdminService, BonusPeriod, BonusConfigResponse, BonusSystemStatsResponse, OperatorForecastResponse } from '../../services/bonus-admin.service';
+import { environment } from '../../../environments/environment';
 
 interface SimOperatorResult {
   op_number: number;
@@ -587,7 +588,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     };
 
     this.http.post<ApiResponse<SimulationResult>>(
-      '/noreko-backend/api.php?action=bonus&run=simulate',
+      `${environment.apiUrl}?action=bonus&run=simulate`,
       payload,
       { withCredentials: true }
     ).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
@@ -637,7 +638,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
     // Run baseline simulation
     this.http.post<ApiResponse<SimulationResult>>(
-      '/noreko-backend/api.php?action=bonus&run=simulate',
+      `${environment.apiUrl}?action=bonus&run=simulate`,
       basePay,
       { withCredentials: true }
     ).pipe(
@@ -655,7 +656,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
         // Run new simulation
         this.http.post<ApiResponse<SimulationResult>>(
-          '/noreko-backend/api.php?action=bonus&run=simulate',
+          `${environment.apiUrl}?action=bonus&run=simulate`,
           newPay,
           { withCredentials: true }
         ).pipe(
@@ -772,7 +773,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     };
 
     this.http.post<ApiResponse<SimulationResult>>(
-      '/noreko-backend/api.php?action=bonus&run=simulate',
+      `${environment.apiUrl}?action=bonus&run=simulate`,
       basePayload,
       { withCredentials: true }
     ).pipe(
@@ -782,7 +783,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     ).subscribe({
       next: (baseRes) => {
         this.http.post<ApiResponse<SimulationResult>>(
-          '/noreko-backend/api.php?action=bonus&run=simulate',
+          `${environment.apiUrl}?action=bonus&run=simulate`,
           simPayload,
           { withCredentials: true }
         ).pipe(
@@ -893,7 +894,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   loadAmounts() {
     this.amountsLoading = true;
     this.http.get<ApiResponse<{ amounts: { brons: number; silver: number; guld: number; platina: number }; last_updated?: string; last_updated_by?: string }>>(
-      '/noreko-backend/api.php?action=bonusadmin&run=getAmounts',
+      `${environment.apiUrl}?action=bonusadmin&run=getAmounts`,
       { withCredentials: true }
     ).pipe(
       timeout(5000),
@@ -941,7 +942,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
     this.amountsSaving = true;
     this.http.post<ApiResponse>(
-      '/noreko-backend/api.php?action=bonusadmin&run=setAmounts',
+      `${environment.apiUrl}?action=bonusadmin&run=setAmounts`,
       this.amountsForm,
       { withCredentials: true }
     ).pipe(
@@ -1024,7 +1025,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Utbetalningar ==========
   loadOperators() {
     this.http.get<ApiResponse<{ operators: AvailableOperator[] }>>(
-      '/noreko-backend/api.php?action=bonusadmin&run=list-operators',
+      `${environment.apiUrl}?action=bonusadmin&run=list-operators`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -1047,7 +1048,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (opId > 0) params.set('op_id', String(opId));
 
     this.http.get<ApiResponse<{ payouts: PayoutRecord[] }>>(
-      `/noreko-backend/api.php?action=bonusadmin&run=list-payouts&${params.toString()}`,
+      `${environment.apiUrl}?action=bonusadmin&run=list-payouts&${params.toString()}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -1066,7 +1067,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   loadPayoutSummary() {
     this.http.get<ApiResponse<{ summary: PayoutSummaryEntry[] }>>(
-      `/noreko-backend/api.php?action=bonusadmin&run=payout-summary&year=${this.payoutSummaryYear}`,
+      `${environment.apiUrl}?action=bonusadmin&run=payout-summary&year=${this.payoutSummaryYear}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -1104,7 +1105,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
     this.payoutSaving = true;
     this.http.post<ApiResponse>(
-      '/noreko-backend/api.php?action=bonusadmin&run=record-payout',
+      `${environment.apiUrl}?action=bonusadmin&run=record-payout`,
       this.payoutForm,
       { withCredentials: true }
     ).pipe(
@@ -1134,7 +1135,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   deletePayout(id: number) {
     if (!confirm('Ta bort denna utbetalning?')) return;
     this.http.post<ApiResponse>(
-      '/noreko-backend/api.php?action=bonusadmin&run=delete-payout',
+      `${environment.apiUrl}?action=bonusadmin&run=delete-payout`,
       { id },
       { withCredentials: true }
     ).pipe(
@@ -1179,7 +1180,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Utbetalningshistorik ==========
   loadPayoutHistory(): void {
     this.payoutHistoryLoading = true;
-    let url = `/noreko-backend/api.php?action=bonusadmin&run=list-payouts&year=${this.payoutHistoryYear}`;
+    let url = `${environment.apiUrl}?action=bonusadmin&run=list-payouts&year=${this.payoutHistoryYear}`;
     if (this.payoutHistoryStatusFilter) {
       url += `&status=${encodeURIComponent(this.payoutHistoryStatusFilter)}`;
     }
@@ -1202,7 +1203,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   updatePayoutStatus(id: number, status: string): void {
     this.http.post<ApiResponse>(
-      '/noreko-backend/api.php?action=bonusadmin&run=update-payout-status',
+      `${environment.apiUrl}?action=bonusadmin&run=update-payout-status`,
       JSON.stringify({ id, status }),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
     ).pipe(
@@ -1308,7 +1309,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.auditChartRendered = false;
 
     this.http.get<ApiResponse<AuditResult>>(
-      `/noreko-backend/api.php?action=bonusadmin&run=fairness&period=${encodeURIComponent(this.auditPeriod)}`,
+      `${environment.apiUrl}?action=bonusadmin&run=fairness&period=${encodeURIComponent(this.auditPeriod)}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),

@@ -192,7 +192,7 @@
         <table class="table table-dark table-striped table-hover mb-0">
           <thead>
             <tr>
-              <th scope="col" class="sortable" (click)="sortBy('tidsstampel')">Tidpunkt <i [class]="getSortIcon('tidsstampel')"></i></th>
+              <th scope="col" class="sortable" (click)="sortBy('tidsstampel')" tabindex="0" (keydown.enter)="sortBy('tidsstampel')">Tidpunkt <i [class]="getSortIcon('tidsstampel')"></i></th>
               <th scope="col">Grad</th>
               <th scope="col">Typ</th>
               <th scope="col">Meddelande</th>

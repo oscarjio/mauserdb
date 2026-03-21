@@ -173,7 +173,7 @@
         <div class="dark-card" *ngIf="!loading && logs.length > 0">
           <div class="card-body p-0">
             <div class="audit-list">
-              <div class="audit-entry" *ngFor="let log of logs; trackBy: trackByIndex" (click)="toggleExpand(log.id)">
+              <div class="audit-entry" *ngFor="let log of logs; trackBy: trackByIndex" (click)="toggleExpand(log.id)" role="button" tabindex="0" (keydown.enter)="toggleExpand(log.id)">
                 <div class="audit-entry-main">
                   <div class="audit-icon" [style.color]="getActionColor(log.action)">
                     <i class="fas" [ngClass]="getActionIcon(log.action)"></i>

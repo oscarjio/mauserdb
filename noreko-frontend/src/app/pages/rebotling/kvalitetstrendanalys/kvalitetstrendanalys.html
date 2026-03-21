@@ -98,19 +98,19 @@
           <table class="table table-dark table-sm mb-0">
             <thead>
               <tr>
-                <th scope="col" class="sortable" (click)="sortOperators('op_namn')">
+                <th scope="col" class="sortable" (click)="sortOperators('op_namn')" tabindex="0" (keydown.enter)="sortOperators('op_namn')">
                   Operator <i [class]="getSortIcon('op_namn')"></i>
                 </th>
-                <th scope="col" class="text-end sortable" (click)="sortOperators('total')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('total')" tabindex="0" (keydown.enter)="sortOperators('total')">
                   Producerade <i [class]="getSortIcon('total')"></i>
                 </th>
-                <th scope="col" class="text-end sortable" (click)="sortOperators('kasserade')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('kasserade')" tabindex="0" (keydown.enter)="sortOperators('kasserade')">
                   Kasserade <i [class]="getSortIcon('kasserade')"></i>
                 </th>
-                <th scope="col" class="text-end sortable" (click)="sortOperators('rate')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('rate')" tabindex="0" (keydown.enter)="sortOperators('rate')">
                   Rate % <i [class]="getSortIcon('rate')"></i>
                 </th>
-                <th scope="col" class="text-end sortable" (click)="sortOperators('avvikelse')">
+                <th scope="col" class="text-end sortable" (click)="sortOperators('avvikelse')" tabindex="0" (keydown.enter)="sortOperators('avvikelse')">
                   Avvikelse <i [class]="getSortIcon('avvikelse')"></i>
                 </th>
                 <th scope="col" class="text-center">Trend</th>

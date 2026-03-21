@@ -8,6 +8,7 @@ import { Chart, registerables } from 'chart.js';
 import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -157,7 +158,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   private loadSettings() {
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid laddning av inställningar:', err); return of(null); }))
       .subscribe({
         next: (res) => {
@@ -377,7 +378,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // ========== Fetch ==========
   loadOperators() {
     this.operatorsLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=skiftrapport&run=operator-list', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=skiftrapport&run=operator-list`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe(res => {
         this.operatorsLoading = false;
@@ -714,7 +715,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const skiftNr = this.getShiftNr(report);
     this.kommentarLoading[id] = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=skift-kommentar&datum=${datum}&skift_nr=${skiftNr}`,
+      `${environment.apiUrl}?action=rebotling&run=skift-kommentar&datum=${datum}&skift_nr=${skiftNr}`,
       { withCredentials: true }
     )
     .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid laddning av kommentar:', err); return of(null); }))
@@ -744,7 +745,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const text = (this.editKommentar[id] || '').substring(0, 500);
     this.spararKommentar[id] = true;
     this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=set-skift-kommentar',
+      `${environment.apiUrl}?action=rebotling&run=set-skift-kommentar`,
       { datum, skift_nr: skiftNr, kommentar: text },
       { withCredentials: true }
     )
@@ -1435,7 +1436,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.compareResult  = null;
     this.compareLoading = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=shift-compare&date_a=${this.compareDateA}&date_b=${this.compareDateB}`,
+      `${environment.apiUrl}?action=rebotling&run=shift-compare&date_a=${this.compareDateA}&date_b=${this.compareDateB}`,
       { withCredentials: true }
     )
     .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid skiftjämförelse:', err); this.compareLoading = false; this.compareError = 'Serverfel vid jämförelse'; return of(null); }))
@@ -1515,7 +1516,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.trendLoading = true;
 
     this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=shift-trend&datum=${datum}&skift=${report.skiftraknare}`,
+      `${environment.apiUrl}?action=rebotling&run=shift-trend&datum=${datum}&skift=${report.skiftraknare}`,
       { withCredentials: true }
     )
     .pipe(
@@ -1762,7 +1763,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const shiftNr = this.getShiftNr(report);
 
     this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=shift-summary&date=${datum}&shift=${shiftNr}`,
+      `${environment.apiUrl}?action=rebotling&run=shift-summary&date=${datum}&shift=${shiftNr}`,
       { withCredentials: true }
     )
     .pipe(
@@ -1788,7 +1789,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   openShiftPdf(report: any) {
     const datum = (report.datum || '').substring(0, 10);
     const shiftNr = this.getShiftNr(report);
-    const url = `/noreko-backend/api.php?action=rebotling&run=shift-pdf-summary&date=${datum}&shift=${shiftNr}`;
+    const url = `${environment.apiUrl}?action=rebotling&run=shift-pdf-summary&date=${datum}&shift=${shiftNr}`;
     window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
   }
 
@@ -1812,7 +1813,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   confirmSendEmailReport() {
     this.emailSending = true;
-    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=auto-shift-report', {
+    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=auto-shift-report`, {
       date: this.emailReportDate,
       shift: this.emailReportShift
     }, { withCredentials: true })

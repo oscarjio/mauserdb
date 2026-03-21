@@ -212,30 +212,30 @@
       <table class="table-dark-custom">
         <thead>
           <tr>
-            <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')">
+            <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')" tabindex="0" (keydown.enter)="sortBy('operator_namn')">
               Operator <i [class]="sortIcon('operator_namn')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('ibc_per_timme')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('ibc_per_timme')" tabindex="0" (keydown.enter)="sortBy('ibc_per_timme')">
               IBC/h <i [class]="sortIcon('ibc_per_timme')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('kvalitet')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('kvalitet')" tabindex="0" (keydown.enter)="sortBy('kvalitet')">
               Kvalitet% <i [class]="sortIcon('kvalitet')"></i>
             </th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('narvaro')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('narvaro')" tabindex="0" (keydown.enter)="sortBy('narvaro')">
               Narvaro% <i [class]="sortIcon('narvaro')"></i>
             </th>
             <th scope="col" class="text-end">Bonus IBC</th>
             <th scope="col" class="text-end">Bonus Kval.</th>
             <th scope="col" class="text-end">Bonus Narv.</th>
             <th scope="col" class="text-end">Bonus Team</th>
-            <th scope="col" class="text-end sortable-th" (click)="sortBy('total_bonus')">
+            <th scope="col" class="text-end sortable-th" (click)="sortBy('total_bonus')" tabindex="0" (keydown.enter)="sortBy('total_bonus')">
               <strong>Total</strong> <i [class]="sortIcon('total_bonus')"></i>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let op of operatorer; trackBy: trackByOperatorId" (click)="selectOperator(op)" style="cursor:pointer;"
-              [class.selected-row]="selectedOperator?.operator_id === op.operator_id">
+              [class.selected-row]="selectedOperator?.operator_id === op.operator_id" tabindex="0" (keydown.enter)="selectOperator(op)">
             <td>
               <strong>{{ op.operator_namn }}</strong>
             </td>

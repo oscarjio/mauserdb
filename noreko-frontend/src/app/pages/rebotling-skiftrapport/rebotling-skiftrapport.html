@@ -332,31 +332,31 @@
                       [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
                       (change)="toggleSelectAll()" />
                   </th>
-                  <th class="sortable" (click)="sortBy('datum')" scope="col">
+                  <th class="sortable" (click)="sortBy('datum')" scope="col" tabindex="0" (keydown.enter)="sortBy('datum')">
                     Datum <i class="fas ms-1" [ngClass]="sortIcon('datum')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('product_name')" scope="col">
+                  <th class="sortable" (click)="sortBy('product_name')" scope="col" tabindex="0" (keydown.enter)="sortBy('product_name')">
                     Produkt <i class="fas ms-1" [ngClass]="sortIcon('product_name')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('user_name')" scope="col">
+                  <th class="sortable" (click)="sortBy('user_name')" scope="col" tabindex="0" (keydown.enter)="sortBy('user_name')">
                     Användare <i class="fas ms-1" [ngClass]="sortIcon('user_name')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('ibc_ok')" scope="col">
+                  <th class="sortable" (click)="sortBy('ibc_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_ok')">
                     IBC OK <i class="fas ms-1" [ngClass]="sortIcon('ibc_ok')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('bur_ej_ok')" scope="col">
+                  <th class="sortable" (click)="sortBy('bur_ej_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('bur_ej_ok')">
                     Bur ej OK <i class="fas ms-1" [ngClass]="sortIcon('bur_ej_ok')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('ibc_ej_ok')" scope="col">
+                  <th class="sortable" (click)="sortBy('ibc_ej_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_ej_ok')">
                     IBC ej OK <i class="fas ms-1" [ngClass]="sortIcon('ibc_ej_ok')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('totalt')" scope="col">
+                  <th class="sortable" (click)="sortBy('totalt')" scope="col" tabindex="0" (keydown.enter)="sortBy('totalt')">
                     Totalt <i class="fas ms-1" [ngClass]="sortIcon('totalt')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('kvalitet')" scope="col">
+                  <th class="sortable" (click)="sortBy('kvalitet')" scope="col" tabindex="0" (keydown.enter)="sortBy('kvalitet')">
                     Kval% <i class="fas ms-1" [ngClass]="sortIcon('kvalitet')"></i>
                   </th>
-                  <th class="sortable" (click)="sortBy('ibc_per_h')" scope="col">
+                  <th class="sortable" (click)="sortBy('ibc_per_h')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_per_h')">
                     IBC/h <i class="fas ms-1" [ngClass]="sortIcon('ibc_per_h')"></i>
                   </th>
                   <th title="Jämfört med föregående rad" scope="col">Vs. föreg.</th>

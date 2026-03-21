@@ -91,22 +91,22 @@
             <table class="table table-striped table-hover" *ngIf="filteredUsers.length">
               <thead class="table-dark" scope="col">
                 <tr>
-                  <th class="sortable-header" (click)="toggleSort('username')" scope="col">
+                  <th class="sortable-header" (click)="toggleSort('username')" scope="col" tabindex="0" (keydown.enter)="toggleSort('username')">
                     Användarnamn
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'username'">{{ getSortIcon('username') }}</span>
                   </th>
-                  <th class="sortable-header" (click)="toggleSort('email')" scope="col">
+                  <th class="sortable-header" (click)="toggleSort('email')" scope="col" tabindex="0" (keydown.enter)="toggleSort('email')">
                     E-post
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'email'">{{ getSortIcon('email') }}</span>
                   </th>
                   <th scope="col">Telefon</th>
                   <th scope="col">Op-ID</th>
                   <th scope="col">Status</th>
-                  <th class="sortable-header" (click)="toggleSort('admin')" scope="col">
+                  <th class="sortable-header" (click)="toggleSort('admin')" scope="col" tabindex="0" (keydown.enter)="toggleSort('admin')">
                     Admin
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'admin'">{{ getSortIcon('admin') }}</span>
                   </th>
-                  <th class="sortable-header" (click)="toggleSort('last_login')" scope="col">
+                  <th class="sortable-header" (click)="toggleSort('last_login')" scope="col" tabindex="0" (keydown.enter)="toggleSort('last_login')">
                     Senaste inloggning
                     <span class="sort-icon" [class.active-sort]="sortColumn === 'last_login'">{{ getSortIcon('last_login') }}</span>
                   </th>

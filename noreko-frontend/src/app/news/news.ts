@@ -11,6 +11,7 @@ import { AuthService, AuthUser } from '../services/auth.service';
 import { FavoriterService, Favorit } from '../services/favoriter.service';
 import { localToday } from '../utils/date-utils';
 import { ProduktionspulsWidget } from '../pages/rebotling/produktionspuls/produktionspuls-widget';
+import { environment } from '../../environments/environment';
 
 interface LineSkiftrapportReport {
   id: number;
@@ -109,7 +110,7 @@ export class News implements OnInit, OnDestroy {
 
   private isFetchingData = false;
   private isFetchingEvents = false;
-  private apiBase = '/noreko-backend/api.php';
+  private apiBase = environment.apiUrl;
 
   constructor(
     private rebotlingService: RebotlingService,

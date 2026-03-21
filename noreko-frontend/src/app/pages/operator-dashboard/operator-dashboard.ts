@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 Chart.register(...registerables);
 
 // ================================================================
@@ -708,7 +709,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (this.operatorer.length === 0) this.laddar = true;
     this.felmeddelande = '';
 
-    this.http.get<DashboardData>('/noreko-backend/api.php?action=operator-dashboard&run=today', { withCredentials: true })
+    this.http.get<DashboardData>(`${environment.apiUrl}?action=operator-dashboard&run=today`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),
@@ -743,7 +744,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (this.laddarVecka) return;
     this.laddarVecka = true;
 
-    this.http.get<WeeklyData>('/noreko-backend/api.php?action=operator-dashboard&run=weekly', { withCredentials: true })
+    this.http.get<WeeklyData>(`${environment.apiUrl}?action=operator-dashboard&run=weekly`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
@@ -752,7 +753,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
         this.laddarVecka = false;
       });
 
-    this.http.get<SummaryData>('/noreko-backend/api.php?action=operator-dashboard&run=summary', { withCredentials: true })
+    this.http.get<SummaryData>(`${environment.apiUrl}?action=operator-dashboard&run=summary`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
@@ -760,7 +761,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
         }
       });
 
-    this.http.get<HistoryData>('/noreko-backend/api.php?action=operator-dashboard&run=history&days=7', { withCredentials: true })
+    this.http.get<HistoryData>(`${environment.apiUrl}?action=operator-dashboard&run=history&days=7`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
@@ -780,7 +781,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
   loadFeedbackSummary(): void {
     if (this.feedbackLoading) return;
     this.feedbackLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=feedback&run=summary', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=feedback&run=summary`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.feedbackLoading = false;

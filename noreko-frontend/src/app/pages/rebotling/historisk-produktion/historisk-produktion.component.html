@@ -283,19 +283,19 @@
         <table class="table table-dark table-hover table-sm mb-0">
           <thead>
             <tr>
-              <th scope="col" class="sortable" (click)="sortBy('date')">
+              <th scope="col" class="sortable" (click)="sortBy('date')" tabindex="0" (keydown.enter)="sortBy('date')">
                 Datum <i [class]="sortIcon('date')"></i>
               </th>
-              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ok')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ok')" tabindex="0" (keydown.enter)="sortBy('ibc_ok')">
                 Godkanda <i [class]="sortIcon('ibc_ok')"></i>
               </th>
-              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ej_ok')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ej_ok')" tabindex="0" (keydown.enter)="sortBy('ibc_ej_ok')">
                 Kasserade <i [class]="sortIcon('ibc_ej_ok')"></i>
               </th>
-              <th scope="col" class="sortable text-end" (click)="sortBy('total')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('total')" tabindex="0" (keydown.enter)="sortBy('total')">
                 Totalt <i [class]="sortIcon('total')"></i>
               </th>
-              <th scope="col" class="sortable text-end" (click)="sortBy('kassation_pct')">
+              <th scope="col" class="sortable text-end" (click)="sortBy('kassation_pct')" tabindex="0" (keydown.enter)="sortBy('kassation_pct')">
                 Kassation% <i [class]="sortIcon('kassation_pct')"></i>
               </th>
             </tr>

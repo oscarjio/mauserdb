@@ -317,7 +317,7 @@
                       [class.badge-absent]="!isOpFactual(slot, op.op_number)"
                       [title]="op.op_name + (isOpFactual(slot, op.op_number) ? ' — Var på plats' : ' — Uteblev')"
                       (click)="removeFromWeekView(slot, op, $event)"
-                    >
+                     role="button" tabindex="0" (keydown.enter)="removeFromWeekView(slot, op, $event)">
                       <span class="wv-avatar" [style.background-color]="getAvatarColor(op.op_name)">{{ op.initialer }}</span>
                       <i class="fas wv-status-icon"
                          [class.fa-check]="isOpFactual(slot, op.op_number)"

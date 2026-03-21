@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { localDateStr } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -59,7 +60,7 @@ export class OperatorAttendancePage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=attendance&month=${this.selectedMonth}`,
+      `${environment.apiUrl}?action=rebotling&run=attendance&month=${this.selectedMonth}`,
       { withCredentials: true }
     )
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))

@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { BonusService, WeeklyHistoryEntry } from '../../services/bonus.service';
 import { localToday, localDateStr, parseLocalDate } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -322,7 +323,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (!this.savedOperatorId) return;
     this.pbLoading = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=bonus&run=personal-best&operator_id=${this.savedOperatorId}`,
+      `${environment.apiUrl}?action=bonus&run=personal-best&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -346,7 +347,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (!this.savedOperatorId) return;
     this.streakLoading = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=bonus&run=streak&operator_id=${this.savedOperatorId}`,
+      `${environment.apiUrl}?action=bonus&run=streak&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -370,7 +371,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (!this.savedOperatorId) return;
     this.achievementsLoading = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=bonus&run=achievements&operator_id=${this.savedOperatorId}`,
+      `${environment.apiUrl}?action=bonus&run=achievements&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -442,7 +443,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.rankingLoading = true;
     const period = this.rankingPeriod === 'day' ? 'day' : this.rankingPeriod;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=bonus&run=my-ranking&op_id=${this.savedOperatorId}&period=${period}`,
+      `${environment.apiUrl}?action=bonus&run=my-ranking&op_id=${this.savedOperatorId}&period=${period}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -503,7 +504,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (!this.savedOperatorId) return;
     this.peerRankingLoading = true;
     this.http.get<any>(
-      `/noreko-backend/api.php?action=bonus&run=peer-ranking&operator_id=${this.savedOperatorId}`,
+      `${environment.apiUrl}?action=bonus&run=peer-ranking&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -690,7 +691,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   loadBonusAmounts(): void {
     this.bonusAmountsLoading = true;
     this.http.get<any>(
-      '/noreko-backend/api.php?action=bonusadmin&run=getAmounts',
+      `${environment.apiUrl}?action=bonusadmin&run=getAmounts`,
       { withCredentials: true }
     ).pipe(
       timeout(8000),
@@ -1266,7 +1267,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   // ================================================================
   loadFeedbackHistory(): void {
     this.feedbackHistoryLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=feedback&run=my-history', { withCredentials: true }).pipe(
+    this.http.get<any>(`${environment.apiUrl}?action=feedback&run=my-history`, { withCredentials: true }).pipe(
       timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
@@ -1291,7 +1292,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
     const body = { stamning: this.feedbackMood, kommentar: this.feedbackKommentar.trim() };
 
-    this.http.post<any>('/noreko-backend/api.php?action=feedback&run=submit', body, { withCredentials: true }).pipe(
+    this.http.post<any>(`${environment.apiUrl}?action=feedback&run=submit`, body, { withCredentials: true }).pipe(
       timeout(8000),
       catchError((err) => {
         const msg = err?.error?.error || 'Fel vid sparning av feedback';

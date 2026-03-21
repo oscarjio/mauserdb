@@ -7,6 +7,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart } from 'chart.js';
 import { localDateStr } from '../../../../utils/date-utils';
 import { exportChartAsPng } from '../../../../shared/chart-export.util';
+import { environment } from '../../../../../environments/environment';
 
 interface OperatorOption {
   id: number;
@@ -82,7 +83,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
 
   loadOperators(): void {
     this.operatorsLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=skiftrapport&run=operator-list', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=skiftrapport&run=operator-list`, { withCredentials: true })
       .pipe(
         timeout(8000),
         takeUntil(this.destroy$),
@@ -131,7 +132,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
     this.loading = true;
 
     const { from, to } = this.getDateRange();
-    const url = `/noreko-backend/api.php?action=skiftrapport&run=shift-report-by-operator&operator_id=${this.selectedOperatorId}&from=${from}&to=${to}`;
+    const url = `${environment.apiUrl}?action=skiftrapport&run=shift-report-by-operator&operator_id=${this.selectedOperatorId}&from=${from}&to=${to}`;
 
     this.http.get<any>(url, { withCredentials: true })
       .pipe(

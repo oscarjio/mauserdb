@@ -100,7 +100,7 @@
             <tr class="op-row"
                 [class.op-expanded]="selectedOperator?.operator_number === op.operator_number"
                 [class.op-ny]="op.is_ny"
-                (click)="selectOperator(op)">
+                (click)="selectOperator(op)" tabindex="0" (keydown.enter)="selectOperator(op)">
               <td class="td-rank">{{ i + 1 }}</td>
               <td class="td-namn">
                 <i class="fas fa-user me-2 text-muted"></i>{{ op.namn }}

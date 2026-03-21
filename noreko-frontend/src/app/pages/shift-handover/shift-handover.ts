@@ -6,8 +6,9 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
-const API = '/noreko-backend/api.php?action=shift-handover';
+const API = `${environment.apiUrl}?action=shift-handover`;
 
 export interface HandoverNote {
   id: number;

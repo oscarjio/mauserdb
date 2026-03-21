@@ -1,3 +1,50 @@
+## 2026-03-21 Session #233 Worker B — Angular service URL consistency + template accessibility audit (125 buggar)
+
+### Uppgift 1: Angular service URL consistency audit
+
+Granskade ALLA service-filer (87 st) och komponentfiler (42+ st) i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Buggar hittade och fixade: ~125 hardkodade URL:er i 32 filer**
+
+Alla service-filer i services/ anvande korrekt `environment.apiUrl`. Dock hade 3 service-filer och 29 komponentfiler hardkodade `/noreko-backend/api.php`-URLer istallet for `environment.apiUrl`. Vid byte av API-bas (annan host/path) skulle dessa sluta fungera.
+
+**Service-filer fixade (3 st):**
+- `klassificeringslinje.service.ts` — `apiBase = '/noreko-backend/api.php'` -> `environment.apiUrl` + import tillagd
+- `saglinje.service.ts` — `apiBase = '/noreko-backend/api.php'` -> `environment.apiUrl` + import tillagd
+- `tvattlinje.service.ts` — 4 hardkodade URLer -> `environment.apiUrl` + import tillagd
+
+**Komponentfiler fixade (29 st):**
+menu.ts (7), news.ts (1), rebotling-admin.ts (35), bonus-admin.ts (15), tvattlinje-admin.ts (10), rebotling-skiftrapport.ts (9), my-bonus.ts (8), operator-dashboard.ts (5), certifications.ts (5), executive-dashboard.ts (4), live-ranking.ts (3), monthly-report.ts (3), statistik-skiftrapport-operator.ts (2), statistik-kvalitet-deepdive.ts (2), vpn-admin.ts (2), feature-flag-admin.ts (2), production-calendar.ts (2), login.ts (1), register.ts (1), andon.ts (1), shift-handover.ts (1), shift-plan.ts (1), operator-detail.ts (1), operator-attendance.ts (1), rebotling-prognos.ts (1), saglinje-admin.ts (1), klassificeringslinje-admin.ts (1), statistik-oee-komponenter.ts (1), statistik-kassation-pareto.ts (1)
+
+Alla filer fick `import { environment }` tillagd och alla hardkodade URLer ersattes med `${environment.apiUrl}`.
+
+**Rent (inga URL-buggar):** Samtliga 84 service-filer i services/ (utom de 3 ovan), auth.service.ts, rebotling/ services (4 st), maintenance-log components, weekly-report, operator-compare, operator-trend, news-admin, historik.
+
+### Uppgift 2: Angular template accessibility audit
+
+Granskade ALLA template-filer (.html och inline templates) i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Buggar hittade och fixade: 109 element utan keyboard-stod**
+
+**1. Sorterbara tabellhuvuden `<th>` utan keyboard-navigation (78+7 = 85 st, 17 filer):**
+Alla sorterbara `<th>` med `(click)` saknade `tabindex="0"` och `(keydown.enter)`. Lade till bada pa samtliga.
+
+Filer: users.html (4), operators.html (1), skiftjamforelse.html (7), stoppage-log.html (6), production-analysis.html (6), rebotling-skiftrapport.html (9), avvikelselarm.component.html (1), leveransplanering.component.html (6), kvalitetscertifikat.component.html (7), maskinunderhall.component.html (4), historisk-produktion.component.html (5), kvalitetstrendanalys.html (5), operatorsbonus.component.html (5), operators-prestanda.component.html (6), stopptidsanalys.component.html (3), maskin-oee.component.html (3), equipment-stats.component.ts inline (7)
+
+**2. Interaktiva `<div>` utan keyboard-stod (13 st, 11 filer):**
+Div-element med `(click)` som agerar som knappar/expanderbara sektioner men saknade `role="button"`, `tabindex="0"`, och `(keydown.enter)`.
+
+Filer: maskin-drifttid.html, statistik-handelser.html, operators.html, produktionskalender.html, audit-log.html, bonus-admin.html, stoppage-log.html (2), shift-plan.html, skiftoverlamning.html (2), my-bonus.html, production-calendar.html
+
+**3. Interaktiva tabellrader `<tr>` utan keyboard-stod (18 st, 17 filer):**
+Klickbara rader saknade `tabindex="0"` och `(keydown.enter)`.
+
+Filer: rebotling-statistik.html, narvarotracker.html, maskinunderhall.component.html, batch-sparning.component.html (2), kassationsanalys.html, operatorsbonus.component.html, operators-prestanda.component.html, statistik-kassationsanalys.html, statistik-pareto-stopp.html, production-analysis.html, cykeltid-heatmap.html, tvattlinje-statistik.html, operator-onboarding.html, skiftoverlamning.html, kassations-drilldown.html, stopporsak-trend.html, stopporsak-operator.html
+
+**Rent (inga a11y-buggar):** Alla `<img>` har korrekta alt-attribut. Alla ikonknappar har aria-label. Overlays/backdrops och modaler anvander redan korrekt role="dialog"/aria-modal. Checkbox-divs i skiftoverlamning har redan role, aria-checked, tabindex och keydown-handlers.
+
+---
+
 ## 2026-03-21 Session #232 Worker A — PHP classes/ input validation + race condition audit (4 buggar)
 
 ### Uppgift 1: Input length/bounds validation audit

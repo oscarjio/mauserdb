@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -91,7 +92,7 @@ export class RegisterPage implements OnDestroy {
 
     this.isLoading = true;
 
-    this.http.post<any>('/noreko-backend/api.php?action=register', {
+    this.http.post<any>(`${environment.apiUrl}?action=register`, {
       username: this.user.username.trim(),
       password: this.user.password,
       password2: this.user.password2,

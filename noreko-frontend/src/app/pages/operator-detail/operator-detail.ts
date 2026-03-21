@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 Chart.register(...registerables);
 
 // ================================================================
@@ -486,7 +487,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
     this.laddar = true;
     this.felmeddelande = '';
 
-    this.http.get<ProfileResponse>(`/noreko-backend/api.php?action=operator&run=profile&id=${id}`, { withCredentials: true })
+    this.http.get<ProfileResponse>(`${environment.apiUrl}?action=operator&run=profile&id=${id}`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),

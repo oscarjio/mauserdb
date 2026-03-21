@@ -84,7 +84,7 @@
                 [class.har-data]="dag.dagData?.har_data"
                 (click)="dag.dagData?.har_data ? klickaDag(dag) : null"
                 [title]="dag.datum && dag.dagData?.har_data ? dag.dagData!.ibc_ok + ' IBC OK — ' + dag.dagData!.kvalitet + '% kvalitet' : ''"
-              >
+               role="button" tabindex="0" (keydown.enter)="dag.dagData?.har_data ? klickaDag(dag) : null">
                 <ng-container *ngIf="dag.datum">
                   <span class="dag-nr">{{ dag.dagNr }}</span>
                   <ng-container *ngIf="dag.dagData?.har_data">

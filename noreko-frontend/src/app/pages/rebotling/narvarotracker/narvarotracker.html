@@ -74,7 +74,7 @@
         </thead>
         <tbody>
           <ng-container *ngFor="let op of operators; trackBy: trackByIndex">
-            <tr class="op-row" [class.expanded]="isExpanded(op.operator_id)" (click)="toggleExpand(op.operator_id)">
+            <tr class="op-row" [class.expanded]="isExpanded(op.operator_id)" (click)="toggleExpand(op.operator_id)" tabindex="0" (keydown.enter)="toggleExpand(op.operator_id)">
               <td class="op-name">
                 <i class="fas fa-chevron-right expand-icon me-1" [class.rotated]="isExpanded(op.operator_id)"></i>
                 {{ op.operator_name }}

@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { FeatureFlagService } from '../../services/feature-flag.service';
+import { environment } from '../../../environments/environment';
 
 interface FeatureFlag {
   id: number;
@@ -56,7 +57,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
     this.http.get<{ success: boolean; data: FeatureFlag[] }>(
-      '/noreko-backend/api.php?action=feature-flags&run=list',
+      `${environment.apiUrl}?action=feature-flags&run=list`,
       { withCredentials: true }
     ).pipe(
       timeout(10000),
@@ -113,7 +114,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
     }
 
     this.http.post<{ success: boolean; message?: string; error?: string }>(
-      '/noreko-backend/api.php?action=feature-flags&run=bulk-update',
+      `${environment.apiUrl}?action=feature-flags&run=bulk-update`,
       { flags },
       { withCredentials: true }
     ).pipe(

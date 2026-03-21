@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
+import { environment } from '../../../environments/environment';
 
 interface Certification {
   id: number;
@@ -135,7 +136,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
   loadCertifications() {
     this.loading = true;
     this.error = '';
-    this.http.get<any>('/noreko-backend/api.php?action=certifications&run=all', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=certifications&run=all`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => {
@@ -156,7 +157,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
   }
 
   loadOperatorOptions() {
-    this.http.get<any>('/noreko-backend/api.php?action=operators&run=list', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=operators&run=list`, { withCredentials: true })
       .pipe(
         timeout(5000),
         catchError(() => of(null)),
@@ -172,7 +173,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
   loadMatrix() {
     this.matrixLoading = true;
     this.matrixError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=certifications&run=matrix', { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=certifications&run=matrix`, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => {
@@ -449,7 +450,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
     if (!confirm('Är du säker på att du vill återkalla denna certifiering?')) return;
 
     this.http.post<any>(
-      '/noreko-backend/api.php?action=certifications&run=revoke',
+      `${environment.apiUrl}?action=certifications&run=revoke`,
       { id: certId },
       { withCredentials: true }
     ).pipe(
@@ -506,7 +507,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
 
     this.addLoading = true;
     this.http.post<any>(
-      '/noreko-backend/api.php?action=certifications&run=add',
+      `${environment.apiUrl}?action=certifications&run=add`,
       payload,
       { withCredentials: true }
     ).pipe(

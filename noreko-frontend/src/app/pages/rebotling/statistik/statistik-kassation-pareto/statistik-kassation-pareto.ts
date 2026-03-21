@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Chart } from 'chart.js';
 import { localToday } from '../../../../utils/date-utils';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -28,7 +29,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
 
   loadKassationPareto(): void {
     this.kassationLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=kassation-pareto&days='+this.kassationDays, { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-pareto&days=`+this.kassationDays, { withCredentials: true })
     .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe((res: any) => {
       this.kassationLoading = false;

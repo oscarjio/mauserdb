@@ -241,13 +241,13 @@
       <table class="table table-dark table-hover table-sm align-middle">
         <thead>
           <tr>
-            <th scope="col" class="sortable" (click)="sortBy('startad_at')">
+            <th scope="col" class="sortable" (click)="sortBy('startad_at')" tabindex="0" (keydown.enter)="sortBy('startad_at')">
               Tidpunkt <i [class]="getSortIcon('startad_at')"></i>
             </th>
-            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')">
+            <th scope="col" class="sortable" (click)="sortBy('maskin_namn')" tabindex="0" (keydown.enter)="sortBy('maskin_namn')">
               Maskin <i [class]="getSortIcon('maskin_namn')"></i>
             </th>
-            <th scope="col" class="sortable text-end" (click)="sortBy('duration_min')">
+            <th scope="col" class="sortable text-end" (click)="sortBy('duration_min')" tabindex="0" (keydown.enter)="sortBy('duration_min')">
               Varaktighet <i [class]="getSortIcon('duration_min')"></i>
             </th>
             <th scope="col">Orsak</th>
