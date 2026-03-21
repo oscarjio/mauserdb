@@ -702,7 +702,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
     this.rebotlingService.getWeeklySummary(this.weeklySelectedWeek)
       .pipe(timeout(10000), catchError(err => {
-        this.weeklyError = 'Kunde inte hamta veckosammanfattning.';
+        this.weeklyError = 'Kunde inte hämta veckosammanfattning.';
         return of(null);
       }), takeUntil(this.destroy$))
       .subscribe(res => {

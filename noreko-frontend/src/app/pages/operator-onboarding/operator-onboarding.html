@@ -65,7 +65,7 @@
 
   <!-- Fel -->
   <div *ngIf="!loadingOverview && errorOverview" class="alert alert-danger">
-    Kunde inte ladda data. Kontrollera att du ar inloggad.
+    Kunde inte ladda data. Kontrollera att du är inloggad.
   </div>
 
   <!-- Ingen data -->
@@ -160,7 +160,7 @@
                         {{ curveData.operator_namn }} — Larlingskurva (start: {{ curveData.start_datum }})
                       </span>
                       <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail(); $event.stopPropagation()">
-                        <i class="fas fa-times me-1"></i>Stang
+                        <i class="fas fa-times me-1"></i>Stäng
                       </button>
                     </div>
 

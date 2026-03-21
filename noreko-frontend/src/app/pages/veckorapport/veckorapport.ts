@@ -49,7 +49,7 @@ export class VeckorapportPage implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.report = res.data;
       } else {
-        this.error = 'Kunde inte ladda veckorapport. Kontrollera att du ar inloggad.';
+        this.error = 'Kunde inte ladda veckorapport. Kontrollera att du är inloggad.';
       }
     });
   }

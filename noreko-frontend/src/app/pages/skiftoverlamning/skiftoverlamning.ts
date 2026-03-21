@@ -177,7 +177,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
         this.viewMode = 'detail';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        this.toast.error(res?.error ?? 'Kunde inte hamta detalj');
+        this.toast.error(res?.error ?? 'Kunde inte hämta detalj');
       }
     });
   }

@@ -86,7 +86,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
         this.oversikt = oversiktRes.data;
         this.lastUpdate = new Date().toLocaleTimeString('sv-SE');
       } else if (!this.oversikt) {
-        this.errorMessage = 'Kunde inte hamta produktionsdata';
+        this.errorMessage = 'Kunde inte hämta produktionsdata';
       }
 
       if (stoppRes?.success) this.stoppNu = stoppRes.data;

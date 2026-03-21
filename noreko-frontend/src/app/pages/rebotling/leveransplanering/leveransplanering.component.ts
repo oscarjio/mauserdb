@@ -256,7 +256,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.loadAll();
       } else {
-        this.updateStatusError = 'Kunde inte uppdatera orderstatus. Forsok igen.';
+        this.updateStatusError = 'Kunde inte uppdatera orderstatus. Försök igen.';
       }
     });
   }

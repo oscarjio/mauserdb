@@ -146,7 +146,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         timeout(8000),
         catchError(err => {
           console.error('Fel vid hämtning av rapporter:', err);
-          return of({ success: false, message: 'Kunde inte hamta rapporter', data: [] });
+          return of({ success: false, message: 'Kunde inte hämta rapporter', data: [] });
         })
       )
       .subscribe({
@@ -164,7 +164,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
               this.reports = nr;
             }
           } else {
-            this.errorMessage = res.message || 'Kunde inte hamta rapporter';
+            this.errorMessage = res.message || 'Kunde inte hämta rapporter';
           }
         }
       });

@@ -77,7 +77,7 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
           this.loading = false;
           this.error = null;
         } else if (!data) {
-          this.error = 'Kunde inte hamta data fran servern.';
+          this.error = 'Kunde inte hämta data fran servern.';
           this.loading = false;
         }
       });

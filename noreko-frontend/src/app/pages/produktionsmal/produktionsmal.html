@@ -78,7 +78,7 @@
   <!-- ===== FEL ===== -->
   <div class="alert alert-danger" *ngIf="progressError && !progressLoading">
     <i class="fas fa-exclamation-triangle me-2"></i>
-    Kunde inte hamta produktionsdata. Kontrollera att du ar inloggad.
+    Kunde inte hämta produktionsdata. Kontrollera att du är inloggad.
   </div>
 
   <!-- ===== PROGRESS-SEKTION ===== -->
@@ -203,7 +203,7 @@
       </div>
 
       <div class="alert alert-warning py-2" *ngIf="historikError && !historikLoading">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta historik.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta historik.
       </div>
 
       <div class="table-responsive" *ngIf="!historikLoading && !historikError && historik.length > 0">

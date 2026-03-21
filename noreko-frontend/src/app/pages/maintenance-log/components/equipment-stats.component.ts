@@ -26,7 +26,7 @@ import {
       <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
       <p class="mt-2 mb-1">Kunde inte ladda utrustningsstatistik.</p>
       <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadEquipmentStats()">
-        <i class="fas fa-sync me-1"></i>Forsok igen
+        <i class="fas fa-sync me-1"></i>Försök igen
       </button>
     </div>
 

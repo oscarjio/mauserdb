@@ -79,7 +79,7 @@
 
   <!-- FEL: sammanfattning -->
   <div class="alert alert-danger py-2 mb-3" *ngIf="sammanfattningError && !sammanfattningLoading">
-    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta sammanfattning.
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta sammanfattning.
   </div>
 
   <!-- PROGRESS-BAR PER SKIFT -->
@@ -96,7 +96,7 @@
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="skiftError && !skiftLoading">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta skiftdata.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta skiftdata.
       </div>
 
       <div *ngIf="!skiftLoading && !skiftError && skiftData">
@@ -137,7 +137,7 @@
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="veckoError && !veckoLoading">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta veckodata.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta veckodata.
       </div>
 
       <div class="chart-container" *ngIf="!veckoLoading && !veckoError && veckodata">
@@ -159,7 +159,7 @@
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="historikError && !historikLoading">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta historik.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta historik.
       </div>
 
       <div class="table-responsive" *ngIf="!historikLoading && !historikError && historik.length > 0">
@@ -213,7 +213,7 @@
       </div>
 
       <div class="alert alert-warning py-2 mb-0" *ngIf="stationError && !stationLoading">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hamta stationsdata.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte hämta stationsdata.
       </div>
 
       <div *ngIf="!stationLoading && !stationError && stationer.length > 0">

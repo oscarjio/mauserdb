@@ -12,7 +12,7 @@
       <div class="d-flex gap-2">
         <button *ngIf="activeTab === 'rebotling' && loggedIn" class="btn-spara-sm" (click)="toggleForm()">
           <i class="fas" [class.fa-plus]="!showForm" [class.fa-times]="showForm"></i>
-          {{ showForm ? 'Stang' : 'Registrera underhall' }}
+          {{ showForm ? 'Stäng' : 'Registrera underhåll' }}
         </button>
         <button class="btn-refresh" (click)="refreshAll()">
           <i class="fas fa-sync-alt"></i>

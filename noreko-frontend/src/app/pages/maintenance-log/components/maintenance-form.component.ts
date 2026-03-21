@@ -22,7 +22,7 @@ import { localDateStr } from '../../../utils/date-utils';
             <i class="fas fa-tools me-2"></i>
             {{ editingId ? 'Redigera underhållspost' : 'Ny underhållspost' }}
           </h5>
-          <button class="btn-close-custom" (click)="close()" aria-label="Stang formular">
+          <button class="btn-close-custom" (click)="close()" aria-label="Stäng formulär">
             <i class="fas fa-times"></i>
           </button>
         </div>

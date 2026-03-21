@@ -132,7 +132,7 @@
 
     <div *ngIf="!loadingLista && errorLista" class="text-center py-3" style="color:#fc8181;">
       <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda certifikatlistan.
-      <button class="btn btn-sm btn-outline-secondary ms-2" (click)="loadLista()">Forsok igen</button>
+      <button class="btn btn-sm btn-outline-secondary ms-2" (click)="loadLista()">Försök igen</button>
     </div>
 
     <div *ngIf="!loadingLista && !errorLista && certifikat.length > 0" style="overflow-x:auto;">

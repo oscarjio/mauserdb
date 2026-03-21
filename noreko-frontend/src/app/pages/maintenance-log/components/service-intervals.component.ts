@@ -29,7 +29,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
       <i class="fas fa-exclamation-triangle me-2" style="font-size:1.5rem;"></i>
       <p class="mt-2 mb-1">Kunde inte ladda serviceintervall.</p>
       <button class="btn btn-sm btn-outline-secondary mt-1" (click)="loadServiceIntervals()">
-        <i class="fas fa-sync me-1"></i>Forsok igen
+        <i class="fas fa-sync me-1"></i>Försök igen
       </button>
     </div>
 
@@ -136,7 +136,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
             <i class="fas fa-oil-can me-2"></i>
             {{ editingServiceId ? 'Redigera serviceintervall' : 'Nytt serviceintervall' }}
           </h5>
-          <button class="btn-close-custom" (click)="closeServiceForm()" aria-label="Stang formular">
+          <button class="btn-close-custom" (click)="closeServiceForm()" aria-label="Stäng formulär">
             <i class="fas fa-times"></i>
           </button>
         </div>

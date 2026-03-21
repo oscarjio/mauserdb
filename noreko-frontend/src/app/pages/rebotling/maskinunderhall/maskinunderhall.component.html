@@ -155,7 +155,7 @@
                     <h6 class="mb-0">
                       <i class="fas fa-history me-2 text-info"></i>Servicehistorik — {{ m.namn }}
                     </h6>
-                    <button class="btn btn-xs btn-outline-secondary" (click)="closeHistory()" aria-label="Stang historik">
+                    <button class="btn btn-xs btn-outline-secondary" (click)="closeHistory()" aria-label="Stäng historik">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
@@ -251,7 +251,7 @@
   <div class="modal-content-custom" (click)="$event.stopPropagation()">
     <div class="modal-header-custom">
       <h5 class="mb-0"><i class="fas fa-plus me-2 text-success"></i>Registrera service</h5>
-      <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddServiceModal()"></button>
+      <button class="btn-close btn-close-white" aria-label="Stäng" (click)="closeAddServiceModal()"></button>
     </div>
     <div class="modal-body-custom">
       <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm">
@@ -326,7 +326,7 @@
   <div class="modal-content-custom" (click)="$event.stopPropagation()">
     <div class="modal-header-custom">
       <h5 class="mb-0"><i class="fas fa-cogs me-2 text-info"></i>Registrera ny maskin</h5>
-      <button class="btn-close btn-close-white" aria-label="Stang" (click)="closeAddMachineModal()"></button>
+      <button class="btn-close btn-close-white" aria-label="Stäng" (click)="closeAddMachineModal()"></button>
     </div>
     <div class="modal-body-custom">
       <form (ngSubmit)="submitAddMachine()">

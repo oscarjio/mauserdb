@@ -228,8 +228,8 @@
       <!-- Error vid laddning av detalj -->
       <div *ngIf="errorDetail && !loadingDetail" class="text-center py-4">
         <i class="fas fa-exclamation-triangle fa-2x mb-2" style="color:#fc8181"></i>
-        <p style="color:#fc8181">Kunde inte ladda batch-detaljer. Forsok igen.</p>
-        <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">Stang</button>
+        <p style="color:#fc8181">Kunde inte ladda batch-detaljer. Försök igen.</p>
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">Stäng</button>
       </div>
 
       <ng-container *ngIf="selectedBatchDetail">
@@ -238,7 +238,7 @@
             <h4 class="mb-1">{{ selectedBatchDetail.batch.batch_nummer }}</h4>
             <span [class]="statusBadgeClass(selectedBatchDetail.batch.status)">{{ selectedBatchDetail.batch.status_label }}</span>
           </div>
-          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()" aria-label="Stang detaljvy">
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()" aria-label="Stäng detaljvy">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -351,7 +351,7 @@
     <div class="detail-panel" style="max-width:500px" (click)="$event.stopPropagation()">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="fas fa-plus-circle me-2 text-success"></i>Skapa ny batch</h5>
-        <button class="btn btn-sm btn-outline-secondary" (click)="closeCreateModal()" aria-label="Stang dialog">
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeCreateModal()" aria-label="Stäng dialog">
           <i class="fas fa-times"></i>
         </button>
       </div>

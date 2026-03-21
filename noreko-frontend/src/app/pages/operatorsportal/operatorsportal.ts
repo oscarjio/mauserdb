@@ -67,7 +67,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.stats = res.data;
       } else {
-        this.errorStats = 'Kunde inte ladda din statistik. Kontrollera att du ar inloggad och kopplad till ett operatorskonto.';
+        this.errorStats = 'Kunde inte ladda din statistik. Kontrollera att du är inloggad och kopplad till ett operatorskonto.';
       }
     });
   }
