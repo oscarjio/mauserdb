@@ -1,3 +1,34 @@
+## 2026-03-21 Session #237 Worker A — PHP file locking + PDO error mode + timezone audit (0 buggar)
+
+### Uppgift 1: PHP classes/ file locking audit
+Granskade alla PHP-filer i noreko-backend/classes/ for fil-skrivningar (file_put_contents, fwrite, fopen).
+
+**Inga buggar hittade.** Hittade 3 stallen med fil-operationer:
+- BonusAdminController.php:1825 — fopen('php://output') for CSV-export (HTTP-stream, inte delad fil)
+- TidrapportController.php:564 — fopen('php://output') for CSV-export (HTTP-stream, inte delad fil)
+- VpnController.php:103,165 — fwrite till socket (VPN management-socket, inte delad fil)
+Inga file_put_contents-anrop finns i nagon PHP-fil. Inga delade filer (logg/cache/config) skrivs utan flock.
+
+### Uppgift 2: PHP classes/ PDO error mode audit
+Granskade alla stallen dar PDO skapas eller konfigureras i noreko-backend/.
+
+**Inga buggar hittade.** PDO skapas pa 2 stallen:
+- api.php:104 — PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION (korrekt)
+- update-weather.php:21 — PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION (korrekt)
+Inga klasser i classes/ skapar egna PDO-instanser. Alla anvander den centrala $pdo fran api.php.
+Inga forekomster av ERRMODE_SILENT eller ERRMODE_WARNING i hela noreko-backend/.
+
+### Uppgift 3: PHP classes/ timezone consistency audit
+Granskade alla PHP-filer i noreko-backend/classes/ for timezone-hantering.
+
+**Inga buggar hittade.** Timezone-hanteringen ar konsekvent:
+- api.php:6 satter date_default_timezone_set('Europe/Stockholm') innan nagon controller laddas.
+- update-weather.php:9 satter samma timezone.
+- Alla new DateTime()-anrop i classes/ anvander explicit DateTimeZone('Europe/Stockholm') eller en $tz-variabel satt till samma.
+- time()-anrop anvands enbart for session-hantering och forfluten-tid-berakningar, aldrig for DB-inserts.
+- NOW() i MySQL-queries ar konsekvent — ingen blandning av PHP date()-stranginserts dar NOW() borde anvandas.
+- date()-anrop anvands for WHERE-filter (t.ex. date('Y-m-d')) och ar korrekta tack vare den globala timezone-installningen.
+
 ## 2026-03-21 Session #235 Worker B — Angular HTTP error + memory leak audit (0 buggar)
 
 ### Uppgift 1: Angular HTTP interceptor error normalization audit
