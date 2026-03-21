@@ -1697,7 +1697,7 @@
           <div class="d-flex gap-2 align-items-center mb-4">
             <button class="btn btn-danger"
                     (click)="registerKassation()"
-                    [disabled]="kassationLoading || !kassationForm.orsak_id || kassationForm.antal < 1">
+                    [disabled]="kassationLoading || !kassationForm.datum || !kassationForm.orsak_id || kassationForm.antal < 1">
               <i class="fas fa-plus me-2"></i>Registrera kassation
             </button>
             <span *ngIf="kassationSaved" class="text-success small">

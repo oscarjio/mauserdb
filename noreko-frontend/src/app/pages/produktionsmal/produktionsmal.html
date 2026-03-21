@@ -41,11 +41,11 @@
         <div class="col-12 col-md-3">
           <label class="form-label text-muted small">Startdatum</label>
           <input type="date" class="form-control form-control-dark"
-                 [(ngModel)]="formStartdatum">
+                 [(ngModel)]="formStartdatum" required>
         </div>
         <div class="col-12 col-md-3">
           <button class="btn btn-success w-100"
-                  [disabled]="sparLoading || !formAntal || formAntal <= 0"
+                  [disabled]="sparLoading || !formAntal || formAntal <= 0 || !formStartdatum"
                   (click)="sparaMal()">
             <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i class="fas fa-save me-1" *ngIf="!sparLoading"></i>
