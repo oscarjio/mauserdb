@@ -14742,3 +14742,47 @@ Fixade:
 
 ### Migration
 - `noreko-backend/migrations/2026-03-20_login_attempts_username_index.sql` — Index pa `(username, created_at)` i `login_attempts` for effektiv per-konto lockout-kontroll.
+
+---
+
+## 2026-03-21 — Session #221, Worker B
+
+### Uppgift 1: Angular HTTP error retry + timeout consistency audit
+**Resultat:** Alla 92 services i `noreko-frontend/src/app/services/` granskade systematiskt. Samtliga HTTP-anrop har konsekvent:
+- `timeout()` operator (8000-15000ms beroende pa endpoint)
+- `catchError()` med fallback-varden
+- `retry(1)` pa GET-anrop (korrekt — POST/PUT/DELETE saknar retry, vilket ar ratt for mutationer)
+- Alla 5 maintenance-log inline-component `.ts`-filer och 4 rebotling-services likaså korrekta
+- **0 buggar hittade** — HTTP error-hanteringen ar konsekvent och korrekt
+
+### Uppgift 2: Angular template i18n completeness audit
+**Resultat:** 47 filer med saknade svenska diakritiska tecken i synlig UI-text.
+
+Fixade (47 filer totalt):
+1. **"Forsok igen" → "Försök igen"** — 17 filer (felmeddelanden, retry-knappar)
+2. **"Kunde inte hamta" → "Kunde inte hämta"** — 16 filer (error messages)
+3. **"Stang" → "Stäng"** — 15 filer (knappar, aria-labels, modaler)
+4. **"du ar inloggad" → "du är inloggad"** — 7 filer (felmeddelanden)
+5. **"Satt mal" → "Sätt mål"** — 1 fil (produktions-sla)
+6. **"Registrera underhall" → "Registrera underhåll"** — 1 fil (underhallslogg)
+7. **"Stang formular" → "Stäng formulär"** — 4 filer (maintenance-log components)
+
+Berorda filer (47 st):
+- `alarm-historik.html`, `andon-board.ts`, `executive-dashboard.ts`, `favoriter.html`
+- `forsta-timme-analys.html`, `heatmap.html`, `kassations-drilldown.html`
+- `maintenance-log/components/` (4 filer: equipment-stats, kpi-analysis, maintenance-form, service-intervals)
+- `oee-trendanalys.component.html`, `operator-onboarding.html`, `operator-ranking.component.html`
+- `operatorsportal.ts`, `pareto.html`, `produktionsmal.html`
+- `rebotling/avvikelselarm`, `batch-sparning` (2), `kassationsorsak-statistik`, `kvalitets-trendbrott`
+- `rebotling/kvalitetscertifikat`, `leveransplanering` (2), `maskinunderhall`, `operatorsbonus`
+- `rebotling/produktions-dashboard`, `produktions-sla`, `produktionsflode`, `produktionsmal`
+- `rebotling/produktionspuls`, `rebotling-sammanfattning`, `skiftplanering`, `statistik-dashboard`
+- `rebotling/statistik/` (statistik-oee-gauge, statistik-pareto-stopp, statistik-produktionsmal)
+- `shared-skiftrapport.ts`, `skiftjamforelse.html`, `skiftoverlamning.ts`
+- `statistik-overblick.component.html`, `underhallslogg.html`, `utnyttjandegrad.html`
+- `vd-dashboard.component.html`, `vd-dashboard.component.ts`, `veckorapport.ts`
+
+### Sammanfattning
+- **Uppgift 1:** 0 buggar — HTTP error-hantering ar konsekvent
+- **Uppgift 2:** 47 buggar fixade — saknade svenska diakritiska tecken i synlig UI-text
+- Frontend bygger utan fel
