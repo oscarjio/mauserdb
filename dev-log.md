@@ -1,3 +1,42 @@
+## 2026-03-21 Session #224 Worker A — PHP regex injection + TOCTOU race condition audit (3 buggar fixade i 3 filer)
+
+### Uppgift 1: PHP classes/ regex injection + preg_match audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for preg_match/preg_replace/preg_split
+med user input i monstret (regex injection), saknad preg_quote(), ReDoS, preg_last_error().
+
+**Resultat: Inga regex injection-buggar.** Samtliga ~130 preg_match/preg_replace/preg_split-anrop
+i classes/ anvander hardkodade string-literaler som monster. Inga user-supplied delimiters
+eller dynamiskt konstruerade regex-monster hittades. Det enda fallet dar en variabel
+anvands som monster ($datePattern i OeeTrendanalysController.php) ar en lokal konstant
+definierad som '/^\d{4}-\d{2}-\d{2}$/'.
+
+### Uppgift 2: PHP classes/ session concurrency + race condition audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for TOCTOU-buggar (check-then-act utan
+transaktion), saknad transaction handling, parallella requests utan locking.
+
+**3 buggar fixade i 3 filer:**
+
+1. **SkiftoverlamningController.php:sparaProtokoll()** — SELECT duplikat-check folj av INSERT
+   utan transaktion. Tva parallella requests kunde bada passera checken och skapa dubbletter.
+   Fix: beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+
+2. **ShiftHandoverController.php:deleteNote()** — SELECT agarkontroll folj av DELETE utan
+   transaktion. Raden kunde andras/tas bort mellan agarkontroll och borttagning.
+   Fix: beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+
+3. **MaskinunderhallController.php:addService()** — SELECT maskin-existenskontroll folj av
+   INSERT utan transaktion. Maskinen kunde inaktiveras mellan check och insert.
+   Fix: beginTransaction + SELECT FOR UPDATE + commit/rollBack.
+
+Filer som redan hade korrekt transaktionshantering (ej andrade):
+AdminController, RegisterController, OperatorController, CertificationController,
+BatchSparningController, SkiftplaneringController, FavoriterController, StoppageController,
+SkiftrapportController, LineSkiftrapportController, RebotlingProductController,
+ProduktionsSlaController, RebotlingAnalyticsController, BonusAdminController,
+FeatureFlagController, ProfileController, m.fl.
+
+---
+
 ## 2026-03-21 Session #224 Worker B — Angular pipe + guard/resolver audit (1 bugg fixad i 1 fil)
 
 ### Uppgift 1: Angular pipe error handling audit
