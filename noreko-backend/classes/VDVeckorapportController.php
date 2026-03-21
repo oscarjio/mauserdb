@@ -207,7 +207,7 @@ class VDVeckorapportController {
         $stmt->execute([':fran' => $fran, ':till' => $till]);
         $rad = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$rad['forsta']) return 0;
+        if (!$rad || !$rad['forsta']) return 0;
 
         $drifttid = strtotime($rad['sista']) - strtotime($rad['forsta']);
         return max($drifttid, 0);

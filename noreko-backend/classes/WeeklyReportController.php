@@ -289,10 +289,10 @@ class WeeklyReportController {
             // Hämta veckomål från settings
             $dagmal = 1200; // fallback
             try {
-                $stmtGoal = $this->pdo->query("SELECT dagmal FROM rebotling_settings ORDER BY id ASC LIMIT 1");
+                $stmtGoal = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings ORDER BY id ASC LIMIT 1");
                 $goalRow = $stmtGoal->fetch();
-                if ($goalRow && isset($goalRow['dagmal'])) {
-                    $dagmal = intval($goalRow['dagmal']);
+                if ($goalRow && isset($goalRow['rebotling_target'])) {
+                    $dagmal = intval($goalRow['rebotling_target']);
                 }
             } catch (Exception $e) {
                 error_log("WeeklyReportController::getSummary: kunde ej hämta dagmal: " . $e->getMessage());

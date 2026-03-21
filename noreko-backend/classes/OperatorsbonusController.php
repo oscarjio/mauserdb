@@ -386,9 +386,9 @@ class OperatorsbonusController {
     private function getTeamMalProcent(string $from, string $to): float {
         try {
             // Hämta produktionsmål
-            $stmt = $this->pdo->query("SELECT daily_goal FROM rebotling_settings ORDER BY id DESC LIMIT 1");
+            $stmt = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings ORDER BY id DESC LIMIT 1");
             $goalRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $dailyGoal = (int)($goalRow['daily_goal'] ?? 200);
+            $dailyGoal = (int)($goalRow['rebotling_target'] ?? 200);
 
             if ($dailyGoal <= 0) $dailyGoal = 200;
 

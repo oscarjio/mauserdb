@@ -160,7 +160,7 @@ class StopporsakController {
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $topRow = $stmt->fetch();
-            $vanligasteOrsak = $topRow['orsak'] ?? null;
+            $vanligasteOrsak = ($topRow && isset($topRow['orsak'])) ? $topRow['orsak'] : null;
 
             // Forega period for jamforelse
             [$prevFrom, $prevTo] = $this->getPrevDateRange($days);

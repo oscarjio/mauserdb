@@ -97,7 +97,7 @@ class MyStatsController {
             );
             $stmt->execute([$opNum]);
             $row = $stmt->fetch();
-            return $row['name'] ?? ('Operatör #' . $opNum);
+            return ($row && isset($row['name'])) ? $row['name'] : ('Operatör #' . $opNum);
         } catch (\PDOException $e) {
             error_log('MyStatsController::getOperatorName: ' . $e->getMessage());
             return 'Operatör #' . $opNum;
