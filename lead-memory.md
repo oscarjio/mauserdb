@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #227)*
+*Senast uppdaterad: 2026-03-21 (session #228)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -94,22 +94,19 @@ Session #224: BUGGJAKT — 4 buggar (3 Worker A + 1 Worker B). TOCTOU race condi
 Session #225: BUGGJAKT — 20 buggar (2 Worker A + 18 Worker B). json_decode felhantering i NewsController (2), catchError i 10 Angular services (18). HTTP header injection: rent. Form dirty-state: rent.
 Session #226: BUGGJAKT — 20 buggar (20 Worker A + 0 Worker B). SQL COALESCE i 16 PHP-filer (19), array access utan is_array (1). File path validation: rent. HTTP interceptor: rent. Async pipe: rent.
 Session #227: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL prepared statements (A-M): rent. Type juggling (A-M): rent. Memory leaks (42 komponenter): rent. Route resolvers: rent.
+Session #228: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL prepared statements (N-Z): rent. Type juggling (N-Z): rent. Error response consistency: rent. HTTP error message: 4 fixar (alert->inline error).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #227):
-- [ ] PHP classes/ SQL prepared statement audit (A-M)
-- [ ] PHP classes/ type juggling audit (A-M)
-- [ ] Angular component memory leak audit
-- [ ] Angular route resolver error handling audit
+### Nasta (session #229):
+- [ ] PHP classes/ unused variable/dead code audit
+- [ ] PHP classes/ file inclusion/require audit
+- [ ] Angular template strict null-check audit
+- [ ] Angular reactive forms validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #225 (klar)
-Worker A: 2 buggar — json_decode boolean-check i NewsController (2). HTTP header injection: rent.
-Worker B: 18 buggar — catchError(() => of(null)) i 10 services (18 POST-metoder). Form dirty-state: rent (alla formuler i modals).
 
 ### 2026-03-21 — Session #226 (klar)
 Worker A: 20 buggar — SQL COALESCE i 16 PHP-filer (19), is_array-check i SkiftoverlamningController (1). File path validation: rent.
@@ -118,3 +115,7 @@ Worker B: 0 buggar — HTTP interceptors: rent (error+csrf korrekt). Async pipe:
 ### 2026-03-21 — Session #227 (klar)
 Worker A: 0 buggar — SQL prepared statements (50 filer A-M): rent, alla queries parametriserade. Type juggling (50 filer A-M): rent, genomgaende ===.
 Worker B: 0 buggar — Memory leak audit (42 komponenter): rent, alla intervals/timeouts/subscriptions/charts cleanup korrekt. Route resolver: rent (inga resolvers, guards korrekt).
+
+### 2026-03-21 — Session #228 (klar)
+Worker A: 0 buggar — SQL prepared statements (N-Z, 67 filer): rent. Type juggling (N-Z, 67 filer): rent. Hela classes/ nu fullt granskad A-Z.
+Worker B: 4 buggar — alert() ersatt med inline error i news-admin (2) + certifications (2). Error response consistency: rent.
