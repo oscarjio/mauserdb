@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Avklarade (session #223):
-- [x] **PHP classes/ file upload + MIME type validation audit** — rent, ingen filuppladdning i classes/ (Worker A)
-- [x] **PHP classes/ array key existence audit** — rent, alla har korrekt ?? och isset() (Worker A)
-- [x] **PHP classes/ string encoding + multibyte audit** — 20 buggar fixade i 14 filer (Worker A)
-- [x] **Angular HTTP interceptor error normalization audit** — 37 buggar fixade i 12 filer (Worker B)
-- [x] **Angular template null-safe navigation audit** — rent (Worker B)
+### Avklarade (session #224):
+- [x] **PHP classes/ regex injection + preg_match audit** — rent, alla preg_ anvander hardkodade monster (Worker A)
+- [x] **PHP classes/ session concurrency + race condition audit** — 3 TOCTOU-buggar fixade i 3 filer (Worker A)
+- [x] **Angular pipe error handling audit** — rent, inga custom pipes finns (Worker B)
+- [x] **Angular router resolve/guard data consistency audit** — 1 bugg fixad i adminGuard (Worker B)
 
-### Nasta buggjakt-items (session #224+):
-- [ ] **PHP classes/ regex injection + preg_match audit** — ovaliderade regex-monster fran user input
-- [ ] **Angular pipe error handling audit** — custom pipes som kastar vid null/undefined/ovantat format
-- [ ] **PHP classes/ session concurrency + race condition audit** — parallella requests som skriver samma session/rad
-- [ ] **Angular router resolve/guard data consistency audit** — data som laddas i resolve men kan vara stale
+### Nasta buggjakt-items (session #225+):
 - [ ] **PHP classes/ HTTP header injection audit** — header() med ovaliderade varden
+- [ ] **PHP classes/ JSON decode error handling audit** — json_decode utan json_last_error-kontroll
+- [ ] **Angular service error propagation audit** — services som svaljer fel istallet for att propagera
+- [ ] **PHP classes/ file path validation audit** — saknad basename/realpath-validering pa filsokvagar
+- [ ] **Angular form dirty-state audit** — canDeactivate-guards som saknas pa formularsidor
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #223)*
+*Senast uppdaterad: 2026-03-21 (session #224)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -104,14 +104,14 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-21 — Session #221 (klar)
-Worker A: 0 buggar — type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent.
-Worker B: 47 buggar — svenska diakritiska tecken saknade i 47 template-filer. HTTP retry/timeout: rent.
-
 ### 2026-03-21 — Session #222 (klar)
-Worker A: 8 buggar — floatval NAN/INF bypass i MaintenanceController, BonusAdminController, KvalitetstrendanalysController, RebotlingAdminController, TvattlinjeController. Date/time: rent.
-Worker B: 3 buggar — chartTimers minneslackor i stopptidsanalys, produktionskostnad, prediktivt-underhall. Reactive forms: rent.
+Worker A: 8 buggar — floatval NAN/INF bypass i 5 PHP-filer. Date/time: rent.
+Worker B: 3 buggar — chartTimers minneslackor i 3 Angular-komponenter. Reactive forms: rent.
 
 ### 2026-03-21 — Session #223 (klar)
-Worker A: 20 buggar — substr/strtoupper/strtolower/strlen/strpos bytta till mb_-varianter i 14 PHP-filer dar svensk text hanteras. File upload: rent. Array key: rent.
-Worker B: 37 buggar — felaktigt res.message istallet for res.error i 12 Angular-komponenter (backend skickar {error:"..."} ej {message:"..."}). Kritiskt: login felmeddelanden aldrig visades. Template null-safe: rent.
+Worker A: 20 buggar — mb_string i 14 PHP-filer. File upload: rent. Array key: rent.
+Worker B: 37 buggar — res.message -> res.error i 12 Angular-filer. Template null-safe: rent.
+
+### 2026-03-21 — Session #224 (klar)
+Worker A: 3 buggar — TOCTOU race conditions i 3 PHP-klasser (SELECT+INSERT utan transaktion). Regex injection: rent.
+Worker B: 1 bugg — race condition i adminGuard (combineLatestWith -> enbart user$). Pipe audit: rent (inga custom pipes). Resolver audit: rent.
