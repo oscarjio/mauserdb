@@ -1,3 +1,25 @@
+## 2026-03-21 Session #224 Worker B — Angular pipe + guard/resolver audit (1 bugg fixad i 1 fil)
+
+### Uppgift 1: Angular pipe error handling audit
+Sokte efter ALLA custom pipes (@Pipe, PipeTransform, *.pipe.ts) i noreko-frontend/src/app/.
+**Resultat: Inga custom pipes finns i projektet.** Inga buggar att fixa.
+
+### Uppgift 2: Angular router resolve/guard data consistency audit
+Granskade alla guards och resolvers i noreko-frontend/src/app/.
+**Resultat: Inga resolvers finns. En guard-fil med tva guards (authGuard + adminGuard).**
+
+**1 bugg fixad i 1 fil:**
+
+**guards/auth.guard.ts** — adminGuard anvande combineLatestWith(loggedIn$, user$) for att
+kontrollera bade inloggningsstatus och roll. Problemet: loggedIn$ och user$ uppdateras
+sekventiellt i AuthService.fetchStatus() (loggedIn$.next() forst, sedan user$.next()),
+sa combineLatestWith kunde teoretiskt fanga ett mellantillstand dar loggedIn$=true men
+user$ fortfarande ar null/undefined fran foregaende state. Fixat genom att enbart anvanda
+user$ som kalla — user$ !== null innebar att loggedIn$ redan ar true, och user$.role
+ger rollkontrollen direkt. Tog aven bort oanvand combineLatestWith-import.
+
+---
+
 ## 2026-03-21 Session #223 Worker B — HTTP error format normalization + template null-safety audit (37 buggar fixade i 12 filer)
 
 ### Uppgift 1: Angular HTTP interceptor error normalization audit
