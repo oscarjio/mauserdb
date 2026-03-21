@@ -130,7 +130,7 @@ class MorgonrapportController {
     private function getRuntimeHoursForDate(string $date): float {
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT SUM(max_runtime) AS runtime_min
+                "SELECT COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
                      SELECT skiftraknare, MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
@@ -501,7 +501,7 @@ class MorgonrapportController {
 
                 // Topp-orsak
                 $stmt = $this->pdo->prepare(
-                    "SELECT t.namn, SUM(r.antal) AS total_antal
+                    "SELECT t.namn, COALESCE(SUM(r.antal), 0) AS total_antal
                      FROM kassationsregistrering r
                      JOIN kassationsorsak_typer t ON r.orsak_id = t.id
                      WHERE DATE(r.datum) = ?

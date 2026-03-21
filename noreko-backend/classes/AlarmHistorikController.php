@@ -163,7 +163,7 @@ class AlarmHistorikController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     DATE(datum) AS dag,
-                    SUM(shift_ok + shift_ej_ok) AS total_ibc
+                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
                 FROM (
                     SELECT
                         datum,
@@ -239,7 +239,7 @@ class AlarmHistorikController {
 
             // Kassationer per dag
             $stmtKass = $this->pdo->prepare("
-                SELECT datum, SUM(antal) AS kasserade
+                SELECT datum, COALESCE(SUM(antal), 0) AS kasserade
                 FROM kassationsregistrering
                 WHERE datum BETWEEN :from_date AND :to_date
                 GROUP BY datum
@@ -252,7 +252,7 @@ class AlarmHistorikController {
 
             // Produktion per dag (ej_ok fran PLC)
             $stmtIbc = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, SUM(shift_ok + shift_ej_ok) AS total_ibc
+                SELECT DATE(datum) AS dag, COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
                 FROM (
                     SELECT datum, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS shift_ok,

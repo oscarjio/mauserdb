@@ -271,7 +271,7 @@ class KassationsorsakPerStationController {
                     SELECT
                         COALESCE(kt.namn, 'Okand') AS orsak,
                         kt.id AS orsak_id,
-                        SUM(kr.antal) AS antal
+                        COALESCE(SUM(kr.antal), 0) AS antal
                     FROM kassationsregistrering kr
                     LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
                     WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date

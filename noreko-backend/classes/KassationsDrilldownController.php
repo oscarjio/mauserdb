@@ -140,7 +140,7 @@ class KassationsDrilldownController {
                 SELECT
                     COALESCE(kt.namn, 'Okänd') AS reason,
                     kt.id AS reason_id,
-                    SUM(kr.antal) AS total_antal,
+                    COALESCE(SUM(kr.antal), 0) AS total_antal,
                     COUNT(*) AS registreringar
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id

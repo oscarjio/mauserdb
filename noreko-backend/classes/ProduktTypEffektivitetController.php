@@ -189,7 +189,7 @@ class ProduktTypEffektivitetController {
             $stmtTop = $this->pdo->prepare("
                 SELECT produkt AS produkt_id,
                        COALESCE(p.name, CONCAT('Produkt #', produkt)) AS produkt_namn,
-                       SUM(sub.shift_ibc_ok) AS total_ibc
+                       COALESCE(SUM(sub.shift_ibc_ok), 0) AS total_ibc
                 FROM (
                     SELECT produkt, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
@@ -229,10 +229,10 @@ class ProduktTypEffektivitetController {
                 SELECT
                     DATE(datum) AS dag,
                     produkt AS produkt_id,
-                    SUM(shift_ok) AS dag_ibc,
+                    COALESCE(SUM(shift_ok), 0) AS dag_ibc,
                     ROUND(
-                        CASE WHEN SUM(shift_ok) > 0
-                             THEN SUM(shift_runtime) * 60.0 / SUM(shift_ok)
+                        CASE WHEN COALESCE(SUM(shift_ok), 0) > 0
+                             THEN COALESCE(SUM(shift_runtime), 0) * 60.0 / SUM(shift_ok)
                              ELSE NULL END,
                     1) AS dag_cykeltid_sek
                 FROM (

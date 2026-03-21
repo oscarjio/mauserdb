@@ -538,7 +538,8 @@ class SkiftoverlamningController {
             foreach ($rows as $r) {
                 $checklista = null;
                 if (!empty($r['checklista_json'])) {
-                    $checklista = json_decode($r['checklista_json'], true);
+                    $decoded = json_decode($r['checklista_json'], true);
+                    $checklista = is_array($decoded) ? $decoded : null;
                 }
 
                 $items[] = [
@@ -662,7 +663,8 @@ class SkiftoverlamningController {
             foreach ($rows as $r) {
                 $checklista = null;
                 if (!empty($r['checklista_json'])) {
-                    $checklista = json_decode($r['checklista_json'], true);
+                    $decoded = json_decode($r['checklista_json'], true);
+                    $checklista = is_array($decoded) ? $decoded : null;
                 }
 
                 $items[] = [

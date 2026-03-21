@@ -196,7 +196,7 @@ class HeatmapController {
 
             // Totalt IBC under perioden
             $stmtTotal = $this->pdo->prepare("
-                SELECT SUM(shift_ibc) AS total_ibc
+                SELECT COALESCE(SUM(shift_ibc), 0) AS total_ibc
                 FROM (
                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc

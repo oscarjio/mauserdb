@@ -313,7 +313,7 @@ class OperatorsbonusController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     COUNT(*) AS total_skift,
-                    SUM(CASE WHEN narvaro = 1 OR status = 'narvarande' THEN 1 ELSE 0 END) AS narvarande
+                    COALESCE(SUM(CASE WHEN narvaro = 1 OR status = 'narvarande' THEN 1 ELSE 0 END), 0) AS narvarande
                 FROM operator_narvaro
                 WHERE operator_id = :op_id
                   AND DATE(datum) BETWEEN :from_date AND :to_date

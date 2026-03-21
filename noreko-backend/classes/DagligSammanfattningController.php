@@ -385,12 +385,12 @@ class DagligSammanfattningController {
         $totStmt = $this->pdo->prepare(
             "SELECT
                 COUNT(*) AS antal,
-                ROUND(SUM(
+                COALESCE(ROUND(SUM(
                     TIMESTAMPDIFF(MINUTE,
                         start_time,
                         COALESCE(end_time, NOW())
                     )
-                ), 0) AS total_min
+                ), 0), 0) AS total_min
              FROM stopporsak_registreringar
              WHERE linje = 'rebotling'
                AND DATE(start_time) = ?"
@@ -404,7 +404,7 @@ class DagligSammanfattningController {
                 k.namn AS kategori,
                 k.ikon AS ikon,
                 COUNT(*) AS antal,
-                ROUND(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
+                COALESCE(ROUND(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0), 0) AS total_min
              FROM stopporsak_registreringar r
              JOIN stopporsak_kategorier k ON k.id = r.kategori_id
              WHERE r.linje = 'rebotling'
@@ -438,7 +438,7 @@ class DagligSammanfattningController {
 
         // Summera per skift + datum föreg
         $foStmt = $this->pdo->prepare(
-            "SELECT SUM(max_ok) AS ibc_ok FROM (
+            "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok FROM (
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
                 WHERE DATE(datum) = ?
@@ -476,7 +476,7 @@ class DagligSammanfattningController {
         $placeholders = implode(',', array_fill(0, count($dates), '?'));
 
         $s = $this->pdo->prepare(
-            "SELECT dag, SUM(max_ok) AS ibc FROM (
+            "SELECT dag, COALESCE(SUM(max_ok), 0) AS ibc FROM (
                 SELECT DATE(datum) AS dag, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
                 WHERE DATE(datum) IN ({$placeholders})

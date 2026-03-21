@@ -379,8 +379,8 @@ class KassationskvotAlarmController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     DATE_FORMAT(datum, '%Y-%m-%d %H:00') AS timme,
-                    SUM(shift_ok)    AS totalt_ok,
-                    SUM(shift_ej_ok) AS totalt_ej_ok
+                    COALESCE(SUM(shift_ok), 0)    AS totalt_ok,
+                    COALESCE(SUM(shift_ej_ok), 0) AS totalt_ej_ok
                 FROM (
                     SELECT
                         datum,
@@ -535,7 +535,7 @@ class KassationskvotAlarmController {
             $stmtOrsaker = $this->pdo->prepare("
                 SELECT
                     COALESCE(kot.namn, 'Okand') AS orsak,
-                    SUM(kr.antal)               AS antal
+                    COALESCE(SUM(kr.antal), 0)  AS antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kot ON kot.id = kr.orsak_id
                 WHERE kr.skiftraknare IN ($placeholders)

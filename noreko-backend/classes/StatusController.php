@@ -143,9 +143,9 @@ class StatusController {
                 try {
                     $oeeRow = $pdo->query(
                         "SELECT
-                            SUM(max_ibc_ok)      AS ibc_ok,
-                            SUM(max_runtime_plc) AS runtime,
-                            SUM(max_rasttime)    AS rasttime
+                            COALESCE(SUM(max_ibc_ok), 0)      AS ibc_ok,
+                            COALESCE(SUM(max_runtime_plc), 0) AS runtime,
+                            COALESCE(SUM(max_rasttime), 0)    AS rasttime
                          FROM (
                             SELECT
                                 skiftraknare,

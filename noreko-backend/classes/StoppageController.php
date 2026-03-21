@@ -515,9 +515,9 @@ class StoppageController {
 
             // 1. Återkommande stopp — orsaker som inträffat 3+ gånger på 7 dagar
             $stmtRepeat = $this->pdo->prepare("
-                SELECT s.reason_id, r.name AS orsak, r.category,
+                SELECT s.reason_id, COALESCE(r.name, 'Okänd') AS orsak, r.category,
                     COUNT(*) AS antal_7d,
-                    ROUND(AVG(s.duration_minutes), 1) AS snitt_tid,
+                    ROUND(AVG(COALESCE(s.duration_minutes, 0)), 1) AS snitt_tid,
                     MIN(s.start_time) AS forsta,
                     MAX(s.start_time) AS senaste
                 FROM stoppage_log s
@@ -543,7 +543,7 @@ class StoppageController {
             $stmtHourly = $this->pdo->prepare("
                 SELECT HOUR(start_time) AS timme,
                     COUNT(*) AS antal,
-                    ROUND(AVG(duration_minutes), 1) AS snitt_min
+                    ROUND(AVG(COALESCE(duration_minutes, 0)), 1) AS snitt_min
                 FROM stoppage_log
                 WHERE start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
                   AND line = ?

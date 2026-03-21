@@ -509,8 +509,8 @@ class MaintenanceController {
                 SELECT
                     equipment,
                     COUNT(*) AS antal_fel,
-                    ROUND(SUM(downtime_minutes) / 60.0, 1) AS total_stillestand_h,
-                    ROUND(AVG(downtime_minutes) / 60.0, 1) AS avg_mttr_h,
+                    ROUND(COALESCE(SUM(downtime_minutes), 0) / 60.0, 1) AS total_stillestand_h,
+                    ROUND(COALESCE(AVG(downtime_minutes), 0) / 60.0, 1) AS avg_mttr_h,
                     ROUND(
                         DATEDIFF(MAX(start_time), MIN(start_time)) / NULLIF(COUNT(*) - 1, 0),
                         1

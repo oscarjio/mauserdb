@@ -687,7 +687,7 @@ class UnderhallsloggController {
             $oplaneratPct = $totaltAntal > 0 ? round(($oplaneratAntal / $totaltAntal) * 100, 1) : 0;
 
             $stmtKat = $this->pdo->prepare(
-                "SELECT kategori, COUNT(*) AS antal, SUM(varaktighet_min) AS total_min
+                "SELECT kategori, COUNT(*) AS antal, COALESCE(SUM(varaktighet_min), 0) AS total_min
                  FROM underhallslogg
                  WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
                  GROUP BY kategori

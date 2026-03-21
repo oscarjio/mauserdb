@@ -250,7 +250,7 @@ class OperatorsportalController {
         try {
             // Hämta IBC per operatör
             $stmt = $this->pdo->prepare("
-                SELECT op_id, SUM(shift_ibc) AS total_ibc
+                SELECT op_id, COALESCE(SUM(shift_ibc), 0) AS total_ibc
                 FROM (
                     SELECT op1 AS op_id, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
@@ -432,7 +432,7 @@ class OperatorsportalController {
         try {
             // Operatörens IBC per dag
             $stmtOp = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, SUM(shift_ibc) AS ibc
+                SELECT DATE(datum) AS dag, COALESCE(SUM(shift_ibc), 0) AS ibc
                 FROM (
                     SELECT datum,
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
@@ -454,7 +454,7 @@ class OperatorsportalController {
 
             // Team-IBC per dag + antal aktiva operatörer per dag
             $stmtTeam = $this->pdo->prepare("
-                SELECT dag, SUM(shift_ibc) AS team_ibc, COUNT(DISTINCT op_id) AS n_ops
+                SELECT dag, COALESCE(SUM(shift_ibc), 0) AS team_ibc, COUNT(DISTINCT op_id) AS n_ops
                 FROM (
                     SELECT DATE(datum) AS dag, op1 AS op_id,
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc

@@ -45,9 +45,9 @@ class VeckotrendController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     dag,
-                    SUM(shift_ibc_ok)            AS ibc_ok,
-                    SUM(shift_ibc_ej_ok)         AS ibc_ej_ok,
-                    ROUND(AVG(avg_cykeltid), 2)  AS snitt_cykeltid
+                    COALESCE(SUM(shift_ibc_ok), 0)            AS ibc_ok,
+                    COALESCE(SUM(shift_ibc_ej_ok), 0)         AS ibc_ej_ok,
+                    ROUND(COALESCE(AVG(avg_cykeltid), 0), 2)  AS snitt_cykeltid
                 FROM (
                     SELECT
                         DATE(datum)                         AS dag,

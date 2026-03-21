@@ -367,10 +367,10 @@ class OperatorCompareController {
         // Aggregera statistik via subquery (MAX per skiftraknare per dag)
         $sql = '
             SELECT
-                SUM(skift_ibc_ok)                                                  AS total_ibc_ok,
-                SUM(skift_ibc_ej_ok)                                               AS total_ibc_ej_ok,
-                SUM(skift_ibc_ok + skift_ibc_ej_ok)                               AS total_ibc,
-                SUM(skift_runtime_h)                                               AS total_runtime_h,
+                COALESCE(SUM(skift_ibc_ok), 0)                                      AS total_ibc_ok,
+                COALESCE(SUM(skift_ibc_ej_ok), 0)                                  AS total_ibc_ej_ok,
+                COALESCE(SUM(skift_ibc_ok + skift_ibc_ej_ok), 0)                  AS total_ibc,
+                COALESCE(SUM(skift_runtime_h), 0)                                  AS total_runtime_h,
                 COUNT(*)                                                           AS antal_skift,
                 AVG(skift_ibc_ok / NULLIF(skift_runtime_h, 0))                    AS snitt_ibc_per_h,
                 SUM(skift_ibc_ok) / NULLIF(SUM(skift_ibc_ok + skift_ibc_ej_ok), 0) * 100 AS kvalitet_pct
