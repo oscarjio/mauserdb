@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #229)*
+*Senast uppdaterad: 2026-03-21 (session #230)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -96,22 +96,19 @@ Session #226: BUGGJAKT — 20 buggar (20 Worker A + 0 Worker B). SQL COALESCE i 
 Session #227: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL prepared statements (A-M): rent. Type juggling (A-M): rent. Memory leaks (42 komponenter): rent. Route resolvers: rent.
 Session #228: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL prepared statements (N-Z): rent. Type juggling (N-Z): rent. Error response consistency: rent. HTTP error message: 4 fixar (alert->inline error).
 Session #229: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Unused variable/dead code (117 filer): rent. File inclusion: rent. Template null-check (37 filer): rent. Reactive forms: inga (template-driven, korrekt).
+Session #230: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). array_key_exists/isset: rent. Exception handling: rent. HTTP retry: 1 fix (POST retry). Change detection: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #230):
-- [ ] PHP classes/ array_key_exists vs isset audit
-- [ ] PHP classes/ exception handling granularity audit
-- [ ] Angular HTTP retry logic audit
-- [ ] Angular change detection audit
+### Nasta (session #231):
+- [ ] PHP classes/ SQL transaction isolation audit
+- [ ] PHP classes/ date/time edge case audit
+- [ ] Angular lazy loading + bundle size audit
+- [ ] PHP classes/ input length/bounds validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #227 (klar)
-Worker A: 0 buggar — SQL prepared statements (50 filer A-M): rent, alla queries parametriserade. Type juggling (50 filer A-M): rent, genomgaende ===.
-Worker B: 0 buggar — Memory leak audit (42 komponenter): rent, alla intervals/timeouts/subscriptions/charts cleanup korrekt. Route resolver: rent (inga resolvers, guards korrekt).
 
 ### 2026-03-21 — Session #228 (klar)
 Worker A: 0 buggar — SQL prepared statements (N-Z, 67 filer): rent. Type juggling (N-Z, 67 filer): rent. Hela classes/ nu fullt granskad A-Z.
@@ -120,3 +117,7 @@ Worker B: 4 buggar — alert() ersatt med inline error i news-admin (2) + certif
 ### 2026-03-21 — Session #229 (klar)
 Worker A: 0 buggar — Unused variable/dead code (117 PHP-filer): rent. File inclusion/require: rent (alla __DIR__-baserade).
 Worker B: 0 buggar — Template strict null-check (37 templates): rent (*ngIf + ?. konsekvent). Reactive forms: inga (template-driven med korrekt validering).
+
+### 2026-03-21 — Session #230 (klar)
+Worker A: 0 buggar — array_key_exists/isset (117 filer): rent, alla isset/empty korrekt. Exception handling (117 filer): rent, alla catch har error_log + HTTP-felkod.
+Worker B: 1 bugg — error.interceptor retry:ade POST/PUT/DELETE (kunde skapa dubbletter). Fix: enbart GET/HEAD/OPTIONS. Change detection (42 komponenter): rent, alla Default korrekt, trackBy overallt.
