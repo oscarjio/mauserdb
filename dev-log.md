@@ -1,3 +1,40 @@
+## 2026-03-21 Session #221 Worker A — PHP classes/ type coercion + SQL injection audit (0 buggar)
+
+### Uppgift 1: PHP classes/ type coercion + strict comparison audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ (~100 filer). Kontrollerade:
+- == istallet for === dar typen spelar roll
+- Jemforelser dar == kan ge ovantade resultat med mixed types
+- Losa jemforelser i if/switch som kan leda till logikfel
+- in_array() utan strict=true
+- array_search() utan strict=true
+
+Resultat: **Inga buggar hittade.** Kodbasen anvander genomgaende === (strikt jamforelse) i all PHP-kod. Inga forekomster av losa == hittades. Alla in_array()-anrop anvander strict=true som tredje parameter. Inga array_search()-anrop hittades. strpos()-anrop anvander korrekt !== false och === 0. Tva forekomster av != 0 (KassationsanalysController:1039, ProduktTypEffektivitetController:430) anvands for division-by-zero-skydd med numeriska varden — inte buggar.
+
+### Uppgift 2: PHP classes/ SQL injection via dynamic ORDER BY/LIMIT audit
+Granskade ALLA PHP-filer i noreko-backend/classes/. Kontrollerade:
+- ORDER BY-satser med user-input utan whitelist-validering
+- LIMIT/OFFSET med user-input som inte validerats som int
+- Dynamiska kolumnnamn fran user-input i SQL
+- Dynamiska tabellnamn fran user-input
+- Alla ORDER BY-kolumner valideras mot whitelist
+
+Resultat: **Inga buggar hittade.** Alla dynamiska ORDER BY-varden (ForstaTimmeAnalysController, KassationsanalysController) bygger pa interna hardkodade SQL-uttryck baserade pa whitelist-validerade parametrar — aldrig direkt user-input. LIMIT/OFFSET varden castas konsekvent med (int) och begransas med min/max. Dynamiska tabellnamn (RuntimeController) anvander whitelist-validering fore SQL-anvaendning. Alla datumparametrar valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/'). Alla sokstrangar och textfalt anvander prepared statements med ? eller :param. Alla user-input-varden fran $_GET/$_POST castas till int eller valideras mot whitelists innan SQL-anvaendning.
+
+Filer granskade (urval av de mest kritiska):
+- LoginController.php — bcrypt, prepared statements, rate limiting, session fixation-skydd
+- AuthHelper.php — bcrypt, CSRF-token med hash_equals, session timeout
+- AdminController.php — admin-check, prepared statements, transaktioner med FOR UPDATE
+- RegisterController.php — input-validering, transaktion for race condition
+- ProfileController.php — rate limiting for losenordsbyte, prepared statements
+- RuntimeController.php — whitelist-validering for dynamiska tabellnamn
+- AuditController.php — parameterized WHERE-satser, int-cast for LIMIT/OFFSET
+- RebotlingAnalyticsController.php — int-cast for LIMIT/OFFSET
+- KassationsanalysController.php — intern hardkodad ORDER BY
+- ForstaTimmeAnalysController.php — intern hardkodad ORDER BY
+- HistoriskProduktionController.php — whitelist for sort-kolumner
+- OperatorsPrestandaController.php — whitelist for sort_by
+- Alla ovriga ~90 kontroller granskade via grep-monster
+
 ## 2026-03-21 Session #220 Worker B — Angular form validation + route guard audit (4 buggar fixade)
 
 ### Uppgift 1: Angular form validation completeness audit
