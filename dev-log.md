@@ -1,3 +1,63 @@
+## 2026-03-21 Session #223 Worker A — PHP file upload, array key, multibyte string audit (20 buggar fixade)
+
+### Uppgift 1: PHP classes/ file upload + MIME type validation audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ (117+ filer) for filuppladdnings-monster.
+Sokta efter: $_FILES, move_uploaded_file, is_uploaded_file, file_get_contents med upload, tmp_name.
+
+**Resultat: RENT** — Inga filer i classes/ hanterar filuppladdningar via $_FILES. Alla POST-data
+kommer som JSON via php://input. Ingen MIME-validering, path traversal eller tmp_name-manipulation
+ar relevant.
+
+### Uppgift 2: PHP classes/ array key existence audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for osaker array-nyckel-access.
+Kontrollerade: json_decode() utan null-check, $_GET/$_POST utan isset/??/null-coalescing,
+direkt access av array-nycklar fran DB-rader utan guard.
+
+**Resultat: RENT** — Alla 44 filer med json_decode() anvander antingen `?? []` eller kontrollerar
+`!is_array($data)` direkt efter. Alla 112 filer med $_GET/$_POST anvander `??`, `isset()` eller
+ternary med isset-check. Inga faktiska buggar hittades.
+
+### Uppgift 3: PHP classes/ string encoding + multibyte audit (20 buggar fixade)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for felaktig anvandning av
+strlen/substr/strtolower/strtoupper/strpos pa svenska text (operatornamn, stopporsaker,
+stationsnamn, etiketter, kriterienamn som kan innehalla A/A/O).
+
+**20 buggar fixade i 14 filer:**
+
+**OperatorCompareController.php** rad 477,479 — getInitials(): substr()+strtoupper() pa operatornamn -> mb_substr()+mb_strtoupper()
+**OperatorController.php** rad 334,336 — initial-generering: substr()+strtoupper() pa operatornamn -> mb_-varianter
+**MinDagController.php** rad 78,82 — initial-generering: substr()+strtoupper() pa operatornamn -> mb_-varianter
+**RebotlingController.php** rad 1958 — strtoupper(substr()) pa op_name -> mb_strtoupper(mb_substr())
+**RebotlingController.php** rad 2162,2164 — initial-generering: substr()+strtoupper() pa operatornamn -> mb_-varianter
+**RebotlingAnalyticsController.php** rad 1529,1531 — initial-generering fran operatornamn -> mb_-varianter
+**RebotlingAnalyticsController.php** rad 1820 — strlen($p)+strtoupper($p[0]) pa operatornamn -> mb_strlen()+mb_strtoupper(mb_substr())
+**RebotlingAnalyticsController.php** rad 2398,2400 — initial-generering fran operatornamn -> mb_-varianter
+**RebotlingAnalyticsController.php** rad 2479,2488 — initial-generering fran operatornamn -> mb_-varianter
+**BonusController.php** rad 1662 — substr() pa tier-label (svenska text) -> mb_substr()
+**BonusController.php** rad 2198,2200 — strlen()+strtoupper()+substr() pa operatornamn -> mb_-varianter
+**BonusAdminController.php** rad 524 — substr() pa approved_by (kan vara svenskt namn) -> mb_substr()
+**BonusAdminController.php** rad 801 — substr() pa username (kan vara svenskt namn) -> mb_substr()
+**RebotlingAdminController.php** rad 1003 — substr() pa lr_title (svensk titel) -> mb_substr()
+**RebotlingAdminController.php** rad 1186 — strlen() pa atgardstext (svensk text) -> mb_strlen()
+**RebotlingAdminController.php** rad 1397 — substr() pa note (svensk text) -> mb_substr()
+**KapacitetsplaneringController.php** rad 531,532,963,964,1029 — strtolower() pa stationsnamn (kan vara svenska) -> mb_strtolower()
+**KvalitetscertifikatController.php** rad 403,408,414,420,426 — strtolower()+strpos() pa kriterienamn (svenska) -> mb_strtolower()+mb_strpos()
+**FavoriterController.php** rad 91 — strlen() pa label (kan vara svensk text) -> mb_strlen()
+**VeckorapportController.php** rad 434 — strtolower() pa stopporsak (svensk text) -> mb_strtolower()
+**MorgonrapportController.php** rad 411 — strtolower() pa stopporsak (svensk text) -> mb_strtolower()
+**StopporsakController.php** rad 541,558 — strtolower() pa stopporsak (svensk text) -> mb_strtolower()
+
+Ovriga stallen som granskades men INTE var buggar:
+- ProfileController/LoginController/RegisterController/AdminController: strlen() pa losenord/e-post — korrekt att anvanda byte-langd (bcrypt trunkerar vid 72 bytes)
+- VpnController: strlen()/strpos() pa ASCII VPN-output — inga svenska tecken
+- Diverse controllers: substr() pa datum-strangar (YYYY-MM-DD) — alltid ASCII
+- FeatureFlagController: strlen() pa feature_key — alltid ASCII-nycklar
+- HistoriskSammanfattningController: strtolower() pa 'manad'/'kvartal' — frontend-kontrollerade ASCII-varden
+- SkiftplaneringController: strtoupper() pa 'FM'/'EM'/'NATT' — ASCII enum-varden
+- AndonController/LineSkiftrapportController: strtolower() pa linje-namn — ASCII
+
+---
+
 ## 2026-03-21 Session #222 Worker A — PHP floatval NAN/INF bypass audit (8 buggar fixade)
 
 ### Uppgift 1: PHP classes/ numeric overflow + boundary value audit
