@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-20 (session #217)*
+*Senast uppdaterad: 2026-03-21 (session #218)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -84,24 +84,29 @@ Session #214: BUGGJAKT — 24 buggar (3 Worker A + 21 Worker B). Date/time: 3 fe
 Session #215: BUGGJAKT — 12 buggar (5 Worker A + 7 Worker B). Integer overflow bounds (4), array key null-check (1), pipe null-check (7). Routing guard audit: rent.
 Session #216: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL ORDER BY: rent. SSRF: rent. HTTP retry: rent. Memory leak: 4 setTimeout-lackor fixade.
 Session #217: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). Session handling: rent. Error response: rent. SQL UNION: rent. Form validation: 2 fixar. Tree-shaking: 2 fixar.
+Session #218: BUGGJAKT — 11 buggar (5 Worker A + 6 Worker B). Date/time month-overflow (1), input sanitization trim/strip_tags (4), logikbugg impossible condition (1), svenska accentfel (5).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #218+):
-- [ ] PHP classes/ date/time edge case audit
-- [ ] Angular chart.js configuration audit
-- [ ] PHP classes/ input sanitization completeness audit
-- [ ] Angular HTTP error UX audit
+### Kvarstaende buggjakt-items (session #219+):
 - [ ] PHP classes/ file permission + path validation audit
+- [ ] Angular template strict null check audit
+- [ ] PHP classes/ array bounds + isset audit
+- [ ] Angular reactive polling cleanup audit
+- [ ] PHP classes/ SQL transaction consistency audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
 ### 2026-03-20 — Session #216 (klar)
-Worker A: 0 buggar — SQL ORDER BY injection audit: alla 4 dynamiska ORDER BY redan whitelist-skyddade. SSRF audit: inga file_get_contents/curl med user-input.
-Worker B: 4 buggar — setTimeout-lackor i kvalitetscertifikat (1), produktionskostnad (3), stopptidsanalys (3), prediktivt-underhall (2). HTTP retry: rent (fixat i #208).
+Worker A: 0 buggar — SQL ORDER BY injection audit: rent. SSRF audit: rent.
+Worker B: 4 buggar — setTimeout-lackor i 4 komponenter.
 
 ### 2026-03-20 — Session #217 (klar)
-Worker A: 0 buggar — session handling: rent (regenerate_id, cookie-flags, timeout, CSRF alla korrekt). Error response consistency: rent (alla JSON med HTTP-statuskoder). SQL UNION: rent (100+ hardkodade, inga dynamiska).
-Worker B: 4 buggar — form validation: 2 fixar (underhallslogg saknade validering av station_id/datum + submit-knapp). Tree-shaking: 2 fixar (XLSX wildcard-import i production-calendar + historik).
+Worker A: 0 buggar — session handling, error response, SQL UNION: alla rent.
+Worker B: 4 buggar — form validation (2), tree-shaking XLSX (2).
+
+### 2026-03-21 — Session #218 (klar)
+Worker A: 5 buggar — strtotime month-overflow i StatistikOverblickController (1x3 forekomster), saknad trim i MaintenanceController/BonusAdminController (3), fel strip_tags-ordning i SkiftoverlamningController (1).
+Worker B: 6 buggar — omojligt villkor i weekly-report kvalitetsfarg (1), svenska accentfel i 4 komponenter (5). Chart.js config: rent. HTTP error UX: rent.
