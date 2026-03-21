@@ -15899,3 +15899,58 @@ Fokuserade pa komponenter (inte services, som fixades i session #225).
 - Alla felmeddelanden ar pa svenska (inga engelska)
 - Alla komponenter med POST/DELETE-operationer (shift-handover, users, operators, rebotling-admin, stoppage-log, m.fl.) hanterar null-svar korrekt med toast.error() eller inline error-visning
 - Inga fler alert()-anrop finns i kodbasen
+
+## 2026-03-21 Session #236 Worker A — PHP backend audit (0 buggar)
+
+### Uppgift 1: SQL transaction rollback audit
+Granskade samtliga 31 PHP-filer i noreko-backend/classes/ som anvander beginTransaction().
+
+**Resultat: Inga buggar.** Alla 31 filer har korrekt rollBack() i sina catch-block:
+- Alla catch-block efter beginTransaction() innehaller `$pdo->rollBack()` (eller `$this->pdo->rollBack()`)
+- Alla anvander defensiv guard: `if ($pdo->inTransaction()) { $pdo->rollBack(); }` — forhindrar "no active transaction"-fel
+- Manga anvander nested try/catch-monster (inner try med throw, outer catch med rollBack) — korrekt implementerat
+- Flera controllers anvander FOR UPDATE + rollBack vid tidiga returneringar (t.ex. duplicate check) — korrekt monster
+- Filer granskade: ProfileController, ShiftPlanController, RebotlingController, SkiftrapportController (6 transaktioner), StopporsakRegistreringController, RebotlingAnalyticsController, BonusAdminController (2 transaktioner), StoppageController (3 transaktioner), AlertsController, BatchSparningController, LeveransplaneringController, ProduktionsSlaController, SkiftoverlamningController, OperatorsbonusController, MaintenanceController, MaskinunderhallController, ShiftHandoverController, FavoriterController (2 transaktioner), KvalitetscertifikatController, RebotlingAdminController (4 transaktioner), OperatorController (2 transaktioner), FeatureFlagController, AdminController (4 transaktioner), CertificationController, FeedbackController, LineSkiftrapportController (6 transaktioner), SkiftplaneringController, ProduktionsmalController, RebotlingProductController (3 transaktioner), RegisterController, RuntimeController
+
+### Uppgift 2: Rate limiting audit
+Granskade LoginController.php, RegisterController.php, AuthHelper.php, ProfileController.php.
+
+**Resultat: Inga buggar.** Rate limiting ar redan korrekt implementerat:
+- **LoginController:** IP-baserad rate limiting (AuthHelper::isRateLimited) + anvandarnamnbaserad lasning (AuthHelper::isUsernameLocked) — skyddar mot bade enkel och distribuerad brute force
+- **RegisterController:** IP-baserad rate limiting med prefix 'reg:' for att skilja fran login-forsok
+- **ProfileController:** IP-baserad rate limiting med prefix 'pwchange:' for losenordsbyte, rensar vid lyckat forsok
+- **AuthHelper:** MAX_ATTEMPTS=5, LOCKOUT_MINUTES=15, bcrypt (PASSWORD_BCRYPT), cleanup av gamla forsok, per-username + per-IP-raking
+- Alla anvander bcrypt via AuthHelper::hashPassword() / AuthHelper::verifyPassword()
+- Inga sha1/md5-anrop finns i kodbasen
+
+### Uppgift 3: CORS preflight OPTIONS handling audit
+Granskade noreko-backend/api.php (enda entry point for API-requests).
+
+**Resultat: Inga buggar.** CORS-hanteringen ar korrekt:
+- OPTIONS-requests returnerar 204 (rad 51-54) och avslutar med exit — ingen business logic kors
+- Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS — matchar faktiska metoder
+- Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token — alla viktiga headers inkluderade
+- Access-Control-Allow-Credentials: true — korrekt for session-baserad auth
+- Origin-validering mot vitlista + dynamisk subdoman-matchning
+- CRLF-sanering av origin-header (rad 41) — skydd mot header injection
+
+### Worker B — Session #236
+#### Uppgift 1: Angular template strict null-check audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga HTML-templates i noreko-frontend/src/app/pages/ (utom rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Totalt ca 130 filer.
+
+Specifikt undersokt:
+- **!. (non-null assertion):** Hittade 80+ anvandningar av `!.` i templates (malhistorik, produktionsmal, andon-board, monthly-report, feedback-analys, oee-jamforelse, produktionskalender, underhallslogg, stopporsak-operator, skiftrapport-sammanstallning, kvalitetstrendanalys, kassationsanalys). Samtliga ar korrekt skyddade av `*ngIf`-guarder som kontrollerar samma variabel med `?.` — t.ex. `*ngIf="compareData?.best_day"` foljs av `compareData!.best_day!.datum`. Detta ar giltig Angular-praxis.
+- **Komplexa property chains (a.b.c.d):** Granskade vd-veckorapport (trenderData.trender.produktion.trend), executive-dashboard (dashData.week.best_operator.name), veckorapport (report.production.best_day.date). Alla skyddade av narmaste `*ngIf`.
+- **[0]-access utan langdkontroll:** Hittade i operator-ranking, kassationsorsak-statistik, benchmarking, executive-dashboard, statistik-veckodag. Alla har antingen `?.` (optional chaining) eller `length > 0`-guard.
+- **Pipes pa null (date/number):** Samtliga date- och number-pipes har ternary-guarder eller `*ngIf`-skydd.
+- **`*ngFor` pa undefined arrays:** Inga oguardade `*ngFor` hittade — alla anvander antingen `?? []` fallback eller `*ngIf`-guard pa parent.
+
+#### Uppgift 2: Angular lazy-loaded module dependency audit
+**Resultat:** 0 buggar — rent
+
+- **loadComponent-stigar:** Alla 117 import-stigar i app.routes.ts matchar faktiska .ts-filer.
+- **Auth guards:** 117 routes har `canActivate` med authGuard eller adminGuard. De 20 oguardade ar korrekt publika (login, register, about, contact, live-vyer, skiftrapporter, statistik-sidor, not-found).
+- **Services:** Samtliga services anvander `providedIn: 'root'` — korrekt for standalone-component lazy-loading-arkitekturen.
+- **Cirkulara beroenden:** Inga hittade — alla routes importerar fran pages/ eller rebotling/.
