@@ -562,7 +562,7 @@ class ProduktionsSlaController {
             return;
         }
 
-        $targetIbc = max(1, (int)($data['target_ibc'] ?? 0));
+        $targetIbc = max(1, min(99999, (int)($data['target_ibc'] ?? 0)));
         $targetKass = max(0, min(100, (float)($data['target_kassation_pct'] ?? 5)));
         $giltigFrom = trim($data['giltig_from'] ?? date('Y-m-d'));
 

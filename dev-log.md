@@ -1,3 +1,31 @@
+## 2026-03-21 Session #232 Worker A — PHP classes/ input validation + race condition audit (4 buggar)
+
+### Uppgift 1: Input length/bounds validation audit
+
+Granskade ALLA PHP-filer i noreko-backend/classes/ (exkl. plcbackend/) med write-operationer — totalt ~47 filer systematiskt.
+
+**Buggar hittade och fixade:**
+
+1. **`UnderhallsloggController.php::skapa()`** — `varaktighet_min` saknade övre gräns. Samma funktion har en annan metod `logUnderhall()` med korrekt `max(0, min(14400, ...))`, men `skapa()` använde bara `max(0, ...)`. Risk: INT-overflow i DB-kolumn vid extremt stora värden. Fix: lade till `min(14400, ...)`.
+
+2. **`LeveransplaneringController.php::skapaOrder()`** — `antal_ibc` saknade övre gräns (`max(1, ...)`). DB-kolumnen är `INT NOT NULL`. Fix: `max(1, min(99999, ...))`.
+
+3. **`BatchSparningController.php::createBatch()`** — `planerat_antal` saknade övre gräns (`max(1, ...)`). DB-kolumnen är `INT`. Fix: `max(1, min(99999, ...))`.
+
+4. **`ProduktionsSlaController.php::setGoal()`** — `target_ibc` saknade övre gräns (`max(1, ...)`). DB-kolumnen är `INT`. Fix: `max(1, min(99999, ...))`.
+
+**Rent (inga buggar):** AvvikelselarmController, SkiftoverlamningController, OperatorsbonusController, StoppageController, KassationskvotAlarmController, MaintenanceController, MaskinunderhallController, FavoriterController, KvalitetscertifikatController, RebotlingAdminController, TvattlinjeController, FeatureFlagController, LoginController, RuntimeController, RebotlingAnalyticsController, ProduktionsTaktController, AuthHelper, UnderhallsprognosController, ProduktionskostnadController, AuditController, SkiftrapportController, LineSkiftrapportController, StopptidsanalysController, SaglinjeController, KlassificeringslinjeController, DashboardLayoutController, RebotlingProductController, MaskinOeeController, ShiftPlanController.
+
+### Uppgift 2: Race condition audit
+
+Granskade alla read-modify-write-mönster i alla controllers.
+
+**Rent:** Samtliga controllers som behöver atomic read-modify-write använder korrekt `SELECT ... FOR UPDATE` inom `beginTransaction()`: SkiftoverlamningController (sparaProtokoll), BatchSparningController (completeBatch), RuntimeController (registerBreakFromShelly/registerBreak), MaskinunderhallController (addService), FavoriterController (addFavorit/reorderFavoriter).
+
+**Notering:** MaintenanceController::setServiceInterval() har SELECT-then-INSERT utan FOR UPDATE (admin-only settings, acceptabel TOCTOU).
+
+---
+
 ## 2026-03-21 Session #232 Worker B — Angular HTTP caching/stale data audit + router navigation guard audit (2 buggar)
 
 ### Uppgift 1: Angular HTTP caching/stale data audit

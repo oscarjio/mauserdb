@@ -483,7 +483,7 @@ class BatchSparningController {
             $batchNummer = mb_substr($batchNummer, 0, 100);
         }
 
-        $planeratAntal = max(1, (int)($data['planerat_antal'] ?? 0));
+        $planeratAntal = max(1, min(99999, (int)($data['planerat_antal'] ?? 0)));
         $kommentar = isset($data['kommentar']) ? strip_tags(trim($data['kommentar'])) : null;
         if ($kommentar && mb_strlen($kommentar) > 2000) {
             $kommentar = mb_substr($kommentar, 0, 2000);

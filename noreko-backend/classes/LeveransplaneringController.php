@@ -487,7 +487,7 @@ class LeveransplaneringController {
             }
 
             $kundnamn   = mb_substr(strip_tags(trim($input['kundnamn'] ?? '')), 0, 200);
-            $antalIbc   = max(1, (int)($input['antal_ibc'] ?? 0));
+            $antalIbc   = max(1, min(99999, (int)($input['antal_ibc'] ?? 0)));
             $bestDatum  = trim($input['bestallningsdatum'] ?? date('Y-m-d'));
             $onskDatum  = trim($input['onskat_leveransdatum'] ?? '');
             $prioritet  = max(1, min(10, (int)($input['prioritet'] ?? 5)));

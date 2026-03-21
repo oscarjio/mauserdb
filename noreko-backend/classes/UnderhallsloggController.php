@@ -457,7 +457,7 @@ class UnderhallsloggController {
             $stationId     = max(0, (int)($data['station_id'] ?? 0));
             $typ           = $data['typ'] ?? '';
             $beskrivning   = mb_substr(strip_tags(trim($data['beskrivning'] ?? '')), 0, 5000);
-            $varaktighetMin = max(0, (int)($data['varaktighet_min'] ?? 0));
+            $varaktighetMin = max(0, min(14400, (int)($data['varaktighet_min'] ?? 0)));
             $stopporsak    = mb_substr(strip_tags(trim($data['stopporsak'] ?? '')), 0, 255);
             $utfordAv      = mb_substr(strip_tags(trim($data['utford_av'] ?? '')), 0, 100);
             $datum         = trim($data['datum'] ?? '');
