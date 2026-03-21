@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Avklarade (session #224):
-- [x] **PHP classes/ regex injection + preg_match audit** — rent, alla preg_ anvander hardkodade monster (Worker A)
-- [x] **PHP classes/ session concurrency + race condition audit** — 3 TOCTOU-buggar fixade i 3 filer (Worker A)
-- [x] **Angular pipe error handling audit** — rent, inga custom pipes finns (Worker B)
-- [x] **Angular router resolve/guard data consistency audit** — 1 bugg fixad i adminGuard (Worker B)
+### Avklarade (session #225):
+- [x] **PHP classes/ HTTP header injection audit** — rent, alla header() anvander statiska varden (Worker A)
+- [x] **PHP classes/ JSON decode error handling audit** — 2 buggar fixade i NewsController (Worker A)
+- [x] **Angular service error propagation audit** — 18 buggar fixade i 10 services (Worker B)
+- [x] **Angular form dirty-state audit** — rent, alla formuler i modals (Worker B)
 
-### Nasta buggjakt-items (session #225+):
-- [ ] **PHP classes/ HTTP header injection audit** — header() med ovaliderade varden
-- [ ] **PHP classes/ JSON decode error handling audit** — json_decode utan json_last_error-kontroll
-- [ ] **Angular service error propagation audit** — services som svaljer fel istallet for att propagera
+### Nasta buggjakt-items (session #226+):
 - [ ] **PHP classes/ file path validation audit** — saknad basename/realpath-validering pa filsokvagar
-- [ ] **Angular form dirty-state audit** — canDeactivate-guards som saknas pa formularsidor
+- [ ] **PHP classes/ SQL COALESCE/IFNULL audit** — nullable kolumner utan fallback i queries
+- [ ] **Angular HTTP interceptor error handling audit** — interceptor som svaljer/transformerar fel felaktigt
+- [ ] **PHP classes/ array access without isset audit** — direkt array-access utan isset/array_key_exists
+- [ ] **Angular template async pipe audit** — saknad async pipe eller dubbla subscriptions i templates
 
 ## Parkerade features (ta inte dessa nu)
 

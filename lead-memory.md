@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #224)*
+*Senast uppdaterad: 2026-03-21 (session #225)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -90,23 +90,19 @@ Session #220: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL transaction c
 Session #221: BUGGJAKT — 47 buggar (0 Worker A + 47 Worker B). Type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent. HTTP retry/timeout: rent. Svenska diakritiska tecken (a/o saknade accenter): 47 fixar i templates.
 Session #222: BUGGJAKT — 11 buggar (8 Worker A + 3 Worker B). floatval NAN/INF bypass i 5 PHP-filer (8). chartTimers minneslackor i 3 Angular-komponenter (3). Date/time: rent. Reactive forms: rent.
 Session #223: BUGGJAKT — 57 buggar (20 Worker A + 37 Worker B). mb_string i 14 PHP-filer (20), HTTP error normalization i 12 Angular-filer (37). File upload/array key/template null-safe: rent.
+Session #224: BUGGJAKT — 4 buggar (3 Worker A + 1 Worker B). TOCTOU race conditions i 3 PHP-filer (3), adminGuard race condition (1). Regex injection: rent. Pipe audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #224+):
-- [ ] PHP classes/ regex injection + preg_match audit
-- [ ] Angular pipe error handling audit
-- [ ] PHP classes/ session concurrency + race condition audit
-- [ ] Angular router resolve/guard data consistency audit
+### Pagaende (session #225):
 - [ ] PHP classes/ HTTP header injection audit
+- [ ] PHP classes/ JSON decode error handling audit
+- [ ] Angular service error propagation audit
+- [ ] Angular form dirty-state audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #222 (klar)
-Worker A: 8 buggar — floatval NAN/INF bypass i 5 PHP-filer. Date/time: rent.
-Worker B: 3 buggar — chartTimers minneslackor i 3 Angular-komponenter. Reactive forms: rent.
 
 ### 2026-03-21 — Session #223 (klar)
 Worker A: 20 buggar — mb_string i 14 PHP-filer. File upload: rent. Array key: rent.
@@ -115,3 +111,7 @@ Worker B: 37 buggar — res.message -> res.error i 12 Angular-filer. Template nu
 ### 2026-03-21 — Session #224 (klar)
 Worker A: 3 buggar — TOCTOU race conditions i 3 PHP-klasser (SELECT+INSERT utan transaktion). Regex injection: rent.
 Worker B: 1 bugg — race condition i adminGuard (combineLatestWith -> enbart user$). Pipe audit: rent (inga custom pipes). Resolver audit: rent.
+
+### 2026-03-21 — Session #225 (klar)
+Worker A: 2 buggar — json_decode boolean-check i NewsController (2). HTTP header injection: rent.
+Worker B: 18 buggar — catchError(() => of(null)) i 10 services (18 POST-metoder). Form dirty-state: rent (alla formuler i modals).
