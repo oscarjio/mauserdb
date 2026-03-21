@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #221)*
+*Senast uppdaterad: 2026-03-21 (session #222)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -88,28 +88,29 @@ Session #218: BUGGJAKT — 11 buggar (5 Worker A + 6 Worker B). Date/time month-
 Session #219: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade fetch()-kontroller (3), felaktiga kolumnnamn dagmal/daily_goal->rebotling_target (2). Strict null check + polling cleanup: rent.
 Session #220: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL transaction consistency: rent. Error message disclosure: rent. Form validation: 4 saknade required/disabled. Route guard: rent.
 Session #221: BUGGJAKT — 47 buggar (0 Worker A + 47 Worker B). Type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent. HTTP retry/timeout: rent. Svenska diakritiska tecken (a/o saknade accenter): 47 fixar i templates.
+Session #222: BUGGJAKT — 11 buggar (8 Worker A + 3 Worker B). floatval NAN/INF bypass i 5 PHP-filer (8). chartTimers minneslackor i 3 Angular-komponenter (3). Date/time: rent. Reactive forms: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #222+):
-- [ ] PHP classes/ numeric overflow + boundary value audit
-- [ ] PHP classes/ date/time edge case audit
-- [ ] Angular reactive forms validation sync audit
+### Kvarstaende buggjakt-items (session #223+):
 - [ ] PHP classes/ file upload + MIME type validation audit
-- [ ] Angular memory profiling audit
+- [ ] PHP classes/ array key existence audit
+- [ ] Angular HTTP interceptor error normalization audit
+- [ ] PHP classes/ string encoding + multibyte audit
+- [ ] Angular template null-safe navigation audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #219 (klar)
-Worker A: 5 buggar — saknade fetch()===false-kontroller i VDVeckorapport/MyStats/Stopporsak (3), felaktiga kolumnnamn dagmal/daily_goal->rebotling_target i WeeklyReport/Operatorsbonus (2). File permission/path: rent.
-Worker B: 0 buggar — strict null check: rent (40+ komponenter). Reactive polling cleanup: rent.
 
 ### 2026-03-21 — Session #220 (klar)
 Worker A: 0 buggar — SQL transaction consistency: rent. Error message disclosure: rent.
 Worker B: 4 buggar — saknade required-attribut i produktionsmal/skiftoverlamning/bonus-admin (3), saknad datum-check i rebotling-admin kassation-knapp (1). Route guard: rent.
 
 ### 2026-03-21 — Session #221 (klar)
-Worker A: 0 buggar — type coercion/strict comparison: rent (alla PHP-filer anvander ===). SQL injection ORDER BY/LIMIT: rent (whitelist-validering, prepared statements).
-Worker B: 47 buggar — svenska diakritiska tecken saknade i 47 template-filer (Forsok->Forso:k, hamta->hamta, Stang->Stang m.fl.). HTTP retry/timeout: rent.
+Worker A: 0 buggar — type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent.
+Worker B: 47 buggar — svenska diakritiska tecken saknade i 47 template-filer. HTTP retry/timeout: rent.
+
+### 2026-03-21 — Session #222 (klar)
+Worker A: 8 buggar — floatval NAN/INF bypass i MaintenanceController, BonusAdminController, KvalitetstrendanalysController, RebotlingAdminController, TvattlinjeController. Date/time: rent.
+Worker B: 3 buggar — chartTimers minneslackor i stopptidsanalys, produktionskostnad, prediktivt-underhall. Reactive forms: rent.

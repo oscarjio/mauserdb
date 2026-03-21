@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Avklarade (session #221):
-- [x] **PHP classes/ type coercion + strict comparison audit** — rent (Worker A)
-- [x] **PHP classes/ SQL injection via dynamic ORDER BY/LIMIT audit** — rent (Worker A)
-- [x] **Angular HTTP error retry + timeout consistency audit** — rent (Worker B)
-- [x] **Angular template i18n completeness audit** — 47 buggar fixade (Worker B)
+### Avklarade (session #222):
+- [x] **PHP classes/ numeric overflow + boundary value audit** — 8 buggar fixade, floatval NAN/INF bypass (Worker A)
+- [x] **PHP classes/ date/time edge case audit** — rent (Worker A)
+- [x] **Angular reactive forms validation sync audit** — rent, alla anvander template-driven (Worker B)
+- [x] **Angular memory profiling audit** — 3 buggar fixade, chartTimers minneslackor (Worker B)
 
-### Nasta buggjakt-items (session #222+):
-- [ ] **PHP classes/ numeric overflow + boundary value audit** — intval/floatval pa extremvarden
-- [ ] **PHP classes/ date/time edge case audit** — leap year, DST, midnight, month boundaries
-- [ ] **Angular reactive forms validation sync audit** — template vs component validering ur synk
+### Nasta buggjakt-items (session #223+):
 - [ ] **PHP classes/ file upload + MIME type validation audit** — saknad content-type-kontroll
-- [ ] **Angular memory profiling audit** — stora dataset i tabeller/grafer utan pagination/virtualisering
+- [ ] **PHP classes/ array key existence audit** — isset/array_key_exists fore access
+- [ ] **Angular HTTP interceptor error normalization audit** — inkonsekvent felhantering mellan interceptor och komponenter
+- [ ] **PHP classes/ string encoding + multibyte audit** — strlen vs mb_strlen, substr vs mb_substr
+- [ ] **Angular template null-safe navigation audit** — saknade ?. i asynkrona data-bindings
 
 ## Parkerade features (ta inte dessa nu)
 
