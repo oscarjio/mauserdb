@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #218):
-- [ ] **PHP classes/ date/time edge case audit** — felaktiga strtotime, DST-problem, midnight edge cases (Worker A)
-- [ ] **PHP classes/ input sanitization completeness audit** — saknad trim/strip_tags/htmlspecialchars (Worker A)
-- [ ] **Angular chart.js configuration audit** — felaktiga options, saknad responsivitet, minneslakor (Worker B)
-- [ ] **Angular HTTP error UX audit** — saknade anvandardvandliga felmeddelanden vid 4xx/5xx (Worker B)
+### Avklarade (session #219):
+- [x] **PHP classes/ file permission + path validation audit** — rent (Worker A)
+- [x] **PHP classes/ array bounds + isset audit** — 5 buggar fixade (Worker A)
+- [x] **Angular template strict null check audit** — rent (Worker B)
+- [x] **Angular reactive polling cleanup audit** — rent (Worker B)
 
-### Nasta buggjakt-items (session #219+):
-- [ ] **PHP classes/ file permission + path validation audit** — saknad kontroll av skrivbara kataloger
-- [ ] **Angular template strict null check audit** — saknade ?. eller *ngIf-guards pa potentiellt null-data
-- [ ] **PHP classes/ array bounds + isset audit** — saknade isset/array_key_exists fore array-access
-- [ ] **Angular reactive polling cleanup audit** — setInterval utan clearInterval, polling som fortsatter efter route-byte
+### Nasta buggjakt-items (session #220+):
 - [ ] **PHP classes/ SQL transaction consistency audit** — saknade beginTransaction/commit/rollback vid multi-query
+- [ ] **PHP classes/ error message information disclosure audit** — felmeddelanden som lacker DB-struktur/sokvagar
+- [ ] **Angular form validation completeness audit** — saknade required/min/max/pattern-attribut pa input-falt
+- [ ] **PHP classes/ type coercion + strict comparison audit** — == vs === dar typen spelar roll
+- [ ] **Angular route guard + lazy loading consistency audit** — saknade guards pa skyddade rutter
 
 ## Parkerade features (ta inte dessa nu)
 
