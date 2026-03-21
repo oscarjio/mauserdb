@@ -98,27 +98,28 @@ Session #228: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL prepared stat
 Session #229: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Unused variable/dead code (117 filer): rent. File inclusion: rent. Template null-check (37 filer): rent. Reactive forms: inga (template-driven, korrekt).
 Session #230: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). array_key_exists/isset: rent. Exception handling: rent. HTTP retry: 1 fix (POST retry). Change detection: rent.
 Session #231: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL transaction isolation (47 filer): rent. Date/time edge cases (110 filer): rent. Lazy loading: rent (alla loadComponent). Form state: rent.
+Session #232: BUGGJAKT — 6 buggar (4 Worker A + 2 Worker B). Input bounds: 4 saknade ovre granser. Race conditions: rent. HTTP caching: rent. Router guards: 1 UrlTree-fix. Interval cleanup: 1 fix.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #232):
-- [ ] PHP classes/ input length/bounds validation audit
-- [ ] PHP classes/ concurrent request race condition audit
-- [ ] Angular HTTP caching/stale data audit
+### Nasta (session #233):
 - [ ] PHP classes/ SQL LIMIT/OFFSET pagination audit
+- [ ] PHP classes/ error response consistency audit
+- [ ] Angular service URL consistency audit
+- [ ] PHP classes/ CORS/cookie SameSite audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-21 — Session #229 (klar)
-Worker A: 0 buggar — Unused variable/dead code (117 PHP-filer): rent. File inclusion/require: rent (alla __DIR__-baserade).
-Worker B: 0 buggar — Template strict null-check (37 templates): rent (*ngIf + ?. konsekvent). Reactive forms: inga (template-driven med korrekt validering).
-
 ### 2026-03-21 — Session #230 (klar)
-Worker A: 0 buggar — array_key_exists/isset (117 filer): rent, alla isset/empty korrekt. Exception handling (117 filer): rent, alla catch har error_log + HTTP-felkod.
-Worker B: 1 bugg — error.interceptor retry:ade POST/PUT/DELETE (kunde skapa dubbletter). Fix: enbart GET/HEAD/OPTIONS. Change detection (42 komponenter): rent, alla Default korrekt, trackBy overallt.
+Worker A: 0 buggar — array_key_exists/isset (117 filer): rent. Exception handling (117 filer): rent.
+Worker B: 1 bugg — error.interceptor retry:ade POST/PUT/DELETE. Fix: enbart GET/HEAD/OPTIONS.
 
 ### 2026-03-21 — Session #231 (klar)
-Worker A: 0 buggar — SQL transaction isolation (47 filer med skrivoperationer): rent, alla multi-write metoder har beginTransaction/commit/rollBack. Date/time edge cases (110 filer): rent, alla strtotime-buggar fixade i tidigare sessioner, korrekt DST-hantering.
-Worker B: 0 buggar — Lazy loading (100+ routes): rent, alla anvander loadComponent med dynamic imports. Form state (14 formular): rent, alla har disabled-logik, name-attribut, valid-kontroll.
+Worker A: 0 buggar — SQL transaction isolation (47 filer): rent. Date/time edge cases (110 filer): rent.
+Worker B: 0 buggar — Lazy loading (100+ routes): rent. Form state (14 formular): rent.
+
+### 2026-03-21 — Session #232 (klar)
+Worker A: 4 buggar — Input bounds: 4 numeriska inputs utan ovre grans (UnderhallsloggController, LeveransplaneringController, BatchSparningController, ProduktionsSlaController). Race conditions: rent.
+Worker B: 2 buggar — refreshInterval anti-pattern i stopporsak-registrering (1), authGuard/adminGuard returnerade false istallet for UrlTree (1). HTTP caching: rent. Router guards: rent.
