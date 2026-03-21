@@ -1,3 +1,46 @@
+## 2026-03-21 Session #218 Worker B — Angular chart.js configuration + HTTP error UX audit (6 buggar)
+
+### Uppgift 1: Angular chart.js configuration audit
+Granskade alla Chart.js-komponenter utanfor rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/.
+
+Granskade komponenter:
+- production-calendar — OK (korrekt destroy, responsive, null-check, dark theme)
+- historik — OK (korrekt destroy, ViewChild, loadVersion-guard)
+- underhallslogg — OK (korrekt destroy, chartReady-guard)
+- operator-detail — OK (korrekt destroy, chartTimer, null-check)
+- andon — OK (korrekt destroy, uppdateraCumulativeChart data-update pattern)
+- operators — OK (trendCharts map med destroy, timers cleanup)
+- tidrapport — OK (korrekt destroy, chartTimer)
+- operator-ranking — OK (korrekt destroyCharts, chartTimers)
+- operator-compare — OK (radarChart + trendChart destroy, timers)
+- oee-trendanalys — OK (trendChart + prediktionChart destroy, timers)
+- historisk-sammanfattning — OK (trendChart + paretoChart destroy)
+- tvattlinje-statistik — OK (productionChart + oeeTrendChart destroy)
+- skiftjamforelse — OK (radarChart + trendChart destroy)
+- produktionsmal — OK (doughnutChart + barChart destroy)
+- stoppage-log — OK (6 charts alla med destroy)
+- executive-dashboard — OK (barChart + moodChart destroy)
+- audit-log — OK (activityChart destroy, service hanterar timeout/catchError)
+- weekly-report — BUGG: kvalitet text-yellow villkor omojligt (>= 95 && < 95)
+
+### Uppgift 2: Angular HTTP error UX audit
+Granskade alla komponenter med HTTP-anrop for saknad felhantering och svensk text.
+
+Granskade komponenter med .subscribe():
+- Alla ovanstaende + vd-dashboard, kassations-drilldown
+
+Hittade buggar:
+1. **weekly-report.ts rad 895**: `[class.text-yellow]="op.kvalitet_pct >= 95 && op.kvalitet_pct < 95"` — omojligt villkor, text-yellow appliceras ALDRIG pa operatorens kvalitet i tabellen. Fix: andrat till `< 98` (matchar ovriga kvalitetsvillkor i samma fil).
+2. **weekly-report.ts rad 609**: Svensk text "Jämforelse mot foregaende vecka" saknade a-ring och o-trema. Fix: "Jämförelse mot föregående vecka".
+3. **weekly-report.ts rad 1315**: Chart-label "Dagsmal" saknade a-ring. Fix: "Dagsmål".
+4. **vd-dashboard.component.html rad 279**: "Tillganglighet" saknade a-trema. Fix: "Tillgänglighet".
+5. **oee-trendanalys.component.ts rad 138**: "Tillganglighet" saknade a-trema. Fix: "Tillgänglighet".
+6. **kassations-drilldown.html rad 61**: "foregaende" saknade o-trema. Fix: "föregående".
+
+### Sammanfattning
+6 buggar fixade (1 logikbugg i villkorsuttryck + 5 svenska teckenfel i UI-text).
+Bygget OK. Committade och pushade.
+
 ## 2026-03-21 Session #218 Worker A — PHP date/time edge case + input sanitization audit (5 buggar)
 
 ### Uppgift 1: PHP classes/ date/time edge case audit
