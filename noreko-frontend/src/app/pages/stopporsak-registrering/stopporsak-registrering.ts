@@ -42,6 +42,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
   // Live-timer för aktiva stopp
   timerStr: { [id: number]: string } = {};
   private timerInterval: any;
+  private refreshInterval: any;
   private successTimerId: any;
   private destroy$ = new Subject<void>();
 
@@ -61,11 +62,9 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     this.loadHistorik();
 
     // Uppdatera aktiva stopp var 30:e sekund
-    const refreshInterval = setInterval(() => {
+    this.refreshInterval = setInterval(() => {
       this.loadAktivaStopp();
     }, 30000);
-
-    this.destroy$.subscribe(() => clearInterval(refreshInterval));
 
     // Live-timer varje sekund
     this.timerInterval = setInterval(() => {
@@ -76,6 +75,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     clearTimeout(this.successTimerId);
     clearInterval(this.timerInterval);
+    clearInterval(this.refreshInterval);
     this.destroy$.next();
     this.destroy$.complete();
   }
