@@ -10,11 +10,19 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const auth = inject(AuthService);
 
+  // Bara GET/HEAD/OPTIONS ar idempotenta — POST/PUT/DELETE ska INTE retry:as
+  // (kan skapa dubbletter eller utfora oavsiktliga sidoeffekter)
+  const safeToRetry = ['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase());
+
   return next(req).pipe(
-    // Retry en gång vid nätverksfel (status 0) eller 502/503/504 med 1s delay
+    // Retry en gang vid natverksfel (status 0) eller 502/503/504 med 1s delay
+    // Enbart for idempotenta metoder (GET/HEAD/OPTIONS)
     retry({
       count: 1,
       delay: (err: HttpErrorResponse) => {
+        if (!safeToRetry) {
+          return throwError(() => err);
+        }
         if (err.status === 0 || err.status === 502 || err.status === 503 || err.status === 504) {
           return timer(1000);
         }

@@ -1,3 +1,31 @@
+## 2026-03-21 Session #230 Worker B — Angular HTTP retry logic + change detection audit (1 bugg fixad)
+
+### Uppgift 1: Angular HTTP retry logic audit (92 service-filer + 1 interceptor granskade)
+Granskade ALLA service-filer i noreko-frontend/src/app/services/ och interceptors/.
+
+**Kontrollerade:**
+- **POST/PUT/DELETE med retry** — Interceptorn (error.interceptor.ts) retry:ade ALLA HTTP-anrop vid transienta fel (0, 502, 503, 504), inklusive POST/PUT/DELETE. POST-retry kan skapa dubbletter (t.ex. createBatch, addService, assignOperator, generera certifikat). **BUGG FIXAD** — lade till metodkontroll sa att enbart GET/HEAD/OPTIONS retry:as.
+- **GET-anrop utan retry** — Alla GET-anrop har korrekt retry(1) pa service-niva PLUS interceptorns retry med 1s delay. Dubbel retry (service + interceptor) ar redundant men inte skadlig med count=1.
+- **retry utan delay** — Service-nivans retry(1) saknar delay men interceptorns retry har timer(1000). Med count=1 pa bada nivaer ar request-storm-risken minimal — acceptabelt.
+- **retry utan maxRetries** — Alla retry-anrop har explicit count: 1 (interceptor) eller retry(1) (services). Inga oandliga loopar.
+- **Saknad timeout** — Alla HTTP-anrop har timeout (10000-20000ms). Inget anrop kan hanga for evigt.
+- **catchError som returnerar EMPTY** — 0 EMPTY-importer/returvarden. Alla catchError returnerar of(null), of({success:false,...}), eller throwError. Korrekt.
+- **POST-anrop pa service-niva** — 12 POST-metoder granskade (batch-sparning, maskinunderhall, skiftplanering, kvalitetscertifikat, operatorsbonus, produktionskostnad, produktions-sla). INGEN har service-niva retry — korrekt.
+
+**1 bugg fixad:** error.interceptor.ts — POST/PUT/DELETE retry vid transienta fel borttagen.
+
+### Uppgift 2: Angular change detection audit (42 komponent-filer granskade)
+Granskade ALLA komponent-filer i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Kontrollerade:**
+- **ChangeDetectionStrategy.OnPush** — Ingen komponent i kodbasen anvander OnPush. Alla komponenter ar smarta/container-komponenter med egna HTTP-anrop, setInterval-polling och intern state-hantering (loading-flaggor, Chart.js-instanser). Att lagga till OnPush utan att samtidigt infora ChangeDetectorRef.markForCheck() overallt skulle bryta rendering. Inget att flagga.
+- **setInterval utan change detection** — 6 komponenter anvander setInterval for polling (vd-dashboard 30s, oee-trendanalys 120s, tidrapport 300s, statistik-overblick 120s, operator-ranking 120s, plus rebotling-komponenter). Alla anvander Default change detection sa Angular fangar upp andringarna automatiskt. Korrekt.
+- **trackBy pa *ngFor** — Alla *ngFor i kodbasen (exkl. undantagna mappar) har trackBy. Enda undantaget ar en statisk inline-array i rebotling/skiftrapport-sammanstallning — inte ett problem.
+- **Tunga template-uttryck** — Inga funktionsanrop i templates som gor tunga berakningar (t.ex. filter/sort). Data forbereds i komponent-klassen.
+- **Mutation av @Input-objekt** — Inga presentationskomponenter med @Input hitttade som muterar data direkt.
+
+**0 buggar hittade** — change detection-hanteringen ar korrekt for komponenternas arkitektur.
+
 ## 2026-03-21 Session #230 Worker A — PHP array_key_exists/isset + exception handling granularity audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ array_key_exists vs isset audit (117 filer granskade)
