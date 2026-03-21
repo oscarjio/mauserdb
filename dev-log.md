@@ -1,3 +1,32 @@
+## 2026-03-21 Session #225 Worker A — PHP HTTP header injection + JSON decode error handling audit (2 buggar fixade i 1 fil)
+
+### Uppgift 1: PHP classes/ HTTP header injection audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for header() anrop med ovaliderade varden,
+CRLF-injection, saknad URL-validering i redirect-headers, och osaker anvandning av
+$_GET/$_POST/$_SERVER i header()-anrop.
+
+**Resultat: Inga header injection-buggar.** Samtliga header()-anrop i classes/ anvander
+statiska strang-literaler for Content-Type. De tre filerna med Content-Disposition-headers
+(BonusAdminController, TidrapportController, RebotlingAnalyticsController) saniterar redan
+filnamn med preg_replace/basename. Inga Location-headers eller dynamiska header-varden
+fran user input finns. Session #206:s fixar haller.
+
+### Uppgift 2: PHP classes/ JSON decode error handling audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for json_decode() utan felhantering,
+saknad null-kontroll, och json_encode() utan error-check.
+
+**2 buggar fixade i 1 fil:**
+
+1. **NewsController.php:create() rad 92** — `if (!$body)` istallet for `if (!is_array($body))`.
+   Losa boolean-checken `!$body` ar inte typsaker: en tom array `[]` ar falsy i PHP och
+   skulle felaktigt avvisas. Resten av koden antar att $body ar en array (accessar nycklar).
+   Fix: andrat till `if (!is_array($body))` — konsistent med resten av kodbasen.
+
+2. **NewsController.php:update() rad 150** — Samma bugg som ovan i update()-metoden.
+   `if (!$body)` andrat till `if (!is_array($body))`.
+
+---
+
 ## 2026-03-21 Session #224 Worker A — PHP regex injection + TOCTOU race condition audit (3 buggar fixade i 3 filer)
 
 ### Uppgift 1: PHP classes/ regex injection + preg_match audit
