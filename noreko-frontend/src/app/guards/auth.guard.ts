@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { map, filter, take, switchMap, combineLatestWith } from 'rxjs';
+import { map, filter, take, switchMap } from 'rxjs';
 
 export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
@@ -29,16 +29,17 @@ export const adminGuard: CanActivateFn = (_route, state) => {
   // Vänta tills status-anropet är klart (precis som authGuard) — annars
   // ser guard:en user$=null (initialt undefined → null vid langsammt fetch)
   // och redirectar till / trots att användaren är inloggad som admin.
+  //
+  // Använd user$ som enda källa — user$ sätts alltid EFTER loggedIn$ i fetchStatus(),
+  // så user$ !== null/undefined innebär att loggedIn$ redan är true.
+  // Detta undviker race condition där loggedIn$ och user$ är ur synk.
   return auth.initialized$.pipe(
     filter(init => init === true),
     take(1),
-    switchMap(() => auth.loggedIn$.pipe(
-      take(1),
-      combineLatestWith(auth.user$.pipe(take(1)))
-    )),
-    map(([loggedIn, user]) => {
+    switchMap(() => auth.user$.pipe(take(1))),
+    map(user => {
       if (user?.role === 'admin' || user?.role === 'developer') return true;
-      if (!loggedIn) {
+      if (!user) {
         // Ej inloggad — skicka till login med returnUrl
         router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       } else {
