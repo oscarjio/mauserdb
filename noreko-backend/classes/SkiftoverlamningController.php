@@ -1184,9 +1184,11 @@ class SkiftoverlamningController {
         $checkSakerhet    = !empty($data['checklista_sakerhet']) ? 1 : 0;
         $checkMaterial    = !empty($data['checklista_material']) ? 1 : 0;
 
-        $kommentarHande   = isset($data['kommentar_hande'])   ? strip_tags(trim(mb_substr($data['kommentar_hande'], 0, 5000)))   : null;
-        $kommentarAtgarda = isset($data['kommentar_atgarda']) ? strip_tags(trim(mb_substr($data['kommentar_atgarda'], 0, 5000))) : null;
-        $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? strip_tags(trim(mb_substr($data['kommentar_ovrigt'], 0, 5000)))  : null;
+        // Bugfix: korrekt ordning — strip_tags+trim forst, sedan mb_substr for langdbegransning.
+        // Tidigare: mb_substr forst kunde klippa mitt i en HTML-tagg, sa strip_tags missade den.
+        $kommentarHande   = isset($data['kommentar_hande'])   ? mb_substr(strip_tags(trim($data['kommentar_hande'])), 0, 5000)   : null;
+        $kommentarAtgarda = isset($data['kommentar_atgarda']) ? mb_substr(strip_tags(trim($data['kommentar_atgarda'])), 0, 5000) : null;
+        $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? mb_substr(strip_tags(trim($data['kommentar_ovrigt'])), 0, 5000)  : null;
 
         try {
             // Race condition-skydd: kontrollera om ett protokoll redan finns for samma operator+datum+skift.

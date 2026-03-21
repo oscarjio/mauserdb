@@ -135,16 +135,16 @@ class MaintenanceController {
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
             $title           = strip_tags(trim($data['title'] ?? ''));
-            $line            = $data['line'] ?? 'rebotling';
-            $maintenanceType = $data['maintenance_type'] ?? 'ovrigt';
+            $line            = trim($data['line'] ?? 'rebotling');
+            $maintenanceType = trim($data['maintenance_type'] ?? 'ovrigt');
             $description     = strip_tags(trim($data['description'] ?? ''));
-            $startTime       = $data['start_time'] ?? '';
+            $startTime       = trim($data['start_time'] ?? '');
             $durationMinutes = isset($data['duration_minutes']) && $data['duration_minutes'] !== '' && $data['duration_minutes'] !== null
                                ? max(0, min(14400, intval($data['duration_minutes']))) : null;
             $performedBy     = strip_tags(trim($data['performed_by'] ?? ''));
             $costSek         = isset($data['cost_sek']) && $data['cost_sek'] !== '' && $data['cost_sek'] !== null
                                ? max(0, min(99999999, floatval($data['cost_sek']))) : null;
-            $status          = $data['status'] ?? 'klart';
+            $status          = trim($data['status'] ?? 'klart');
             $createdBy       = intval($_SESSION['user_id']);
 
             // Nya fält

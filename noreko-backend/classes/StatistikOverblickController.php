@@ -189,7 +189,11 @@ class StatistikOverblickController {
 
     private function getProduktion(): void {
         $months = $this->getMonths();
-        $fromDate = date('Y-m-d', strtotime("-{$months} months"));
+        // Bugfix: strtotime('-N months') ger fel datum pa manad-slut (t.ex. 31 mars - 1 manad = 3 mars).
+        // Anvand DateTime med 'first day of' for korrekt manad-aritmetik.
+        $fromDt = new \DateTime('first day of this month');
+        $fromDt->modify("-{$months} months");
+        $fromDate = $fromDt->format('Y-m-d');
         $toDate = date('Y-m-d');
 
         try {
@@ -242,7 +246,10 @@ class StatistikOverblickController {
 
     private function getOee(): void {
         $months = $this->getMonths();
-        $fromDate = date('Y-m-d', strtotime("-{$months} months"));
+        // Bugfix: strtotime('-N months') ger fel datum pa manad-slut (t.ex. 31 mars - 1 manad = 3 mars).
+        $fromDt = new \DateTime('first day of this month');
+        $fromDt->modify("-{$months} months");
+        $fromDate = $fromDt->format('Y-m-d');
         $toDate = date('Y-m-d');
 
         try {
@@ -294,7 +301,10 @@ class StatistikOverblickController {
 
     private function getKassation(): void {
         $months = $this->getMonths();
-        $fromDate = date('Y-m-d', strtotime("-{$months} months"));
+        // Bugfix: strtotime('-N months') ger fel datum pa manad-slut (t.ex. 31 mars - 1 manad = 3 mars).
+        $fromDt = new \DateTime('first day of this month');
+        $fromDt->modify("-{$months} months");
+        $fromDate = $fromDt->format('Y-m-d');
         $toDate = date('Y-m-d');
 
         try {
