@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #225)*
+*Senast uppdaterad: 2026-03-21 (session #227)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -93,22 +93,19 @@ Session #223: BUGGJAKT — 57 buggar (20 Worker A + 37 Worker B). mb_string i 14
 Session #224: BUGGJAKT — 4 buggar (3 Worker A + 1 Worker B). TOCTOU race conditions i 3 PHP-filer (3), adminGuard race condition (1). Regex injection: rent. Pipe audit: rent.
 Session #225: BUGGJAKT — 20 buggar (2 Worker A + 18 Worker B). json_decode felhantering i NewsController (2), catchError i 10 Angular services (18). HTTP header injection: rent. Form dirty-state: rent.
 Session #226: BUGGJAKT — 20 buggar (20 Worker A + 0 Worker B). SQL COALESCE i 16 PHP-filer (19), array access utan is_array (1). File path validation: rent. HTTP interceptor: rent. Async pipe: rent.
+Session #227: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL prepared statements (A-M): rent. Type juggling (A-M): rent. Memory leaks (42 komponenter): rent. Route resolvers: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #226):
-- [ ] PHP classes/ SQL prepared statement audit
+### Pagaende (session #227):
+- [ ] PHP classes/ SQL prepared statement audit (A-M)
+- [ ] PHP classes/ type juggling audit (A-M)
 - [ ] Angular component memory leak audit
-- [ ] PHP classes/ type juggling audit
 - [ ] Angular route resolver error handling audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #224 (klar)
-Worker A: 3 buggar — TOCTOU race conditions i 3 PHP-klasser (SELECT+INSERT utan transaktion). Regex injection: rent.
-Worker B: 1 bugg — race condition i adminGuard (combineLatestWith -> enbart user$). Pipe audit: rent (inga custom pipes). Resolver audit: rent.
 
 ### 2026-03-21 — Session #225 (klar)
 Worker A: 2 buggar — json_decode boolean-check i NewsController (2). HTTP header injection: rent.
@@ -117,3 +114,7 @@ Worker B: 18 buggar — catchError(() => of(null)) i 10 services (18 POST-metode
 ### 2026-03-21 — Session #226 (klar)
 Worker A: 20 buggar — SQL COALESCE i 16 PHP-filer (19), is_array-check i SkiftoverlamningController (1). File path validation: rent.
 Worker B: 0 buggar — HTTP interceptors: rent (error+csrf korrekt). Async pipe: rent (alla anvander imperativ subscription med takeUntil).
+
+### 2026-03-21 — Session #227 (klar)
+Worker A: 0 buggar — SQL prepared statements (50 filer A-M): rent, alla queries parametriserade. Type juggling (50 filer A-M): rent, genomgaende ===.
+Worker B: 0 buggar — Memory leak audit (42 komponenter): rent, alla intervals/timeouts/subscriptions/charts cleanup korrekt. Route resolver: rent (inga resolvers, guards korrekt).

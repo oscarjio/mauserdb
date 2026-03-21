@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Avklarade (session #226):
-- [x] **PHP classes/ file path validation audit** — rent, alla sokvagar hardkodade med __DIR__ (Worker A)
-- [x] **PHP classes/ SQL COALESCE/IFNULL audit** — 19 buggar fixade i 16 filer (Worker A)
-- [x] **PHP classes/ array access without isset audit** — 1 bugg fixad i SkiftoverlamningController (Worker A)
-- [x] **Angular HTTP interceptor error handling audit** — rent, bada interceptors korrekta (Worker B)
-- [x] **Angular template async pipe audit** — rent, alla anvander imperativ subscription (Worker B)
+### Pagaende (session #227):
+- [ ] **PHP classes/ SQL prepared statement audit (A-M)** — strankkonkatenering i SQL, saknad parameterbindning (Worker A)
+- [ ] **PHP classes/ type juggling audit (A-M)** — == istallet for === i sakerhetsrelaterade jamforelser (Worker A)
+- [ ] **Angular component memory leak audit** — saknad unsubscribe, interval/timeout utan cleanup (Worker B)
+- [ ] **Angular route resolver error handling audit** — resolvers utan catchError som blockerar navigation (Worker B)
 
-### Nasta buggjakt-items (session #227+):
-- [ ] **PHP classes/ SQL prepared statement audit** — saknade parametriserade queries, strankkonkatenering i SQL
-- [ ] **Angular component memory leak audit** — saknad unsubscribe, interval/timeout utan cleanup
-- [ ] **PHP classes/ type juggling audit** — == istallet for === i sakerhetsrelaterade jamforelser
-- [ ] **Angular route resolver error handling audit** — resolvers utan catchError som blockerar navigation
+### Nasta buggjakt-items (session #228+):
+- [ ] **PHP classes/ SQL prepared statement audit (N-Z)** — samma som ovan, resterande controllers
+- [ ] **PHP classes/ type juggling audit (N-Z)** — resterande controllers
 - [ ] **PHP classes/ error response consistency audit** — inkonsistenta error JSON-format mellan controllers
+- [ ] **Angular HTTP error message consistency audit** — felmeddelanden som inte visas for anvandaren
+- [ ] **PHP classes/ unused variable/dead code audit** — oanvanda variabler, naabar kod efter return
 
 ## Parkerade features (ta inte dessa nu)
 
