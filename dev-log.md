@@ -1,3 +1,51 @@
+## 2026-03-21 Session #226 Worker A — SQL COALESCE/IFNULL + json_decode null-safety audit (20 buggar fixade i 17 filer)
+
+### Uppgift 1: PHP classes/ file path validation audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for filsokvagar, path traversal och filuppladdningsrisker.
+
+Resultat:
+- **file_get_contents()** — Alla anrop anvander antingen `php://input` (saker, ingen path traversal) eller hardkodade migrationssokvar med `__DIR__` (t.ex. `__DIR__ . '/../migrations/...'`). Inga anvandardata anvands i filsokvar.
+- **require/include** — Alla anvander `__DIR__`-baserade sokvar till kanda filer. Inga dynamiska inkluderingar.
+- **fopen()** — Anvands only for `php://output` (CSV-export). Ingen risk.
+- **Inga unlink(), move_uploaded_file(), eller dynamiska filoperationer** hittades.
+- **Inga $_GET/$_POST-varden** anvands i filsokvar.
+
+Inga buggar hittade — kodbasen anvander konsekvent hardkodade sokvar med `__DIR__`.
+
+### Uppgift 2: PHP classes/ SQL COALESCE/IFNULL audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for SQL-queries med nullable kolumner utan COALESCE/IFNULL.
+
+**19 buggar fixade** — SUM()/AVG() utan COALESCE-wrapping returnerar NULL nar inga rader matchar:
+- UnderhallsloggController: `SUM(varaktighet_min)` utan COALESCE
+- MaintenanceController: `SUM(downtime_minutes)` + `AVG(downtime_minutes)` utan COALESCE
+- KassationskvotAlarmController: `SUM(shift_ok)`, `SUM(shift_ej_ok)`, `SUM(kr.antal)` utan COALESCE
+- KassationsDrilldownController: `SUM(kr.antal)` utan COALESCE
+- HeatmapController: `SUM(shift_ibc)` utan COALESCE
+- MorgonrapportController: `SUM(max_runtime)`, `SUM(r.antal)` utan COALESCE
+- StoppageController: `AVG(duration_minutes)` utan COALESCE + LEFT JOIN `r.name` utan null-fallback
+- VeckotrendController: `SUM(shift_ibc_ok)`, `SUM(shift_ibc_ej_ok)`, `AVG(avg_cykeltid)` utan COALESCE
+- StatusController: `SUM(max_ibc_ok)`, `SUM(max_runtime_plc)`, `SUM(max_rasttime)` utan COALESCE
+- AlarmHistorikController: 3x `SUM(...)` utan COALESCE
+- KassationsorsakPerStationController: `SUM(kr.antal)` utan COALESCE
+- DagligSammanfattningController: 4x `SUM(...)` utan COALESCE
+- OperatorsbonusController: `SUM(CASE...)` utan COALESCE
+- OperatorCompareController: 4x `SUM(...)` utan COALESCE
+- OperatorsportalController: 3x `SUM(...)` utan COALESCE
+- ProduktTypEffektivitetController: 3x `SUM(...)` utan COALESCE
+
+### Uppgift 3: PHP classes/ array access without isset audit + json_decode null-safety
+Granskade ALLA PHP-filer i noreko-backend/classes/ for direkt array-access utan isset/is_array-check.
+
+Resultat:
+- **json_decode av php://input**: Alla controllers anvander antingen `?? []` fallback eller `is_array($data)` check — korrekt.
+- **$_GET/$_POST**: Alla anvander `?? ''` eller `isset()` — korrekt.
+- **$_SESSION**: Alla anvander `?? ''` eller `isset()` / `empty()` — korrekt.
+
+**1 bugg fixad** — json_decode av DB-kolumn utan is_array-check:
+- SkiftoverlamningController: `json_decode($r['checklista_json'], true)` pa 3 stallen utan is_array()-check. Korrupt JSON i databasen kunde orsaka TypeError vid array-access pa resultatet.
+
+---
+
 ## 2026-03-21 Session #226 Worker B — HTTP interceptor + async pipe audit (0 buggar — koden ar ren)
 
 ### Uppgift 1: Angular HTTP interceptor error handling audit
