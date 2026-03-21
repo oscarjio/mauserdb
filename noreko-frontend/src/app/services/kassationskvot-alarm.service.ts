@@ -135,7 +135,7 @@ export class KassationskvotAlarmService {
       `${this.api}&run=troskel-spara`,
       { varning_procent, alarm_procent },
       { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+    ).pipe(timeout(30000), catchError(err => { console.error('sparaTroskel failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); }));
   }
 
   getTimvisTrend(): Observable<ApiResponse<TimvisTrendData> | null> {

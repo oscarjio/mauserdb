@@ -137,7 +137,7 @@ export class AvvikelselarmService {
       `${this.api}&run=kvittera`,
       { larm_id: larmId, kvitterad_av: kvitteradAv, kommentar },
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('kvittera failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); }));
   }
 
   getRegler(): Observable<ReglerResponse | null> {
@@ -155,7 +155,7 @@ export class AvvikelselarmService {
       `${this.api}&run=uppdatera-regel`,
       body,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('uppdateraRegel failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); }));
   }
 
   getTrend(period: string): Observable<TrendResponse | null> {

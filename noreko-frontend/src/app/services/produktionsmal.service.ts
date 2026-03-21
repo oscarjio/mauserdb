@@ -222,7 +222,7 @@ export class ProduktionsmalService {
       `${this.api}&run=satt-mal`,
       { typ, antal, startdatum },
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('sattMal failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); }));
   }
 
   getMalHistorik(limit: number = 12): Observable<ApiResponse<MalHistorikData> | null> {
@@ -280,7 +280,7 @@ export class ProduktionsmalService {
       `${this.api}&run=spara-mal`,
       { typ, antal, giltig_fran },
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('sparaMal failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); }));
   }
 
   // Legacy endpoints

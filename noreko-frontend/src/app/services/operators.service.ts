@@ -18,25 +18,25 @@ export class OperatorsService {
 
   createOperator(data: { name: string; number: number }): Observable<any> {
     return this.http.post<any>(this.apiUrl, { action: 'create', ...data }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), catchError(err => { console.error('createOperator failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
   updateOperator(data: { id: number; name: string; number: number }): Observable<any> {
     return this.http.post<any>(this.apiUrl, { action: 'update', ...data }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), catchError(err => { console.error('updateOperator failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
   deleteOperator(id: number): Observable<any> {
     return this.http.post<any>(this.apiUrl, { action: 'delete', id }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), catchError(err => { console.error('deleteOperator failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
   toggleActive(id: number): Observable<any> {
     return this.http.post<any>(this.apiUrl, { action: 'toggleActive', id }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of(null))
+      timeout(15000), catchError(err => { console.error('toggleActive failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 

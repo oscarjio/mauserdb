@@ -23,7 +23,7 @@ export class KlassificeringslinjeService {
       `${this.apiBase}?action=klassificeringslinje&run=settings`,
       settings,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('saveSettings failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   /** Hämta veckodagsmål */
@@ -40,7 +40,7 @@ export class KlassificeringslinjeService {
       `${this.apiBase}?action=klassificeringslinje&run=weekday-goals`,
       payload,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('saveWeekdayGoals failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   /** Hämta systemstatus */

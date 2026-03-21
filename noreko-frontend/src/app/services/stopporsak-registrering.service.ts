@@ -43,7 +43,7 @@ export class StopporsakRegistreringService {
       { category_id: categoryId, kommentar: kommentar ?? '', linje },
       { withCredentials: true }
     ).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), catchError(err => { console.error('registerStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
@@ -59,7 +59,7 @@ export class StopporsakRegistreringService {
       { id },
       { withCredentials: true }
     ).pipe(
-      timeout(10000), catchError(() => of(null))
+      timeout(10000), catchError(err => { console.error('endStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 

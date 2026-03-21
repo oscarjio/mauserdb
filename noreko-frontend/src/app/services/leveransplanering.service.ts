@@ -170,7 +170,7 @@ export class LeveransplaneringService {
       `${this.api}&run=skapa-order`,
       order,
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('skapaOrder failed', err); return of({ success: false, data: null as any, timestamp: '' }); }));
   }
 
   uppdateraOrder(id: number, status: string): Observable<UppdateraOrderResponse | null> {
@@ -178,6 +178,6 @@ export class LeveransplaneringService {
       `${this.api}&run=uppdatera-order`,
       { id, status },
       { withCredentials: true }
-    ).pipe(timeout(15000), catchError(() => of(null)));
+    ).pipe(timeout(15000), catchError(err => { console.error('uppdateraOrder failed', err); return of({ success: false, data: null as any, timestamp: '' }); }));
   }
 }

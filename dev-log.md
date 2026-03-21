@@ -1,3 +1,45 @@
+## 2026-03-21 Session #225 Worker B — Angular service error propagation + form dirty-state audit (18 catchError-buggar fixade i 9 filer)
+
+### Uppgift 1: Angular service error propagation audit
+Granskade ALLA Angular services i noreko-frontend/src/app/services/ for catchError-block
+som svaljer HTTP-fel utan att propagera felinformation till komponenten.
+
+**Systemproblem identifierat:** 452 av 509 catchError-anrop i services/ anvander
+`catchError(() => of(null))` — felet kasseras helt utan console.error eller
+felinformation till anropande komponent.
+
+For GET-anrop ar detta ett acceptabelt monster (komponenter visar "ingen data"-state),
+men for POST/PUT/DELETE (skrivoperationer) ar det en riktig bugg: anvandaren utfor
+en aktion (skapa, uppdatera, ta bort) och far ingen feedback vid fel.
+
+**18 buggar fixade i 9 service-filer (POST-operationer som svaljde fel):**
+
+1. **operators.service.ts** — createOperator, updateOperator, deleteOperator, toggleActive (4 buggar)
+2. **stopporsak-registrering.service.ts** — registerStop, endStop (2 buggar)
+3. **line-skiftrapport.service.ts** — createReport, updateReport, deleteReport, updateInlagd, bulkDelete, bulkUpdateInlagd (6 buggar)
+4. **bonus-admin.service.ts** — updateWeights, setTargets, approveBonuses, setWeeklyGoal (4 buggar)
+5. **leveransplanering.service.ts** — skapaOrder, uppdateraOrder (2 buggar)
+6. **kassationskvot-alarm.service.ts** — sparaTroskel (1 bugg)
+7. **produktionsmal.service.ts** — sattMal, sparaMal (2 buggar)
+8. **produktionstakt.service.ts** — setTarget (1 bugg)
+9. **avvikelselarm.service.ts** — kvittera, uppdateraRegel (2 buggar, inkl. larmkvittering!)
+10. **klassificeringslinje.service.ts** — saveSettings, saveWeekdayGoals (2 buggar)
+
+Alla fixar: `catchError(() => of(null))` ersatt med
+`catchError(err => { console.error('methodName failed', err); return of({ success: false, error: err?.error?.error || 'Natverksfel' }); })`
+— felet loggas till konsolen OCH felinformation propageras till komponenten.
+
+### Uppgift 2: Angular form dirty-state audit
+Granskade Angular-komponenter med formular for saknad canDeactivate-guard.
+
+**Resultat: Inget att fixa.** De enda komponenterna med formular (FormGroup/ngModel)
+ar i maintenance-log/: MaintenanceFormComponent och ServiceIntervalsComponent.
+Dessa anvander modal-overlays (inte routade sidor), sa canDeactivate-guards ar
+inte tillamplliga — modalen stanger vid klick pa "Avbryt" eller overlay-bakgrund.
+Ingen routad sidkomponent i kodbasen har redigerbara formular som saknar guard.
+
+---
+
 ## 2026-03-21 Session #225 Worker A — PHP HTTP header injection + JSON decode error handling audit (2 buggar fixade i 1 fil)
 
 ### Uppgift 1: PHP classes/ HTTP header injection audit

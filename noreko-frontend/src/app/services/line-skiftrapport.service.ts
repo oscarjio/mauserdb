@@ -23,31 +23,31 @@ export class LineSkiftrapportService {
 
   createReport(line: LineName, data: any): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'create', ...data }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('createReport failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   updateReport(line: LineName, id: number, data: any): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'update', id, ...data }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('updateReport failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   deleteReport(line: LineName, id: number): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'delete', id }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('deleteReport failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   updateInlagd(line: LineName, id: number, inlagd: boolean): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'updateInlagd', id, inlagd }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('updateInlagd failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   bulkDelete(line: LineName, ids: number[]): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'bulkDelete', ids }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('bulkDelete failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   bulkUpdateInlagd(line: LineName, ids: number[], inlagd: boolean): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'bulkUpdateInlagd', ids, inlagd }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)));
+      .pipe(timeout(15000), catchError(err => { console.error('bulkUpdateInlagd failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 }

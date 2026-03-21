@@ -107,7 +107,7 @@ export class ProduktionsTaktService {
       { withCredentials: true }
     ).pipe(
       timeout(10000),
-      catchError(() => of(null))
+      catchError(err => { console.error('setTarget failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); })
     );
   }
 }
