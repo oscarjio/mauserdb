@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Avklarade (session #220):
-- [x] **PHP classes/ SQL transaction consistency audit** — rent (Worker A)
-- [x] **PHP classes/ error message information disclosure audit** — rent (Worker A)
-- [x] **Angular form validation completeness audit** — 4 buggar fixade (Worker B)
-- [x] **Angular route guard + lazy loading consistency audit** — rent (Worker B)
+### Avklarade (session #221):
+- [x] **PHP classes/ type coercion + strict comparison audit** — rent (Worker A)
+- [x] **PHP classes/ SQL injection via dynamic ORDER BY/LIMIT audit** — rent (Worker A)
+- [x] **Angular HTTP error retry + timeout consistency audit** — rent (Worker B)
+- [x] **Angular template i18n completeness audit** — 47 buggar fixade (Worker B)
 
-### Nasta buggjakt-items (session #221+):
-- [ ] **PHP classes/ type coercion + strict comparison audit** — == vs === dar typen spelar roll
+### Nasta buggjakt-items (session #222+):
 - [ ] **PHP classes/ numeric overflow + boundary value audit** — intval/floatval pa extremvarden
-- [ ] **Angular HTTP error retry + timeout consistency audit** — saknade retry-strategier
-- [ ] **PHP classes/ SQL injection via dynamic ORDER BY/LIMIT audit** — user-input i ORDER BY
-- [ ] **Angular template i18n completeness audit** — kvarstaende engelska strangar
+- [ ] **PHP classes/ date/time edge case audit** — leap year, DST, midnight, month boundaries
+- [ ] **Angular reactive forms validation sync audit** — template vs component validering ur synk
+- [ ] **PHP classes/ file upload + MIME type validation audit** — saknad content-type-kontroll
+- [ ] **Angular memory profiling audit** — stora dataset i tabeller/grafer utan pagination/virtualisering
 
 ## Parkerade features (ta inte dessa nu)
 
