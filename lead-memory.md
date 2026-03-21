@@ -91,22 +91,20 @@ Session #221: BUGGJAKT — 47 buggar (0 Worker A + 47 Worker B). Type coercion/s
 Session #222: BUGGJAKT — 11 buggar (8 Worker A + 3 Worker B). floatval NAN/INF bypass i 5 PHP-filer (8). chartTimers minneslackor i 3 Angular-komponenter (3). Date/time: rent. Reactive forms: rent.
 Session #223: BUGGJAKT — 57 buggar (20 Worker A + 37 Worker B). mb_string i 14 PHP-filer (20), HTTP error normalization i 12 Angular-filer (37). File upload/array key/template null-safe: rent.
 Session #224: BUGGJAKT — 4 buggar (3 Worker A + 1 Worker B). TOCTOU race conditions i 3 PHP-filer (3), adminGuard race condition (1). Regex injection: rent. Pipe audit: rent.
+Session #225: BUGGJAKT — 20 buggar (2 Worker A + 18 Worker B). json_decode felhantering i NewsController (2), catchError i 10 Angular services (18). HTTP header injection: rent. Form dirty-state: rent.
+Session #226: BUGGJAKT — 20 buggar (20 Worker A + 0 Worker B). SQL COALESCE i 16 PHP-filer (19), array access utan is_array (1). File path validation: rent. HTTP interceptor: rent. Async pipe: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #225):
-- [ ] PHP classes/ HTTP header injection audit
-- [ ] PHP classes/ JSON decode error handling audit
-- [ ] Angular service error propagation audit
-- [ ] Angular form dirty-state audit
+### Pagaende (session #226):
+- [ ] PHP classes/ SQL prepared statement audit
+- [ ] Angular component memory leak audit
+- [ ] PHP classes/ type juggling audit
+- [ ] Angular route resolver error handling audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #223 (klar)
-Worker A: 20 buggar — mb_string i 14 PHP-filer. File upload: rent. Array key: rent.
-Worker B: 37 buggar — res.message -> res.error i 12 Angular-filer. Template null-safe: rent.
 
 ### 2026-03-21 — Session #224 (klar)
 Worker A: 3 buggar — TOCTOU race conditions i 3 PHP-klasser (SELECT+INSERT utan transaktion). Regex injection: rent.
@@ -115,3 +113,7 @@ Worker B: 1 bugg — race condition i adminGuard (combineLatestWith -> enbart us
 ### 2026-03-21 — Session #225 (klar)
 Worker A: 2 buggar — json_decode boolean-check i NewsController (2). HTTP header injection: rent.
 Worker B: 18 buggar — catchError(() => of(null)) i 10 services (18 POST-metoder). Form dirty-state: rent (alla formuler i modals).
+
+### 2026-03-21 — Session #226 (klar)
+Worker A: 20 buggar — SQL COALESCE i 16 PHP-filer (19), is_array-check i SkiftoverlamningController (1). File path validation: rent.
+Worker B: 0 buggar — HTTP interceptors: rent (error+csrf korrekt). Async pipe: rent (alla anvander imperativ subscription med takeUntil).
