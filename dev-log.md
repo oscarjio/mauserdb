@@ -1,3 +1,40 @@
+## 2026-03-21 Session #220 Worker A — PHP SQL transaction consistency + error message information disclosure audit (0 buggar)
+
+### Uppgift 1: PHP classes/ SQL transaction consistency audit
+Granskade ALLA 117 PHP-filer i noreko-backend/classes/ (INTE plcbackend/). Identifierade 47 filer med INSERT/UPDATE/DELETE-operationer och 50 beginTransaction()-anrop i 30 filer.
+
+Specifikt granskade filer med 2+ skrivoperationer men UTAN transaktion:
+- AuthHelper.php (4 writes) — alla i separata static-metoder, oberoende operationer. OK.
+- AvvikelselarmController.php (3 writes) — ensureTables() med idempotenta CREATE TABLE IF NOT EXISTS + count-guard seed. kvittera() single UPDATE. OK.
+- UnderhallsloggController.php (5 writes) — varje write-metod (skapa, logUnderhall, deleteEntry, taBort) gor en enda INSERT/DELETE. ensureTablesExist() idempotent. OK.
+- MaskinunderhallController.php (2 writes) — addService() gor SELECT check + single INSERT. addMachine() single INSERT. OK.
+- NewsController.php (2 writes) — varje metod gor single INSERT/UPDATE/DELETE + AuditLogger::log (som har egen try/catch och ar icke-kritisk). OK.
+- ShiftHandoverController.php (3 writes) — varje metod gor single INSERT/UPDATE/DELETE. deleteNote() + AuditLogger::log (icke-kritisk). OK.
+- SkiftoverlamningController.php (2 writes) — createHandover() single INSERT. sparaProtokoll() SELECT check + single INSERT. OK.
+- KassationskvotAlarmController.php (2 writes) — ensureTableExists() idempotent CREATE+seed. sparaTroskel() single INSERT. OK.
+- TvattlinjeController.php (8 writes) — alla i separata metoder med enstaka operationer.
+- KlassificeringslinjeController.php (3 writes), SaglinjeController.php (3 writes) — samma monster.
+
+Verifierade att ALLA befintliga transaktioner (50 st i 30 filer) har korrekt monster:
+beginTransaction() → operationer → commit() → catch med if(inTransaction()) rollBack()
+
+Resultat: 0 buggar hittade. Alla flerstegs-skrivoperationer anvander redan transaktioner korrekt. Ovriga filer med multipla writes har dem i separata metoder eller som idempotenta seed-operationer.
+
+### Uppgift 2: PHP classes/ error message information disclosure audit
+Granskade ALLA 117 PHP-filer i noreko-backend/classes/ med totalt 1117 forekomster av getMessage().
+
+Kontrollerade:
+- ALLA getMessage()-anrop: 100% ar wrappade i error_log() — INGA lacker till klienten via echo/json_encode.
+- Inga forekomster av: echo $e->getMessage(), json_encode med getMessage(), var_dump, print_r
+- Inga getTrace(), getFile(), getLine() som lacker till klienten (getCode() anvands enbart i villkor for duplicate-key-hantering).
+- Alla klient-riktade felmeddelanden ar generiska svenska strängar: "Databasfel", "Kunde inte spara", "Serverfel", etc.
+- Inga SQL-tabellnamn, kolumnnamn eller filsokvagar i klient-riktade svar.
+
+Resultat: 0 buggar hittade. Kodbasen har en konsekvent och korrekt felhanteringsmodell dar alla detaljerade felmeddelanden loggas server-side med error_log() och klienten far enbart generiska felmeddelanden.
+
+### Sammanfattning
+0 buggar fixade. Kodbasen ar extremt valmaintainad efter 219 tidigare sessions. Alla SQL-transaktioner ar korrekt implementerade och alla felmeddelanden hanteras sakert. Inget att committa (inga kodandringar).
+
 ## 2026-03-21 Session #219 Worker B — Angular strict null check + reactive polling cleanup audit (0 buggar)
 
 ### Uppgift 1: Angular template strict null check audit
