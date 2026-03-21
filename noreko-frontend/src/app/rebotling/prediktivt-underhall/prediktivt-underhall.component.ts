@@ -83,6 +83,9 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   loadAll(): void {
     if (this.isFetching) return;
     this.isFetching = true;
+    // Rensa gamla chart-timers for att undvika obegransad array-tillvaxt
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.loadHeatmap();
     this.loadMtbf();
     this.loadTrender();

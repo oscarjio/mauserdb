@@ -98,6 +98,9 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    // Rensa gamla chart-timers for att undvika obegransad array-tillvaxt
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.loadOverview();
     this.loadBreakdown();
     this.loadTrend();
