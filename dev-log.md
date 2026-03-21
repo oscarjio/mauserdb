@@ -1,3 +1,45 @@
+## 2026-03-21 Session #222 Worker B — Angular reactive forms + memory profiling audit (3 buggar fixade)
+
+### Uppgift 1: Angular reactive forms validation sync audit
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Kontrollerade:
+- Template-driven validation (required, min, max i HTML) som saknar motsvarande Validators i component TS
+- Reactive form Validators som inte reflekteras i template
+- Formular dar submit-knappen inte disablas nar form ar invalid
+- ngModel bindings som kolliderar med formControl
+- Asynkrona validatorer utan debounce/distinctUntilChanged
+- Form reset som inte aterställer validering korrekt
+- Felmeddelanden som visas for fel validering
+
+Resultat: **Inga buggar hittade.** Alla komponenter anvander template-driven forms med ngModel (inga reactive forms/FormGroup). Alla formuler med submit-knappar (maintenance-form, service-intervals, batch-sparning, maskinunderhall, kassationskvot-alarm) har konsekvent:
+- required-attribut i HTML och manuell validering i TS submit-metod
+- submit-knappar disablade med [disabled]-binding baserat pa form-status
+- Felmeddelanden visas korrekt med *ngIf="ctrl.invalid && ctrl.touched"
+- Inga konflikter mellan ngModel och formControl (inga reactive forms anvands)
+
+### Uppgift 2: Angular memory profiling audit
+Granskade ALLA Angular-komponenter (41 st) i noreko-frontend/src/app/. Kontrollerade:
+- Chart.js-instanser som inte destroyas korrekt i ngOnDestroy
+- setInterval/setTimeout som inte rensas i ngOnDestroy
+- Subscriptions som inte unsubscribas (saknar takeUntil/unsubscribe)
+- EventListeners (window/document) som inte tas bort
+- BehaviorSubject/ReplaySubject som aldrig completeas
+- Stora arrayer/objekt som cachas utan storlek-begransning
+
+Resultat: **3 buggar fixade** — chartTimers array-minneslacka:
+
+**Bugg 1:** `stopptidsanalys.component.ts` — chartTimers-arrayen (ReturnType<typeof setTimeout>[]) vaxte obegransat vid varje periodisk data-refresh (var 60:e sek via setInterval). Arrayen rensades bara i ngOnDestroy men aldrig mellan refresh-cykler. Fix: rensa arrayen i loadAll() fore nya timers laggs till.
+
+**Bugg 2:** `produktionskostnad.component.ts` — Samma chartTimers-minneslacka. Arrayen vaxte med 3 poster per refresh-cykel (var 60:e sek). Fix: rensa arrayen i loadAll().
+
+**Bugg 3:** `prediktivt-underhall.component.ts` — Samma chartTimers-minneslacka. Arrayen vaxte vid varje 5-minuters refresh-cykel. Fix: rensa arrayen i loadAll().
+
+Ovriga komponenter granskade utan fynd:
+- Alla 34 komponenter med setInterval/setTimeout har korrekt cleanup i ngOnDestroy
+- Alla 32 komponenter med Chart.js har korrekt chart.destroy() i ngOnDestroy
+- Alla 41 komponenter med .subscribe() anvander takeUntil(this.destroy$)
+- Inga addEventListener-anrop utan cleanup hittades
+- Alla destroy$-Subjects completeas i ngOnDestroy
+
 ## 2026-03-21 Session #221 Worker A — PHP classes/ type coercion + SQL injection audit (0 buggar)
 
 ### Uppgift 1: PHP classes/ type coercion + strict comparison audit
