@@ -1,3 +1,30 @@
+## 2026-03-21 Session #229 Worker A — PHP unused variable/dead code + file inclusion audit (0 buggar)
+
+### Uppgift 1: PHP classes/ unused variable/dead code audit (117 filer granskade)
+Granskade ALLA 117 PHP-filer i noreko-backend/classes/ (A-Z).
+
+**Kontrollerade:**
+- **Oanvanda variabler** — Systematisk analys av alla variabeltilldelningar inom funktionsgranser. Enda fallet: VpnController::getVpnStatus() tilldelar `$welcome = $this->readUntilPrompt($socket, 1)` utan att anvanda returvardet — men anropet behovs for sidoeffekten (konsumera valkomstmeddelande fran socket). Ej en bugg.
+- **Oanvanda fetch-resultat** — Sokte specifikt efter `$var = $stmt->fetchAll/fetch()` dar resultatet aldrig anvands. 16 initiala traffar — alla visade sig vara false positives dar variabeln anvands langre ner i samma funktion (t.ex. i sendSuccess-responsdata eller array_map-anrop).
+- **Oanbar kod efter return/throw/exit** — Analyserade alla return/throw/exit-satser och kontrollerade om kod pa samma indenteringsniva foljer. Inga fall av oreachable code hittades. Ett fall med inkonsekvent indentering i RebotlingTrendanalysController (try-block utan indentering) ar korrekt PHP men visuellt forvirrande.
+- **Oanvanda privata metoder** — Sokte alla `private function` deklarationer och verifierade att varje metod anropas via `$this->` i samma fil. Alla privata metoder anvands.
+- **Tomma/meningslosa metoder** — Sokte metoder med tom kropp eller bara `return;`. Inga hittades.
+- **Oanvanda funktionsparametrar** — Inga suspekta fall hittades i de granskade filerna.
+
+**0 buggar hittade** — PHP-backend-klasserna ar rena fran dead code.
+
+### Uppgift 2: PHP classes/ + noreko-backend/ file inclusion/require audit (125 filer granskade)
+Granskade alla PHP-filer i noreko-backend/classes/ och noreko-backend/ (toppniva).
+
+**Kontrollerade:**
+- **Dynamiska include/require med variabler** — 9 fall hittade (api.php, login.php, admin.php, update-weather.php, VpnController.php, RegisterController.php). ALLA anvander `__DIR__`-baserade sokvagar med hardkodade filnamn. Ingen user input kan paverka sokvagen.
+- **Dynamiska include med user input** — Sokte specifikt efter `$_GET/$_POST/$_REQUEST/$_COOKIE/$_SERVER` i include/require-satser. 0 fall hittade.
+- **Path traversal i include** — api.php autoloader anvander vitlista ($classNameMap) for att mappa action till klassnamn — user input (action-parametern) kontrolleras mot vitlistan FORE laddning. Ingen path traversal mojlig.
+- **Farliga file-funktioner med user input** — Alla `file_get_contents`-anrop anvander antingen `'php://input'` (saker), `__DIR__`-baserade sokvagar, eller hardkodade URL:er ($apiUrl i update-weather.php). Inga `fopen/file_put_contents/readfile` med user input. `fopen('php://output', 'w')` anvands for CSV-export (saker).
+- **eval/exec/system/shell_exec** — Inga farliga funktioner. Alla `exec`-anrop ar `$this->pdo->exec()` (PDO databas-exekvering).
+
+**0 buggar hittade** — inga file inclusion-sarbarheter.
+
 ## 2026-03-21 Session #229 Worker B — Angular template null-check + reactive forms validation audit (0 buggar)
 
 ### Uppgift 1: Angular template strict null-check audit (37 HTML-filer granskade)
