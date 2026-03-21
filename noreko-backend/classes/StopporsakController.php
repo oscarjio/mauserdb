@@ -538,7 +538,7 @@ class StopporsakController {
 
                     foreach ($uRows as $u) {
                         $uDatum = date('Y-m-d', strtotime($u['datum']));
-                        $key = strtolower(trim($u['stopporsak'] ?? ''));
+                        $key = mb_strtolower(trim($u['stopporsak'] ?? ''));
                         if ($key) {
                             $underhallMap[$uDatum . '|' . $key] = [
                                 'underhall_id'  => (int)$u['id'],
@@ -555,7 +555,7 @@ class StopporsakController {
             $detaljer = [];
             foreach ($rows as $row) {
                 $datum = date('Y-m-d', strtotime($row['start_time']));
-                $orsakKey = strtolower(trim($row['orsak']));
+                $orsakKey = mb_strtolower(trim($row['orsak']));
                 $underhall = $underhallMap[$datum . '|' . $orsakKey] ?? null;
 
                 $detaljer[] = [

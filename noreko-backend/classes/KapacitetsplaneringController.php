@@ -528,8 +528,8 @@ class KapacitetsplaneringController {
         $config = $this->loadKapacitetConfig();
         $configMap = [];
         foreach ($config as $c) {
-            $configMap[strtolower(trim($c['station_id']))] = $c;
-            $configMap[strtolower(trim($c['station_namn']))] = $c;
+            $configMap[mb_strtolower(trim($c['station_id']))] = $c;
+            $configMap[mb_strtolower(trim($c['station_namn']))] = $c;
         }
 
         // rebotling_ibc has no station column — aggregate as single line
@@ -960,8 +960,8 @@ class KapacitetsplaneringController {
         $config = $this->loadKapacitetConfig();
         $configMap = [];
         foreach ($config as $c) {
-            $configMap[strtolower(trim($c['station_id']))] = $c;
-            $configMap[strtolower(trim($c['station_namn']))] = $c;
+            $configMap[mb_strtolower(trim($c['station_id']))] = $c;
+            $configMap[mb_strtolower(trim($c['station_namn']))] = $c;
         }
 
         // rebotling_ibc has no station column — aggregate as single line
@@ -1026,7 +1026,7 @@ class KapacitetsplaneringController {
 
         $tabellRader = [];
         foreach ($rader as $rad) {
-            $stationKey = strtolower(trim($rad['station']));
+            $stationKey = mb_strtolower(trim($rad['station']));
             $aktivaDagar = max(1, (int)$rad['aktiva_dagar']);
             $total = (int)$rad['total_ibc'];
 

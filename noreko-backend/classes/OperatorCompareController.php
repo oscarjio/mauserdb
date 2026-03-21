@@ -474,9 +474,9 @@ class OperatorCompareController {
     private function getInitials(string $name): string {
         $parts = preg_split('/\s+/', trim($name));
         if (count($parts) >= 2) {
-            return strtoupper(substr($parts[0], 0, 1) . substr($parts[count($parts) - 1], 0, 1));
+            return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[count($parts) - 1], 0, 1));
         }
-        return strtoupper(substr($name, 0, 2));
+        return mb_strtoupper(mb_substr($name, 0, 2));
     }
 
     private function sendError(string $message, int $code = 400): void {

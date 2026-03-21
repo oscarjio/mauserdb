@@ -1526,9 +1526,9 @@ class RebotlingAnalyticsController {
                 $nameParts = array_filter(explode(' ', trim($g['namn'])));
                 $initialer = '';
                 foreach ($nameParts as $p) {
-                    if ($p !== '') $initialer .= strtoupper(substr($p, 0, 1));
+                    if ($p !== '') $initialer .= mb_strtoupper(mb_substr($p, 0, 1));
                 }
-                $initialer = substr($initialer, 0, 3) ?: ('OP' . $id);
+                $initialer = mb_substr($initialer, 0, 3) ?: ('OP' . $id);
 
                 $median_sek = $percentile($vals, 50);
                 $p90_sek    = $percentile($vals, 90);
@@ -1817,7 +1817,7 @@ class RebotlingAnalyticsController {
                 $parts = explode(' ', trim($name));
                 $initials = '';
                 foreach ($parts as $p) {
-                    if (strlen($p) > 0) $initials .= strtoupper($p[0]);
+                    if (mb_strlen($p) > 0) $initials .= mb_strtoupper(mb_substr($p, 0, 1));
                 }
                 $opList[] = [
                     'id'       => (int)$op['op_id'],
@@ -2395,9 +2395,9 @@ class RebotlingAnalyticsController {
                     $parts = explode(' ', trim($namn));
                     $initialer = '';
                     foreach ($parts as $p) {
-                        if ($p !== '') $initialer .= strtoupper(substr($p, 0, 1));
+                        if ($p !== '') $initialer .= mb_strtoupper(mb_substr($p, 0, 1));
                     }
-                    $initialer = substr($initialer, 0, 3);
+                    $initialer = mb_substr($initialer, 0, 3);
                     $opOfMonth = [
                         'op_id'           => (int)$opRow['op_id'],
                         'namn'            => $namn,
@@ -2476,7 +2476,7 @@ class RebotlingAnalyticsController {
                     $parts2 = explode(' ', trim($opNamn));
                     $init2 = '';
                     foreach ($parts2 as $p2) {
-                        if ($p2 !== '') $init2 .= strtoupper(substr($p2, 0, 1));
+                        if ($p2 !== '') $init2 .= mb_strtoupper(mb_substr($p2, 0, 1));
                     }
                     $ibcH = (float)($rr['avg_ibc_per_h'] ?? 0);
                     $qualP = (float)($rr['avg_quality_pct'] ?? 0);
@@ -2485,7 +2485,7 @@ class RebotlingAnalyticsController {
                     $operatorRanking[] = [
                         'op_id'           => (int)$rr['op_id'],
                         'namn'            => $opNamn,
-                        'initialer'       => substr($init2, 0, 3),
+                        'initialer'       => mb_substr($init2, 0, 3),
                         'shifts'          => (int)($rr['shifts'] ?? 0),
                         'total_ibc'       => $totalIbc,
                         'avg_ibc_per_h'   => round($ibcH, 1),

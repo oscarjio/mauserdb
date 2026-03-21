@@ -1955,7 +1955,7 @@ class RebotlingController {
                 return [
                     'op_number'     => $opNum,
                     'namn'          => $r['op_name'],
-                    'initialer'     => strtoupper(substr($r['op_name'] ?? '', 0, 3)),
+                    'initialer'     => mb_strtoupper(mb_substr($r['op_name'] ?? '', 0, 3)),
                     'best_ibc_h'    => $bestIbcH,
                     'best_kvalitet' => round(floatval($r['best_kvalitet'] ?? 0), 1),
                     'pct_of_record' => $teamRecord > 0 ? round($bestIbcH / $teamRecord * 100, 1) : 0,
@@ -2159,9 +2159,9 @@ class RebotlingController {
                     $parts = explode(' ', trim($op['namn']));
                     $ini = '';
                     foreach ($parts as $p) {
-                        if ($p !== '') $ini .= strtoupper(substr($p, 0, 1));
+                        if ($p !== '') $ini .= mb_strtoupper(mb_substr($p, 0, 1));
                     }
-                    $op['initialer'] = substr($ini, 0, 3) ?: ('OP' . $op['id']);
+                    $op['initialer'] = mb_substr($ini, 0, 3) ?: ('OP' . $op['id']);
                 }
                 $op['id'] = (int)$op['id'];
             }

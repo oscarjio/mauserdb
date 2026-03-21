@@ -331,9 +331,9 @@ class OperatorController {
             $nameParts = explode(' ', trim($op['name']));
             $initialer = '';
             foreach ($nameParts as $part) {
-                if ($part !== '') $initialer .= strtoupper(substr($part, 0, 1));
+                if ($part !== '') $initialer .= mb_strtoupper(mb_substr($part, 0, 1));
             }
-            $initialer = substr($initialer, 0, 2);
+            $initialer = mb_substr($initialer, 0, 2);
 
             $operator = [
                 'id'           => (int)$op['id'],

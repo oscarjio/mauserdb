@@ -400,30 +400,30 @@ class KvalitetscertifikatController {
 
         foreach ($kriterier as $k) {
             $vikt   = (float)$k['vikt'];
-            $namn   = strtolower($k['namn']);
+            $namn   = mb_strtolower($k['namn']);
             $min    = $k['min_varde'] !== null ? (float)$k['min_varde'] : null;
             $max    = $k['max_varde'] !== null ? (float)$k['max_varde'] : null;
             $poang  = 0;
 
-            if (strpos($namn, 'kassation') !== false) {
+            if (mb_strpos($namn, 'kassation') !== false) {
                 // Lagre ar battre, max_varde ar grans
                 if ($max !== null && $max > 0) {
                     $poang = max(0, min(100, (1 - $kassation / ($max * 2)) * 100));
                     if ($kassation <= $max) $poang = max($poang, 70);
                 }
-            } elseif (strpos($namn, 'cykeltid') !== false) {
+            } elseif (mb_strpos($namn, 'cykeltid') !== false) {
                 // Lagre ar battre
                 if ($max !== null && $max > 0) {
                     $poang = max(0, min(100, (1 - $cykeltid / ($max * 2)) * 100));
                     if ($cykeltid <= $max) $poang = max($poang, 70);
                 }
-            } elseif (strpos($namn, 'antal') !== false) {
+            } elseif (mb_strpos($namn, 'antal') !== false) {
                 // Hogre ar battre
                 if ($min !== null && $min > 0) {
                     $poang = min(100, ($antalIbc / $min) * 80);
                     if ($antalIbc >= $min) $poang = max($poang, 80);
                 }
-            } elseif (strpos($namn, 'jamn') !== false || strpos($namn, 'jaemn') !== false) {
+            } elseif (mb_strpos($namn, 'jamn') !== false || mb_strpos($namn, 'jaemn') !== false) {
                 // Jamnhet - anvand cykeltid som proxy (lagre = battre)
                 if ($max !== null && $max > 0) {
                     $spridning = abs($cykeltid - 38) / 10; // Approximation

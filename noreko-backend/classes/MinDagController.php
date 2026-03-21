@@ -75,11 +75,11 @@ class MinDagController {
             $parts = explode(' ', trim($name));
             $ini = '';
             foreach ($parts as $p) {
-                if ($p !== '') $ini .= strtoupper(substr($p, 0, 1));
+                if ($p !== '') $ini .= mb_strtoupper(mb_substr($p, 0, 1));
             }
             return [
                 'name'      => $name,
-                'initialer' => substr($ini, 0, 3) ?: '',
+                'initialer' => mb_substr($ini, 0, 3) ?: '',
             ];
         } catch (\PDOException $e) {
             error_log('MinDagController::getOperatorInfo: ' . $e->getMessage());

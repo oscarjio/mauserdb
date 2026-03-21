@@ -88,7 +88,7 @@ class FavoriterController {
             return;
         }
 
-        if (strlen($route) > 255 || strlen($label) > 100 || strlen($icon) > 50 || strlen($color) > 20) {
+        if (mb_strlen($route) > 255 || mb_strlen($label) > 100 || mb_strlen($icon) > 50 || mb_strlen($color) > 20) {
             $this->sendError('Fältvärde för långt');
             return;
         }

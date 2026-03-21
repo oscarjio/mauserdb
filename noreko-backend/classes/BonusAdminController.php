@@ -521,7 +521,7 @@ class BonusAdminController {
 
             // Sanitize approved_by (strip tags + limit length)
             $approved_by = strip_tags((string)($input['approved_by'] ?? $_SESSION['username'] ?? 'admin'));
-            $approved_by = substr($approved_by, 0, 100); // Limit length
+            $approved_by = mb_substr($approved_by, 0, 100); // Limit length
 
             // Mark bonuses as approved in database
             $stmt = $this->pdo->prepare("
@@ -798,7 +798,7 @@ class BonusAdminController {
             }
 
             $allowed = ['brons', 'silver', 'guld', 'platina'];
-            $updatedBy = substr(strip_tags((string)($_SESSION['username'] ?? 'admin')), 0, 100);
+            $updatedBy = mb_substr(strip_tags((string)($_SESSION['username'] ?? 'admin')), 0, 100);
 
             $stmt = $this->pdo->prepare("
                 INSERT INTO bonus_level_amounts (level_name, amount_sek, updated_by)

@@ -1659,7 +1659,7 @@ class BonusController {
                 return;
             }
             $cleanTiers[] = [
-                'label'            => substr(strip_tags((string)$t['label']), 0, 50),
+                'label'            => mb_substr(strip_tags((string)$t['label']), 0, 50),
                 'min_ibc_per_hour' => (float)$t['min_ibc_per_hour'],
                 'bonus_sek'        => (int)$t['bonus_sek'],
             ];
@@ -2195,9 +2195,9 @@ class BonusController {
                 $parts    = preg_split('/\s+/', trim($namn));
                 $initialer = '';
                 foreach ($parts as $p) {
-                    if (strlen($p) > 0) $initialer .= strtoupper($p[0]);
+                    if (mb_strlen($p) > 0) $initialer .= mb_strtoupper(mb_substr($p, 0, 1));
                 }
-                if (strlen($initialer) > 2) $initialer = substr($initialer, 0, 2);
+                if (mb_strlen($initialer) > 2) $initialer = mb_substr($initialer, 0, 2);
                 if (empty($initialer)) $initialer = 'OP';
 
                 $data = [];

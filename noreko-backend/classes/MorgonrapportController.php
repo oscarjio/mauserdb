@@ -408,7 +408,7 @@ class MorgonrapportController {
                 foreach ($extraOrsaker as $eo) {
                     $hittad = false;
                     foreach ($topOrsaker as &$to) {
-                        if (strtolower($to['orsak']) === strtolower($eo['orsak'])) {
+                        if (mb_strtolower($to['orsak']) === mb_strtolower($eo['orsak'])) {
                             $to['cnt']       = (int)$to['cnt'] + (int)$eo['cnt'];
                             $to['total_min'] = (float)$to['total_min'] + (float)$eo['total_min'];
                             $hittad = true;

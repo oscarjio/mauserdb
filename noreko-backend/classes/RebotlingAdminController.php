@@ -1000,7 +1000,7 @@ class RebotlingAdminController {
                 'lr_show_progress' => isset($body['lr_show_progress']) ? ($body['lr_show_progress'] ? '1' : '0') : '1',
                 'lr_show_motto'    => isset($body['lr_show_motto'])    ? ($body['lr_show_motto']    ? '1' : '0') : '1',
                 'lr_poll_interval' => strval(max(10, min(120, intval($body['lr_poll_interval'] ?? 30)))),
-                'lr_title'         => substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
+                'lr_title'         => mb_substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
             ];
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
@@ -1183,7 +1183,7 @@ class RebotlingAdminController {
         try {
             $body = json_decode(file_get_contents('php://input'), true) ?? [];
             $actionText = strip_tags(trim($body['action_text'] ?? ''));
-            if (strlen($actionText) === 0 || strlen($actionText) > 1000) {
+            if (mb_strlen($actionText) === 0 || mb_strlen($actionText) > 1000) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Åtgärdstext saknas eller är för lång (max 1000 tecken)'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -1394,7 +1394,7 @@ class RebotlingAdminController {
     public function resetService(): void {
         try {
             $body = json_decode(file_get_contents('php://input'), true) ?? [];
-            $note = isset($body['note']) ? substr(strip_tags($body['note']), 0, 255) : '';
+            $note = isset($body['note']) ? mb_substr(strip_tags($body['note']), 0, 255) : '';
 
             // Hämta aktuell total IBC
             $stmtIbc = $this->pdo->query(

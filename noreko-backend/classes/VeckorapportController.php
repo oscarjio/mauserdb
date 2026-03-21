@@ -431,7 +431,7 @@ class VeckorapportController {
                 foreach ($extraReasons as $er) {
                     $found = false;
                     foreach ($topReasons as &$tr) {
-                        if (strtolower($tr['reason']) === strtolower($er['reason'])) {
+                        if (mb_strtolower($tr['reason']) === mb_strtolower($er['reason'])) {
                             $tr['cnt'] = (int)$tr['cnt'] + (int)$er['cnt'];
                             $tr['total_min'] = (float)$tr['total_min'] + (float)$er['total_min'];
                             $found = true;
