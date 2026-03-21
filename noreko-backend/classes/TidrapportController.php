@@ -548,7 +548,7 @@ class TidrapportController {
     // ================================================================
 
     private function getExportCsv(): void {
-        [$fromDate, $toDate, $period] = $this->getDateRange();
+        [$fromDate, $toDate] = $this->getDateRange();
         $operatorFilter = isset($_GET['operator_id']) ? intval($_GET['operator_id']) : null;
 
         try {

@@ -7,18 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #232):
-- [x] **PHP classes/ input length/bounds validation audit** — 4 buggar (saknade ovre granser pa numeriska inputs)
-- [x] **PHP classes/ concurrent request race condition audit** — rent
-- [x] **Angular HTTP caching/stale data audit** — 1 bugg (refreshInterval anti-pattern)
-- [x] **Angular router navigation guard audit** — 1 bugg (authGuard returnerade false istallet for UrlTree)
-
-### Nasta buggjakt-items (session #233+):
-- [ ] **PHP classes/ SQL LIMIT/OFFSET pagination audit** — saknade LIMIT pa stora SELECT-queries
-- [ ] **PHP classes/ error response consistency audit** — inkonsekvent HTTP-statuskod och JSON-format
-- [ ] **Angular service URL consistency audit** — hardkodade vs environment-baserade API-URLs
+### Nasta buggjakt-items (session #234+):
 - [ ] **PHP classes/ CORS/cookie SameSite audit** — saknade SameSite-attribut pa cookies
-- [ ] **Angular template accessibility audit** — saknade aria-live, tabindex, keyboard navigation
+- [ ] **PHP classes/ file upload validation audit** — MIME-type, storlek, path traversal
+- [ ] **Angular reactive state management audit** — BehaviorSubject race conditions, stale subscriptions
+- [ ] **PHP classes/ SQL JOIN correctness audit** — felaktiga JOIN-villkor, saknade ON-klausuler
+- [ ] **Angular form dirty-state/unsaved changes audit** — saknad varning vid navigation med osparade andringar
 
 ## Parkerade features (ta inte dessa nu)
 
