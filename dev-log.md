@@ -1,3 +1,33 @@
+## 2026-03-21 Session #226 Worker B — HTTP interceptor + async pipe audit (0 buggar — koden ar ren)
+
+### Uppgift 1: Angular HTTP interceptor error handling audit
+Granskade ALLA HTTP interceptors i noreko-frontend/src/app/interceptors/:
+
+- **error.interceptor.ts** — Korrekt implementerad. Hanterar 401 (rensar session via AuthService.clearSession(), redirectar till /login med returnUrl). Retry-logik for natverksfel och 502/503/504. Visar toast for anvandaren. Kastar ALLTID vidare originalfelet via throwError(() => error).
+- **csrf.interceptor.ts** — Korrekt implementerad. Bifogar X-CSRF-Token fran sessionStorage till alla mutating requests (POST/PUT/DELETE/PATCH).
+
+Inga buggar hittade. Interceptorerna foljer best practices:
+- Fel svaljs aldrig — alltid re-throw
+- 401 hanteras korrekt med utloggning och redirect
+- CSRF-token bifogas korrekt
+- Retry-logik for transienta fel
+
+### Uppgift 2: Angular template async pipe audit
+Granskade ALLA 37 component templates (.html) + 5 inline templates i noreko-frontend/src/app/.
+Exkluderade: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live (livesidor).
+
+Resultat:
+- **0 async pipes anvands i templates** — alla komponenter anvander imperativ subscription (subscribe i constructor/ngOnInit) och binder vanliga properties i templates
+- **0 subscribe()-anrop i templates** (korrekt)
+- **0 observables utan async pipe i templates** — alla BehaviorSubject/Observable konsumeras via takeUntil(destroy$) subscriptions och lagras i vanliga variabler
+- **Alla 41 komponenter med destroy$** anvander korrekt takeUntil-pattern
+- **Menu-komponenten** subscribar pa auth.loggedIn$ och auth.user$ med takeUntil(destroy$) och lagrar i vanliga properties — korrekt monster
+- **Toast-komponenten** subscribar pa toasts$ med manuell Subscription.unsubscribe() i ngOnDestroy — korrekt
+
+Inga buggar hittade. Kodbasen anvander konsekvent imperativ subscription + takeUntil-pattern istallet for async pipe, vilket ar ett giltigt och korrekt monster.
+
+---
+
 ## 2026-03-21 Session #225 Worker B — Angular service error propagation + form dirty-state audit (18 catchError-buggar fixade i 9 filer)
 
 ### Uppgift 1: Angular service error propagation audit
