@@ -1,3 +1,20 @@
+## 2026-03-21 Session #238 Worker B — trackBy audit + environment config audit (0 buggar)
+
+### Uppgift 1: Angular trackBy audit
+Granskade samtliga .component.html-filer i noreko-frontend/src/app/ (exklusive rebotling-live/, tvattlinje-live/, saglinje-live/, klassificeringslinje-live/).
+Soekte efter *ngFor utan trackBy.
+
+**Resultat: RENT.** Alla 129 *ngFor-direktiv har redan trackBy-funktioner (trackByIndex, trackById, trackByDatum, trackBySkift, trackByOperatorId, trackByMaskinId, trackByIbcNummer, trackByAlarm, trackByStation, trackByIbc).
+Inga dynamiska listor saknar trackBy.
+
+### Uppgift 2: Angular environment config audit
+Granskade samtliga .service.ts och .component.ts-filer i noreko-frontend/src/app/ (exklusive rebotling-live/, tvattlinje-live/, saglinje-live/, klassificeringslinje-live/).
+Soekte efter hardkodade URLer (localhost, 127.0.0.1, dev., 192.168.), hardkodade portnummer (:3000, :4200, :8080 etc.).
+Verifierade att alla HTTP-anrop anvander environment.apiUrl.
+Kontrollerade environment.ts och environment.prod.ts — bada ar konsekventa (apiUrl: '/noreko-backend/api.php').
+
+**Resultat: RENT.** Inga hardkodade URLer hittade. Session #233:s fix av 125 hardkodade URLer haller — inga nya har introducerats.
+
 ## 2026-03-21 Session #237 Worker B — HTTP retry audit + form dirty-state guard (2 buggar)
 
 ### Uppgift 1: Angular HTTP retry idempotency audit
