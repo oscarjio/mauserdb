@@ -1,3 +1,36 @@
+## 2026-03-21 Session #235 Worker B — Angular HTTP error + memory leak audit (0 buggar)
+
+### Uppgift 1: Angular HTTP interceptor error normalization audit
+Granskade samtliga 93 .service.ts-filer i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ (exkl. forbjudna live-kataloger).
+
+**Inga buggar hittade.** Samtliga services ar konsekvent implementerade:
+- Alla HTTP-anrop (this.http.get/post/put/delete) har .pipe() med catchError.
+- Alla HTTP-anrop har timeout() i pipe-kedjan (10000-30000ms beroende pa anropets natur).
+- GET-anrop anvander konsekvent: `catchError(() => of(null))` — returnerar null vid fel.
+- POST/PUT/DELETE-anrop anvander konsekvent: `catchError(err => { console.error(...); return of({ success: false, error: ... }); })` — returnerar strukturerat felobjekt.
+- Alla GET-anrop har retry(1) fore catchError.
+- Session #223 (12 filer) och #225 (10 services) tackade alla fall. Inga ytterligare missade.
+
+### Uppgift 2: Angular component memory profiling — detached DOM / stora objekt
+Granskade samtliga 42 .component.ts-filer (exkl. forbjudna live-kataloger).
+
+**Inga buggar hittade.** Samtliga komponenter ar korrekt implementerade:
+- Alla komponenter med subscriptions/timers/charts implementerar OnDestroy-interfacet.
+- Alla Chart.js-instanser destroyas i ngOnDestroy (direkt eller via helper-metoder som destroyCharts()).
+- Alla setInterval-id:n clearas med clearInterval i ngOnDestroy.
+- Alla setTimeout-id:n clearas med clearTimeout i ngOnDestroy.
+- Alla RxJS-subscriptions skyddas med takeUntil(this.destroy$).
+- destroy$ anropar next() + complete() i ngOnDestroy konsekvent.
+- Inga addEventListener utan removeEventListener.
+- Inga fromEvent utan takeUntil.
+- Inga vaxande arrayer utan bounds i polling-kontext.
+- Inga Renderer2/ElementRef/ViewChild-lackor.
+- chartTimers[]-monstret (push + forEach clearTimeout) anvands korrekt i 3 komponenter.
+
+Session #216 (4 setTimeout-lackor) och #222 (chartTimers-lackor) tackade allt. Kodbasen ar ren.
+
+---
+
 ## 2026-03-21 Session #235 Worker A — Error logging + session fixation audit (5 buggar)
 
 ### Uppgift 1: PHP classes/ error logging completeness audit
