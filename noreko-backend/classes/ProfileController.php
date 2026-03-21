@@ -168,10 +168,19 @@ class ProfileController {
                 return;
             }
 
+            $newRole = ((int)$updatedUser['admin'] === 1) ? 'admin' : 'user';
+            $oldRole = $_SESSION['role'] ?? '';
+
             $_SESSION['username'] = $updatedUser['username'];
             $_SESSION['email'] = $updatedUser['email'];
-            $_SESSION['role'] = ((int)$updatedUser['admin'] === 1) ? 'admin' : 'user';
+            $_SESSION['role'] = $newRole;
             $_SESSION['operator_id'] = $updatedUser['operator_id'] ? (int)$updatedUser['operator_id'] : null;
+
+            // Regenerera session-ID vid rollbyte eller lösenordsbyte för att förhindra session fixation
+            $passwordChanged = in_array('password', $changedFields, true);
+            if ($newRole !== $oldRole || $passwordChanged) {
+                session_regenerate_id(true);
+            }
 
             echo json_encode([
                 'success' => true,

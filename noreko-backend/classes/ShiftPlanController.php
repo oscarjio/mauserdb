@@ -88,7 +88,8 @@ class ShiftPlanController {
         $tz = new DateTimeZone('Europe/Stockholm');
         try {
             $dt = new DateTime($dateParam, $tz);
-        } catch (Exception) {
+        } catch (Exception $e) {
+            error_log('ShiftPlanController::getWeekSchedule: Ogiltigt datum "' . $dateParam . '": ' . $e->getMessage());
             $dt = new DateTime('now', $tz);
         }
 
@@ -171,7 +172,8 @@ class ShiftPlanController {
         $tz = new DateTimeZone('Europe/Stockholm');
         try {
             $dt = new DateTime($weekStartParam, $tz);
-        } catch (Exception) {
+        } catch (Exception $e) {
+            error_log('ShiftPlanController::getWeekAssignments: Ogiltigt datum "' . $weekStartParam . '": ' . $e->getMessage());
             $dt = new DateTime('now', $tz);
         }
 
@@ -566,7 +568,8 @@ class ShiftPlanController {
 
         try {
             $dt = new DateTime($targetStart, new DateTimeZone('Europe/Stockholm'));
-        } catch (Exception) {
+        } catch (Exception $e) {
+            error_log('ShiftPlanController::copyWeek: Ogiltigt datum "' . $targetStart . '": ' . $e->getMessage());
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
             return;

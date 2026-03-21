@@ -1,3 +1,26 @@
+## 2026-03-21 Session #235 Worker A — Error logging + session fixation audit (5 buggar)
+
+### Uppgift 1: PHP classes/ error logging completeness audit
+Granskade samtliga 1128 catch-block i noreko-backend/classes/. Session #213 fixade 34 tomma catch-block. Hittade 4 ytterligare catch-block som saknade error_log():
+
+**Bugg 1: OperatorJamforelseController.php** — rad 212: catch(\PDOException $ignored) vid stoppage_log-query saknade error_log(). Lade till loggning innan fallback-query kors.
+**Bugg 2: ShiftPlanController.php** — rad 91: catch(Exception) vid datum-parsning i getWeekSchedule saknade error_log(). Lade till loggning med ogiltigt datum-varde.
+**Bugg 3: ShiftPlanController.php** — rad 175: catch(Exception) vid datum-parsning i getWeekAssignments saknade error_log(). Lade till loggning med ogiltigt datum-varde.
+**Bugg 4: ShiftPlanController.php** — rad 571: catch(Exception) vid datum-parsning i copyWeek returnerade JSON-fel utan error_log(). Lade till loggning.
+
+Ej bugg (medvetet tysta): TvattlinjeController.php rad 706/709 (ALTER TABLE "kolumn finns redan"), NewsController.php rad 602 (datum-parsning i streak-loop, bara break).
+
+### Uppgift 2: PHP classes/ session fixation/regeneration audit
+Granskade session-hantering i LoginController.php, AuthHelper.php, ProfileController.php, AdminController.php och api.php.
+
+- LoginController.php rad 105: session_regenerate_id(true) anropas korrekt efter lyckad inloggning. OK.
+- api.php rad 80-91: session_set_cookie_params med HttpOnly=true, SameSite=Lax, Secure=dynamiskt. use_strict_mode=1, use_only_cookies=1, use_trans_sid=0. OK.
+- AdminController.php: toggleAdmin andrar andra anvandares admin-status (inte sin egen, blockerat rad 195). Paverkar inte aktiv session. OK.
+
+**Bugg 5: ProfileController.php** — rad 171-174: $_SESSION['role'] uppdaterades utan session_regenerate_id(true). Om en anvandares roll andras (t.ex. admin-status i DB) ateranvands samma session-ID, vilket ar en session fixation-risk. Lade till session_regenerate_id(true) vid rollbyte samt vid losenordsbyte.
+
+---
+
 ## 2026-03-21 Session #234 Worker A — CORS/cookie + file upload + SQL JOIN audit (21 buggar)
 
 ### Uppgift 1: PHP classes/ CORS/cookie SameSite audit

@@ -210,6 +210,7 @@ class OperatorJamforelseController {
                     $antalStopp    = $stoppRow ? (int)$stoppRow['antal']     : 0;
                     $totalStopptid = $stoppRow ? (float)$stoppRow['total_min'] : 0.0;
                 } catch (\PDOException $ignored) {
+                    error_log('OperatorJamforelseController::getCompare stoppage_log fallback: ' . $ignored->getMessage());
                     // Tabellen kanske inte finns — använd skiftrapport stopp_min
                     try {
                         $stmtStopp2 = $this->pdo->prepare(
