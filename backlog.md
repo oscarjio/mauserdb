@@ -7,18 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #228):
-- [ ] **PHP classes/ SQL prepared statement audit (N-Z)** — strangkonkatenering i SQL, saknad parameterbindning (Worker A)
-- [ ] **PHP classes/ type juggling audit (N-Z)** — == istallet for === i sakerhetsrelaterade jamforelser (Worker A)
-- [ ] **PHP classes/ error response consistency audit** — inkonsistenta error JSON-format mellan controllers (Worker B)
-- [ ] **Angular HTTP error message consistency audit** — felmeddelanden som inte visas for anvandaren (Worker B)
-
-### Nasta buggjakt-items (session #229+):
-- [ ] **PHP classes/ unused variable/dead code audit** — oanvanda variabler, naabar kod efter return
-- [ ] **PHP classes/ file inclusion/require audit** — dynamiska include/require med user input
-- [ ] **Angular template strict null-check audit** — ?. saknas pa potentiellt null-objekt i templates
+### Nasta buggjakt-items (session #230+):
 - [ ] **PHP classes/ array_key_exists vs isset audit** — isset returnerar false for null-varden
-- [ ] **Angular reactive forms validation audit** — saknade validators, felaktig felvisning
+- [ ] **PHP classes/ exception handling granularity audit** — for breda catch-block, saknad feltyp-differentiering
+- [ ] **Angular HTTP retry logic audit** — saknad retry pa transienta fel, felaktig retry pa POST
+- [ ] **PHP classes/ SQL transaction isolation audit** — saknad transaction dar flera queries ska vara atomara
+- [ ] **Angular change detection audit** — onodiga rerenders, saknad OnPush dar mojligt
 
 ## Parkerade features (ta inte dessa nu)
 
