@@ -440,12 +440,16 @@ class MaskinunderhallController {
         }
 
         try {
-            // Kontrollera att maskinen finns
+            // Transaktion + FOR UPDATE forhindrar TOCTOU: maskinen kan inte inaktiveras
+            // mellan existenskontroll och INSERT.
+            $this->pdo->beginTransaction();
+
             $checkStmt = $this->pdo->prepare(
-                "SELECT id FROM maskin_register WHERE id = ? AND aktiv = 1"
+                "SELECT id FROM maskin_register WHERE id = ? AND aktiv = 1 FOR UPDATE"
             );
             $checkStmt->execute([$maskinId]);
             if (!$checkStmt->fetch()) {
+                $this->pdo->rollBack();
                 $this->sendError('Maskin hittades inte', 404);
                 return;
             }
@@ -465,12 +469,16 @@ class MaskinunderhallController {
             ]);
 
             $newId = (int)$this->pdo->lastInsertId();
+            $this->pdo->commit();
 
             $this->sendSuccess([
                 'id'      => $newId,
                 'message' => 'Service registrerad',
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('MaskinunderhallController::addService: ' . $e->getMessage());
             $this->sendError('Kunde inte spara service', 500);
         }

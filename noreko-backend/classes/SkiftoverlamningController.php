@@ -1191,16 +1191,20 @@ class SkiftoverlamningController {
         $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? mb_substr(strip_tags(trim($data['kommentar_ovrigt'])), 0, 5000)  : null;
 
         try {
-            // Race condition-skydd: kontrollera om ett protokoll redan finns for samma operator+datum+skift.
-            // Forhindrar dubbletter vid dubbelklick eller simultana requests.
+            // Race condition-skydd: transaktion + SELECT FOR UPDATE forhindrar dubbletter
+            // vid dubbelklick eller simultana requests (TOCTOU-fix).
+            $this->pdo->beginTransaction();
+
             $dupStmt = $this->pdo->prepare(
                 "SELECT id FROM rebotling_skiftoverlamning
                  WHERE skift_datum = ? AND skift_typ = ? AND operator_id = ?
-                 LIMIT 1"
+                 LIMIT 1
+                 FOR UPDATE"
             );
             $dupStmt->execute([$skiftDatum, $skiftTyp, $userId]);
             $existing = $dupStmt->fetch(\PDO::FETCH_ASSOC);
             if ($existing) {
+                $this->pdo->rollBack();
                 $this->sendError('Ett protokoll for detta skift finns redan (ID: ' . $existing['id'] . '). Ladda om sidan for att se det.', 409);
                 return;
             }
@@ -1223,11 +1227,15 @@ class SkiftoverlamningController {
             ]);
 
             $newId = (int)$this->pdo->lastInsertId();
+            $this->pdo->commit();
             $this->sendSuccess([
                 'id'      => $newId,
                 'message' => 'Skiftoverlamningsprotokoll sparat',
             ]);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('SkiftoverlamningController::sparaProtokoll: ' . $e->getMessage());
             $this->sendError('Kunde inte spara protokoll', 500);
         }

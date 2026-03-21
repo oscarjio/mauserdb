@@ -404,11 +404,16 @@ class ShiftHandoverController {
         }
 
         try {
-            $stmt = $this->pdo->prepare('SELECT id, created_by_user_id FROM shift_handover WHERE id = ?');
+            // Transaktion + FOR UPDATE forhindrar TOCTOU: raden kan inte andras/tas bort
+            // mellan agarkontroll och DELETE.
+            $this->pdo->beginTransaction();
+
+            $stmt = $this->pdo->prepare('SELECT id, created_by_user_id FROM shift_handover WHERE id = ? FOR UPDATE');
             $stmt->execute([$id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$row) {
+                $this->pdo->rollBack();
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Anteckning hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -419,6 +424,7 @@ class ShiftHandoverController {
             $ownNote = ($row['created_by_user_id'] !== null && (int)$row['created_by_user_id'] === $userId);
 
             if (!$isAdmin && !$ownNote) {
+                $this->pdo->rollBack();
                 error_log('ShiftHandoverController::deleteNote: Obehörig borttagning, user_id=' . $userId . ', note_id=' . $id);
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Du har inte behörighet att ta bort denna anteckning'], JSON_UNESCAPED_UNICODE);
@@ -430,8 +436,12 @@ class ShiftHandoverController {
 
             AuditLogger::log($this->pdo, 'delete_shift_handover', 'shift_handover', $id,
                 "Tog bort skiftanteckning (ID: $id)");
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Anteckning borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('ShiftHandoverController::deleteNote: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort anteckning'], JSON_UNESCAPED_UNICODE);
