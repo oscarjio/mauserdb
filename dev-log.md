@@ -15260,3 +15260,37 @@ Berorda filer (47 st):
 - **Uppgift 1:** 0 buggar — HTTP error-hantering ar konsekvent
 - **Uppgift 2:** 47 buggar fixade — saknade svenska diakritiska tecken i synlig UI-text
 - Frontend bygger utan fel
+
+## 2026-03-21 Session #228 Worker A — PHP classes/ SQL prepared statement + type juggling audit N-Z (0 buggar, koden ar ren)
+
+### Uppgift 1: SQL prepared statement audit (N-Z controllers, 67 filer)
+Granskade ALLA PHP-filer i noreko-backend/classes/ fran N till Z (67 filer) for SQL injection-risker:
+
+Kontrollerade:
+- **Strangkonkatenering i SQL** — Inga anvandardata stoppas in direkt i SQL-strangar
+- **->query() utan parametrar** — Alla pdo->query()-anrop anvander hardkodade SQL-strangar (SHOW TABLES, SHOW COLUMNS, statisk SQL)
+- **->prepare() + ->execute()** — Alla queries med anvandardata anvander korrekta prepared statements med ? placeholders
+- **->exec()** — Alla exec()-anrop anvander DDL (CREATE TABLE IF NOT EXISTS, ALTER TABLE, INSERT IGNORE) med hardkodade varden
+- **Dynamisk tabellnamn (RuntimeController)** — $tableName byggs fran $line som valideras via whitelist ['tvattlinje', 'rebotling'] med strict in_array
+- **Dynamisk $dateFilter (RebotlingController::getOEE)** — Byggs fran match() mot whitelistad period-variabel, ingen anvandardata i SQL
+- **IN-klausuler ($placeholders)** — Alla anvander implode(',', array_fill(0, count($arr), '?')) med parameterbindning — korrekt monster
+- **Kolumnnamn i ALTER TABLE (SkiftrapportController)** — $col och $def kommer fran hardkodad array, ej anvandardata
+- **UPDATE med dynamiska falt (StoppageController, SkiftrapportController, ProfileController)** — $fields byggs fran hardkodade kolumnnamn med ? placeholders
+
+**0 buggar hittade** — alla queries med anvandardata anvander prepared statements korrekt.
+
+### Uppgift 2: Type juggling audit (N-Z controllers, 67 filer)
+Granskade ALLA PHP-filer i noreko-backend/classes/ fran N till Z for type juggling-problem:
+
+Kontrollerade:
+- **== vs ===** — Noll forekomster av loose comparison (==) i hela N-Z-filerna. Grep pa "\s==\s" returnerade 0 traffar
+- **Rollkontroller** — Alla $_SESSION['role']-kontroller anvander === eller !== (strict): OperatorCompareController, RebotlingAdminController, StoppageController, ProfileController, VpnController, TvattlinjeController, RebotlingController, OperatorController, RebotlingProductController, ShiftHandoverController, ShiftPlanController, SkiftrapportController, SaglinjeController, RebotlingAnalyticsController
+- **Losenordskontroll (RegisterController)** — Anvander !== for jamforelse och AuthHelper::hashPassword (bcrypt)
+- **switch/case pa sakerhetsdata** — Inga switch-satser pa $_SESSION, $_GET, $_POST for sakerhetsrelaterade varden
+
+**0 buggar hittade** — alla jamforelser anvander strict operators genomgaende.
+
+### Sammanfattning
+- **Uppgift 1:** 0 buggar — alla SQL-queries ar korrekt parametriserade
+- **Uppgift 2:** 0 buggar — inga type juggling-risker, === anvands genomgaende
+- Med session #227 (A-M) och #228 (N-Z) ar hela classes/-katalogen granskad for SQL injection och type juggling
