@@ -7,18 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #230):
-- [x] **PHP classes/ array_key_exists vs isset audit** — rent (117 filer)
-- [x] **PHP classes/ exception handling granularity audit** — rent (117 filer)
-- [x] **Angular HTTP retry logic audit** — 1 bugg fixad (POST retry i error interceptor)
-- [x] **Angular change detection audit** — rent (42 komponenter)
+### Klart (session #231):
+- [x] **PHP classes/ SQL transaction isolation audit** — rent (47 filer med skrivoperationer)
+- [x] **PHP classes/ date/time edge case audit** — rent (110 filer)
+- [x] **Angular lazy loading + bundle size audit** — rent (100+ routes med loadComponent)
+- [x] **Angular form state consistency audit** — rent (14 formular)
 
-### Nasta buggjakt-items (session #231+):
-- [ ] **PHP classes/ SQL transaction isolation audit** — saknad transaction dar flera queries ska vara atomara
-- [ ] **PHP classes/ date/time edge case audit** — leap year, DST, midnight, month boundaries
-- [ ] **Angular lazy loading + bundle size audit** — stora moduler som inte lazy-loadas
+### Nasta buggjakt-items (session #232+):
 - [ ] **PHP classes/ input length/bounds validation audit** — saknad maxlangd-kontroll pa user input
-- [ ] **Angular form state consistency audit** — dirty/pristine/touched states, submit-knapp disabled-logik
+- [ ] **PHP classes/ concurrent request race condition audit** — parallella requests som skriver till samma rad
+- [ ] **Angular HTTP caching/stale data audit** — polling som visar gammal data, saknad cache-invalidering
+- [ ] **PHP classes/ SQL LIMIT/OFFSET pagination audit** — saknade LIMIT pa stora SELECT-queries
+- [ ] **Angular router navigation guard audit** — saknade guards, felaktig redirect-logik
 
 ## Parkerade features (ta inte dessa nu)
 
