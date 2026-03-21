@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../services/toast.service';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 import {
   SkiftoverlamningProtokollService,
   SkiftdataResponse,
@@ -18,7 +19,7 @@ import {
   templateUrl: './skiftoverlamning.component.html',
   styleUrl: './skiftoverlamning.component.css',
 })
-export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
+export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy, ComponentCanDeactivate {
 
   // Tillstand
   isLoading = false;
@@ -64,6 +65,15 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  canDeactivate(): boolean {
+    // Varna om formuläret har ifylld data (checklista eller kommentarer)
+    const hasChecklist = this.checklista.rengoring || this.checklista.verktyg ||
+      this.checklista.kemikalier || this.checklista.avvikelser ||
+      this.checklista.sakerhet || this.checklista.material;
+    const hasComments = !!(this.kommentarHande.trim() || this.kommentarAtgarda.trim() || this.kommentarOvrigt.trim());
+    return !(hasChecklist || hasComments);
   }
 
   // =========================================================================

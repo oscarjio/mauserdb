@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { Layout } from './layout/layout';
 import { authGuard, adminGuard } from './guards/auth.guard';
+import { pendingChangesGuard } from './guards/pending-changes.guard';
 
 export const routes: Routes = [
   {
@@ -47,7 +48,7 @@ export const routes: Routes = [
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/overlamning', canActivate: [authGuard], loadComponent: () => import('./pages/shift-handover/shift-handover').then(m => m.ShiftHandoverPage) },
-      { path: 'rebotling/skiftoverlamning', canActivate: [authGuard], loadComponent: () => import('./rebotling/skiftoverlamning/skiftoverlamning.component').then(m => m.SkiftoverlamningProtokollPage) },
+      { path: 'rebotling/skiftoverlamning', canActivate: [authGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./rebotling/skiftoverlamning/skiftoverlamning.component').then(m => m.SkiftoverlamningProtokollPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
       { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
       { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },
@@ -93,7 +94,7 @@ export const routes: Routes = [
       { path: 'rebotling/stopptidsanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/stopptidsanalys/stopptidsanalys.component').then(m => m.StopptidsanalysPage) },
       { path: 'rebotling/maskin-oee', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/maskin-oee/maskin-oee.component').then(m => m.MaskinOeePage) },
       { path: 'rebotling/operatorsbonus', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operatorsbonus/operatorsbonus.component').then(m => m.OperatorsbonusPage) },
-      { path: 'rebotling/leveransplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/leveransplanering/leveransplanering.component').then(m => m.LeveransplaneringPage) },
+      { path: 'rebotling/leveransplanering', canActivate: [authGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/rebotling/leveransplanering/leveransplanering.component').then(m => m.LeveransplaneringPage) },
       { path: 'rebotling/kvalitetscertifikat', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component').then(m => m.KvalitetscertifikatPage) },
       { path: 'rebotling/historisk-produktion', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/historisk-produktion/historisk-produktion.component').then(m => m.HistoriskProduktionPage) },
       { path: 'rebotling/avvikelselarm', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/avvikelselarm/avvikelselarm.component').then(m => m.AvvikelselarmPage) },

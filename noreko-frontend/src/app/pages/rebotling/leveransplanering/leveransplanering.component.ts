@@ -13,6 +13,7 @@ import {
   KundorderItem,
 } from '../../../services/leveransplanering.service';
 import { localToday } from '../../../utils/date-utils';
+import { ComponentCanDeactivate } from '../../../guards/pending-changes.guard';
 
 Chart.register(...registerables);
 
@@ -25,7 +26,7 @@ type PeriodKey = 'alla' | 'vecka' | 'manad';
   styleUrls: ['./leveransplanering.component.css'],
   imports: [CommonModule, FormsModule],
 })
-export class LeveransplaneringPage implements OnInit, OnDestroy {
+export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDeactivate {
 
   // Filters
   filterStatus = 'alla';
@@ -98,6 +99,12 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       this.refreshTimer = null;
     }
     if (this.kapacitetChartTimer !== null) { clearTimeout(this.kapacitetChartTimer); this.kapacitetChartTimer = null; }
+  }
+
+  canDeactivate(): boolean {
+    // Varna om ordermodalen är öppen och har ifylld data
+    if (!this.showNewOrderModal) return true;
+    return !(this.newOrder.kundnamn.trim() || this.newOrder.onskat_leveransdatum || this.newOrder.notering.trim());
   }
 
   // ---- Helpers ----
