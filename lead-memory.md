@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #222)*
+*Senast uppdaterad: 2026-03-21 (session #223)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -89,23 +89,20 @@ Session #219: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade fetch()-k
 Session #220: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL transaction consistency: rent. Error message disclosure: rent. Form validation: 4 saknade required/disabled. Route guard: rent.
 Session #221: BUGGJAKT — 47 buggar (0 Worker A + 47 Worker B). Type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent. HTTP retry/timeout: rent. Svenska diakritiska tecken (a/o saknade accenter): 47 fixar i templates.
 Session #222: BUGGJAKT — 11 buggar (8 Worker A + 3 Worker B). floatval NAN/INF bypass i 5 PHP-filer (8). chartTimers minneslackor i 3 Angular-komponenter (3). Date/time: rent. Reactive forms: rent.
+Session #223: BUGGJAKT — 57 buggar (20 Worker A + 37 Worker B). mb_string i 14 PHP-filer (20), HTTP error normalization i 12 Angular-filer (37). File upload/array key/template null-safe: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #223+):
-- [ ] PHP classes/ file upload + MIME type validation audit
-- [ ] PHP classes/ array key existence audit
-- [ ] Angular HTTP interceptor error normalization audit
-- [ ] PHP classes/ string encoding + multibyte audit
-- [ ] Angular template null-safe navigation audit
+### Kvarstaende buggjakt-items (session #224+):
+- [ ] PHP classes/ regex injection + preg_match audit
+- [ ] Angular pipe error handling audit
+- [ ] PHP classes/ session concurrency + race condition audit
+- [ ] Angular router resolve/guard data consistency audit
+- [ ] PHP classes/ HTTP header injection audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #220 (klar)
-Worker A: 0 buggar — SQL transaction consistency: rent. Error message disclosure: rent.
-Worker B: 4 buggar — saknade required-attribut i produktionsmal/skiftoverlamning/bonus-admin (3), saknad datum-check i rebotling-admin kassation-knapp (1). Route guard: rent.
 
 ### 2026-03-21 — Session #221 (klar)
 Worker A: 0 buggar — type coercion/strict comparison: rent. SQL injection ORDER BY/LIMIT: rent.
@@ -114,3 +111,7 @@ Worker B: 47 buggar — svenska diakritiska tecken saknade i 47 template-filer. 
 ### 2026-03-21 — Session #222 (klar)
 Worker A: 8 buggar — floatval NAN/INF bypass i MaintenanceController, BonusAdminController, KvalitetstrendanalysController, RebotlingAdminController, TvattlinjeController. Date/time: rent.
 Worker B: 3 buggar — chartTimers minneslackor i stopptidsanalys, produktionskostnad, prediktivt-underhall. Reactive forms: rent.
+
+### 2026-03-21 — Session #223 (klar)
+Worker A: 20 buggar — substr/strtoupper/strtolower/strlen/strpos bytta till mb_-varianter i 14 PHP-filer dar svensk text hanteras. File upload: rent. Array key: rent.
+Worker B: 37 buggar — felaktigt res.message istallet for res.error i 12 Angular-komponenter (backend skickar {error:"..."} ej {message:"..."}). Kritiskt: login felmeddelanden aldrig visades. Template null-safe: rent.
