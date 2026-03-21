@@ -1,3 +1,50 @@
+## 2026-03-21 Session #229 Worker B — Angular template null-check + reactive forms validation audit (0 buggar)
+
+### Uppgift 1: Angular template strict null-check audit (37 HTML-filer granskade)
+Granskade ALLA HTML-template-filer i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Granskade filer (37 st):**
+- components/pdf-export-button
+- pages/drifttids-timeline, historisk-sammanfattning, oee-trendanalys, operator-ranking, statistik-overblick, tidrapport, vd-dashboard
+- pages/rebotling/avvikelselarm, batch-sparning, historisk-produktion, kapacitetsplanering, kassationskvot-alarm, kvalitetscertifikat, leveransplanering, maskinhistorik, maskin-oee, maskinunderhall, operatorsbonus, operators-prestanda, produktions-dashboard, produktionsflode, produktionskostnad, produktionsmal, produktions-sla, rebotling-sammanfattning, rebotling-trendanalys, skiftplanering, stationsdetalj, statistik-dashboard, stopporsaker, stopptidsanalys, vd-veckorapport
+- rebotling/daglig-briefing, gamification, prediktivt-underhall, skiftoverlamning
+
+**Kontrollerade:**
+- **Saknad ?. (safe navigation operator)** — Inga fall hittades. Alla objekt-accesser pa potentiellt null/undefined variabler anvander ?. korrekt (t.ex. `topplistaData?.topplista?.[1]?.operator_namn`, `sammanfattning?.basta_operator?.namn`, `overview?.basta_maskin?.namn`)
+- **Saknad *ngIf-guard** — Inga fall hittades. Alla templates foljer ett konsekvent monster med `*ngIf="!loading && !error && data"` fore rendering av async-data. Loading-spinner visas under laddning, felmeddelande vid error, och tom-state vid tomma listor.
+- **Array-accesser utan langd-check** — Inga fall hittades. Alla array-accesser gardas med langd-check, t.ex. `(topplistaData?.topplista?.length ?? 0) >= 2` i operator-ranking och gamification.
+- **Pipe pa potentiellt null** — Inga fall hittades. Alla pipes (date, number, etc.) anvands inom *ngIf-gardade block, alternativt med ?? default-varden.
+- **Nullish coalescing** — Konsekvent anvandning av `?? 0`, `?? ''`, `?? '-'` for fallback-varden.
+
+**0 buggar hittade** — alla templates ar valskrivna med korrekt null-hantering.
+
+### Uppgift 2: Angular reactive forms validation audit
+Sokte efter FormGroup, FormControl, FormBuilder och ReactiveFormsModule i hela noreko-frontend/src/.
+
+**Resultat:** Inga reactive forms anvands nagonstans i hela frontend-kodbasen. Alla formular anvander template-driven forms med `[(ngModel)]` och `#ctrl="ngModel"`.
+
+**Template-driven forms granskade (11 formular):**
+- avvikelselarm: Kvittera-dialog (kvitteraNamn required + felvisning + disabled-knapp)
+- batch-sparning: Skapa batch (batch_nummer required, planerat_antal min=1 + felvisning + disabled-knapp)
+- kapacitetsplanering: Bemanning (orderbehov required min=1 + felvisning + disabled) och Prognos-simulator (timmar + operatorer required + felvisning + disabled)
+- kassationskvot-alarm: Troskelinst (varning/alarm required + felvisning + korsvalidering varning<alarm + disabled)
+- kvalitetscertifikat: Bedom-certifikat (bedomStatus required + disabled) och Generera-certifikat (batchNummer required + disabled)
+- leveransplanering: Ny order (kundnamn, antal_ibc, leveransdatum required + felvisning + disabled)
+- maskinunderhall: Service-modal (maskin_id, service_datum required + felvisning + disabled) och Ny maskin-modal (namn, intervall required + felvisning + disabled)
+- produktionsmal: Satt mal (formAntal required min=1 + felvisning + disabled)
+- produktions-sla: Satt mal (target_ibc required min=1 + disabled)
+- skiftplanering: Tilldela operator (assignOperatorId required + disabled)
+- skiftoverlamning: Spara protokoll (disabled nar !skiftdata + bekraftelsedialog)
+
+**Alla formular har:**
+- required pa obligatoriska falt
+- min/max pa numeriska falt
+- Felvisning med `*ngIf="ctrl.invalid && ctrl.touched"`
+- Submit-knappar korrekt [disabled] nar formularet ar ogiltigt eller sparar
+- maxlength pa textfalt
+
+**0 buggar hittade** — alla formular ar korrekt validerade.
+
 ## 2026-03-21 Session #227 Worker A — PHP classes/ SQL prepared statement + type juggling audit A-M (0 buggar, koden ar ren)
 
 ### Uppgift 1: SQL prepared statement audit (A-M controllers, 50 filer)
