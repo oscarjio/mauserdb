@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #219)*
+*Senast uppdaterad: 2026-03-21 (session #220)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -86,24 +86,25 @@ Session #216: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL ORDER BY: ren
 Session #217: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). Session handling: rent. Error response: rent. SQL UNION: rent. Form validation: 2 fixar. Tree-shaking: 2 fixar.
 Session #218: BUGGJAKT — 11 buggar (5 Worker A + 6 Worker B). Date/time month-overflow (1), input sanitization trim/strip_tags (4), logikbugg impossible condition (1), svenska accentfel (5).
 Session #219: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Saknade fetch()-kontroller (3), felaktiga kolumnnamn dagmal/daily_goal->rebotling_target (2). Strict null check + polling cleanup: rent.
+Session #220: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). SQL transaction consistency: rent. Error message disclosure: rent. Form validation: 4 saknade required/disabled. Route guard: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Kvarstaende buggjakt-items (session #220+):
-- [ ] PHP classes/ SQL transaction consistency audit
-- [ ] PHP classes/ error message information disclosure audit
-- [ ] Angular form validation completeness audit
+### Kvarstaende buggjakt-items (session #221+):
 - [ ] PHP classes/ type coercion + strict comparison audit
-- [ ] Angular route guard + lazy loading consistency audit
+- [ ] PHP classes/ numeric overflow + boundary value audit
+- [ ] Angular HTTP error retry + timeout consistency audit
+- [ ] PHP classes/ SQL injection via dynamic ORDER BY/LIMIT audit
+- [ ] Angular template i18n completeness audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #218 (klar)
-Worker A: 5 buggar — strtotime month-overflow i StatistikOverblickController (1x3 forekomster), saknad trim i MaintenanceController/BonusAdminController (3), fel strip_tags-ordning i SkiftoverlamningController (1).
-Worker B: 6 buggar — omojligt villkor i weekly-report kvalitetsfarg (1), svenska accentfel i 4 komponenter (5). Chart.js config: rent. HTTP error UX: rent.
 
 ### 2026-03-21 — Session #219 (klar)
 Worker A: 5 buggar — saknade fetch()===false-kontroller i VDVeckorapport/MyStats/Stopporsak (3), felaktiga kolumnnamn dagmal/daily_goal->rebotling_target i WeeklyReport/Operatorsbonus (2). File permission/path: rent.
 Worker B: 0 buggar — strict null check: rent (40+ komponenter). Reactive polling cleanup: rent. Kodbasen ar valmaintainad efter 218 sessions.
+
+### 2026-03-21 — Session #220 (klar)
+Worker A: 0 buggar — SQL transaction consistency: rent (47 filer med skrivoperationer, 50 befintliga transaktioner alla korrekta). Error message disclosure: rent (inga getMessage() lacker till klient).
+Worker B: 4 buggar — saknade required-attribut i produktionsmal/skiftoverlamning/bonus-admin (3), saknad datum-check i rebotling-admin kassation-knapp (1). Route guard + lazy loading: rent.
