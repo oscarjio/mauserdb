@@ -1,3 +1,47 @@
+## 2026-03-21 Session #222 Worker A — PHP floatval NAN/INF bypass audit (8 buggar fixade)
+
+### Uppgift 1: PHP classes/ numeric overflow + boundary value audit
+Granskade ALLA PHP-filer (117 st) i noreko-backend/classes/. Kontrollerade:
+- intval() pa varden som kan overfloda (storre an PHP_INT_MAX)
+- floatval() pa extremvarden som kan ge INF eller NAN
+- Division by zero dar delaren inte kontrolleras
+- Negativa varden dar bara positiva ar giltiga
+- Off-by-one-fel i pagination (LIMIT/OFFSET)
+- Saknade bounds-kontroller pa user-input-tal
+
+Resultat: **8 buggar fixade** — floatval() NAN/INF bypass av bounds-kontroller:
+
+PHP:s floatval() returnerar NAN for input som "NAN" och INF for "INF". NAN har egenskapen att ALLA jamforelser returnerar false, sa max(0, min(99999999, NAN)) = NAN (passerar bounds-kontrollen oforandrad). Detta kunde lagra NAN/INF i databasen.
+
+**Bugg 1-2:** `MaintenanceController.php` — cost_sek vid skapa (rad 145-148) och uppdatera (rad 322). Lade till is_finite()-kontroll.
+**Bugg 3-5:** `BonusAdminController.php` — amount_sek, avg_ibc_per_h, avg_quality_pct (rad 1053-1058). Lade till is_finite()-kontroll for alla tre.
+**Bugg 6:** `KvalitetstrendanalysController.php` — warning/critical thresholds fran GET-parameter (rad 413-416). Lade till is_finite() med fallback till default.
+**Bugg 7:** `RebotlingAdminController.php` — shiftHours (rad 68-69). Lade till is_finite()-kontroll.
+**Bugg 8:** `TvattlinjeController.php` — skiftlangd vid input (rad 701-702) och DB-lasning (rad 764-765). Lade till is_finite() + bounds pa bada stallen.
+
+Ovriga numeriska monster som granskades men INTE hade buggar:
+- intval() pa user-input: alla hade redan max()/min() bounds eller explicit validering (t.ex. OperatorCompareController, AuditController, FeedbackAnalysController)
+- Division by zero: alla divisioner hade redan ternary-guards (t.ex. $total > 0 ? ... : 0)
+- Pagination: AuditController, FeedbackAnalysController — korrekt OFFSET = (page-1)*limit, inga off-by-one
+- CykeltidHeatmapController stddev(): korrekt n >= 2 guard
+
+### Uppgift 2: PHP classes/ date/time edge case audit
+Granskade ALLA PHP-filer i noreko-backend/classes/. Kontrollerade:
+- Felaktig hantering av skottar/leap year
+- DST-problem (sommartid/vintertid)
+- Midnight edge case (00:00:00 vs 23:59:59)
+- Month boundary (strtotime("+1 month") fran jan 31)
+- Felaktig vecka/ar-berakning runt nyar (ISO 8601 vs vanlig)
+- Saknad timezone-hantering
+
+Resultat: **Inga buggar hittade.** Alla datum/tid-monster ar korrekt implementerade:
+- api.php sattar date_default_timezone_set('Europe/Stockholm') globalt
+- strtotime("+1 month") anvands INTE — korrekt: DateTime::modify('first/last day of this month')
+- ISO veckonummer: anvander date('o') for ISO-ar (OperatorsPrestandaController, RankingHistorikController) och YEARWEEK(..., 1/3) i SQL
+- DST: ProduktionsTaktController anvander DateTime med DateTimeZone('Europe/Stockholm') for timberakningar istallet for strtotime-aritmetik
+- Skift-detection (ProduktionsPrognosController): anvander DateTime-objekt med korrekt timezone fran api.php
+- 'monday this week': anvands korrekt for vecko-intervall (ej DST-kansligt for datumberakningar)
+
 ## 2026-03-21 Session #222 Worker B — Angular reactive forms + memory profiling audit (3 buggar fixade)
 
 ### Uppgift 1: Angular reactive forms validation sync audit
