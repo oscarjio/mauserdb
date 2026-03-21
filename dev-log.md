@@ -1,3 +1,33 @@
+## 2026-03-21 Session #227 Worker A — PHP classes/ SQL prepared statement + type juggling audit A-M (0 buggar, koden ar ren)
+
+### Uppgift 1: SQL prepared statement audit (A-M controllers, 50 filer)
+Granskade ALLA PHP-filer i noreko-backend/classes/ fran A till M (50 filer) for SQL injection-risker:
+
+Kontrollerade:
+- **Strangkonkatenering i SQL** — Inga anvandardata stoppas in direkt i SQL-strangar
+- **$db->quote()** — Anvands inte i nagon fil (bra, prepared statements anvands istallet)
+- **->query() utan parametrar** — Alla 100+ pdo->query()-anrop anvander hardkodade SQL-strangar utan anvandardata
+- **->prepare() + ->execute()** — Alla queries med anvandardata anvander korrekta prepared statements med ? eller :param placeholders
+- **LIMIT/OFFSET** — Anvander (int)-cast som ar sakert (t.ex. AuditController, BonusController)
+- **Dynamisk SQL (BonusController::getDateFilter)** — Datum valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/') fore inkludering
+- **Dynamisk SQL (AvvikelselarmController::uppdateraRegel)** — $setStr byggs fran hardkodade kolumnnamn, ej anvandardata
+- **Tabell-namn (LineSkiftrapportController)** — $table valideras via whitelist (in_array med strict)
+- **Kolumn-namn (ForstaTimmeAnalysController)** — $ibcCol returneras fran intern funktion som bara ger 'timestamp' eller 'datum'
+
+**0 buggar hittade** — alla queries med anvandardata anvander prepared statements korrekt.
+
+### Uppgift 2: Type juggling audit (A-M controllers, 50 filer)
+Granskade ALLA PHP-filer i noreko-backend/classes/ fran A till M for type juggling-problem:
+
+Kontrollerade:
+- **== vs ===** — Noll (0) forekomster av los == jamforelse hittades i nagon fil. Alla jamforelser anvander strikt === eller !==
+- **Sakerhetsrelaterade jamforelser** — Alla role-checkar, session-checkar och auth-kontroller anvander === konsekvent
+- **LoginController.php** — Anvander password_verify() (bcrypt), alla jamforelser ar strikta
+- **AuthHelper.php** — CSRF-validering anvander hash_equals() (timing-safe), alla jamforelser ar strikta
+- **AdminController.php** — Alla admin/role/user_id-checkar anvander === eller !==
+
+**0 buggar hittade** — kodbasen anvander genomgaende strikta jamforelser i alla sakerhetsrelaterade sammanhang.
+
 ## 2026-03-21 Session #227 Worker B — Angular memory leak + route guard audit (0 buggar, koden ar ren)
 
 ### Uppgift 1: Angular component memory leak audit
