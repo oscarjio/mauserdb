@@ -385,21 +385,22 @@ class ProduktionsmalController {
             $today = date('Y-m-d');
             $historik = [];
 
+            $ibcStmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(max_ibc_ok), 0) AS antal
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+            ");
+
             foreach ($malen as $m) {
                 $malAntal = (int)$m['mal_antal'];
                 $startDatum = $m['start_datum'];
                 $slutDatum = $m['slut_datum'];
 
                 // Berakna faktisk produktion (MAX(ibc_ok) per skiftraknare, sedan SUM)
-                $ibcStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(max_ibc_ok), 0) AS antal
-                    FROM (
-                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
-                        FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :start AND :slut
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_skift
-                ");
                 $effektivtSlut = min($today, $slutDatum);
                 $ibcStmt->execute([':start' => $startDatum, ':slut' => $effektivtSlut]);
                 $faktiskt = (int)($ibcStmt->fetchColumn() ?? 0);

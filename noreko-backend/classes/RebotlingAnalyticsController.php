@@ -23,15 +23,15 @@ class RebotlingAnalyticsController {
         // Sök UTAN datumfilter först (skifträknare är tillräckligt unikt),
         // med datumfilter som sekundärt fallback (hanterar dag-efter-scenariot)
         $foundSkiftraknare = null;
+        $chk = $this->pdo->prepare(
+            "SELECT COUNT(*) as cnt FROM rebotling_ibc
+             WHERE skiftraknare = ?
+             AND lopnummer > 0 AND lopnummer < 998"
+        );
 
         foreach (array_keys($skiftraknareList) as $sk) {
             // Testa original, sedan n-1, n-2 — utan datumfilter
             foreach ([(int)$sk, (int)$sk - 1, (int)$sk - 2] as $testId) {
-                $chk = $this->pdo->prepare(
-                    "SELECT COUNT(*) as cnt FROM rebotling_ibc
-                     WHERE skiftraknare = ?
-                     AND lopnummer > 0 AND lopnummer < 998"
-                );
                 $chk->execute([$testId]);
                 $cnt = (int)$chk->fetchColumn();
                 if ($cnt > 0) {
@@ -1087,19 +1087,38 @@ class RebotlingAnalyticsController {
 
         try {
             $result = [];
+            // Prepare statements utanför loopen för bättre prestanda
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    SUM(s.ibc_ok)    AS ibc_ok,
+                    SUM(s.bur_ej_ok) AS bur_ej_ok,
+                    SUM(s.ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(s.totalt)    AS totalt,
+                    SUM(s.drifttid)  AS drifttid,
+                    SUM(s.rasttime)  AS rasttime
+                FROM rebotling_skiftrapport s
+                WHERE s.datum = :date
+            ");
+            $opStmt = $this->pdo->prepare("
+                SELECT
+                    u.username AS user_name,
+                    SUM(s.ibc_ok)  AS ibc_ok,
+                    SUM(s.totalt)  AS totalt,
+                    SUM(s.drifttid) AS drifttid,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users     u  ON s.user_id = u.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                WHERE s.datum = :date
+                GROUP BY s.user_id, u.username, o1.name, o2.name, o3.name
+                ORDER BY ibc_ok DESC
+            ");
             foreach (['a' => $date_a, 'b' => $date_b] as $key => $date) {
                 // Aggregerad sammanfattning per dag (summera alla rader för datumet)
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        SUM(s.ibc_ok)    AS ibc_ok,
-                        SUM(s.bur_ej_ok) AS bur_ej_ok,
-                        SUM(s.ibc_ej_ok) AS ibc_ej_ok,
-                        SUM(s.totalt)    AS totalt,
-                        SUM(s.drifttid)  AS drifttid,
-                        SUM(s.rasttime)  AS rasttime
-                    FROM rebotling_skiftrapport s
-                    WHERE s.datum = :date
-                ");
                 $stmt->execute(['date' => $date]);
                 $agg = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -1131,24 +1150,6 @@ class RebotlingAnalyticsController {
                     : null;
 
                 // Operatörer som jobbade denna dag (från skiftrapporter)
-                $opStmt = $this->pdo->prepare("
-                    SELECT
-                        u.username AS user_name,
-                        SUM(s.ibc_ok)  AS ibc_ok,
-                        SUM(s.totalt)  AS totalt,
-                        SUM(s.drifttid) AS drifttid,
-                        o1.name AS op1_name,
-                        o2.name AS op2_name,
-                        o3.name AS op3_name
-                    FROM rebotling_skiftrapport s
-                    LEFT JOIN users     u  ON s.user_id = u.id
-                    LEFT JOIN operators o1 ON o1.number = s.op1
-                    LEFT JOIN operators o2 ON o2.number = s.op2
-                    LEFT JOIN operators o3 ON o3.number = s.op3
-                    WHERE s.datum = :date
-                    GROUP BY s.user_id, u.username, o1.name, o2.name, o3.name
-                    ORDER BY ibc_ok DESC
-                ");
                 $opStmt->execute(['date' => $date]);
                 $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
 

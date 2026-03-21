@@ -157,29 +157,52 @@ class OperatorJamforelseController {
             $cutoff  = date('Y-m-d', strtotime("-{$period} days"));
             $result  = [];
 
+            // Prepare statements utanför loopen för bättre prestanda
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    SUM(sub.ibc_ok)    AS total_ibc_ok,
+                    SUM(sub.ibc_ej_ok) AS total_ibc_ej_ok,
+                    SUM(sub.drifttid)  AS total_drifttid
+                 FROM (
+                    SELECT ibc_ok, COALESCE(ibc_ej_ok, 0) AS ibc_ej_ok, COALESCE(drifttid, 0) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 = ? AND datum >= ?
+                    UNION ALL
+                    SELECT ibc_ok, COALESCE(ibc_ej_ok, 0), COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op2 = ? AND datum >= ?
+                    UNION ALL
+                    SELECT ibc_ok, COALESCE(ibc_ej_ok, 0), COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op3 = ? AND datum >= ?
+                 ) AS sub"
+            );
+            $stmtStopp = $this->pdo->prepare(
+                "SELECT COUNT(*) AS antal, COALESCE(SUM(duration_minutes), 0) AS total_min
+                 FROM stoppage_log
+                 WHERE user_id = ? AND start_time >= ?"
+            );
+            $stmtStopp2 = $this->pdo->prepare(
+                "SELECT COUNT(*) AS antal, COALESCE(SUM(sub.stopp_min), 0) AS total_min
+                 FROM (
+                    SELECT COALESCE(stopp_min, 0) AS stopp_min
+                    FROM rebotling_skiftrapport
+                    WHERE op1 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                    UNION ALL
+                    SELECT COALESCE(stopp_min, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op2 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                    UNION ALL
+                    SELECT COALESCE(stopp_min, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op3 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                 ) AS sub"
+            );
+
             foreach ($ids as $opId) {
                 $namn = $opNames[$opId] ?? "Operatör #{$opId}";
 
                 // ---- IBC och drifttid ----
-                $stmt = $this->pdo->prepare(
-                    "SELECT
-                        SUM(sub.ibc_ok)    AS total_ibc_ok,
-                        SUM(sub.ibc_ej_ok) AS total_ibc_ej_ok,
-                        SUM(sub.drifttid)  AS total_drifttid
-                     FROM (
-                        SELECT ibc_ok, COALESCE(ibc_ej_ok, 0) AS ibc_ej_ok, COALESCE(drifttid, 0) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE op1 = ? AND datum >= ?
-                        UNION ALL
-                        SELECT ibc_ok, COALESCE(ibc_ej_ok, 0), COALESCE(drifttid, 0)
-                        FROM rebotling_skiftrapport
-                        WHERE op2 = ? AND datum >= ?
-                        UNION ALL
-                        SELECT ibc_ok, COALESCE(ibc_ej_ok, 0), COALESCE(drifttid, 0)
-                        FROM rebotling_skiftrapport
-                        WHERE op3 = ? AND datum >= ?
-                     ) AS sub"
-                );
                 $stmt->execute([$opId, $cutoff, $opId, $cutoff, $opId, $cutoff]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -200,11 +223,6 @@ class OperatorJamforelseController {
                 $antalStopp    = 0;
                 $totalStopptid = 0.0;
                 try {
-                    $stmtStopp = $this->pdo->prepare(
-                        "SELECT COUNT(*) AS antal, COALESCE(SUM(duration_minutes), 0) AS total_min
-                         FROM stoppage_log
-                         WHERE user_id = ? AND start_time >= ?"
-                    );
                     $stmtStopp->execute([$opId, $cutoff]);
                     $stoppRow      = $stmtStopp->fetch(\PDO::FETCH_ASSOC);
                     $antalStopp    = $stoppRow ? (int)$stoppRow['antal']     : 0;
@@ -213,22 +231,6 @@ class OperatorJamforelseController {
                     error_log('OperatorJamforelseController::getCompare stoppage_log fallback: ' . $ignored->getMessage());
                     // Tabellen kanske inte finns — använd skiftrapport stopp_min
                     try {
-                        $stmtStopp2 = $this->pdo->prepare(
-                            "SELECT COUNT(*) AS antal, COALESCE(SUM(sub.stopp_min), 0) AS total_min
-                             FROM (
-                                SELECT COALESCE(stopp_min, 0) AS stopp_min
-                                FROM rebotling_skiftrapport
-                                WHERE op1 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
-                                UNION ALL
-                                SELECT COALESCE(stopp_min, 0)
-                                FROM rebotling_skiftrapport
-                                WHERE op2 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
-                                UNION ALL
-                                SELECT COALESCE(stopp_min, 0)
-                                FROM rebotling_skiftrapport
-                                WHERE op3 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
-                             ) AS sub"
-                        );
                         $stmtStopp2->execute([$opId, $cutoff, $opId, $cutoff, $opId, $cutoff]);
                         $stoppRow2     = $stmtStopp2->fetch(\PDO::FETCH_ASSOC);
                         $antalStopp    = $stoppRow2 ? (int)$stoppRow2['antal']     : 0;
@@ -280,30 +282,31 @@ class OperatorJamforelseController {
             $cutoff  = date('Y-m-d', strtotime("-{$period} days"));
             $result  = [];
 
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    sub.datum,
+                    SUM(sub.ibc_ok)   AS ibc_count,
+                    SUM(sub.drifttid) AS drifttid_min
+                 FROM (
+                    SELECT datum, ibc_ok, COALESCE(drifttid, 0) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 = ? AND datum >= ?
+                    UNION ALL
+                    SELECT datum, ibc_ok, COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op2 = ? AND datum >= ?
+                    UNION ALL
+                    SELECT datum, ibc_ok, COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op3 = ? AND datum >= ?
+                 ) AS sub
+                 GROUP BY sub.datum
+                 ORDER BY sub.datum ASC"
+            );
+
             foreach ($ids as $opId) {
                 $namn = $opNames[$opId] ?? "Operatör #{$opId}";
 
-                $stmt = $this->pdo->prepare(
-                    "SELECT
-                        sub.datum,
-                        SUM(sub.ibc_ok)   AS ibc_count,
-                        SUM(sub.drifttid) AS drifttid_min
-                     FROM (
-                        SELECT datum, ibc_ok, COALESCE(drifttid, 0) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE op1 = ? AND datum >= ?
-                        UNION ALL
-                        SELECT datum, ibc_ok, COALESCE(drifttid, 0)
-                        FROM rebotling_skiftrapport
-                        WHERE op2 = ? AND datum >= ?
-                        UNION ALL
-                        SELECT datum, ibc_ok, COALESCE(drifttid, 0)
-                        FROM rebotling_skiftrapport
-                        WHERE op3 = ? AND datum >= ?
-                     ) AS sub
-                     GROUP BY sub.datum
-                     ORDER BY sub.datum ASC"
-                );
                 $stmt->execute([$opId, $cutoff, $opId, $cutoff, $opId, $cutoff]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

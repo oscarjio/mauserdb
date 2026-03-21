@@ -416,23 +416,24 @@ class ProduktionsDashboardController {
     private function getVeckoProduktion(): void {
         $result = [];
 
+        $stmt = $this->pdo->prepare("
+            SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                   COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+            FROM (
+                SELECT skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                FROM rebotling_ibc
+                WHERE DATE(datum) = :dag
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+            ) sub
+        ");
+
         for ($i = 6; $i >= 0; $i--) {
             $dagStr = date('Y-m-d', strtotime("-{$i} days"));
 
             try {
-                $stmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                           COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                    FROM (
-                        SELECT skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM rebotling_ibc
-                        WHERE DATE(datum) = :dag
-                          AND skiftraknare IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) sub
-                ");
                 $stmt->execute([':dag' => $dagStr]);
                 $radDag = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $total = (int)($radDag['ok_antal'] ?? 0) + (int)($radDag['ej_ok_antal'] ?? 0);

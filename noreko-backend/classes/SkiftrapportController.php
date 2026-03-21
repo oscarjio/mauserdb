@@ -615,11 +615,11 @@ class SkiftrapportController {
     private function getSkiftTider(int $skiftraknare, ?string $datum = null): array {
         // Steg 1: Hitta rätt skifträknare i rebotling_ibc (fallback nedåt)
         $foundSkiftraknare = null;
+        $chk = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM rebotling_ibc
+             WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
+        );
         foreach ([$skiftraknare, $skiftraknare - 1, $skiftraknare - 2] as $testId) {
-            $chk = $this->pdo->prepare(
-                "SELECT COUNT(*) FROM rebotling_ibc
-                 WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
-            );
             $chk->execute([$testId]);
             if ((int)$chk->fetchColumn() > 0) {
                 $foundSkiftraknare = $testId;

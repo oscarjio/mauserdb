@@ -774,6 +774,31 @@ class KapacitetsplaneringController {
         $today = new \DateTime();
         $result = [];
 
+        $stmt = $this->pdo->prepare("
+            SELECT
+                COALESCE(SUM(dag_tot), 0) AS total_ibc,
+                COUNT(DISTINCT dag) AS prod_dagar,
+                MAX(dag_tot) AS basta_dag_antal,
+                MIN(dag_tot) AS samsta_dag_antal,
+                MAX(dag) AS basta_datum,
+                MIN(dag) AS samsta_datum
+            FROM (
+                SELECT
+                    dag,
+                    SUM(max_ok + max_ej_ok) AS dag_tot
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS max_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :monday AND :friday
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) per_skift
+                GROUP BY dag
+            ) t
+        ");
+
         for ($w = $antalVeckor - 1; $w >= 0; $w--) {
             $veckoSlut = clone $today;
             $veckoSlut->modify("-{$w} weeks");
@@ -789,30 +814,6 @@ class KapacitetsplaneringController {
             $yearNum   = (int)$mdag->format('Y');
 
             try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(dag_tot), 0) AS total_ibc,
-                        COUNT(DISTINCT dag) AS prod_dagar,
-                        MAX(dag_tot) AS basta_dag_antal,
-                        MIN(dag_tot) AS samsta_dag_antal,
-                        MAX(dag) AS basta_datum,
-                        MIN(dag) AS samsta_datum
-                    FROM (
-                        SELECT
-                            dag,
-                            SUM(max_ok + max_ej_ok) AS dag_tot
-                        FROM (
-                            SELECT DATE(datum) AS dag, skiftraknare,
-                                   MAX(COALESCE(ibc_ok, 0)) AS max_ok,
-                                   MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
-                            FROM rebotling_ibc
-                            WHERE DATE(datum) BETWEEN :monday AND :friday
-                              AND skiftraknare IS NOT NULL
-                            GROUP BY DATE(datum), skiftraknare
-                        ) per_skift
-                        GROUP BY dag
-                    ) t
-                ");
                 $stmt->execute([':monday' => $mondayStr, ':friday' => $fridayStr]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
             } catch (\PDOException $e) {

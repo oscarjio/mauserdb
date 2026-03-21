@@ -471,22 +471,23 @@ class DagligBriefingController {
             $datum = $this->getDatum();
             $trend = [];
 
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+
             for ($i = 6; $i >= 0; $i--) {
                 $dag = date('Y-m-d', strtotime($datum . " -{$i} days"));
                 $totalIbc = 0;
                 try {
-                    $stmt = $this->pdo->prepare("
-                        SELECT COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
-                        FROM (
-                            SELECT skiftraknare,
-                                   MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                                   MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                            FROM rebotling_ibc
-                            WHERE DATE(datum) = :date
-                              AND skiftraknare IS NOT NULL
-                            GROUP BY skiftraknare
-                        ) AS per_shift
-                    ");
                     $stmt->execute([':date' => $dag]);
                     $totalIbc = (int)$stmt->fetchColumn();
                 } catch (\Exception $e) {

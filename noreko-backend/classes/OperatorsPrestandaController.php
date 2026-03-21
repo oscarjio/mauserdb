@@ -623,6 +623,22 @@ class OperatorsPrestandaController {
 
         // Veckovis data: senaste 12 veckor
         $veckor = [];
+        $stmt = $this->pdo->prepare("
+            SELECT
+                COALESCE(SUM(ibc_ok), 0)            AS total_ok,
+                COALESCE(SUM(ibc_ej_ok), 0)         AS total_ej_ok,
+                COALESCE(SUM(drifttid), 0)          AS total_drifttid
+            FROM (
+                SELECT ibc_ok, ibc_ej_ok, drifttid
+                FROM rebotling_skiftrapport WHERE op1 = ? AND DATE(datum) BETWEEN ? AND ?
+                UNION ALL
+                SELECT ibc_ok, ibc_ej_ok, drifttid
+                FROM rebotling_skiftrapport WHERE op2 = ? AND DATE(datum) BETWEEN ? AND ?
+                UNION ALL
+                SELECT ibc_ok, ibc_ej_ok, drifttid
+                FROM rebotling_skiftrapport WHERE op3 = ? AND DATE(datum) BETWEEN ? AND ?
+            ) sub
+        ");
         for ($i = 11; $i >= 0; $i--) {
             $veckoStart = date('Y-m-d', strtotime("monday -{$i} weeks"));
             $veckoSlut  = date('Y-m-d', strtotime("sunday -{$i} weeks"));
@@ -630,23 +646,6 @@ class OperatorsPrestandaController {
             $ar         = (int)date('o', strtotime($veckoStart)); // 'o' = ISO-8601 år (korrekt vid årsgräns)
 
             try {
-                $sql = "
-                    SELECT
-                        COALESCE(SUM(ibc_ok), 0)            AS total_ok,
-                        COALESCE(SUM(ibc_ej_ok), 0)         AS total_ej_ok,
-                        COALESCE(SUM(drifttid), 0)          AS total_drifttid
-                    FROM (
-                        SELECT ibc_ok, ibc_ej_ok, drifttid
-                        FROM rebotling_skiftrapport WHERE op1 = ? AND DATE(datum) BETWEEN ? AND ?
-                        UNION ALL
-                        SELECT ibc_ok, ibc_ej_ok, drifttid
-                        FROM rebotling_skiftrapport WHERE op2 = ? AND DATE(datum) BETWEEN ? AND ?
-                        UNION ALL
-                        SELECT ibc_ok, ibc_ej_ok, drifttid
-                        FROM rebotling_skiftrapport WHERE op3 = ? AND DATE(datum) BETWEEN ? AND ?
-                    ) sub
-                ";
-                $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([
                     $opId, $veckoStart, $veckoSlut,
                     $opId, $veckoStart, $veckoSlut,

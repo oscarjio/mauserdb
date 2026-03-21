@@ -1,3 +1,46 @@
+## 2026-03-21 Session #238 Worker A — output buffering + prepared stmt reuse + header injection (10 buggar)
+
+### Uppgift 1: PHP classes/ output buffering audit
+Granskade alla PHP-filer i noreko-backend/classes/ for output buffering-problem.
+Soekte efter ob_start(), ob_get_clean(), ob_end_clean(), echo/print fore JSON-output, header() efter output.
+
+**Resultat: RENT.** Inga output buffering-problem hittade.
+- Inga ob_start/ob_get_clean/ob_end_clean anvands i classes/.
+- CSV-exporter (BonusAdminController, TidrapportController, RebotlingAnalyticsController) satter Content-Type-header korrekt fore output.
+- api.php satter Content-Type: application/json som default, men CSV-controllers overskriver den innan nagon echo sker.
+
+### Uppgift 2: PHP classes/ SQL prepared statement reuse audit (10 prestandabuggar fixade)
+Granskade alla PHP-filer i noreko-backend/classes/ for prepare() inuti loopar.
+Hittade 10 fall dar samma SQL preparerades upprepade ganger inuti for/foreach-loopar.
+
+**10 buggar fixade — prepare() flyttad utanfor loopen, bara execute() kvar inuti:**
+1. DagligBriefingController.php:478 — veckotrend(), prepare i for-loop (7 iterationer)
+2. ProduktionsDashboardController.php:423 — getVeckoProduktion(), prepare i for-loop (7 iterationer)
+3. KapacitetsplaneringController.php:792 — getVeckoOversikt(), prepare i for-loop (12 iterationer)
+4. ProduktionsmalController.php:394 — historik foreach, prepare per mal (N iterationer)
+5. RebotlingController.php:2037 — getHallOfFameDays(), prepare i foreach topDays (N iterationer)
+6. SkiftrapportController.php:619 — getSkiftTider(), prepare i foreach (3 iterationer)
+7. RebotlingAnalyticsController.php:30 — resolveSkiftTider(), prepare i dubbel foreach-loop
+8. OperatorsPrestandaController.php:649 — getUtveckling(), prepare i for-loop (12 veckor)
+9. ProduktTypEffektivitetController.php:364+405 — getJamforelse(), 2 prepare i foreach (2 iterationer)
+10. OperatorJamforelseController.php:164+203+216+286 — getCompare() + getCompareTrend(), 4 prepare i foreach per operator
+11. RebotlingAnalyticsController.php:1092+1134 — getShiftCompare(), 2 prepare i foreach (2 iterationer)
+
+Ej bugg (motivering): BonusAdminController:1274, BonusController:309/1683, EffektivitetController:340,
+SkiftjamforelseController:117/195, OperatorsPrestandaController:519 — alla har dynamiskt SQL per iteration
+(op{$pos}, $skiftCond, $timeCond) sa prepare() kan inte flyttas utanfor loopen.
+
+### Uppgift 3: PHP classes/ header injection audit
+Granskade alla PHP-filer i noreko-backend/classes/ och noreko-backend/api.php for header injection.
+
+**Resultat: RENT.** Inga header injection-sarbarheter hittade.
+- api.php, login.php, admin.php: CRLF-skydd pa $origin via str_replace(["\r", "\n"], '', $origin) (fixat i session #206).
+- CSV-exporter: BonusAdminController saniterar filnamn via basename() + preg_replace('/[^a-zA-Z0-9._-]/', '_').
+  TidrapportController saniterar datum via preg_replace('/[^0-9-]/', '').
+  RebotlingAnalyticsController saniterar startDate via preg_replace('/[^0-9-]/', '').
+- Inga nya CRLF-injektionsvektorer sedan session #206.
+- Alla Content-Type/Content-Disposition headers anvander antingen hardkodade varden eller saniterad input.
+
 ## 2026-03-21 Session #238 Worker B — trackBy audit + environment config audit (0 buggar)
 
 ### Uppgift 1: Angular trackBy audit

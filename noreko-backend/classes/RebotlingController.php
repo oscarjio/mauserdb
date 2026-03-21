@@ -2023,18 +2023,17 @@ class RebotlingController {
 
             // Hämta operatörsnamn per dag
             $result = [];
+            $opStmt = $pdo->prepare("
+                SELECT DISTINCT o.name
+                FROM rebotling_ibc r
+                JOIN operators o ON o.number IN (r.op1, r.op2, r.op3)
+                WHERE DATE(r.datum) = ?
+                  AND r.ibc_ok IS NOT NULL
+                ORDER BY o.name
+            ");
             foreach ($topDays as $i => $day) {
                 $date = $day['datum'];
                 // Hämta unika operatörer den dagen
-                $opSql = "
-                    SELECT DISTINCT o.name
-                    FROM rebotling_ibc r
-                    JOIN operators o ON o.number IN (r.op1, r.op2, r.op3)
-                    WHERE DATE(r.datum) = ?
-                      AND r.ibc_ok IS NOT NULL
-                    ORDER BY o.name
-                ";
-                $opStmt = $pdo->prepare($opSql);
                 $opStmt->execute([$date]);
                 $operators = $opStmt->fetchAll(\PDO::FETCH_COLUMN);
 

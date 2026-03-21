@@ -360,40 +360,41 @@ class ProduktTypEffektivitetController {
 
         try {
             $result = [];
-            foreach ([$idA, $idB] as $pid) {
-                $stmt = $this->pdo->prepare("
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(DISTINCT agg.skiftraknare)     AS antal_skift,
+                    SUM(agg.shift_ibc_ok)                AS antal_ibc,
+                    SUM(agg.shift_ibc_ej_ok)             AS antal_ej_ok,
+                    ROUND(AVG(agg.last_bonus), 2)        AS snitt_bonus,
+                    ROUND(
+                        SUM(agg.shift_ibc_ok) /
+                        NULLIF(SUM(agg.shift_runtime_min) / 60.0, 0),
+                    1)                                   AS ibc_per_timme,
+                    ROUND(
+                        SUM(agg.shift_ibc_ok) * 100.0 /
+                        NULLIF(SUM(agg.shift_ibc_ok) + SUM(agg.shift_ibc_ej_ok), 0),
+                    1)                                   AS kvalitet_pct,
+                    ROUND(
+                        CASE WHEN SUM(agg.shift_ibc_ok) > 0
+                             THEN SUM(agg.shift_runtime_min) * 60.0 / SUM(agg.shift_ibc_ok)
+                             ELSE NULL END,
+                    1)                                   AS snitt_cykeltid_sek
+                FROM (
                     SELECT
-                        COUNT(DISTINCT agg.skiftraknare)     AS antal_skift,
-                        SUM(agg.shift_ibc_ok)                AS antal_ibc,
-                        SUM(agg.shift_ibc_ej_ok)             AS antal_ej_ok,
-                        ROUND(AVG(agg.last_bonus), 2)        AS snitt_bonus,
-                        ROUND(
-                            SUM(agg.shift_ibc_ok) /
-                            NULLIF(SUM(agg.shift_runtime_min) / 60.0, 0),
-                        1)                                   AS ibc_per_timme,
-                        ROUND(
-                            SUM(agg.shift_ibc_ok) * 100.0 /
-                            NULLIF(SUM(agg.shift_ibc_ok) + SUM(agg.shift_ibc_ej_ok), 0),
-                        1)                                   AS kvalitet_pct,
-                        ROUND(
-                            CASE WHEN SUM(agg.shift_ibc_ok) > 0
-                                 THEN SUM(agg.shift_runtime_min) * 60.0 / SUM(agg.shift_ibc_ok)
-                                 ELSE NULL END,
-                        1)                                   AS snitt_cykeltid_sek
-                    FROM (
-                        SELECT
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc_ok,
-                            MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ibc_ej_ok,
-                            MAX(COALESCE(runtime_plc, 0))  AS shift_runtime_min,
-                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus
-                        FROM rebotling_ibc
-                        WHERE produkt = :produkt_id
-                          AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
-                        GROUP BY skiftraknare
-                    ) AS agg
-                ");
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))      AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc, 0))  AS shift_runtime_min,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus
+                    FROM rebotling_ibc
+                    WHERE produkt = :produkt_id
+                      AND skiftraknare IS NOT NULL
+                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY skiftraknare
+                ) AS agg
+            ");
+            $stmtName = $this->pdo->prepare("SELECT name FROM rebotling_products WHERE id = ? LIMIT 1");
+            foreach ([$idA, $idB] as $pid) {
                 $stmt->execute([
                     ':produkt_id' => $pid,
                     ':from_date'  => $fromDate,
@@ -402,7 +403,6 @@ class ProduktTypEffektivitetController {
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                 // Produktnamn
-                $stmtName = $this->pdo->prepare("SELECT name FROM rebotling_products WHERE id = ? LIMIT 1");
                 $stmtName->execute([$pid]);
                 $nameRow = $stmtName->fetch(\PDO::FETCH_ASSOC);
 
