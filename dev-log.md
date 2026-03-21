@@ -1,3 +1,72 @@
+## 2026-03-21 Session #218 Worker A — PHP date/time edge case + input sanitization audit (5 buggar)
+
+### Uppgift 1: PHP classes/ date/time edge case audit
+Granskade ALLA 110 PHP-filer i noreko-backend/classes/ for strtotime()-problem, timezone-blandning, midnight edge cases, felaktiga date()-format och manad-overflow.
+
+Resultat: **1 bugg (3 forekomster) hittad och fixad.**
+
+Granskade filer med date/time-kod (110 filer). Samtliga utom StatistikOverblickController var redan korrekta (manga fixade i session #197, #210, #214).
+
+**Bugg 1: StatistikOverblickController.php rad 192, 245, 297 — strtotime("-N months") month overflow**
+- `strtotime("-3 months")` pa t.ex. 31 mars ger 1 december (31 nov -> overflow) istallet for 1 januari.
+- Drabbar getProduktion(), getOee(), getKassation() — alla 3 endpoints far fel from-datum pa manads-slutdagar.
+- Fix: Ersatt med `new DateTime('first day of this month')` + `modify("-{$months} months")` for korrekt manad-aritmetik.
+- Samma bugfix-monster som redan anvands i UnderhallsloggController (rad 396) och OperatorOnboardingController (rad 246).
+
+Ovriga filer granskade och OK:
+- UnderhallsloggController — redan fixad (session #197)
+- OperatorOnboardingController — redan fixad (session #214)
+- StoppageController rad 617-619 — `strtotime('monday last week')` etc. ar korrekt (ger ratt veckodag oavsett dag)
+- NarvaroController rad 45 — `date('Y-m-t', strtotime($startDate))` ar korrekt (Y-m-t = sista dagen i manaden)
+- ProduktionsmalController — anvander strtotime pa redan validerade Y-m-d strangar, OK
+- RebotlingAnalyticsController — anvander strtotime pa redan validerade strangar, OK
+- AuthHelper, StatusController, etc. — anvander date/strtotime pa stabila format, OK
+
+### Uppgift 2: PHP classes/ input sanitization completeness audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for saknad trim(), strip_tags(), intval/floatval pa POST-data.
+
+Resultat: **4 buggar hittade och fixade.**
+
+**Bugg 2: MaintenanceController.php rad 138-141, 147 — saknad trim() pa POST-data**
+- `$line`, `$maintenanceType`, `$startTime`, `$status` laste fran POST-body utan trim().
+- Mellanslag runt varden (t.ex. " rebotling ") faller igenom in_array()-validering och ger ogiltigt felmeddelande.
+- Fix: Lade till trim() pa alla 4 falt.
+
+**Bugg 3: SkiftoverlamningController.php rad 1187-1189 — fel sanitization-ordning**
+- `strip_tags(trim(mb_substr($data[...], 0, 5000)))` — mb_substr forst kan klippa mitt i en HTML-tagg.
+- T.ex. `<script>alert('x')</sc` (klippt vid 5000 tecken) -> strip_tags missar den halverade taggen.
+- Fix: Andrade till korrekt ordning `mb_substr(strip_tags(trim($data[...])), 0, 5000)` (samma monster som createHandover() rad 964-968).
+
+**Bugg 4: BonusAdminController.php rad 1051-1052, 1059 — saknad trim() pa POST-data**
+- `$period_start`, `$period_end`, `$bonus_level_raw` laste utan trim().
+- Mellanslag runt datum-strang orsakar regex-miss pa `/^\d{4}-\d{2}-\d{2}$/`.
+- Fix: Lade till trim() pa alla 3 falt.
+
+**Bugg 5: BonusAdminController.php rad 986 — saknad trim() pa status**
+- `$status` laste utan trim() fore in_array()-validering.
+- Fix: Lade till trim().
+
+Ovriga filer granskade och OK:
+- NewsController — korrekt: strip_tags(trim()) pa title/content/category, intval pa id/priority, in_array pa category
+- ShiftHandoverController — korrekt: strip_tags(trim()) pa note, trim() pa priority/audience, intval pa skift_nr/op_number
+- FeedbackController — korrekt: intval pa stamning, mb_substr(strip_tags(trim())) pa kommentar
+- RegisterController — korrekt: strip_tags(trim()) pa username/email/phone/code
+- ProfileController — korrekt: strip_tags(trim()) pa email, filter_var(FILTER_VALIDATE_EMAIL)
+- StoppageController — korrekt: strip_tags(trim()) pa comment, intval pa reason_id, preg_match pa datum
+- CertificationController — korrekt: trim() + intval() + mb_substr(strip_tags(trim()))
+- RuntimeController — OK: line valideras mot whitelist efter check (null ger 400)
+- SkiftoverlamningController createHandover — korrekt: mb_substr(strip_tags(trim())) ordning
+- UnderhallsloggController — korrekt: mb_substr(strip_tags(trim())) ordning
+- KvalitetscertifikatController — korrekt: mb_substr(strip_tags(trim())) ordning
+
+Filer andrade:
+- noreko-backend/classes/StatistikOverblickController.php
+- noreko-backend/classes/MaintenanceController.php
+- noreko-backend/classes/SkiftoverlamningController.php
+- noreko-backend/classes/BonusAdminController.php
+
+---
+
 ## 2026-03-20 Session #217 Worker B — Angular form validation + lazy loading/bundle size audit (4 buggar)
 
 ### Uppgift 1: Angular form validation audit
