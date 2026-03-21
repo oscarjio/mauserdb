@@ -1332,10 +1332,10 @@ class BonusAdminController {
                     s.start_time,
                     s.end_time,
                     s.duration_minutes,
-                    r.name AS reason_name,
+                    COALESCE(r.name, 'Okänd orsak') AS reason_name,
                     r.category
                 FROM stoppage_log s
-                JOIN stoppage_reasons r ON s.reason_id = r.id
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 WHERE s.line = 'rebotling'
                   AND s.start_time >= :start
                   AND s.start_time <= :end_ts

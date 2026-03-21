@@ -117,11 +117,11 @@ class StopporsakTrendController {
             $stmt = $this->pdo->prepare(
                 "SELECT
                     CONCAT(YEAR(sl.created_at), '-W', LPAD(WEEK(sl.created_at, 3), 2, '0')) AS vecka_key,
-                    sr.name AS reason,
+                    COALESCE(sr.name, 'Okänd orsak') AS reason,
                     COUNT(*) AS cnt,
                     COALESCE(SUM(sl.duration_minutes), 0) AS total_min
                  FROM stoppage_log sl
-                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                  WHERE DATE(sl.created_at) BETWEEN ? AND ?
                  GROUP BY vecka_key, sr.name
                  ORDER BY vecka_key, cnt DESC"
@@ -145,7 +145,7 @@ class StopporsakTrendController {
             $stmt = $this->pdo->prepare(
                 "SELECT
                     CONCAT(YEAR(sr.start_time), '-W', LPAD(WEEK(sr.start_time, 3), 2, '0')) AS vecka_key,
-                    sk.namn AS reason,
+                    COALESCE(sk.namn, 'Okänd kategori') AS reason,
                     COUNT(*) AS cnt,
                     COALESCE(SUM(
                         CASE WHEN sr.end_time IS NOT NULL
@@ -153,7 +153,7 @@ class StopporsakTrendController {
                              ELSE 0 END
                     ), 0) AS total_min
                  FROM stopporsak_registreringar sr
-                 JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                 LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                  WHERE DATE(sr.start_time) BETWEEN ? AND ?
                  GROUP BY vecka_key, sk.namn
                  ORDER BY vecka_key, cnt DESC"

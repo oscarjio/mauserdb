@@ -101,7 +101,7 @@ class StopporsakOperatorController {
                 "SELECT
                     sr.user_id,
                     COALESCE(u.username, CONCAT('Operatör #', sr.user_id)) AS operatör_namn,
-                    sk.namn AS orsak,
+                    COALESCE(sk.namn, 'Okänd kategori') AS orsak,
                     COUNT(*) AS antal,
                     COALESCE(SUM(
                         CASE WHEN sr.end_time IS NOT NULL
@@ -109,7 +109,7 @@ class StopporsakOperatorController {
                              ELSE 0 END
                     ), 0) AS total_min
                  FROM stopporsak_registreringar sr
-                 JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                 LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                  LEFT JOIN users u ON sr.user_id = u.id
                  WHERE DATE(sr.start_time) BETWEEN ? AND ?
                    AND sr.user_id IS NOT NULL
@@ -336,7 +336,7 @@ class StopporsakOperatorController {
             $stmt = $this->pdo->prepare(
                 "SELECT
                     COALESCE(u.username, CONCAT('Operatör #', sr.user_id)) AS namn,
-                    sk.namn AS orsak,
+                    COALESCE(sk.namn, 'Okänd kategori') AS orsak,
                     COUNT(*) AS antal,
                     COALESCE(SUM(
                         CASE WHEN sr.end_time IS NOT NULL
@@ -345,7 +345,7 @@ class StopporsakOperatorController {
                     ), 0) AS total_min,
                     MAX(sr.start_time) AS senaste
                  FROM stopporsak_registreringar sr
-                 JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                 LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                  LEFT JOIN users u ON sr.user_id = u.id
                  WHERE sr.user_id = ?
                    AND DATE(sr.start_time) BETWEEN ? AND ?
@@ -464,7 +464,7 @@ class StopporsakOperatorController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    sk.namn AS orsak,
+                    COALESCE(sk.namn, 'Okänd kategori') AS orsak,
                     COUNT(*) AS antal,
                     COALESCE(SUM(
                         CASE WHEN sr.end_time IS NOT NULL
@@ -472,7 +472,7 @@ class StopporsakOperatorController {
                              ELSE 0 END
                     ), 0) AS total_min
                  FROM stopporsak_registreringar sr
-                 JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                 LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                  WHERE DATE(sr.start_time) BETWEEN ? AND ?
                  GROUP BY sk.namn
                  ORDER BY total_min DESC"

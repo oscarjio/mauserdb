@@ -499,12 +499,12 @@ class VDVeckorapportController {
         try {
             $sql = "
                 SELECT
-                    sr.name                          AS orsak,
+                    COALESCE(sr.name, 'Okänd orsak') AS orsak,
                     COUNT(*)                         AS antal,
                     SUM(sl.duration_minutes * 60)    AS total_tid_sek,
                     AVG(sl.duration_minutes * 60)    AS medel_tid_sek
                 FROM stoppage_log sl
-                JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                 WHERE DATE(sl.created_at) BETWEEN :fran AND :till
                   AND sl.duration_minutes > 0
                 GROUP BY sr.name

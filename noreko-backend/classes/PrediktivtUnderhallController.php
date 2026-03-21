@@ -155,7 +155,7 @@ class PrediktivtUnderhallController {
             if (empty($heatmapData)) {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        k.namn AS orsak,
+                        COALESCE(k.namn, 'Okänd kategori') AS orsak,
                         COUNT(*) AS antal,
                         COALESCE(SUM(
                             CASE WHEN r.end_time IS NOT NULL
@@ -164,7 +164,7 @@ class PrediktivtUnderhallController {
                             END
                         ), 0) AS total_min
                     FROM stopporsak_registreringar r
-                    JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                    LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                     WHERE DATE(r.start_time) BETWEEN :from_date AND :to_date
                       AND r.linje = 'rebotling'
                     GROUP BY k.id, k.namn
@@ -650,7 +650,7 @@ class PrediktivtUnderhallController {
                 // Fallback: anvand stopporsak_registreringar
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        k.namn AS orsak,
+                        COALESCE(k.namn, 'Okänd kategori') AS orsak,
                         COUNT(*) AS antal,
                         COALESCE(SUM(
                             CASE WHEN r.end_time IS NOT NULL
@@ -659,7 +659,7 @@ class PrediktivtUnderhallController {
                             END
                         ), 0) AS total_min
                     FROM stopporsak_registreringar r
-                    JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                    LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                     WHERE DATE(r.start_time) BETWEEN :from_date AND :to_date
                       AND r.linje = 'rebotling'
                     GROUP BY k.id, k.namn

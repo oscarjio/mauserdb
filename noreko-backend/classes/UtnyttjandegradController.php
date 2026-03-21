@@ -396,11 +396,11 @@ class UtnyttjandegradController {
 
             // Hämta topp stopporsaker
             $stmt = $this->pdo->prepare(
-                "SELECT r.name AS orsak, r.category,
+                "SELECT COALESCE(r.name, 'Okänd orsak') AS orsak, r.category,
                         COUNT(*) AS antal,
                         COALESCE(SUM(s.duration_minutes), 0) AS total_min
                  FROM stoppage_log s
-                 JOIN stoppage_reasons r ON s.reason_id = r.id
+                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                  WHERE DATE(s.start_time) BETWEEN ? AND ?
                    AND s.line = 'rebotling'
                  GROUP BY r.id, r.name, r.category

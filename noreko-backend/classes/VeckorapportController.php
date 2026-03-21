@@ -375,10 +375,10 @@ class VeckorapportController {
 
             // Topp orsaker fran stoppage_log
             $stmt = $this->pdo->prepare(
-                "SELECT r.name AS reason, COUNT(*) AS cnt,
+                "SELECT COALESCE(r.name, 'Okänd orsak') AS reason, COUNT(*) AS cnt,
                         COALESCE(SUM(s.duration_minutes), 0) AS total_min
                  FROM stoppage_log s
-                 JOIN stoppage_reasons r ON s.reason_id = r.id
+                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                  WHERE DATE(s.start_time) BETWEEN ? AND ?
                    AND s.line = 'rebotling'
                  GROUP BY r.id, r.name
@@ -414,10 +414,10 @@ class VeckorapportController {
 
                 // Topp orsaker
                 $stmt = $this->pdo->prepare(
-                    "SELECT k.namn AS reason, COUNT(*) AS cnt,
+                    "SELECT COALESCE(k.namn, 'Okänd kategori') AS reason, COUNT(*) AS cnt,
                             COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
                      FROM stopporsak_registreringar r
-                     JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                     LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                      WHERE DATE(r.start_time) BETWEEN ? AND ?
                        AND r.linje = 'rebotling'
                      GROUP BY k.id, k.namn
@@ -528,9 +528,9 @@ class VeckorapportController {
 
                 // Topp-orsak
                 $stmt = $this->pdo->prepare(
-                    "SELECT t.namn, SUM(r.antal) AS total_antal
+                    "SELECT COALESCE(t.namn, 'Okänd') AS namn, SUM(r.antal) AS total_antal
                      FROM kassationsregistrering r
-                     JOIN kassationsorsak_typer t ON r.orsak_id = t.id
+                     LEFT JOIN kassationsorsak_typer t ON r.orsak_id = t.id
                      WHERE DATE(r.datum) BETWEEN ? AND ?
                      GROUP BY t.id, t.namn
                      ORDER BY total_antal DESC

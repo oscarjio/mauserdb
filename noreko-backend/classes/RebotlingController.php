@@ -2689,10 +2689,10 @@ class RebotlingController {
                     r.antal,
                     r.kommentar,
                     r.created_at,
-                    t.namn AS orsak_namn,
+                    COALESCE(t.namn, 'Okänd') AS orsak_namn,
                     u.username AS registrerad_av_namn
                 FROM kassationsregistrering r
-                JOIN kassationsorsak_typer t ON t.id = r.orsak_id
+                LEFT JOIN kassationsorsak_typer t ON t.id = r.orsak_id
                 LEFT JOIN users u ON u.id = r.registrerad_av
                 ORDER BY r.created_at DESC
                 LIMIT :lim

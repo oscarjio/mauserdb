@@ -187,10 +187,10 @@ class AndonController {
                     sr.duration_minutes,
                     sr.created_at,
                     sr.notes,
-                    r.name  AS reason_name,
+                    COALESCE(r.name, 'Okänd orsak') AS reason_name,
                     r.category
                 FROM stoppage_log sr
-                JOIN stoppage_reasons r ON sr.reason_id = r.id
+                LEFT JOIN stoppage_reasons r ON sr.reason_id = r.id
                 WHERE sr.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
                 ORDER BY sr.created_at DESC
                 LIMIT 5
@@ -712,9 +712,9 @@ class AndonController {
                 // Fallback: stoppage_log
                 if (!$lastStopReason) {
                     $stmtStop2 = $this->pdo->prepare("
-                        SELECT sl.duration_minutes, sl.created_at, sr.name AS reason_name
+                        SELECT sl.duration_minutes, sl.created_at, COALESCE(sr.name, 'Okänd orsak') AS reason_name
                         FROM stoppage_log sl
-                        JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                        LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                         ORDER BY sl.created_at DESC
                         LIMIT 1
                     ");

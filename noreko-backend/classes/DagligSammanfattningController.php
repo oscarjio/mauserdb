@@ -401,12 +401,12 @@ class DagligSammanfattningController {
         // Top 3 orsaker
         $topStmt = $this->pdo->prepare(
             "SELECT
-                k.namn AS kategori,
+                COALESCE(k.namn, 'Okänd kategori') AS kategori,
                 k.ikon AS ikon,
                 COUNT(*) AS antal,
                 COALESCE(ROUND(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0), 0) AS total_min
              FROM stopporsak_registreringar r
-             JOIN stopporsak_kategorier k ON k.id = r.kategori_id
+             LEFT JOIN stopporsak_kategorier k ON k.id = r.kategori_id
              WHERE r.linje = 'rebotling'
                AND DATE(r.start_time) = ?
              GROUP BY k.id, k.namn, k.ikon

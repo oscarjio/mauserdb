@@ -962,9 +962,9 @@ class SkiftrapportController {
         $topOrsaker = [];
         try {
             $stmtK = $this->pdo->prepare("
-                SELECT kt.namn AS orsak, COUNT(*) AS antal
+                SELECT COALESCE(kt.namn, 'Okänd') AS orsak, COUNT(*) AS antal
                 FROM kassationsregistrering kr
-                JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
+                LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
                 WHERE kr.datum >= :from_dt AND kr.datum < :to_dt
                 GROUP BY kt.id, kt.namn
                 ORDER BY antal DESC

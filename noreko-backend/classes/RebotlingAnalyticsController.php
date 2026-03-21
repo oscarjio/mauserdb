@@ -3412,12 +3412,12 @@ class RebotlingAnalyticsController {
                 "SELECT
                      DATE(sl.created_at)        AS dag,
                      sr.category,
-                     sr.name                    AS reason_name,
+                     COALESCE(sr.name, 'Okänd orsak') AS reason_name,
                      COUNT(*)                   AS antal,
                      COALESCE(SUM(sl.duration_minutes), 0)  AS total_minuter,
                      COALESCE(AVG(sl.duration_minutes), 0)  AS snitt_minuter
                  FROM stoppage_log sl
-                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                  WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                  GROUP BY DATE(sl.created_at), sr.category, sr.name
                  ORDER BY dag DESC, total_minuter DESC"
@@ -3432,7 +3432,7 @@ class RebotlingAnalyticsController {
                      COUNT(*)                              AS antal,
                      COALESCE(SUM(sl.duration_minutes), 0) AS total_min
                  FROM stoppage_log sl
-                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                  WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                  GROUP BY sr.category
                  ORDER BY total_min DESC"
@@ -3443,13 +3443,13 @@ class RebotlingAnalyticsController {
             // Topplista per orsak (max 10)
             $stmtTop = $this->pdo->prepare(
                 "SELECT
-                     sr.name,
+                     COALESCE(sr.name, 'Okänd orsak') AS name,
                      sr.category,
                      COUNT(*)                              AS antal,
                      COALESCE(SUM(sl.duration_minutes), 0) AS total_min,
                      COALESCE(AVG(sl.duration_minutes), 0) AS snitt_min
                  FROM stoppage_log sl
-                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                  WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                  GROUP BY sr.name, sr.category
                  ORDER BY total_min DESC
@@ -5538,12 +5538,12 @@ HTML;
         try {
             $stmtStops = $this->pdo->prepare("
                 SELECT
-                    sr.name AS orsak,
+                    COALESCE(sr.name, 'Okänd orsak') AS orsak,
                     sr.category,
                     COUNT(*) AS antal,
                     COALESCE(SUM(sl.duration_minutes), 0) AS total_min
                 FROM stoppage_log sl
-                JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
                 WHERE DATE(sl.created_at) BETWEEN ? AND ?
                 GROUP BY sr.name, sr.category
                 ORDER BY total_min DESC

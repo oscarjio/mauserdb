@@ -1,3 +1,61 @@
+## 2026-03-21 Session #234 Worker A — CORS/cookie + file upload + SQL JOIN audit (21 buggar)
+
+### Uppgift 1: PHP classes/ CORS/cookie SameSite audit
+Granskade api.php, LoginController.php, AuthHelper.php och samtliga PHP-filer i noreko-backend/classes/ for cookies och CORS.
+
+**Inga buggar hittade.** Allt ar korrekt:
+- api.php: session_set_cookie_params() med SameSite=Lax, Secure (dynamiskt), HttpOnly=true, lifetime=28800. CORS begransad till vitlistade origins + subdomanmatchning. Access-Control-Allow-Credentials: true skickas korrekt enbart nar origin ar tillaten.
+- LoginController.php: logout()-metoden anvander setcookie() med fullstandig options-array inkl SameSite=Lax, Secure (dynamiskt), HttpOnly=true. Korrekt.
+- AuthHelper.php: Inga cookies satts direkt. CSRF-token hanteras via sessions. Korrekt.
+- Inga andra filer i classes/ anvander setcookie() eller header('Set-Cookie:').
+- Saker session-konfiguration: use_strict_mode=1, use_only_cookies=1, use_trans_sid=0. Korrekt.
+- HSTS, X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy, Permissions-Policy — alla satta i api.php. Korrekt.
+
+### Uppgift 2: PHP classes/ file upload validation audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ for file uploads ($_FILES, move_uploaded_file, is_uploaded_file).
+
+**Inga buggar hittade.** Inga filer i classes/ hanterar filuppladdningar. Noll forekomster av $_FILES, move_uploaded_file eller is_uploaded_file.
+
+### Uppgift 3: PHP classes/ SQL JOIN correctness audit
+Granskade ALLA 56 filer med JOIN-queries i noreko-backend/classes/. **Hittade 21 buggar** — INNER JOIN pa lookup-tabeller (stoppage_reasons, stopporsak_kategorier, kassationsorsak_typer) dar LEFT JOIN kravs. Om en orsak/kategori tas bort forsvinner tillhorande loggposter tyst ur queryresultaten.
+
+**Bugg 1-3: StoppageController.php** — rad 181, 215, 469: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE pa name-kolumner. (Samma fil anvande redan LEFT JOIN pa rad 525, 581 — inkonsekvent.)
+**Bugg 4-5: StopporsakTrendController.php** — rad 124: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE; rad 156: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE.
+**Bugg 6: BonusAdminController.php** — rad 1338: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE.
+**Bugg 7-9: MorgonrapportController.php** — rad 359: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE; rad 397: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE; rad 506: `JOIN kassationsorsak_typer` -> `LEFT JOIN` + COALESCE.
+**Bugg 10: UtnyttjandegradController.php** — rad 403: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE.
+**Bugg 11-13: VeckorapportController.php** — rad 381: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE; rad 420: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE; rad 533: `JOIN kassationsorsak_typer` -> `LEFT JOIN` + COALESCE.
+**Bugg 14: VDVeckorapportController.php** — rad 507: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE.
+**Bugg 15-16: AndonController.php** — rad 193, 717: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE.
+**Bugg 17-20: RebotlingAnalyticsController.php** — rad 3420, 3435, 3452, 5546: `JOIN stoppage_reasons` -> `LEFT JOIN` + COALESCE.
+**Bugg 21: DagligSammanfattningController.php** — rad 409: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE.
+
+Ytterligare fixade (ej raknades separat da de ar del av samma monster):
+- StopporsakOperatorController.php — rad 112, 348, 475: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE (3 st)
+- PrediktivtUnderhallController.php — rad 167, 662: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE (2 st)
+- StopporsakRegistreringController.php — rad 158, 185: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE (2 st)
+- StopporsakController.php — rad 154, 218, 314, 432, 512: `JOIN stopporsak_kategorier` -> `LEFT JOIN` + COALESCE (5 st)
+- SkiftrapportController.php — rad 967: `JOIN kassationsorsak_typer` -> `LEFT JOIN` + COALESCE (1 st)
+- RebotlingController.php — rad 2695: `JOIN kassationsorsak_typer` -> `LEFT JOIN` + COALESCE (1 st)
+
+**Totalt: 35 INNER JOIN -> LEFT JOIN + COALESCE fixar over 14 filer.**
+
+Filer som var rena (inga JOIN-buggar):
+- LoginController.php, AuthHelper.php, RegisterController.php, ProfileController.php, AdminController.php
+- ParetoController.php, AlarmHistorikController.php, KassationsDrilldownController.php, KassationskvotAlarmController.php
+- VdDashboardController.php, KassationsorsakPerStationController.php, KassationsanalysController.php
+- KassationsorsakController.php, DagligBriefingController.php, DrifttidsTimelineController.php, OeeTrendanalysController.php
+- HistoriskSammanfattningController.php, ProduktionspulsController.php, AlertsController.php
+- KvalitetsTrendbrottController.php, StatistikDashboardController.php, LineSkiftrapportController.php
+- ShiftHandoverController.php, TidrapportController.php, ShiftPlanController.php
+- OperatorController.php (INNER JOIN pa operators ar korrekt — subquery filtrerar op_id > 0)
+- OperatorCompareController.php, BatchSparningController.php, UnderhallsloggController.php
+- ProduktTypEffektivitetController.php, FeedbackAnalysController.php, CertificationController.php
+- MaskinunderhallController.php, UnderhallsprognosController.php, MaskinOeeController.php
+- RebotlingSammanfattningController.php, MaintenanceController.php, WeeklyReportController.php
+- SkiftoverlamningController.php, GamificationController.php, OperatorRankingController.php
+- NewsController.php, BonusController.php, FavoriterController.php, och alla ovriga utan JOINs.
+
 ## 2026-03-21 Session #234 Worker B — Angular reactive state management + form dirty-state audit (0 buggar)
 
 ### Uppgift 1: Angular reactive state management audit

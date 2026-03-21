@@ -353,10 +353,10 @@ class MorgonrapportController {
 
             // Topp orsaker fran stoppage_log
             $stmt = $this->pdo->prepare(
-                "SELECT r.name AS orsak, COUNT(*) AS cnt,
+                "SELECT COALESCE(r.name, 'Okänd orsak') AS orsak, COUNT(*) AS cnt,
                         COALESCE(SUM(s.duration_minutes), 0) AS total_min
                  FROM stoppage_log s
-                 JOIN stoppage_reasons r ON s.reason_id = r.id
+                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                  WHERE DATE(s.start_time) = ?
                    AND s.line = 'rebotling'
                  GROUP BY r.id, r.name
@@ -391,10 +391,10 @@ class MorgonrapportController {
 
                 // Topp orsaker fran stopporsak_registreringar
                 $stmt = $this->pdo->prepare(
-                    "SELECT k.namn AS orsak, COUNT(*) AS cnt,
+                    "SELECT COALESCE(k.namn, 'Okänd kategori') AS orsak, COUNT(*) AS cnt,
                             COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
                      FROM stopporsak_registreringar r
-                     JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                     LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                      WHERE DATE(r.start_time) = ?
                        AND r.linje = 'rebotling'
                      GROUP BY k.id, k.namn
@@ -501,9 +501,9 @@ class MorgonrapportController {
 
                 // Topp-orsak
                 $stmt = $this->pdo->prepare(
-                    "SELECT t.namn, COALESCE(SUM(r.antal), 0) AS total_antal
+                    "SELECT COALESCE(t.namn, 'Okänd') AS namn, COALESCE(SUM(r.antal), 0) AS total_antal
                      FROM kassationsregistrering r
-                     JOIN kassationsorsak_typer t ON r.orsak_id = t.id
+                     LEFT JOIN kassationsorsak_typer t ON r.orsak_id = t.id
                      WHERE DATE(r.datum) = ?
                      GROUP BY t.id, t.namn
                      ORDER BY total_antal DESC

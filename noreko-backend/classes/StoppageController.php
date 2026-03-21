@@ -175,10 +175,10 @@ class StoppageController {
             $stmt = $this->pdo->prepare("
                 SELECT s.id, s.line, s.reason_id, s.start_time, s.end_time,
                        s.duration_minutes, s.comment, s.user_id, s.created_at,
-                       r.code as reason_code, r.name as reason_name,
+                       COALESCE(r.code, 'UNKNOWN') as reason_code, COALESCE(r.name, 'Okänd orsak') as reason_name,
                        r.category, r.color, u.username as user_name
                 FROM stoppage_log s
-                JOIN stoppage_reasons r ON s.reason_id = r.id
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE s.line = ? AND s.start_time >= ?
                 ORDER BY s.start_time DESC
@@ -207,12 +207,12 @@ class StoppageController {
 
             // Pareto-analys: total stopptid per orsak
             $stmt = $this->pdo->prepare("
-                SELECT r.code, r.name, r.category, r.color,
+                SELECT COALESCE(r.code, 'UNKNOWN') AS code, COALESCE(r.name, 'Okänd orsak') AS name, r.category, r.color,
                        COUNT(*) as count,
                        SUM(COALESCE(s.duration_minutes, 0)) as total_minutes,
                        ROUND(AVG(COALESCE(s.duration_minutes, 0)), 1) as avg_minutes
                 FROM stoppage_log s
-                JOIN stoppage_reasons r ON s.reason_id = r.id
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 WHERE s.line = ? AND s.start_time >= ?
                 GROUP BY r.id, r.code, r.name, r.category, r.color
                 ORDER BY total_minutes DESC
@@ -462,11 +462,11 @@ class StoppageController {
             $dagar = max(1, min(365, intval($_GET['dagar'] ?? 30)));
 
             $stmt = $this->pdo->prepare("
-                SELECT r.name as orsak,
+                SELECT COALESCE(r.name, 'Okänd orsak') as orsak,
                        COUNT(*) AS antal,
                        COALESCE(SUM(s.duration_minutes), 0) AS total_minuter
                 FROM stoppage_log s
-                JOIN stoppage_reasons r ON s.reason_id = r.id
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 WHERE s.line = ?
                   AND s.start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
                   AND s.duration_minutes IS NOT NULL

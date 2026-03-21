@@ -151,11 +151,11 @@ class StopporsakRegistreringController {
         try {
             $linje = $this->validatedLinje($_GET['linje'] ?? 'rebotling');
             $stmt = $this->pdo->prepare(
-                "SELECT r.id, r.kategori_id, k.namn AS kategori_namn, k.ikon,
+                "SELECT r.id, r.kategori_id, COALESCE(k.namn, 'Okänd kategori') AS kategori_namn, k.ikon,
                         r.linje, r.kommentar, r.user_id, r.start_time, r.end_time,
                         u.username AS operator_namn
                  FROM stopporsak_registreringar r
-                 JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                 LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                  LEFT JOIN users u ON r.user_id = u.id
                  WHERE r.end_time IS NULL AND r.linje = ?
                  ORDER BY r.start_time DESC"
@@ -173,7 +173,7 @@ class StopporsakRegistreringController {
         try {
             $linje = $this->validatedLinje($_GET['linje'] ?? 'rebotling');
             $stmt = $this->pdo->prepare(
-                "SELECT r.id, r.kategori_id, k.namn AS kategori_namn, k.ikon,
+                "SELECT r.id, r.kategori_id, COALESCE(k.namn, 'Okänd kategori') AS kategori_namn, k.ikon,
                         r.linje, r.kommentar, r.user_id, r.start_time, r.end_time,
                         u.username AS operator_namn,
                         CASE
@@ -182,7 +182,7 @@ class StopporsakRegistreringController {
                           ELSE NULL
                         END AS varaktighet_minuter
                  FROM stopporsak_registreringar r
-                 JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                 LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                  LEFT JOIN users u ON r.user_id = u.id
                  WHERE r.linje = ?
                  ORDER BY r.start_time DESC
