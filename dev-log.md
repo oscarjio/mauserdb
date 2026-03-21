@@ -1,3 +1,36 @@
+## 2026-03-21 Session #227 Worker B — Angular memory leak + route guard audit (0 buggar, koden ar ren)
+
+### Uppgift 1: Angular component memory leak audit
+Granskade ALLA Angular component-filer i:
+- noreko-frontend/src/app/pages/ (37 komponenter)
+- noreko-frontend/src/app/rebotling/ (4 komponenter, exkl. rebotling-live)
+- noreko-frontend/src/app/components/ (1 komponent)
+
+Kontrollerade:
+- **setInterval()** — Alla 25+ setInterval-anrop har matchande clearInterval() i ngOnDestroy
+- **setTimeout()** — Alla 50+ setTimeout-anrop har matchande clearTimeout() i ngOnDestroy
+- **.subscribe()** — Alla subscribe-anrop anvander takeUntil(this.destroy$) konsekvent
+- **OnDestroy** — Alla komponenter med subscriptions/timers implementerar OnDestroy med destroy$.next() + destroy$.complete()
+- **Chart.js** — Alla 55+ new Chart()-instanser har matchande .destroy() i ngOnDestroy (med try/catch)
+- **addEventListener** — Inga manuella addEventListener hittades (inga lakor)
+- **chartTimers[]** — Komponenter med array-baserade timers (produktionskostnad, stopptidsanalys, prediktivt-underhall) rensar korrekt med forEach + clearTimeout
+
+**0 buggar hittade** — kodbasen har konsekvent och korrekt livscykelhantering i alla granskade komponenter.
+
+### Uppgift 2: Angular route resolver error handling audit
+Granskade:
+- noreko-frontend/src/app/guards/auth.guard.ts (authGuard + adminGuard)
+- noreko-frontend/src/app/app.routes.ts (163 rader, alla routes)
+- Sokte efter resolve:-block, CanDeactivate, och .resolver.ts-filer
+
+Resultat:
+- **Inga route resolvers** anvands — alla routes anvander lazy-loaded komponenter med loadComponent()
+- **Inga canDeactivate guards** existerar
+- **authGuard och adminGuard** anvander korrekt initialized$.pipe(filter, take(1), switchMap, map) — inga uncaught exceptions mojliga
+- **Guards** hanterar alla edge cases: ej inloggad -> /login med returnUrl, inloggad men ej admin -> /
+
+**0 buggar hittade** — guards ar valkonstruerade med observables som auto-komplettar via take(1).
+
 ## 2026-03-21 Session #226 Worker A — SQL COALESCE/IFNULL + json_decode null-safety audit (20 buggar fixade i 17 filer)
 
 ### Uppgift 1: PHP classes/ file path validation audit
