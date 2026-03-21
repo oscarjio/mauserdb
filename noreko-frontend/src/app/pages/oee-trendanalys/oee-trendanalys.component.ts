@@ -135,7 +135,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   }
 
   getOrsakLabel(orsak: string): string {
-    if (orsak === 'tillganglighet') return 'Tillganglighet';
+    if (orsak === 'tillganglighet') return 'Tillgänglighet';
     if (orsak === 'prestanda') return 'Prestanda';
     if (orsak === 'kvalitet') return 'Kvalitet';
     return orsak;

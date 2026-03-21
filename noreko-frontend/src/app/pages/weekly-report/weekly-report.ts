@@ -606,7 +606,7 @@ interface WeekCompare {
       <div class="compare-section">
         <div class="compare-section-title">
           <i class="fas fa-exchange-alt" style="color:#63b3ed"></i>
-          Jämforelse mot foregaende vecka
+          Jämförelse mot föregående vecka
           <span class="week-labels" *ngIf="compareData">
             ({{ compareData.this_week.week_label }} vs {{ compareData.prev_week.week_label }})
           </span>
@@ -892,7 +892,7 @@ interface WeekCompare {
               </td>
               <td>{{ op.snitt_ibc_per_h | number:'1.1-1' }}</td>
               <td [class.text-green]="op.kvalitet_pct >= 98"
-                  [class.text-yellow]="op.kvalitet_pct >= 95 && op.kvalitet_pct < 95"
+                  [class.text-yellow]="op.kvalitet_pct >= 95 && op.kvalitet_pct < 98"
                   [class.text-red]="op.kvalitet_pct < 95">
                 {{ op.kvalitet_pct | number:'1.1-1' }}%
               </td>
@@ -1312,7 +1312,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
             order: 2,
           },
           {
-            label: `Dagsmal (${dagmal})`,
+            label: `Dagsmål (${dagmal})`,
             data: goalLine,
             type: 'line',
             borderColor: 'rgba(246, 224, 94, 0.8)',
