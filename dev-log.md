@@ -1,3 +1,58 @@
+## 2026-03-21 Session #223 Worker B — HTTP error format normalization + template null-safety audit (37 buggar fixade i 12 filer)
+
+### Uppgift 1: Angular HTTP interceptor error normalization audit
+Granskade ALLA Angular-komponenter och services i noreko-frontend/src/app/ for inkonsekvent
+felformat vid HTTP-anrop. Backend skickar konsekvent `{success: false, error: "..."}` for fel
+och `{success: true, message: "..."}` for lyckade operationer.
+
+**37 buggar fixade i 12 filer:**
+
+Huvudproblemet: 11 komponenter anvande `res.message` i error-branchen (where success=false),
+men backend skickar `error` (inte `message`) i felresponser. Resulterade i att `res.message`
+alltid var `undefined`, sa anvandaren alltid fick det generiska fallback-meddelandet istallet
+for det specifika felet fran backend (t.ex. "Operatorsnumret ar redan registrerat",
+"Kontot ar tillfallligt last", etc).
+
+Dessutom: catchError-block anvande `err?.error?.message` for att lasa felmeddelande ur
+HTTP error response body, men backend skickar `{error: "..."}` inte `{message: "..."}`.
+
+**login.ts** rad 111,140 — err?.error?.message -> err?.error?.error, res.message -> res.error (KRITISK: inloggningsfel som "Kontot ar inaktiverat" visades aldrig)
+**register.ts** rad 107,120 — err?.error?.message -> err?.error?.error, res.message -> res.error
+**users.ts** rad 211,236,240,258,262,279,283 — res.message -> res.error, error.error?.message -> error.error?.error (7 stallen)
+**operators.ts** rad 386,390,407,411,424,428,481,485 — res.message -> res.error, err.error?.message -> err.error?.error (8 stallen)
+**create-user.ts** rad 99,116 — err?.error?.message -> err?.error?.error, res.message -> res.error
+**feature-flag-admin.ts** rad 115,122,135 — lagt till error? i typ, err?.error?.message -> err?.error?.error, res.message -> res.error
+**underhallslogg.ts** rad 420,442 — res.message -> res.error
+**underhallslogg.service.ts** rad 100,105,126,131 — returtyp uppdaterad, err?.error?.message -> err?.error?.error i catchError
+**stopporsak-registrering.ts** rad 145,172 — err?.error?.message -> err?.error?.error i catchError
+**stoppage-log.ts** rad 474 — err?.error?.message -> err?.error?.error i catchError
+**shared-skiftrapport.ts** rad 149,167,182,194,209,219,230,239,251,260 — catchError + else-branch: message -> error (10 stallen)
+**rebotling-skiftrapport.ts** rad 463,470,508,514,527,538,550,557,574,581,613,629,683,694 — catchError + else-branch: message -> error (14 stallen)
+
+Interceptorn (error.interceptor.ts) granskades och ar korrekt: den visar toast for HTTP-fel
+(status 0, 401-429, 500+), och for success-responses med error-format anvander den `error.error.error`.
+Ingen dubblerad toast-problematik hittades da komponenterna anvander catchError(() => of(null))
+i sina pipes, sa interceptorns toast ar den enda som visas vid HTTP-fel.
+
+### Uppgift 2: Angular template null-safe navigation audit
+Granskade ALLA Angular-templates (.html) i noreko-frontend/src/app/ (exkl. live-komponenter).
+Over 130 HTML-filer granskades for: objekt-property-access utan ?., *ngFor pa null-arrayer,
+[value]-bindningar pa null, pipe-anvandning pa null-varden.
+
+**Resultat: RENT** — Inga faktiska null-safety-buggar hittades. Kodbasen anvander konsekvent:
+- `*ngIf`-guards pa alla sektioner som renderar asynkront laddad data
+- `?.` (optional chaining) i templates dar objekt kan vara null
+- `?? []` fallbacks for ngFor pa potentiellt null-arrayer
+- Separata loading/error/data-states med tydliga *ngIf-villkor
+
+Exempel pa korrekt monster (genomgaende i hela kodbasen):
+- `*ngIf="!loading && dashData"` innan `dashData.today.pct` accessas
+- `*ngIf="sammanfattning.basta_operator"` innan sub-properties accessas
+- `*ngIf="serviceStatus"` omkring alla serviceStatus-varden
+- `productionRate?.avg_ibc_per_day_7d` med optional chaining
+
+---
+
 ## 2026-03-21 Session #223 Worker A — PHP file upload, array key, multibyte string audit (20 buggar fixade)
 
 ### Uppgift 1: PHP classes/ file upload + MIME type validation audit
