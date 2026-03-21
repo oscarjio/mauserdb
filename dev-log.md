@@ -1,3 +1,34 @@
+## 2026-03-21 Session #231 Worker A — PHP classes/ SQL transaction isolation audit + date/time edge case audit (0 buggar)
+
+### Uppgift 1: SQL transaction isolation audit (47 filer med skrivoperationer granskade)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (exkl. plcbackend/) som innehaller INSERT/UPDATE/DELETE-satser.
+
+**Kontrollerade:**
+- **Flera INSERT/UPDATE/DELETE i samma metod utan BEGIN TRANSACTION** — Alla metoder med multipla relaterade skrivoperationer anvander korrekt beginTransaction/commit/rollBack. Kontrollerade: AdminController (4 transaktioner), BonusAdminController (2), CertificationController (1), FavoriterController (2), FeedbackController (1), FeatureFlagController (1), KvalitetscertifikatController (1), LeveransplaneringController (1), LineSkiftrapportController (6), MaskinunderhallController (1), MaintenanceController (1), OperatorController (2), OperatorsbonusController (1), ProfileController (1), ProduktionsmalController (1), ProduktionsSlaController (1), RebotlingAdminController (4), RebotlingAnalyticsController (1), RebotlingController (1), RebotlingProductController (3), RegisterController (1), RuntimeController (1), ShiftHandoverController (1), ShiftPlanController (1), SkiftoverlamningController (1), SkiftplaneringController (1), SkiftrapportController (6), StoppageController (3), StopporsakRegistreringController (1), AlertsController (1), BatchSparningController (1). Korrekt.
+- **Saknad ROLLBACK vid exception i transaktioner** — Alla transaktioner har rollBack i catch-block, med korrekt `$this->pdo->inTransaction()`-kontroll for att undvika "no active transaction"-fel. Korrekt.
+- **COMMIT utan try-catch** — Alla commit()-anrop ar inuti try-block. Korrekt.
+- **Inkonsekvent autocommit / PDO::ATTR_AUTOCOMMIT** — Inga anrop till setAttribute(PDO::ATTR_AUTOCOMMIT, ...) hittades i nagon klassfil. Korrekt.
+- **Nested transactions utan SAVEPOINT** — Inga nestade beginTransaction()-anrop hittades. Korrekt.
+- **Enstaka INSERT/UPDATE utan transaktion** — Metoder med enstaka skrivoperationer (t.ex. kassationsregistrering, nyheter, underhallslogg) anvander inte transaktion, vilket ar korrekt — ingen atomaritet behovs for enstaka operationer.
+- **Race condition-skydd** — Kritiska metoder anvander SELECT ... FOR UPDATE inom transaktioner (CertificationController, FeedbackController, RebotlingController, SkiftoverlamningController, StopporsakRegistreringController, RuntimeController, RebotlingAnalyticsController). Korrekt.
+
+**0 buggar hittade** — transaktionshanteringen ar konsekvent och korrekt implementerad.
+
+### Uppgift 2: Date/time edge case audit (110 filer med datum/tid-operationer granskade)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (exkl. plcbackend/) som innehaller datum- och tidsoperationer.
+
+**Kontrollerade:**
+- **strtotime med relativa datum** — Majoriteten av strtotime-anrop anvander "-N days", "-N hours", "-N weeks" som ar sakra. Inga strtotime('-N months') kvarstar — alla fixades i session #214 och #218 med DateTime('first day of this month')->modify(). Kommentarer med "Bugfix: strtotime('-N months')" finns i StatistikOverblickController, UnderhallsloggController och OperatorOnboardingController som bekraftar fixarna.
+- **date() utan explicit timezone** — Global timezone satts i api.php rad 6: `date_default_timezone_set('Europe/Stockholm')`. Alla date()-anrop kor efter detta. Korrekt.
+- **DateTime utan timezone** — Alla DateTime-objekt skapas med explicit DateTimeZone('Europe/Stockholm') eller $tz-variabel. Tva undantag (ProduktionsDashboardController:111, MaskinOeeController:433-434) skapar DateTime utan explicit tz men anvander den globalt satta timezone:n — inte en bugg.
+- **mktime/gmmktime** — Inga forekomster hittades i nagon klassfil. Korrekt.
+- **DST-overganger med 86400-aritmetik** — Ingen `$timestamp + 86400`-aritmetik hittades. De 86400-konstanter som finns (RebotlingTrendanalysController, ShiftHandoverController, AuthHelper) anvands som tidsduration-konstanter (3 skift = 86400s) eller troskelvarden, inte for datumberakning. Dag-iteration anvander `strtotime('+1 day', $timestamp)` som hanterar DST korrekt. Korrekt.
+- **Jamforelse av datetime-strangar utan format** — Alla datumstrangar anvander konsekvent format Y-m-d eller Y-m-d H:i:s. Inga blandade format hittades. Korrekt.
+- **Vecko-/manadsberakning** — `date('W', ...)` och `date('o', ...)` anvands korrekt for ISO-8601 veckonummer och ar. `strtotime('monday this week')` anvands korrekt for veckostart. `date('Y-m-t', ...)` anvands for sista dagen i manad (NarvaroController, HistoriskSammanfattningController, RebotlingAnalyticsController). Korrekt.
+- **'monday -N weeks' / 'sunday -N weeks'** — OperatorsPrestandaController anvander `strtotime("monday -{$i} weeks")` for veckovis data. Testat: ger korrekt resultat. Korrekt.
+
+**0 buggar hittade** — datum/tid-hanteringen ar korrekt implementerad. Tidigare fixar fran session #214 och #218 ar intakta.
+
 ## 2026-03-21 Session #231 Worker B — Angular lazy loading + bundle size audit + form state consistency audit (0 buggar)
 
 ### Uppgift 1: Angular lazy loading + bundle size audit (app.routes.ts + app.config.ts + 160+ komponenter granskade)
