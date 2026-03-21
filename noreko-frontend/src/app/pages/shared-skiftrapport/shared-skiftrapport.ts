@@ -146,7 +146,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         timeout(8000),
         catchError(err => {
           console.error('Fel vid hämtning av rapporter:', err);
-          return of({ success: false, message: 'Kunde inte hämta rapporter', data: [] });
+          return of({ success: false, error: 'Kunde inte hämta rapporter', data: [] });
         })
       )
       .subscribe({
@@ -164,7 +164,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
               this.reports = nr;
             }
           } else {
-            this.errorMessage = res.message || 'Kunde inte hämta rapporter';
+            this.errorMessage = res.error || 'Kunde inte hämta rapporter';
           }
         }
       });
@@ -179,7 +179,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.service.createReport(this.config.line, this.newReport)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
         console.error('Fel vid skapande av rapport:', err);
-        return of({ success: false, message: 'Kunde inte skapa rapport' });
+        return of({ success: false, error: 'Kunde inte skapa rapport' });
       }))
       .subscribe({
         next: (res) => {
@@ -191,7 +191,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             this.showAddForm = false;
             this.showSuccess('Rapport tillagd');
           } else {
-            this.errorMessage = res.message || 'Kunde inte lägga till';
+            this.errorMessage = res.error || 'Kunde inte lägga till';
           }
         }
       });
@@ -206,7 +206,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       kommentar: report.kommentar || ''
     }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
       console.error('Fel vid uppdatering av rapport:', err);
-      return of({ success: false, message: 'Kunde inte uppdatera rapport' });
+      return of({ success: false, error: 'Kunde inte uppdatera rapport' });
     })).subscribe({
       next: (res) => {
         if (res.success) {
@@ -216,7 +216,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           this.fetchReports();
           this.showSuccess('Rapport uppdaterad');
         } else {
-          this.errorMessage = res.message || 'Kunde inte uppdatera';
+          this.errorMessage = res.error || 'Kunde inte uppdatera';
         }
       }
     });
@@ -227,7 +227,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.service.deleteReport(this.config.line, id)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
         console.error('Fel vid borttagning av rapport:', err);
-        return of({ success: false, message: 'Kunde inte ta bort rapport' });
+        return of({ success: false, error: 'Kunde inte ta bort rapport' });
       }))
       .subscribe({
         next: (res) => {
@@ -236,7 +236,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             this.selectedIds.delete(id);
             this.showSuccess('Rapport borttagen');
           } else {
-            this.errorMessage = res.message || 'Kunde inte ta bort';
+            this.errorMessage = res.error || 'Kunde inte ta bort';
           }
         }
       });
@@ -248,7 +248,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.service.bulkDelete(this.config.line, Array.from(this.selectedIds))
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
         console.error('Fel vid massborttagning:', err);
-        return of({ success: false, message: 'Kunde inte ta bort rapporter' });
+        return of({ success: false, error: 'Kunde inte ta bort rapporter' });
       }))
       .subscribe({
         next: (res) => {
@@ -257,7 +257,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             this.selectedIds.clear();
             this.showSuccess(res.message);
           } else {
-            this.errorMessage = res.message || 'Fel';
+            this.errorMessage = res.error || 'Fel';
           }
         }
       });

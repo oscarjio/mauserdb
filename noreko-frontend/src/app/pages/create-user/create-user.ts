@@ -96,7 +96,7 @@ export class CreateUserPage implements OnInit, OnDestroy {
       catchError(err => {
         console.error('Skapande av användare misslyckades:', err);
         this.isLoading = false;
-        this.errorMessage = err?.error?.message || 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
+        this.errorMessage = err?.error?.error || 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
         return of(null);
       })
     ).subscribe({
@@ -113,7 +113,7 @@ export class CreateUserPage implements OnInit, OnDestroy {
             phone: ''
           };
         } else {
-          this.errorMessage = res.message || 'Kunde inte skapa användare.';
+          this.errorMessage = res.error || 'Kunde inte skapa användare.';
         }
       }
     });

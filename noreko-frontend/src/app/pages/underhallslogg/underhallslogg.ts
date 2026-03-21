@@ -417,7 +417,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
           this.loadLegacyHistorik();
           this.loadLegacyStats();
         } else {
-          this.errorMessage = res.message || 'Kunde inte spara';
+          this.errorMessage = res.error || 'Kunde inte spara';
         }
       },
       error: () => {
@@ -439,7 +439,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
           this.loadLegacyStats();
           this.toast.success('Post borttagen');
         } else {
-          this.toast.error(res.message || 'Kunde inte ta bort');
+          this.toast.error(res.error || 'Kunde inte ta bort');
         }
       },
       error: () => { this.deletingId = null; }

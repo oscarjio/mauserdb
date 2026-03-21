@@ -112,14 +112,14 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
       }
     }
 
-    this.http.post<{ success: boolean; message?: string }>(
+    this.http.post<{ success: boolean; message?: string; error?: string }>(
       '/noreko-backend/api.php?action=feature-flags&run=bulk-update',
       { flags },
       { withCredentials: true }
     ).pipe(
       timeout(10000),
       catchError(err => {
-        this.error = err?.error?.message || 'Kunde inte spara ändringar.';
+        this.error = err?.error?.error || 'Kunde inte spara ändringar.';
         this.saving = false;
         return of(null);
       }),
@@ -132,7 +132,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
         // Ladda om feature flags i tjänsten
         this.ff.loadFlags();
       } else {
-        this.error = res.message || 'Kunde inte spara ändringar.';
+        this.error = res.error || 'Kunde inte spara ändringar.';
       }
       this.saving = false;
     });

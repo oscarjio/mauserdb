@@ -97,12 +97,12 @@ export class UnderhallsloggService {
     varaktighet_min: number;
     kommentar: string;
     maskin?: string;
-  }): Observable<{ success: boolean; message: string; id?: number }> {
+  }): Observable<{ success: boolean; message?: string; error?: string; id?: number }> {
     return this.http.post<any>(
       `${this.base}&run=log`,
       data,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.message || 'Anslutningsfel' })));
+    ).pipe(timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Anslutningsfel' })));
   }
 
   getList(
@@ -123,12 +123,12 @@ export class UnderhallsloggService {
     ).pipe(timeout(10000), retry(1), catchError(() => of({ success: false, data: null as UnderhallsStats | null })));
   }
 
-  deleteEntry(id: number): Observable<{ success: boolean; message: string }> {
+  deleteEntry(id: number): Observable<{ success: boolean; message?: string; error?: string }> {
     return this.http.post<any>(
       `${this.base}&run=delete`,
       { id },
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.message || 'Anslutningsfel' })));
+    ).pipe(timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Anslutningsfel' })));
   }
 
   // ---- New Rebotling-specific endpoints ----

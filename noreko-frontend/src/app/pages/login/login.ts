@@ -108,7 +108,7 @@ export class LoginPage implements OnDestroy {
       timeout(8000),
       catchError(err => {
         console.error('Inloggning misslyckades:', err);
-        this.error = err?.error?.message || 'Inloggningen misslyckades. Försök igen.';
+        this.error = err?.error?.error || 'Inloggningen misslyckades. Försök igen.';
         this.loading = false;
         return of(null);
       })
@@ -137,7 +137,7 @@ export class LoginPage implements OnDestroy {
             })
           ).subscribe(); // bakgrundsverifiering
         } else {
-          this.error = res.message || 'Fel användarnamn eller lösenord.';
+          this.error = res.error || 'Fel användarnamn eller lösenord.';
           this.loading = false;
         }
       }

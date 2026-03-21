@@ -383,11 +383,11 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.fetchOperators();
           this.loadOpStats();
         } else {
-          this.toast.error('Kunde inte spara: ' + (res.message || 'Okänt fel'));
+          this.toast.error('Kunde inte spara: ' + (res.error || 'Okänt fel'));
         }
       },
       error: (err: any) => {
-        this.toast.error(err.error?.message || 'Kunde inte spara operatör.');
+        this.toast.error(err.error?.error || 'Kunde inte spara operatör.');
       }
     });
   }
@@ -404,11 +404,11 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.fetchOperators();
           this.loadOpStats();
         } else {
-          this.toast.error(res.message || 'Kunde inte ta bort operatör');
+          this.toast.error(res.error || 'Kunde inte ta bort operatör');
         }
       },
       error: (err: any) => {
-        this.toast.error(err.error?.message || 'Kunde inte ta bort operatör');
+        this.toast.error(err.error?.error || 'Kunde inte ta bort operatör');
       }
     });
   }
@@ -421,11 +421,11 @@ export class OperatorsPage implements OnInit, OnDestroy {
           op.active = res.active;
           this.fetchOperators();
         } else {
-          this.toast.error(res.message || 'Kunde inte ändra status');
+          this.toast.error(res.error || 'Kunde inte ändra status');
         }
       },
       error: (err: any) => {
-        this.toast.error(err.error?.message || 'Kunde inte ändra status');
+        this.toast.error(err.error?.error || 'Kunde inte ändra status');
       }
     });
   }
@@ -478,11 +478,11 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.fetchOperators();
           this.loadOpStats();
         } else {
-          this.toast.error('Kunde inte skapa: ' + (res.message || 'Okänt fel'));
+          this.toast.error('Kunde inte skapa: ' + (res.error || 'Okänt fel'));
         }
       },
       error: (err: any) => {
-        this.toast.error(err.error?.message || 'Kunde inte skapa operatör.');
+        this.toast.error(err.error?.error || 'Kunde inte skapa operatör.');
       }
     });
   }

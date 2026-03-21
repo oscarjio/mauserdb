@@ -104,7 +104,7 @@ export class RegisterPage implements OnDestroy {
       catchError(err => {
         console.error('Registrering misslyckades:', err);
         this.isLoading = false;
-        this.errorMessage = err?.error?.message || 'Ett fel uppstod vid registrering. Försök igen senare.';
+        this.errorMessage = err?.error?.error || 'Ett fel uppstod vid registrering. Försök igen senare.';
         return of(null);
       })
     ).subscribe({
@@ -117,7 +117,7 @@ export class RegisterPage implements OnDestroy {
           this.showFeedback = false;
           this.redirectTimerId = setTimeout(() => this.router.navigate(['/login']), 2000);
         } else {
-          this.errorMessage = res.message || 'Registrering misslyckades. Försök igen.';
+          this.errorMessage = res.error || 'Registrering misslyckades. Försök igen.';
         }
       }
     });

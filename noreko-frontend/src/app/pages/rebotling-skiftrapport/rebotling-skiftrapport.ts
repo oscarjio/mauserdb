@@ -460,14 +460,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
               this.clearOperatorRankingCache();
             }
           } else {
-            this.errorMessage = res.message || 'Kunde inte hämta skiftrapporter';
+            this.errorMessage = res.error || 'Kunde inte hämta skiftrapporter';
           }
         },
         error: (error) => {
           if (!silent) {
             this.loading = false;
           }
-          this.errorMessage = error.error?.message || 'Ett fel uppstod vid hämtning av skiftrapporter';
+          this.errorMessage = error.error?.error || 'Ett fel uppstod vid hämtning av skiftrapporter';
         }
       });
   }
@@ -505,13 +505,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // ========== Inlagd ==========
   toggleInlagd(report: any) {
     const newInlagd = !report.inlagd;
-    this.skiftrapportService.updateInlagd(report.id, newInlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av inlagd-status:', err); return of({ success: false, message: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.updateInlagd(report.id, newInlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           report.inlagd = newInlagd ? 1 : 0;
           this.showSuccess('Status uppdaterad');
         } else {
-          this.errorMessage = res.message || 'Kunde inte uppdatera status';
+          this.errorMessage = res.error || 'Kunde inte uppdatera status';
         }
       }
     });
@@ -524,7 +524,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     const ids = Array.from(this.selectedIds);
-    this.skiftrapportService.bulkUpdateInlagd(ids, inlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massuppdatering av inlagd-status:', err); return of({ success: false, message: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.bulkUpdateInlagd(ids, inlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massuppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports.forEach(r => {
@@ -535,7 +535,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           this.selectedIds.clear();
           this.showSuccess(res.message);
         } else {
-          this.errorMessage = res.message || 'Kunde inte uppdatera status';
+          this.errorMessage = res.error || 'Kunde inte uppdatera status';
         }
       }
     });
@@ -547,14 +547,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.skiftrapportService.deleteSkiftrapport(id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid borttagning av skiftrapport:', err); return of({ success: false, message: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.deleteSkiftrapport(id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid borttagning av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports = this.reports.filter(r => r.id !== id);
           this.selectedIds.delete(id);
           this.showSuccess('Skiftrapport borttagen');
         } else {
-          this.errorMessage = res.message || 'Kunde inte ta bort skiftrapport';
+          this.errorMessage = res.error || 'Kunde inte ta bort skiftrapport';
         }
       }
     });
@@ -571,14 +571,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     const ids = Array.from(this.selectedIds);
-    this.skiftrapportService.bulkDelete(ids).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massborttagning:', err); return of({ success: false, message: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.bulkDelete(ids).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massborttagning:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports = this.reports.filter(r => !this.selectedIds.has(r.id));
           this.selectedIds.clear();
           this.showSuccess(res.message);
         } else {
-          this.errorMessage = res.message || 'Kunde inte ta bort skiftrapporter';
+          this.errorMessage = res.error || 'Kunde inte ta bort skiftrapporter';
         }
       }
     });
@@ -610,7 +610,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       bur_ej_ok:   this.newReport.bur_ej_ok,
       ibc_ej_ok:   this.newReport.ibc_ej_ok,
       totalt:      totalt
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid skapande av skiftrapport:', err); this.loading = false; this.addingReport = false; return of({ success: false, message: 'Ett fel uppstod vid skapande av skiftrapport' }); })).subscribe({
+    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid skapande av skiftrapport:', err); this.loading = false; this.addingReport = false; return of({ success: false, error: 'Ett fel uppstod vid skapande av skiftrapport' }); })).subscribe({
       next: (res) => {
         this.loading = false;
         this.addingReport = false;
@@ -626,7 +626,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           this.showAddReportForm = false;
           this.showSuccess('Skiftrapport tillagd');
         } else {
-          this.errorMessage = res.message || 'Kunde inte lägga till skiftrapport';
+          this.errorMessage = res.error || 'Kunde inte lägga till skiftrapport';
         }
       }
     });
@@ -680,7 +680,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       ibc_ok:     parseInt(report.ibc_ok,     10) || 0,
       bur_ej_ok:  parseInt(report.bur_ej_ok,  10) || 0,
       ibc_ej_ok:  parseInt(report.ibc_ej_ok,  10) || 0
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av skiftrapport:', err); return of({ success: false, message: 'Ett fel uppstod vid uppdatering' }); })).subscribe({
+    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod vid uppdatering' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           report.totalt = (parseInt(report.ibc_ok, 10) || 0)
@@ -691,7 +691,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           this.fetchReports();
           this.showSuccess('Skiftrapport uppdaterad');
         } else {
-          this.errorMessage = res.message || 'Kunde inte uppdatera skiftrapport';
+          this.errorMessage = res.error || 'Kunde inte uppdatera skiftrapport';
         }
       }
     });

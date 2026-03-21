@@ -471,7 +471,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     if (this.submittingStoppage) return;
 
     this.submittingStoppage = true;
-    this.stoppageService.create(this.newEntry).pipe(timeout(8000), catchError((err) => of({ success: false, message: err?.error?.message || 'Ett fel uppstod' })), takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.create(this.newEntry).pipe(timeout(8000), catchError((err) => of({ success: false, message: err?.error?.error || 'Ett fel uppstod' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.submittingStoppage = false;
         if (res.success) {

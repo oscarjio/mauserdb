@@ -208,7 +208,7 @@ export class UsersPage implements OnInit, OnDestroy {
           this.toast.success('Användare sparad');
           this.fetchUsers();
         } else {
-          this.toast.error('Kunde inte spara användare: ' + (res.message || 'Okänt fel'));
+          this.toast.error('Kunde inte spara användare: ' + (res.error || 'Okänt fel'));
         }
       },
       error: () => {
@@ -233,11 +233,11 @@ export class UsersPage implements OnInit, OnDestroy {
           this.toast.success('Användare borttagen');
           this.fetchUsers();
         } else {
-          this.toast.error(res.message || 'Kunde inte ta bort användare');
+          this.toast.error(res.error || 'Kunde inte ta bort användare');
         }
       },
       error: (error) => {
-        this.toast.error(error.error?.message || 'Kunde inte ta bort användare');
+        this.toast.error(error.error?.error || 'Kunde inte ta bort användare');
       }
     });
   }
@@ -255,11 +255,11 @@ export class UsersPage implements OnInit, OnDestroy {
           user.role = res.admin === 1 ? 'admin' : 'user';
           this.fetchUsers();
         } else {
-          this.toast.error(res.message || 'Kunde inte ändra admin-status');
+          this.toast.error(res.error || 'Kunde inte ändra admin-status');
         }
       },
       error: (error) => {
-        this.toast.error(error.error?.message || 'Kunde inte ändra admin-status');
+        this.toast.error(error.error?.error || 'Kunde inte ändra admin-status');
       }
     });
   }
@@ -276,11 +276,11 @@ export class UsersPage implements OnInit, OnDestroy {
           user.active = res.active;
           this.fetchUsers();
         } else {
-          this.toast.error(res.message || 'Kunde inte ändra status');
+          this.toast.error(res.error || 'Kunde inte ändra status');
         }
       },
       error: (error) => {
-        this.toast.error(error.error?.message || 'Kunde inte ändra status');
+        this.toast.error(error.error?.error || 'Kunde inte ändra status');
       }
     });
   }

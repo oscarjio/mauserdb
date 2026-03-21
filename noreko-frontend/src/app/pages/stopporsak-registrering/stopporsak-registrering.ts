@@ -142,7 +142,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.service.registerStop(this.valdKategori.id, this.kommentar)
-      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.message || 'Anslutningsfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.submitting = false;
@@ -169,7 +169,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     this.endingStopId = stopp.id;
 
     this.service.endStop(stopp.id)
-      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.message || 'Anslutningsfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.endingStopId = null;
