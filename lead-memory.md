@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #233)*
+*Senast uppdaterad: 2026-03-21 (session #234)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -100,23 +100,20 @@ Session #230: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). array_key_exists/is
 Session #231: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL transaction isolation (47 filer): rent. Date/time edge cases (110 filer): rent. Lazy loading: rent (alla loadComponent). Form state: rent.
 Session #232: BUGGJAKT — 6 buggar (4 Worker A + 2 Worker B). Input bounds: 4 saknade ovre granser. Race conditions: rent. HTTP caching: rent. Router guards: 1 UrlTree-fix. Interval cleanup: 1 fix.
 Session #233: BUGGJAKT — 248 buggar (7 Worker A + 241 Worker B). SQL LIMIT: 7 saknade LIMIT pa vaxxande tabeller. Error response: rent. URL consistency: 125 hardkodade URLer. A11y keyboard: 116 fixar.
+Session #234: BUGGJAKT — 35 buggar (35 Worker A + 0 Worker B). CORS/cookie SameSite: rent. File upload: rent (inga uploads). SQL JOIN: 35 INNER->LEFT JOIN fixar i 16 filer. Reactive state: rent. Form dirty-state: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #234):
-- [ ] PHP classes/ CORS/cookie SameSite audit
-- [ ] PHP classes/ file upload validation audit
-- [ ] Angular reactive state management audit
-- [ ] PHP classes/ SQL JOIN correctness audit
-- [ ] Angular form dirty-state/unsaved changes audit
+### Nasta (session #235):
+- [ ] PHP classes/ error logging completeness audit
+- [ ] Angular HTTP interceptor error normalization audit
+- [ ] PHP classes/ session fixation/regeneration audit
+- [ ] Angular component memory profiling
+- [ ] PHP classes/ SQL transaction rollback audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-21 — Session #231 (klar)
-Worker A: 0 buggar — SQL transaction isolation (47 filer): rent. Date/time edge cases (110 filer): rent.
-Worker B: 0 buggar — Lazy loading (100+ routes): rent. Form state (14 formular): rent.
 
 ### 2026-03-21 — Session #232 (klar)
 Worker A: 4 buggar — Input bounds: 4 numeriska inputs utan ovre grans (UnderhallsloggController, LeveransplaneringController, BatchSparningController, ProduktionsSlaController). Race conditions: rent.
@@ -125,3 +122,7 @@ Worker B: 2 buggar — refreshInterval anti-pattern i stopporsak-registrering (1
 ### 2026-03-21 — Session #233 (klar)
 Worker A: 7 buggar — SQL LIMIT saknade pa 5 controllers (TidrapportController 3, MalhistorikController 2, NewsController 1, StoppageController 1, AlertsController 1). Error response consistency: rent.
 Worker B: 241 buggar — Hardkodade API-URLer i 32 filer (125 fixar). Keyboard accessibility i 38 filer (116 fixar: tabindex, keydown.enter, role="button").
+
+### 2026-03-21 — Session #234 (klar)
+Worker A: 35 buggar — SQL JOIN: 35 INNER JOIN->LEFT JOIN med COALESCE fallback i 16 PHP-filer (lookup-tabeller dar borttagna rader dolde loggposter). CORS/cookie: rent. File upload: rent (inga uploads).
+Worker B: 0 buggar — Reactive state management (165 filer): rent. Form dirty-state (18 formular): rent.

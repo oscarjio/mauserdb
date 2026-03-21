@@ -7,12 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #234+):
-- [ ] **PHP classes/ CORS/cookie SameSite audit** — saknade SameSite-attribut pa cookies
-- [ ] **PHP classes/ file upload validation audit** — MIME-type, storlek, path traversal
-- [ ] **Angular reactive state management audit** — BehaviorSubject race conditions, stale subscriptions
-- [ ] **PHP classes/ SQL JOIN correctness audit** — felaktiga JOIN-villkor, saknade ON-klausuler
-- [ ] **Angular form dirty-state/unsaved changes audit** — saknad varning vid navigation med osparade andringar
+### Pagaende (session #234):
+- [ ] **PHP classes/ CORS/cookie SameSite audit** — Worker A
+- [ ] **PHP classes/ file upload validation audit** — Worker A
+- [ ] **PHP classes/ SQL JOIN correctness audit** — Worker A
+- [ ] **Angular reactive state management audit** — Worker B
+- [ ] **Angular form dirty-state/unsaved changes audit** — Worker B
+
+### Nasta buggjakt-items (session #235+):
+- [ ] **PHP classes/ error logging completeness audit** — saknade loggposter for viktiga operationer (login, password change, admin actions)
+- [ ] **Angular HTTP interceptor error normalization audit** — konsekvent felhantering over alla services
+- [ ] **PHP classes/ session fixation/regeneration audit** — session_regenerate_id() efter login/privilege change
+- [ ] **Angular component memory profiling** — detached DOM-noder, stora objekt som inte GC:as
+- [ ] **PHP classes/ SQL transaction rollback audit** — saknade rollback i catch-block efter beginTransaction
 
 ## Parkerade features (ta inte dessa nu)
 
