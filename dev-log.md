@@ -1,3 +1,45 @@
+## 2026-03-22 Session #251 Worker A — switch/case fall-through + DateTime immutability + PDO lastInsertId race condition audits (0 buggar)
+
+### Uppgift 1: PHP switch/case fall-through audit — 0 buggar
+
+Granskade alla 117 PHP-filer i noreko-backend/classes/ efter switch/case-satser som saknar break/return/throw.
+90 av 117 filer innehaller switch/case-satser. Alla case-block har korrekt break, return eller throw.
+Tomma fall-throughs (case-block som delar logik) forekom men ar medvetna och korrekta.
+
+**Resultat:** Rent. Inga oavsiktliga fall-throughs hittade.
+
+### Uppgift 2: PHP DateTime immutability audit — 0 buggar
+
+Granskade alla 68 filer i noreko-backend/classes/ som anvander DateTime-objekt.
+128 mutationsanrop (modify/add/sub/setDate/setTime/setISODate) identifierade och analyserade.
+
+- AndonController.php anvander DateTimeImmutable korrekt — modify() returnerar nytt objekt.
+- ProduktionsDashboardController.php anvander clone fore setTime() — korrekt.
+- VDVeckorapportController.php, WeeklyReportController.php, etc. anvander clone fore modify() — korrekt.
+- Alla ovriga fall skapar DateTime lokalt och delar aldrig referensen.
+
+**Resultat:** Rent. Inga delade DateTime-mutationer hittade.
+
+### Uppgift 3: PHP PDO lastInsertId race condition audit — 0 buggar
+
+Granskade alla 26 filer i noreko-backend/classes/ som anropar lastInsertId().
+I samtliga fall anropas lastInsertId() direkt efter execute() utan mellanliggande kod.
+AuditLogger::log() (som gor INSERT pa samma PDO-connection) anropas alltid EFTER lastInsertId(),
+aldrig fore. Transaktioner anvands korrekt dar det behovs.
+
+Filer med lastInsertId: AdminController, BatchSparningController, BonusAdminController,
+CertificationController, FavoriterController, KvalitetscertifikatController, LeveransplaneringController,
+LineSkiftrapportController, MaintenanceController (x2), MaskinunderhallController (x2),
+NewsController, OperatorController, ProduktionsmalController (x2), ProduktionsSlaController,
+RebotlingAdminController, RebotlingAnalyticsController, RebotlingController (x2),
+RebotlingProductController, RegisterController, ShiftHandoverController, SkiftoverlamningController (x2),
+SkiftplaneringController, SkiftrapportController, StoppageController, StopporsakRegistreringController,
+UnderhallsloggController (x2).
+
+**Resultat:** Rent. Inga race conditions hittade.
+
+---
+
 ## 2026-03-22 Session #250 Worker A — mb_substr/mb_strlen + array_unique/array_values + Content-Type + static side-effects audits (4 buggar)
 
 ### Uppgift 1: PHP mb_substr/mb_strlen consistency audit — 0 buggar
