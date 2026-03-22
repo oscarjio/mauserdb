@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #242)*
+*Senast uppdaterad: 2026-03-22 (session #243)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -109,24 +109,25 @@ Session #239: BUGGJAKT — 20 buggar (15 Worker A + 5 Worker B). Error response 
 Session #240: BUGGJAKT — 13 buggar (0 Worker A + 13 Worker B). SQL DISTINCT: rent. PDO fetchAll: rent. file_get_contents: rent. HTTP error normalization: 13 catchError utan err-param i 5 services. Form validation: rent.
 Session #241: BUGGJAKT — 5 buggar (1 Worker A + 4 Worker B). array_filter callback: 1 fix (0 filtrerades bort). header() audit: rent. NgOnChanges: rent. Template expression complexity: 4 tunga metoder cachade.
 Session #242: BUGGJAKT — 22 buggar (22 Worker A + 0 Worker B). SQL subquery->JOIN (4), error_log format (18), file_put_contents: rent (A). HTTP polling interval: rent. Router guard return types: rent (B).
+Session #243: BUGGJAKT — 257 buggar (111 Worker A + 146 Worker B). PDO fetch mode FETCH_ASSOC (111 i 25 PHP-filer). trackByIndex->item.id (146 i 146 komponenter). str_replace/preg_replace: rent. array_merge: rent. Template safe navigation: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #242):
-- [ ] PHP classes/ SQL subquery performance audit
-- [ ] PHP error_log format consistency audit
-- [ ] Angular HTTP polling interval cleanup audit
-- [ ] PHP file_put_contents error handling audit
-- [ ] Angular router resolve/guard return type audit
+### Nasta (session #244):
+- [ ] PHP date()/strtotime() input validation audit
+- [ ] PHP json_encode/json_decode error handling audit
+- [ ] Angular HTTP unsubscribe audit
+- [ ] PHP SQL LIKE wildcard escaping audit
+- [ ] Angular form reset state audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-22 — Session #241 (klar)
-Worker A: 1 bugg — array_filter utan callback i SkiftrapportController (0 filtrerades bort). header() audit: rent.
-Worker B: 4 buggar — NgOnChanges: rent (ingen anvander det). Template expression complexity: 4 tunga metoder cachade (shared-skiftrapport, stopptidsanalys, skiftjamforelse, shift-plan).
 
 ### 2026-03-22 — Session #242 (klar)
 Worker A: 22 buggar — SQL korrelerade subqueries->JOINs i 4 filer (4). error_log utan metodnamn i RebotlingAdmin/Analytics (18). file_put_contents: rent (0).
 Worker B: 0 buggar — HTTP polling interval cleanup: rent. Router resolve/guard return types: rent.
+
+### 2026-03-22 — Session #243 (klar)
+Worker A: 111 buggar — PDO fetch mode: 111 fetch()/fetchAll() utan explicit FETCH_ASSOC i 25 PHP-filer. str_replace/preg_replace: rent. array_merge i loopar: rent.
+Worker B: 146 buggar — trackByIndex returnerade index istallet for item.id i 146 komponenter. Template safe navigation: rent.
