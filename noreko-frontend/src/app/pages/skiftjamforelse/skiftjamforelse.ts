@@ -43,6 +43,9 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
   detaljSort: string = 'datum';
   detaljSortDir: number = -1;
 
+  // Cachad sorterad detaljlista — beräknas när detaljer eller sort ändras
+  cachedSortedDetaljer: DetaljRow[] = [];
+
   lastRefreshed: Date | null = null;
 
   private destroy$ = new Subject<void>();
@@ -130,6 +133,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detaljer = res?.success ? res.data : null;
+        this.rebuildSortedDetaljer();
         this.isFetching = false;
       });
   }
@@ -353,10 +357,11 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       this.detaljSort = col;
       this.detaljSortDir = -1;
     }
+    this.rebuildSortedDetaljer();
   }
 
-  getSortedDetaljer(): DetaljRow[] {
-    if (!this.detaljer?.detaljer) return [];
+  private rebuildSortedDetaljer(): void {
+    if (!this.detaljer?.detaljer) { this.cachedSortedDetaljer = []; return; }
     const rows = [...this.detaljer.detaljer];
     const col = this.detaljSort;
     const dir = this.detaljSortDir;
@@ -365,8 +370,11 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       if (a[col] > b[col]) return 1 * dir;
       return 0;
     });
-    return rows;
+    this.cachedSortedDetaljer = rows;
   }
+
+  /** @deprecated Använd cachedSortedDetaljer direkt i templaten */
+  getSortedDetaljer(): DetaljRow[] { return this.cachedSortedDetaljer; }
 
   getSortIcon(col: string): string {
     if (this.detaljSort !== col) return 'fas fa-sort';

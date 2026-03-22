@@ -73,6 +73,9 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   // Cached sorted list
   cachedSortedStopp: StoppEvent[] = [];
 
+  // Cachat totalt antal stopp — beräknas när perMaskinData sätts
+  cachedTotalAntalStopp = 0;
+
   // Charts
   private barChart:       Chart | null = null;
   private trendChart:     Chart | null = null;
@@ -165,6 +168,9 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         this.loadingPerMaskin = false;
         if (res?.success) {
           this.perMaskinData = res.data;
+          this.cachedTotalAntalStopp = res.data?.maskiner
+            ? res.data.maskiner.reduce((sum: number, m: any) => sum + m.antal_stopp, 0)
+            : 0;
           this.chartTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80));
         }
       },
@@ -497,10 +503,8 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     return opt?.label ?? '';
   }
 
-  getTotalAntalStopp(): number {
-    if (!this.perMaskinData?.maskiner) return 0;
-    return this.perMaskinData.maskiner.reduce((sum, m) => sum + m.antal_stopp, 0);
-  }
+  /** @deprecated Använd cachedTotalAntalStopp direkt i templaten */
+  getTotalAntalStopp(): number { return this.cachedTotalAntalStopp; }
   formatPct(val: number | null | undefined): string {
     return (val ?? 0).toFixed(1);
   }

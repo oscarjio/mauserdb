@@ -45,6 +45,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   filterFrom = '';
   filterTo = '';
 
+  // Cachade KPI-värden — beräknas en gång per datahändelse, inte per change-detection-cykel
+  cachedFilteredReports: any[] = [];
+  cachedTotalIbc = 0;
+  cachedTotalOk = 0;
+  cachedTotalEjOk = 0;
+  cachedAvgQuality = 0;
+  cachedAvgIbcPerSkift = 0;
+
   newReport = {
     datum: localToday(),
     antal_ok: 0,
@@ -83,44 +91,57 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get filteredReports(): any[] {
-    return this.reports.filter(r => {
+    return this.cachedFilteredReports;
+  }
+
+  /** Beräknar filtrerade rapporter och KPI-värden en gång — kallas efter datahändelser, inte per CD-cykel. */
+  private recomputeKpis(): void {
+    const filtered = this.reports.filter(r => {
       const d = (r.datum || '').substring(0, 10);
       if (this.filterFrom && d < this.filterFrom) return false;
       if (this.filterTo && d > this.filterTo) return false;
       return true;
     });
+    this.cachedFilteredReports = filtered;
+    let totalOk = 0;
+    let totalEjOk = 0;
+    for (const r of filtered) {
+      totalOk += r.antal_ok || 0;
+      totalEjOk += r.antal_ej_ok || 0;
+    }
+    const totalIbc = totalOk + totalEjOk;
+    this.cachedTotalIbc = totalIbc;
+    this.cachedTotalOk = totalOk;
+    this.cachedTotalEjOk = totalEjOk;
+    this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.round((totalOk / totalIbc) * 1000) / 10;
+    this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
   }
 
-  clearFilter() { this.filterFrom = ''; this.filterTo = ''; }
+  clearFilter() {
+    this.filterFrom = '';
+    this.filterTo = '';
+    this.recomputeKpis();
+  }
+
+  applyFilter() {
+    this.recomputeKpis();
+  }
 
   getQualityPct(r: any): number | null {
     if (!r.totalt) return null;
     return Math.round((r.antal_ok / r.totalt) * 1000) / 10;
   }
 
-  getTotalIbc(): number {
-    return this.filteredReports.reduce((s, r) => s + ((r.antal_ok || 0) + (r.antal_ej_ok || 0)), 0);
-  }
-
-  getTotalOk(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0);
-  }
-
-  getTotalEjOk(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.antal_ej_ok || 0), 0);
-  }
-
-  getAvgQuality(): number {
-    const tot = this.getTotalIbc();
-    if (tot === 0) return 0;
-    return Math.round((this.getTotalOk() / tot) * 1000) / 10;
-  }
-
-  getAvgIbcPerSkift(): number {
-    const n = this.filteredReports.length;
-    if (n === 0) return 0;
-    return Math.round((this.getTotalIbc() / n) * 10) / 10;
-  }
+  /** @deprecated Använd cachedTotalIbc direkt i templaten */
+  getTotalIbc(): number { return this.cachedTotalIbc; }
+  /** @deprecated Använd cachedTotalOk direkt i templaten */
+  getTotalOk(): number { return this.cachedTotalOk; }
+  /** @deprecated Använd cachedTotalEjOk direkt i templaten */
+  getTotalEjOk(): number { return this.cachedTotalEjOk; }
+  /** @deprecated Använd cachedAvgQuality direkt i templaten */
+  getAvgQuality(): number { return this.cachedAvgQuality; }
+  /** @deprecated Använd cachedAvgIbcPerSkift direkt i templaten */
+  getAvgIbcPerSkift(): number { return this.cachedAvgIbcPerSkift; }
 
   toggleSelect(id: number) {
     this.selectedIds.has(id) ? this.selectedIds.delete(id) : this.selectedIds.add(id);
@@ -163,6 +184,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             } else {
               this.reports = nr;
             }
+            this.recomputeKpis();
           } else {
             this.errorMessage = res.error || 'Kunde inte hämta rapporter';
           }
@@ -234,6 +256,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           if (res.success) {
             this.reports = this.reports.filter(r => r.id !== id);
             this.selectedIds.delete(id);
+            this.recomputeKpis();
             this.showSuccess('Rapport borttagen');
           } else {
             this.errorMessage = res.error || 'Kunde inte ta bort';
@@ -255,6 +278,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           if (res.success) {
             this.reports = this.reports.filter(r => !this.selectedIds.has(r.id));
             this.selectedIds.clear();
+            this.recomputeKpis();
             this.showSuccess(res.message);
           } else {
             this.errorMessage = res.error || 'Fel';

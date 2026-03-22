@@ -1,3 +1,39 @@
+## 2026-03-22 Session #241 Worker B — Angular ngOnChanges audit + template expression complexity audit (4 buggar)
+
+### Uppgift 1: Angular ngOnChanges null-check audit
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/ for ngOnChanges-implementeringar.
+
+**Resultat: Inga komponenter implementerar ngOnChanges.** Inga buggar i denna kategori.
+
+### Uppgift 2: Angular template expression complexity audit
+Granskade ALLA Angular-templates for tunga berakningar i change-detection-loopar.
+
+**Hittade och fixade 4 buggar:**
+
+**Bugg 1 — shared-skiftrapport.html/ts:**
+- Metoderna `getTotalIbc()`, `getTotalOk()`, `getTotalEjOk()` anropades var for sig i templaten — varje kall gor en `.reduce()` over `filteredReports` som ar en getter som kaller `.filter()` pa hela `reports`-arrayen
+- `getAvgQuality()` anropades 3 ganger i templaten och anropade internt bade `getTotalIbc()` och `getTotalOk()` = 6 extra reduces per change-detection-cykel
+- Fix: Lade till `cachedTotalIbc`, `cachedTotalOk`, `cachedTotalEjOk`, `cachedAvgQuality`, `cachedAvgIbcPerSkift` som beraknas en gang via `recomputeKpis()` — anropas efter data-fetch, filter-andring och delete
+- Templaten uppdaterades att anvanda cached-properties direkt
+- `filteredReports` getter returnerar nu bara `cachedFilteredReports` utan att filtrera om
+- Filterinput-falt fick `(ngModelChange)="applyFilter()"` sa cache uppdateras vid val
+
+**Bugg 2 — stopptidsanalys.component.html/ts:**
+- `getTotalAntalStopp()` anropades i template och gor `.reduce()` over `perMaskinData.maskiner` pa varje change-detection-cykel
+- Fix: La till `cachedTotalAntalStopp` som beraknas nar `perMaskinData` sats i `loadPerMaskin()`, delegerat metodanropet till cached-varde, templaten anvander `cachedTotalAntalStopp` direkt
+
+**Bugg 3 — skiftjamforelse.html/ts:**
+- `getSortedDetaljer()` anropades i `*ngFor` — spred och sorterade hela arrayen pa varje change-detection-cykel
+- Fix: La till `cachedSortedDetaljer` och `rebuildSortedDetaljer()` — anropas nar `detaljer` sats eller sort andras, `sortDetaljer()` anropar rebuild, templaten anvander `cachedSortedDetaljer` direkt
+
+**Bugg 4 — shift-plan.html/ts:**
+- `getTotalOpsThisWeek()` anropades i template och gor nesta loopar over `weekDays` x `skifts` x `getShiftEntries()` pa varje change-detection-cykel
+- Fix: La till `cachedTotalOpsThisWeek` och `recomputeTotalOps()` — anropas nar `weekData` sats, nar operator laggs till/tas bort, templaten anvander `cachedTotalOpsThisWeek` direkt
+
+**Bygge:** Bygget passerade utan fel.
+
+---
+
 ## 2026-03-22 Session #241 Worker A — PHP classes/ array_map/filter callback audit + header() consistency audit (1 bugg)
 
 ### Uppgift 1: PHP classes/ array_map/array_filter/usort callback audit

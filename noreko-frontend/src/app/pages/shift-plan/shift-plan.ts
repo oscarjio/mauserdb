@@ -76,6 +76,9 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
 
   readonly dayNames = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 
+  // Cachat totalt antal ops denna vecka — beräknas när weekData eller weekDays ändras
+  cachedTotalOpsThisWeek = 0;
+
   // ===== Veckoöversikt (ny) =====
   weekViewData: WeekViewSlot[] = [];
   weekViewLoading = false;
@@ -310,6 +313,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
           }
           if (res.success) {
             this.weekData = res.days || {};
+            this.recomputeTotalOps();
           } else {
             this.error = res.error || 'Okänt fel';
           }
@@ -542,6 +546,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
             if (!this.weekData[d]) this.weekData[d] = { '1': [], '2': [], '3': [] };
             if (!this.weekData[d][s]) this.weekData[d][s] = [];
             this.weekData[d][s].push({ op_number: op.op_number, op_name: op.op_name, note: null });
+            this.recomputeTotalOps();
             this.toast.success(`${op.op_name} inlagd i skiftet`);
           } else {
             this.toast.error(res.error || 'Kunde inte lägga till operatör');
@@ -578,6 +583,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
                 e => e.op_number !== entry.op_number
               );
             }
+            this.recomputeTotalOps();
             this.toast.success(`${entry.op_name} borttagen`);
           } else {
             this.toast.error(res.error || 'Kunde inte ta bort operatör');
@@ -646,7 +652,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     return '#e53e3e';
   }
 
-  getTotalOpsThisWeek(): number {
+  private recomputeTotalOps(): void {
     let total = 0;
     for (const day of this.weekDays) {
       const datum = this.formatDate(day);
@@ -654,8 +660,11 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
         total += this.getShiftEntries(datum, s.nr).length;
       }
     }
-    return total;
+    this.cachedTotalOpsThisWeek = total;
   }
+
+  /** @deprecated Använd cachedTotalOpsThisWeek direkt i templaten */
+  getTotalOpsThisWeek(): number { return this.cachedTotalOpsThisWeek; }
 
   // -----------------------------------------------------------------------
   // Kopiera förra veckans schema
