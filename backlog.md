@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #253):
-- [ ] **PHP header() location redirect audit** — Worker A
-- [ ] **PHP json_encode UTF-8 audit** — Worker A
-- [ ] **PHP PDO transaction nesting audit** — Worker A
-- [ ] **Angular HttpParams encoding audit** — Worker B
-- [ ] **Angular template pipe chain audit** — Worker B
-- [ ] **Angular template string interpolation null-safety audit** — Worker B
+### Pagaende (session #254):
+- [ ] **PHP array_merge overwrite audit** — Worker A
+- [ ] **PHP date() vs DateTime::format() consistency audit** — Worker A
+- [ ] **PHP PDO closeCursor audit** — Worker A
+- [ ] **Angular ngOnChanges input mutation audit** — Worker B
+- [ ] **Angular ViewChild undefined timing audit** — Worker B
+- [ ] **Angular template expression side-effects audit** — Worker B
 
-### Nasta buggjakt-items (session #254+):
-- [ ] **PHP array_merge overwrite audit** — numeriska vs associativa nycklar
-- [ ] **PHP date() vs DateTime::format() consistency audit** — blandad anvandning
-- [ ] **Angular ngOnChanges input mutation audit** — muterade inputs i child-komponenter
-- [ ] **PHP PDO closeCursor audit** — saknade closeCursor efter SELECT
-- [ ] **Angular ViewChild undefined timing audit** — ViewChild fore AfterViewInit
+### Nasta buggjakt-items (session #255+):
+- [ ] **PHP str_pad/substr truncation audit** — data som klipps utan varning
+- [ ] **PHP array_column type coercion audit** — felaktig nyckeltyp
+- [ ] **Angular HTTP race condition audit** — switchMap vs mergeMap i services
+- [ ] **Angular template arithmetic overflow audit** — division by zero i templates
+- [ ] **PHP preg_match return value audit** — kontrollera === false vs === 0
 
 ## Parkerade features (ta inte dessa nu)
 
