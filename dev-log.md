@@ -17165,3 +17165,36 @@ Inga komponenter i noreko-frontend/src/app/pages/ (exkl. live-sidor) anvander Ch
 **Resultat:** 2 buggar fixade
 - **batch-sparning.component.html rad 255/259/261:** Samma inlineberakning `selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100` upprepades 3 ganger i template (text, style.width, aria-valuenow). Fix: lade till `get detailProgressPct` getter i komponenten och ersatte alla 3 forekomster med `detailProgressPct`.
 - **vd-veckorapport.component.ts/html:** `kpiLista()` var en metod som skapade en ny array `['oee', 'produktion', 'kassation', 'drifttid_h']` vid varje anrop, anvand i 2 `*ngFor`-loopar. En ny array-referens skapades vid varje change detection-cykel. Fix: andrade till `readonly kpiLista` property och uppdaterade template-referenserna.
+
+### Worker A — Session #253
+
+#### Uppgift 1: PHP header() location redirect audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer i noreko-backend/ (utom plcbackend/) med grep pa `header("Location:` och `header('Location:`.
+
+Resultat: **Inga header()-redirect-anrop hittades overhuvudtaget** i kodbasen (utom plcbackend/). Varken oppna redirects, anvandarkontrollerad input i Location-headers, eller redirect utan efterfoljande exit/die. Projektet anvander uteslutande JSON-API-svar (echo json_encode + http_response_code) utan HTTP-redirects, vilket ar korrekt for ett REST-API.
+
+Granskade filer (urval): api.php, admin.php, login.php, update-weather.php, alla klasser i classes/ (116 PHP-filer totalt).
+
+#### Uppgift 2: PHP json_encode UTF-8 audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga 116 PHP-filer i noreko-backend/ (utom plcbackend/) for json_encode-anrop utan JSON_UNESCAPED_UNICODE.
+
+Metod: grep pa `json_encode(` utan JSON_UNESCAPED_UNICODE pa samma rad gav 383 traffar. Efter granskning visade sig **alla** dessa vara flerlradiga anrop dar flaggan finns pa stangningsraden (t.ex. `], JSON_UNESCAPED_UNICODE)`). Verifierades manuellt i representativa filer: MorgonrapportController.php, api.php, admin.php, login.php, AdminController.php.
+
+Kontrollerade totalt json_encode-anrop vs JSON_UNESCAPED_UNICODE-forekomster per fil — antalen matchar i varje fil. Samtliga JSON-svar inkluderar korrekt JSON_UNESCAPED_UNICODE-flaggan, svenska tecken (a, a, o) escapas inte till \uXXXX-sekvenser.
+
+#### Uppgift 3: PHP PDO transaction nesting audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga 31 PHP-filer med beginTransaction()-anrop i noreko-backend/ (utom plcbackend/). Totalt 54 beginTransaction()-anrop identifierades.
+
+Kontrollpunkter:
+- **Nestade transaktioner:** Inga nestade beginTransaction()-anrop hittades. Alla anrop i samma fil finns i separata metoder eller separata if-block som inte kan koras sekventiellt i samma request.
+- **Saknad rollback i catch:** For samtliga filer kontrollerades att rollBack()-antal >= beginTransaction()-antal. Alla catch-block innehaller `if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }` eller explicit rollBack() fore tidig return.
+- **Tva beginTransaction i samma scope:** Granskades noggrant for filer med flera anrop: AdminController (4 anrop — separata if-block for create/delete/toggleAdmin/toggleActive), OperatorController (2 anrop — separata if-block for delete/toggleActive), LineSkiftrapportController (6 anrop — separata privata metoder), SkiftrapportController (6 anrop — separata privata metoder), StoppageController (3 anrop — separata metoder), RebotlingProductController (3 anrop — createProduct/updateProduct/deleteProduct), RebotlingAdminController (4 anrop — separata metoder), FavoriterController (2 anrop — separata metoder), BonusAdminController (2 anrop — separata metoder).
+- **RuntimeController:** Anvander nstad try-catch dar inner-catch gor rollBack() och kastar om undantaget till outer-catch for felrespons. Korrekt monster.
+
+Samtliga transaktioner ar korrekt isolerade och har fullstandig commit()/rollBack()-hantering.
