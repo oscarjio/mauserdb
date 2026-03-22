@@ -17771,3 +17771,58 @@ Granskade alla SQL-fragor med LIMIT/OFFSET i noreko-backend/classes/ och noreko-
 
 **Bugg fixad:**
 1. `RebotlingAnalyticsController.php:3952` — `LIMIT {$limit} OFFSET {$offset}` anvande stranginterpolering istallet for prepared statement-parametrar. Aven om `$limit` och `$offset` castades till `(int)` pa rad 3907-3908, ar stranginterpolering i SQL en sakerhetsrisk (defense-in-depth). Fixat: andrat till `:_lim`/`:_off` named parameters med `bindValue(..., PDO::PARAM_INT)`.
+
+---
+
+## Worker B — Session #258
+
+### Uppgift 1: Angular template null-check audit — 0 buggar
+
+**Metod:** Granskade samtliga HTML-templates i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Sokte efter `{{ selected*.prop }}`, `{{ current*.prop }}`, `{{ active*.prop }}`, `{{ detail*.prop }}` utan safe navigation operator eller *ngIf-guard. Granskade aven `*ngFor` over potentiellt null-arrayer och `[src]`-bindningar.
+
+**Fynd (alla redan korrekt guardade):**
+- `skiftoverlamning.html`: `selectedItem`-access inuti `*ngIf="!isLoadingDetail && selectedItem"`. Korrekt.
+- `skiftoverlamning.component.html` (rebotling/): `selectedDetail`-access inuti `*ngIf="expandedItemId === item.id && selectedDetail"`. Korrekt.
+- `drifttids-timeline.component.html`: `selectedSegment`-access inuti `*ngIf="selectedSegment"`. Korrekt.
+- `produktionspuls.html`: `currentHour` initialiseras med defaultvarde `{ ibc_count: 0, godkanda: 0, kasserade: 0, snitt_cykeltid: null }`. Aldrig null. Korrekt.
+- `produktionstakt.html`: `currentRate`-access inuti `*ngIf="!loading && currentRate"`. Korrekt.
+- `batch-sparning.component.html`: `selectedBatchDetail`-access inuti `*ngIf="selectedBatchDetail"`. Korrekt.
+- `kvalitetstrend.html`: `detailData`-access inuti `*ngIf="detailData && !detailLoading"`. Korrekt.
+- `kvalitetscertifikat.component.html`: `selectedCert`-access inuti `*ngIf="!loadingDetalj && !errorDetalj && selectedCert"`. Korrekt.
+- `operatorsbonus.component.html`: `selectedOperator`-access inuti `*ngIf="selectedOperator"` och `selectedOperator?.operator_id`. Korrekt.
+- `stopporsak-operator.html`: `detailData`-access inuti `*ngIf="!loadingDetail && !errorDetail && detailData"`, `overview`-access inuti `*ngIf="overview"`. Korrekt.
+- `stopporsak-trend.html`: `weeklyData`/`summaryData`-access inuti `*ngIf="weeklyLoaded && weeklyData && summaryLoaded && summaryData"`, `detailData` inuti `*ngIf="!detailLoading && detailData"`. Korrekt.
+- `kassationsanalys.html`: `selectedCause`-access inuti `*ngIf="selectedCause"`. Korrekt.
+- `alerts.html`: `activeAlerts.length` — `activeAlerts` ar array initialiserad till `[]`. Korrekt.
+- `stoppage-log.html`: `[src]="qrDataUrls[maskin]"` inuti `*ngIf="qrDataUrls[maskin]"`. Korrekt.
+
+Alla `*ngFor`-loopar har `trackBy`-funktioner. Inga buggar.
+
+---
+
+### Uppgift 2: Angular Router guard return type audit — 0 buggar
+
+**Metod:** Granskade alla guards i noreko-frontend/src/app/guards/ samt sokte efter CanActivate/CanDeactivate i alla .ts-filer (16 filer).
+
+**Fynd:**
+- `auth.guard.ts` — `authGuard: CanActivateFn`: Returnerar `Observable<boolean | UrlTree>`. Vantar pa `initialized$` (filter+take), sedan switchMap till `loggedIn$`. Returnerar `true` eller `router.createUrlTree(['/login'])`. Korrekt.
+- `auth.guard.ts` — `adminGuard: CanActivateFn`: Returnerar `Observable<boolean | UrlTree>`. Vantar pa `initialized$`, sedan switchMap till `user$`. Returnerar `true`, `createUrlTree(['/login'])` eller `createUrlTree(['/'])`. Korrekt. Ingen void/undefined path.
+- `pending-changes.guard.ts` — `pendingChangesGuard: CanDeactivateFn<ComponentCanDeactivate>`: Returnerar `boolean` (via `confirm()` eller `true`). Korrekt.
+
+Inga guards returnerar void eller undefined. Alla anvander korrekt redirect-metoder. Inga buggar.
+
+---
+
+### Uppgift 3: Angular service URL consistency audit — 0 buggar
+
+**Metod:** Granskade samtliga ~80 services i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ samt alla komponent-.ts-filer i pages/ som gor HTTP-anrop. Sokte efter hardkodade localhost-URL:er, http://-prefixer, och inkonsekvent URL-byggnad.
+
+**Fynd:**
+- Alla services anvander `environment.apiUrl` (`/noreko-backend/api.php`) konsekvent via `private api/base/baseUrl/apiUrl = \`\${environment.apiUrl}?action=...\``.
+- Alla komponent-filer med inline HTTP-anrop (andon.ts, live-ranking.ts, operator-trend.ts, historik.ts, news-admin.ts, tvattlinje-admin.ts, executive-dashboard.ts, maintenance-log/*.ts, operator-compare.ts, weekly-report.ts m.fl.) anvander `environment.apiUrl`.
+- Inga hardkodade `localhost`-URL:er hittades.
+- Enda externa URL: `https://www.noreko.com/...` i header.ts for logotyp — korrekt, ej API-anrop.
+- `environment.ts` och `environment.prod.ts` har identisk `apiUrl: '/noreko-backend/api.php'`.
+- GET/POST-metoder anvands konsekvent med `{ withCredentials: true }`.
+
+Inga buggar.
