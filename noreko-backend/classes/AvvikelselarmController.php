@@ -204,7 +204,7 @@ class AvvikelselarmController {
                 FROM avvikelselarm
                 WHERE kvitterad = 1 AND kvitterad_datum IS NOT NULL
             ");
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row && $row['snitt_min'] !== null) {
                 $snittLosning = round((float)$row['snitt_min'], 1);
             }
@@ -218,7 +218,7 @@ class AvvikelselarmController {
                 ORDER BY antal DESC
             ");
             $perTyp = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $perTyp[] = [
                     'typ'   => $row['typ'],
                     'antal' => (int)$row['antal'],
@@ -234,7 +234,7 @@ class AvvikelselarmController {
                 ORDER BY FIELD(allvarlighetsgrad, 'kritisk', 'varning', 'info')
             ");
             $perGrad = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $perGrad[] = [
                     'allvarlighetsgrad' => $row['allvarlighetsgrad'],
                     'antal'             => (int)$row['antal'],
@@ -269,7 +269,7 @@ class AvvikelselarmController {
                 ORDER BY FIELD(allvarlighetsgrad, 'kritisk', 'varning', 'info'), tidsstampel DESC
             ");
             $larm = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $larm[] = [
                     'id'                => (int)$row['id'],
                     'typ'               => $row['typ'],
@@ -321,7 +321,7 @@ class AvvikelselarmController {
             ");
             $stmt->execute($params);
             $larm = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $larm[] = [
                     'id'                    => (int)$row['id'],
                     'typ'                   => $row['typ'],
@@ -421,7 +421,7 @@ class AvvikelselarmController {
                 ORDER BY FIELD(typ, 'oee','kassation','produktionstakt','maskinstopp','produktionsmal')
             ");
             $regler = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $regler[] = [
                     'id'                => (int)$row['id'],
                     'typ'               => $row['typ'],
@@ -523,7 +523,7 @@ class AvvikelselarmController {
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg datumsekvens
             $dates = [];

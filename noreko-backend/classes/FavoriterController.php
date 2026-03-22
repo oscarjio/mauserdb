@@ -57,7 +57,7 @@ class FavoriterController {
                  ORDER BY sort_order ASC, id ASC"
             );
             $stmt->execute([':user_id' => $userId]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $this->sendSuccess($rows);
         } catch (\PDOException $e) {

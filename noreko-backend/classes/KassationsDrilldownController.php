@@ -87,7 +87,7 @@ class KassationsDrilldownController {
                 ) AS per_shift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return [
                 'ok'     => (int)($row['totalt_ok'] ?? 0),
                 'ej_ok'  => (int)($row['totalt_ej_ok'] ?? 0),
@@ -149,7 +149,7 @@ class KassationsDrilldownController {
                 ORDER BY total_antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $sumAntal = array_sum(array_column($rows, 'total_antal'));
             foreach ($rows as $row) {
@@ -222,7 +222,7 @@ class KassationsDrilldownController {
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
-            $events = $stmt->fetchAll();
+            $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Formatera
             $formatted = [];
@@ -283,7 +283,7 @@ class KassationsDrilldownController {
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $trendData = [];
             foreach ($rows as $row) {

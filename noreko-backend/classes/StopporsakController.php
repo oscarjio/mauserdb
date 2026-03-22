@@ -141,7 +141,7 @@ class StopporsakController {
                   AND linje = 'rebotling'
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $antalStopp = (int)($row['antal_stopp'] ?? 0);
             $totalSek   = (int)($row['total_sek'] ?? 0);
             $totalTimmar = round($totalSek / 3600, 1);
@@ -159,7 +159,7 @@ class StopporsakController {
                 LIMIT 1
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $topRow = $stmt->fetch();
+            $topRow = $stmt->fetch(PDO::FETCH_ASSOC);
             $vanligasteOrsak = ($topRow && isset($topRow['orsak'])) ? $topRow['orsak'] : null;
 
             // Forega period for jamforelse
@@ -223,7 +223,7 @@ class StopporsakController {
                 LIMIT 10
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totalAntal = array_sum(array_column($rows, 'antal'));
             $cumulative = 0;
@@ -281,7 +281,7 @@ class StopporsakController {
                     ORDER BY total_min DESC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $sid = (int)$row['station_id'];
@@ -318,7 +318,7 @@ class StopporsakController {
                     ORDER BY total_min DESC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $i => $row) {
                     $stationer[] = [
@@ -367,7 +367,7 @@ class StopporsakController {
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $dbRows = $stmt->fetchAll();
+            $dbRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Map for snabb lookup
             $dayMap = [];
@@ -436,11 +436,11 @@ class StopporsakController {
                 ORDER BY antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $currentRows = $stmt->fetchAll();
+            $currentRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Forega period
             $stmt->execute([':from_date' => $prevFrom, ':to_date' => $prevTo]);
-            $prevRows = $stmt->fetchAll();
+            $prevRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg lookup for prev
             $prevMap = [];
@@ -517,7 +517,7 @@ class StopporsakController {
                 LIMIT 50
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Kolla om det finns koppling till underhallslogg
             $hasUnderhall = $this->tableExists('rebotling_underhallslogg');
@@ -534,7 +534,7 @@ class StopporsakController {
                         LIMIT 500
                     ");
                     $uStmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                    $uRows = $uStmt->fetchAll();
+                    $uRows = $uStmt->fetchAll(PDO::FETCH_ASSOC);
 
                     foreach ($uRows as $u) {
                         $uDatum = date('Y-m-d', strtotime($u['datum']));

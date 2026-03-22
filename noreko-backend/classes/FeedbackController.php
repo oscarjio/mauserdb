@@ -209,7 +209,7 @@ class FeedbackController {
                 $stmtCheck->execute([':uid' => $userId]);
             }
 
-            if ($stmtCheck->fetch()) {
+            if ($stmtCheck->fetch(PDO::FETCH_ASSOC)) {
                 $this->pdo->rollBack();
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Feedback redan inlämnad för detta skift'], JSON_UNESCAPED_UNICODE);

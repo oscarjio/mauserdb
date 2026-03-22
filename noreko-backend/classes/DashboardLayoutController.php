@@ -108,7 +108,7 @@ class DashboardLayoutController {
                 'SELECT layout_json, updated_at FROM dashboard_layouts WHERE user_id = :uid LIMIT 1'
             );
             $stmt->execute([':uid' => $userId]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($row) {
                 $layout = json_decode($row['layout_json'], true);

@@ -95,7 +95,7 @@ class KvalitetstrendanalysController {
         try {
             $stmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1");
             $map = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $map[(int)$row['number']] = $row['name'];
             }
             return $map;

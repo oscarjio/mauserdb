@@ -105,7 +105,7 @@ class KassationsorsakController {
                 ) AS per_shift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return [
                 'ok'     => (int)($row['totalt_ok'] ?? 0),
                 'ej_ok'  => (int)($row['totalt_ej_ok'] ?? 0),
@@ -123,7 +123,7 @@ class KassationsorsakController {
         try {
             $stmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1");
             $map = [];
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $map[(int)$row['number']] = $row['name'];
             }
             return $map;
@@ -198,7 +198,7 @@ class KassationsorsakController {
                 ORDER BY total_antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $uniqueReasons = count($rows);
             if (!empty($rows)) {
                 $topReason = $rows[0]['reason'];
@@ -244,7 +244,7 @@ class KassationsorsakController {
                 ORDER BY antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totalAntal = array_sum(array_column($rows, 'antal'));
             $cumulative = 0;
@@ -297,7 +297,7 @@ class KassationsorsakController {
                 ORDER BY orsak
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $orsaker = $stmt->fetchAll();
+            $orsaker = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta daglig data per orsak
             $stmt = $this->pdo->prepare("
@@ -313,7 +313,7 @@ class KassationsorsakController {
                 ORDER BY dag ASC, antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg datumsekvens
             $dates = [];
@@ -386,7 +386,7 @@ class KassationsorsakController {
                 ORDER BY kr.registrerad_av, antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera per operatör
             $operatorData = [];
@@ -497,7 +497,7 @@ class KassationsorsakController {
                 ORDER BY skift, antal DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $shifts = [];
             foreach ($rows as $row) {
@@ -588,7 +588,7 @@ class KassationsorsakController {
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $events = [];
             $dagStats = [];

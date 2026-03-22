@@ -75,7 +75,7 @@ class HistorikController {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':manader', $manader, PDO::PARAM_INT);
             $stmt->execute();
-            $monthly = $stmt->fetchAll();
+            $monthly = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Konvertera numeriska strängar till rätt typ
             foreach ($monthly as &$row) {
@@ -156,7 +156,7 @@ class HistorikController {
             ";
 
             $stmt = $this->pdo->query($sql);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Strukturera som { "2024": [{vecka:1, ibc:123}, ...], "2025": [...] }
             $yearly = [];

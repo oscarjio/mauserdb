@@ -105,7 +105,7 @@ class RegisterController {
 
             $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? FOR UPDATE");
             $stmt->execute([$username]);
-            if ($stmt->fetch()) {
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
                 $pdo->rollBack();
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);

@@ -113,7 +113,7 @@ class KassationskvotAlarmController {
             $stmt = $this->pdo->query(
                 "SELECT varning_procent, alarm_procent FROM rebotling_kassationsalarminst ORDER BY id DESC LIMIT 1"
             );
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row) {
                 return [
                     'varning_procent' => (float)$row['varning_procent'],
@@ -149,7 +149,7 @@ class KassationskvotAlarmController {
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $ok    = (int)($row['totalt_ok']    ?? 0);
             $ejOk  = (int)($row['totalt_ej_ok'] ?? 0);
             $totalt = $ok + $ejOk;
@@ -274,7 +274,7 @@ class KassationskvotAlarmController {
                 ORDER BY dag DESC, skiftraknare DESC
             ");
             $stmt->execute([':dagar' => $dagar]);
-            $rader = $stmt->fetchAll();
+            $rader = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $historik = [];
             foreach ($rader as $rad) {
@@ -396,7 +396,7 @@ class KassationskvotAlarmController {
                 ORDER BY timme ASC
             ");
             $stmt->execute();
-            $rader = $stmt->fetchAll();
+            $rader = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $trend = [];
             foreach ($rader as $rad) {
@@ -449,7 +449,7 @@ class KassationskvotAlarmController {
                 ORDER BY dag ASC, skiftraknare ASC
             ");
             $stmt->execute();
-            $rader = $stmt->fetchAll();
+            $rader = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Gruppera per dag
             $dagData = [];
@@ -521,7 +521,7 @@ class KassationskvotAlarmController {
                 ':dagar'   => $dagar,
                 ':troskel' => $troskel['varning_procent'],
             ]);
-            $alarmSkift = $stmtAlarmSkift->fetchAll();
+            $alarmSkift = $stmtAlarmSkift->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($alarmSkift)) {
                 $this->sendSuccess(['orsaker' => [], 'troskel' => $troskel]);
@@ -545,7 +545,7 @@ class KassationskvotAlarmController {
                 LIMIT 5
             ");
             $stmtOrsaker->execute($skiftIds);
-            $orsaker = $stmtOrsaker->fetchAll();
+            $orsaker = $stmtOrsaker->fetchAll(PDO::FETCH_ASSOC);
 
             $this->sendSuccess([
                 'troskel'        => $troskel,

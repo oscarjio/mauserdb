@@ -73,7 +73,7 @@ class LeveransplaneringController {
     }
 
     private function getConfig(): array {
-        $row = $this->pdo->query("SELECT kapacitet_per_dag, planerade_underhallsdagar, buffer_procent FROM produktionskapacitet_config ORDER BY id ASC LIMIT 1")->fetch();
+        $row = $this->pdo->query("SELECT kapacitet_per_dag, planerade_underhallsdagar, buffer_procent FROM produktionskapacitet_config ORDER BY id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
             return ['kapacitet_per_dag' => 80, 'planerade_underhallsdagar' => [], 'buffer_procent' => 10];
         }
@@ -229,7 +229,7 @@ class LeveransplaneringController {
                 LIMIT 1000
             ");
             $stmt->execute($params);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $ordrar = [];
             foreach ($rows as $row) {
@@ -287,7 +287,7 @@ class LeveransplaneringController {
                 ORDER BY prioritet ASC, onskat_leveransdatum ASC
             ");
             $stmt->execute();
-            $ordrar = $stmt->fetchAll();
+            $ordrar = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $dates = [];
             $tillganglig = [];
@@ -362,7 +362,7 @@ class LeveransplaneringController {
                 LIMIT 500
             ");
             $stmt->execute();
-            $ordrar = $stmt->fetchAll();
+            $ordrar = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $prognos = [];
             foreach ($ordrar as $order) {

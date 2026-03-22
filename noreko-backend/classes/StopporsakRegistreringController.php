@@ -216,7 +216,7 @@ class StopporsakRegistreringController {
             // Verify category exists
             $check = $this->pdo->prepare("SELECT id FROM stopporsak_kategorier WHERE id = ? AND active = 1");
             $check->execute([$kategoriId]);
-            if (!$check->fetch()) {
+            if (!$check->fetch(PDO::FETCH_ASSOC)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltig kategori'], JSON_UNESCAPED_UNICODE);
                 return;

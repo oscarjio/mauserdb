@@ -64,7 +64,7 @@ class NewsController {
                 ORDER BY priority DESC, created_at DESC
                 LIMIT 500
             ");
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $news = array_map(function($row) {
                 return [
                     'id'         => (int)$row['id'],
@@ -261,7 +261,7 @@ class NewsController {
                 LIMIT 10
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $events[] = [
                     'id'       => (int)$row['id'],
                     'typ'      => 'news_' . $row['category'],
@@ -298,7 +298,7 @@ class NewsController {
                 LIMIT 1
             ";
             $stmt = $this->pdo->query($sql);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row && $row['event_datum']) {
                 $events[] = [
                     'id'       => null,
@@ -339,7 +339,7 @@ class NewsController {
                 LIMIT 3
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -375,7 +375,7 @@ class NewsController {
                 LIMIT 3
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -408,7 +408,7 @@ class NewsController {
                 LIMIT 2
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -441,7 +441,7 @@ class NewsController {
                 LIMIT 5
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -485,7 +485,7 @@ class NewsController {
                 LIMIT 3
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -524,7 +524,7 @@ class NewsController {
                 LIMIT 3
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
@@ -563,7 +563,7 @@ class NewsController {
                 LIMIT 5
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 if ($row['event_datum']) {
                     $levelLabel = ucfirst(str_replace('_', ' ', $row['bonus_level'] ?? ''));
                     $events[] = [
@@ -597,7 +597,7 @@ class NewsController {
                 LIMIT 5
             ";
             $stmt = $this->pdo->query($sql);
-            while ($row = $stmt->fetch()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 // Beräkna faktisk streak (konsekutiva dagar bakåt från senaste dag)
                 $dates = explode(',', $row['dagar']);
                 $streak = 0;

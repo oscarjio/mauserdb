@@ -96,7 +96,7 @@ class MyStatsController {
                 "SELECT name FROM operators WHERE number = ? LIMIT 1"
             );
             $stmt->execute([$opNum]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return ($row && isset($row['name'])) ? $row['name'] : ('Operatör #' . $opNum);
         } catch (\PDOException $e) {
             error_log('MyStatsController::getOperatorName: ' . $e->getMessage());
@@ -186,7 +186,7 @@ class MyStatsController {
             ";
             $stmtOp = $this->pdo->prepare($sqlOp);
             $stmtOp->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $rowOp = $stmtOp->fetch() ?: [];
+            $rowOp = $stmtOp->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $totalIbc     = (int)($rowOp['total_ibc']     ?? 0);
             $totalEjOk    = (int)($rowOp['total_ej_ok']   ?? 0);
@@ -221,7 +221,7 @@ class MyStatsController {
             ";
             $stmtBast = $this->pdo->prepare($sqlBast);
             $stmtBast->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $rowBast = $stmtBast->fetch() ?: null;
+            $rowBast = $stmtBast->fetch(PDO::FETCH_ASSOC) ?: null;
             $bastDag    = $rowBast ? $rowBast['dag']     : null;
             $bastDagIbc = $rowBast ? (int)$rowBast['dag_ibc'] : 0;
 
@@ -244,7 +244,7 @@ class MyStatsController {
             ";
             $stmtTeam = $this->pdo->prepare($sqlTeam);
             $stmtTeam->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $teamRows = $stmtTeam->fetchAll();
+            $teamRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
 
             $teamIbcPerHList  = [];
             $teamKvalitetList = [];
@@ -357,7 +357,7 @@ class MyStatsController {
             ";
             $stmtMy = $this->pdo->prepare($sqlMy);
             $stmtMy->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $myRows = $stmtMy->fetchAll();
+            $myRows = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg lookup dag → data
             $myMap = [];
@@ -384,7 +384,7 @@ class MyStatsController {
             ";
             $stmtTeam = $this->pdo->prepare($sqlTeamDag);
             $stmtTeam->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $teamDagRows = $stmtTeam->fetchAll();
+            $teamDagRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
 
             $teamDagMap = [];
             foreach ($teamDagRows as $tr) {
@@ -524,7 +524,7 @@ class MyStatsController {
                 ':op_num_b' => $opNum,
                 ':op_num_c' => $opNum,
             ]);
-            $rowBast = $stmtBast->fetch() ?: null;
+            $rowBast = $stmtBast->fetch(PDO::FETCH_ASSOC) ?: null;
             $bastDagEver    = $rowBast ? $rowBast['dag']          : null;
             $bastDagEverIbc = $rowBast ? (int)$rowBast['dag_ibc'] : 0;
 
@@ -570,7 +570,7 @@ class MyStatsController {
                 ':from_date' => $fromStreak,
                 ':to_date'   => $today,
             ]);
-            $streakRows = $stmtStreak->fetchAll();
+            $streakRows = $stmtStreak->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg map dag → total
             $streakMap = [];

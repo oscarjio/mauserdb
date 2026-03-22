@@ -139,7 +139,7 @@ class WeeklyReportController {
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$fromDate, $toDate]);
-        $rows = $stmt->fetchAll();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $totalIbc      = 0;
         $totalIbcTotal = 0;
@@ -238,7 +238,7 @@ class WeeklyReportController {
             $fromDate, $toDate,
             $fromDate, $toDate,
         ]);
-        $op = $stmtOp->fetch();
+        $op = $stmtOp->fetch(PDO::FETCH_ASSOC);
 
         if (!$op) return null;
 
@@ -290,7 +290,7 @@ class WeeklyReportController {
             $dagmal = 1200; // fallback
             try {
                 $stmtGoal = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings ORDER BY id ASC LIMIT 1");
-                $goalRow = $stmtGoal->fetch();
+                $goalRow = $stmtGoal->fetch(PDO::FETCH_ASSOC);
                 if ($goalRow && isset($goalRow['rebotling_target'])) {
                     $dagmal = intval($goalRow['rebotling_target']);
                 }
@@ -321,7 +321,7 @@ class WeeklyReportController {
             ";
             $stmtDaily = $this->pdo->prepare($sqlDaily);
             $stmtDaily->execute([$mondayStr, $sundayStr]);
-            $daily = $stmtDaily->fetchAll();
+            $daily = $stmtDaily->fetchAll(PDO::FETCH_ASSOC);
 
             // Formatera daglig data
             $dailyFormatted = [];
@@ -425,7 +425,7 @@ class WeeklyReportController {
                 $mondayStr, $sundayStr,
                 $mondayStr, $sundayStr,
             ]);
-            $operators = $stmtOp->fetchAll();
+            $operators = $stmtOp->fetchAll(PDO::FETCH_ASSOC);
 
             $operatorsFormatted = [];
             foreach ($operators as $op) {

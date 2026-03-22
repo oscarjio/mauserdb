@@ -537,7 +537,7 @@ class SkiftplaneringController {
                 "SELECT id FROM skift_schema WHERE operator_id = ? AND datum = ? FOR UPDATE"
             );
             $checkStmt->execute([$operatorId, $datum]);
-            if ($checkStmt->fetch()) {
+            if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
                 $this->pdo->rollBack();
                 $this->sendError('Operatören är redan inplanerad denna dag');
                 return;

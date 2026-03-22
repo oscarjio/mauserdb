@@ -260,7 +260,7 @@ class RebotlingAnalyticsController {
                 ORDER BY dag
             ");
             $stmt->execute([$startDate]);
-            $daily = $stmt->fetchAll();
+            $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Starter/stopp-data från on/off-events
             $stmtRuntime = $this->pdo->prepare("
@@ -274,7 +274,7 @@ class RebotlingAnalyticsController {
                 ORDER BY dag
             ");
             $stmtRuntime->execute([$startDate]);
-            $runtime = $stmtRuntime->fetchAll();
+            $runtime = $stmtRuntime->fetchAll(PDO::FETCH_ASSOC);
             $runtimeMap = [];
             foreach ($runtime as $r) {
                 $runtimeMap[$r['dag']] = $r;

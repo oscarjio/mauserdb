@@ -173,7 +173,7 @@ class StopptidsanalysController {
                   AND duration_min IS NOT NULL
             ");
             $stmt->execute([':idag' => $idag]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $totalIdagMin   = round((float)($row['total_min'] ?? 0), 1);
             $antalStoppIdag = (int)($row['antal'] ?? 0);
         } catch (\PDOException $e) {
@@ -199,7 +199,7 @@ class StopptidsanalysController {
                 LIMIT 1
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row) {
                 $flaskhalsMaskin    = $row['maskin_namn'];
                 $flaskhalsMaskinMin = round((float)$row['total_min'], 1);
@@ -284,7 +284,7 @@ class StopptidsanalysController {
                 ORDER BY total_min DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $maskiner = [];
             $totalMin = 0.0;
@@ -349,7 +349,7 @@ class StopptidsanalysController {
                 ORDER BY maskin_namn
             ");
             $stmt->execute($params);
-            $maskiner = $stmt->fetchAll();
+            $maskiner = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta daglig data
             $stmt = $this->pdo->prepare("
@@ -367,7 +367,7 @@ class StopptidsanalysController {
                 ORDER BY dag ASC
             ");
             $stmt->execute($params);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg datumsekvens
             $dates = [];
@@ -439,7 +439,7 @@ class StopptidsanalysController {
                 ORDER BY total_min DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totalMin = array_sum(array_column($rows, 'total_min'));
             $fordelning = [];
@@ -505,7 +505,7 @@ class StopptidsanalysController {
                 LIMIT 500
             ");
             $stmt->execute($params);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $stopp = [];
             foreach ($rows as $row) {
@@ -549,7 +549,7 @@ class StopptidsanalysController {
                 WHERE aktiv = 1
                 ORDER BY namn ASC
             ");
-            $maskiner = $stmt->fetchAll();
+            $maskiner = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $result = [];
             foreach ($maskiner as $m) {

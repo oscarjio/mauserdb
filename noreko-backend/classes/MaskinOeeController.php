@@ -167,7 +167,7 @@ class MaskinOeeController {
                 FROM maskin_register m
                 JOIN maskin_oee_config oc ON oc.maskin_id = m.id
                 WHERE m.aktiv = 1
-            ")->fetchAll();
+            ")->fetchAll(PDO::FETCH_ASSOC);
 
             $stmt = $this->pdo->prepare("
                 INSERT IGNORE INTO maskin_oee_daglig
@@ -239,7 +239,7 @@ class MaskinOeeController {
                 ORDER BY d.oee_pct DESC
             ");
             $stmt->execute([':idag' => $idag]);
-            $idagRows = $stmt->fetchAll();
+            $idagRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (count($idagRows) > 0) {
                 $sumOee = 0;
@@ -298,7 +298,7 @@ class MaskinOeeController {
         // OEE-mal
         $oeeMal = 85.0;
         try {
-            $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
+            $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch(PDO::FETCH_ASSOC);
             if ($row) $oeeMal = round((float)$row['mal'], 1);
         } catch (\PDOException $e) {
             error_log('MaskinOeeController::getOverview oee_mal: ' . $e->getMessage());
@@ -349,7 +349,7 @@ class MaskinOeeController {
                 ORDER BY avg_oee DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $maskiner = [];
             foreach ($rows as $row) {
@@ -412,7 +412,7 @@ class MaskinOeeController {
                 ORDER BY mr.namn
             ");
             $stmt->execute($params);
-            $maskiner = $stmt->fetchAll();
+            $maskiner = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hamta daglig data
             $stmt = $this->pdo->prepare("
@@ -426,7 +426,7 @@ class MaskinOeeController {
                 ORDER BY d.datum ASC
             ");
             $stmt->execute($params);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg datumsekvens
             $dates = [];
@@ -465,7 +465,7 @@ class MaskinOeeController {
             // OEE-mal for mallinjen
             $oeeMal = 85.0;
             try {
-                $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
+                $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch(PDO::FETCH_ASSOC);
                 if ($row) $oeeMal = round((float)$row['mal'], 1);
             } catch (\PDOException $e) {
                 error_log('MaskinOeeController::getTrend oee_mal: ' . $e->getMessage());
@@ -514,7 +514,7 @@ class MaskinOeeController {
                 ORDER BY avg_oee DESC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $benchmark = [];
             foreach ($rows as $row) {
@@ -588,7 +588,7 @@ class MaskinOeeController {
                 LIMIT 500
             ");
             $stmt->execute($params);
-            $rows = $stmt->fetchAll();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $detaljer = [];
             foreach ($rows as $row) {
@@ -639,7 +639,7 @@ class MaskinOeeController {
                 WHERE aktiv = 1
                 ORDER BY namn ASC
             ");
-            $maskiner = $stmt->fetchAll();
+            $maskiner = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $result = [];
             foreach ($maskiner as $m) {

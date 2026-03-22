@@ -2745,7 +2745,7 @@ class RebotlingController {
             // Verifiera att orsak_id finns
             $checkStmt = $this->pdo->prepare("SELECT id FROM kassationsorsak_typer WHERE id = ? AND aktiv = 1");
             $checkStmt->execute([$orsakId]);
-            if (!$checkStmt->fetch()) {
+            if (!$checkStmt->fetch(PDO::FETCH_ASSOC)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Kassationsorsak hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;

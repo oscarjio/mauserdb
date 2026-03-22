@@ -448,7 +448,7 @@ class MaskinunderhallController {
                 "SELECT id FROM maskin_register WHERE id = ? AND aktiv = 1 FOR UPDATE"
             );
             $checkStmt->execute([$maskinId]);
-            if (!$checkStmt->fetch()) {
+            if (!$checkStmt->fetch(PDO::FETCH_ASSOC)) {
                 $this->pdo->rollBack();
                 $this->sendError('Maskin hittades inte', 404);
                 return;

@@ -127,7 +127,7 @@ class PrediktivtUnderhallController {
                     ORDER BY station_id, antal DESC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $sid  = (int)$row['station_id'];
@@ -171,7 +171,7 @@ class PrediktivtUnderhallController {
                     ORDER BY antal DESC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Fodela jamnt over stationer for visualization
                 foreach ($rows as $row) {
@@ -258,7 +258,7 @@ class PrediktivtUnderhallController {
                     ORDER BY station_id, datum ASC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Gruppera per station
                 $stoppPerStation = [];
@@ -357,7 +357,7 @@ class PrediktivtUnderhallController {
                     ORDER BY stopp_datum ASC
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $stoppDagar = array_column($rows, 'stopp_datum');
                 $totalStopp = array_sum(array_column($rows, 'antal'));
@@ -449,7 +449,7 @@ class PrediktivtUnderhallController {
                     ORDER BY station_id, vecka
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                foreach ($stmt->fetchAll() as $row) {
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     $sid = (int)$row['station_id'];
                     $data[$sid][$row['vecka']] = (int)$row['antal'];
                 }
@@ -468,7 +468,7 @@ class PrediktivtUnderhallController {
                     ORDER BY vecka
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $fallbackRows = $stmt->fetchAll();
+                $fallbackRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($fallbackRows as $row) {
                     $totalAntal = (int)$row['antal'];
@@ -542,11 +542,11 @@ class PrediktivtUnderhallController {
                 ");
                 // Senaste 4 veckor
                 $stmt->execute([':from_date' => $fromDateRecent, ':to_date' => $toDate]);
-                $recentRows = $stmt->fetchAll();
+                $recentRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Foregaende 4 veckor
                 $stmt->execute([':from_date' => $fromDateOld, ':to_date' => $fromDateRecent]);
-                $oldRows = $stmt->fetchAll();
+                $oldRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Bygg lookup
                 $recentMap = [];
@@ -592,7 +592,7 @@ class PrediktivtUnderhallController {
                       AND typ = 'oplanerat'
                 ");
                 $stmt->execute([':from_date' => $fromDateRecent, ':to_date' => $toDate]);
-                $activeSids = array_column($stmt->fetchAll(), 'station_id');
+                $activeSids = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'station_id');
                 $activeSids = array_map('intval', $activeSids);
 
                 for ($sid = 1; $sid <= 8; $sid++) {
@@ -626,7 +626,7 @@ class PrediktivtUnderhallController {
                     LIMIT 5
                 ");
                 $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-                $topTidRows = $stmt->fetchAll();
+                $topTidRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($topTidRows as $row) {
                     $sid      = (int)$row['station_id'];
@@ -667,7 +667,7 @@ class PrediktivtUnderhallController {
                     LIMIT 10
                 ");
                 $stmt->execute([':from_date' => $fromDateRecent, ':to_date' => $toDate]);
-                $rows = $stmt->fetchAll();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $rekommendationer[] = [

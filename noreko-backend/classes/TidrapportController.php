@@ -172,7 +172,7 @@ class TidrapportController {
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('TidrapportController::fetchFromRebotlingData: ' . $e->getMessage());
             return [];
@@ -206,7 +206,7 @@ class TidrapportController {
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('TidrapportController::fetchFromSkiftLog: ' . $e->getMessage());
             return [];
@@ -240,7 +240,7 @@ class TidrapportController {
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('TidrapportController::fetchFromStopporsak: ' . $e->getMessage());
             return [];
