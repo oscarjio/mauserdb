@@ -354,7 +354,7 @@ export class SkiftoverlamningService {
   create(payload: CreatePayload): Observable<CreateResponse> {
     return this.http.post<CreateResponse>(`${API}&run=skapa-overlamning`, payload, { withCredentials: true }).pipe(
       timeout(15000),
-      catchError(() => of({ success: false, error: 'Nätverksfel' } as CreateResponse))
+      catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' } as CreateResponse))
     );
   }
 }

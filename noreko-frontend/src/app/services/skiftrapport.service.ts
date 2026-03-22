@@ -27,7 +27,7 @@ export class SkiftrapportService {
       action: 'create',
       ...report
     }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -36,7 +36,7 @@ export class SkiftrapportService {
       action: 'delete',
       id
     }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -45,7 +45,7 @@ export class SkiftrapportService {
       action: 'bulkDelete',
       ids
     }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -55,7 +55,7 @@ export class SkiftrapportService {
       id,
       inlagd
     }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -65,7 +65,7 @@ export class SkiftrapportService {
       ids,
       inlagd
     }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -75,7 +75,7 @@ export class SkiftrapportService {
       id,
       ...data
     }, { withCredentials: true }).pipe(
-      timeout(15000), catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 

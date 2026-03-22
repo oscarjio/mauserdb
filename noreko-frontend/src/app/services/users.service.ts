@@ -21,35 +21,35 @@ export class UsersService {
   updateUser(user: any): Observable<any> {
     return this.http.post<any>(this.base, user, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, message: 'Anslutningsfel' }))
+      catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   deleteUser(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'delete', id }, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, message: 'Anslutningsfel' }))
+      catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   toggleAdmin(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'toggleAdmin', id }, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, message: 'Anslutningsfel' }))
+      catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   toggleActive(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'toggleActive', id }, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, message: 'Anslutningsfel' }))
+      catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   createUser(user: any): Observable<any> {
     return this.http.post<any>(this.base, { action: 'create', ...user }, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, message: 'Anslutningsfel' }))
+      catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 } 

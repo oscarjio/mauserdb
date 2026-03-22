@@ -98,7 +98,7 @@ export class FavoriterService {
       `${this.api}&run=remove`,
       { id },
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Kunde inte ta bort' })));
+    ).pipe(timeout(8000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ta bort' })));
   }
 
   reorder(ids: number[]): Observable<FavoritMutationResponse> {
@@ -106,6 +106,6 @@ export class FavoriterService {
       `${this.api}&run=reorder`,
       { ids },
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Kunde inte ordna om' })));
+    ).pipe(timeout(8000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ordna om' })));
   }
 }
