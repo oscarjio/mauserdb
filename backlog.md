@@ -7,20 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #259):
-- [x] **PHP file_get_contents/curl error handling audit** — Worker A — rent
-- [x] **PHP session handling audit** — Worker A — rent
-- [x] **PHP array_key_exists vs isset audit** — Worker A — rent
-- [x] **Angular change detection strategy audit** — Worker B — rent
-- [x] **Angular lazy loading route audit** — Worker B — rent
-- [x] **Angular reactive forms validation audit** — Worker B — rent
+### Klart (session #260):
+- [x] **PHP date/time timezone handling audit** — Worker A — rent
+- [x] **PHP JSON encode/decode error handling** — Worker A — rent
+- [x] **PHP integer overflow/boundary audit** — Worker A — rent
+- [x] **Angular HTTP timeout consistency audit** — Worker B — 1 bugg fixad
+- [x] **Angular memory leak audit (setInterval)** — Worker B — rent
 
-### Nasta buggjakt-items (session #260+):
-- [ ] **PHP date/time timezone handling audit** — date() vs DateTime, saknade timezone-settings
-- [ ] **PHP JSON encode/decode error handling** — json_last_error() check efter json_decode
-- [ ] **PHP integer overflow/boundary audit** — stora ID:n, raknare, pagination edge cases
-- [ ] **Angular HTTP timeout consistency audit** — saknade/inkonsistenta timeout() pa HTTP-anrop
-- [ ] **Angular memory leak audit (setInterval)** — setInterval utan clearInterval i OnDestroy
+### Nasta buggjakt-items (session #261+):
+- [ ] **PHP error_log format consistency audit** — inkonsistenta loggformat, saknade kontextvariabler
+- [ ] **PHP SQL transaction audit** — saknade BEGIN/COMMIT/ROLLBACK i multi-query-operationer
+- [ ] **Angular router parameter validation audit** — route params som anvands utan validering/parseInt
+- [ ] **Angular template expression complexity audit** — tunga berakningar i templates utan pipe/memo
+- [ ] **PHP CORS/security headers consistency audit** — inkonsistenta headers mellan endpoints
 
 ## Parkerade features (ta inte dessa nu)
 
