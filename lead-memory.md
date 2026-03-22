@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-21 (session #238)*
+*Senast uppdaterad: 2026-03-22 (session #239)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -105,6 +105,7 @@ Session #235: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). Error logging: 4 
 Session #236: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL transaction rollback: rent. Rate limiting: rent. CORS preflight: rent. Template null-check: rent. Lazy-loaded deps: rent.
 Session #237: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). File locking: rent. PDO error mode: rent. Timezone: rent. HTTP retry idempotency: rent. Form dirty-state: 2 fixar (canDeactivate-guard).
 Session #238: BUGGJAKT — 10 buggar (10 Worker A + 0 Worker B). Output buffering: rent. Prepared stmt reuse: 10 prepare() flyttade utanfor loopar. Header injection: rent. trackBy: rent. Environment config: rent.
+Session #239: BUGGJAKT — 20 buggar (15 Worker A + 5 Worker B). Error response consistency: rent. SQL GROUP BY: rent. usort subtraktion->spaceship: 15 fixar i 7 PHP-filer. Pipe null-safety: 5 fixar i benchmarking.html. Preload strategy: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -119,14 +120,14 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-21 — Session #236 (klar)
-Worker A: 0 buggar — SQL transaction rollback (31 filer): rent. Rate limiting: redan implementerat. CORS preflight OPTIONS: rent.
-Worker B: 0 buggar — Template strict null-check (130 templates): rent. Lazy-loaded module dependency (117 routes): rent.
-
 ### 2026-03-21 — Session #237 (klar)
-Worker A: 0 buggar — File locking (inga delade filer): rent. PDO error mode (ERRMODE_EXCEPTION overallt): rent. Timezone (Europe/Stockholm konsekvent): rent.
-Worker B: 2 buggar — HTTP retry idempotency: rent. Form dirty-state: 2 canDeactivate-guards (skiftoverlamning + leveransplanering).
+Worker A: 0 buggar — File locking: rent. PDO error mode: rent. Timezone: rent.
+Worker B: 2 buggar — HTTP retry idempotency: rent. Form dirty-state: 2 canDeactivate-guards.
 
 ### 2026-03-21 — Session #238 (klar)
-Worker A: 10 buggar — Output buffering: rent. Prepared stmt reuse: 10 prepare() utanfor loopar i 10 controllers. Header injection: rent.
+Worker A: 10 buggar — Output buffering: rent. Prepared stmt reuse: 10 prepare() utanfor loopar. Header injection: rent.
 Worker B: 0 buggar — trackBy (129 ngFor): rent. Environment config: rent.
+
+### 2026-03-22 — Session #239 (klar)
+Worker A: 15 buggar — Error response consistency: rent. SQL GROUP BY: rent. usort/uasort subtraktion->spaceship: 15 fixar i 7 PHP-filer.
+Worker B: 5 buggar — Pipe null-safety: 5 fixar i benchmarking.html (number pipe pa undefined). Preload strategy: rent (PreloadAllModules redan konfigurerat).
