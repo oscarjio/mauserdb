@@ -425,6 +425,19 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     return { label: 'Långt', cls: 'badge-long' };
   }
 
+  toggleForm(): void {
+    this.showForm = !this.showForm;
+    if (this.showForm) {
+      const now = new Date();
+      this.newEntry.reason_id = 0;
+      this.newEntry.start_time = this.formatDateTime(now);
+      this.newEntry.end_time = this.formatDateTime(now);
+      this.newEntry.comment = '';
+      this.newEntry.line = this.selectedLine;
+      this.errorMessage = '';
+    }
+  }
+
   switchTab(tab: 'log' | 'stats' | 'pareto') {
     this.activeTab = tab;
     if (tab === 'stats') this.loadStats();

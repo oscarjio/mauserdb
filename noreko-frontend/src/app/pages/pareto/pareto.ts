@@ -45,6 +45,7 @@ export class ParetoPage implements OnInit, OnDestroy {
   // -- Chart --
   private paretoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: ParetoService) {}
 
@@ -55,6 +56,7 @@ export class ParetoPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyChart();
   }
 
@@ -108,7 +110,7 @@ export class ParetoPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.paretoItems  = res.data.items ?? [];
           this.totalMinutes = res.data.total_minutes ?? 0;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 0));
         } else {
           this.errorPareto  = true;
           this.paretoItems  = [];

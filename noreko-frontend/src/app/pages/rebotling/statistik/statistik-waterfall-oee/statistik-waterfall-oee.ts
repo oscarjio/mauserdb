@@ -19,6 +19,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
   oeeWaterfallData: OeeWaterfallResponse | null = null;
   private oeeWaterfallChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
   ngOnInit() { this.loadOeeWaterfall(); }
@@ -26,6 +27,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
     try { this.oeeWaterfallChart?.destroy(); } catch (e) {}
     this.oeeWaterfallChart = null;
     this.destroy$.next(); this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   loadOeeWaterfall() {
@@ -39,7 +41,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
       if (res?.success) {
         this.oeeWaterfallData = res;
         this.oeeWaterfallLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderOeeWaterfallChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderOeeWaterfallChart(); }, 100));
       } else { this.oeeWaterfallLoaded = true; }
     });
   }

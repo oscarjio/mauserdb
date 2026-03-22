@@ -47,6 +47,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
 
   private stackedChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -57,6 +58,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     try { this.stackedChart?.destroy(); } catch (_) {}
     this.stackedChart = null;
   }
@@ -119,9 +121,9 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
         this.loadingStacked = false;
         if (res?.success) {
           this.stackedData = res.data;
-          setTimeout(() => {
+          this._timers.push(setTimeout(() => {
             if (!this.destroy$.closed) this.buildStackedChart();
-          }, 0);
+          }, 0));
         } else {
           this.errorStacked = true;
           this.stackedData = null;

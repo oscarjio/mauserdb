@@ -45,6 +45,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
   private skiftChart: Chart | null = null;
   private jamforelseChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   // Skiftnamn
   readonly skiftNamn: Record<string, string> = {
@@ -70,6 +71,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     try { this.skiftChart?.destroy(); } catch (_) {}
     try { this.jamforelseChart?.destroy(); } catch (_) {}
     this.skiftChart = null;
@@ -96,7 +98,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
         this.loadingDaglig = false;
         if (res?.success) {
           this.dagligData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggSkiftChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggSkiftChart(); }, 0));
         } else {
           this.errorDaglig = true;
           this.dagligData = null;
@@ -129,7 +131,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
         this.loadingJamforelse = false;
         if (res?.success) {
           this.jamforelseData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggJamforelseChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggJamforelseChart(); }, 0));
         } else {
           this.errorJamforelse = true;
           this.jamforelseData = null;

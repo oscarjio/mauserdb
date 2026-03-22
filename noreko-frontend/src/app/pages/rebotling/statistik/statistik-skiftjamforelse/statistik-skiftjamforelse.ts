@@ -30,6 +30,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
   private barChart: Chart | null = null;
   private lineChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -44,6 +45,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
     this.lineChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   onDaysChange(): void {
@@ -52,9 +54,9 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
 
   setActiveChart(c: 'ibc' | 'cykeltid' | 'kvalitet'): void {
     this.activeChart = c;
-    setTimeout(() => {
+    this._timers.push(setTimeout(() => {
       if (!this.destroy$.closed) this.renderLineChart();
-    }, 50);
+    }, 50));
   }
 
   load(): void {
@@ -73,12 +75,12 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
         this.natt = res.natt;
         this.trend = res.trend ?? [];
         this.fromDate = res.from ?? '';
-        setTimeout(() => {
+        this._timers.push(setTimeout(() => {
           if (!this.destroy$.closed) {
             this.renderBarChart();
             this.renderLineChart();
           }
-        }, 100);
+        }, 100));
       } else {
         this.error = 'Kunde inte ladda skiftjämförelse';
         this.dag = null;

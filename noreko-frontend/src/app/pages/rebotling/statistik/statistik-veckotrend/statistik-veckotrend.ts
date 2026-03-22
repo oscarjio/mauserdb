@@ -26,6 +26,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
   @ViewChildren('sparklineCanvas') canvasRefs!: QueryList<ElementRef<HTMLCanvasElement>>;
 
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private animationFrames: number[] = [];
 
@@ -46,6 +47,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.refreshInterval !== null) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
@@ -76,7 +78,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
         }
         this.kpis = resp.kpis;
         // setTimeout ger Angular en cykel att rendera canvases
-        setTimeout(() => { if (!this.destroy$.closed) this.drawAllSparklines(); }, 50);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.drawAllSparklines(); }, 50));
       });
   }
 

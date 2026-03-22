@@ -74,6 +74,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
   private orsakChart:    Chart | null = null;
   private trendChart:    Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: KassationsorsakPerStationService) {}
 
@@ -84,6 +85,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyaCharts();
   }
 
@@ -145,7 +147,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
         this.loadingPerStation = false;
         if (res?.success) {
           this.perStation = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggStapelChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggStapelChart(); }, 0));
         } else {
           this.errorPerStation = true;
           this.perStation = null;
@@ -164,7 +166,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.topOrsaker = res.data;
           this.tillgangligaStationer = res.data.stationer ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.byggOrsakChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggOrsakChart(); }, 0));
         } else {
           this.errorTopOrsaker = true;
           this.topOrsaker = null;
@@ -181,7 +183,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0));
         } else {
           this.errorTrend = true;
           this.trendData = null;

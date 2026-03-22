@@ -62,6 +62,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
   exportFeedback: boolean = false;
   private chart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private http: HttpClient) {}
 
@@ -79,6 +80,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
     this.chart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   loadOperators(): void {
@@ -146,9 +148,9 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
           this.operatorName = res.operator_name || '';
           this.data = res.data || [];
           this.calculateSummary();
-          setTimeout(() => {
+          this._timers.push(setTimeout(() => {
             if (!this.destroy$.closed) this.renderChart();
-          }, 100);
+          }, 100));
         } else {
           this.data = [];
           this.operatorName = '';
@@ -294,7 +296,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
       endDate: to
     });
     this.exportFeedback = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000));
   }
 
   exportCSV(): void {

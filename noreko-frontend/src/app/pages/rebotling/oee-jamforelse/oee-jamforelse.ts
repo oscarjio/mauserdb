@@ -40,6 +40,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
   // Chart
   private oeeChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: OeeJamforelseService) {}
 
@@ -50,6 +51,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     try { this.oeeChart?.destroy(); } catch (_) {}
     this.oeeChart = null;
   }
@@ -68,7 +70,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
         this.loading = false;
         if (res?.success) {
           this.data = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggOeeChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.byggOeeChart(); }, 0));
         } else {
           this.error = true;
           this.data = null;

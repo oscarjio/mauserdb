@@ -27,6 +27,7 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
 
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -45,6 +46,7 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
     }
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   onDaysChange(): void {
@@ -71,8 +73,8 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
         // Pulsanimation om ny etta
         if (this.previousFirstId !== null && newFirstId !== null && newFirstId !== this.previousFirstId) {
           this.pulseFirst = false;
-          setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = true; }, 50);
-          setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = false; }, 2500);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = true; }, 50));
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.pulseFirst = false; }, 2500));
         }
 
         this.previousFirstId = newFirstId;

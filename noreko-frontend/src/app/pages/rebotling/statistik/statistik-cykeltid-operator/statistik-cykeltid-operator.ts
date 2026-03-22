@@ -25,6 +25,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
   exportFeedback: boolean = false;
   private cycleByOpChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -37,6 +38,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     this.cycleByOpChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   onCycleByOpDaysChange() {
@@ -70,7 +72,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
         }));
         this.rankedData = [...this.cycleByOpData].sort((a, b) => (a.median_min ?? 999) - (b.median_min ?? 999));
         this.cycleByOpLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderCycleByOpChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderCycleByOpChart(); }, 100));
       } else {
         this.cycleByOpLoaded = true;
         this.cycleByOpData = [];
@@ -225,7 +227,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
       endDate: fmt(endDate)
     });
     this.exportFeedback = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000));
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

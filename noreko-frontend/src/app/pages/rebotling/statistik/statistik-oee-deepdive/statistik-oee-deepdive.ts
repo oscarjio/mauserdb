@@ -21,6 +21,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
   private chartAnnotations: ChartAnnotation[] = [];
   private productionEvents: ProductionEvent[] = [];
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -31,6 +32,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
     this.oeeTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   setOeeGranularity(g: 'day' | 'shift') {
@@ -66,7 +68,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         if (trendRes?.success && trendRes.data) {
           this.oeeTrendDays = trendRes.data;
           this.oeeLoaded = true;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 100);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 100));
         } else {
           this.oeeLoaded = true;
         }
@@ -88,7 +90,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
           label: ann.label
         }));
         if (this.oeeLoaded && this.oeeTrendDays.length) {
-          setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 0));
         }
       }
     });

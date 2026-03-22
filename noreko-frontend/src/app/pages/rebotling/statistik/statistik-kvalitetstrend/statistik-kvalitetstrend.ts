@@ -20,6 +20,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
   qualityTrendKpi: { avg: number | null; min: number | null; max: number | null; trend: 'up' | 'down' | 'stable' } = { avg: null, min: null, max: null, trend: 'stable' };
   private qualityTrendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -30,6 +31,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
     this.qualityTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   loadQualityTrend() {
@@ -44,7 +46,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
         this.qualityTrendData = res.days;
         this.qualityTrendKpi = res.kpi ?? { avg: null, min: null, max: null, trend: 'stable' };
         this.qualityTrendLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderQualityTrendChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderQualityTrendChart(); }, 100));
       } else {
         this.qualityTrendLoaded = true;
       }

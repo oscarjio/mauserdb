@@ -46,6 +46,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
   // Charts
   private trendbrottChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: KvalitetsTrendbrottService) {}
 
@@ -56,6 +57,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
   }
 
@@ -82,7 +84,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100));
       } else if (res !== null) {
         this.errorOverview = true;
       }

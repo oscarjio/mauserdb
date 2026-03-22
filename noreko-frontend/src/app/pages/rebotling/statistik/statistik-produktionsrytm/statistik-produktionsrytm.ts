@@ -18,14 +18,16 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
   private hourlyRhythmChart: Chart | null = null;
   hourlyRhythmDays = 30;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   constructor(private rebotlingService: RebotlingService) {}
   ngOnInit() { this.loadHourlyRhythm(); }
-  ngOnDestroy() { try { this.hourlyRhythmChart?.destroy(); } catch (e) {} this.hourlyRhythmChart = null; this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy() { try { this.hourlyRhythmChart?.destroy(); } catch (e) {} this.hourlyRhythmChart = null; this.destroy$.next(); this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t)); }
   getHourlyRhythmMax(): number { return this.hourlyRhythm.length ? Math.max(...this.hourlyRhythm.map(h => h.avg_ibc_h)) : 0; }
   loadHourlyRhythm(): void {
     this.hourlyRhythmLoading = true;
     this.rebotlingService.getHourlyRhythm(this.hourlyRhythmDays).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-    .subscribe(res => { this.hourlyRhythmLoading = false; if (res?.success) { this.hourlyRhythm = res.data; setTimeout(() => { if (!this.destroy$.closed) this.buildHourlyRhythmChart(); }, 100); } });
+    .subscribe(res => { this.hourlyRhythmLoading = false; if (res?.success) { this.hourlyRhythm = res.data; this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildHourlyRhythmChart(); }, 100)); } });
   }
   private buildHourlyRhythmChart(): void {
     try { this.hourlyRhythmChart?.destroy(); } catch (e) {} this.hourlyRhythmChart = null;

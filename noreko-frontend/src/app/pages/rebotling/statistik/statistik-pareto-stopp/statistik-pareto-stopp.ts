@@ -64,6 +64,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   paretoTotalStopp: number = 0;
   private paretoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   exportFeedback: boolean = false;
 
@@ -89,6 +90,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     this.paretoChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   get paretoTotalTimmar(): number {
@@ -123,9 +125,9 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
           this.paretoEmpty = !!res.empty;
           this.paretoEmptyReason = res.reason || '';
           if (!this.paretoEmpty && this.paretoItems.length > 0) {
-            setTimeout(() => {
+            this._timers.push(setTimeout(() => {
               if (!this.destroy$.closed) this.buildParetoChart();
-            }, 100);
+            }, 100));
           }
         }
       });
@@ -416,7 +418,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
       endDate: fmt(endDate)
     });
     this.exportFeedback = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000));
   }
 
   private truncateLabel(label: string, maxLen: number): string {

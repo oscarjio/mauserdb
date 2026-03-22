@@ -61,6 +61,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
   private lineChart:  Chart | null = null;
   private radarChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private isFetchingCompare = false;
   private isFetchingTrend   = false;
@@ -80,6 +81,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyAllCharts();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
@@ -208,9 +210,9 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
           if (res?.success) {
             this.compareData = res.data?.operatorer ?? [];
             this.rebuildKpiCache();
-            setTimeout(() => {
+            this._timers.push(setTimeout(() => {
               if (!this.destroy$.closed) { this.buildRadarChart(); }
-            }, 0);
+            }, 0));
           } else {
             this.errorCompare = true;
             this.compareData  = [];
@@ -239,9 +241,9 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
           this.loadingTrend    = false;
           if (res?.success) {
             this.trendData = res.data?.operatorer ?? [];
-            setTimeout(() => {
+            this._timers.push(setTimeout(() => {
               if (!this.destroy$.closed) { this.buildLineChart(); }
-            }, 0);
+            }, 0));
           } else {
             this.errorTrend = true;
             this.trendData  = [];

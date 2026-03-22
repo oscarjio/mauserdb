@@ -49,6 +49,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
   lastRefreshed: Date | null = null;
 
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private isFetching = false;
   private radarChart: Chart | null = null;
@@ -64,6 +65,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
@@ -110,7 +112,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
         this.loading = false;
         if (!this.jamforelse) this.error = true;
         if (this.jamforelse) {
-          setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 150);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 150));
         }
       });
 
@@ -119,7 +121,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       .subscribe(res => {
         this.trendData = res?.success ? res.data : null;
         if (this.trendData) {
-          setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 150);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 150));
         }
       });
 

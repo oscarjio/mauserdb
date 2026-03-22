@@ -51,6 +51,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
   // ---- Charts ----
   private curveChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: OperatorOnboardingService) {}
 
@@ -61,6 +62,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCurveChart();
   }
 
@@ -119,9 +121,9 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
         this.loadingCurve = false;
         if (res?.success) {
           this.curveData = res.data;
-          setTimeout(() => {
+          this._timers.push(setTimeout(() => {
             if (!this.destroy$.closed) { this.buildCurveChart(); }
-          }, 0);
+          }, 0));
         } else {
           this.errorCurve = true;
           this.curveData  = null;

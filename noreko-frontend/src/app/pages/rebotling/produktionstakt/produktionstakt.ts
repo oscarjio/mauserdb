@@ -22,6 +22,7 @@ Chart.register(...registerables);
 })
 export class ProduktionsTaktPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   private isFetching = false;
   private chart: any = null;
@@ -61,6 +62,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
@@ -92,7 +94,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
         // Trigger animation
         if (this.previousRate !== null && this.previousRate !== res.data.current_rate) {
           this.rateAnimating = true;
-          setTimeout(() => { if (!this.destroy$.closed) this.rateAnimating = false; }, 600);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.rateAnimating = false; }, 600));
         }
       } else {
         this.loading = false;
@@ -108,7 +110,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.hourlyHistory = res.data.history;
         this.loadingHistory = false;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 100));
       } else {
         this.loadingHistory = false;
       }

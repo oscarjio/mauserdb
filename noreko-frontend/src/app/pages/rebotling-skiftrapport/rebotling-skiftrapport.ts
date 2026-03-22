@@ -127,6 +127,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     ibc_ej_ok: 0
   };
 
+  toggleAddReportForm(): void {
+    this.showAddReportForm = !this.showAddReportForm;
+    if (this.showAddReportForm) {
+      this.newReport = { datum: localToday(), product_id: null, ibc_ok: 0, bur_ej_ok: 0, ibc_ej_ok: 0 };
+      this.errorMessage = '';
+    }
+  }
+
   ngOnInit() {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {

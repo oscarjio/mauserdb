@@ -61,6 +61,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
   // ---- Chart ----
   private lineChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   // ---- Uppdateringstid ----
@@ -76,6 +77,7 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
@@ -134,9 +136,9 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
         if (res?.success && res.data) {
           this.summaryTimmar = res.data.timmar.filter((t: any) => t.snitt_ibc !== null);
           this.computeKpis();
-          setTimeout(() => {
+          this._timers.push(setTimeout(() => {
             if (!this.destroy$.closed) { this.buildLineChart(); }
-          }, 0);
+          }, 0));
         } else {
           this.errorSummary = true;
         }

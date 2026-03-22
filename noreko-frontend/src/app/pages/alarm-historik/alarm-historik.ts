@@ -49,6 +49,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
   // -- Chart --
   private timelineChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: AlarmHistorikService) {}
 
@@ -59,6 +60,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyChart();
   }
 
@@ -138,7 +140,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
         this.loadingTimeline = false;
         if (res?.success) {
           this.timelineData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTimelineChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTimelineChart(); }, 0));
         } else {
           this.errorTimeline = true;
           this.timelineData  = null;

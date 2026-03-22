@@ -21,6 +21,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
   histogramStats: { n: number; snitt: number; p50: number; p90: number; p95: number } | null = null;
   private histogramChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -33,6 +34,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
     this.histogramChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   loadCycleHistogram() {
@@ -49,7 +51,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
         this.histogramBuckets = res.data.buckets;
         this.histogramStats = res.data.stats;
         this.histogramLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderHistogramChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderHistogramChart(); }, 100));
       } else {
         this.histogramLoaded = true;
       }

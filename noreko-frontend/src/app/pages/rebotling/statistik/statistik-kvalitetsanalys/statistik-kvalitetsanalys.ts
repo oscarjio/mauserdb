@@ -25,9 +25,11 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
   private rejectionTrendChart: Chart | null = null;
   private rejectionParetoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   constructor(private rebotlingService: RebotlingService) {}
   ngOnInit() { this.loadRejectionAnalysis(); }
-  ngOnDestroy() { try { this.rejectionTrendChart?.destroy(); } catch (e) {} this.rejectionTrendChart = null; try { this.rejectionParetoChart?.destroy(); } catch (e) {} this.rejectionParetoChart = null; this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy() { try { this.rejectionTrendChart?.destroy(); } catch (e) {} this.rejectionTrendChart = null; try { this.rejectionParetoChart?.destroy(); } catch (e) {} this.rejectionParetoChart = null; this.destroy$.next(); this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t)); }
 
   get rejectionTrendArrow(): string { const t = this.rejectionKpi.trend_vs_forra_veckan; if (t === 'up') return '\u2191'; if (t === 'down') return '\u2193'; return '\u2192'; }
   get rejectionTrendColor(): string { const t = this.rejectionKpi.trend_vs_forra_veckan; if (t === 'up') return '#48bb78'; if (t === 'down') return '#fc8181'; return '#a0aec0'; }
@@ -43,7 +45,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
         this.rejectionKpi = res.kpi ?? { kvalitet_idag: null, kvalitet_vecka: null, kasserade_idag: 0, trend_vs_forra_veckan: 'stable', trend_diff: null };
         this.rejectionTrendData = res.trend ?? []; this.rejectionParetoData = res.pareto ?? [];
         this.rejectionHasParetoData = res.has_pareto_data ?? false; this.rejectionTotalKassation = res.total_kassation ?? 0;
-        setTimeout(() => { if (!this.destroy$.closed) { this.renderRejectionTrendChart(); this.renderRejectionParetoChart(); } }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) { this.renderRejectionTrendChart(); this.renderRejectionParetoChart(); } }, 100));
       }
     });
   }

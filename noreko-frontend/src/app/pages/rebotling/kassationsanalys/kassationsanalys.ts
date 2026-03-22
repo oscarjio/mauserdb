@@ -68,6 +68,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
   private paretoChart: Chart | null = null;
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: KassationsanalysService) {}
 
@@ -78,6 +79,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
   }
 
@@ -142,7 +144,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.orsaker = res.data.orsaker ?? [];
           this.orsakerTotal = res.data.total ?? 0;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 0));
         } else {
           this.errorOrsaker = true;
         }
@@ -158,7 +160,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0));
         } else {
           this.errorTrend = true;
         }

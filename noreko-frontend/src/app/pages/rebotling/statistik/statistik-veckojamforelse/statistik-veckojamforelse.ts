@@ -20,6 +20,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
   weekGranularity: 'day' | 'shift' = 'day';
   private weekComparisonChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -30,6 +31,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
     this.weekComparisonChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   setWeekGranularity(g: 'day' | 'shift') {
@@ -51,7 +53,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         this.weekComparisonThisWeek = res.data.this_week;
         this.weekComparisonPrevWeek = res.data.prev_week;
         this.weekComparisonLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderWeekComparisonChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderWeekComparisonChart(); }, 100));
       }
     });
   }

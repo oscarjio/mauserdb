@@ -40,6 +40,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
   saveMsg: string | null = null;
 
   private destroy$   = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private dayChart:  Chart | null = null;
   private weekChart: Chart | null = null;
 
@@ -71,6 +72,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     try { this.dayChart?.destroy(); }  catch (e) {}
     try { this.weekChart?.destroy(); } catch (e) {}
     this.dayChart  = null;
@@ -96,7 +98,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
           period_label:          res.period_label ?? 'Idag',
         };
         this.newDailyTarget = this.todayData.target;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderChart('day'); }, 60);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderChart('day'); }, 60));
       } else {
         this.error = res?.error ?? 'Kunde inte hämta dagsmål';
       }
@@ -122,7 +124,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
           period_label:          res.period_label ?? 'Denna vecka',
         };
         this.newWeeklyTarget = this.weekData.target;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderChart('week'); }, 60);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderChart('week'); }, 60));
       } else if (!this.error) {
         this.error = res?.error ?? 'Kunde inte hämta veckamål';
       }

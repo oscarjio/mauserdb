@@ -37,6 +37,7 @@ export class MinDagPage implements OnInit, OnDestroy {
 
   private chart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -57,6 +58,7 @@ export class MinDagPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.refreshTimer !== null) {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
@@ -98,9 +100,9 @@ export class MinDagPage implements OnInit, OnDestroy {
       if (trend?.success && trend.data) {
         this.trendData = trend.data.trend;
         this.malSek    = trend.data.mal_sek;
-        setTimeout(() => {
+        this._timers.push(setTimeout(() => {
           if (!this.destroy$.closed) this.renderChart();
-        }, 100);
+        }, 100));
       }
     });
   }

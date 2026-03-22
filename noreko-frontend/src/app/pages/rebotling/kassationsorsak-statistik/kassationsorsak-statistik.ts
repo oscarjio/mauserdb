@@ -68,6 +68,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
 
   // Lifecycle
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private svc: KassationsorsakStatistikService) {}
@@ -80,6 +81,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
@@ -124,7 +126,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
       this.loadingPareto = false;
       if (res?.success) {
         this.paretoData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100));
       }
     });
   }
@@ -143,7 +145,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
           .sort((a, b) => b.sum - a.sum)
           .slice(0, 3);
         top.forEach(t => this.selectedTrendOrsaker.add(t.id));
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100));
       }
     });
   }
@@ -180,7 +182,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
       this.loadingDrilldown = false;
       if (res?.success) {
         this.drilldownData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildDrilldownChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildDrilldownChart(); }, 100));
       }
     });
   }

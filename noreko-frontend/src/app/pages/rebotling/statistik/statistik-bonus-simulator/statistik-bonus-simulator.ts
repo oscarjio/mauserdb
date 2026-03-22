@@ -20,6 +20,7 @@ import {
 })
 export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private simulate$ = new Subject<void>();
 
   loading = false;
@@ -101,6 +102,7 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.simulate$.complete();
   }
 
@@ -212,7 +214,7 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
         return;
       }
       this.saveSuccess = true;
-      setTimeout(() => { if (!this.destroy$.closed) this.saveSuccess = false; }, 3000);
+      this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.saveSuccess = false; }, 3000));
     });
   }
 

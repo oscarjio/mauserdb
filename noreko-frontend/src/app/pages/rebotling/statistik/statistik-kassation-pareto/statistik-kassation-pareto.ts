@@ -23,9 +23,11 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
   kassationPct: number = 0;
   private kassationParetoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   constructor(private http: HttpClient) {}
   ngOnInit() { this.loadKassationPareto(); }
-  ngOnDestroy() { try { this.kassationParetoChart?.destroy(); } catch (e) {} this.kassationParetoChart = null; this.destroy$.next(); this.destroy$.complete(); }
+  ngOnDestroy() { try { this.kassationParetoChart?.destroy(); } catch (e) {} this.kassationParetoChart = null; this.destroy$.next(); this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t)); }
 
   loadKassationPareto(): void {
     this.kassationLoading = true;
@@ -34,7 +36,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
     .subscribe((res: any) => {
       this.kassationLoading = false;
       if (res?.success) { this.kassationPareto = res.pareto || []; this.kassationTotalAntal = res.total_kassation ?? 0; this.kassationTotalProduktion = res.total_produktion ?? 0; this.kassationPct = res.kassation_pct ?? 0;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildKassationParetoChart(); }, 0); }
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildKassationParetoChart(); }, 0)); }
     });
   }
   onKassationDaysChange(): void { this.loadKassationPareto(); }

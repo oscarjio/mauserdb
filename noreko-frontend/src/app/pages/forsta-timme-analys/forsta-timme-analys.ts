@@ -46,6 +46,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
   private rampupChart: Chart | null = null;
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: ForstaTimmeAnalysService) {}
 
@@ -56,6 +57,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
   }
 
@@ -106,7 +108,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.analys      = res.data;
           this.skiftStarter = res.data.skift_starter ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.buildRampupChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildRampupChart(); }, 0));
         } else {
           this.errorAnalys  = true;
           this.analys       = null;
@@ -126,7 +128,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data.trend ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0));
         } else {
           this.errorTrend = true;
           this.trendData  = [];

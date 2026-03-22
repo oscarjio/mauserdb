@@ -77,6 +77,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
   private barChart: Chart | null = null;
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   private readonly COLORS = [
     '#fc8181', '#f6ad55', '#f6e05e', '#68d391', '#4fd1c5',
@@ -98,6 +99,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     this.trendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   onDaysChange(): void {
@@ -125,12 +127,12 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
         this.orsaker = res.orsaker ?? [];
         this.hasParetoData = res.has_pareto_data;
         this.totalKassationRegistrerad = res.total_kassation_registrerad;
-        setTimeout(() => {
+        this._timers.push(setTimeout(() => {
           if (!this.destroy$.closed) {
             this.buildDonutChart();
             this.buildBarChart();
           }
-        }, 50);
+        }, 50));
       }
     });
   }
@@ -149,11 +151,11 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
       if (res?.success) {
         this.trendOrsaker = res.orsaker ?? [];
         this.trendData = res.trend ?? [];
-        setTimeout(() => {
+        this._timers.push(setTimeout(() => {
           if (!this.destroy$.closed) {
             this.buildTrendChart();
           }
-        }, 50);
+        }, 50));
       }
     });
   }
@@ -194,7 +196,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     const { from, to } = this.getDateRange();
     exportChartAsPng(canvas, { chartName: 'Kassation per avvisningsorsak - Donut', startDate: from, endDate: to });
     this.exportFeedbackDonut = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackDonut = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackDonut = false; }, 2000));
   }
 
   exportChartBar(): void {
@@ -203,7 +205,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     const { from, to } = this.getDateRange();
     exportChartAsPng(canvas, { chartName: 'Topp avvisningsorsaker - Pareto', startDate: from, endDate: to });
     this.exportFeedbackBar = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackBar = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackBar = false; }, 2000));
   }
 
   exportChartTrend(): void {
@@ -212,7 +214,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     const { from, to } = this.getDateRange();
     exportChartAsPng(canvas, { chartName: 'Kassationstrend per orsak', startDate: from, endDate: to });
     this.exportFeedbackTrend = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackTrend = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedbackTrend = false; }, 2000));
   }
 
   exportCSV(): void {

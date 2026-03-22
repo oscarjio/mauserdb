@@ -63,6 +63,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
   // Charts
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshInterval: any = null;
 
   // Farger for stationer
@@ -81,6 +82,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
@@ -136,7 +138,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
             this.stationChecked[s.station_id] = true;
           }
         }
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100));
       } else if (res !== null) {
         this.errorTrend = true;
       }

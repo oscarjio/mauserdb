@@ -117,6 +117,20 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
   }
 
+  toggleAddForm(): void {
+    this.showAddForm = !this.showAddForm;
+    if (this.showAddForm) {
+      this.newReport = { datum: localToday(), antal_ok: 0, antal_ej_ok: 0, kommentar: '' };
+      this.errorMessage = '';
+    }
+  }
+
+  openAddForm(): void {
+    this.newReport = { datum: localToday(), antal_ok: 0, antal_ej_ok: 0, kommentar: '' };
+    this.errorMessage = '';
+    this.showAddForm = true;
+  }
+
   clearFilter() {
     this.filterFrom = '';
     this.filterTo = '';

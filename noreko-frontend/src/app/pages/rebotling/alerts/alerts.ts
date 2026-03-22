@@ -53,6 +53,7 @@ export class AlertsPage implements OnInit, OnDestroy {
   acknowledgingIds = new Set<number>();
 
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private alertsService: AlertsService) {}
@@ -72,6 +73,7 @@ export class AlertsPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     if (this.pollTimer !== null) {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
@@ -223,7 +225,7 @@ export class AlertsPage implements OnInit, OnDestroy {
         this.savingSettings = false;
         if (res?.success) {
           this.settingsSaved = true;
-          setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000));
         } else {
           this.settingsError = 'Kunde inte spara inställningar.';
         }

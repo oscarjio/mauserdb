@@ -61,6 +61,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
   private ibcPerTimmeChart: Chart | null = null;
   private ibcTrendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   // Palette
   private readonly palette = [
@@ -83,6 +84,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyCharts();
   }
 
@@ -134,7 +136,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
           }
 
           // Build IBC/timme chart after view updates
-          setTimeout(() => { if (!this.destroy$.closed) this.buildIbcPerTimmeChart(); }, 50);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildIbcPerTimmeChart(); }, 50));
         }
       });
   }
@@ -156,11 +158,11 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
         this.loadingTrend = false;
         if (res?.success && res.data?.har_data) {
           this.trendHarData = true;
-          setTimeout(() => {
+          this._timers.push(setTimeout(() => {
             if (this.destroy$.closed) return;
             this.buildCykeltidChart(res.data.labels, res.data.datasets_cykeltid);
             this.buildIbcTrendChart(res.data.labels, res.data.datasets_ibc);
-          }, 50);
+          }, 50));
         }
       });
   }

@@ -24,6 +24,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   private manualAnnotations: ManualAnnotation[] = [];
   private productionEvents: ProductionEvent[] = [];
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -34,6 +35,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
     this.cycleTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   exportChart(): void {
@@ -50,7 +52,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
       endDate: fmt(endDate)
     });
     this.exportFeedback = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000);
+    this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.exportFeedback = false; }, 2000));
   }
 
   setCycleTrendGranularity(g: 'day' | 'shift') {
@@ -82,7 +84,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.cycleTrendData = res.data.daily;
         this.cycleTrendLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 100));
       } else {
         this.cycleTrendLoaded = true;
       }
@@ -103,7 +105,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
           label: ann.label
         }));
         if (this.cycleTrendLoaded && this.cycleTrendData.length) {
-          setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0));
         }
       }
     });
@@ -118,7 +120,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
       if (res?.success && res.annotations) {
         this.manualAnnotations = res.annotations;
         if (this.cycleTrendLoaded && this.cycleTrendData.length) {
-          setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0));
         }
       }
     });

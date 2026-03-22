@@ -463,6 +463,18 @@ export class OperatorsPage implements OnInit, OnDestroy {
     });
   }
 
+  toggleAddForm(): void {
+    this.showAddForm = !this.showAddForm;
+    if (this.showAddForm) {
+      this.addForm = { name: '', number: null };
+    }
+  }
+
+  closeAddForm(): void {
+    this.showAddForm = false;
+    this.addForm = { name: '', number: null };
+  }
+
   createOperator() {
     if (!this.addForm.name.trim() || !this.addForm.number || this.addForm.number <= 0) {
       this.toast.error('Namn och giltigt nummer krävs');

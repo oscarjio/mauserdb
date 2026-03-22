@@ -18,6 +18,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
   error: string | null = null;
 
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
   private gaugeChart: Chart | null = null;
 
   constructor(private rebotlingService: RebotlingService) {}
@@ -39,6 +40,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
     this.gaugeChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   selectPeriod(period: 'today' | '7d' | '30d'): void {
@@ -60,9 +62,9 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
       this.loading = false;
       if (res?.success && res.data) {
         this.data = res.data;
-        setTimeout(() => {
+        this._timers.push(setTimeout(() => {
           if (!this.destroy$.closed) this.renderGauge();
-        }, 50);
+        }, 50));
       } else if (!this.error) {
         this.error = res?.error || 'Ingen data tillgänglig';
       }

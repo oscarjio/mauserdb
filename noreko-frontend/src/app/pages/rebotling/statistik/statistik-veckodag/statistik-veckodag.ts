@@ -18,6 +18,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
   weekdayDagar: number = 90;
   private weekdayChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -28,6 +29,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
     this.weekdayChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   getWeekdayMaxIbc(): number {
@@ -47,7 +49,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
     ).subscribe((r: any) => {
       this.weekdayData = r.veckodagar || [];
       this.weekdayLoading = false;
-      setTimeout(() => { if (!this.destroy$.closed) this.buildWeekdayChart(); }, 50);
+      this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildWeekdayChart(); }, 50));
     });
   }
 

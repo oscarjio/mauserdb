@@ -31,6 +31,7 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
   deleting: number | null = null;
 
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -44,6 +45,7 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   private fmtDate(d: Date): string {
@@ -96,7 +98,7 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
         this.newTitel = '';
         this.newBeskrivning = '';
         this.loadAnnotations();
-        setTimeout(() => { if (!this.destroy$.closed) this.formSuccess = null; }, 3000);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.formSuccess = null; }, 3000));
       } else {
         this.formError = res?.error || 'Kunde inte spara';
       }

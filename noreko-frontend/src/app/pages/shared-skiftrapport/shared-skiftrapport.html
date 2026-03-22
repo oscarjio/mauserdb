@@ -29,7 +29,7 @@
       [class.btn-warning]="config.themeColor === 'warning'"
       [class.btn-success]="config.themeColor === 'success'"
       [class.text-dark]="config.themeColor === 'warning'"
-      (click)="showAddForm = !showAddForm">
+      (click)="toggleAddForm()">
       <i class="fas" [class.fa-minus]="showAddForm" [class.fa-plus]="!showAddForm"></i>
       {{ showAddForm ? 'Dölj' : 'Lägg till rapport' }}
     </button>
@@ -116,7 +116,7 @@
       [class.btn-warning]="config.themeColor === 'warning'"
       [class.btn-success]="config.themeColor === 'success'"
       [class.text-dark]="config.themeColor === 'warning'"
-      (click)="showAddForm = true">
+      (click)="openAddForm()">
       <i class="fas fa-plus me-2"></i>Lägg till manuell rapport
     </button>
   </div>

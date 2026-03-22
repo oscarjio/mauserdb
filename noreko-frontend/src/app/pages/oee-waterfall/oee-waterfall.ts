@@ -45,6 +45,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
   // -- Chart --
   private waterfallChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private svc: OeeWaterfallService) {}
 
@@ -55,6 +56,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
     this.destroyChart();
   }
 
@@ -108,7 +110,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.segments    = res.data.segments ?? [];
           this.totalTimmar = res.data.total_timmar ?? 0;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildWaterfallChart(); }, 0);
+          this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildWaterfallChart(); }, 0));
         } else {
           this.errorWaterfall = true;
           this.segments    = [];

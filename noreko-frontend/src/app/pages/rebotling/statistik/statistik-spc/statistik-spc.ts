@@ -23,6 +23,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
   spcN: number = 0;
   private spcChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private _timers: ReturnType<typeof setTimeout>[] = [];
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -35,6 +36,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
     this.spcChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+    this._timers.forEach(t => clearTimeout(t));
   }
 
   loadSPC() {
@@ -54,7 +56,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
         this.spcLCL    = res.data.lcl;
         this.spcN      = res.data.n;
         this.spcLoaded = true;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderSPCChart(res.data!.points); }, 100);
+        this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderSPCChart(res.data!.points); }, 100));
       } else {
         this.spcLoaded = true;
       }
