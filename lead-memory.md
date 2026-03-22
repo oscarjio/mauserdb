@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #251)*
+*Senast uppdaterad: 2026-03-22 (session #252)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -118,23 +118,24 @@ Session #248: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_f
 Session #249: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter (N-Z): rent. strpos/str_contains (N-Z): rent. preg_match: rent. file_put_contents: finns ej. Lazy-loaded deps: rent. trackBy: rent. HTTP URLs: rent. OnDestroy: rent.
 Session #250: BUGGJAKT — 4 buggar (4 Worker A + 0 Worker B). array_unique utan array_values i PDO-bindings (4). mb_substr/mb_strlen: rent. header() Content-Type: rent (satt centralt). Static methods: rent. Pipe null-safety: rent. FormControl: inga (template-driven). Route resolvers: inga.
 Session #251: BUGGJAKT — 8 buggar (0 Worker A + 8 Worker B). switch/case fall-through: rent. DateTime immutability: rent. PDO lastInsertId: rent. Async pipe: rent (inga async pipes). Template i18n: 8 engelska strangar fixade (Rank->Plac., Vital/Trivial->Kritisk/Mindre viktig).
+Session #252: BUGGJAKT — 3 buggar (1 Worker A + 2 Worker B). fsockopen resource leak (1). Template arithmetic complexity (2). array_splice/array_pop: rent. preg_replace: rent. fopen/fclose: rent (utom fsockopen). HTTP retry: rent. OnPush: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #252):
-- [ ] PHP array_splice/array_pop return value audit
-- [ ] PHP preg_replace limit audit
-- [ ] Angular HTTP retry idempotency audit
-- [ ] PHP fopen/fclose resource leak audit
-- [ ] Angular change detection OnPush audit
+### Nasta (session #253):
+- [ ] PHP header() location redirect audit
+- [ ] PHP json_encode UTF-8 audit
+- [ ] Angular HttpParams encoding audit
+- [ ] PHP PDO transaction nesting audit
+- [ ] Angular template pipe chain audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-22 — Session #250 (klar)
-Worker A: 4 buggar — array_unique utan array_values() i 4 PHP-filer (KassationskvotAlarm, Operator, RebotlingAnalytics, OperatorDashboard) — PDO positional binding kraschade med index-luckor. mb_substr/mb_strlen: rent (alla substr pa ASCII). header() Content-Type: rent (satt centralt i api.php). Static methods: rent.
-Worker B: 0 buggar — Pipe chain null-safety: rent (alla skyddade av *ngIf eller defaults). FormControl validators: inga reactive forms (template-driven). Route resolvers: inga (data laddas i ngOnInit).
+### 2026-03-22 — Session #252 (klar)
+Worker A: 1 bugg — fsockopen resource leak i VpnController.php (socket ej stangd i catch-block). array_splice/array_pop: rent. preg_replace: rent (5 anrop, enkla monster).
+Worker B: 2 buggar — Template arithmetic: batch-sparning 3x upprepad berakning->getter, vd-veckorapport kpiLista() skapade ny array varje anrop->readonly property. HTTP retry: rent. OnPush: rent (inga OnPush-komponenter).
 
 ### 2026-03-22 — Session #251 (klar)
 Worker A: 0 buggar — switch/case fall-through (90 filer med switch): rent. DateTime immutability (68 filer, 128 mutationer): rent (alla clone eller lokala). PDO lastInsertId (26 filer): rent (alla direkt efter execute).

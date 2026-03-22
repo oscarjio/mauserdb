@@ -7,19 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #251):
-- [ ] **PHP switch/case fall-through audit** — Worker A
-- [ ] **PHP DateTime immutability audit** — Worker A
-- [ ] **PHP PDO lastInsertId race condition audit** — Worker A
-- [ ] **Angular async pipe memory audit** — Worker B
-- [ ] **Angular template i18n audit** — Worker B
+### Pagaende (session #252):
+- [ ] **PHP array_splice/array_pop return value audit** — Worker A
+- [ ] **PHP preg_replace limit/error audit** — Worker A
+- [ ] **PHP fopen/fclose resource leak audit** — Worker A
+- [ ] **Angular HTTP retry idempotency audit** — Worker B
+- [ ] **Angular change detection OnPush audit** — Worker B
+- [ ] **Angular template arithmetic/logic complexity audit** — Worker B
 
-### Nasta buggjakt-items (session #252+):
-- [ ] **PHP array_splice/array_pop return value audit** — oanvanda returvarden
-- [ ] **PHP preg_replace limit audit** — saknade limit-parametrar
-- [ ] **Angular HTTP retry idempotency audit** — POST/PUT/DELETE som retries
-- [ ] **PHP fopen/fclose resource leak audit** — oppnade filer utan stangning
-- [ ] **Angular change detection OnPush audit** — komponenter som borde vara OnPush
+### Nasta buggjakt-items (session #253+):
+- [ ] **PHP header() location redirect audit** — oppna redirect-sarbarheter
+- [ ] **PHP json_encode UTF-8 audit** — saknade JSON_UNESCAPED_UNICODE flaggor
+- [ ] **Angular HttpParams encoding audit** — specialtecken i query-parametrar
+- [ ] **PHP PDO transaction nesting audit** — beginTransaction inuti aktiv transaktion
+- [ ] **Angular template pipe chain audit** — pipes som ger NaN/undefined vid null-input
 
 ## Parkerade features (ta inte dessa nu)
 
