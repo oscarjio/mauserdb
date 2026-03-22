@@ -134,7 +134,8 @@ class VpnController {
     private function getVpnStatus() {
         $timings = [];
         $startTime = microtime(true);
-        
+        $socket = null;
+
         try {
             // Anslut till OpenVPN management interface
             $connectStart = microtime(true);
@@ -225,6 +226,9 @@ class VpnController {
             echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
+            if (is_resource($socket)) {
+                @fclose($socket);
+            }
             error_log('VpnController::vid hämtning av VPN-status: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([

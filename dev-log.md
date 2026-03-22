@@ -17131,3 +17131,22 @@ Specifikt undersokt:
 - **Auth guards:** 117 routes har `canActivate` med authGuard eller adminGuard. De 20 oguardade ar korrekt publika (login, register, about, contact, live-vyer, skiftrapporter, statistik-sidor, not-found).
 - **Services:** Samtliga services anvander `providedIn: 'root'` — korrekt for standalone-component lazy-loading-arkitekturen.
 - **Cirkulara beroenden:** Inga hittade — alla routes importerar fran pages/ eller rebotling/.
+
+### Worker A — Session #252
+#### Uppgift 1: PHP array_splice/array_pop/array_shift return value audit
+**Resultat:** 0 buggar — rent
+- Inga `array_splice()` eller `array_pop()` anvandningar hittades i noreko-backend/ (utom plcbackend/).
+- Tva `array_shift()` i VpnController.php (rad 336, 375) — anvands korrekt for att ta bort forsta elementet fran explode()-resultat. Returvardet ignoreras avsiktligt eftersom syftet ar att modifiera arrayen in-place. Efterfoljande index-access (parts[0], parts[1] etc.) ar korrekt efter shift.
+
+#### Uppgift 2: PHP preg_replace limit/error audit
+**Resultat:** 0 buggar — rent
+- Hittade 5 `preg_replace()`-anvandningar: BonusAdminController (rad 487, 1822), TidrapportController (rad 558-559), RebotlingAnalyticsController (rad 308, 2709). Samtliga anvander enkla, sakra regex-monster (`/[^0-9-]/`, `/[^a-zA-Z0-9._-]/`, `/^\d{4}-/`) som inte ar ReDoS-kansliga. Alla ersatter korrekta teckenklasser; limit-parameter ar irrelevant for dessa monster da hela strangen ska saneras.
+- Hittade ~60 `preg_match()`-anvandningar, nastan alla for datumvalidering (`/^\d{4}-\d{2}-\d{2}$/`). Anvands i boolean-kontext (if-satser/ternarier) dar false (regex-fel) behandlas lika som 0 (ingen matchning), vilket ar den sakra fallback-vagen. Inga ReDoS-kansliga monster (alla ar linjara och forankrade).
+
+#### Uppgift 3: PHP fopen/fclose resource leak audit
+**Resultat:** 1 bugg fixad
+- **VpnController.php rad 141/227:** `fsockopen()` oppnar socket i `getVpnStatus()`, men `catch`-blocket (rad 227-234) stangde aldrig socketen vid exception. Om ett undantag kastades efter att socketen oppnats (t.ex. under parsning eller JSON-encoding) lacktes resursen. Fix: lade till `$socket = null` fore try-blocket och `if (is_resource($socket)) { @fclose($socket); }` i catch-blocket.
+- Ovriga `fopen('php://output', 'w')` i BonusAdminController och TidrapportController foljs korrekt av `fclose()` + `exit`.
+- Alla `file_get_contents($migrationPath)` har korrekt `=== false`-kontroll med error_log.
+- Alla `file_get_contents('php://input')` ar ok (PHP-stream, ingen resurshantering kravs).
+- `fsockopen()` i `disconnectClient()` har korrekt felhantering med `@fclose()` i error paths.
