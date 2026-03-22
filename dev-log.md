@@ -1,3 +1,70 @@
+## 2026-03-22 Session #240 Worker A — PHP backend 3-audit: DISTINCT, fetchAll memory, file_get_contents (0 buggar)
+
+### Uppgift 1: PHP classes/ SQL DISTINCT correctness audit
+Granskade alla SQL-queries med DISTINCT i noreko-backend/classes/ (109 PHP-filer, 580+ fetchAll-anrop, 50+ DISTINCT-anvandningar).
+
+Kontrollerade:
+- Onodiga DISTINCT (primarnycklar i SELECT)
+- Saknade DISTINCT (JOINs som ger dubbletter)
+- DISTINCT pa fel kolumner
+- COUNT(DISTINCT ...) vs COUNT(*) felaktigheter
+
+**Resultat: RENT — 0 buggar.**
+Alla DISTINCT-anvandningar ar korrekta:
+- COUNT(DISTINCT station/op_id/dag/skiftraknare) — korrekt for att rakna unika varden i rebotling_ibc
+- SELECT DISTINCT station/station_id — korrekt for deduplicering i icke-PK-kontexter
+- GROUP_CONCAT(DISTINCT ...) — korrekt for att undvika dubletter i sammanslagning
+- COUNT(DISTINCT COALESCE(...)) — korrekt logik for operatorrakning
+
+Granskade filer med DISTINCT: ProduktionsDashboardController, OperatorCompareController, OperatorsportalController, OperatorsPrestandaController, VdDashboardController, MaskinOeeController, AuditController, ProduktionsflodeController, WeeklyReportController, ProduktTypEffektivitetController, SkiftoverlamningController, SkiftplaneringController, OperatorsbonusController, KapacitetsplaneringController, ProduktionseffektivitetController, BonusAdminController, MorgonrapportController, HistorikController, NewsController, SkiftjamforelseController, VeckorapportController, HistoriskSammanfattningController, KassationsorsakController, BonusController, PrediktivtUnderhallController, OperatorController, StopptidsanalysController, OperatorDashboardController, EffektivitetController, StopporsakRegistreringController, OperatorOnboardingController.
+
+### Uppgift 2: PHP classes/ PDO fetchAll memory audit
+Granskade alla 580 fetchAll()-anrop i 109 filer i noreko-backend/classes/.
+
+Kontrollerade:
+- fetchAll() pa queries utan LIMIT pa vaxande tabeller (rebotling_ibc, audit_log, logg-tabeller)
+- Stallen dar fetch() i loop vore battre
+- Saknade LIMIT-satser
+
+**Resultat: RENT — 0 buggar.**
+Alla queries pa stora/vaxande tabeller har:
+- GROUP BY med aggregering (ger begransat resultat)
+- DATE/WHERE-filter som begransar radmangd
+- LIMIT-satser dar det behovs
+- Inga SELECT * FROM rebotling_ibc utan begransning
+- AuditController anvander LIMIT/OFFSET-paginering
+- StoppageController har LIMIT 2000 pa listningar
+- AvvikelselarmController::getHistorik har LIMIT 500
+- SkiftrapportExportController::getMultiDay har max 31 dagars span-validering
+
+Specifikt verifierade:
+- RuntimeController rad 323: fetchAll pa tvattlinje/rebotling_runtime — begransad av datumfilter (en dags data)
+- SkiftrapportExportController rad 387: fetchLopnummer — begransad av skiftraknare (ett skift)
+- AvvikelselarmController::getAktiva rad 264: inga LIMIT men filtrerat pa kvitterad=0 (liten mangd)
+- Alla SELECT * FROM-queries gar mot config-tabeller med WHERE id=1 eller LIMIT 1
+
+### Uppgift 3: PHP classes/ file_get_contents error handling audit
+Granskade alla file_get_contents()-anrop i noreko-backend/ (46 filer).
+
+Kontrollerade:
+- Saknad felhantering (ingen kontroll av false-returvarde)
+- HTTP-anrop utan timeout/context
+- Saknad error_log() vid misslyckade anrop
+
+**Resultat: RENT — 0 buggar.**
+
+Kategorier av file_get_contents-anvandningar:
+1. **php://input (ca 40 filer)**: Alla anvander json_decode(..., true) med efterfoljande is_array()-check eller ?? []-fallback. Ingen felhantering behovs for php://input.
+2. **Migrationsfiler (10 filer)**: Alla har korrekt === false check + error_log(). Filer: SkiftplaneringController, UnderhallsloggController, OperatorsbonusController, SkiftoverlamningController (3 stallen), KvalitetscertifikatController, BatchSparningController, MaskinunderhallController, KapacitetsplaneringController, ProduktionskostnadController, ProduktionsSlaController.
+3. **HTTP-anrop (1 fil)**: update-weather.php har stream_context_create med timeout=10, User-Agent-header, @-suppression, === false check, och throw Exception.
+
+### Summering
+- 0 DISTINCT-buggar (alla korrekta)
+- 0 fetchAll memory-buggar (alla begransade)
+- 0 file_get_contents-buggar (alla har korrekt felhantering)
+- Totalt granskade: 109 PHP-filer, 580+ fetchAll-anrop, 50+ DISTINCT-anvandningar, 46 filer med file_get_contents
+- Ingen fix behovdes — kodbasen ar val skriven i dessa avseenden
+
 ## 2026-03-22 Session #239 Worker B — Angular pipe null-safety re-audit + lazy-load preload audit (5 buggar)
 
 ### Uppgift 1: Angular pipe null-safety re-audit
