@@ -1,3 +1,32 @@
+## Worker A — Session #259
+
+### Uppgift 1: PHP file_get_contents/curl error handling audit
+**Resultat:** 0 buggar — rent
+
+Sokte igenom alla .php-filer under noreko-backend/ (exkl. plcbackend/):
+- **file_get_contents()**: 100+ anvandningar. Enda externa HTTP-anropet ar i `update-weather.php` (rad 62) — redan korrekt med `=== false`-check + exception. Alla migrationsfilslasningar (SkiftplaneringController, OperatorsbonusController, MaskinunderhallController, UnderhallsloggController, ProduktionsSlaController, KvalitetscertifikatController, ProduktionskostnadController, KapacitetsplaneringController, BatchSparningController, SkiftoverlamningController) har redan `=== false`-kontroll med error_log. Alla `php://input`-lasningar ar interna och behover ingen felcheck.
+- **curl_exec()**: Inga forekomster i kodbasen.
+- **fopen()**: Tva forekomster (BonusAdminController rad 1831, TidrapportController rad 564) — bada oppnar `php://output` for CSV-export, vilket alltid lyckas.
+
+### Uppgift 2: PHP session handling audit
+**Resultat:** 0 buggar — rent
+
+- **session_regenerate_id()**: Används korrekt i LoginController (rad 105) efter lyckad autentisering med `true`-parameter (raderar gammal session). Aven ProfileController (rad 182) regenererar vid losenordsbyte.
+- **Session fixation**: Skyddas av session_regenerate_id(true) vid login. session_start() anropas INTE fore autentisering i LoginController.
+- **Session timeout**: Centraliserad via AuthHelper::checkSessionTimeout() (8 timmars inaktivitet, SESSION_TIMEOUT = 28800). Kontrolleras i api.php (rad 259) for alla POST/PUT/DELETE-requests, samt i individuella controllers (FeatureFlagController, StatusController, ProfileController, NewsController, m.fl.). last_activity uppdateras vid varje anrop.
+- **Session cookie**: Konfigureras i api.php med httponly=true, samesite=Lax, secure (vid HTTPS). gc_maxlifetime=28800.
+- **Logout**: session_unset() + session_destroy() + cookie-radering i LoginController::logout().
+- **CSRF-skydd**: Token genereras vid login, valideras for alla state-andrande requests i api.php (rad 266).
+
+### Uppgift 3: PHP array_key_exists vs isset audit
+**Resultat:** 0 buggar — rent
+
+- **$_GET/$_POST utan check**: Alla $_GET-accesser anvander `?? ''` eller `?? 0` eller `isset()`. Enda $_POST-anvandningen (ShiftHandoverController rad 357) anvander `?? 0`.
+- **json_decode utan ?? []**: 37 forekomster av `json_decode(..., true);` utan `?? []` — samtliga foljs omedelbart av `if (!is_array($data))` som returnerar 400-fel. Saledes ingen risk for null-access.
+- **DB-rader med NULL-kolumner**: Granskade nyckelkontrollers (TidrapportController, LoginController, RebotlingAdminController m.fl.). Alla DB-radaccesser anvander `??` for kolumner som kan vara NULL (t.ex. `$row['operator_namn'] ?? 'Okand'`, `$user['email'] ?? null`, `$user['operator_id'] ? (int)$user['operator_id'] : null`). LoginController rad 79 anvander korrekt `array_key_exists('active', $user)` for kolumnen som kan saknas i aldre DB:er.
+
+---
+
 ## Worker B — Session #259
 
 ### Uppgift 1: Angular change detection strategy audit
