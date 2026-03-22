@@ -7,19 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #258):
-- [ ] **PHP type juggling audit** — Worker A — == vs === med mixed types
-- [ ] **PHP error_reporting/display_errors audit** — Worker A — produktionssakerhet
-- [ ] **PHP SQL LIMIT/OFFSET injection audit** — Worker A — osanerade numeriska varden
-- [ ] **Angular template null-check audit** — Worker B — saknade ?. i templates
-- [ ] **Angular Router guard return type audit** — Worker B — felaktiga guard-returvarden
-- [ ] **Angular service URL consistency audit** — Worker B — hardkodade/felaktiga URL:er
+### Pagaende (session #259):
+- [x] **PHP file_get_contents/curl error handling audit** — Worker A — rent
+- [x] **PHP session handling audit** — Worker A — rent
+- [x] **PHP array_key_exists vs isset audit** — Worker A — rent
+- [x] **Angular change detection strategy audit** — Worker B — rent
+- [x] **Angular lazy loading route audit** — Worker B — rent
+- [x] **Angular reactive forms validation audit** — Worker B — rent
 
-### Nasta buggjakt-items (session #259+):
-- [ ] **PHP file_get_contents/curl error handling audit** — saknad felhantering vid externa anrop
-- [ ] **PHP session handling audit** — session fixation, regenerate_id, timeout
-- [ ] **Angular change detection strategy audit** — OnPush vs Default, oanvanda ChangeDetectorRef
-- [ ] **Angular lazy loading route audit** — felaktiga loadChildren/import-sokvagar
+### Nasta buggjakt-items (session #260+):
+- [ ] **PHP date/time timezone handling audit** — date() vs DateTime, saknade timezone-settings
+- [ ] **PHP JSON encode/decode error handling** — json_last_error() check efter json_decode
+- [ ] **PHP integer overflow/boundary audit** — stora ID:n, raknare, pagination edge cases
+- [ ] **Angular HTTP timeout consistency audit** — saknade/inkonsistenta timeout() pa HTTP-anrop
+- [ ] **Angular memory leak audit (setInterval)** — setInterval utan clearInterval i OnDestroy
 
 ## Parkerade features (ta inte dessa nu)
 
