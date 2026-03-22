@@ -1,3 +1,47 @@
+## 2026-03-22 Session #246 Worker B — HTTP error i18n audit + template method call performance audit (7 buggar)
+
+### Audit 1: Angular HTTP error message i18n audit (0 buggar)
+Granskade alla Angular services i noreko-frontend/src/app/services/ och alla komponenter i noreko-frontend/src/app/pages/ (utom rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- Sokte efter catchError-block med engelska felmeddelanden (Error, Failed to, Something went wrong, Could not, Unable to)
+- Alla anvandardsynliga felmeddelanden ar redan pa svenska
+**Resultat: RENT** — inga buggar hittade.
+
+### Audit 2: Angular template method call performance audit (7 buggar)
+Granskade alla .html-filer i noreko-frontend/src/app/pages/ for tunga metod-anrop i templates.
+
+**Bugg 1 — ranking-historik.ts:**
+- `getStorstKlattare()` och `getStorstKlattareAndring()` anropades 3 ganger i template, varje gang med `.filter()` + `.sort()` pa andringar-arrayen
+- `getLangstaPosStreakOp()` gjorde `[...spread]` + `.sort()` pa varje change-detection-cykel
+- Fix: La till `cachedStorstKlattare`, `cachedStorstKlattareAndring`, `cachedLangstaPosStreakOp` — beraknas via `rebuildChangesCache()` / `rebuildStreakCache()` nar data laddas
+
+**Bugg 2 — cykeltid-heatmap.ts/html:**
+- `getRowAvg(matrix[i])` anropades per operatorsrad, varje gang med `.filter().map().reduce()`
+- Fix: La till `cachedRowAvgs` array som beraknas via `rebuildRowAvgs()` nar heatmap-data laddas. Template skickar radindex for O(1)-uppslag.
+
+**Bugg 3 — my-bonus.ts:**
+- `getAchievementBadgesEarned()` anropades i template och gjorde `.filter()` trots att cachat varde redan fanns
+- Fix: Returnerar nu `cachedAchievementBadgesEarned` som satts i `loadAchievements()`
+
+**Bugg 4 — my-bonus.ts:**
+- `getTrendDirection()` anropades 15+ ganger i template, varje gang med `.slice().reduce()` x2
+- Fix: La till `cachedTrendDirection` via `_computeTrendDirection()`, beraknas i `rebuildStatsCache()`
+
+**Bugg 5 — my-bonus.ts:**
+- `getStatusBadge()` anropades 2x i template, skapade nytt objekt varje gang + anropade getTrendDirection() internt
+- Fix: La till `cachedStatusBadge` via `_computeStatusBadge()`
+
+**Bugg 6 — my-bonus.ts:**
+- `getShiftPrognosis()`, `getProjectedBonus()`, `getMyAvgIbcPerHour()` anropades i template med `.slice().filter().reduce()`
+- Fix: La till cachade properties via `rebuildStatsCache()`
+
+**Bugg 7 — my-bonus.ts:**
+- `getWeeklyTeamComparison()` + `getMyWeeklyAvgIbc()`, `getTeamWeeklyAvgIbc()`, `getMyWeeklyAvgKvalitet()`, `getTeamWeeklyAvgKvalitet()`, `getTeamWeeklyAvgBonus()` — 11 `.reduce()` per change-detection-cykel
+- Fix: La till cachade properties via `rebuildWeeklyCache()`, anropas nar weeklyData laddas
+
+**Bygge:** Bygget passerade utan fel.
+
+---
+
 ## 2026-03-22 Session #246 Worker A — PHP file_exists + PDO rollback + intval/floatval bounds audit (6 buggar)
 
 ### Audit 1: PHP file_exists/is_readable audit (0 buggar)
