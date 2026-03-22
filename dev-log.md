@@ -1,3 +1,82 @@
+## Worker B — Session #255
+
+### Uppgift 1: Angular HTTP race condition audit — switchMap vs mergeMap
+**Resultat:** rent — 0 buggar
+
+Granskade alla Angular services och komponenter i noreko-frontend/src/ (exkl. live-sidor).
+
+**Metod:** Sokt efter mergeMap/concatMap/exhaustMap/switchMap, subscribe()-block triggade via input/filter, och sokfalt som kan orsaka multipla parallella HTTP-requests.
+
+**Fynd switchMap-anvandning:**
+- auth.service.ts: switchMap anvands korrekt for fetchStatus-kedja
+- auth.guard.ts: switchMap anvands korrekt for loggedIn$/user$-kedja
+- alerts.service.ts: switchMap anvands korrekt for polling-kedja
+- operators.ts, create-user.ts, vpn-admin.ts, users.ts: switchMap anvands korrekt for auth-kedja
+
+**Fynd sokfalt / filter med HTTP:**
+- audit-log.ts: onSearchInput() anvaander clearTimeout/setTimeout(350ms)-debounce + takeUntil(destroy$). Skickar HTTP-request per 350ms-fonster. Inget switchMap, men debounce-monstet forhindrar overlappande requests i praktiken. Inga race conditions med nuvarande anvandarbeteende.
+- stoppage-log.ts: onSearchInput() filtrerar enbart klientsidigt (uppdaterar _debouncedSearchQuery). Inga HTTP-anrop triggas.
+- users.ts: onSearchInput() filtrerar enbart klientsidigt. Inga HTTP-anrop.
+- rebotling-skiftrapport.ts: onSearchInput() filtrerar klientsidigt. Inga HTTP-anrop.
+
+**Alla (change)/(ngModelChange)-triggers** pa select-element anropar load-funktioner en gang per anvandararstyrning — inga race conditions.
+
+**Slutsats:** Inga echta race condition-buggar. Alla HTTP-requests triggas av diskreta anvandarhAndelser (select change) eller har debounce-skydd.
+
+---
+
+### Uppgift 2: Angular template arithmetic overflow audit — division by zero
+**Resultat:** rent — 0 buggar
+
+Granskade alla HTML-templates i noreko-frontend/src/ (exkl. live-sidor).
+
+**Metod:** Sokt efter division (/) i template-uttryck, style.width.%-bindningar, och procent-berakningar utan guard.
+
+**Granskade divisioner och deras skydd:**
+
+- `skiftoverlamning.component.html:100` — `(checklistaCount / 6) * 100` — divisorn ar hardkodad literal 6, kan aldrig vara 0. Rent.
+- `prediktivt-underhall.component.html:196` — `(station.totalt ?? 0) / (trendVeckonycklar.length || 1)` — skyddat med `|| 1`. Rent.
+- `kapacitetsplanering.component.html:438` — `prognosData.prognos_ibc / prognosData.teor_max_total * 100` — skyddat med ternary `prognosData.teor_max_total > 0 ? ... : 0`. Rent.
+- `maskin-drifttid.html:249` — `(t.antal / 20) * 100` — divisorn ar hardkodad literal 20. Rent.
+- `operators.html:384` — `(op.aktiva_dagar_30d ?? 0) / 30 * 100` — divisorn ar hardkodad literal 30. Rent.
+- `operator-onboarding.html:200` — `(w.ibc_h / curveData.team_snitt_ibc_h) * 100` — skyddat med `*ngIf="curveData.team_snitt_ibc_h > 0"`. Rent.
+- `my-bonus.html:116` — `(stats.kpis?.bonus_avg || 0) / 120 * 100` — divisorn ar hardkodad literal 120. Rent.
+- `stopporsak-operator.html:131` — `Math.min(op.pct_av_snitt, 200) / 2` — divisorn ar hardkodad literal 2. Rent.
+- `operator-onboarding.html:117` — `Math.min(op.pct_av_snitt, 120) / 1.2` — divisorn ar hardkodad literal 1.2. Rent.
+- `bonus-admin.html:885/892` — division pa `simBaselineResult.total_cost` — skyddat med ternary `$any(simBaselineResult)?.total_cost ? ... : 0` och `*ngIf="simBaselineResult?.total_cost"`. Rent.
+- `produktionsprognos.html:85` — division pa `forecast.dags_mal/3` — ar del av en fargvillkors-jamforelse, `forecast.dags_mal` kan vara 0 men da utvardera villkoret till falskt (0/3 = 0 >= prognos_vid_slut, 0 >= 0 = true). Rent.
+
+**Slutsats:** Alla divisioner i templates ar antingen skyddade med guards/ngIf/ternary eller anvander hardkodade konstanter som divisor.
+
+---
+
+### Uppgift 3: Angular FormControl/ngModel conflict audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla HTML-templates i noreko-frontend/src/ (exkl. live-sidor).
+
+**Metod:** Sokt efter kombinationer av ngModel+formControl, ngModel utan name i form-element, disabled-attribut med formControl, och [value] vs [ngValue] for objektreferenser.
+
+**Fynd ngModel+formControl-konflikt:** Inga. Hela projektet anvander uteslutande template-driven forms (ngModel). Inga ReactiveFormsModule-direktiv (formControl, formControlName, formGroup) finns i nagra templates.
+
+**Fynd ngModel utan name i form-element:**
+- underhallslogg.html: ngModel-falt utan name — men det finns inget `<form>`-element i filen, sa name-attribut kravs ej.
+- skiftoverlamning.component.html: ngModel pa textarea-element utanfor form. Korrekt.
+- daglig-briefing.component.html: ngModel utanfor form. Korrekt.
+- maskinunderhall.component.html: Alla ngModel-falt inuti `<form>`-element har name-attribut. Korrekt.
+- register.html, menu.html: Alla ngModel-falt inuti `<form>`-element har name-attribut. Korrekt.
+
+**Fynd [disabled] med formControl:** Inga formControl-direktiv finns. De [disabled]-bindningar som finns (register.html, underhallslogg.html etc.) anvands med template-driven forms dar [disabled] ar acceptabelt.
+
+**Fynd [value] vs [ngValue] for objekt:**
+- stationsdetalj.component.html: `[value]="s"` dar s ar en strang (stationer: string[]). Korrekt.
+- Alla andra [value]-bindningar anvander primitiva varden (number, string) fran komponent-properties. Korrekt.
+- Ingen anvandning av [value] med objekt som kravde [ngValue]. Rent.
+
+**Slutsats:** Inga FormControl/ngModel-konflikter, inga saknade name-attribut i form-kontext, inga [value]/[ngValue]-problem.
+
+---
+
 ## Worker A — Session #255
 
 ### Uppgift 1: PHP str_pad/substr truncation audit
