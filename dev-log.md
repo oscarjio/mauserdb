@@ -1,3 +1,30 @@
+## 2026-03-22 Session #244 Worker B — setTimeout cleanup + form reset audit (46 buggar)
+
+### Uppgift 1: Angular setTimeout cleanup audit (42 buggar)
+Granskade ALLA Angular-komponenter i noreko-frontend/src/app/pages/ (utom rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+Alla 37 .component.ts-filer och 85 standalone .ts-filer kontrollerades for:
+- HTTP-anrop utan takeUntil(this.destroy$) — RENT, alla har takeUntil
+- Saknad destroy$ subject eller ngOnDestroy — RENT, alla har korrekt lifecycle
+- setInterval utan clearInterval — RENT, alla med setInterval har clearInterval
+- setTimeout utan clearTimeout — HITTADE 42 BUGGAR
+
+**Fixade 42 komponenter** som anvande setTimeout() utan att lagra timer-ID:t och rensa i ngOnDestroy:
+- La till `private _timers: ReturnType<typeof setTimeout>[] = [];`
+- Wrappade setTimeout-anrop med `this._timers.push(setTimeout(...))`
+- La till `this._timers.forEach(t => clearTimeout(t));` i ngOnDestroy
+
+Berorda filer: alarm-historik, forsta-timme-analys, oee-waterfall, operator-onboarding, pareto, rebotling/alerts, rebotling/kassationsanalys, rebotling/kassationsorsak-statistik, rebotling/kassationsorsak, rebotling/kvalitets-trendbrott, rebotling/kvalitetstrendanalys, rebotling/min-dag, rebotling/oee-jamforelse, rebotling/operator-jamforelse, rebotling/produktionseffektivitet, rebotling/produktionstakt, rebotling/skiftrapport-sammanstallning, 19 statistik-underkomponenter, skiftjamforelse, statistik-produkttyp-effektivitet.
+
+### Uppgift 2: Angular form reset state audit (4 buggar)
+Granskade ALLA formularkompenter for formularsaterstaallning vid toggle/stangning.
+
+**Fixade 4 buggar i 8 filer:**
+1. **operators.ts/html**: showAddForm-toggle (rad 19) aterstaallde inte addForm-data. La till toggleAddForm() och closeAddForm() som rensar formulardata.
+2. **stoppage-log.ts/html**: showForm-toggle (rad 128) aterstaallde inte newEntry eller felmeddelanden. La till toggleForm() som rensar reason_id, start/end_time, comment och errorMessage.
+3. **shared-skiftrapport.ts/html**: showAddForm-toggle (rad 32) och oppna-knapp (rad 119) aterstaallde inte newReport eller errorMessage. La till toggleAddForm() och openAddForm().
+4. **rebotling-skiftrapport.ts/html**: showAddReportForm-toggle (rad 30) aterstaallde inte newReport eller errorMessage. La till toggleAddReportForm().
+
 ## 2026-03-22 Session #244 Worker A — PHP date/strtotime, json_decode, SQL LIKE audit (7 buggar)
 
 ### Uppgift 1: PHP date()/strtotime() input validation audit (0 buggar)
