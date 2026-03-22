@@ -333,9 +333,9 @@ class KvalitetscertifikatController {
         }
         $operatorId      = isset($data['operator_id']) ? (int)$data['operator_id'] : null;
         $operatorNamn    = mb_substr(strip_tags(trim($data['operator_namn'] ?? '')), 0, 100);
-        $antalIbc        = max(0, (int)($data['antal_ibc'] ?? 0));
+        $antalIbc        = max(0, min(999999, (int)($data['antal_ibc'] ?? 0)));
         $kassationPct    = max(0, min(100, (float)($data['kassation_procent'] ?? 0)));
-        $cykeltidSnitt   = max(0, (float)($data['cykeltid_snitt'] ?? 0));
+        $cykeltidSnitt   = max(0, min(86400, (float)($data['cykeltid_snitt'] ?? 0)));
 
         if (!$batchNummer) {
             $this->sendError('Batchnummer kravs');

@@ -263,8 +263,8 @@ class LineSkiftrapportController {
                     echo json_encode(['success' => false, 'error' => 'Rapport hittades inte'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                $final_ok    = isset($data['antal_ok'])    ? intval($data['antal_ok'])    : (int)$cur['antal_ok'];
-                $final_ej_ok = isset($data['antal_ej_ok']) ? intval($data['antal_ej_ok']) : (int)$cur['antal_ej_ok'];
+                $final_ok    = isset($data['antal_ok'])    ? max(0, min(999999, intval($data['antal_ok'])))    : (int)$cur['antal_ok'];
+                $final_ej_ok = isset($data['antal_ej_ok']) ? max(0, min(999999, intval($data['antal_ej_ok']))) : (int)$cur['antal_ej_ok'];
                 $fields[] = 'totalt = ?';
                 $params[] = $final_ok + $final_ej_ok;
             }

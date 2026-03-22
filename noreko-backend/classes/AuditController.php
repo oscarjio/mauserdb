@@ -46,7 +46,7 @@ class AuditController {
                 return;
             }
 
-            $page = max(1, intval($_GET['page'] ?? 1));
+            $page = max(1, min(10000, intval($_GET['page'] ?? 1)));
             $limit = min(200, max(10, intval($_GET['limit'] ?? 50)));
             $offset = ($page - 1) * $limit;
 

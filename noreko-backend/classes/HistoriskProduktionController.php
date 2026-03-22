@@ -378,7 +378,7 @@ class HistoriskProduktionController {
         try {
             [$fromDate, $toDate, $days] = $this->resolveDateRange();
 
-            $page    = max(1, (int)($_GET['page'] ?? 1));
+            $page    = max(1, min(10000, (int)($_GET['page'] ?? 1)));
             $perPage = max(10, min(200, (int)($_GET['per_page'] ?? 50)));
             $sort    = in_array(($_GET['sort'] ?? ''), ['date', 'ibc_ok', 'ibc_ej_ok', 'total', 'kassation_pct'], true) ? $_GET['sort'] : 'date';
             $order   = strtoupper(trim($_GET['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';

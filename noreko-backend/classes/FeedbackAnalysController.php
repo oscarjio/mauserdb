@@ -85,7 +85,7 @@ class FeedbackAnalysController {
     private function getFeedbackList(): void {
         try {
             $days      = $this->getDays();
-            $page      = max(1, intval($_GET['page'] ?? 1));
+            $page      = max(1, min(10000, intval($_GET['page'] ?? 1)));
             $perPage   = max(5, min(100, intval($_GET['per_page'] ?? 20)));
             $operatorId = isset($_GET['operator_id']) && $_GET['operator_id'] !== ''
                 ? intval($_GET['operator_id']) : null;
