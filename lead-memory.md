@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #240)*
+*Senast uppdaterad: 2026-03-22 (session #241)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -107,28 +107,25 @@ Session #237: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). File locking: ren
 Session #238: BUGGJAKT — 10 buggar (10 Worker A + 0 Worker B). Output buffering: rent. Prepared stmt reuse: 10 prepare() flyttade utanfor loopar. Header injection: rent. trackBy: rent. Environment config: rent.
 Session #239: BUGGJAKT — 20 buggar (15 Worker A + 5 Worker B). Error response consistency: rent. SQL GROUP BY: rent. usort subtraktion->spaceship: 15 fixar i 7 PHP-filer. Pipe null-safety: 5 fixar i benchmarking.html. Preload strategy: rent.
 Session #240: BUGGJAKT — 13 buggar (0 Worker A + 13 Worker B). SQL DISTINCT: rent. PDO fetchAll: rent. file_get_contents: rent. HTTP error normalization: 13 catchError utan err-param i 5 services. Form validation: rent.
+Session #241: BUGGJAKT — 5 buggar (1 Worker A + 4 Worker B). array_filter callback: 1 fix (0 filtrerades bort). header() audit: rent. NgOnChanges: rent. Template expression complexity: 4 tunga metoder cachade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #241):
-- [ ] PHP classes/ array_map/array_filter callback audit
-- [ ] PHP classes/ header() call consistency audit
-- [ ] Angular NgOnChanges null-check audit
+### Nasta (session #242):
 - [ ] PHP classes/ SQL subquery performance audit
-- [ ] Angular template expression complexity audit
+- [ ] PHP error_log format consistency audit
+- [ ] Angular HTTP polling interval cleanup audit
+- [ ] PHP file_put_contents error handling audit
+- [ ] Angular router resolve/guard return type audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-21 — Session #238 (klar)
-Worker A: 10 buggar — Output buffering: rent. Prepared stmt reuse: 10 prepare() utanfor loopar. Header injection: rent.
-Worker B: 0 buggar — trackBy (129 ngFor): rent. Environment config: rent.
-
-### 2026-03-22 — Session #239 (klar)
-Worker A: 15 buggar — Error response consistency: rent. SQL GROUP BY: rent. usort/uasort subtraktion->spaceship: 15 fixar i 7 PHP-filer.
-Worker B: 5 buggar — Pipe null-safety: 5 fixar i benchmarking.html (number pipe pa undefined). Preload strategy: rent (PreloadAllModules redan konfigurerat).
-
 ### 2026-03-22 — Session #240 (klar)
-Worker A: 0 buggar — SQL DISTINCT (50+ anvandningar): rent. PDO fetchAll (580+ anrop): rent. file_get_contents (46 filer): rent.
-Worker B: 13 buggar — HTTP error normalization: 13 catchError utan err-param i 5 services (backend-fel slukades). Form validation (15 formular): rent.
+Worker A: 0 buggar — SQL DISTINCT, PDO fetchAll, file_get_contents: rent.
+Worker B: 13 buggar — HTTP error normalization: 13 catchError utan err-param i 5 services.
+
+### 2026-03-22 — Session #241 (klar)
+Worker A: 1 bugg — array_filter utan callback i SkiftrapportController (0 filtrerades bort). header() audit: rent.
+Worker B: 4 buggar — NgOnChanges: rent (ingen anvander det). Template expression complexity: 4 tunga metoder cachade (shared-skiftrapport, stopptidsanalys, skiftjamforelse, shift-plan).

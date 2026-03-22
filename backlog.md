@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #241+):
-- [ ] **PHP classes/ array_map/array_filter callback audit** — felaktiga callbacks
-- [ ] **PHP classes/ header() call consistency audit** — Content-Type, charset, caching
-- [ ] **Angular NgOnChanges null-check audit** — saknade null-guards i ngOnChanges
+### Nasta buggjakt-items (session #242+):
 - [ ] **PHP classes/ SQL subquery performance audit** — korrelerade subqueries som kan vara JOINs
-- [ ] **Angular template expression complexity audit** — tunga berakningar i templates utan memoization
+- [ ] **PHP error_log format consistency audit** — enhetligt loggformat med timestamp/context
+- [ ] **Angular HTTP polling interval cleanup audit** — setInterval utan clearInterval i OnDestroy
+- [ ] **PHP file_put_contents error handling audit** — saknad felhantering vid filskrivning
+- [ ] **Angular router resolve/guard return type audit** — felaktiga return-typer
 
 ## Parkerade features (ta inte dessa nu)
 
