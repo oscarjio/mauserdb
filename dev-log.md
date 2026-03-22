@@ -1,3 +1,28 @@
+## Worker B — Session #259
+
+### Uppgift 1: Angular change detection strategy audit
+**Resultat:** 0 buggar — rent
+
+Sokte efter `ChangeDetectionStrategy` och `ChangeDetectorRef` i alla .ts-filer under noreko-frontend/src/app/pages/ (exkl. live-sidor) samt bredare under src/app/. Inga komponenter anvander OnPush eller ChangeDetectorRef. Inga buggar att fixa. Alla komponenter kors med default change detection.
+
+### Uppgift 2: Angular lazy loading route audit
+**Resultat:** 0 buggar — rent
+
+Granskade app.routes.ts med 150+ routes. Alla anvander `loadComponent` (standalone components, ingen `loadChildren`).
+
+- Alla import-sokvagar kontrollerade: Tre routes importerar fran `./rebotling/` (daglig-briefing, gamification, prediktivt-underhall, skiftoverlamning) istallet for `./pages/rebotling/` — dessa ar korrekta da komponenterna faktiskt ligger under src/app/rebotling/.
+- Inga duplicerade route paths.
+- Inga felaktiga relativa sokvagar.
+- Wildcard `**`-route finns sist (korrekt placering).
+- Exporterade klassnamn matchar referenserna i `.then(m => m.XxxPage)`.
+
+### Uppgift 3: Angular reactive forms validation audit
+**Resultat:** 0 buggar — rent
+
+Sokte efter `FormGroup`, `FormControl`, `FormBuilder`, `FormArray` och `Validators.` i alla .ts-filer under noreko-frontend/src/app/pages/ samt bredare under src/app/. Inga komponenter anvander Angular Reactive Forms — alla formular anvander template-driven forms (ngModel via FormsModule). Login-sidan har manuella valideringscheckar (disabled-knapp nar username/password ar tomma). Register-sidan har manuell validering av alla falt i onSubmit() med tydliga felmeddelanden. Inga buggar att fixa.
+
+---
+
 ## Worker A — Session #257
 
 ### Uppgift 1: PHP foreach by-reference audit
