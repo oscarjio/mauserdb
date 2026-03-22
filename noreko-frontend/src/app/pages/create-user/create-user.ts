@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError, filter, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { UsersService } from '../../services/users.service';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 @Component({
   standalone: true,
@@ -14,7 +15,7 @@ import { UsersService } from '../../services/users.service';
   templateUrl: './create-user.html',
   styleUrl: './create-user.css'
 })
-export class CreateUserPage implements OnInit, OnDestroy {
+export class CreateUserPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   user = {
     username: '',
@@ -26,6 +27,10 @@ export class CreateUserPage implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
   successMessage = '';
+
+  canDeactivate(): boolean {
+    return !this.user.username && !this.user.password && !this.user.email && !this.user.phone;
+  }
 
   get isPasswordValid(): boolean {
     const p = this.user.password;

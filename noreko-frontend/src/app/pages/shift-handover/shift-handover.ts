@@ -7,6 +7,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 const API = `${environment.apiUrl}?action=shift-handover`;
 
@@ -38,7 +39,7 @@ export type FilterTab = 'alla' | 'bradskande' | 'oppna' | 'kvitterade';
   templateUrl: './shift-handover.html',
   styleUrl: './shift-handover.css'
 })
-export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
+export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, ComponentCanDeactivate {
 
   @ViewChild('noteTextarea') noteTextareaRef?: ElementRef<HTMLTextAreaElement>;
 
@@ -57,6 +58,10 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
   newAudience: 'alla' | 'ansvarig' | 'teknik' = 'alla';
   newSkiftNr: number;
   isSubmitting = false;
+
+  canDeactivate(): boolean {
+    return !this.newNote.trim();
+  }
 
   // Formulär synlig/dold toggle
   showForm = true;

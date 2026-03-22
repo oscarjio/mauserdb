@@ -12,6 +12,7 @@ import {
 } from '../../services/produktionsmal.service';
 import { PdfExportButtonComponent } from '../../components/pdf-export-button/pdf-export-button.component';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 Chart.register(...registerables);
 
@@ -22,7 +23,7 @@ Chart.register(...registerables);
   styleUrls: ['./produktionsmal.css'],
   imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
-export class ProduktionsmalComponent implements OnInit, OnDestroy {
+export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanDeactivate {
   Math = Math;
 
   // ---- Laddningsstate ----
@@ -42,6 +43,10 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
   formTyp: 'vecka' | 'manad' = 'vecka';
   formAntal: number | null = null;
   formStartdatum = '';
+
+  canDeactivate(): boolean {
+    return this.formAntal === null || this.formAntal <= 0;
+  }
 
   // ---- Charts ----
   private doughnutChart: Chart | null = null;

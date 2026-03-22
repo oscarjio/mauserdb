@@ -227,21 +227,21 @@
               <label class="form-label fw-semibold">
                 <i class="fas fa-box me-1 text-info"></i>Dagsmål – standard (IBC/dag)
               </label>
-              <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" min="1"  max="99999" />
+              <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" (ngModelChange)="formDirty = true" min="1"  max="99999" />
               <div class="form-text">Fallback om inget veckodagsmål är satt</div>
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-tachometer-alt me-1 text-warning"></i>Timmål (IBC/h) standard
               </label>
-              <input type="number" class="form-control" [(ngModel)]="settings.hourlyTarget" min="1"  max="99999" />
+              <input type="number" class="form-control" [(ngModel)]="settings.hourlyTarget" (ngModelChange)="formDirty = true" min="1"  max="99999" />
               <div class="form-text">Används om produkt saknar cykeltid</div>
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-clock me-1 text-success"></i>Skiftlängd (timmar)
               </label>
-              <input type="number" class="form-control" [(ngModel)]="settings.shiftHours" min="1" max="24" step="0.5" />
+              <input type="number" class="form-control" [(ngModel)]="settings.shiftHours" (ngModelChange)="formDirty = true" min="1" max="24" step="0.5" />
               <div class="form-text">Antal arbetstimmar per skift</div>
             </div>
             <div class="col-12 col-md-4">
@@ -349,7 +349,7 @@
                   <span *ngIf="isToday(goal.weekday)" class="badge bg-info badge-today ms-1">Idag</span>
                 </div>
                 <input type="number" class="form-control form-control-sm weekday-input"
-                  [(ngModel)]="goal.daily_goal" min="0" step="10"  max="99999" />
+                  [(ngModel)]="goal.daily_goal" (ngModelChange)="formDirty = true" min="0" step="10"  max="99999" />
                 <div class="weekday-sub text-muted">IBC</div>
               </div>
             </div>

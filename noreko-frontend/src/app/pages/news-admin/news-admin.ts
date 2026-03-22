@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 
 interface NewsItem {
@@ -450,7 +451,7 @@ interface NewsItem {
     .bg-purple { background-color: #7c3aed !important; }
   `]
 })
-export class NewsAdminPage implements OnInit, OnDestroy {
+export class NewsAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
   private saveTimer: any = null;
@@ -485,6 +486,11 @@ export class NewsAdminPage implements OnInit, OnDestroy {
     priority: 3,
     arkiverasEfterDagar: null,
   };
+
+  canDeactivate(): boolean {
+    if (!this.showForm) return true;
+    return !this.form.title.trim() && !this.form.content.trim();
+  }
 
   constructor(private http: HttpClient) {}
 

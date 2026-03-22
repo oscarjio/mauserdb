@@ -207,6 +207,7 @@
               type="number"
               class="form-control"
               [(ngModel)]="settings.dagmal"
+              (ngModelChange)="formDirty = true"
               name="dagmal"
               min="1"
               step="1"
@@ -222,6 +223,7 @@
               type="number"
               class="form-control"
               [(ngModel)]="settings.takt_mal"
+              (ngModelChange)="formDirty = true"
               name="takt_mal"
               min="1"
               step="1"
@@ -237,6 +239,7 @@
               type="time"
               class="form-control"
               [(ngModel)]="settings.skift_start"
+              (ngModelChange)="formDirty = true"
               name="skift_start">
             <div class="form-text">När skiftet börjar (HH:MM).</div>
           </div>
@@ -249,6 +252,7 @@
               type="time"
               class="form-control"
               [(ngModel)]="settings.skift_slut"
+              (ngModelChange)="formDirty = true"
               name="skift_slut">
             <div class="form-text">När skiftet slutar (HH:MM).</div>
           </div>
@@ -316,6 +320,7 @@
                     type="number"
                     class="form-control form-control-sm"
                     [(ngModel)]="goal.mal"
+                    (ngModelChange)="formDirty = true"
                     [name]="'weekday_' + goal.weekday" [attr.aria-label]="'Dagsmål för ' + goal.label"
                     min="0"
                     max="500"

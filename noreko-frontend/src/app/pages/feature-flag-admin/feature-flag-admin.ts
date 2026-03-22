@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { FeatureFlagService } from '../../services/feature-flag.service';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 interface FeatureFlag {
   id: number;
@@ -28,7 +29,7 @@ interface CategoryGroup {
   templateUrl: './feature-flag-admin.html',
   styleUrl: './feature-flag-admin.css'
 })
-export class FeatureFlagAdminPage implements OnInit, OnDestroy {
+export class FeatureFlagAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   groups: CategoryGroup[] = [];
   loading = true;
   saving = false;
@@ -89,6 +90,10 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
       }
       this.loading = false;
     });
+  }
+
+  canDeactivate(): boolean {
+    return !this.hasChanges();
   }
 
   hasChanges(): boolean {

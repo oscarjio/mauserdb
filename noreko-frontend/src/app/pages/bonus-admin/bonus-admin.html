@@ -202,17 +202,17 @@
               <div class="mb-3">
                 <label class="form-label">Effektivitet</label>
                 <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].eff">
+                       [(ngModel)]="weightsForm[produktId].eff" (ngModelChange)="formDirty = true">
               </div>
               <div class="mb-3">
                 <label class="form-label">Produktivitet</label>
                 <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].prod">
+                       [(ngModel)]="weightsForm[produktId].prod" (ngModelChange)="formDirty = true">
               </div>
               <div class="mb-3">
                 <label class="form-label">Kvalitet</label>
                 <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].qual">
+                       [(ngModel)]="weightsForm[produktId].qual" (ngModelChange)="formDirty = true">
               </div>
               <div class="mb-3">
                 <small [class]="getWeightsSum(produktId) === 1 ? 'text-success' : 'text-danger'">
@@ -250,7 +250,7 @@
               <h6>FoodGrade</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.foodgrade }} <small>IBC/h</small></div>
               <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.foodgrade">
+                     [(ngModel)]="targetsForm.foodgrade" (ngModelChange)="formDirty = true">
               <small class="text-muted">Högre kvalitetskrav, lägre volym</small>
             </div>
           </div>
@@ -259,7 +259,7 @@
               <h6>NonUN</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.nonun }} <small>IBC/h</small></div>
               <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.nonun">
+                     [(ngModel)]="targetsForm.nonun" (ngModelChange)="formDirty = true">
               <small class="text-muted">Volymproduktion</small>
             </div>
           </div>
@@ -268,7 +268,7 @@
               <h6>Tvättade IBC</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.tvattade }} <small>IBC/h</small></div>
               <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.tvattade">
+                     [(ngModel)]="targetsForm.tvattade" (ngModelChange)="formDirty = true">
               <small class="text-muted">Mellannivå</small>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 interface Certification {
   id: number;
@@ -63,7 +64,7 @@ interface MatrixData {
   templateUrl: './certifications.html',
   styleUrl: './certifications.css'
 })
-export class CertificationsPage implements OnInit, OnDestroy {
+export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   operators: OperatorCerts[] = [];
   operatorOptions: OperatorOption[] = [];
   loading = false;
@@ -120,6 +121,11 @@ export class CertificationsPage implements OnInit, OnDestroy {
   addSuccess = '';
 
   private destroy$ = new Subject<void>();
+
+  canDeactivate(): boolean {
+    if (!this.showAddForm) return true;
+    return !this.addForm.op_number && !this.addForm.line && !this.addForm.notes.trim();
+  }
 
   constructor(private http: HttpClient) {}
 

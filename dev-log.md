@@ -1,3 +1,82 @@
+## 2026-03-22 Session #247 Worker B — canDeactivate guard audit + OnPush change detection audit (12 buggar)
+
+### Audit 1: Angular canDeactivate guard audit (12 buggar)
+
+Granskade alla Angular-komponenter i noreko-frontend/src/app/pages/ med formulär (ngModel/ngSubmit/formGroup) men utan canDeactivate-guard.
+
+**Befintliga guards (redan OK):**
+- `rebotling/skiftoverlamning` — SkiftoverlamningProtokollPage — hade redan `canDeactivate: [pendingChangesGuard]`
+- `rebotling/leveransplanering` — LeveransplaneringPage — hade redan `canDeactivate: [pendingChangesGuard]`
+
+**Buggar fixade (11 st):**
+
+1. **feature-flag-admin** (`src/app/pages/feature-flag-admin/feature-flag-admin.ts`)
+   - Hade `hasChanges()` + `originalData` snapshot men saknade `canDeactivate()` och route-guard.
+   - Fix: Implementerade `ComponentCanDeactivate`-interface + `canDeactivate() { return !this.hasChanges(); }` + lade till `canDeactivate: [pendingChangesGuard]` i `app.routes.ts`.
+
+2. **create-user** (`src/app/pages/create-user/create-user.ts`)
+   - Formulär med username/password/email/phone. Inga osparade-ändringar-skydd.
+   - Fix: Implementerade `canDeactivate() { return !this.user.username && !this.user.password && !this.user.email && !this.user.phone; }` + route-guard.
+
+3. **certifications** (`src/app/pages/certifications/certifications.ts`)
+   - Lägg-till-certifiering-formulär med select/input/textarea. Formuläret visas med `showAddForm`.
+   - Fix: Implementerade `canDeactivate()` som kontrollerar om `showAddForm` är true och op_number/line/notes är ifyllda + route-guard.
+
+4. **underhallslogg** (`src/app/pages/underhallslogg/underhallslogg.ts`)
+   - Underhållslogg-formulär med station, typ, datum, varaktighet, stopporsak, utförd av, beskrivning.
+   - Fix: Implementerade `canDeactivate()` som kontrollerar `showForm` + relevanta fält + route-guard.
+
+5. **shift-handover** (`src/app/pages/shift-handover/shift-handover.ts`)
+   - Skiftöverlämningsanteckning med textarea (`newNote`).
+   - Fix: Implementerade `canDeactivate() { return !this.newNote.trim(); }` + route-guard.
+
+6. **news-admin** (`src/app/pages/news-admin/news-admin.ts`)
+   - Nyhetsformulär (inline template) med title/content/category/pinned/published/priority. Visas med `showForm`.
+   - Fix: Implementerade `canDeactivate()` som kontrollerar `showForm` + `form.title` + `form.content` + route-guard.
+
+7. **produktionsmal** (`src/app/pages/produktionsmal/produktionsmal.ts`)
+   - Formulär för att sätta produktionsmål (typ, antal, startdatum).
+   - Fix: Implementerade `canDeactivate() { return this.formAntal === null || this.formAntal <= 0; }` + route-guard.
+
+8. **rebotling-admin** (`src/app/pages/rebotling-admin/rebotling-admin.ts` + `.html`)
+   - Stort admingränssnitt med inställningar, veckodagsmål, skifttider, alert-trösklar m.m.
+   - Fix: Lade till `formDirty = false`, `canDeactivate() { return !this.formDirty; }`, `this.formDirty = false` i `showSuccess()`, `(ngModelChange)="formDirty = true"` på rebotlingTarget/hourlyTarget/shiftHours/daily_goal + route-guard.
+
+9. **tvattlinje-admin** (`src/app/pages/tvattlinje-admin/tvattlinje-admin.ts` + `.html`)
+   - Admingränssnitt med dagsmål, takt-mål, skifttider, veckodagsmål.
+   - Fix: Samma `formDirty`-mönster, `(ngModelChange)="formDirty = true"` på newSettings.dagmal/takt_mal/skift_start/skift_slut + goal.mal + route-guard.
+
+10. **saglinje-admin** (`src/app/pages/saglinje-admin/saglinje-admin.ts` + `.html`)
+    - Admingränssnitt med dagsmål, takt-mål, skifttider, veckodagsmål.
+    - Fix: Samma `formDirty`-mönster, `(ngModelChange)="formDirty = true"` på settings.dagmal/takt_mal/skift_start/skift_slut + goal.mal + route-guard.
+
+11. **klassificeringslinje-admin** (`src/app/pages/klassificeringslinje-admin/klassificeringslinje-admin.ts` + `.html`)
+    - Admingränssnitt med dagsmål, takt-mål, skifttider, veckodagsmål.
+    - Fix: Samma `formDirty`-mönster, `(ngModelChange)="formDirty = true"` på settings.dagmal/takt_mal/skift_start/skift_slut + goal.mal + route-guard.
+
+12. **bonus-admin** (`src/app/pages/bonus-admin/bonus-admin.ts` + `.html`)
+    - Admingränssnitt med viktningar, produktivitetsmål, bonusbelopp.
+    - Fix: Samma `formDirty`-mönster, `(ngModelChange)="formDirty = true"` på viktningsinputs + produktivitetsmål + route-guard.
+
+**Sidor utan canDeactivate-behov (inget formulär med osparad data):**
+- `shift-plan` — kalenderbaserad scheduler, inga traditionella inputs
+- `operator-onboarding` — ingen input hittad i template
+- `skiftplanering` — select för operatörstilldelning men direktspara vid klick
+- `underhallsprognos` — inga inputs i template
+- `contact` — inga inputs
+- `news-admin` — se bugg #6 ovan
+- `feedback-analys`, `maintenance-log` — inga ngSubmit/ngModel-inputs i templates
+
+### Audit 2: Angular change detection OnPush audit (0 buggar)
+
+Granskade alla tunga Angular-komponenter i noreko-frontend/src/app/pages/ efter `ChangeDetectionStrategy.OnPush`-kompatibilitet.
+
+**Genomgångna komponenter:** vd-dashboard, executive-dashboard, operator-dashboard, benchmarking, statistik-overblick, cykeltid-heatmap, heatmap, pareto, oee-benchmark, oee-waterfall, oee-trendanalys, skiftjamforelse, historisk-sammanfattning, daglig-sammanfattning, operator-ranking, operator-compare, ranking-historik, produktionskalender, produktionsprognos, forsta-timme-analys, veckorapport, monthly-report, weekly-report, effektivitet, utnyttjandegrad, rebotling-prognos.
+
+**Resultat: RENT** — Inga komponenter i projektet använder `async pipe` i sina templates eller anropar `ChangeDetectorRef.markForCheck()` manuellt. Alla komponenter använder `subscribe()`-mönstret med direkt mutation av lokala properties. Att lägga till OnPush utan att också lägga till markForCheck()-anrop efter varje subscribe()-callback skulle bryta renderingen. Ingen komponent uppfyller kriteriet för att OnPush kan läggas till utan kodändringar.
+
+---
+
 ## 2026-03-22 Session #247 Worker A — intval/floatval bounds (N-Z) + header redirect + SQL ORDER BY injection audit (0 buggar)
 
 ### Audit 1: PHP intval/floatval range validation audit (N-Z) (0 buggar)

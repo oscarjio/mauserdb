@@ -7,6 +7,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService, AuthUser } from '../../services/auth.service';
 import { BonusAdminService, BonusPeriod, BonusConfigResponse, BonusSystemStatsResponse, OperatorForecastResponse } from '../../services/bonus-admin.service';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 interface SimOperatorResult {
   op_number: number;
@@ -138,11 +139,16 @@ interface ApiResponse<T = unknown> {
   styleUrl: './bonus-admin.css',
   imports: [CommonModule, FormsModule]
 })
-export class BonusAdminPage implements OnInit, OnDestroy {
+export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   loggedIn = false;
   user: AuthUser | null = null;
   isAdmin = false;
+  formDirty = false;
+
+  canDeactivate(): boolean {
+    return !this.formDirty;
+  }
 
   // State
   loading = false;
@@ -1443,6 +1449,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   private showSuccess(msg: string) {
     this.successMessage = msg;
     this.errorMessage = '';
+    this.formDirty = false;
     clearTimeout(this.successTimerId);
     this.successTimerId = setTimeout(() => { if (!this.destroy$.closed) this.successMessage = ''; }, 4000);
   }

@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 import {
   UnderhallsloggService,
   Station,
@@ -28,7 +29,7 @@ declare const Chart: any;
   templateUrl: './underhallslogg.html',
   styleUrl: './underhallslogg.css'
 })
-export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit {
+export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit, ComponentCanDeactivate {
   @ViewChild('manadChart', { static: false }) chartRef!: ElementRef<HTMLCanvasElement>;
 
   loggedIn = false;
@@ -93,6 +94,16 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   successMessage = '';
   errorMessage = '';
   private successTimer: any;
+
+  canDeactivate(): boolean {
+    const rebotlingDirty = this.showForm && (
+      !!this.formBeskrivning.trim() ||
+      !!this.formStopporsak.trim() ||
+      this.formVaraktighet !== null
+    );
+    const legacyDirty = !!this.legacyFormKommentar.trim() || this.legacyFormVaraktighet !== null;
+    return !rebotlingDirty && !legacyDirty;
+  }
 
   constructor(
     private auth: AuthService,

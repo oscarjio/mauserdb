@@ -6,6 +6,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 interface WeekdayGoal {
   weekday: number;
@@ -20,11 +21,16 @@ interface WeekdayGoal {
   templateUrl: './tvattlinje-admin.html',
   styleUrl: './tvattlinje-admin.css'
 })
-export class TvattlinjeAdminPage implements OnInit, OnDestroy {
+export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
+  formDirty = false;
+
+  canDeactivate(): boolean {
+    return !this.formDirty;
+  }
 
   // ---- Gamla settings (bakåtkompatibilitet med admin-settings endpoint) ----
   settings: any = {
@@ -440,6 +446,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   private showSuccess(message: string) {
     this.successMessage = message;
     this.showSuccessMessage = true;
+    this.formDirty = false;
     clearTimeout(this.successTimerId);
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.showSuccessMessage = false;

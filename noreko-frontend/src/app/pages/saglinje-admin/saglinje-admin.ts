@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { SaglinjeService } from '../../services/saglinje.service';
 import { environment } from '../../../environments/environment';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 
 interface WeekdayGoal {
   weekday: number;
@@ -21,11 +22,16 @@ interface WeekdayGoal {
   styleUrl: './saglinje-admin.css',
   imports: [CommonModule, FormsModule, DatePipe],
 })
-export class SaglinjeAdminPage implements OnInit, OnDestroy {
+export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
+  formDirty = false;
+
+  canDeactivate(): boolean {
+    return !this.formDirty;
+  }
 
   // ---- Driftsinställningar (key-value settings) ----
   settings: any = {
@@ -310,6 +316,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
   private showSuccess(message: string) {
     this.successMessage    = message;
     this.showSuccessMessage = true;
+    this.formDirty = false;
     clearTimeout(this.successTimerId);
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.showSuccessMessage = false;

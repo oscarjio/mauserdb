@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { ComponentCanDeactivate } from '../../guards/pending-changes.guard';
 import { localToday, parseLocalDate } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 import { environment } from '../../../environments/environment';
@@ -35,11 +36,16 @@ interface ServiceStatus {
   templateUrl: './rebotling-admin.html',
   styleUrl: './rebotling-admin.css'
 })
-export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
+export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, ComponentCanDeactivate {
   private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
+  formDirty = false;
+
+  canDeactivate(): boolean {
+    return !this.formDirty;
+  }
 
   // ---- Produkthantering ----
   products: any[] = [];
@@ -1484,6 +1490,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   private showSuccess(message: string) {
     this.successMessage     = message;
     this.showSuccessMessage = true;
+    this.formDirty = false;
     clearTimeout(this.successTimerId);
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.showSuccessMessage = false;
