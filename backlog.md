@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #242+):
-- [ ] **PHP classes/ SQL subquery performance audit** — korrelerade subqueries som kan vara JOINs
-- [ ] **PHP error_log format consistency audit** — enhetligt loggformat med timestamp/context
-- [ ] **Angular HTTP polling interval cleanup audit** — setInterval utan clearInterval i OnDestroy
-- [ ] **PHP file_put_contents error handling audit** — saknad felhantering vid filskrivning
-- [ ] **Angular router resolve/guard return type audit** — felaktiga return-typer
+### Nasta buggjakt-items (session #243+):
+- [ ] **PHP str_replace/preg_replace edge case audit** — felaktiga regex, saknad preg_quote, tomma patterns
+- [ ] **PHP array_merge i loopar performance audit** — array_merge() i foreach som kan vara +=/$result[]
+- [ ] **Angular trackBy audit** — *ngFor utan trackBy pa listor med HTTP-data
+- [ ] **PHP PDO fetch mode consistency audit** — blandade FETCH_ASSOC/FETCH_BOTH/FETCH_NUM
+- [ ] **Angular template safe navigation audit** — saknade ?. i kedjeanrop pa nullable objekt
 
 ## Parkerade features (ta inte dessa nu)
 

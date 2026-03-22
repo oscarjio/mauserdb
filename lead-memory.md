@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #241)*
+*Senast uppdaterad: 2026-03-22 (session #242)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -108,6 +108,7 @@ Session #238: BUGGJAKT — 10 buggar (10 Worker A + 0 Worker B). Output bufferin
 Session #239: BUGGJAKT — 20 buggar (15 Worker A + 5 Worker B). Error response consistency: rent. SQL GROUP BY: rent. usort subtraktion->spaceship: 15 fixar i 7 PHP-filer. Pipe null-safety: 5 fixar i benchmarking.html. Preload strategy: rent.
 Session #240: BUGGJAKT — 13 buggar (0 Worker A + 13 Worker B). SQL DISTINCT: rent. PDO fetchAll: rent. file_get_contents: rent. HTTP error normalization: 13 catchError utan err-param i 5 services. Form validation: rent.
 Session #241: BUGGJAKT — 5 buggar (1 Worker A + 4 Worker B). array_filter callback: 1 fix (0 filtrerades bort). header() audit: rent. NgOnChanges: rent. Template expression complexity: 4 tunga metoder cachade.
+Session #242: BUGGJAKT — 22 buggar (22 Worker A + 0 Worker B). SQL subquery->JOIN (4), error_log format (18), file_put_contents: rent (A). HTTP polling interval: rent. Router guard return types: rent (B).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -122,10 +123,10 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-22 — Session #240 (klar)
-Worker A: 0 buggar — SQL DISTINCT, PDO fetchAll, file_get_contents: rent.
-Worker B: 13 buggar — HTTP error normalization: 13 catchError utan err-param i 5 services.
-
 ### 2026-03-22 — Session #241 (klar)
 Worker A: 1 bugg — array_filter utan callback i SkiftrapportController (0 filtrerades bort). header() audit: rent.
 Worker B: 4 buggar — NgOnChanges: rent (ingen anvander det). Template expression complexity: 4 tunga metoder cachade (shared-skiftrapport, stopptidsanalys, skiftjamforelse, shift-plan).
+
+### 2026-03-22 — Session #242 (klar)
+Worker A: 22 buggar — SQL korrelerade subqueries->JOINs i 4 filer (4). error_log utan metodnamn i RebotlingAdmin/Analytics (18). file_put_contents: rent (0).
+Worker B: 0 buggar — HTTP polling interval cleanup: rent. Router resolve/guard return types: rent.
