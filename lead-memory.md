@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #254)*
+*Senast uppdaterad: 2026-03-22 (session #255)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -121,28 +121,29 @@ Session #251: BUGGJAKT — 8 buggar (0 Worker A + 8 Worker B). switch/case fall-
 Session #252: BUGGJAKT — 3 buggar (1 Worker A + 2 Worker B). fsockopen resource leak (1). Template arithmetic complexity (2). array_splice/array_pop: rent. preg_replace: rent. fopen/fclose: rent (utom fsockopen). HTTP retry: rent. OnPush: rent.
 Session #253: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() redirect: rent. json_encode UTF-8: rent. PDO transaction nesting: rent. HttpParams encoding: rent. Template pipe chain: rent. Template null-safety: rent.
 Session #254: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_merge overwrite: rent (~40 anrop, alla korrekta). date()/DateTime consistency: rent (global timezone + explicit DateTimeZone). PDO closeCursor: rent. ngOnChanges mutation: rent (noll ngOnChanges i pages/). ViewChild timing: rent (22 refs, alla korrekt). Template side-effects: rent.
+Session #255: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). str_pad/substr truncation: rent (alla substr pa ASCII datum/tid, fri text med mb_substr). array_column type coercion: rent (inga 3-arg anrop). preg_match return value: rent (alla truthy/falsy, statiska monster). HTTP race condition: rent (switchMap korrekt, debounce pa sok). Template division by zero: rent (alla divisioner guardade). FormControl/ngModel conflict: rent (enbart template-driven forms).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #255):
-- [ ] PHP str_pad/substr truncation audit
-- [ ] PHP array_column type coercion audit
-- [ ] Angular HTTP race condition audit — switchMap vs mergeMap
-- [ ] Angular template arithmetic overflow audit — division by zero
-- [ ] PHP preg_match return value audit
+### Nasta (session #256):
+- [ ] PHP sprintf format string mismatch audit
+- [ ] PHP array_push vs []= performance audit
+- [ ] Angular HostListener memory leak audit
+- [ ] Angular async validator timing audit
+- [ ] PHP usort stability audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-22 — Session #253 (klar)
-Worker A: 0 buggar — header() redirect: inga Location-redirects i kodbasen (rent JSON-API). json_encode UTF-8: alla 383 json_encode har JSON_UNESCAPED_UNICODE. PDO transaction nesting: 54 beginTransaction i 31 filer, inga nestade, alla har rollBack.
-Worker B: 0 buggar — HttpParams encoding: alla specialtecken hanteras med encodeURIComponent, HttpParams.set() immutable korrekt. Template pipe chain: alla number/date/slice-pipes null-skyddade med ternary/*ngIf. Template null-safety: alla djupa property-accesser skyddade med *ngIf.
-
-### 2026-03-22 — Session #252 (klar)
-Worker A: 1 bugg — fsockopen resource leak i VpnController.php (socket ej stangd i catch-block). array_splice/array_pop: rent. preg_replace: rent (5 anrop, enkla monster).
-Worker B: 2 buggar — Template arithmetic: batch-sparning 3x upprepad berakning->getter, vd-veckorapport kpiLista() skapade ny array varje anrop->readonly property. HTTP retry: rent. OnPush: rent (inga OnPush-komponenter).
+### 2026-03-22 — Session #255 (klar)
+Worker A: 0 buggar — str_pad/substr truncation: rent (alla substr pa ASCII datum/tid, fri text med mb_substr). array_column type coercion: rent (inga 3-arg anrop). preg_match return value: rent (alla truthy/falsy, statiska monster).
+Worker B: 0 buggar — HTTP race condition: rent (switchMap korrekt, debounce pa sok). Template division by zero: rent (alla divisioner guardade med ternary/ngIf/hardkodade konstanter). FormControl/ngModel conflict: rent (enbart template-driven forms, alla ngModel har name).
 
 ### 2026-03-22 — Session #254 (klar)
 Worker A: 0 buggar — array_merge overwrite (~40 anrop): rent (alla avsiktliga defaults-override eller numeriska nycklar). date()/DateTime consistency: rent (global Europe/Stockholm + explicit DateTimeZone). PDO closeCursor: rent (alla SELECT foljda av fetch/fetchAll/fetchColumn).
 Worker B: 0 buggar — ngOnChanges mutation: rent (noll ngOnChanges-implementationer i pages/). ViewChild timing: rent (22 refs, alla i ngAfterViewInit/setTimeout/null-guard). Template side-effects: rent (alla method()-anrop ar rena getters).
+
+### 2026-03-22 — Session #253 (klar)
+Worker A: 0 buggar — header() redirect: inga Location-redirects i kodbasen (rent JSON-API). json_encode UTF-8: alla 383 json_encode har JSON_UNESCAPED_UNICODE. PDO transaction nesting: 54 beginTransaction i 31 filer, inga nestade, alla har rollBack.
+Worker B: 0 buggar — HttpParams encoding: alla specialtecken hanteras med encodeURIComponent, HttpParams.set() immutable korrekt. Template pipe chain: alla number/date/slice-pipes null-skyddade med ternary/*ngIf. Template null-safety: alla djupa property-accesser skyddade med *ngIf.
