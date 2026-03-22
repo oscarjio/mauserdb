@@ -17266,3 +17266,72 @@ Granskade samtliga HTML-templates i noreko-frontend/src/app/pages/ (130+ filer, 
 - **`*ngFor` pa potentiellt null array:** `bp.insights` i `skiftjamforelse.html` rad 223 — typat som `string[]` (required) i interface, ej nullable. Korrekt.
 
 Inga okyddade djupa property-accesser hittades. Inga buggar hittade.
+
+## 2026-03-22 Session #254 Worker A — PHP array_merge overwrite audit + date()/DateTime consistency audit + PDO closeCursor audit (0 buggar)
+
+### Uppgift 1: PHP array_merge overwrite audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/), totalt ~120 filer.
+
+**Metod:** Sokta efter array_merge() i alla PHP-filer, kontrollerade varje forekomst for overskrivningsrisk pa associativa nycklar och anvandning inuti loopar.
+
+**Fynd:**
+
+- **array_merge($allowedOrigins, $extraOrigins)** — api.php rad 20, admin.php rad 16, login.php rad 16: Bada arrayerna har numeriska nycklar (listor med URL-strangar). array_merge omindexerar numeriska nycklar (appendar), sa inga nycklar skrivs over. Korrekt.
+
+- **array_merge($defaults, $saved)** — RebotlingAdminController.php rad 269 och 791, TvattlinjeController.php rad 382: Avsiktligt monster: sparade varden fran DB ska skriva over defaults. $saved ar ett subset av $defaults nycklar (valideras dessforinnan med array_keys($this->defaultAlertThresholds()) / array_keys($this->defaultNotificationConfig())), sa oavsiktlig overskrivning ar omojlig. Korrekt.
+
+- **array_merge(['success' => true], $data)** — BatchSparningController.php, MaskinunderhallController.php, ProduktionskostnadController.php, ProduktionsflodeController.php, SkiftoverlamningController.php, HistoriskProduktionController.php, UnderhallsloggController.php, ProduktionsSlaController.php, KvalitetscertifikatController.php, SkiftplaneringController.php, OperatorsbonusController.php, DashboardLayoutController.php: $data kommer fran JSON-decode av klient-input eller DB-resultat. Om $data skulle innehalla nyckeln 'success' skulle den skriva over true, men alla dessa filer validerar $data-strukturen fore anropet och 'success' ar inte en laglig datanyckel. Ingen verklig bugg.
+
+- **array_merge($alarms, $this->get*())** — AlarmHistorikController.php rader 82/85/88/91: Appendar listor med numeriska nycklar (resultat fran fyra olika alarm-typer). Korrekt.
+
+- **array_merge($params, ...)** — ProduktTypEffektivitetController.php, OperatorsPrestandaController.php, LineSkiftrapportController.php, KassationsanalysController.php (3 stallena), RebotlingAnalyticsController.php, OperatorRankingController.php (2 stallena), SkiftrapportController.php: Alla dessa bygger PDO-parametrar-arrayer med numeriska nycklar fore execute(). Korrekt.
+
+- **array_merge($userIds, $userIds, $userIds)** — GamificationController.php rad 334, OperatorRankingController.php rad 401: Triplicerar en numerisk array for att fylla en SQL IN-klausul som refererar samma lista tre ganger (t.ex. tre CASE-satser). Avsiktligt och korrekt.
+
+- **array_unique(array_merge(...))** — RankingHistorikController.php, RebotlingAnalyticsController.php (2 stallena), StopporsakTrendController.php: Slar ihop nycklar fran tva index-arrayer for att fa alla unika nycklar. Standardmonster, korrekt.
+
+- **array_merge($ops, ...)** — BonusController.php rad 471: Appendar operatorer fran two sub-queries till en lista. Numeriska nycklar. Korrekt.
+
+- **array_merge($timme/$skift/$dag, [...])** — KassationskvotAlarmController.php rader 234/238/245: Laggar till extra metadata-nycklar till OEE-liknande aggregat-arrayer. Olika arrayer ($timme, $skift, $dag) mergeas med unika extra-nycklar ('period_label' etc.). Inga krockar. Korrekt.
+
+- **DagligSammanfattningController.php rad 640/645:** array_merge($prod, [...]) och array_merge($oee, $oeeInfo) - $prod och $oee ar olika arrayer (produktion resp. OEE-data), extra nycklar laggs till. Inga krockar. Korrekt.
+
+Inga array_merge-anrop hittades inuti loopar. Inga verkliga buggar.
+
+### Uppgift 2: PHP date() vs DateTime::format() consistency audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
+
+**Metod:** Sokta efter date() och DateTime/DateTimeZone/->format() i alla PHP-filer. Kontrollerade timezone-konsistens och format-strangs-konsistens.
+
+**Fynd:**
+
+- **Timezone-konsistens:** api.php satter date_default_timezone_set('Europe/Stockholm') globalt. Alla klasser includas via api.php, sa date() anvander alltid Europe/Stockholm. DateTime-objekt som skapas i klasserna anvander explicit `new DateTimeZone('Europe/Stockholm')` — konsekvent med PHP-timezone. Ingen avvikelse.
+
+- **Format-strengs-konsistens:** DB-bundna datum anvander genomgaende 'Y-m-d' och 'Y-m-d H:i:s'. Display-labels anvander 'd M', 'd/m', 'H:i', 'H:00' etc. — dessa ar avsiktligt forkortade for UI-visning och blandas inte med DB-bundna format.
+
+- **ProduktionsTaktController.php rader 103-146:** Blandar date('Y-m-d H:i:s') for SQL-parametrar och new DateTime(..., new DateTimeZone('Europe/Stockholm')) for DST-korrekt timberakning. Kommentarer i koden forklarar orsaken (DST-sakert). Korrekt och konsekvent.
+
+- **VDVeckorapportController.php rader 150/356/469/493/640:** Anvander date('c') (ISO 8601 full timestamp) for timestamp-faltet, inga andra filer anvander detta format for timestamp. Inga buggar — 'c' ar ett valformat och fullt acceptabelt for ett timestamp-falt avsett for klienten.
+
+Inga inkonsistenta format-strangar hittades. Inga verkliga buggar.
+
+### Uppgift 3: PHP PDO closeCursor audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
+
+**Metod:** Sokta efter ->execute() dar resultatet kan vara okonsumet. Kontrollerade varje execute()-anrop och vad som foljer direkt efter.
+
+**Fynd:**
+
+- Alla SELECT-statements som kors via $stmt->execute() folgds omedelbart av ->fetch(), ->fetchAll(), ->fetchColumn() eller ar INSERT/UPDATE/DELETE som inte returnerar resultatset.
+
+- $stmt->execute() utan parametrar: ShiftHandoverController (INSERT), FeedbackController (SELECT foljt av ->fetch()), RuntimeController (SELECT foljt av ->fetch()), RebotlingController (multiple — alla foljda av ->fetch(), ->fetchColumn()), OperatorCompareController (SELECT foljt av ->fetch()), KassationskvotAlarmController (UPDATE), SkiftoverlamningController (INSERT/UPDATE), ProduktionsDashboardController (SELECT foljt av ->fetchColumn()), FeedbackAnalysController (SELECT foljt av ->fetchAll()), ProduktionsPrognosController (SELECT foljt av ->fetchColumn()), RebotlingTrendanalysController (SELECT foljt av ->fetchAll()), MaskinhistorikController (SELECT foljt av ->fetchAll()), BonusAdminController (multiple — INSERT/SELECT, alla foljda av ->fetch()), AdminController (INSERT/UPDATE), LeveransplaneringController (INSERT/UPDATE), TvattlinjeController (SELECT/INSERT, alla foljda av ->fetchAll()/->fetch()).
+
+- pdo->query()->fetch() / ->fetchAll() / ->fetchColumn(): alla anvands i one-liner-monster dar resultatset konsumeras direkt. Inget unbuffered result-set lamnas oppet.
+
+Ingen PDO-statement hittades dar resultatet lamnas okonsumet. Inga verkliga buggar.
