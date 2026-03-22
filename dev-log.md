@@ -17198,3 +17198,71 @@ Kontrollpunkter:
 - **RuntimeController:** Anvander nstad try-catch dar inner-catch gor rollBack() och kastar om undantaget till outer-catch for felrespons. Korrekt monster.
 
 Samtliga transaktioner ar korrekt isolerade och har fullstandig commit()/rollBack()-hantering.
+
+### Worker B — Session #253
+
+#### Uppgift 1: Angular HttpParams encoding audit
+**Resultat:** rent — 0 buggar
+
+Granskade samtliga service-filer i noreko-frontend/src/app/services/ (80+ filer) samt komponenter i noreko-frontend/src/app/pages/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Metod:** Sokta efter HttpParams-anvandning, manuell URL-konstruktion med query-parametrar, och string-interpolation utan encodeURIComponent dar varden kan innehalla svenska tecken.
+
+**Fynd:**
+- Hela kodbasen anvander URL-string-template-concatenation (`${this.api}&run=...&param=${value}`) genomgaende, utan HttpParams. Detta ar ett konsekvent monster genomfart i alla ~80 services.
+- Parametrar som accepterar strangvarden som potentiellt kan innehalla svenska tecken (a, a, o, mellanslag etc.) ar korrekt omgivna med encodeURIComponent:
+  - `rebotling-stationsdetalj.service.ts`: `station=${encodeURIComponent(station)}`
+  - `maskinhistorik.service.ts`: `station=${encodeURIComponent(station)}`
+  - `historisk-sammanfattning.service.ts`: `typ=${encodeURIComponent(typ)}&period=${encodeURIComponent(period)}`
+  - `audit.service.ts`: `period`, `filter_action`, `filter_user`, `filter_entity`, `search`, `from_date`, `to_date` — alla med encodeURIComponent
+  - `alarm-historik.service.ts`: `status`, `severity`, `typ` — alla med encodeURIComponent
+  - `batch-sparning.service.ts`: `search=${encodeURIComponent(search)}`
+  - `underhallslogg.service.ts`: `type` och `category` — med encodeURIComponent
+  - `kassationsorsak-per-station.service.ts`: `station=${encodeURIComponent(station)}`
+  - `stopporsak-trend.service.ts`: `reason=${encodeURIComponent(reason)}`
+  - `rebotling.service.ts`: `cause=${encodeURIComponent(cause)}`, `operator=${encodeURIComponent(operator)}`
+  - `maskin-drifttid.service.ts`: `datum=${encodeURIComponent(datum)}`
+  - `morgonrapport.service.ts`: `date=${encodeURIComponent(date)}`
+  - `veckorapport.service.ts`: `week=${encodeURIComponent(week)}`
+  - `bonus-admin.service.ts`: `period=${encodeURIComponent(period)}`
+- Ovriga strangparametrar (t.ex. `period`, `sort_by`, `skift`, `granularity`, `group`) innehaller uteslutande ASCII-safa varden (t.ex. `'dag'`, `'week'`, `'month'`, `'day'`, `'ibc_per_h'`).
+- De tva service-filer som anvander HttpParams (`skiftoverlamning.service.ts` och `bonus.service.ts`) anvander korrekt immutable `.set()`-monster: `params = params.set(...)`.
+- `maintenance-list.component.ts` och `bonus-admin.ts` anvander `URLSearchParams` (Web API) korrekt for URL-konstruktion.
+
+Inga buggar hittade.
+
+#### Uppgift 2: Angular template pipe chain audit
+**Resultat:** rent — 0 buggar
+
+Granskade samtliga HTML-templates i noreko-frontend/src/app/pages/ (130+ filer, exkl. live-sidor) med fokus pa pipe-kedjor.
+
+**Metod:** Sokta efter `| number`, `| date`, `| slice`, `| percent`, `| currency` i alla templates.
+
+**Fynd:**
+- **| percent:** Inga `| percent` pipe-anvandningar hittades overhuvudtaget i kodbasen. Procent-varden visas antingen som `{{ value | number:'1.0-0' }}%` eller via ternary-uttryck. Inga buggar.
+- **| date pa null-varden:** Samtliga `| date`-anvandningar i *ngFor-kontext (t.ex. `report.datum`, `log.created_at`, `s.start_time`) kommer fran API-svar dar falten garanteras icke-null. Varden som kan vara null skyddas korrekt med ternary (`forecast.skift_start ? (forecast.skift_start | date:'HH:mm') : '–'`) eller `*ngIf` (t.ex. `systemStatus.last_plc_ping`, `systemStatus.server_time`, `serviceStatus.last_service_at`).
+- **| number pa null-varden:** Alla potentiellt nullbara numeriska varden anvander antingen ternary (`value !== null ? (value | number:'1.1-1') : '–'`) eller ar skyddade av yttre `*ngIf`-block. T.ex. i `utnyttjandegrad.html`: `summaryData?.idag_pct !== null ? (summaryData?.idag_pct | number:'1.0-0') : '-'`.
+- **| slice pa null-strang:** `s.last_shift | slice:0:10` i `operators.html` skyddas av `*ngIf="s.last_shift"`. `s.start_time | slice:11:16` i `operator-personal-dashboard.html` skyddas av `*ngIf="s.start_time"`. `p.created_at | slice:0:10` i `bonus-admin.html` — `created_at` ar ett DB-timestamp-falt, garanterat icke-null. `dashData.today.shift_start | slice:0:5` — typat som `string` (icke-nullable) i interface.
+- **Felaktiga number-formatstrangar:** Inga hittades. Alla format-strangar ar valformade (t.ex. `'1.0-0'`, `'1.1-1'`, `'1.2-2'`).
+
+Inga buggar hittade.
+
+#### Uppgift 3: Angular template string interpolation null-safety audit
+**Resultat:** rent — 0 buggar
+
+Granskade samtliga HTML-templates i noreko-frontend/src/app/pages/ (130+ filer, exkl. live-sidor) med fokus pa djupa property-accesser utan `?.`.
+
+**Metod:** Sokta efter `obj.prop.subprop.deeperprop`-monster i templates, sarskilt i *ngFor-kontext. Kontrollerade guarding-struktur med *ngIf.
+
+**Fynd:**
+- **trenderData.trender.produktion.trend** (`vd-veckorapport.component.html` rad 308-312): Skyddas av `*ngIf="trenderData.trender.produktion"` pa rad 303 och `*ngIf="trenderData.trender"` pa rad 302. Korrekt.
+- **trenderData.trender.kassation.trend** (`vd-veckorapport.component.html` rad 321-324): Skyddas av `*ngIf="trenderData.trender.kassation"` pa rad 316. Korrekt.
+- **dashData.week.best_operator.name/ibc_h** (`executive-dashboard.html` rad 362/364 och 425/431): Skyddas av `*ngIf="dashData.week.best_operator"`. Korrekt.
+- **report.production.best_day.date/count** (`veckorapport.html` rad 74): Skyddas av `*ngIf="report.production.best_day"`. Korrekt.
+- **report.production.worst_day.date/count** (`veckorapport.html` rad 80): Skyddas av `*ngIf="report.production.worst_day"`. Korrekt.
+- **selectedBatchDetail.batch.skapad_datum** (`batch-sparning.component.html` rad 290): Skyddas av yttre `*ngIf="selectedBatchDetail"` pa rad 235. `batch` garanteras narvarandes nar `selectedBatchDetail` finns.
+- **summary.stopptid.top3_orsaker** (`daglig-sammanfattning.html` rad 286-289): `summary` skyddas av `*ngIf="summaryLoaded && !summaryError && summary && summary.produktion.har_data"` pa rad 58. `stopptid` garanteras narvarandes i summary-objektet.
+- **compareData!.operator_of_month!.total_ibc** etc. (`monthly-report.html`): Anvander non-null assertion `!.` som ar TS-kompilatorassertioner, inte runtime-operatorer. Skyddas av yttre `*ngIf`.
+- **`*ngFor` pa potentiellt null array:** `bp.insights` i `skiftjamforelse.html` rad 223 — typat som `string[]` (required) i interface, ej nullable. Korrekt.
+
+Inga okyddade djupa property-accesser hittades. Inga buggar hittade.
