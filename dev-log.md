@@ -1,3 +1,27 @@
+## 2026-03-22 Session #243 Worker B — trackByIndex audit + safe navigation audit (146 buggar)
+
+### Uppgift 1: Angular trackBy audit (146 buggar)
+Granskade ALLA .html-filer i noreko-frontend/src/app/ (exklusive live-sidor) for:
+- *ngFor utan trackBy — **inga hittade** (alla har trackBy)
+- trackBy-funktioner som returnerar index istallet for unikt ID
+
+**Fixade 146 trackByIndex-funktioner i 146 .ts-filer.**
+Alla returnerade bara `index`, vilket gor att Angular inte kan spara DOM-element
+korrekt vid omrendering av listor fran HTTP-anrop och polling.
+
+Fix: `trackByIndex(index, item)` returnerar `item?.id ?? index` — objekt med
+id-falt sparas med unikt ID, primitiver (strings/numbers) faller tillbaka pa index.
+
+### Uppgift 2: Angular template safe navigation audit (0 buggar)
+Granskade ALLA .html-filer i noreko-frontend/src/app/ (exklusive live-sidor) for:
+- Kedjeanrop pa nullable objekt utan safe navigation operator (?.)
+- Metoder som anropas pa objekt som kan vara null
+- Villkorliga block som kollar parent men inte child
+
+Alla nullable objekt (deklarerade som `| null` i .ts) ar korrekt skyddade med
+`*ngIf`-guards i templates. Djupa kedjeanrop (t.ex. `data.nested.prop`) anvander
+antingen `*ngIf` pa parent-element eller `?.` pa mellanliggande properties. **Rent.**
+
 ## 2026-03-22 Session #243 Worker A — preg_replace/str_replace + array_merge loop + PDO fetch mode audit (111 buggar)
 
 ### Uppgift 1: PHP str_replace/preg_replace edge case audit (0 buggar)
