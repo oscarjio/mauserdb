@@ -1,3 +1,44 @@
+## 2026-03-22 Session #250 Worker B — Angular pipe null-safety + FormControl validators + route resolver audit (0 buggar)
+
+### Uppgift 1: Angular pipe chain null-safety audit — 0 buggar
+
+Granskade ALLA HTML-templates i noreko-frontend/src/app/pages/ (exkl rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live) for pipe-null-safety-problem.
+
+Undersokta monster:
+- Kedjade pipes utan null-check ({{ value | number | percent }})
+- Saknad null-safe operator innan pipe ({{ value.field | date }} utan guard)
+- number/percent/currency/date pipes som kastar pa null/undefined
+
+**Resultat:** Inga buggar hittade. Kodbasen ar konsekvent valsskriven:
+- Alla pipe-anvandningar pa API-data skyddas av *ngIf-guards (t.ex. *ngIf="!loading && summary", *ngIf="data", *ngIf="!loadingStats && stats")
+- Nullable falt anvander ternary-operatorer (t.ex. {{ value !== null ? (value | number:'1.1-1') : '-' }})
+- Falt fran *ngFor-iterationer (t.ex. report.datum, log.created_at) ar alltid-naervarande databasfalt
+- Komponent-variabler (t.ex. lastRefreshed, totalProduced) har default-varden i TypeScript
+- Inga kedjade pipes (number|percent) hittades
+
+Filer granskade (urval): monthly-report.html, executive-dashboard.html, operatorsportal.html, bonus-dashboard.html, bonus-admin.html, rebotling-admin.html, benchmarking.html, drifttids-timeline.component.html, klassificeringslinje-statistik.html, saglinje-statistik.html, tvattlinje-statistik.html, tvattlinje-admin.html, saglinje-admin.html, klassificeringslinje-admin.html, stoppage-log.html, kassations-drilldown.html, rebotling-skiftrapport.html, stopporsak-operator.html, my-bonus.html, statistik-waterfall-oee.html, statistik-histogram.html, statistik-kvalitet-deepdive.html, statistik-oee-gauge.html, statistik-skiftjamforelse.html, statistik-cykeltid-operator.html, m.fl.
+
+### Uppgift 2: Angular FormControl validators audit — 0 buggar
+
+Sokte igenom ALLA TypeScript-filer i noreko-frontend/src/app/ (bade pages/ och services/) efter FormControl, FormGroup och FormBuilder.
+
+**Resultat:** Inga ReactiveFormsModule-baserade formularthantering hittades i nagon komponent. Hela kodbasen anvander template-driven forms med ngModel. Darfor finns inga validators-buggar att rapportera.
+
+### Uppgift 3: Angular route resolver error handling audit — 0 buggar
+
+Granskade:
+- app.routes.ts (165 rader, alla routes)
+- guards/auth.guard.ts (authGuard + adminGuard)
+- guards/pending-changes.guard.ts (pendingChangesGuard)
+
+**Resultat:**
+- Inga resolve:-konfigurationer finns i app.routes.ts — alla sidor hamtar data i ngOnInit
+- authGuard och adminGuard ar valsrkivna: anvander initialized$.pipe(filter, take, switchMap) for att vanta pa auth-status, returnerar UrlTree for redirects (Angular best practice)
+- pendingChangesGuard ar enkel och korrekt (synkron canDeactivate)
+- Inga resolvers finns i kodbasen (sokning efter *resolver* gav 0 traffar)
+
+---
+
 ## 2026-03-22 Session #249 Worker A — PHP N-Z array_map/array_filter + strpos + preg_match + file_put_contents audits (0 buggar)
 
 ### Uppgift 1: PHP array_map/array_filter callback type-safety audit (N-Z) — 0 buggar
