@@ -7,20 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #257):
-- [ ] **PHP foreach by-reference audit** — Worker A — &$val utan unset efter loop
-- [ ] **PHP static method state leakage audit** — Worker A — statiska variabler mellan requests
-- [ ] **PHP PDO::ATTR_EMULATE_PREPARES audit** — Worker A — saknad eller felaktig konfiguration
-- [ ] **Angular ngAfterViewChecked performance audit** — Worker B — tunga operationer i change detection
-- [ ] **Angular HTTP interceptor error propagation audit** — Worker B — swallowed errors
-- [ ] **Angular forkJoin/combineLatest completion audit** — Worker B — icke-completande observables
+### Pagaende (session #258):
+- [ ] **PHP type juggling audit** — Worker A — == vs === med mixed types
+- [ ] **PHP error_reporting/display_errors audit** — Worker A — produktionssakerhet
+- [ ] **PHP SQL LIMIT/OFFSET injection audit** — Worker A — osanerade numeriska varden
+- [ ] **Angular template null-check audit** — Worker B — saknade ?. i templates
+- [ ] **Angular Router guard return type audit** — Worker B — felaktiga guard-returvarden
+- [ ] **Angular service URL consistency audit** — Worker B — hardkodade/felaktiga URL:er
 
-### Nasta buggjakt-items (session #258+):
-- [ ] **PHP type juggling audit** — == vs === jamforelser med mixed types
-- [ ] **PHP error_reporting/display_errors audit** — produktions-sakerhet
-- [ ] **Angular template null-check audit** — saknade ?. i templates
-- [ ] **Angular Router guard return type audit** — felaktiga guard-returvarden
-- [ ] **PHP SQL LIMIT/OFFSET injection audit** — osanerade numeriska varden
+### Nasta buggjakt-items (session #259+):
+- [ ] **PHP file_get_contents/curl error handling audit** — saknad felhantering vid externa anrop
+- [ ] **PHP session handling audit** — session fixation, regenerate_id, timeout
+- [ ] **Angular change detection strategy audit** — OnPush vs Default, oanvanda ChangeDetectorRef
+- [ ] **Angular lazy loading route audit** — felaktiga loadChildren/import-sokvagar
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #257)*
+*Senast uppdaterad: 2026-03-22 (session #258)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -62,17 +62,25 @@ Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
 Session #256: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). sprintf/usort/array_push/HostListener/async validator/Renderer2: alla rent.
 Session #257: BUGGJAKT — 7 buggar (7 Worker A + 0 Worker B). foreach by-reference: 5 saknade unset() fixade. PDO EMULATE_PREPARES: 2 saknade false fixade. static state/ngAfterViewChecked/HTTP interceptors/forkJoin: alla rent.
+Session #258: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). type juggling: 2 != till !== fixade. SQL LIMIT/OFFSET injection: 1 fixad. error_reporting/templates null-check/guards/URL consistency: alla rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #258):
-- [ ] PHP type juggling audit (== vs ===)
-- [ ] PHP error_reporting/display_errors audit
-- [ ] Angular template null-check audit
-- [ ] Angular Router guard return type audit
-- [ ] PHP SQL LIMIT/OFFSET injection audit
+### Klar (session #258):
+- [x] PHP type juggling audit (== vs ===) — Worker A — 2 buggar
+- [x] PHP error_reporting/display_errors audit — Worker A — rent
+- [x] PHP SQL LIMIT/OFFSET injection audit — Worker A — 1 bugg
+- [x] Angular template null-check audit — Worker B — rent
+- [x] Angular Router guard return type audit — Worker B — rent
+- [x] Angular service URL consistency audit — Worker B — rent
+
+### Nasta (session #259):
+- [ ] PHP file_get_contents/curl error handling audit
+- [ ] PHP session handling audit
+- [ ] Angular change detection strategy audit
+- [ ] Angular lazy loading route audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -84,6 +92,6 @@ Worker B: 0 buggar — ngAfterViewChecked: rent (1 traff, korrekt flagg-monster)
 Worker A: 0 buggar — sprintf format string: rent. usort stability: rent. array_push: rent.
 Worker B: 0 buggar — HostListener: rent. Async validator: rent. Renderer2/nativeElement: rent.
 
-### 2026-03-22 — Session #255 (klar)
-Worker A: 0 buggar — str_pad/substr truncation: rent. array_column type coercion: rent. preg_match return value: rent.
-Worker B: 0 buggar — HTTP race condition: rent. Template division by zero: rent. FormControl/ngModel conflict: rent.
+### 2026-03-22 — Session #258 (klar)
+Worker A: 3 buggar — type juggling: 2 != till !== (KassationsanalysController, ProduktTypEffektivitetController). SQL LIMIT/OFFSET: 1 stranginterpolering till prepared statement (RebotlingAnalyticsController). error_reporting: rent.
+Worker B: 0 buggar — template null-check: rent. Router guards: rent. Service URL consistency: rent.
