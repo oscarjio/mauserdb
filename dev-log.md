@@ -1,3 +1,54 @@
+## 2026-03-22 Session #248 Worker B — Angular HTTP timeout audit + Form validation UX audit (0 buggar)
+
+### Audit 1: Angular HTTP timeout audit
+
+Granskade ALLA 59 listade Angular services i noreko-frontend/src/app/services/ for HTTP-anrop utan timeout.
+
+**Metodik:**
+- Raknade `this.http.*`-anrop vs `timeout(`-anrop per fil med bash-skript
+- Kontrollerade att inga filer hade http > 0 och timeout = 0
+- Verifierade alla timeout-imports (`from 'rxjs'` eller `from 'rxjs/operators'` — bade ar giltiga for rxjs 7.x)
+
+**Resultat: Inga buggar.** Alla services har korrekt timeout-monster:
+- Alla 59 services i task-listan har `timeout(X)` i pipe()-kedjan pa varje HTTP-anrop
+- Import-stil: 87 services anvander `from 'rxjs/operators'`, 5 anvander `from 'rxjs'` (bade giltiga for rxjs ~7.8)
+- Typiskt monster: `.pipe(timeout(10000), retry(1), catchError(() => of(null)))`
+- `toast.service.ts` — inga HTTP-anrop, korrekt
+- Timeouts varierar 10000-20000ms beroende pa endpoint — rimliga varden
+
+**Services granskade (rena):**
+alarm-historik, alerts, andon-board, audit, auth, avvikelselarm, batch-sparning, bonus-admin, bonus, cykeltid-heatmap, daglig-sammanfattning, drifttids-timeline, effektivitet, favoriter, feature-flag, feedback-analys, forsta-timme-analys, heatmap, historisk-produktion, historisk-sammanfattning, kapacitetsplanering, kassationsanalys, kassations-drilldown, kassationskvot-alarm, kassationsorsak-per-station, kassationsorsak-statistik, klassificeringslinje, kvalitetscertifikat, kvalitetstrendanalys, kvalitets-trendbrott, ranking-historik, rebotling-sammanfattning, rebotling, rebotling-stationsdetalj, rebotling-trendanalys, saglinje, skiftjamforelse, skiftoverlamning, skiftplanering, skiftrapport-export, skiftrapport-sammanstallning, skiftrapport, statistik-dashboard, statistik-overblick, stoppage, stopporsaker, stopporsak-operator, stopporsak-registrering, stopporsak-trend, stopptidsanalys, tidrapport, toast, tvattlinje, underhallslogg, underhallsprognos, users, utnyttjandegrad, vd-dashboard, vd-veckorapport, veckorapport
+
+### Audit 2: Angular form validation UX audit
+
+Granskade Angular-komponenter i pages/ for formularproblem. Fokuserade pa de 16 sidor listade i uppgiften.
+
+**Sidkataloger granskade:**
+- `alarm-historik/` — filter-selectboxar med ngModel (severity, typ), inga submit-formuler
+- `andon-board/` — read-only dashboardsida, inga formuler
+- `benchmarking/` — read-only statistiksida med flikar, inga formuler
+- `daglig-briefing/` — katalogen finns inte under detta namn (daglig-sammanfattning finns men ar ren dashboard)
+- `dashboard/` — katalogen finns inte under detta namn
+- `drifttids-timeline/` — datumvaljare med ngModel + (change), inget submit-formuler
+- `forsta-timme-analys/` — periodvaljare med knappar, inga formuler
+- `heatmap/` — periodvaljare med knappar, inga formuler
+- `historisk-sammanfattning/` — typ/period-selectboxar med ngModel, inga submit-formuler
+- `kassationsanalys/` — hittas som `rebotling/kassationsanalys/` — periodknappar, inga formuler
+- `operator-dashboard/` — read-only dashboard, inga formuler
+- `operator-ranking/` — read-only rankingtabell, inga formuler
+- `rebotling-stationsdetalj/` — hittas som `rebotling/stationsdetalj/` — stationsvaljar-select med ngModel, inget submit-formuler
+- `skiftjamforelse/` — periodvaljare med knappar, inga formuler
+- `statistik-dashboard/` — hittas som `rebotling/statistik-dashboard/` — period-select med ngModel, inget submit-formuler
+- `stopptidsanalys/` — hittas som `rebotling/stopptidsanalys/` — maskinfilter-select med ngModel, inget submit-formuler
+
+**Resultat: Inga buggar.** Samtliga granskade sidor ar rena:
+- Ingen av de 16 sidorna har ngSubmit-formuler, submit-knappar eller `<form>`-element
+- Alla ngModel-bindings ar for filter/selectboxar som direkt triggar dataladdning via (change)/(ngModelChange) — inget submit-steg dar validering behovs
+- Felmeddelanden dar de finns ar pa svenska och visas korrekt
+- Sidorna med faktiska formuler (kassationskvot-alarm, maskinunderhall, batch-sparning, stoppage-log, create-user, register m.fl.) ingar inte i denna sessions granskningslista — de granskades i session #247 (canDeactivate-audit)
+
+---
+
 ## 2026-03-22 Session #247 Worker B — canDeactivate guard audit + OnPush change detection audit (12 buggar)
 
 ### Audit 1: Angular canDeactivate guard audit (12 buggar)
