@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #247)*
+*Senast uppdaterad: 2026-03-22 (session #248)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -114,24 +114,25 @@ Session #244: BUGGJAKT — 53 buggar (7 Worker A + 46 Worker B). json_decode uta
 Session #245: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. header() content-type: rent. array_key_exists vs isset: rent. Pipe null-safety: rent. ngIf/else loading: rent.
 Session #246: BUGGJAKT — 13 buggar (6 Worker A + 7 Worker B). intval/floatval saknade ovre granser i 5 PHP-filer (6). Template method caching i ranking-historik, cykeltid-heatmap, my-bonus (7). file_exists: rent. PDO rollback: rent. HTTP error i18n: rent.
 Session #247: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). intval/floatval range (N-Z): rent. header() redirect: rent. SQL ORDER BY injection: rent. canDeactivate guard: 12 fixar. OnPush: rent.
+Session #248: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter type-safety (A-M): rent. strpos/str_contains (A-M): rent. HTTP timeout: rent (alla services har timeout). Form validation UX: rent (granskade sidor har inga submit-formular).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #248):
-- [ ] PHP array_map/array_filter callback type-safety audit
-- [ ] PHP str_contains/strpos falsy-check audit
-- [ ] Angular HTTP timeout audit
+### Nasta (session #249):
+- [ ] PHP array_map/array_filter callback type-safety audit (N-Z)
+- [ ] PHP str_contains/strpos falsy-check audit (N-Z)
 - [ ] PHP preg_match return value audit
-- [ ] Angular form validation UX audit
+- [ ] Angular lazy-loaded module dependency audit
+- [ ] PHP file_put_contents error handling audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-22 — Session #246 (klar)
-Worker A: 6 buggar — intval/floatval saknade ovre granser i FeedbackAnalysController, LineSkiftrapportController, KvalitetscertifikatController, AuditController, HistoriskProduktionController (6). file_exists/is_readable: rent. PDO beginTransaction rollback: rent.
-Worker B: 7 buggar — Template method caching: ranking-historik (filter+sort cached), cykeltid-heatmap (getRowAvg cached), my-bonus (10 tunga metoder cached via rebuildStatsCache/rebuildWeeklyCache) (7). HTTP error i18n: rent.
 
 ### 2026-03-22 — Session #247 (klar)
 Worker A: 0 buggar — intval/floatval range (N-Z): rent (alla har bounds). header() redirect: rent (inga header Location i kodbasen). SQL ORDER BY injection: rent (enda dynamiska ar vitlistad).
 Worker B: 12 buggar — canDeactivate guard: 12 formularsidor fick pendingChangesGuard (create-user, shift-handover, produktionsmal, news-admin, certifications, underhallslogg, feature-flag-admin, rebotling-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, bonus-admin). OnPush: rent (alla komponenter anvander subscribe+mutation, ej kompatibla).
+
+### 2026-03-22 — Session #248 (klar)
+Worker A: 0 buggar — array_map/array_filter type-safety (A-M): rent (alla callbacks ar typsäkra, inputs ar alltid arrays fran fetchAll). strpos/str_contains (A-M): rent (enda forekomst i KvalitetscertifikatController anvander !== false).
+Worker B: 0 buggar — HTTP timeout: rent (alla 59 services har timeout+catchError pa varje HTTP-anrop). Form validation UX: rent (granskade sidor anvander ngModel enbart for filter/datumvaljare utan submit).
