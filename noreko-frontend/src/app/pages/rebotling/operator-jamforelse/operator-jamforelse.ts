@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -112,7 +112,11 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
     this.errorOperators   = false;
 
     this.svc.getOperatorsForCompare()
-      .pipe(timeout(15000), takeUntil(this.destroy$))
+      .pipe(
+        timeout(15000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe(res => {
         this.loadingOperators = false;
         if (res?.success) {
