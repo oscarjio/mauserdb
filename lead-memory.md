@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #249)*
+*Senast uppdaterad: 2026-03-22 (session #250)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -116,24 +116,25 @@ Session #246: BUGGJAKT — 13 buggar (6 Worker A + 7 Worker B). intval/floatval 
 Session #247: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). intval/floatval range (N-Z): rent. header() redirect: rent. SQL ORDER BY injection: rent. canDeactivate guard: 12 fixar. OnPush: rent.
 Session #248: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter type-safety (A-M): rent. strpos/str_contains (A-M): rent. HTTP timeout: rent (alla services har timeout). Form validation UX: rent (granskade sidor har inga submit-formular).
 Session #249: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter (N-Z): rent. strpos/str_contains (N-Z): rent. preg_match: rent. file_put_contents: finns ej. Lazy-loaded deps: rent. trackBy: rent. HTTP URLs: rent. OnDestroy: rent.
+Session #250: BUGGJAKT — 4 buggar (4 Worker A + 0 Worker B). array_unique utan array_values i PDO-bindings (4). mb_substr/mb_strlen: rent. header() Content-Type: rent (satt centralt). Static methods: rent. Pipe null-safety: rent. FormControl: inga (template-driven). Route resolvers: inga.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #250):
-- [ ] PHP mb_substr/mb_strlen consistency audit
-- [ ] PHP array_unique/array_values audit
-- [ ] Angular pipe chain null-safety audit
-- [ ] PHP header() Content-Type consistency audit
-- [ ] Angular FormControl validators audit
+### Nasta (session #251):
+- [ ] PHP switch/case fall-through audit
+- [ ] PHP DateTime immutability audit
+- [ ] Angular async pipe memory audit
+- [ ] PHP PDO lastInsertId race condition audit
+- [ ] Angular template i18n audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-22 — Session #248 (klar)
-Worker A: 0 buggar — array_map/array_filter type-safety (A-M): rent (alla callbacks ar typsäkra, inputs ar alltid arrays fran fetchAll). strpos/str_contains (A-M): rent (enda forekomst i KvalitetscertifikatController anvander !== false).
-Worker B: 0 buggar — HTTP timeout: rent (alla 59 services har timeout+catchError pa varje HTTP-anrop). Form validation UX: rent (granskade sidor anvander ngModel enbart for filter/datumvaljare utan submit).
-
 ### 2026-03-22 — Session #249 (klar)
-Worker A: 0 buggar — array_map/array_filter (N-Z): rent (alla typsäkra). strpos/str_contains (N-Z): rent (alla strict comparison). preg_match: rent (alla i boolean context, inga farliga patterns). file_put_contents: finns ej i kodbasen, file_get_contents hanteras korrekt.
-Worker B: 0 buggar — lazy-loaded deps: rent (130+ loadComponent OK). trackBy: rent (alla ngFor har trackBy). HTTP URLs: rent (inga hardkodade). OnDestroy: rent (alla 160 komponenter har cleanup).
+Worker A: 0 buggar — array_map/array_filter (N-Z): rent. strpos/str_contains (N-Z): rent. preg_match: rent. file_put_contents: finns ej.
+Worker B: 0 buggar — lazy-loaded deps: rent. trackBy: rent. HTTP URLs: rent. OnDestroy: rent.
+
+### 2026-03-22 — Session #250 (klar)
+Worker A: 4 buggar — array_unique utan array_values() i 4 PHP-filer (KassationskvotAlarm, Operator, RebotlingAnalytics, OperatorDashboard) — PDO positional binding kraschade med index-luckor. mb_substr/mb_strlen: rent (alla substr pa ASCII). header() Content-Type: rent (satt centralt i api.php). Static methods: rent.
+Worker B: 0 buggar — Pipe chain null-safety: rent (alla skyddade av *ngIf eller defaults). FormControl validators: inga reactive forms (template-driven). Route resolvers: inga (data laddas i ngOnInit).

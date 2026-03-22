@@ -7,14 +7,21 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #250+):
-- [ ] **PHP mb_substr/mb_strlen consistency audit** — saknad multibyte-hantering
-- [ ] **PHP array_unique/array_values audit** — saknad dedup i samlingar
-- [ ] **Angular pipe chain null-safety audit** — kedjade pipes utan null-check
-- [ ] **PHP header() Content-Type consistency audit** — saknad/felaktig content-type
-- [ ] **Angular FormControl validators audit** — saknade/felaktiga validators
-- [ ] **PHP static method side-effects audit** — statiska metoder med ovantade sidoeffekter
-- [ ] **Angular route resolver error handling audit** — saknad felhantering i resolvers
+### Pagaende (session #250):
+- [ ] **PHP mb_substr/mb_strlen consistency audit** — Worker A
+- [ ] **PHP array_unique/array_values audit** — Worker A
+- [ ] **PHP header() Content-Type consistency audit** — Worker A
+- [ ] **PHP static method side-effects audit** — Worker A
+- [ ] **Angular pipe chain null-safety audit** — Worker B
+- [ ] **Angular FormControl validators audit** — Worker B
+- [ ] **Angular route resolver error handling audit** — Worker B
+
+### Nasta buggjakt-items (session #251+):
+- [ ] **PHP switch/case fall-through audit** — saknade break-satser
+- [ ] **PHP DateTime immutability audit** — modify() pa delade DateTime-objekt
+- [ ] **Angular async pipe memory audit** — async pipes utan unsubscribe
+- [ ] **PHP PDO lastInsertId race condition audit** — concurrent inserts
+- [ ] **Angular template i18n audit** — engelska strangar kvar i templates
 
 ## Parkerade features (ta inte dessa nu)
 
