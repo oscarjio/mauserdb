@@ -1,3 +1,31 @@
+## 2026-03-22 Session #247 Worker A — intval/floatval bounds (N-Z) + header redirect + SQL ORDER BY injection audit (0 buggar)
+
+### Audit 1: PHP intval/floatval range validation audit (N-Z) (0 buggar)
+Granskade alla PHP-klasser (N-Z) i noreko-backend/classes/ (NarvaroController, OeeBenchmarkController, OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController, OperatorCompareController, OperatorController, OperatorDashboardController, OperatorJamforelseController, OperatorOnboardingController, OperatorRankingController, OperatorsbonusController, OperatorsportalController, OperatorsPrestandaController, ParetoController, PrediktivtUnderhallController, ProduktionsDashboardController, ProduktionseffektivitetController, ProduktionsflodeController, ProduktionskalenderController, ProduktionskostnadController, ProduktionsmalController, ProduktionsPrognosController, ProduktionspulsController, ProduktionsSlaController, ProduktionsTaktController, ProduktTypEffektivitetController, ProfileController, RankingHistorikController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingController, RebotlingProductController, RebotlingSammanfattningController, RebotlingStationsdetaljController, RebotlingTrendanalysController, RegisterController, RuntimeController, SaglinjeController, ShiftHandoverController, ShiftPlanController, SkiftjamforelseController, SkiftplaneringController, SkiftrapportController, SkiftrapportExportController, StatistikDashboardController, StatistikOverblickController, StatusController, StoppageController, StopporsakController, StopporsakOperatorController, StopporsakRegistreringController, StopporsakTrendController, TidrapportController, TvattlinjeController, UnderhallsloggController, UnderhallsprognosController, UtnyttjandegradController, VdDashboardController, VDVeckorapportController, VeckorapportController, VeckotrendController, VpnController).
+
+Alla intval()/floatval()-anrop fran $_GET har antingen:
+- min()/max()-omslutning pa samma rad
+- if-validering med bounds pa nast rad
+- in_array()-vitlistning
+- FK-anrop (anvands som parameteriserat WHERE-varde, inget ovregransproblem)
+
+**Resultat: RENT** — inga buggar hittade.
+
+### Audit 2: PHP header() redirect validation audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/ (classes/, controllers/, api.php, index.php) for `header("Location:` och `header('Location:`.
+Ingen enda redirect-header hittades i hela kodbasen.
+**Resultat: RENT** — inga buggar hittade.
+
+### Audit 3: PHP SQL ORDER BY injection audit (N-Z) (0 buggar)
+Granskade alla PHP-klasser (N-Z) i noreko-backend/classes/ for dynamisk ORDER BY med anvandardata.
+- Enda ORDER BY-variabel i N-Z-filer: `$orderExpr` i KassationsanalysController (A-M, inte inom scope) — satt fran intern `$group`-variabel med in_array()-vitlistning.
+- `$sortBy` i OperatorsPrestandaController.php:429-431 ar korrekt vitlistad med in_array(['ibc', 'kassation', 'oee', 'cykeltid']).
+- Alla ovriga ORDER BY-klausuler ar hardkodade SQL-strings.
+
+**Resultat: RENT** — inga buggar hittade.
+
+---
+
 ## 2026-03-22 Session #246 Worker B — HTTP error i18n audit + template method call performance audit (7 buggar)
 
 ### Audit 1: Angular HTTP error message i18n audit (0 buggar)
