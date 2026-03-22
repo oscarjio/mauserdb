@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #244)*
+*Senast uppdaterad: 2026-03-22 (session #245)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -111,24 +111,25 @@ Session #241: BUGGJAKT — 5 buggar (1 Worker A + 4 Worker B). array_filter call
 Session #242: BUGGJAKT — 22 buggar (22 Worker A + 0 Worker B). SQL subquery->JOIN (4), error_log format (18), file_put_contents: rent (A). HTTP polling interval: rent. Router guard return types: rent (B).
 Session #243: BUGGJAKT — 257 buggar (111 Worker A + 146 Worker B). PDO fetch mode FETCH_ASSOC (111 i 25 PHP-filer). trackByIndex->item.id (146 i 146 komponenter). str_replace/preg_replace: rent. array_merge: rent. Template safe navigation: rent.
 Session #244: BUGGJAKT — 53 buggar (7 Worker A + 46 Worker B). json_decode utan is_array-guard (7 i 4 PHP-filer). setTimeout utan clearTimeout (42 i 42 komponenter). Form reset vid toggle (4). date()/strtotime(): rent. LIKE escaping: rent.
+Session #245: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. header() content-type: rent. array_key_exists vs isset: rent. Pipe null-safety: rent. ngIf/else loading: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #245):
-- [ ] PHP error_log format consistency audit
-- [ ] PHP header() content-type audit
-- [ ] Angular pipe chain null-safety audit
-- [ ] PHP array_key_exists vs isset consistency audit
-- [ ] Angular ngIf/else template reference audit
+### Nasta (session #246):
+- [ ] PHP file_exists/is_readable audit
+- [ ] PHP PDO::beginTransaction rollback audit
+- [ ] Angular HTTP error message i18n audit
+- [ ] PHP intval/floatval range validation audit
+- [ ] Angular template method call performance audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-22 — Session #243 (klar)
-Worker A: 111 buggar — PDO fetch mode: 111 fetch()/fetchAll() utan explicit FETCH_ASSOC i 25 PHP-filer. str_replace/preg_replace: rent. array_merge i loopar: rent.
-Worker B: 146 buggar — trackByIndex returnerade index istallet for item.id i 146 komponenter. Template safe navigation: rent.
 
 ### 2026-03-22 — Session #244 (klar)
 Worker A: 7 buggar — json_decode utan is_array-guard i 4 PHP-filer (7). date()/strtotime() validering: rent. LIKE wildcard escaping: rent.
 Worker B: 46 buggar — setTimeout utan clearTimeout i 42 komponenter (42). Form reset vid toggle i 4 komponenter (4). HTTP unsubscribe: rent.
+
+### 2026-03-22 — Session #245 (klar)
+Worker A: 0 buggar — error_log format: rent (alla har KlassNamn::metod-prefix). header() content-type: rent (centralt i api.php). array_key_exists vs isset: rent.
+Worker B: 0 buggar — Pipe chain null-safety: rent (alla guarded med *ngIf). ngIf/else template reference + loading-state: rent.
