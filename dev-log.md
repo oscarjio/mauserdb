@@ -1,3 +1,38 @@
+## 2026-03-22 Session #239 Worker B — Angular pipe null-safety re-audit + lazy-load preload audit (5 buggar)
+
+### Uppgift 1: Angular pipe null-safety re-audit
+Granskade alla HTML-templates i pages/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live) och rebotling/.
+Totalt ca 100+ HTML-filer med 489+ pipe-anvandningar genomgangna.
+
+**5 buggar i benchmarking.html:**
+Alla 5 anvande optional chaining (currentWeek?.prop / bestWeekEver?.prop) direkt fore Angular number-pipe.
+Nar objektet ar null ger ?. tillbaka undefined, och number-pipe kastar InvalidPipeArgument-fel.
+
+Fixade rader:
+1. benchmarking.html:81 — currentWeek?.ibc_total | number
+2. benchmarking.html:85 — currentWeek?.ibc_per_day | number
+3. benchmarking.html:117 — bestWeekEver?.ibc_total | number
+4. benchmarking.html:121 — bestWeekEver?.ibc_per_day | number
+5. benchmarking.html:174 — bestWeekEver?.ibc_total | number (progress-label)
+
+Alla ersatta med ternary-guard: `obj ? (obj.prop | number) : '—'`
+
+**Ovriga filer: RENT.** Alla andra pipe-anvandningar har korrekt null-guard via *ngIf, ternary, eller ?? fallback.
+
+### Uppgift 2: Angular lazy-loaded route preload strategy audit
+Granskade app.routes.ts och app.config.ts.
+
+**Resultat: RENT — ingen bugg.**
+- app.config.ts rad 29: `provideRouter(routes, withPreloading(PreloadAllModules))` ar korrekt konfigurerat.
+- PreloadAllModules importeras fran @angular/router.
+- Alla loadComponent-importer i app.routes.ts har korrekta sokvagar (verifierat via lyckad ng build).
+
+### Summering
+- 5 pipe null-safety buggar fixade i benchmarking.html
+- 0 preloading-buggar (redan korrekt)
+- Build: OK
+- Commit: d06ca28
+
 ## 2026-03-21 Session #238 Worker A — output buffering + prepared stmt reuse + header injection (10 buggar)
 
 ### Uppgift 1: PHP classes/ output buffering audit
