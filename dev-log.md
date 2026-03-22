@@ -17951,3 +17951,47 @@ Inga guards returnerar void eller undefined. Alla anvander korrekt redirect-meto
 ### Totalt: 0 buggar fixade i 0 filer
 
 Inga buggar.
+
+---
+## 2026-03-22 Session #260 Worker B — HTTP timeout consistency + memory leak audit
+
+### Uppgift 1: Angular HTTP timeout consistency audit — 1 bugg
+
+**Metod:** Systematisk genomgang av alla 293 TypeScript-filer i noreko-frontend/src/app/. Sokte efter (1) HTTP-anrop utan timeout(), (2) timeout() utan catchError(), (3) inkonsistenta timeoutvarden, (4) polling-lopar som kan stacka.
+
+**Fynd:**
+
+**Buggar:**
+- `operator-jamforelse.ts` `loadOperatorsList()`: anvande `.pipe(timeout(15000), takeUntil(this.destroy$))` utan varken `catchError()` eller `error:`-handler i subscribe. En TimeoutError propagerade ohanterad och kunde krascha komponenten. **FIXAT**: lade till `catchError(() => of(null))` i pipe-kedjan, importerade `of` och `catchError` fran rxjs.
+
+**Rena filer (inga timeout-buggar):**
+- Alla 100+ service-filer: har timeout() och catchError()
+- `kapacitetsplanering.component.ts`: timeout(15000) utan catchError() men subscribe har error:-handler for alla 10 anrop — korrekt
+- `stopptidsanalys.component.ts`, `maskin-oee.component.ts`, `operatorsbonus.component.ts`, `operators-prestanda.component.ts`: alla subscribe med error:-handler — korrekt
+- `vd-veckorapport.component.ts`: alla 5 anrop med error:-handler — korrekt
+- Alla polling-loopar (setInterval): har isFetching-guard som forhindrar stackning
+
+**Timeout-varden i projektet (dokumentation):**
+- Services: 15000ms (dominerande, 531 forekomster) — komplex SQL
+- Komponenter: 8000ms (237 st), 10000ms (179 st), 5000ms (34 st), 3000ms-30000ms (diverse)
+- Inga HTTP-anrop saknar timeout() helt
+
+### Uppgift 2: Angular memory leak audit (setInterval/setTimeout) — 0 buggar
+
+**Metod:** Sokande efter setInterval()/setTimeout() som saknar clearInterval()/clearTimeout() i ngOnDestroy. Granskade alla 68 filer med setInterval och alla 116+ filer med setTimeout.
+
+**Fynd:**
+- Inga setInterval utan clearInterval i ngOnDestroy
+- Inga setTimeout utan clearTimeout (alla anvander class properties, clearas i ngOnDestroy)
+- Inga interval-ID:n i lokala variabler (alla sparas som class properties)
+- Inga komponenter med setInterval men utan OnDestroy
+- Alla dynamiska intervaller (skapade inuti subscribe-callbacks som i menu.ts, live-ranking.ts) ar korrekt trackade med class properties och clearas
+- Alla komponenter med multipla intervaller (andon.ts: 8 intervaller, rebotling-live.ts: 4, live-ranking.ts: 5) clearar samtliga
+
+**Rena filer (alla granskade):** menu.ts, news.ts, andon.ts, andon-board.ts, live-ranking.ts, rebotling-live.ts, tvattlinje-live.ts, saglinje-live.ts, klassificeringslinje-live.ts, daglig-sammanfattning.ts, executive-dashboard.ts, rebotling-admin.ts, operator-dashboard.ts, och alla ovriga 60+ komponenter med intervaller.
+
+### Build och deployment:
+- Frontend: Bygget lyckades utan fel (varningar fran canvg/html2canvas ar kanda, inte nya)
+- Git commit: df91288
+
+### Totalt: 1 bugg fixad i 1 fil
