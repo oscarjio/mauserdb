@@ -1,3 +1,57 @@
+## 2026-03-22 Session #249 Worker A — PHP N-Z array_map/array_filter + strpos + preg_match + file_put_contents audits (0 buggar)
+
+### Uppgift 1: PHP array_map/array_filter callback type-safety audit (N-Z) — 0 buggar
+
+Granskade alla N-Z PHP-filer i noreko-backend/classes/:
+NarvaroController, NewsController, OeeBenchmarkController, OeeTrendanalysController,
+OperatorController, OperatorDashboardController, OperatorJamforelseController,
+OperatorsPrestandaController, OperatorsbonusController, PrediktivtUnderhallController,
+ProduktionsPrognosController, ProduktionsSlaController, ProfileController,
+RankingHistorikController, RebotlingAdminController, RebotlingAnalyticsController,
+RebotlingController, RebotlingTrendanalysController, RuntimeController,
+ShiftHandoverController, SkiftjamforelseController, SkiftplaneringController,
+SkiftrapportController, SkiftrapportExportController, SkiftoverlamningController,
+StoppageController, TvattlinjeController, UnderhallsloggController,
+UnderhallsprognosController, UtnyttjandegradController, VDVeckorapportController,
+VeckotrendController, VpnController, WeeklyReportController
+
+**Resultat:** Alla array_map/array_filter-anrop i N-Z-filer ar rena:
+- Alla callbacks kontrollerar typen korrekt (fn($v) => $v !== null, fn($r) => $r['key'] === 'x', etc.)
+- Alla array-argument ar garanterade arrays (fran fetchAll(), array_column(), explode(), eller literaler)
+- Inga fall dar null/false kan passeras som andra argument till array_map/array_filter
+
+### Uppgift 2: PHP str_contains/strpos falsy-check audit (N-Z) — 0 buggar
+
+Granskade samma N-Z PHP-filer for strpos/mb_strpos/str_contains.
+
+**Resultat:**
+- VpnController.php: Alla strpos()-anrop anvander === false, !== false, eller === 0 (strikt) — korrekt
+- Inga strpos() == false (icke-strikt) hittades nagonstans i N-Z-filer
+- Inga str_contains()-anrop hittades i N-Z-filer
+
+### Uppgift 3: PHP preg_match return value audit (HELA kodbasen) — 0 buggar
+
+Granskade ALLA PHP-filer i noreko-backend/ for preg_match/preg_replace-problem.
+
+**Resultat:**
+- Alla preg_match()-anrop anvands i boolean-kontext: if (preg_match(...)) eller if (!preg_match(...))
+  Detta ar korrekt — bade 0 (no match) och false (regex-fel) behandlas som falsy
+- Inga preg_match() == true (farlig) hittades
+- Alla preg_replace()-anrop (6 st) anvander enkla saniterings-patterns utan e-flagga — alla sakra
+
+### Uppgift 4: PHP file_put_contents error handling audit (HELA kodbasen) — 0 buggar
+
+Granskade ALLA PHP-filer i noreko-backend/ for file_put_contents/file_get_contents.
+
+**Resultat:**
+- file_put_contents: Inga anrop hittades nagonstans i kodbasen
+- file_get_contents: Alla anrop korrekt hanterade:
+  1. Migrationsfiler (12 st): Alla kontrollerar if ($sql === false) med error_log()
+  2. POST-body file_get_contents('php://input') (80+ st): Returnerar alltid string, aldrig false
+  3. Vader-API (update-weather.php): @file_get_contents med if ($response === false) — korrekt
+
+---
+
 ## 2026-03-22 Session #249 Worker B — Angular lazy-load + trackBy + URL + OnDestroy audit (0 buggar)
 
 ### Uppgift 1: Angular lazy-loaded module dependency audit
