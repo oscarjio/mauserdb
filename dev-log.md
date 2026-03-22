@@ -1,3 +1,61 @@
+## Worker A — Session #255
+
+### Uppgift 1: PHP str_pad/substr truncation audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
+
+**Metod:** Sokt efter str_pad() och substr() i alla .php-filer. Kontrollerat om nagon av dessa anropas pa data som kan innehalla multibyte-tecken (svenska a/o/a).
+
+**Granskade filer med substr():**
+OperatorDashboardController.php, RebotlingAnalyticsController.php, OperatorController.php, HistoriskProduktionController.php, AuditController.php, KvalitetscertifikatController.php, LineSkiftrapportController.php, LeveransplaneringController.php, BonusAdminController.php, RebotlingAdminController.php, SkiftoverlamningController.php, WeeklyReportController.php, NewsController.php, AvvikelselarmController.php, StopporsakRegistreringController.php, RebotlingController.php, MaskinunderhallController.php, KvalitetstrendanalysController.php, FeedbackController.php, SkiftrapportController.php, ShiftPlanController.php, VeckorapportController.php, StopporsakTrendController.php, StoppageController.php, BatchSparningController.php, UnderhallsloggController.php, OperatorCompareController.php, MaintenanceController.php, BonusController.php, MinDagController.php, StatistikOverblickController.php, RebotlingSammanfattningController.php, CertificationController.php, KassationsanalysController.php, HistoriskSammanfattningController.php, RebotlingStationsdetaljController.php.
+
+**Fynd substr():**
+Alla substr()-anrop i kodbasen opererar pa datumstrangar (YYYY-MM-DD, YYYY-MM-DD HH:MM:SS), veckostrangar (YYYY-Www), arsveckonummer (numeriska) eller datetime-strang-slices (offset 11, langd 5 for HH:MM). Dessa innehaller uteslutande ASCII-tecken (0-9, '-', ':', 'T', 'W') och kan aldrig innehalla multibyte-tecken. Inget av dessa anrop riskerar att klippa mitt i ett UTF-8-tecken.
+
+Fri text (kommentarer, namn, beskrivningar) hanteras genomgaende med mb_substr(). Inga substr()-anrop pa fri text hittades.
+
+**Fynd str_pad():**
+Alla 5 str_pad()-anrop paddas numeriska heltal (veckonummer, manadsnummer, minuter) med tecknet '0'. Numeriska varden ar alltid enkelbyte. Ingen multibyte-problematik.
+
+**Granskade filer med str_pad():** VeckorapportController.php, KvalitetscertifikatController.php, RebotlingAnalyticsController.php (x2), VeckorapportController.php.
+
+---
+
+### Uppgift 2: PHP array_column type coercion audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
+
+**Metod:** Sokt efter array_column() i alla .php-filer. Kontrollerat tredje parametern (index_key) och returnarens nycklar.
+
+**Fynd:**
+Totalt 52 filer med array_column()-anrop granskades. Inget enda anrop anvander en tredje parameter (index_key). Samtliga anrop ar pa formen array_column($array, 'kolumnnamn') (tva argument) och anvands for att extrahera en lista av varden fran ett PDO-resultatset. Alla kolumnnamn ar stringa litteraler som matchar faktiska SQL-kolumnnamn i respektive fragor. Inga numeriska strang->int-konverteringar ar mojliga eftersom inget tredje argument skickas.
+
+---
+
+### Uppgift 3: PHP preg_match return value audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
+
+**Metod:** Sokt efter preg_match()/preg_match_all() i alla .php-filer. Kontrollerat:
+1. Returvarde testat med == istallet for === (0 vs false)
+2. Saknad kontroll for false (regex-kompileringsfel)
+3. Dynamiska monster fran externt data
+
+**Fynd:**
+Totalt 47 filer med preg_match()-anrop. Samtliga anrop anvander statiska regex-monster i form av string-litteraler (t.ex. '/^\d{4}-\d{2}-\d{2}$/') eller monster byggda med preg_quote() pa serversidans eget domainnamn (api.php, admin.php, login.php). Inga anrop anvander monster fran user-input okokt.
+
+Returvardena anvands pa foljande satt:
+- if (!preg_match(...)) — negerad truthy-check, korrekt
+- if (preg_match(...)) — truthy-check, korrekt
+- (preg_match(...)) ? ... : ... — ternary truthy-check, korrekt
+
+Inget anrop testar mot == 0 eller == false med losforliknelse. Ingen risk for 0 == false-forvaexling. Samtliga monster ar kompileringstidsbestamda (hardkodade), sa risken for preg_match() att returnera false (kompileringsfel) ar negligerbar. Inga preg_last_error()-kontroller kravs.
+
+---
+
 ## 2026-03-22 Session #251 Worker B — Angular async pipe memory audit + template i18n audit (8 buggar)
 
 ### Uppgift 1: Angular async pipe memory audit — 0 buggar
