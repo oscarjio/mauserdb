@@ -1,3 +1,44 @@
+## 2026-03-22 Session #251 Worker B — Angular async pipe memory audit + template i18n audit (8 buggar)
+
+### Uppgift 1: Angular async pipe memory audit — 0 buggar
+
+Granskade ALLA HTML-templates i noreko-frontend/src/app/pages/ (totalt 130+ filer, exklusive rebotling-live,
+tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Resultat:** Inga async pipes anvands i nagon template. Alla komponenter anvander manuell .subscribe()
+med takeUntil/destroy$-monster. Inga buggar att rapportera.
+
+### Uppgift 2: Angular template i18n audit — engelska strangar kvar i templates — 8 buggar
+
+Granskade alla HTML-templates i noreko-frontend/src/app/pages/ efter engelska strangar som borde vara pa svenska.
+
+**Bugg 1 — production-analysis.html:487:** Tabellrubrik "Rank" (engelska) i basta-skift-tabell.
+Fixat: andrat till "Plac." (Placering).
+
+**Bugg 2 — monthly-report.html:445:** Tabellrubrik "Rank" i operatorsranking.
+Fixat: andrat till "Plac.".
+
+**Bugg 3 — monthly-report.html:513:** Tabellrubrik "Rank" i fallback-operatorsranking.
+Fixat: andrat till "Plac.".
+
+**Bugg 4 — my-bonus.html:601:** Tabellrubrik "Rank" i kollegor-jamforelsetabell.
+Fixat: andrat till "Plac.".
+
+**Bugg 5 — benchmarking.html:227:** Tabellrubrik "Rank" i topp-veckor-tabell.
+Fixat: andrat till "Plac.".
+
+**Bugg 6 — rebotling-skiftrapport.html:721:** Tabellrubrik "Rank" i operatorsranking per skift.
+Fixat: andrat till "Plac.".
+
+**Bugg 7 — statistik-cykeltid-operator.html:20:** Tabellrubrik "Rank" i cykeltid-per-operator-tabell.
+Fixat: andrat till "Plac.".
+
+**Bugg 8 — stoppage-log.html:768+772:** Pareto-statusetiketter "Vital" och "Trivial" (engelska).
+Fixat: andrat till "Kritisk" och "Mindre viktig".
+
+**Notering:** Ord som "Status", "Station", "Operator", "Total", "Start", "Position", "Filter", "Info",
+"Batch", "Trend", "Normal" ar alla etablerade laneord/identiska pa svenska och behovde inte andras.
+
 ## 2026-03-22 Session #251 Worker A — switch/case fall-through + DateTime immutability + PDO lastInsertId race condition audits (0 buggar)
 
 ### Uppgift 1: PHP switch/case fall-through audit — 0 buggar

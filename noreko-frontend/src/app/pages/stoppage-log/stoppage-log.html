@@ -765,11 +765,11 @@
                     <td>
                       <span *ngIf="o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80)"
                             class="badge-vital">
-                        <i class="fas fa-exclamation-circle me-1"></i>Vital
+                        <i class="fas fa-exclamation-circle me-1"></i>Kritisk
                       </span>
                       <span *ngIf="!(o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80))"
                             class="badge-trivial">
-                        Trivial
+                        Mindre viktig
                       </span>
                     </td>
                   </tr>
