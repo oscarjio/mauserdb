@@ -7,21 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #250):
-- [ ] **PHP mb_substr/mb_strlen consistency audit** — Worker A
-- [ ] **PHP array_unique/array_values audit** — Worker A
-- [ ] **PHP header() Content-Type consistency audit** — Worker A
-- [ ] **PHP static method side-effects audit** — Worker A
-- [ ] **Angular pipe chain null-safety audit** — Worker B
-- [ ] **Angular FormControl validators audit** — Worker B
-- [ ] **Angular route resolver error handling audit** — Worker B
+### Pagaende (session #251):
+- [ ] **PHP switch/case fall-through audit** — Worker A
+- [ ] **PHP DateTime immutability audit** — Worker A
+- [ ] **PHP PDO lastInsertId race condition audit** — Worker A
+- [ ] **Angular async pipe memory audit** — Worker B
+- [ ] **Angular template i18n audit** — Worker B
 
-### Nasta buggjakt-items (session #251+):
-- [ ] **PHP switch/case fall-through audit** — saknade break-satser
-- [ ] **PHP DateTime immutability audit** — modify() pa delade DateTime-objekt
-- [ ] **Angular async pipe memory audit** — async pipes utan unsubscribe
-- [ ] **PHP PDO lastInsertId race condition audit** — concurrent inserts
-- [ ] **Angular template i18n audit** — engelska strangar kvar i templates
+### Nasta buggjakt-items (session #252+):
+- [ ] **PHP array_splice/array_pop return value audit** — oanvanda returvarden
+- [ ] **PHP preg_replace limit audit** — saknade limit-parametrar
+- [ ] **Angular HTTP retry idempotency audit** — POST/PUT/DELETE som retries
+- [ ] **PHP fopen/fclose resource leak audit** — oppnade filer utan stangning
+- [ ] **Angular change detection OnPush audit** — komponenter som borde vara OnPush
 
 ## Parkerade features (ta inte dessa nu)
 
