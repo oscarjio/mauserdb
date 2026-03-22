@@ -513,7 +513,7 @@ class SkiftrapportController {
 
             AuditLogger::log($this->pdo, 'update_skiftrapport', 'rebotling_skiftrapport', $id,
                 'Skiftrapport uppdaterad',
-                null, array_filter(['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok]));
+                null, array_filter(['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok], fn($v) => $v !== null));
             $this->pdo->commit();
 
             echo json_encode([

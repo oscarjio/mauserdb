@@ -1,3 +1,58 @@
+## 2026-03-22 Session #241 Worker A — PHP classes/ array_map/filter callback audit + header() consistency audit (1 bugg)
+
+### Uppgift 1: PHP classes/ array_map/array_filter/usort callback audit
+Granskade ALLA PHP-filer i noreko-backend/classes/ (109 filer) for felaktiga array_map/array_filter/array_walk/usort/uasort/array_reduce callbacks.
+
+Kontrollerade:
+- Felaktigt antal parametrar i callbacks
+- Callbacks som returnerar fel typ
+- array_filter utan callback som filtrerar bort "0" och "" nar det borde behallas
+- array_map med felaktig key-hantering
+- usort/uasort callbacks (spaceship-operator, strcmp — alla returnerar int korrekt)
+- array_reduce med felaktig initial value
+
+**Hittade 1 bugg:**
+
+**SkiftrapportController.php rad 516** — `array_filter` utan callback pa array `['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok]`.
+- Variablerna `$ibc_ok`, `$bur_ej_ok`, `$ibc_ej_ok` ar antingen `null` (ej angivna) eller `int >= 0` (angivna)
+- PHP:s `array_filter` utan callback behandlar integer `0` som falskt och filtrerar bort det
+- Om anvandaren uppdaterar ett falts varde till 0 (t.ex. nollstaller ibc_ok) loggades det INTE i audit-loggen
+- Fix: andrade till `array_filter(..., fn($v) => $v !== null)` — filterar nu bara faktiskt null-varden
+
+Rent (inga buggar):
+- Alla 100+ usort/uasort callbacks anvander spaceship (`<=>`) eller strcmp — returnerar korrekt int
+- array_map med tva arrayer (BonusController rad 328/396/411) — korrekt anvandning med index-array
+- array_reduce i EffektivitetController — korrekt initial value `null` med null-check i callback
+- array_filter pa op_num/skiftraknare — SQL anvander NULLIF/IS NOT NULL sa inga legitima 0-varden nar PHP
+- array_filter pa operatorsnamn — filtrering av null/tomma strangar ar intentionellt
+
+### Uppgift 2: PHP classes/ header() call consistency audit
+Granskade ALLA header()-anrop i noreko-backend/classes/ och noreko-backend/controllers/ (controllers/ bestar enbart av proxy-filer som delegerar till classes/).
+
+Kontrollerade:
+- Saknade Content-Type headers for JSON-svar
+- Inkonsekvent charset
+- Saknade Cache-Control for dynamiska API-svar
+- header() efter output (echo/print fore header)
+- Dubblerade headers
+
+**Resultat: RENT — 0 header-buggar.**
+
+Fynd:
+- `api.php` rad 56 satter `Content-Type: application/json; charset=utf-8` globalt for ALLA anrop
+- `api.php` rad 62 satter `Cache-Control: no-store, no-cache, must-revalidate, private` globalt
+- De 16 controllers/helpers som ocksa satter `Content-Type: application/json` ar redundanta men ofarliga (satter samma varde igen)
+- CSV-export-funktioner (BonusAdminController, TidrapportController, RebotlingAnalyticsController) satter korrekt `Content-Type: text/csv` som overridar api.php:s JSON-default — alla gors fore eventuell output
+- `RebotlingAnalyticsController::getShiftPdfSummary()` satter `Content-Type: text/html` forst i funktionen — korrekt och dokumenterat med kommentar
+- Inga fall av header() efter echo i samma exekveringsvag hittades
+
+**Totalt: 1 bugg hittad och fixad.**
+
+Paverkad fil:
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/SkiftrapportController.php`
+
+---
+
 ## 2026-03-22 Session #240 Worker B — Angular frontend 2-audit: HTTP error normalization + form validation (13 buggar)
 
 ### Uppgift 1: Angular HTTP interceptor error normalization re-audit
