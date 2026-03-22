@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #243):
-- [ ] **PHP str_replace/preg_replace edge case audit** — felaktiga regex, saknad preg_quote, tomma patterns (Worker A)
-- [ ] **PHP array_merge i loopar performance audit** — array_merge() i foreach som kan vara +=/$result[] (Worker A)
-- [ ] **PHP PDO fetch mode consistency audit** — blandade FETCH_ASSOC/FETCH_BOTH/FETCH_NUM (Worker A)
-- [ ] **Angular trackBy audit** — *ngFor utan trackBy pa listor med HTTP-data (Worker B)
-- [ ] **Angular template safe navigation audit** — saknade ?. i kedjeanrop pa nullable objekt (Worker B)
+### Pagaende (session #244):
+- [ ] **PHP date()/strtotime() input validation audit** — saknad validering av date-strangar fran user input (Worker A)
+- [ ] **PHP json_encode/json_decode error handling audit** — saknad felhantering efter json_decode (Worker A)
+- [ ] **PHP SQL LIKE wildcard escaping audit** — saknad escaping av % och _ i LIKE-clausuler (Worker A)
+- [ ] **Angular HTTP unsubscribe audit** — HTTP-anrop som inte avbryts vid komponent-destroy (Worker B)
+- [ ] **Angular form reset state audit** — formular som inte aterstalls korrekt vid navigation (Worker B)
 
-### Nasta buggjakt-items (session #244+):
-- [ ] **PHP date()/strtotime() input validation audit** — saknad validering av date-strangar fran user input
-- [ ] **PHP json_encode/json_decode error handling audit** — saknad felhantering efter json_decode
-- [ ] **Angular HTTP unsubscribe audit** — HTTP-anrop som inte avbryts vid komponent-destroy
-- [ ] **PHP SQL LIKE wildcard escaping audit** — saknad escaping av % och _ i LIKE-clausuler
-- [ ] **Angular form reset state audit** — formuler som inte atersstalls korrekt vid navigation
+### Nasta buggjakt-items (session #245+):
+- [ ] **PHP error_log format consistency audit** — inkonsekvent format i error_log-meddelanden
+- [ ] **PHP header() content-type audit** — saknade/felaktiga Content-Type headers
+- [ ] **Angular pipe chain null-safety audit** — pipes som crashar pa null/undefined input
+- [ ] **PHP array_key_exists vs isset consistency audit** — mixed usage med null-varden
+- [ ] **Angular ngIf/else template reference audit** — saknade else-block vid loading states
 
 ## Parkerade features (ta inte dessa nu)
 
