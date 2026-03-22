@@ -1,3 +1,30 @@
+## 2026-03-22 Session #243 Worker A — preg_replace/str_replace + array_merge loop + PDO fetch mode audit (111 buggar)
+
+### Uppgift 1: PHP str_replace/preg_replace edge case audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for:
+- preg_replace med user input utan preg_quote() — hittade inga
+- str_replace med tomma patterns — hittade inga
+- preg_replace med felaktiga regex — hittade inga
+- preg_replace med /e modifier (code execution risk) — hittade inga
+
+Alla 20 preg_replace/str_replace-anrop anvander antingen hardkodade patterns eller saniterar korrekt. **Rent.**
+
+### Uppgift 2: PHP array_merge i loopar performance audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for array_merge() inuti foreach/while/for-loopar.
+
+Alla 37 array_merge-anrop ligger utanfor loopar (statement params, config merges, array_unique-wraps). **Rent.**
+
+### Uppgift 3: PHP PDO fetch mode consistency audit (111 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for saknad/inkonsekvent fetch mode.
+
+**Fixade 111 saknade PDO::FETCH_ASSOC i 25 filer:**
+- 43 st `->fetch()` utan mode (defaultar till FETCH_BOTH = dubblerade kolumner)
+- 68 st `->fetchAll()` utan mode (samma problem)
+
+Filer: AdminController, AvvikelselarmController, DashboardLayoutController, FavoriterController, FeedbackController, HistorikController, KassationsDrilldownController, KassationskvotAlarmController, KassationsorsakController, KvalitetstrendanalysController, LeveransplaneringController, MaskinOeeController, MaskinunderhallController, MyStatsController, NewsController, PrediktivtUnderhallController, RebotlingAnalyticsController, RebotlingController, RegisterController, SkiftplaneringController, StopporsakController, StopporsakRegistreringController, StopptidsanalysController, TidrapportController, WeeklyReportController.
+
+Liat kvar med specialiserade modes (FETCH_COLUMN, FETCH_KEY_PAIR) ororda.
+
 ## 2026-03-22 Session #242 Worker A — SQL subquery perf + error_log format + file_put_contents audit (22 buggar)
 
 ### Uppgift 1: PHP classes/ SQL subquery performance audit (4 buggar)
