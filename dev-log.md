@@ -1,3 +1,71 @@
+## Worker B — Session #256
+
+### Uppgift 1: Angular @HostListener memory leak audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla TypeScript-filer i noreko-frontend/src/app/pages/ (exkl. live-sidor) efter @HostListener-dekoratorer och manuella addEventListener()-anrop.
+
+**Fynd @HostListener:**
+- tvattlinje-statistik.ts:109 — `@HostListener('document:mouseup')` for drag-release. Angular hanterar cleanup automatiskt. Korrekt event-namn och argument. Rent.
+- rebotling-statistik.ts:240 — `@HostListener('document:mouseup')` for drag-release. Samma monster. Rent.
+- drifttids-timeline.component.ts:256 — Kommentar som noterar att en tidigare @HostListener tagits bort. Ingen aktiv lyssnare. Rent.
+
+**Fynd addEventListener med cleanup-verifiering:**
+- saglinje-admin.ts:84 — `addEventListener('visibilitychange', this.visibilityHandler)` + `removeEventListener` i ngOnDestroy (rad 93). Rent.
+- tvattlinje-admin.ts:106 — `addEventListener('visibilitychange', this.visibilityHandler)` + `removeEventListener` i ngOnDestroy (rad 117). Rent.
+- andon.ts:246 — `addEventListener('visibilitychange', this.visibilityHandler)` + `removeEventListener` i ngOnDestroy (rad 346). Rent.
+- rebotling-admin.ts:253 — `addEventListener('visibilitychange', this.visibilityHandler)` + `removeEventListener` i ngOnDestroy (rad 237). Rent.
+- klassificeringslinje-admin.ts:84 — `addEventListener('visibilitychange', this.visibilityHandler)` + `removeEventListener` i ngOnDestroy (rad 93). Rent.
+
+**Slutsats:** Alla addEventListener-anrop har matchande removeEventListener i ngOnDestroy. Alla @HostListener anvander korrekta event-namn och hanteras automatiskt av Angular.
+
+---
+
+### Uppgift 2: Angular async validator timing audit
+**Resultat:** rent — 0 buggar
+
+Sokte igenom ALLA TypeScript-filer i noreko-frontend/src/app/ efter asyncValidator, AsyncValidatorFn, och anpassade async-validerare.
+
+**Fynd:** Inga traffar. Projektet anvander inga async-validerare. Alla formularsvalideringar ar synkrona (template-driven forms med ngModel). Inga race condition- eller debounce-risker.
+
+**Slutsats:** Ingen async-validering existerar i kodbasen. Inget att atgarda.
+
+---
+
+### Uppgift 3: Angular Renderer2 / ElementRef.nativeElement audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla TypeScript-filer i noreko-frontend/src/app/pages/ (exkl. live-sidor) efter direkt DOM-manipulation via nativeElement, innerHTML, outerHTML, querySelector, och Renderer2.
+
+**Fynd nativeElement — alla for Chart.js canvas-rendering:**
+- saglinje-statistik.ts (rad 181, 188, 304, 310, 351, 367) — ViewChild canvas-ref for Chart.js. Rent.
+- tvattlinje-statistik.ts (rad 619, 623, 1252, 1259) — ViewChild canvas-ref for Chart.js. Rent.
+- klassificeringslinje-statistik.ts (rad 180, 187, 303, 309, 350, 366) — ViewChild canvas-ref for Chart.js. Rent.
+- weekly-report.ts (rad 1278), monthly-report.ts (rad 404, 517) — ViewChild canvas-ref. Rent.
+- operatorsportal.ts (rad 115), underhallslogg.ts (rad 223, 230) — ViewChild canvas-ref. Rent.
+- historik.ts (rad 632, 644, 705, 736) — ViewChild canvas-ref. Rent.
+- benchmarking.ts (rad 291), andon.ts (rad 719, 724) — ViewChild canvas-ref. Rent.
+- operator-compare.ts (rad 1150, 1250) — ViewChild canvas-ref. Rent.
+- rebotling-statistik.ts (rad 838, 842, 1989) — ViewChild canvas-ref. Rent.
+- rebotling/produktionstakt.ts (rad 123, 125) — ViewChild canvas-ref. Rent.
+- rebotling/statistik-veckotrend.ts (rad 89) — ViewChild canvas-ref for sparkline. Rent.
+- rebotling/statistik-pareto-stopp.ts (rad 200, 409) — ViewChild canvas-ref. Rent.
+- statistik-produkttyp-effektivitet.ts (rad 203, 232, 275) — ViewChild canvas-ref. Rent.
+- shift-handover.ts (rad 117) — `nativeElement.focus()` pa textarea. Saker DOM-operation. Rent.
+
+**Fynd innerHTML/outerHTML:** Inga traffar. Ingen XSS-risk.
+
+**Fynd querySelector/style:**
+- bonus-admin.ts (rad 1366-1367) — `canvas.style.width/height` for Chart.js canvas-storlek. Rent.
+- rebotling-skiftrapport.ts (rad 436) — `document.querySelector('.table-responsive')` for att lasa scrollTop och aterstalla efter data-refresh. Enbart lasning, ingen manipulation. Rent.
+- statistik-pareto-stopp.ts (rad 372) — `target.style.cursor` i Chart.js hover-callback. Rent.
+
+**Fynd Renderer2:** Ingen anvandning. Inte nodvandigt da ingen farlig DOM-manipulation gors.
+
+**Slutsats:** All nativeElement-anvandning ar for Chart.js canvas-rendering via @ViewChild — standard Angular-monster. Ingen innerHTML/outerHTML, ingen XSS-risk, inga olakade event-lyssnare via nativeElement.
+
+---
+
 ## Worker B — Session #255
 
 ### Uppgift 1: Angular HTTP race condition audit — switchMap vs mergeMap
