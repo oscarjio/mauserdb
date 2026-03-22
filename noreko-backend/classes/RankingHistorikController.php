@@ -228,7 +228,7 @@ class RankingHistorikController {
             usort($opTrender, function($a, $b) use ($sistaVecka) {
                 $ra = $sistaVecka['rankningar'][$a['operator_id']] ?? 9999;
                 $rb = $sistaVecka['rankningar'][$b['operator_id']] ?? 9999;
-                return $ra - $rb;
+                return $ra <=> $rb;
             });
 
             // Vecko-etiketter för Chart.js x-axel
@@ -300,12 +300,12 @@ class RankingHistorikController {
                 if ($a['rank_nu'] === null && $b['rank_nu'] === null) return 0;
                 if ($a['rank_nu'] === null) return 1;
                 if ($b['rank_nu'] === null) return -1;
-                return $a['rank_nu'] - $b['rank_nu'];
+                return $a['rank_nu'] <=> $b['rank_nu'];
             });
 
             // Hitta störste klättraren
             $klattrareLista = array_filter($andringar, fn($x) => $x['andring'] !== null && $x['andring'] > 0);
-            usort($klattrareLista, fn($a, $b) => $b['andring'] - $a['andring']);
+            usort($klattrareLista, fn($a, $b) => $b['andring'] <=> $a['andring']);
             $storstKlattare = !empty($klattrareLista) ? array_values($klattrareLista)[0] : null;
 
             $this->sendSuccess([
@@ -394,7 +394,7 @@ class RankingHistorikController {
                 if ($a['rank_nu'] === null && $b['rank_nu'] === null) return 0;
                 if ($a['rank_nu'] === null) return 1;
                 if ($b['rank_nu'] === null) return -1;
-                return $a['rank_nu'] - $b['rank_nu'];
+                return $a['rank_nu'] <=> $b['rank_nu'];
             });
 
             // Sammanfattning

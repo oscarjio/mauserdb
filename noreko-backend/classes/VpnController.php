@@ -427,7 +427,7 @@ class VpnController {
                 ? $b['connected_since_timestamp'] 
                 : (isset($b['last_seen']) ? strtotime($b['last_seen']) : 0);
             
-            return $timeB - $timeA;
+            return $timeB <=> $timeA;
         });
         
         return $clientsArray;

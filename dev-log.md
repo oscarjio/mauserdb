@@ -33,6 +33,44 @@ Granskade app.routes.ts och app.config.ts.
 - Build: OK
 - Commit: d06ca28
 
+## 2026-03-22 Session #239 Worker A — error response consistency + GROUP BY + sort callback audit (15 buggar)
+
+### Uppgift 1: PHP classes/ error response consistency audit
+Granskade alla PHP-filer i noreko-backend/classes/ for inkonsekvent JSON-responsstruktur vid fel.
+Soekte efter: saknade 'success'-nycklar, 'message' istallet for 'error', saknade http_response_code().
+
+**Resultat: RENT.** Alla felresponser anvander redan monstret {'success': false, 'error': '...'} + http_response_code().
+
+### Uppgift 2: PHP classes/ SQL GROUP BY correctness audit
+Granskade alla SQL-queries i noreko-backend/classes/ for GROUP BY-problem.
+Soekte efter: SELECT-kolumner utanfor GROUP BY, HAVING utan GROUP BY, aggregat utan GROUP BY.
+
+**Resultat: RENT.** Inga GROUP BY-buggar hittade.
+
+### Uppgift 3: PHP classes/ usort/uasort callback audit (15 buggar fixade)
+Granskade alla PHP-filer i noreko-backend/classes/ for felaktiga callbacks i usort/uasort.
+Hittade 15 fall dar usort/uasort anvander subtraktion (-) istallet for spaceship-operatorn (<=>).
+Subtraktion ar felaktigt eftersom: (1) float-varden trunkeras till int (0.7-0.3=0.4 blir 0), (2) PHP 8+ kraver int-returvarde.
+
+**15 buggar fixade — subtraktion ersatt med <=>:**
+1. KassationsorsakController.php:455 — usort $b['total'] - $a['total']
+2. KassationsorsakController.php:531 — usort $sortOrder skift subtraction
+3. ParetoController.php:161 — uasort $b['minutes'] - $a['minutes']
+4. ParetoController.php:218 — uasort $b['minutes'] - $a['minutes']
+5. ProduktionsmalController.php:582 — usort $a['skift_nr'] - $b['skift_nr']
+6. ProduktionsmalController.php:743 — usort $a['station_id'] - $b['station_id']
+7. RankingHistorikController.php:231 — usort $ra - $rb (rankings)
+8. RankingHistorikController.php:303 — usort $a['rank_nu'] - $b['rank_nu']
+9. RankingHistorikController.php:308 — usort $b['andring'] - $a['andring']
+10. RankingHistorikController.php:397 — usort $a['rank_nu'] - $b['rank_nu']
+11. RebotlingAnalyticsController.php:1562 — usort $b['antal_skift'] - $a['antal_skift']
+12. RebotlingAnalyticsController.php:1789 — usort $a['timme'] - $b['timme']
+13. OperatorDashboardController.php:240 — usort $aInaktiv - $bInaktiv
+14. OperatorDashboardController.php:490 — usort array_sum subtraction
+15. VpnController.php:430 — usort $timeB - $timeA
+
+Ej bugg: array_map, array_filter, array_reduce, array_walk — alla callbacks korrekta.
+
 ## 2026-03-21 Session #238 Worker A — output buffering + prepared stmt reuse + header injection (10 buggar)
 
 ### Uppgift 1: PHP classes/ output buffering audit

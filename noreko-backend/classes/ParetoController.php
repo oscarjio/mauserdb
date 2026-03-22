@@ -158,7 +158,7 @@ class ParetoController {
         $rawData = $this->collectStopData($fromDate, $toDate);
 
         // Sortera fallande efter total stopptid
-        uasort($rawData, fn($a, $b) => $b['minutes'] - $a['minutes']);
+        uasort($rawData, fn($a, $b) => $b['minutes'] <=> $a['minutes']);
 
         $totalMinutes = array_sum(array_column($rawData, 'minutes'));
 
@@ -215,7 +215,7 @@ class ParetoController {
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
         $rawData = $this->collectStopData($fromDate, $toDate);
-        uasort($rawData, fn($a, $b) => $b['minutes'] - $a['minutes']);
+        uasort($rawData, fn($a, $b) => $b['minutes'] <=> $a['minutes']);
 
         $totalMinutes  = array_sum(array_column($rawData, 'minutes'));
         $antalOrsaker  = count($rawData);

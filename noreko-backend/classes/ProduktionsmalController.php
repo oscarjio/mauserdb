@@ -579,7 +579,7 @@ class ProduktionsmalController {
             }
 
             // Sortera per skift_nr
-            usort($skift, fn($a, $b) => $a['skift_nr'] - $b['skift_nr']);
+            usort($skift, fn($a, $b) => $a['skift_nr'] <=> $b['skift_nr']);
 
             $this->sendSuccess([
                 'datum'        => $today,
@@ -740,7 +740,7 @@ class ProduktionsmalController {
                     ];
                 }
             }
-            usort($stationer, fn($a, $b) => $a['station_id'] - $b['station_id']);
+            usort($stationer, fn($a, $b) => $a['station_id'] <=> $b['station_id']);
 
             $this->sendSuccess([
                 'datum'       => $today,

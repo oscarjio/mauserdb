@@ -237,7 +237,7 @@ class OperatorDashboardController {
             usort($operatorer, function($a, $b) {
                 $aInaktiv = ($a['status'] === 'inaktiv') ? 1 : 0;
                 $bInaktiv = ($b['status'] === 'inaktiv') ? 1 : 0;
-                if ($aInaktiv !== $bInaktiv) return $aInaktiv - $bInaktiv;
+                if ($aInaktiv !== $bInaktiv) return $aInaktiv <=> $bInaktiv;
                 return $b['ibc_per_h'] <=> $a['ibc_per_h'];
             });
 
@@ -487,7 +487,7 @@ class OperatorDashboardController {
 
             // Sortera på total IBC desc
             usort($operators, function($a, $b) {
-                return array_sum($b['data']) - array_sum($a['data']);
+                return array_sum($b['data']) <=> array_sum($a['data']);
             });
 
             $this->sendSuccess([

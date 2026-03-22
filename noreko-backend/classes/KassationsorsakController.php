@@ -452,7 +452,7 @@ class KassationsorsakController {
             }
 
             // Sortera efter total fallande
-            usort($result, fn($a, $b) => $b['total'] - $a['total']);
+            usort($result, fn($a, $b) => $b['total'] <=> $a['total']);
 
             $this->sendSuccess([
                 'days'           => $days,
@@ -528,7 +528,7 @@ class KassationsorsakController {
             // Sortera: dag, kväll, natt
             $sortOrder = ['dag' => 1, 'kväll' => 2, 'natt' => 3, 'okänd' => 4];
             $result = array_values($shifts);
-            usort($result, fn($a, $b) => ($sortOrder[$a['skift']] ?? 9) - ($sortOrder[$b['skift']] ?? 9));
+            usort($result, fn($a, $b) => ($sortOrder[$a['skift']] ?? 9) <=> ($sortOrder[$b['skift']] ?? 9));
 
             $this->sendSuccess([
                 'days'      => $days,

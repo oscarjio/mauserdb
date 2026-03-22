@@ -1559,7 +1559,7 @@ class RebotlingAnalyticsController {
             }
 
             // Sortera fallande på antal_skift (flest registrerade cykler överst)
-            usort($operators, fn($a, $b) => $b['antal_skift'] - $a['antal_skift']);
+            usort($operators, fn($a, $b) => $b['antal_skift'] <=> $a['antal_skift']);
 
             echo json_encode([
                 'success'    => true,
@@ -1786,7 +1786,7 @@ class RebotlingAnalyticsController {
             }
 
             // Sortera på timme
-            usort($hourly, fn($a, $b) => $a['timme'] - $b['timme']);
+            usort($hourly, fn($a, $b) => $a['timme'] <=> $b['timme']);
 
             $avgIbcPerH  = count($ibcPerHList) > 0 ? round(array_sum($ibcPerHList) / count($ibcPerHList), 1) : 0.0;
             $totalProduced = $totalIbc + $totalEjOk;
