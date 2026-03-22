@@ -66,6 +66,53 @@ Granskade alla TypeScript-filer i noreko-frontend/src/app/pages/ (exkl. live-sid
 
 ---
 
+## Session #256 — Worker A
+
+### Uppgift 1: PHP sprintf format string mismatch audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla sprintf/printf-anrop i noreko-backend/classes/*.php (21 filer med traffar, 0 i controllers/, 0 i rot-PHP-filer). plcbackend/ exkluderades.
+
+**Metod:** Sokte efter sprintf och printf i alla PHP-filer. Kontrollerade att antal %-format matchar antal argument, att typer ar rimliga, att inga saknade argument finns, och att positionsmarkorer anvands korrekt.
+
+**Fynd (alla korrekta):**
+- MorgonrapportController.php: 5 sprintf — alla format/arg matchar (%s, %d, %02d, %.0f)
+- AlertsController.php: 3 sprintf — alla matchar (%.1f, %.0f, %s)
+- RebotlingController.php, RebotlingAnalyticsController.php: 8 sprintf — alla matchar
+- TidrapportController.php: fprintf (BOM-utskrift) — korrekt
+- Ovriga 16 filer: enkla sprintf(%02d/%04d/%d:%02d)-anrop, alla korrekta
+
+**Slutsats:** Inga sprintf/printf format string mismatchar.
+
+---
+
+### Uppgift 2: PHP usort stability audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla usort/uasort/uksort-anrop i noreko-backend/classes/*.php (67 traffar i 35+ filer). Inga traffar i controllers/ eller rot-PHP.
+
+**Metod:** Kontrollerade att jamforelsefunktioner returnerar -1/0/1 (inte true/false), att spaceship-operatorn anvands korrekt, att sortering ar stabil vid lika varden, och att ingen typkonflikt finns.
+
+**Fynd (alla korrekta):**
+- Majoriteten anvander spaceship-operatorn (<=>) — korrekt
+- strcmp()-baserade: AlarmHistorikController, CykeltidHeatmapController, ProduktionspulsController, ForstaTimmeAnalysController, UnderhallsprognosController, RebotlingAnalyticsController — returnerar int, korrekt
+- Sammansatta med if-satser: NewsController, RankingHistorikController, PrediktivtUnderhallController, KvalitetstrendController, OperatorsPrestandaController, OperatorDashboardController, VpnController — alla returnerar int via <=> eller -1/0/1
+- Ingen jamforelse returnerar true/false
+- Ingen float-subtraktion (alla anvander <=> for numeriska varden)
+
+**Slutsats:** Alla usort-jamforelser ar korrekta och stabila.
+
+---
+
+### Uppgift 3: PHP array_push vs []= audit i loopar
+**Resultat:** rent — 0 buggar (inga traffar)
+
+Sokte igenom alla PHP-filer i noreko-backend/ (utom plcbackend/) efter array_push(). Hittade 0 forekomster. Kodbasen anvander genomgaende []-syntax.
+
+**Slutsats:** Inget att atgarda.
+
+---
+
 ## Worker B — Session #255
 
 ### Uppgift 1: Angular HTTP race condition audit — switchMap vs mergeMap
