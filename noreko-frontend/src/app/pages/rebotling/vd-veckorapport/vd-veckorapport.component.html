@@ -39,7 +39,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let kpi of kpiLista(); trackBy: trackByIndex">
+            <tr *ngFor="let kpi of kpiLista; trackBy: trackByIndex">
               <td><strong>{{ formatKpiNamn(kpi) }}</strong></td>
               <td>{{ (sammanfattningData.kpi_forra)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
               <td>{{ (sammanfattningData.kpi_denna)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
@@ -242,7 +242,7 @@
 
             <!-- KPI-kort -->
             <div *ngIf="!loadingKpi && kpiData" class="row g-3">
-              <div *ngFor="let kpi of kpiLista(); trackBy: trackByIndex" class="col-6 col-md-3">
+              <div *ngFor="let kpi of kpiLista; trackBy: trackByIndex" class="col-6 col-md-3">
                 <div class="kpi-kort p-3 rounded">
                   <div class="kpi-rubrik mb-1">{{ formatKpiNamn(kpi) }}</div>
                   <div class="kpi-varde">

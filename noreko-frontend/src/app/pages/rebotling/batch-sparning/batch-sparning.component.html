@@ -252,13 +252,13 @@
         <div class="mb-3">
           <div class="d-flex justify-content-between small text-muted mb-1">
             <span>{{ selectedBatchDetail.antal_klara }} av {{ selectedBatchDetail.batch.planerat_antal }} klara</span>
-            <span>{{ selectedBatchDetail.batch.planerat_antal > 0 ? ((selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) | number:'1.0-0') : 0 }}%</span>
+            <span>{{ detailProgressPct }}%</span>
           </div>
           <div class="progress bg-dark" style="height:24px">
             <div class="progress-bar bg-success"
-                 [style.width.%]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0"
+                 [style.width.%]="detailProgressPct"
                  role="progressbar"
-                 [attr.aria-valuenow]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0"
+                 [attr.aria-valuenow]="detailProgressPct"
                  aria-valuemin="0" aria-valuemax="100">
             </div>
           </div>

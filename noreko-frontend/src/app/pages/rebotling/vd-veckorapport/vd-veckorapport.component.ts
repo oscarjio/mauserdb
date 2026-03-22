@@ -375,9 +375,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     return val >= 0 ? '+' + val : '' + val;
   }
 
-  kpiLista(): string[] {
-    return ['oee', 'produktion', 'kassation', 'drifttid_h'];
-  }
+  readonly kpiLista: readonly string[] = ['oee', 'produktion', 'kassation', 'drifttid_h'] as const;
 
   sammanfattningKpiDiff(kpi: string): number {
     if (!this.sammanfattningData) return 0;

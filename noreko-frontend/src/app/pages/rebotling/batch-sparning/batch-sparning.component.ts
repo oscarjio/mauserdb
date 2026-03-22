@@ -313,6 +313,14 @@ export class BatchSparningPage implements OnInit, OnDestroy {
       : 0;
   }
 
+  get detailProgressPct(): number {
+    if (!this.selectedBatchDetail) return 0;
+    const planerat = this.selectedBatchDetail.batch.planerat_antal;
+    return planerat > 0
+      ? Math.round((this.selectedBatchDetail.antal_klara / planerat) * 100)
+      : 0;
+  }
+
   statusBadgeClass(status: string): string {
     switch (status) {
       case 'pagaende': return 'badge bg-success';

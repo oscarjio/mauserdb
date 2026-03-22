@@ -17150,3 +17150,18 @@ Specifikt undersokt:
 - Alla `file_get_contents($migrationPath)` har korrekt `=== false`-kontroll med error_log.
 - Alla `file_get_contents('php://input')` ar ok (PHP-stream, ingen resurshantering kravs).
 - `fsockopen()` i `disconnectClient()` har korrekt felhantering med `@fclose()` i error paths.
+
+### Worker B — Session #252
+
+#### Uppgift 1: Angular HTTP retry idempotency audit
+**Resultat:** rent
+Granskade samtliga service-filer i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ (utom live-tjansterna). Alla POST/PUT/DELETE-anrop (sparaKonfiguration, generera, bedom, uppdateraKriterier, setGoal, assignOperator, unassignOperator, updateConfig, addService, addMachine, createBatch, completeBatch, updateWeights, setTargets, approveBonuses, setWeeklyGoal) saknar retry() korrekt. Alla GET-anrop har retry(1) som ar sakert for idempotenta lasningar. Inga buggar hittade.
+
+#### Uppgift 2: Angular change detection OnPush audit
+**Resultat:** rent
+Inga komponenter i noreko-frontend/src/app/pages/ (exkl. live-sidor) anvander ChangeDetectionStrategy.OnPush. Darmed finns inga buggar med felaktig OnPush-hantering (muterade objekt, setTimeout utan markForCheck). Avsaknaden av OnPush ar en prestanda-optimering, inte en bugg.
+
+#### Uppgift 3: Angular template arithmetic/logic complexity audit
+**Resultat:** 2 buggar fixade
+- **batch-sparning.component.html rad 255/259/261:** Samma inlineberakning `selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100` upprepades 3 ganger i template (text, style.width, aria-valuenow). Fix: lade till `get detailProgressPct` getter i komponenten och ersatte alla 3 forekomster med `detailProgressPct`.
+- **vd-veckorapport.component.ts/html:** `kpiLista()` var en metod som skapade en ny array `['oee', 'produktion', 'kassation', 'drifttid_h']` vid varje anrop, anvand i 2 `*ngFor`-loopar. En ny array-referens skapades vid varje change detection-cykel. Fix: andrade till `readonly kpiLista` property och uppdaterade template-referenserna.
