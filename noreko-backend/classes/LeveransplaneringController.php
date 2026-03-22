@@ -79,7 +79,7 @@ class LeveransplaneringController {
         }
         return [
             'kapacitet_per_dag'        => (int)$row['kapacitet_per_dag'],
-            'planerade_underhallsdagar' => json_decode($row['planerade_underhallsdagar'] ?: '[]', true) ?: [],
+            'planerade_underhallsdagar' => (static function ($v) { $d = json_decode($v ?: '[]', true); return is_array($d) ? $d : []; })($row['planerade_underhallsdagar']),
             'buffer_procent'           => (int)$row['buffer_procent'],
         ];
     }

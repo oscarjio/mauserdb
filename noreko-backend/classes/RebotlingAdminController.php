@@ -1038,7 +1038,7 @@ class RebotlingAdminController {
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
 
             $columns = json_decode($rows['lrc_columns'] ?? '{}', true);
-            if (empty($columns)) {
+            if (!is_array($columns) || empty($columns)) {
                 $columns = [
                     'ibc_per_hour'  => true,
                     'quality_pct'   => true,

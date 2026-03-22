@@ -730,7 +730,8 @@ class SkiftoverlamningController {
 
             $checklista = null;
             if (!empty($r['checklista_json'])) {
-                $checklista = json_decode($r['checklista_json'], true);
+                $decoded = json_decode($r['checklista_json'], true);
+                $checklista = is_array($decoded) ? $decoded : null;
             }
 
             $this->sendSuccess([

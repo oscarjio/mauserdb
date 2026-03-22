@@ -175,10 +175,14 @@ class BonusAdminController {
                 ];
             } else {
                 // Decode JSON fields
-                $config['weights_foodgrade'] = json_decode($config['weights_foodgrade'], true) ?? [];
-                $config['weights_nonun'] = json_decode($config['weights_nonun'], true) ?? [];
-                $config['weights_tvattade'] = json_decode($config['weights_tvattade'], true) ?? [];
-                $config['tier_multipliers'] = json_decode($config['tier_multipliers'], true) ?? [];
+                $wfgDec = json_decode($config['weights_foodgrade'], true);
+                $config['weights_foodgrade'] = is_array($wfgDec) ? $wfgDec : [];
+                $wnuDec = json_decode($config['weights_nonun'], true);
+                $config['weights_nonun'] = is_array($wnuDec) ? $wnuDec : [];
+                $wtvDec = json_decode($config['weights_tvattade'], true);
+                $config['weights_tvattade'] = is_array($wtvDec) ? $wtvDec : [];
+                $tmDec = json_decode($config['tier_multipliers'], true);
+                $config['tier_multipliers'] = is_array($tmDec) ? $tmDec : [];
             }
 
             $this->sendSuccess($config);
@@ -1527,9 +1531,9 @@ class BonusAdminController {
                     $wfg = json_decode($cfg['weights_foodgrade'] ?? '{}', true);
                     $wnu = json_decode($cfg['weights_nonun'] ?? '{}', true);
                     $wtv = json_decode($cfg['weights_tvattade'] ?? '{}', true);
-                    if (!empty($wfg)) $defaultWeights[1] = $wfg;
-                    if (!empty($wnu)) $defaultWeights[4] = $wnu;
-                    if (!empty($wtv)) $defaultWeights[5] = $wtv;
+                    if (is_array($wfg) && !empty($wfg)) $defaultWeights[1] = $wfg;
+                    if (is_array($wnu) && !empty($wnu)) $defaultWeights[4] = $wnu;
+                    if (is_array($wtv) && !empty($wtv)) $defaultWeights[5] = $wtv;
                     if (!empty($cfg['productivity_target_foodgrade'])) $defaultTargets[1] = (float)$cfg['productivity_target_foodgrade'];
                     if (!empty($cfg['productivity_target_nonun']))     $defaultTargets[4] = (float)$cfg['productivity_target_nonun'];
                     if (!empty($cfg['productivity_target_tvattade']))  $defaultTargets[5] = (float)$cfg['productivity_target_tvattade'];
