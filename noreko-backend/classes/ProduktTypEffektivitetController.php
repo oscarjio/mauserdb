@@ -427,7 +427,7 @@ class ProduktTypEffektivitetController {
             foreach (['snitt_cykeltid_sek', 'kvalitet_pct', 'ibc_per_timme', 'snitt_bonus'] as $metric) {
                 $va = $a[$metric];
                 $vb = $b[$metric];
-                if ($va !== null && $vb !== null && $vb != 0) {
+                if ($va !== null && $vb !== null && $vb !== 0) {
                     $diff[$metric] = round(($va - $vb) / abs($vb) * 100, 1);
                 } else {
                     $diff[$metric] = null;

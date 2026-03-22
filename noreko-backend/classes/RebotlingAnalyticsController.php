@@ -3949,10 +3949,15 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o3 ON o3.number = s.op3
                 {$where}
                 ORDER BY s.datum DESC, s.id DESC
-                LIMIT {$limit} OFFSET {$offset}
+                LIMIT :_lim OFFSET :_off
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k, $v);
+            }
+            $stmt->bindValue(':_lim', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':_off', $offset, PDO::PARAM_INT);
+            $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // KPI-sammanfattning

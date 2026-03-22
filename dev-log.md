@@ -17727,3 +17727,47 @@ Inga ViewChild-refs accessas utan guard i `ngOnInit`. Inga buggar.
 - `rebotling-skiftrapport.html:869`: Enkel state-assignment for redigerings-toggle — Acceptabelt.
 
 Inga template-uttryck med verkliga sidoeffekter (push/splice/HTTP-anrop) hittades. Inga buggar.
+
+---
+
+## Worker A — Session #258
+
+### Uppgift 1: PHP type juggling audit (== vs ===)
+**Resultat:** 2 buggar fixade
+
+Granskade alla PHP-filer i noreko-backend/classes/ och noreko-backend/ (exkl. plcbackend/). Sokte efter == och != jamforelser med mixed types dar === och !== borde anvandas. Kodbasen anvander redan === genomgaende, men hittade tva fall med losa != jamforelser:
+
+1. `KassationsanalysController.php:1039` — `$denom != 0` (division guard i trendlinje-berakning). `$denom` ar resultatet av aritmetik och alltid numerisk, men != 0 kan ge ovaentade resultat om variabeln nagonsin blir null eller tom strang. Fixat: andrat till `$denom !== 0`.
+2. `ProduktTypEffektivitetController.php:430` — `$vb != 0` (division guard i procentuell skillnadsberakning). Varden kommer fran databas-resultat som kan vara null/strang. Fixat: andrat till `$vb !== 0`.
+
+**Redan korrekta:** Alla ovriga jamforelser i kodbasen anvander === och !== korrekt, inklusive AuthHelper.php, LoginController.php, RegisterController.php, api.php m.fl.
+
+---
+
+### Uppgift 2: PHP error_reporting/display_errors audit
+**Resultat:** rent — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/) for:
+- `display_errors` — inga forekomster funna (varken i PHP-filer eller .htaccess)
+- `error_reporting` — inga forekomster funna
+- `echo $e->getMessage()` till klient — inga forekomster funna; alla catch-block anvander `error_log()` for intern loggning och returnerar generiska felmeddelanden till klienten
+- `.htaccess` — innehaller bara session-config och `expose_php Off` (korrekt)
+- Inga php.ini/.user.ini-filer funna
+
+Kodbasen hanterar felrapportering korrekt genomgaende.
+
+---
+
+### Uppgift 3: PHP SQL LIMIT/OFFSET injection audit
+**Resultat:** 1 bugg fixad
+
+Granskade alla SQL-fragor med LIMIT/OFFSET i noreko-backend/classes/ och noreko-backend/controllers/. Tre kategorier hittades:
+
+**Hardkodade LIMIT-varden (OK):** Majoriteten av fragar anvander hardkodade varden (LIMIT 1, LIMIT 5, LIMIT 500 etc.) — inga risker.
+
+**Redan sakra med (int)-cast (OK):** AuditController, BonusController (3 st), StopporsakRegistreringController, RebotlingAnalyticsController:6706 — anvander `LIMIT " . (int)$limit . "` vilket ar sakert.
+
+**Redan sakra med PDO::PARAM_INT (OK):** MaskinhistorikController, RebotlingController, KassationsanalysController, ProduktionspulsController (5 st), RebotlingStationsdetaljController (2 st), ProduktionsmalController, KvalitetscertifikatController, FeedbackAnalysController, SkiftoverlamningController (3 st) — anvander `:lim`/`:off` med `bindValue(..., PDO::PARAM_INT)`.
+
+**Bugg fixad:**
+1. `RebotlingAnalyticsController.php:3952` — `LIMIT {$limit} OFFSET {$offset}` anvande stranginterpolering istallet for prepared statement-parametrar. Aven om `$limit` och `$offset` castades till `(int)` pa rad 3907-3908, ar stranginterpolering i SQL en sakerhetsrisk (defense-in-depth). Fixat: andrat till `:_lim`/`:_off` named parameters med `bindValue(..., PDO::PARAM_INT)`.

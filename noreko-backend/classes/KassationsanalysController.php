@@ -1036,7 +1036,7 @@ class KassationsanalysController {
                     $sumX2 += $i * $i;
                 }
                 $denom = ($n * $sumX2 - $sumX * $sumX);
-                if ($denom != 0) {
+                if ($denom !== 0) {
                     $slope     = ($n * $sumXY - $sumX * $sumY) / $denom;
                     $intercept = ($sumY - $slope * $sumX) / $n;
                     for ($i = 0; $i < $n; $i++) {
