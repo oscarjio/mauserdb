@@ -1,3 +1,38 @@
+## 2026-03-22 Session #244 Worker A — PHP date/strtotime, json_decode, SQL LIKE audit (7 buggar)
+
+### Uppgift 1: PHP date()/strtotime() input validation audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (utom plcbackend/) for:
+- strtotime() som tar emot user input utan validering
+- date() med okontrollerade format-strangar
+- Saknad validering att strtotime() returnerar false
+- DateTime-konstruktorer utan try/catch
+
+**Resultat: Rent.** Alla $_GET-datumparametrar valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/') eller DateTime::createFromFormat innan de anvands. Alla new DateTime()-anrop med user input ligger inuti try/catch-block. strtotime() pa DB-varden kontrolleras med !== false dar det ar relevant (AuthHelper).
+
+### Uppgift 2: PHP json_encode/json_decode error handling audit (7 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (utom plcbackend/) for:
+- json_decode() utan kontroll av returvarde
+- json_decode() utan is_array-guard vid forvantat arrayresultat
+- json_encode() med NAN/INF utan felhantering
+
+**Fixade 7 buggar i 4 filer:**
+1. **SkiftoverlamningController.php** (1 bugg): json_decode av checklista_json utan is_array-guard (rad 733). De andra tva stallena (rad 541, 666) hade redan korrekt is_array-kontroll.
+2. **RebotlingAdminController.php** (1 bugg): json_decode av lrc_columns foljd av empty() utan is_array — korrupt JSON kunde returnera en scalar som passerade empty-checken.
+3. **BonusAdminController.php** (4 buggar): json_decode med ?? [] (rad 178-181) skyddar mot null men inte mot icke-array returvarden. json_decode med !empty() (rad 1530-1532) utan is_array-guard. Lagt till is_array()-kontroll pa alla 7 stallen.
+4. **LeveransplaneringController.php** (1 bugg): json_decode med ?: [] for planerade_underhallsdagar — ?: skyddar mot falsy men inte mot non-array returvarden.
+
+Ovriga json_decode-anrop fran php://input har alla !is_array()-guard. json_encode-anrop anvander is_finite()-guards for float-varden dar relevant. **Rent.**
+
+### Uppgift 3: PHP SQL LIKE wildcard escaping audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (utom plcbackend/) for:
+- LIKE-klausuler med user input utan escaping av %, _, \
+- Sakfunktioner som tar emot user input utan LIKE-specialtecken-escaping
+
+**Resultat: Rent.** Fann 2 filer med LIKE + user input:
+- AuditController.php (rad 106, 114): addcslashes($search, '%_\\') — korrekt
+- BatchSparningController.php (rad 417): addcslashes($search, '%_\\') — korrekt
+Alla ovriga LIKE-queries anvander hardkodade varden (SHOW TABLES LIKE, SHOW COLUMNS LIKE).
+
 ## 2026-03-22 Session #243 Worker B — trackByIndex audit + safe navigation audit (146 buggar)
 
 ### Uppgift 1: Angular trackBy audit (146 buggar)
