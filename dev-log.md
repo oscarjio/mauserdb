@@ -17879,4 +17879,75 @@ Inga guards returnerar void eller undefined. Alla anvander korrekt redirect-meto
 - `environment.ts` och `environment.prod.ts` har identisk `apiUrl: '/noreko-backend/api.php'`.
 - GET/POST-metoder anvands konsekvent med `{ withCredentials: true }`.
 
+---
+
+## 2026-03-22 Session #260 Worker A — PHP timezone / JSON / integer overflow audit
+
+### Uppgift 1: PHP date/time timezone handling audit — 0 buggar
+
+**Metod:** Granskade alla ~120 PHP-filer i noreko-backend/classes/ och noreko-backend/controllers/ samt api.php och update-weather.php. Sokte efter date(), DateTime, strtotime(), date_default_timezone_set().
+
+**Fynd:**
+- `noreko-backend/api.php` rad 6: `date_default_timezone_set('Europe/Stockholm')` — satt forst, fore all routing. Alla controllers inkluderas via api.php sa timezone ar garanterat satt globalt.
+- `noreko-backend/update-weather.php` rad 9: Explicit `date_default_timezone_set('Europe/Stockholm')` — korrekt for cron-script utanfor api.php.
+- `classes/RuntimeController.php`: Anvander `new DateTimeZone('Europe/Stockholm')` och `new DateTime('now', $tz)` — explicit timezone pa alla DateTime-objekt.
+- `classes/ShiftHandoverController.php`: Anvander `new DateTimeZone('Europe/Stockholm')` och explicit timezone pa alla DateTime-operationer.
+- `classes/AuditController.php`: Anvander `new DateTime($str)` utan explicit timezone — men api.php:s globala timezone-sat skapar korrekt kontext.
+- `login.php` och `admin.php`: Legacy stubs, returnerar 410 utan datetime-operationer.
+- Alla ovriga controllers: `date()` och `strtotime()` anvands utan explicit timezone — korrekt eftersom api.php satter global timezone fore nagot anrop hinner intraeffa.
+- Inga tvetydiga strtotime()-format hittades; alla anvander ISO-8601-datum (YYYY-MM-DD) eller relativa uttryck (-N days, +1 day, -N weeks) som ar entydiga.
+
+**Rena filer (urval):** AlarmHistorikController, DrifttidsTimelineController, FavoriterController, ForstaTimmeAnalysController, HeatmapController, HistoriskSammanfattningController, KassationsanalysController, KassationsDrilldownController, KvalitetsTrendbrottController, MorgonrapportController, OeeTrendanalysController, OeeWaterfallController, OperatorDashboardController, ParetoController, ProduktionspulsController, StopporsakController, VdDashboardController, VeckorapportController (samtliga controllers/).
+
+### Uppgift 2: PHP JSON encode/decode error handling audit — 0 buggar
+
+**Metod:** Sokte igenom alla ~120 PHP-filer efter json_decode() och json_encode() anrop. Kontrollerade om json_last_error() anvands, om null-check/is_array-check finns, och om file_get_contents()+json_decode() har mellanstegsvalidering.
+
+**Fynd:**
+- Samtliga `json_decode(file_get_contents('php://input'), true)` anrop har antingen:
+  - `?? []` suffix (ResultError hanteras automatiskt — null koalesceras till tom array), eller
+  - Omedelbar `if (!is_array($data))` som returnerar HTTP 400.
+- `update-weather.php` rad 68-71: `json_decode($response, true)` foljs av `if (!$data || !isset($data['current']['temperature_2m']))` — tacker bade null och felaktig struktur.
+- DB-falt av JSON-typ (BonusAdminController rad 178-185, RebotlingAdminController rad 267, TvattlinjeController rad 380): Alla valideras med `if (is_array($saved))` fore anvandning med fallback till defaults.
+- `DashboardLayoutController` rad 114: `json_decode($row['layout_json'], true)` med omedelbar `is_array($layout) ? $layout : $this->defaultLayout()` — korrekt.
+- `SkiftoverlamningController` rader 541, 666, 733: `json_decode($r['checklista_json'], true)` med omedelbar `is_array($decoded) ? $decoded : null` — korrekt.
+- json_encode() anvands genomgaende utan felhantering, men detta ar acceptabelt da datan alltid ar PHP-arrayer med standardtyper (string/int/float/bool/null) som garanterat kan kodas.
+- Inga `json_last_error()` anrop hittades — inte en bugg i sig da is_array()-monstret ger ekvivalent skydd.
+
+**Rena filer (urval):** LoginController, AdminController, ProfileController, NewsController, FeedbackController, StoppageController, BonusController, RebotlingController, TvattlinjeController, UnderhallsloggController, FeatureFlagController, SkiftplaneringController, ShiftHandoverController.
+
+### Uppgift 3: PHP integer overflow/boundary audit — 0 buggar
+
+**Metod:** Sokte igenom alla PHP-filer efter intval(), (int), LIMIT, OFFSET, $_GET-pagination, aritmetik. Kontrollerade bounds pa user-supplied vaarden.
+
+**Fynd:**
+- **Period/days-parametrar**: Samtliga har adekvat validering:
+  - `max(1, min(365, intval(...)))` (HeatmapController, KvalitetstrendanalysController)
+  - `max(7, min(365, $d))` (UtnyttjandegradController)
+  - `in_array($p, [7, 30, 90], true) ? $p : 30` (ProduktionseffektivitetController, MyStatsController, StopporsakOperatorController, OperatorJamforelseController, KvalitetsTrendbrottController, ForstaTimmeAnalysController)
+  - `in_array($m, [3, 6, 12], true) ? $m : 6` (OperatorOnboardingController)
+  - `if ($days < 1 || $days > 365) $days = 30` (RebotlingController)
+  - `if ($days < 1 || $days > 730) $days = 180` (RebotlingAdminController)
+  - `if ($w < 1 || $w > 52) return 12` (StopporsakTrendController)
+  - `if ($year < 2020 || $year > 2100)` (NarvaroController, ProduktionskalenderController, RebotlingAnalyticsController)
+  - `if ($month < 1 || $month > 12)` (NarvaroController, ProduktionskalenderController)
+- **Pagination LIMIT/OFFSET**:
+  - AuditController: `min(200, max(10, intval(...)))` for limit, `max(1, min(10000, intval(...)))` for page.
+  - FeedbackAnalysController: `max(5, min(100, intval(...)))` for per_page, `max(1, min(10000, intval(...)))` for page.
+  - SkiftoverlamningController: `max(1, min(100, ...))` for limit, `max(0, min(100000, ...))` for offset.
+  - RebotlingAnalyticsController: `max(1, min(500, ...))` for limit, `max(0, min(100000, ...))` for offset.
+  - ProduktionspulsController: `max(1, min(100, ...))` for limit.
+  - KassationsanalysController: `max(10, min(500, intval(...)))` for limit.
+- **ID-parametrar**: Samtliga har `<= 0` check med tidig retur.
+- **Division-by-zero**: Skyddas genomgaende via `max(1, ...)` (KapacitetsplaneringController rad 1093, 1116, 1123, 1134, 1136), `NULLIF()` i SQL (ProduktTypEffektivitetController), `> 0` gatvakt (ProduktionsmalController rad 181, 215).
+- **Multiplikation av stora tal**: Inte forekommande; alla datamangder ar begransade via LIMIT/OFFSET.
+
+**Rena filer (samtliga controllers och classes granskade):** Inga buggar hittades.
+
+### Build och deployment:
+- Frontend: Ej nodvandig (inga kodfixar gjordes)
+- Git commit: Se nedan
+
+### Totalt: 0 buggar fixade i 0 filer
+
 Inga buggar.
