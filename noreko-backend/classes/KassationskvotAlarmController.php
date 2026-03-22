@@ -544,7 +544,7 @@ class KassationskvotAlarmController {
                 ORDER BY antal DESC
                 LIMIT 5
             ");
-            $stmtOrsaker->execute($skiftIds);
+            $stmtOrsaker->execute(array_values($skiftIds));
             $orsaker = $stmtOrsaker->fetchAll(PDO::FETCH_ASSOC);
 
             $this->sendSuccess([

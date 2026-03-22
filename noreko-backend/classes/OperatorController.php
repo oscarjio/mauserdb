@@ -738,7 +738,7 @@ class OperatorController {
             $nameStmt = $this->pdo->prepare(
                 "SELECT number, name FROM operators WHERE number IN ($placeholders)"
             );
-            $nameStmt->execute($nums);
+            $nameStmt->execute(array_values($nums));
             $nameMap = [];
             foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $op) {
                 $nameMap[(int)$op['number']] = $op['name'];

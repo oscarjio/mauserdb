@@ -91,7 +91,7 @@ class OperatorDashboardController {
      */
     private function getNamnMap(array $nums): array {
         if (empty($nums)) return [];
-        $nums = array_map('intval', array_unique($nums));
+        $nums = array_values(array_map('intval', array_unique($nums)));
         $placeholders = implode(',', array_fill(0, count($nums), '?'));
         $stmt = $this->pdo->prepare(
             "SELECT number, name FROM operators WHERE number IN ($placeholders)"

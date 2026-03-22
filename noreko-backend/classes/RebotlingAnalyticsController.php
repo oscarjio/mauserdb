@@ -1009,7 +1009,7 @@ class RebotlingAnalyticsController {
                     if (!empty($opIds)) {
                         $placeholders = implode(',', array_fill(0, count($opIds), '?'));
                         $ns2 = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($placeholders)");
-                        $ns2->execute($opIds);
+                        $ns2->execute(array_values($opIds));
                         foreach ($ns2->fetchAll(PDO::FETCH_ASSOC) as $nr) {
                             $nameMap[(int)$nr['number']] = $nr['name'] ?? 'Okänd';
                         }

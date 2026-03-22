@@ -1,3 +1,49 @@
+## 2026-03-22 Session #250 Worker A — mb_substr/mb_strlen + array_unique/array_values + Content-Type + static side-effects audits (4 buggar)
+
+### Uppgift 1: PHP mb_substr/mb_strlen consistency audit — 0 buggar
+
+Granskade alla PHP-filer i noreko-backend/classes/ for substr() vs mb_substr() och strlen() vs mb_strlen().
+
+**substr()-anrop:** Alla substr()-anrop opererar pa datum/tid-strangar (YYYY-MM-DD, timestamps, yearweek),
+base64-kodning eller andra rena ASCII-strangar. Inga multibyte-risker.
+
+**strlen()-anrop:** Hittades i RegisterController, AdminController, ProfileController, LoginController,
+FeatureFlagController, VpnController. Anvands for validering av anvandarnamn, losenord, e-post, telefon,
+feature keys, VPN-output. Alla ar antingen rena ASCII eller byte-langd ar tillrackligt (losenord).
+
+**Resultat:** Inga buggar som behover fixas. Alla substr/strlen-anvandningar ar korrekta for sina datatyper.
+
+### Uppgift 2: PHP array_unique/array_values audit — 4 buggar
+
+Granskade alla array_unique()-anrop i noreko-backend/classes/. Fokus pa fall dar resultatet passeras till
+PDOStatement::execute() med positionella (?) placeholders — dar kraver PDO sekventiella 0-indexerade nycklar.
+
+**Bugg 1 — KassationskvotAlarmController.php:547:** `$stmtOrsaker->execute($skiftIds)` dar $skiftIds
+kommer fran array_unique() utan array_values(). Fixat: lade till array_values().
+
+**Bugg 2 — OperatorController.php:741:** `$nameStmt->execute($nums)` dar $nums kommer fran
+array_unique() utan array_values(). Fixat: lade till array_values().
+
+**Bugg 3 — RebotlingAnalyticsController.php:1012:** `$ns2->execute($opIds)` dar $opIds kommer fran
+array_unique() utan array_values(). Fixat: lade till array_values().
+
+**Bugg 4 — OperatorDashboardController.php:94 (getNamnMap):** `$stmt->execute($nums)` dar $nums
+kommer fran array_map('intval', array_unique($nums)) utan array_values(). Fixat: lade till array_values().
+
+### Uppgift 3: PHP header() Content-Type consistency audit — 0 buggar
+
+api.php satter `header('Content-Type: application/json; charset=utf-8')` centralt pa rad 56.
+Alla controllers routas via api.php och arver denna header. login.php och admin.php satter ocksa Content-Type.
+CSV-exporter overrider korrekt med text/csv. Inga Content-Type-buggar hittades.
+
+### Uppgift 4: PHP static method side-effects audit — 0 buggar
+
+Granskade AuthHelper (14 statiska metoder) och AuditLogger (2 statiska metoder).
+Alla sidoeffekter (session-manipulation, DB-writes, DDL) ar forvanlade och tydligt namngivna.
+Inga overraskande sidoeffekter hittades.
+
+---
+
 ## 2026-03-22 Session #250 Worker B — Angular pipe null-safety + FormControl validators + route resolver audit (0 buggar)
 
 ### Uppgift 1: Angular pipe chain null-safety audit — 0 buggar
