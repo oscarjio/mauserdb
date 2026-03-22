@@ -965,6 +965,7 @@ class BonusAdminController {
                 $r['avg_ibc_per_h']   = (float)($r['avg_ibc_per_h'] ?? 0);
                 $r['avg_quality_pct'] = (float)($r['avg_quality_pct'] ?? 0);
             }
+            unset($r);
 
             // Summera totalt belopp för filtret
             $total_sek = array_sum(array_column($rows, 'amount_sek'));
@@ -1198,6 +1199,7 @@ class BonusAdminController {
                 $r['antal_utbetalningar']  = (int)$r['antal_utbetalningar'];
                 $r['snitt_per_utbetalning']= (float)$r['snitt_per_utbetalning'];
             }
+            unset($r);
 
             $this->sendSuccess(['summary' => $rows, 'year' => $year]);
         } catch (PDOException $e) {

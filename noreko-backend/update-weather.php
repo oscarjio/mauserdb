@@ -19,7 +19,8 @@ if (!file_exists($dbConfig)) {
 $db = require $dbConfig;
 try {
     $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_EMULATE_PREPARES => false
     ]);
 } catch (\Throwable $e) {
     error_log('[update-weather] Databasanslutning misslyckades: ' . get_class($e) . ': ' . $e->getMessage());

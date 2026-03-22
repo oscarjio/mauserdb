@@ -1,3 +1,46 @@
+## Worker A — Session #257
+
+### Uppgift 1: PHP foreach by-reference audit
+**Resultat:** 5 buggar fixade
+
+Sokte efter `foreach ($array as &$val)` i alla .php-filer under noreko-backend/ (exkl. plcbackend/). Hittade 30+ forekomster. Kontrollerade om `unset()` anropas efter varje loop.
+
+**Buggar (saknade unset):**
+1. `StopptidsanalysController.php:306` — `foreach ($maskiner as &$m)` utan unset. Fixat: lade till `unset($m)`.
+2. `AdminController.php:378` — `foreach ($users as &$u)` utan unset. Fixat: lade till `unset($u)`.
+3. `KassationsorsakController.php:522-523` — nasted `foreach ($shifts as &$shift)` och `foreach ($shift['orsaker'] as &$o)` utan unset. Fixat: lade till `unset($o)` och `unset($shift)`.
+4. `BonusAdminController.php:955` — `foreach ($rows as &$r)` utan unset. Fixat: lade till `unset($r)`.
+5. `BonusAdminController.php:1189` — `foreach ($rows as &$r)` utan unset. Fixat: lade till `unset($r)`.
+
+**Redan korrekta (hade unset):** DagligBriefingController (3 st), FeedbackController, MorgonrapportController, VeckotrendController, OperatorCompareController, HistorikController, KassationsanalysController (3 st), RebotlingController (3 st), OeeTrendanalysController, GamificationController, VdDashboardController, RebotlingAnalyticsController (7 st), OperatorController (2 st), StoppageController (2 st), ShiftPlanController, VeckorapportController, OperatorRankingController (2 st), UtnyttjandegradController, FeedbackAnalysController, MaintenanceController (2 st).
+
+---
+
+### Uppgift 2: PHP static method state leakage audit
+**Resultat:** rent — 0 buggar
+
+Sokte efter `static $` i alla .php-filer under noreko-backend/ (exkl. plcbackend/).
+
+**Fynd:**
+- `LineSkiftrapportController.php:9` — `private static $allowedLines = [...]`. Detta ar en klass-egenskap (class property), inte en lokal statisk variabel inuti en metod. Konstantvarde som inte ackumulerar data. Rent.
+
+Inga metod-lokala statiska variabler hittades i nagon PHP-fil.
+
+---
+
+### Uppgift 3: PHP PDO::ATTR_EMULATE_PREPARES audit
+**Resultat:** 2 buggar fixade
+
+Sokte efter `new PDO`, `ATTR_EMULATE`, `ATTR_ERRMODE`, `setAttribute` i alla .php-filer under noreko-backend/.
+
+**Fynd:**
+1. `api.php:104` — PDO-anslutning saknade `ATTR_EMULATE_PREPARES => false`. ATTR_ERRMODE var korrekt satt. Fixat: lade till `PDO::ATTR_EMULATE_PREPARES => false`.
+2. `update-weather.php:21` — PDO-anslutning saknade `ATTR_EMULATE_PREPARES => false`. ATTR_ERRMODE var korrekt satt. Fixat: lade till `PDO::ATTR_EMULATE_PREPARES => false`.
+
+Utan `ATTR_EMULATE_PREPARES => false` skickar PDO alla parametrar som strangar till MySQL istallet for att anvanda riktiga prepared statements, vilket kan ge typfel och ar mindre sakert.
+
+---
+
 ## Worker B — Session #257
 
 ### Uppgift 1: Angular ngAfterViewChecked performance audit

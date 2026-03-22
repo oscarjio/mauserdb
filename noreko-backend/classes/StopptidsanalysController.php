@@ -308,6 +308,7 @@ class StopptidsanalysController {
                     ? round(($m['total_min'] / $totalMin) * 100, 1)
                     : 0.0;
             }
+            unset($m);
 
             $this->sendSuccess([
                 'days'      => $days,

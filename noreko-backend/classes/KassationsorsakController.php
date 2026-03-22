@@ -523,7 +523,9 @@ class KassationsorsakController {
                 foreach ($shift['orsaker'] as &$o) {
                     $o['andel'] = $shift['total'] > 0 ? round(($o['antal'] / $shift['total']) * 100, 1) : 0;
                 }
+                unset($o);
             }
+            unset($shift);
 
             // Sortera: dag, kväll, natt
             $sortOrder = ['dag' => 1, 'kväll' => 2, 'natt' => 3, 'okänd' => 4];

@@ -375,12 +375,13 @@ class AdminController {
                 $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, operator_id FROM users");
             }
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($users as &$u) { 
+            foreach ($users as &$u) {
                 $u['role'] = ((int)$u['admin'] === 1) ? 'admin' : 'user';
                 if (!isset($u['active'])) {
                     $u['active'] = 1; // Default till aktiv om kolumnen inte finns
                 }
             }
+            unset($u);
             echo json_encode(['success' => true, 'users' => $users], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('AdminController::get_users: ' . $e->getMessage());
