@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #246):
-- [ ] **PHP file_exists/is_readable audit** — Worker A
-- [ ] **PHP PDO::beginTransaction rollback audit** — Worker A
-- [ ] **PHP intval/floatval range validation audit (A-M)** — Worker A
-- [ ] **Angular HTTP error message i18n audit** — Worker B
-- [ ] **Angular template method call performance audit** — Worker B
+### Pagaende (session #247):
+- [ ] **PHP intval/floatval range validation audit (N-Z)** — Worker A
+- [ ] **PHP header() redirect validation audit** — Worker A
+- [ ] **PHP SQL ORDER BY injection audit** — Worker A
+- [ ] **Angular canDeactivate guard audit** — Worker B
+- [ ] **Angular change detection OnPush audit** — Worker B
 
-### Nasta buggjakt-items (session #247+):
-- [ ] **PHP intval/floatval range validation audit (N-Z)** — resterande PHP-klasser
-- [ ] **PHP header() redirect validation audit** — saknade exit() efter header("Location:")
-- [ ] **Angular canDeactivate guard audit** — formularsidor utan unsaved-changes-skydd
-- [ ] **PHP SQL ORDER BY injection audit** — dynamisk ORDER BY utan vitlista
-- [ ] **Angular change detection OnPush audit** — komponenter utan OnPush som borde ha det
+### Nasta buggjakt-items (session #248+):
+- [ ] **PHP array_map/array_filter callback type-safety audit** — callbacks utan typkontroll
+- [ ] **PHP str_contains/strpos falsy-check audit** — strpos() === false vs == false
+- [ ] **Angular HTTP timeout audit** — anrop utan timeout som kan hanga forever
+- [ ] **PHP preg_match return value audit** — saknad kontroll av preg_match returvarde
+- [ ] **Angular form validation UX audit** — felmeddelanden som saknas eller visas vid fel tillfalle
 
 ## Parkerade features (ta inte dessa nu)
 
