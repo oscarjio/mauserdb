@@ -624,5 +624,5 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
     };
     return map[line] ?? line;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

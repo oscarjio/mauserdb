@@ -461,5 +461,5 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
     if (!this.selectedOpId) return '';
     return this.operators.find(o => o.id === this.selectedOpId)?.name || '';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

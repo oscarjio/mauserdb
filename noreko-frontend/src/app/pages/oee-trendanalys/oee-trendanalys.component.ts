@@ -422,6 +422,6 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       },
     });
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? item?.station_id ?? index; }
 }

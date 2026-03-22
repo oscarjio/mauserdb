@@ -343,6 +343,6 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   stationBarColor(station: StationData): string {
     return station.antal > 0 ? '#4fd1c5' : '#4a5568';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

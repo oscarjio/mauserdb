@@ -16,5 +16,5 @@ export class SaglinjeSkiftrapportPage {
     accentHex: '#d69e2e',
     emptyText: 'Såglinje är ej i drift ännu. Rapporter visas när produktion startar.'
   };
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

@@ -322,5 +322,5 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
     if (pct >= 95) return 'rgba(236,201,75,0.85)';
     return 'rgba(252,129,129,0.85)';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

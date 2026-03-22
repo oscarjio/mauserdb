@@ -492,5 +492,5 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   trackByStation(_i: number, s: StationStatus): string { return s.station; }
   trackByAlarm(_i: number, a: AlarmRad): string { return a.start_time; }
   trackByIbc(_i: number, ibc: IbcRad): string { return ibc.datum; }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

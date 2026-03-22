@@ -265,5 +265,5 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
       default: return '';
     }
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

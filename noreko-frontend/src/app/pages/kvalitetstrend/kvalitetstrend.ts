@@ -583,5 +583,5 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
   trackByNummer(_: number, op: OperatorRow): number {
     return op.nummer;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

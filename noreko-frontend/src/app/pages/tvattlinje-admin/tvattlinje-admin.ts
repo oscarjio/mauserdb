@@ -445,5 +445,5 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
       if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3500);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

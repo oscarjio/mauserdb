@@ -378,5 +378,5 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     if (!this.bestWeekEver || this.bestWeekEver.ibc_total === 0) return 0;
     return Math.round((ibc / this.bestWeekEver.ibc_total) * 100);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

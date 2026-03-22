@@ -262,5 +262,5 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
     const sign = pct >= 0 ? '+' : '';
     return sign + pct.toFixed(1) + ' %';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

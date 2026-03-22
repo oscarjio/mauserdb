@@ -386,5 +386,5 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   onShowError(msg: string): void {
     this.errorMessage = msg;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

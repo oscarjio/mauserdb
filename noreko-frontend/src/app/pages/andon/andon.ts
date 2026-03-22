@@ -922,5 +922,5 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.showShiftChangeNotice = false;
     window.open('/rebotling-skiftrapport', '_blank');
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

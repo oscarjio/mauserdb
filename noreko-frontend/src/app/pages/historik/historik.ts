@@ -802,5 +802,5 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     const foregaende = data[reversedIndex + 1].total_ibc;
     return { diff: aktuell - foregaende };
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

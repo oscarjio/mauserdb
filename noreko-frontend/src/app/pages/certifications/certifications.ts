@@ -572,5 +572,5 @@ export class CertificationsPage implements OnInit, OnDestroy {
     const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('sv-SE');
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

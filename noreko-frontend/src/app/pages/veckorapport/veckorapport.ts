@@ -132,5 +132,5 @@ export class VeckorapportPage implements OnInit, OnDestroy {
     const wi = this.report.week_info;
     return `${this.formatDate(wi.start_date)} - ${this.formatDate(wi.end_date)}`;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

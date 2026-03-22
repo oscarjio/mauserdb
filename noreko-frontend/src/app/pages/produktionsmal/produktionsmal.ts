@@ -359,5 +359,5 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
     if (!rad.avslutad) return '';
     return rad.uppnadd ? 'row-green' : 'row-red';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

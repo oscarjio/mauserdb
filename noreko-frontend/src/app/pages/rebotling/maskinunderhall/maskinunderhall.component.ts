@@ -472,6 +472,6 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       service_intervall_dagar: 90,
     };
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

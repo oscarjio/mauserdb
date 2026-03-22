@@ -780,8 +780,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     return alert.message;
   }
 
-  trackByIndex(index: number): number {
-    return index;
+  trackByIndex(index: number, item: any): any {
+    return item?.id ?? index;
   }
 
   trackByDayDate(index: number, d: { date: string }): string {

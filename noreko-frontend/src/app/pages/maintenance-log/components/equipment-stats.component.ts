@@ -210,6 +210,6 @@ export class EquipmentStatsComponent implements OnDestroy {
     if (this.sortField !== field) return 'fa-sort';
     return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackByNamn(index: number, item: any): any { return item?.namn ?? index; }
 }

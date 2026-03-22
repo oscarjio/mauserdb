@@ -258,5 +258,5 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy, Compone
     if (!text) return '--';
     return text.length > len ? text.substring(0, len) + '...' : text;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

@@ -418,5 +418,5 @@ export class News implements OnInit, OnDestroy {
     if (pct >= 60) return 'bg-warning';
     return 'bg-danger';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

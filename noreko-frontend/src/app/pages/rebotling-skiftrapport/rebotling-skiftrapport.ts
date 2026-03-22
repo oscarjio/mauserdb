@@ -1879,8 +1879,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return product.id;
   }
 
-  trackByIndex(index: number): number {
-    return index;
+  trackByIndex(index: number, item: any): any {
+    return item?.id ?? index;
   }
 
   trackByOpName(index: number, op: { name: string }): string {

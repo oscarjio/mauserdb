@@ -1489,5 +1489,5 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3000);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

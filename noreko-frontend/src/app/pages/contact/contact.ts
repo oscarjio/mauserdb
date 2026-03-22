@@ -14,5 +14,5 @@ export class ContactPage {
     { name: 'Produktion', desc: 'Frågor om produktionsdata och rapporter', icon: 'fa-industry', email: 'produktion@noreko.com' },
     { name: 'Administration', desc: 'Användarkonton och behörigheter', icon: 'fa-user-shield', email: 'admin@noreko.com' },
   ];
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

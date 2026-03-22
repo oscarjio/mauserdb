@@ -508,7 +508,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   formatPct(val: number | null | undefined): string {
     return (val ?? 0).toFixed(1);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByMaskinId(index: number, item: any): any { return item?.maskin_id ?? item?.id ?? index; }
 }

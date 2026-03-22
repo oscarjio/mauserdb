@@ -40,5 +40,5 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
       options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: any) => { const d = this.hourlyRhythm[ctx.dataIndex]; return ['IBC/h: '+d.avg_ibc_h, 'Kvalitet: '+d.avg_kvalitet+'%', 'Dagar: '+d.antal_dagar]; } } } },
         scales: { x: { ticks: { color: '#a0aec0' }, grid: { color: '#4a5568' } }, y: { beginAtZero: true, ticks: { color: '#a0aec0' }, grid: { color: '#4a5568' }, title: { display: true, text: 'Snitt IBC/h', color: '#a0aec0' } } } } });
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

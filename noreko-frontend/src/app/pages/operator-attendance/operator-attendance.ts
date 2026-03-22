@@ -117,5 +117,5 @@ export class OperatorAttendancePage implements OnInit, OnDestroy {
     ];
     return `${months[m - 1]} ${y}`;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

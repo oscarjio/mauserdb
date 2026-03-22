@@ -1508,5 +1508,5 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     }
     return name.slice(0, 2).toUpperCase();
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

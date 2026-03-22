@@ -386,5 +386,5 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
   get harTrendData(): boolean {
     return this.trendData.length > 0;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

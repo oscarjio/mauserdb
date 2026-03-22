@@ -403,5 +403,5 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     const checked = checklista.filter(c => c.checked).length;
     return `${checked}/${checklista.length}`;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

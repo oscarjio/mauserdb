@@ -368,6 +368,6 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     if (val < -0.01) return 'fas fa-arrow-down';
     return 'fas fa-minus';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

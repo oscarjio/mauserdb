@@ -344,5 +344,5 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     if (snitt === null) return '–';
     return snitt.toFixed(2) + ' / 4';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

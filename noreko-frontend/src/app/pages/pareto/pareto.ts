@@ -276,5 +276,5 @@ export class ParetoPage implements OnInit, OnDestroy {
   get harData(): boolean {
     return this.paretoItems.length > 0 && this.totalMinutes > 0;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

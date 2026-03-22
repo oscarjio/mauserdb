@@ -300,6 +300,6 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   }
 
   // runningCount och stoppedCount ar nu cachedRunningCount / cachedStoppedCount (beraknas i rebuildCachedSegments)
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

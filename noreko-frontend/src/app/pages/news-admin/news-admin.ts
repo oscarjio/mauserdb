@@ -683,5 +683,5 @@ export class NewsAdminPage implements OnInit, OnDestroy {
         + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
     } catch { return dateStr; }
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

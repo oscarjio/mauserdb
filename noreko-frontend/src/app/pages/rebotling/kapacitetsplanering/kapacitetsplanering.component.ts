@@ -878,6 +878,6 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     if (faktor >= 0.7) return 'utnyttjande-medel';
     return 'utnyttjande-lag';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? item?.station_id ?? index; }
 }

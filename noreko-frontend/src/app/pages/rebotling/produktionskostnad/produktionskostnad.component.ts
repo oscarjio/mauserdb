@@ -445,6 +445,6 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
       default: return 'Idag';
     }
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

@@ -400,7 +400,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     }
     return ids;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByDatum(index: number, item: any): any { return item?.datum ?? index; }
   trackBySkift(index: number, item: any): any { return item?.skift ?? index; }

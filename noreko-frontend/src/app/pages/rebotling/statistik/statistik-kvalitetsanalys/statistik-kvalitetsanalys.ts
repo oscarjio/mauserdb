@@ -93,5 +93,5 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
       plugins: { legend: { labels: { color: '#e2e8f0' } }, tooltip: { callbacks: { label: (ctx: any) => { if (ctx.datasetIndex === 0) { const item = this.rejectionParetoData[ctx.dataIndex]; const trendStr = item.trend === 'up' ? ' \u2191' : item.trend === 'down' ? ' \u2193' : ''; return ['Antal: '+item.antal+trendStr, 'Andel: '+item.pct+'%']; } return 'Kumulativ: '+(ctx.parsed.x ?? ctx.parsed.y)+'%'; } } } },
       scales: { x: { beginAtZero: true, ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.06)' } }, y: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.06)' } }, yRight: { position: 'right' as const, min: 0, max: 100, ticks: { color: '#ed8936', callback: (v: any) => v+'%' }, grid: { drawOnChartArea: false } } } } });
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

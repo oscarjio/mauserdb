@@ -939,5 +939,5 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

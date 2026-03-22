@@ -445,5 +445,5 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
   trackByWeek(_: number, row: WeeklyRow): string {
     return row.week;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

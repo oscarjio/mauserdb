@@ -587,5 +587,5 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
       }
     });
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

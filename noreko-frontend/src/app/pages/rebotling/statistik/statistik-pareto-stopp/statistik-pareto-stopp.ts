@@ -423,5 +423,5 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     if (label.length <= maxLen) return label;
     return label.substring(0, maxLen - 1) + '\u2026';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

@@ -383,7 +383,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     const dagar = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
     return `${dagar[d.getDay()]} ${datum}`;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByDatum(index: number, item: any): any { return item?.datum ?? index; }
 }

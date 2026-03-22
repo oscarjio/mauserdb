@@ -345,5 +345,5 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
       default: return '#4a5568';
     }
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

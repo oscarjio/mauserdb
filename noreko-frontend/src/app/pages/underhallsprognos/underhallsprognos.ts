@@ -334,5 +334,5 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
   get snartPoster(): SchemaRad[] {
     return this.scheduleData?.schema.filter(r => r.status === 'snart') ?? [];
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

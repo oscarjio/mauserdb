@@ -253,6 +253,6 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
     if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
     return ts;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

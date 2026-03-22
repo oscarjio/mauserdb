@@ -138,6 +138,6 @@ export class KpiAnalysisComponent implements OnDestroy {
     this.kpiDays = days;
     this.loadKpiData();
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackByEquipment(index: number, item: any): any { return item?.equipment ?? index; }
 }

@@ -479,5 +479,5 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
     }
     return best;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

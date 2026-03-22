@@ -16,5 +16,5 @@ export class KlassificeringslinjeSkiftrapportPage {
     accentHex: '#38a169',
     emptyText: 'Klassificeringslinje är ej i drift ännu. Rapporter visas när produktion startar.'
   };
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

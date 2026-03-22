@@ -401,6 +401,6 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
   abs(val: number | undefined | null): number {
     return Math.abs(val ?? 0);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? item?.user_id ?? index; }
 }

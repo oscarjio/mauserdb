@@ -436,5 +436,5 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
   isLoading(): boolean {
     return this.summaryLoading || this.dailyLoading;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

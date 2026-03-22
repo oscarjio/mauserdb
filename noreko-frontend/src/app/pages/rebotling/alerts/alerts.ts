@@ -285,5 +285,5 @@ export class AlertsPage implements OnInit, OnDestroy {
     };
     return desc[type] ?? '';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

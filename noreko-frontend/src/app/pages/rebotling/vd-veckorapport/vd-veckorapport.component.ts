@@ -394,7 +394,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     return round2(((denna - forra) / forra) * 100);
   }
 
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }
 

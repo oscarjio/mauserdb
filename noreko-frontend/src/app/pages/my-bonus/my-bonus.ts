@@ -1321,8 +1321,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   // ======== trackBy-funktioner ========
 
-  trackByIndex(index: number): number {
-    return index;
+  trackByIndex(index: number, item: any): any {
+    return item?.id ?? index;
   }
 
   trackByBadgeId(index: number, badge: { badge_id: string }): string {

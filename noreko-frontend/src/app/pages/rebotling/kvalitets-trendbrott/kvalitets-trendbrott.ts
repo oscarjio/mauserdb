@@ -278,5 +278,5 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
   getTypBadgeClass(typ: string): string {
     return typ === 'hög' ? 'badge bg-danger' : 'badge bg-success';
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

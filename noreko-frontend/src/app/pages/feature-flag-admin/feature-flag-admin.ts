@@ -158,5 +158,5 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy {
       default: return 'bg-secondary';
     }
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

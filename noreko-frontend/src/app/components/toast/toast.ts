@@ -81,5 +81,5 @@ export class ToastComponent implements OnInit, OnDestroy {
   dismiss(id: number): void {
     this.toastService.dismiss(id);
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

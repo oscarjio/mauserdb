@@ -191,5 +191,5 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
     this.tooltipVisible = false;
     this.tooltipData = null;
   }
-  trackByIndex(index: number): number { return index; }
+  trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

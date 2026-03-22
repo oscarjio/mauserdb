@@ -1346,8 +1346,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     return shift.shift_number;
   }
 
-  trackByIndex(index: number): number {
-    return index;
+  trackByIndex(index: number, item: any): any {
+    return item?.id ?? index;
   }
 
   trackByRank(index: number, s: BestShift): number {
