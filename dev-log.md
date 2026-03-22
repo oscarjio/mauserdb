@@ -17335,3 +17335,56 @@ Granskade alla PHP-filer i noreko-backend/ (exkl. plcbackend/).
 - pdo->query()->fetch() / ->fetchAll() / ->fetchColumn(): alla anvands i one-liner-monster dar resultatset konsumeras direkt. Inget unbuffered result-set lamnas oppet.
 
 Ingen PDO-statement hittades dar resultatet lamnas okonsumet. Inga verkliga buggar.
+
+Ingen PDO-statement hittades dar resultatet lamnas okonsumet. Inga verkliga buggar.
+
+---
+
+## 2026-03-22 Session #254 Worker B — ngOnChanges mutation + ViewChild timing + template side-effect audit (0 buggar)
+
+### Uppgift 1: Angular ngOnChanges input mutation audit — 0 buggar
+
+**Metod:** Sokta efter `ngOnChanges` i samtliga `.ts`-filer under `noreko-frontend/src/app/pages/` (exkl. live-sidor: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+**Fynd:** Noll traffar. Ingen enda komponent i `pages/`-mappen implementerar `ngOnChanges`. Ingen `@Input()`-mutation via `ngOnChanges` ar mojlig. Inga buggar.
+
+### Uppgift 2: Angular ViewChild undefined timing audit — 0 buggar
+
+**Metod:** Identifierade alla filer med `@ViewChild`-deklarationer (22 filer) och granskade hur referenserna anvands relativt `ngOnInit` vs `ngAfterViewInit`.
+
+**Granskade filer och fynd:**
+- `klassificeringslinje-statistik.ts`, `saglinje-statistik.ts`: `ngAfterViewInit()` implementeras (tom), chart-ritning sker i async subscribe-callback med `setTimeout`. Korrekt.
+- `statistik-produkttyp-effektivitet.ts`: Implementerar ej `ngAfterViewInit`. Canvas-refs anvands via `setTimeout`-callbacks fran subscribe. Guarded med `if (!this.ref?.nativeElement)`. Korrekt.
+- `weekly-report.ts`: `ngAfterViewInit()` hanterar `pendingChart`-flagga. Chart-ritning sker ej direkt i `ngOnInit`. Korrekt.
+- `rebotling-admin.ts`: `ngAfterViewInit()` anropar `renderMaintenanceChart()` om data redan laddats. `correlationChartRef` ar deklarerad men oanvand (dead code, ej bugg). Ingen timing-bugg.
+- `rebotling-skiftrapport.ts`: Charts ritas via `setTimeout` efter navigering, guarded. Korrekt.
+- `tvattlinje-statistik.ts`, `operatorsportal.ts`, `benchmarking.ts`: Alla guarded med `if (!this.ref?.nativeElement)`. Chart-ritning fran async callbacks. Korrekt.
+- `andon.ts`: `ngAfterViewInit()` implementeras. `cumulativeChartRef.nativeElement` skyddas med `?.` guard. Korrekt.
+- `operator-compare.ts`: `ngOnInit()` anropar bara `loadOperators()`. Chart-ritning sker i data-callbacks, guarded. Korrekt.
+- `monthly-report.ts`: `ngOnInit()` ar tom. Chart-logik i `ngAfterViewChecked()` med `pendingRender`-flagga. Korrekt.
+- `historik.ts`: `ngAfterViewInit()` implementeras. Canvas-refs skyddas med `?.nativeElement`. Korrekt.
+- `maintenance-log.ts`: `@ViewChild` refs ar till child-komponenter, anvander optional chaining. Korrekt.
+- `produktionstakt.ts`, `rebotling-statistik.ts`, `statistik-pareto-stopp.ts`: Alla guarded. Korrekt.
+- `statistik-veckotrend.ts`: `@ViewChildren` anvands i `ngAfterViewInit()` med `.changes`-subscription. Korrekt.
+- `shift-handover.ts`: `@ViewChild` anvands i `ngAfterViewInit()` med `?.nativeElement?.focus()`. Korrekt.
+- `underhallslogg.ts`: `ngAfterViewInit()` implementeras. Canvas-ref guarded. Korrekt.
+
+Inga ViewChild-refs accessas utan guard i `ngOnInit`. Inga buggar.
+
+### Uppgift 3: Angular template expression side-effects audit — 0 buggar
+
+**Metod:** Sokta efter `{{ method() }}`-monster i samtliga HTML-templates (130+ filer, exkl. live-sidor) med fokus pa metodanrop som kan mutaera state. Granskade aven `(click)`-handlers med inline-uttryck.
+
+**Fynd metodanrop i interpolation:**
+- `formatX()`-funktioner (formatDatum, formatTid, formatMinuter, formatSek, formatHour, formatIbcH etc.): Alla rena formatfunktioner. Inga buggar.
+- `getX()`-funktioner (getPlcAge, getQualityPct, getTeamGoalProgress, getOperatorTrendPct, getGoalProgress, getRowAvg, getCellDate, getTrendText, getPeriodLabel m.fl.): Samtliga granskade i TypeScript. Alla returnerar beraknade varden fran befintlig state utan att skriva tillbaka nagonting. Inga sidoeffekter.
+- `priorityIcon()`/`priorityLabel()`/`timeAgo()` i `shift-handover.html`: Rena presentationsfunktioner.
+- `getInitials()` i `operator-ranking.component.html`/`bonus-dashboard.html`: Returnerar textforkortning. Ren.
+
+**Fynd (click)-handlers med inline-uttryck:**
+- `rebotling-admin.html:835`: `showMaintenanceLogForm = false; maintenanceLogText = ''; maintenanceLogError = ''` — Enkel state-reset. Acceptabelt.
+- `stoppage-log.html:520`: Filter-reset foljt av `onSearchInput()` — Acceptabelt.
+- `feedback-analys.html:285`: Toggle av filter-ID foljt av `onFilterChange()` — Acceptabelt.
+- `rebotling-skiftrapport.html:869`: Enkel state-assignment for redigerings-toggle — Acceptabelt.
+
+Inga template-uttryck med verkliga sidoeffekter (push/splice/HTTP-anrop) hittades. Inga buggar.
