@@ -1,3 +1,35 @@
+## 2026-03-22 Session #246 Worker A — PHP file_exists + PDO rollback + intval/floatval bounds audit (6 buggar)
+
+### Audit 1: PHP file_exists/is_readable audit (0 buggar)
+Granskade alla PHP-filer i noreko-backend/classes/, noreko-backend/controllers/ och noreko-backend/*.php.
+- Alla file_get_contents($migrationPath) har redan `if ($sql === false)` check
+- Alla `require $configFile` har `file_exists()` check fore
+- `file_get_contents('php://input')` behover ingen fil-check (alltid tillganglig)
+- fopen('php://output') i BonusAdminController och TidrapportController ar saker
+**Resultat: RENT** — inga buggar hittade.
+
+### Audit 2: PHP PDO::beginTransaction rollback audit (0 buggar)
+Granskade alla 55 beginTransaction()-anrop i classes/.
+- Alla har rollBack() i catch-block
+- Alla har commit() i lyckad kodstig
+- Manga anvander `if ($pdo->inTransaction())` guard fore rollBack() (best practice)
+**Resultat: RENT** — inga buggar hittade.
+
+### Audit 3: PHP intval/floatval range validation audit (6 buggar)
+Granskade A-M PHP-filer i classes/. Exkluderade filer som redan fixades i session #203/#179/#215
+(BonusAdminController, KvalitetstrendanalysController, RebotlingAdminController, TvattlinjeController, MaintenanceController).
+
+Fixade filer:
+1. **FeedbackAnalysController.php** — `$page` saknade ovre grans, kunde orsaka enorm SQL OFFSET
+2. **LineSkiftrapportController.php** — `antal_ok`/`antal_ej_ok` i UPDATE-stig saknade bounds (CREATE-stig hade redan max(0, min(999999))), kunde bli negativa
+3. **KvalitetscertifikatController.php** — `antal_ibc` saknade ovre grans (max 999999), `cykeltid_snitt` saknade ovre grans (max 86400s)
+4. **AuditController.php** — `$page` saknade ovre grans
+5. **HistoriskProduktionController.php** — `$page` saknade ovre grans
+
+ID-varden (operator_id, maskin_id, cause, etc.) som enbart anvands i WHERE-klausuler lamnades — de returnerar tom resultatmangd vid ogiltigt varde.
+
+---
+
 ## 2026-03-22 Session #245 Worker B — Angular pipe null-safety + ngIf/loading audit (0 buggar)
 
 ### Uppgift 1: Angular pipe chain null-safety audit (0 buggar)
