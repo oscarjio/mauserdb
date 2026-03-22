@@ -1,3 +1,63 @@
+## 2026-03-22 Session #248 Worker A — PHP array_map/array_filter type-safety audit + strpos falsy-check audit (0 buggar)
+
+### Granskade filer (A-M, noreko-backend/classes/)
+
+AdminController.php, AlarmHistorikController.php, AlertsController.php, AndonController.php,
+AuditController.php, AvvikelselarmController.php, BatchSparningController.php,
+BonusAdminController.php, BonusController.php, CertificationController.php,
+CykeltidHeatmapController.php, DagligBriefingController.php, DagligSammanfattningController.php,
+DashboardLayoutController.php, DrifttidsTimelineController.php, EffektivitetController.php,
+FavoriterController.php, FeatureFlagController.php, FeedbackAnalysController.php,
+FeedbackController.php, ForstaTimmeAnalysController.php, GamificationController.php,
+HeatmapController.php, HistorikController.php, HistoriskProduktionController.php,
+HistoriskSammanfattningController.php, KapacitetsplaneringController.php,
+KassationsanalysController.php, KassationsDrilldownController.php,
+KassationskvotAlarmController.php, KassationsorsakController.php,
+KassationsorsakPerStationController.php, KlassificeringslinjeController.php,
+KvalitetscertifikatController.php, KvalitetstrendanalysController.php,
+KvalitetsTrendbrottController.php, KvalitetstrendController.php,
+LeveransplaneringController.php, LineSkiftrapportController.php
+
+### Audit 1: PHP array_map/array_filter callback type-safety audit (0 buggar)
+
+Sökte igenom alla A-M-filer med Grep för array_map och array_filter.
+
+**Granskade mönster och bedömning:**
+
+- `AlarmHistorikController.php`: array_filter på DB-hämtade $alarms — nycklar alltid satta av collectAlarms(). Rent.
+- `AlertsController.php`: array_map på $rows från fetchAll — nycklar garanterade av SQL. Rent.
+- `BatchSparningController.php`: array_map på $ibcRows från fetchAll — nycklar garanterade. Rent.
+- `BonusAdminController.php`: array_map på $periods från fetchAll, array_map på array_keys. Rent.
+- `BonusController.php`: array_map(callback, $results, array_keys($results)) — $index alltid int. array_filter på operator-listor korrekt. Rent.
+- `DagligSammanfattningController.php`: array_map med DB-nycklar. Rent.
+- `DrifttidsTimelineController.php`: array_filter på $stopReasons — 'start_ts' och 'end_ts' alltid satta av getStopReasons() (verifierat). Rent.
+- `EffektivitetController.php`: array_filter med ?? null-operator. Rent.
+- `ForstaTimmeAnalysController.php`: array_map(strtotime) följt av array_filter($t !== false) — strikt check, korrekt. Rent.
+- `HistoriskSammanfattningController.php`: array_filter på DB-data. Rent.
+- `KassationsanalysController.php`: array_filter på array_column + namn-listor — korrekt null-filtrering. Rent.
+- `KassationskvotAlarmController.php`: array_map med fn($r) på fetchAll-resultat. Rent.
+- `KassationsorsakPerStationController.php`: array_map på self::STATIONS konstant — alltid array. Rent.
+- `KvalitetstrendanalysController.php`: array_filter med fn($a) — nycklar från DB. Rent.
+- `KvalitetstrendController.php`: array_filter med fn($v) !== null — strikt. Rent.
+- `LineSkiftrapportController.php`: array_map('intval', $ids) föregås av is_array($ids)-check. Korrekt skyddat.
+
+Inga buggar hittades.
+
+### Audit 2: PHP str_contains/strpos falsy-check audit (0 buggar)
+
+Sökte igenom alla A-M-filer för strpos, mb_strpos, str_contains.
+
+**Resultat:**
+- Enda träffar i A-M-filer: `KvalitetscertifikatController.php` rad 408, 414, 420, 426
+  - Alla använder `mb_strpos($namn, '...') !== false` (strikt jämförelse) — korrekt.
+- Inga `strpos(...) == false` (icke-strikt jämförelse) hittades i A-M-filer.
+- Inga `if (strpos(...))` utan jämförelseoperator hittades.
+- Alla substr()-anrop i A-M-filer hanterar kända strängar (DB-datum, konstanter) — ingen risk.
+
+Inga buggar hittades.
+
+---
+
 ## 2026-03-22 Session #248 Worker B — Angular HTTP timeout audit + Form validation UX audit (0 buggar)
 
 ### Audit 1: Angular HTTP timeout audit
