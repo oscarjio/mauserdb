@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #245)*
+*Senast uppdaterad: 2026-03-22 (session #246)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -112,24 +112,25 @@ Session #242: BUGGJAKT — 22 buggar (22 Worker A + 0 Worker B). SQL subquery->J
 Session #243: BUGGJAKT — 257 buggar (111 Worker A + 146 Worker B). PDO fetch mode FETCH_ASSOC (111 i 25 PHP-filer). trackByIndex->item.id (146 i 146 komponenter). str_replace/preg_replace: rent. array_merge: rent. Template safe navigation: rent.
 Session #244: BUGGJAKT — 53 buggar (7 Worker A + 46 Worker B). json_decode utan is_array-guard (7 i 4 PHP-filer). setTimeout utan clearTimeout (42 i 42 komponenter). Form reset vid toggle (4). date()/strtotime(): rent. LIKE escaping: rent.
 Session #245: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. header() content-type: rent. array_key_exists vs isset: rent. Pipe null-safety: rent. ngIf/else loading: rent.
+Session #246: BUGGJAKT — 13 buggar (6 Worker A + 7 Worker B). intval/floatval saknade ovre granser i 5 PHP-filer (6). Template method caching i ranking-historik, cykeltid-heatmap, my-bonus (7). file_exists: rent. PDO rollback: rent. HTTP error i18n: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #246):
-- [ ] PHP file_exists/is_readable audit
-- [ ] PHP PDO::beginTransaction rollback audit
-- [ ] Angular HTTP error message i18n audit
-- [ ] PHP intval/floatval range validation audit
-- [ ] Angular template method call performance audit
+### Nasta (session #247):
+- [ ] PHP intval/floatval range validation audit (N-Z)
+- [ ] PHP header() redirect validation audit
+- [ ] Angular canDeactivate guard audit
+- [ ] PHP SQL ORDER BY injection audit
+- [ ] Angular change detection OnPush audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-22 — Session #244 (klar)
-Worker A: 7 buggar — json_decode utan is_array-guard i 4 PHP-filer (7). date()/strtotime() validering: rent. LIKE wildcard escaping: rent.
-Worker B: 46 buggar — setTimeout utan clearTimeout i 42 komponenter (42). Form reset vid toggle i 4 komponenter (4). HTTP unsubscribe: rent.
-
 ### 2026-03-22 — Session #245 (klar)
-Worker A: 0 buggar — error_log format: rent (alla har KlassNamn::metod-prefix). header() content-type: rent (centralt i api.php). array_key_exists vs isset: rent.
-Worker B: 0 buggar — Pipe chain null-safety: rent (alla guarded med *ngIf). ngIf/else template reference + loading-state: rent.
+Worker A: 0 buggar — error_log format: rent. header() content-type: rent. array_key_exists vs isset: rent.
+Worker B: 0 buggar — Pipe chain null-safety: rent. ngIf/else template reference + loading-state: rent.
+
+### 2026-03-22 — Session #246 (klar)
+Worker A: 6 buggar — intval/floatval saknade ovre granser i FeedbackAnalysController, LineSkiftrapportController, KvalitetscertifikatController, AuditController, HistoriskProduktionController (6). file_exists/is_readable: rent. PDO beginTransaction rollback: rent.
+Worker B: 7 buggar — Template method caching: ranking-historik (filter+sort cached), cykeltid-heatmap (getRowAvg cached), my-bonus (10 tunga metoder cached via rebuildStatsCache/rebuildWeeklyCache) (7). HTTP error i18n: rent.
