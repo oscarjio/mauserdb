@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #252)*
+*Senast uppdaterad: 2026-03-22 (session #253)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -119,19 +119,24 @@ Session #249: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_f
 Session #250: BUGGJAKT — 4 buggar (4 Worker A + 0 Worker B). array_unique utan array_values i PDO-bindings (4). mb_substr/mb_strlen: rent. header() Content-Type: rent (satt centralt). Static methods: rent. Pipe null-safety: rent. FormControl: inga (template-driven). Route resolvers: inga.
 Session #251: BUGGJAKT — 8 buggar (0 Worker A + 8 Worker B). switch/case fall-through: rent. DateTime immutability: rent. PDO lastInsertId: rent. Async pipe: rent (inga async pipes). Template i18n: 8 engelska strangar fixade (Rank->Plac., Vital/Trivial->Kritisk/Mindre viktig).
 Session #252: BUGGJAKT — 3 buggar (1 Worker A + 2 Worker B). fsockopen resource leak (1). Template arithmetic complexity (2). array_splice/array_pop: rent. preg_replace: rent. fopen/fclose: rent (utom fsockopen). HTTP retry: rent. OnPush: rent.
+Session #253: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() redirect: rent (inga redirects, JSON-API). json_encode UTF-8: rent (alla har flaggan). PDO transaction nesting: rent (54 anrop, alla korrekt). HttpParams encoding: rent (encodeURIComponent overallt). Template pipe chain: rent. Template null-safety: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #253):
-- [ ] PHP header() location redirect audit
-- [ ] PHP json_encode UTF-8 audit
-- [ ] Angular HttpParams encoding audit
-- [ ] PHP PDO transaction nesting audit
-- [ ] Angular template pipe chain audit
+### Nasta (session #254):
+- [ ] PHP array_merge overwrite audit
+- [ ] PHP date() vs DateTime::format() consistency audit
+- [ ] Angular ngOnChanges input mutation audit
+- [ ] PHP PDO closeCursor audit
+- [ ] Angular ViewChild undefined timing audit
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-22 — Session #253 (klar)
+Worker A: 0 buggar — header() redirect: inga Location-redirects i kodbasen (rent JSON-API). json_encode UTF-8: alla 383 json_encode har JSON_UNESCAPED_UNICODE. PDO transaction nesting: 54 beginTransaction i 31 filer, inga nestade, alla har rollBack.
+Worker B: 0 buggar — HttpParams encoding: alla specialtecken hanteras med encodeURIComponent, HttpParams.set() immutable korrekt. Template pipe chain: alla number/date/slice-pipes null-skyddade med ternary/*ngIf. Template null-safety: alla djupa property-accesser skyddade med *ngIf.
 
 ### 2026-03-22 — Session #252 (klar)
 Worker A: 1 bugg — fsockopen resource leak i VpnController.php (socket ej stangd i catch-block). array_splice/array_pop: rent. preg_replace: rent (5 anrop, enkla monster).
