@@ -140,7 +140,7 @@
                         </span>
                         <span *ngIf="cell.avg_sek === null" class="cell-empty">·</span>
                       </td>
-                      <td class="avg-cell">{{ formatSek(getRowAvg(matrix[i])) || '—' }}</td>
+                      <td class="avg-cell">{{ formatSek(getRowAvg(matrix[i], i)) || '—' }}</td>
                     </tr>
 
                     <!-- Drilldown-rad -->

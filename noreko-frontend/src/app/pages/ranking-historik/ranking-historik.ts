@@ -58,6 +58,11 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   changesData:  RankingChangesData | null = null;
   streakData:   StreakData         | null = null;
 
+  // Cachade sammanfattningsvärden (undviker filter+sort per change-detection)
+  cachedStorstKlattare = '—';
+  cachedStorstKlattareAndring = 0;
+  cachedLangstaPosStreakOp = '—';
+
   // Head-to-head
   h2hOp1Id: number | null = null;
   h2hOp2Id: number | null = null;
@@ -140,6 +145,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
         this.changesLoading = false;
         this.changesData = res?.success ? res.data : null;
         this.changesLoaded = true;
+        this.rebuildChangesCache();
       });
   }
 
@@ -152,6 +158,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
         this.streakLoading = false;
         this.streakData = res?.success ? res.data : null;
         this.streakLoaded = true;
+        this.rebuildStreakCache();
       });
   }
 
@@ -357,21 +364,37 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
     return etta ? etta.ibc_nu : 0;
   }
 
-  /** Största klättrare (störst positiv andring) */
+  /** Bygger cache för changesData-baserade värden */
+  private rebuildChangesCache(): void {
+    if (!this.changesData) {
+      this.cachedStorstKlattare = '—';
+      this.cachedStorstKlattareAndring = 0;
+      return;
+    }
+    const klattrat = this.changesData.andringar
+      .filter(a => a.andring !== null && a.andring > 0)
+      .sort((a, b) => (b.andring ?? 0) - (a.andring ?? 0));
+    this.cachedStorstKlattare = klattrat.length > 0 ? klattrat[0].operator_namn : '—';
+    this.cachedStorstKlattareAndring = klattrat.length > 0 ? (klattrat[0].andring ?? 0) : 0;
+  }
+
+  /** Bygger cache för streakData-baserade värden */
+  private rebuildStreakCache(): void {
+    if (!this.streakData) {
+      this.cachedLangstaPosStreakOp = '—';
+      return;
+    }
+    const sorted = [...this.streakData.streaks].sort((a, b) => b.positiv_streak - a.positiv_streak);
+    this.cachedLangstaPosStreakOp = sorted.length > 0 && sorted[0].positiv_streak > 0 ? sorted[0].operator_namn : '—';
+  }
+
+  /** Största klättrare (störst positiv andring) — returnerar cached värde */
   getStorstKlattare(): string {
-    if (!this.changesData) return '—';
-    const klattrat = this.changesData.andringar.filter(a => a.andring !== null && a.andring > 0);
-    if (!klattrat.length) return '—';
-    klattrat.sort((a, b) => (b.andring ?? 0) - (a.andring ?? 0));
-    return klattrat[0].operator_namn;
+    return this.cachedStorstKlattare;
   }
 
   getStorstKlattareAndring(): number {
-    if (!this.changesData) return 0;
-    const klattrat = this.changesData.andringar.filter(a => a.andring !== null && a.andring > 0);
-    if (!klattrat.length) return 0;
-    klattrat.sort((a, b) => (b.andring ?? 0) - (a.andring ?? 0));
-    return klattrat[0].andring ?? 0;
+    return this.cachedStorstKlattareAndring;
   }
 
   /** Längsta positiva streak */
@@ -380,9 +403,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   getLangstaPosStreakOp(): string {
-    if (!this.streakData) return '—';
-    const sorted = [...this.streakData.streaks].sort((a, b) => b.positiv_streak - a.positiv_streak);
-    return sorted.length > 0 && sorted[0].positiv_streak > 0 ? sorted[0].operator_namn : '—';
+    return this.cachedLangstaPosStreakOp;
   }
 
   /** Mest konsekvent operatör */

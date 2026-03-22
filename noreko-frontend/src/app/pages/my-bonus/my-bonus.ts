@@ -134,6 +134,20 @@ export class MyBonusPage implements OnInit, OnDestroy {
   cachedAchievements: { icon: string; label: string; earned: boolean; desc: string }[] = [];
   cachedEarnedAchievementsCount = 0;
 
+  // Cachade tunga beräkningar (undviker filter/reduce per change-detection-cykel)
+  cachedTrendDirection: 'up' | 'down' | 'flat' = 'flat';
+  cachedStatusBadge: { text: string; cssClass: string } = { text: 'Fortsätt kämpa!', cssClass: 'badge-below' };
+  cachedShiftPrognosis: { bonusPoang: number; ibcPerHour: number; weeklyIbc: number } | null = null;
+  cachedProjectedBonus: { weekly: number; monthly: number } | null = null;
+  cachedMyAvgIbcPerHour = 0;
+  cachedWeeklyTeamComparison: { ibcDiff: number; kvalitetDiff: number; bonusDiff: number } | null = null;
+  cachedMyWeeklyAvgIbc = 0;
+  cachedTeamWeeklyAvgIbc = 0;
+  cachedMyWeeklyAvgKvalitet = 0;
+  cachedTeamWeeklyAvgKvalitet = 0;
+  cachedTeamWeeklyAvgBonus = 0;
+  cachedAchievementBadgesEarned = 0;
+
   // Peer ranking (anonymiserad kollegajamforelse)
   peerRanking: {
     your_rank: number | null;
@@ -252,6 +266,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.stats = res.data;
           this.buildKPIChart(res.data);
           this.refreshAchievementsCache();
+          this.rebuildStatsCache();
         } else {
           this.error = (res as any)?.error || 'Ingen data hittades för detta operatörs-ID.';
           this.stats = null;
@@ -276,6 +291,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.buildHistoryChart(this.history);
           this.buildIbcTrendChart(this.history);
           this.buildWorkCalendar();
+          this.rebuildStatsCache();
         }
       },
       error: () => {}
@@ -292,6 +308,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         if (res?.success && res.data) {
           this.weeklyData = res.data.weeks || [];
           this.weeklyAvg = res.data.my_avg ?? 0;
+          this.rebuildWeeklyCache();
           // Bygg grafen när DOM är redo
           clearTimeout(this.weeklyChartTimerId);
           this.weeklyChartTimerId = setTimeout(() => {
@@ -385,6 +402,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.achievementCurrentStreak = res.current_streak ?? 0;
           // Konfetti om någon badge precis uppnåddes (inom session)
           const earnedCount = res.badges.filter((b: any) => b.earned).length;
+          this.cachedAchievementBadgesEarned = earnedCount;
           if (earnedCount > 0) {
             this.showConfetti = true;
             clearTimeout(this.confettiTimerId);
@@ -398,7 +416,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   getAchievementBadgesEarned(): number {
-    return this.achievementBadges.filter(b => b.earned).length;
+    return this.cachedAchievementBadgesEarned;
   }
 
   loadRankingPosition(): void {
@@ -546,6 +564,25 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.cachedEarnedAchievementsCount = this.cachedAchievements.filter(a => a.earned).length;
   }
 
+  /** Bygger om cachade värden som beror på stats/history */
+  private rebuildStatsCache(): void {
+    this.cachedTrendDirection = this._computeTrendDirection();
+    this.cachedStatusBadge = this._computeStatusBadge();
+    this.cachedShiftPrognosis = this._computeShiftPrognosis();
+    this.cachedProjectedBonus = this._computeProjectedBonus();
+    this.cachedMyAvgIbcPerHour = this._computeMyAvgIbcPerHour();
+  }
+
+  /** Bygger om cachade värden som beror på weeklyData */
+  private rebuildWeeklyCache(): void {
+    this.cachedWeeklyTeamComparison = this._computeWeeklyTeamComparison();
+    this.cachedMyWeeklyAvgIbc = this._computeMyWeeklyAvgIbc();
+    this.cachedTeamWeeklyAvgIbc = this._computeTeamWeeklyAvgIbc();
+    this.cachedMyWeeklyAvgKvalitet = this._computeMyWeeklyAvgKvalitet();
+    this.cachedTeamWeeklyAvgKvalitet = this._computeTeamWeeklyAvgKvalitet();
+    this.cachedTeamWeeklyAvgBonus = this._computeTeamWeeklyAvgBonus();
+  }
+
   getEarnedAchievementsCount(): number {
     return this.getAchievements().filter(a => a.earned).length;
   }
@@ -593,8 +630,12 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   // ===== Motivational status badge =====
   getStatusBadge(): { text: string; cssClass: string } {
+    return this.cachedStatusBadge;
+  }
+
+  private _computeStatusBadge(): { text: string; cssClass: string } {
     const bonus = this.stats?.kpis?.bonus_avg ?? 0;
-    const trend = this.getTrendDirection();
+    const trend = this.cachedTrendDirection;
     if (bonus >= 95) return { text: 'Rekordniva!', cssClass: 'badge-outstanding' };
     if (bonus >= 90 && trend === 'up') return { text: 'Uppat mot toppen!', cssClass: 'badge-excellent-up' };
     if (bonus >= 90) return { text: 'Utmarkt prestanda!', cssClass: 'badge-excellent' };
@@ -606,6 +647,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   // Beräkna mitt IBC/h-snitt senaste 7 skiften
   getMyAvgIbcPerHour(): number {
+    return this.cachedMyAvgIbcPerHour;
+  }
+
+  private _computeMyAvgIbcPerHour(): number {
     if (!this.history || this.history.length === 0) return 0;
     const recent = this.history.slice(0, 7);
     const withProd = recent.filter((h: any) => (h.kpis?.produktivitet ?? 0) > 0);
@@ -616,6 +661,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   // Prognos: antal poäng + IBC/h om fortsätter i detta tempo
   getShiftPrognosis(): { bonusPoang: number; ibcPerHour: number; weeklyIbc: number } | null {
+    return this.cachedShiftPrognosis;
+  }
+
+  private _computeShiftPrognosis(): { bonusPoang: number; ibcPerHour: number; weeklyIbc: number } | null {
     if (!this.history || this.history.length < 3) return null;
     const recent = this.history.slice(0, 7);
     const avgBonus = recent.reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / recent.length;
@@ -669,6 +718,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   getProjectedBonus(): { weekly: number; monthly: number } | null {
+    return this.cachedProjectedBonus;
+  }
+
+  private _computeProjectedBonus(): { weekly: number; monthly: number } | null {
     if (!this.history || this.history.length < 3) return null;
     const recent = this.history.slice(0, 7);
     const avg = recent.reduce((sum: number, h: any) => sum + (h.kpis?.bonus ?? 0), 0) / recent.length;
@@ -679,6 +732,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   getTrendDirection(): 'up' | 'down' | 'flat' {
+    return this.cachedTrendDirection;
+  }
+
+  private _computeTrendDirection(): 'up' | 'down' | 'flat' {
     if (!this.history || this.history.length < 6) return 'flat';
     const recent3 = this.history.slice(0, 3).reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / 3;
     const prev3 = this.history.slice(3, 6).reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / 3;
@@ -929,6 +986,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   /** Jämförelserad: diff i % och riktning mot lagsnitt */
   getWeeklyTeamComparison(): { ibcDiff: number; kvalitetDiff: number; bonusDiff: number } | null {
+    return this.cachedWeeklyTeamComparison;
+  }
+
+  private _computeWeeklyTeamComparison(): { ibcDiff: number; kvalitetDiff: number; bonusDiff: number } | null {
     if (!this.weeklyData || this.weeklyData.length === 0) return null;
     const n = this.weeklyData.length;
     const myIbc     = this.weeklyData.reduce((s, w) => s + w.my_ibc_per_hour, 0) / n;
@@ -945,26 +1006,46 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   getMyWeeklyAvgIbc(): number {
+    return this.cachedMyWeeklyAvgIbc;
+  }
+
+  private _computeMyWeeklyAvgIbc(): number {
     if (!this.weeklyData.length) return 0;
     return Math.round(this.weeklyData.reduce((s, w) => s + w.my_ibc_per_hour, 0) / this.weeklyData.length * 10) / 10;
   }
 
   getTeamWeeklyAvgIbc(): number {
+    return this.cachedTeamWeeklyAvgIbc;
+  }
+
+  private _computeTeamWeeklyAvgIbc(): number {
     if (!this.weeklyData.length) return 0;
     return Math.round(this.weeklyData.reduce((s, w) => s + w.team_ibc_per_hour, 0) / this.weeklyData.length * 10) / 10;
   }
 
   getMyWeeklyAvgKvalitet(): number {
+    return this.cachedMyWeeklyAvgKvalitet;
+  }
+
+  private _computeMyWeeklyAvgKvalitet(): number {
     if (!this.weeklyData.length) return 0;
     return Math.round(this.weeklyData.reduce((s, w) => s + w.my_kvalitet, 0) / this.weeklyData.length * 10) / 10;
   }
 
   getTeamWeeklyAvgKvalitet(): number {
+    return this.cachedTeamWeeklyAvgKvalitet;
+  }
+
+  private _computeTeamWeeklyAvgKvalitet(): number {
     if (!this.weeklyData.length) return 0;
     return Math.round(this.weeklyData.reduce((s, w) => s + w.team_kvalitet, 0) / this.weeklyData.length * 10) / 10;
   }
 
   getTeamWeeklyAvgBonus(): number {
+    return this.cachedTeamWeeklyAvgBonus;
+  }
+
+  private _computeTeamWeeklyAvgBonus(): number {
     if (!this.weeklyData.length) return 0;
     return Math.round(this.weeklyData.reduce((s, w) => s + w.team_bonus, 0) / this.weeklyData.length * 10) / 10;
   }

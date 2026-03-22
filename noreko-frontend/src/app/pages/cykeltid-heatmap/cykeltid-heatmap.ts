@@ -38,6 +38,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
   globalMin: number | null = null;
   globalMax: number | null = null;
   globalAvg: number | null = null;
+  cachedRowAvgs: (number | null)[] = [];
 
   // Expanderad operatör (drilldown)
   expandedOperatorId: number | null = null;
@@ -117,10 +118,12 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
           this.globalMax = d.globalMax;
           this.globalAvg = d.globalAvg;
           this.computeSummary();
+          this.rebuildRowAvgs();
         } else {
           this.operators = [];
           this.hours = [];
           this.matrix = [];
+          this.cachedRowAvgs = [];
         }
         this.heatmapLoaded = true;
       });
@@ -232,7 +235,18 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     return `${h.toString().padStart(2, '0')}:00`;
   }
 
-  getRowAvg(rowCells: HeatmapCell[]): number | null {
+  private rebuildRowAvgs(): void {
+    this.cachedRowAvgs = this.matrix.map(rowCells => {
+      const vals = rowCells.filter(c => c.avg_sek !== null).map(c => c.avg_sek as number);
+      if (vals.length === 0) return null;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    });
+  }
+
+  getRowAvg(rowCells: HeatmapCell[], rowIndex?: number): number | null {
+    if (rowIndex !== undefined && rowIndex < this.cachedRowAvgs.length) {
+      return this.cachedRowAvgs[rowIndex];
+    }
     const vals = rowCells.filter(c => c.avg_sek !== null).map(c => c.avg_sek as number);
     if (vals.length === 0) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
