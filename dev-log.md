@@ -1,3 +1,47 @@
+## Worker B — Session #257
+
+### Uppgift 1: Angular ngAfterViewChecked performance audit
+**Resultat:** rent — 0 buggar
+
+Sokte efter `ngAfterViewChecked` och `AfterViewChecked` i alla .ts-filer under noreko-frontend/src/app/pages/ (exkl. live-sidor).
+
+**Fynd:**
+- monthly-report.ts:233 — `ngAfterViewChecked()` med flagga `chartPendingRender`. Flaggan satts till false omedelbart (rad 235), sa efterfoljande change detection-cykler ar no-ops (enbart en boolesk check). renderChart() och renderOeeChart() kors bara en gang. Korrekt monster. Rent.
+
+Inga andra filer implementerar ngAfterViewChecked.
+
+---
+
+### Uppgift 2: Angular HTTP interceptor error propagation audit
+**Resultat:** rent — 0 buggar
+
+Sokte efter `HttpInterceptor`, `intercept(`, `HttpInterceptorFn` i alla .ts-filer under noreko-frontend/src/app/.
+
+**Fynd:**
+- interceptors/error.interceptor.ts — Funktionell interceptor (HttpInterceptorFn). Anvander catchError med throwError(() => error) i alla grenar (rad 35, 51, 68). Felet propageras alltid korrekt. Rent.
+- interceptors/csrf.interceptor.ts — Funktionell interceptor. Bifogar X-CSRF-Token-header till mutating requests. Ingen felhantering behovs (passthrough). Rent.
+
+Inga error handlers i services som svaljer fel — alla 92 services med catchError anvander standardmonstret.
+
+---
+
+### Uppgift 3: Angular forkJoin / combineLatest completion audit
+**Resultat:** rent — 0 buggar
+
+Sokte efter `forkJoin` och `combineLatest` i alla .ts-filer under noreko-frontend/src/app/pages/ (exkl. live-sidor).
+
+**Fynd forkJoin:**
+- vd-dashboard.component.ts:74 — forkJoin med 6 HTTP-anrop. Alla har timeout(15000) + catchError(() => of(null)). HTTP-anrop completar automatiskt. Rent.
+- monthly-report.ts:285 — forkJoin med 3 HTTP-anrop (report$, compare$, stops$). Alla har timeout + catchError. Rent.
+- rebotling/min-dag/min-dag.ts:76 — forkJoin med 3 HTTP-anrop. Alla har timeout(10000) + catchError. Rent.
+- rebotling/produktions-dashboard.component.ts:137 — forkJoin med 2 HTTP-anrop. Alla har timeout(15000) + catchError. Rent.
+
+**Fynd combineLatest:** Inga traffar i pages/.
+
+Alla forkJoin-anvandningar ar korrekta: enbart HTTP-observables (som completar efter ett svar) med timeout- och catchError-fallbacks.
+
+---
+
 ## Worker B — Session #256
 
 ### Uppgift 1: Angular @HostListener memory leak audit
