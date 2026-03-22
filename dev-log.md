@@ -1,3 +1,51 @@
+## 2026-03-22 Session #240 Worker B — Angular frontend 2-audit: HTTP error normalization + form validation (13 buggar)
+
+### Uppgift 1: Angular HTTP interceptor error normalization re-audit
+Granskade alla 92 services i noreko-frontend/src/app/services/ plus 4 services i rebotling/ plus 5 maintenance-log-komponenter med direkta HTTP-anrop.
+
+**Hittade 13 buggar i 5 services:**
+POST-metoder som anvande `catchError(() => of(...))` utan `err`-parameter, vilket innebar att specifika backend-felmeddelanden (t.ex. "Anvandardnamnet finns redan") aldrig nadde anvandaren. Istallet visades generiskt "Natverksfel" eller "Anslutningsfel". Fixat genom att andra till `catchError(err => of({ ..., error: err?.error?.error || 'fallback' }))`.
+
+Paverkade filer:
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/services/users.service.ts` (5 metoder)
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/services/stoppage.service.ts` (3 metoder)
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/services/skiftrapport.service.ts` (6 metoder)
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/services/skiftoverlamning.service.ts` (1 metod)
+- `/home/clawd/clawd/mauserdb/noreko-frontend/src/app/services/favoriter.service.ts` (2 metoder)
+
+Rent (inget att fixa):
+- Alla 87 ovriga services foljer redan korrekt monster
+- Error interceptor (error.interceptor.ts) ar korrekt implementerad med retry, toast och rethrow
+- CSRF interceptor ar korrekt
+- Alla GET-metoder anvander `catchError(() => of(null))` korrekt (interceptorn visar toast forst)
+- Alla POST-metoder i ovriga services anvander redan `catchError(err => ...)` med err-parameter
+- Maintenance-log-komponenterna (5 st) har korrekt felhantering med inline error-state
+
+### Uppgift 2: Angular form validation completeness audit
+Granskade alla formular i Angular templates/komponenter (exkl. live-sidor).
+
+Granskade formular:
+- login.ts — RENT (required, minlength, maxlength, disabled-guard)
+- register.html — RENT (required, minlength, maxlength, disabled-guard, e-post-validering, losenordsmatchning)
+- create-user.html — RENT (required, minlength, maxlength, disabled-guard, canSubmit getter)
+- users.html — RENT (required, minlength, maxlength, disabled-guard)
+- maintenance-form.component.ts — RENT (required, maxlength, min/max, disabled-guard, inline felmeddelanden)
+- service-intervals.component.ts — RENT (required, min/max, maxlength, disabled-guard, inline felmeddelanden)
+- batch-sparning.component.html — RENT (required, min/max, maxlength, disabled-guard, inline felmeddelanden)
+- maskinunderhall.component.html — RENT (required, min/max, maxlength, disabled-guard, inline felmeddelanden)
+- kassationskvot-alarm.component.html — RENT (required, min/max, step, disabled-guard, inline felmeddelanden, kross-falt-validering)
+- leveransplanering.component.html — RENT (required, min/max, maxlength, disabled-guard, inline felmeddelanden)
+- produktionsmal.component.html — RENT (required, min/max, disabled-guard, inline felmeddelanden)
+- produktions-sla.component.html — RENT (required, min/max, disabled-guard)
+- operatorsbonus.component.html — RENT (min/max/step pa alla config-inputs)
+- avvikelselarm.component.html — RENT (required, min/max, maxlength, disabled-guard, inline felmeddelanden)
+- skiftoverlamning.component.html — RENT (checklista + fritextkommentarer med maxlength, disabled-guard, bekraftelsedialog)
+
+**Resultat: RENT — 0 form-validation-buggar.**
+Alla formular har korrekt validering med required, min/max, minlength/maxlength, disabled-guards och inline-felmeddelanden.
+
+---
+
 ## 2026-03-22 Session #240 Worker A — PHP backend 3-audit: DISTINCT, fetchAll memory, file_get_contents (0 buggar)
 
 ### Uppgift 1: PHP classes/ SQL DISTINCT correctness audit
