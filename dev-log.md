@@ -1,3 +1,26 @@
+## 2026-03-22 Session #249 Worker B — Angular lazy-load + trackBy + URL + OnDestroy audit (0 buggar)
+
+### Uppgift 1: Angular lazy-loaded module dependency audit
+Granskade alla 130+ loadComponent-stigar i app.routes.ts. Alla pekar pa existerande filer.
+Inga saknade providers eller imports i standalone-komponenter. Rent.
+
+### Uppgift 2: Angular template *ngFor trackBy consistency audit
+Granskade alla HTML-templates i pages/ (exkl. live-sidor).
+- Alla *ngFor har trackBy-funktioner — ingen saknar trackBy.
+- 413 anvandningar av trackByIndex kvarstar, men funktionen ar korrekt implementerad som
+  `trackByIndex(index, item) { return item?.id ?? index; }` — den anvander id nar det finns,
+  faller tillbaka pa index for primitiver. Acceptabelt monster.
+
+### Uppgift 3: Angular HTTP service URL consistency audit
+Granskade alla 90+ service-filer i services/.
+Sokte efter hardkodade URLer (http://localhost, http://192.168.x.x). Inga hittades. Rent.
+
+### Uppgift 4: Angular component OnDestroy cleanup audit
+Granskade 160 komponent-filer med subscribe()/setInterval/setTimeout.
+Alla har OnDestroy + destroy$ + takeUntil. Inga lacker hittades. Rent.
+
+---
+
 ## 2026-03-22 Session #248 Worker A — PHP array_map/array_filter type-safety audit + strpos falsy-check audit (0 buggar)
 
 ### Granskade filer (A-M, noreko-backend/classes/)
