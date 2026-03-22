@@ -1,3 +1,26 @@
+## 2026-03-22 Session #242 Worker B — interval cleanup audit + guard/resolver return type audit (0 buggar)
+
+### Uppgift 1: Angular HTTP polling interval cleanup audit
+Granskade systematiskt ALLA .ts-filer i noreko-frontend/src/app/ for setInterval/setTimeout/rxjs interval/timer utan korrekt cleanup.
+
+**Resultat: Inga buggar hittade.**
+- 65+ komponenter med setInterval — samtliga har motsvarande clearInterval i ngOnDestroy
+- setTimeout anvands genomgaende med antingen tracked timer + clearTimeout, eller med `if (!this.destroy$.closed)` guard
+- rxjs interval()/timer() anvands i 4 filer — samtliga med takeUntil(this.destroy$) eller Subscription-hantering
+- auth.service.ts (providedIn: 'root') anvander pollSub.unsubscribe() korrekt
+
+Session #216 (4 setTimeout-lackor) och #232 (1 interval) fixade de buggar som tidigare fanns. Kodbasen ar nu ren.
+
+### Uppgift 2: Angular router resolve/guard return type audit
+Granskade alla guards och resolvers i noreko-frontend/src/app/.
+
+**Resultat: Inga buggar hittade.**
+- 2 guard-filer: auth.guard.ts (authGuard + adminGuard) och pending-changes.guard.ts
+- authGuard/adminGuard: returnerar korrekt Observable<boolean | UrlTree> med UrlTree for redirect
+- pendingChangesGuard: returnerar korrekt boolean
+- Inga resolvers hittade i projektet
+- Komponenter med canDeactivate (skiftoverlamning, leveransplanering) returnerar boolean korrekt
+
 ## 2026-03-22 Session #241 Worker B — Angular ngOnChanges audit + template expression complexity audit (4 buggar)
 
 ### Uppgift 1: Angular ngOnChanges null-check audit
