@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #255):
-- [ ] **PHP str_pad/substr truncation audit** — Worker A
-- [ ] **PHP array_column type coercion audit** — Worker A
-- [ ] **PHP preg_match return value audit** — Worker A
-- [ ] **Angular HTTP race condition audit (switchMap vs mergeMap)** — Worker B
-- [ ] **Angular template arithmetic overflow (division by zero)** — Worker B
-- [ ] **Angular FormControl/ngModel conflict audit** — Worker B
+### Klart (session #256):
+- [x] **PHP sprintf format string mismatch audit** — Worker A — rent
+- [x] **PHP usort stability audit** — Worker A — rent
+- [x] **PHP array_push vs []= performance audit i loopar** — Worker A — rent
+- [x] **Angular HostListener memory leak audit** — Worker B — rent
+- [x] **Angular async validator timing audit** — Worker B — rent
+- [x] **Angular Renderer2/ElementRef.nativeElement audit** — Worker B — rent
 
-### Nasta buggjakt-items (session #256+):
-- [ ] **PHP sprintf format string mismatch audit** — %s/%d vs argument-typer
-- [ ] **PHP array_push vs []= performance audit** — i loopar med stora arrayer
-- [ ] **Angular HostListener memory leak audit** — saknade removeEventListener
-- [ ] **Angular async validator timing audit** — debounce + race conditions
-- [ ] **PHP usort stability audit** — sorteringsordning vid lika varden
+### Nasta buggjakt-items (session #257+):
+- [ ] **PHP foreach by-reference audit** — &$val utan unset efter loop
+- [ ] **PHP static method state leakage audit** — statiska variabler mellan requests
+- [ ] **Angular ngAfterViewChecked performance audit** — tunga operationer i change detection
+- [ ] **Angular HTTP interceptor error propagation audit** — swallowed errors
+- [ ] **PHP PDO::ATTR_EMULATE_PREPARES audit** — saknad eller felaktig konfiguration
 
 ## Parkerade features (ta inte dessa nu)
 
