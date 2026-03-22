@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #256)*
+*Senast uppdaterad: 2026-03-22 (session #257)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,29 +60,30 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). sprintf format string: rent (21 filer, alla korrekta). usort stability: rent (67 anrop, alla spaceship/<=>). array_push: rent (noll anrop, alla []=). HostListener: rent (2 @HostListener + 5 addEventListener alla med cleanup). Async validator: rent (inga i kodbasen). Renderer2/nativeElement: rent (enbart Chart.js canvas, ingen innerHTML).
+Session #256: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). sprintf/usort/array_push/HostListener/async validator/Renderer2: alla rent.
+Session #257: BUGGJAKT — 7 buggar (7 Worker A + 0 Worker B). foreach by-reference: 5 saknade unset() fixade. PDO EMULATE_PREPARES: 2 saknade false fixade. static state/ngAfterViewChecked/HTTP interceptors/forkJoin: alla rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #257):
-- [ ] PHP foreach by-reference audit
-- [ ] PHP static method state leakage audit
-- [ ] Angular ngAfterViewChecked performance audit
-- [ ] Angular HTTP interceptor error propagation audit
-- [ ] PHP PDO::ATTR_EMULATE_PREPARES audit
+### Nasta (session #258):
+- [ ] PHP type juggling audit (== vs ===)
+- [ ] PHP error_reporting/display_errors audit
+- [ ] Angular template null-check audit
+- [ ] Angular Router guard return type audit
+- [ ] PHP SQL LIMIT/OFFSET injection audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-22 — Session #257 (klar)
+Worker A: 7 buggar — foreach by-reference: 5 saknade unset() (StopptidsanalysController, AdminController, KassationsorsakController, BonusAdminController x2). PDO EMULATE_PREPARES: 2 saknade false (api.php, update-weather.php). static state: rent.
+Worker B: 0 buggar — ngAfterViewChecked: rent (1 traff, korrekt flagg-monster). HTTP interceptors: rent (2 interceptors, alla propagerar). forkJoin/combineLatest: rent (4 forkJoin, alla HTTP).
+
 ### 2026-03-22 — Session #256 (klar)
-Worker A: 0 buggar — sprintf format string: rent. usort stability: rent (67 anrop, alla <=>). array_push: rent (noll anrop).
-Worker B: 0 buggar — HostListener: rent. Async validator: rent (inga). Renderer2/nativeElement: rent (enbart Chart.js canvas).
+Worker A: 0 buggar — sprintf format string: rent. usort stability: rent. array_push: rent.
+Worker B: 0 buggar — HostListener: rent. Async validator: rent. Renderer2/nativeElement: rent.
 
 ### 2026-03-22 — Session #255 (klar)
 Worker A: 0 buggar — str_pad/substr truncation: rent. array_column type coercion: rent. preg_match return value: rent.
 Worker B: 0 buggar — HTTP race condition: rent. Template division by zero: rent. FormControl/ngModel conflict: rent.
-
-### 2026-03-22 — Session #254 (klar)
-Worker A: 0 buggar — array_merge overwrite: rent. date()/DateTime consistency: rent. PDO closeCursor: rent.
-Worker B: 0 buggar — ngOnChanges mutation: rent. ViewChild timing: rent. Template side-effects: rent.

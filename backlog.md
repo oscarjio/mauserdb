@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #256):
-- [x] **PHP sprintf format string mismatch audit** — Worker A — rent
-- [x] **PHP usort stability audit** — Worker A — rent
-- [x] **PHP array_push vs []= performance audit i loopar** — Worker A — rent
-- [x] **Angular HostListener memory leak audit** — Worker B — rent
-- [x] **Angular async validator timing audit** — Worker B — rent
-- [x] **Angular Renderer2/ElementRef.nativeElement audit** — Worker B — rent
+### Pagaende (session #257):
+- [ ] **PHP foreach by-reference audit** — Worker A — &$val utan unset efter loop
+- [ ] **PHP static method state leakage audit** — Worker A — statiska variabler mellan requests
+- [ ] **PHP PDO::ATTR_EMULATE_PREPARES audit** — Worker A — saknad eller felaktig konfiguration
+- [ ] **Angular ngAfterViewChecked performance audit** — Worker B — tunga operationer i change detection
+- [ ] **Angular HTTP interceptor error propagation audit** — Worker B — swallowed errors
+- [ ] **Angular forkJoin/combineLatest completion audit** — Worker B — icke-completande observables
 
-### Nasta buggjakt-items (session #257+):
-- [ ] **PHP foreach by-reference audit** — &$val utan unset efter loop
-- [ ] **PHP static method state leakage audit** — statiska variabler mellan requests
-- [ ] **Angular ngAfterViewChecked performance audit** — tunga operationer i change detection
-- [ ] **Angular HTTP interceptor error propagation audit** — swallowed errors
-- [ ] **PHP PDO::ATTR_EMULATE_PREPARES audit** — saknad eller felaktig konfiguration
+### Nasta buggjakt-items (session #258+):
+- [ ] **PHP type juggling audit** — == vs === jamforelser med mixed types
+- [ ] **PHP error_reporting/display_errors audit** — produktions-sakerhet
+- [ ] **Angular template null-check audit** — saknade ?. i templates
+- [ ] **Angular Router guard return type audit** — felaktiga guard-returvarden
+- [ ] **PHP SQL LIMIT/OFFSET injection audit** — osanerade numeriska varden
 
 ## Parkerade features (ta inte dessa nu)
 
