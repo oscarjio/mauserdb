@@ -700,7 +700,7 @@ class RebotlingAnalyticsController {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard dagsMal: ' . $e->getMessage()); }
 
             // Kolla om undantag finns för idag (getExecDashboard)
             try {
@@ -710,7 +710,7 @@ class RebotlingAnalyticsController {
                 if ($exceptionRow) {
                     $dailyTarget = (int)$exceptionRow['justerat_mal'];
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard undantag: ' . $e->getMessage()); }
 
             // ---- IBC idag ----
             $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
@@ -721,7 +721,7 @@ class RebotlingAnalyticsController {
                 $this->ensureShiftTimesTable();
                 $st = $this->pdo->query("SELECT start_time FROM rebotling_shift_times WHERE shift_name='förmiddag' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 if ($st) $shiftStart = $st['start_time'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard shiftStart: ' . $e->getMessage()); }
 
             $shiftStartDt = new DateTime($now->format('Y-m-d') . ' ' . $shiftStart, $tz);
             if ($shiftStartDt > $now) {
@@ -735,7 +735,7 @@ class RebotlingAnalyticsController {
             try {
                 $st2 = $this->pdo->query("SELECT shift_hours FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($st2) $shiftLengthMin = (float)$st2['shift_hours'] * 60;
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard shiftLength: ' . $e->getMessage()); }
 
             $rate = $minutesSinceShiftStart > 0 ? $ibcToday / $minutesSinceShiftStart : 0;
             $remainingMin = max(0, $shiftLengthMin - $minutesSinceShiftStart);
@@ -955,7 +955,7 @@ class RebotlingAnalyticsController {
                         $ns = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
                         $ns->execute([$opId]);
                         $nameRow = $ns->fetch(PDO::FETCH_ASSOC);
-                    } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+                    } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard bestOp name: ' . $e->getMessage()); }
                     $bestOperator = [
                         'id'    => $opId,
                         'name'  => $nameRow ? ($nameRow['name'] ?? 'Okänd') : 'Op #' . $opId,
@@ -1593,13 +1593,13 @@ class RebotlingAnalyticsController {
                 foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getYearCalendar weekdayGoals: ' . $e->getMessage()); }
 
             $defaultGoal = 1000;
             try {
                 $sgRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sgRow) $defaultGoal = (int)$sgRow['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getYearCalendar defaultGoal: ' . $e->getMessage()); }
 
             // Hämta produktion per dag för hela året från rebotling_skiftrapport
             // SUM(ibc_ok) per datum

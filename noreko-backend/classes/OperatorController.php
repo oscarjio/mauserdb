@@ -852,9 +852,7 @@ class OperatorController {
                          NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0))
                         / NULLIF(
                             COALESCE(
-                                (SELECT MAX(rp2.cycle_time_minutes)
-                                 FROM rebotling_products rp2
-                                 WHERE rp2.id = sub.produkt_id),
+                                MAX(p.cycle_time_minutes),
                                 60.0 / 10.0
                             ), 0)
                         / 100.0,

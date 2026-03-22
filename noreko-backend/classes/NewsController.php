@@ -462,19 +462,25 @@ class NewsController {
         // 6. Produktionsrekord — dagens produktion slog bästa dagen senaste 30 dagarna
         try {
             $sql = "
-                SELECT sub.event_datum, sub.today_ibc, sub.prev_best
+                SELECT sub.event_datum, sub.today_ibc, prev.prev_best
                 FROM (
                     SELECT DATE(t.datum) AS event_datum,
-                           MAX(t.ibc_ok) AS today_ibc,
-                           (SELECT MAX(ibc_ok) FROM rebotling_ibc
-                            WHERE DATE(datum) >= DATE_SUB(DATE(t.datum), INTERVAL 30 DAY)
-                              AND DATE(datum) < DATE(t.datum)) AS prev_best
+                           MAX(t.ibc_ok) AS today_ibc
                     FROM rebotling_ibc t
                     WHERE DATE(t.datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                     GROUP BY DATE(t.datum)
                 ) sub
-                WHERE sub.today_ibc > sub.prev_best
-                  AND sub.prev_best IS NOT NULL
+                LEFT JOIN (
+                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS prev_best
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
+                      AND DATE(datum) < CURDATE()
+                    GROUP BY DATE(datum)
+                ) prev ON prev.dag >= DATE_SUB(sub.event_datum, INTERVAL 30 DAY)
+                      AND prev.dag < sub.event_datum
+                GROUP BY sub.event_datum, sub.today_ibc
+                HAVING sub.today_ibc > MAX(prev.prev_best)
+                   AND MAX(prev.prev_best) IS NOT NULL
                 ORDER BY sub.event_datum DESC
                 LIMIT 3
             ";

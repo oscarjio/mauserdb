@@ -1819,40 +1819,33 @@ class RebotlingController {
             }
 
             // Bästa dag per operatör (ibc_ok från rebotling_ibc, summerat per dag)
+            // Använder ROW_NUMBER() istället för korrelerad subquery för bästa dag-datum
             $sqlBestDay = "
-                SELECT
-                    t.op_num,
-                    MAX(t.day_ibc) AS best_day_ibc,
-                    (SELECT ps2.datum
-                     FROM (
-                         SELECT DATE(r2.datum) AS datum, r2.skiftraknare, COALESCE(MAX(r2.ibc_ok),0) AS shift_ibc
-                         FROM rebotling_ibc r2
-                         WHERE (r2.op1 = t.op_num OR r2.op2 = t.op_num OR r2.op3 = t.op_num)
-                           AND r2.ibc_ok IS NOT NULL AND r2.skiftraknare IS NOT NULL
-                         GROUP BY DATE(r2.datum), r2.skiftraknare
-                     ) ps2
-                     GROUP BY ps2.datum
-                     ORDER BY SUM(ps2.shift_ibc) DESC
-                     LIMIT 1
-                    ) AS best_day_date
+                SELECT ranked.op_num,
+                       ranked.day_ibc AS best_day_ibc,
+                       ranked.dag     AS best_day_date
                 FROM (
-                    SELECT sub.op_num, DATE(sub.datum) AS dag, SUM(sub.shift_ibc) AS day_ibc
+                    SELECT t.op_num, t.dag, t.day_ibc,
+                           ROW_NUMBER() OVER (PARTITION BY t.op_num ORDER BY t.day_ibc DESC) AS rn
                     FROM (
-                        SELECT r.op1 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
-                        GROUP BY r.op1, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op2 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
-                        GROUP BY r.op2, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op3 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
-                        GROUP BY r.op3, DATE(r.datum), r.skiftraknare
-                    ) sub
-                    GROUP BY sub.op_num, DATE(sub.datum)
-                ) t
-                GROUP BY t.op_num
+                        SELECT sub.op_num, DATE(sub.datum) AS dag, SUM(sub.shift_ibc) AS day_ibc
+                        FROM (
+                            SELECT r.op1 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            GROUP BY r.op1, DATE(r.datum), r.skiftraknare
+                            UNION ALL
+                            SELECT r.op2 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            GROUP BY r.op2, DATE(r.datum), r.skiftraknare
+                            UNION ALL
+                            SELECT r.op3 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
+                            FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            GROUP BY r.op3, DATE(r.datum), r.skiftraknare
+                        ) sub
+                        GROUP BY sub.op_num, DATE(sub.datum)
+                    ) t
+                ) ranked
+                WHERE ranked.rn = 1
             ";
             $stmtBD = $pdo->query($sqlBestDay);
             $bestDayByOp = [];

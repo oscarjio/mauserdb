@@ -313,19 +313,25 @@ class FeedbackAnalysController {
                         COUNT(*)                         AS antal,
                         ROUND(AVG(f.stämning), 2)       AS snitt_stamning,
                         MAX(f.datum)                     AS senaste_datum,
-                        (SELECT f2.kommentar
-                         FROM operator_feedback f2
-                         WHERE f2.operator_id = f.operator_id
-                           AND f2.datum >= :from2
-                         ORDER BY f2.skapad_at DESC LIMIT 1
-                        ) AS senaste_kommentar
+                        latest.kommentar                 AS senaste_kommentar
                  FROM operator_feedback f
                  LEFT JOIN operators o ON o.number = f.operator_id
+                 LEFT JOIN (
+                     SELECT f2.operator_id, f2.kommentar
+                     FROM operator_feedback f2
+                     INNER JOIN (
+                         SELECT operator_id, MAX(skapad_at) AS max_skapad
+                         FROM operator_feedback
+                         WHERE datum >= :from2
+                         GROUP BY operator_id
+                     ) f3 ON f3.operator_id = f2.operator_id AND f3.max_skapad = f2.skapad_at
+                     WHERE f2.datum >= :from3
+                 ) latest ON latest.operator_id = f.operator_id
                  WHERE f.datum >= :from
                  GROUP BY f.operator_id
                  ORDER BY snitt_stamning DESC"
             );
-            $stmtSent->execute([':from' => $fromDate, ':from2' => $fromDate]);
+            $stmtSent->execute([':from' => $fromDate, ':from2' => $fromDate, ':from3' => $fromDate]);
             $rows = $stmtSent->fetchAll(PDO::FETCH_ASSOC);
 
             $result = [];

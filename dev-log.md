@@ -1,3 +1,29 @@
+## 2026-03-22 Session #242 Worker A — SQL subquery perf + error_log format + file_put_contents audit (22 buggar)
+
+### Uppgift 1: PHP classes/ SQL subquery performance audit (4 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ for korrelerade subqueries.
+
+**Fixade 4 korrelerade subqueries:**
+1. **FeedbackAnalysController.php** — `getOperatorSentiment()`: korrelerad subquery for senaste kommentar per operator ersatt med LEFT JOIN till derived table
+2. **NewsController.php** — `getEvents()`: korrelerad subquery for prev_best IBC per dag ersatt med LEFT JOIN + GROUP BY/HAVING
+3. **OperatorController.php** — `getMachineCompatibility()`: korrelerad subquery mot rebotling_products ersatt med redan existerande LEFT JOIN (p.cycle_time_minutes)
+4. **RebotlingController.php** — `getPersonalBests()`: korrelerad subquery for basta-dag-datum per operator ersatt med ROW_NUMBER() OVER window function
+
+### Uppgift 2: PHP error_log format consistency audit (18 buggar)
+Granskade ALLA error_log()-anrop i noreko-backend/classes/ for inkonsekvent format.
+
+**Fixade 18 error_log-anrop som saknade metod-prefix:**
+- **RebotlingAdminController.php** (12 st): 6 i getTodaySnapshot, 4 i getSystemStatus, 2 i getAllLinesStatus — alla saknade ::metodnamn
+- **RebotlingAnalyticsController.php** (7 st): 5 i getExecDashboard, 2 i getYearCalendar — alla saknade ::metodnamn
+- Ovriga ~800+ error_log-anrop i classes/ foljer redan korrekt format (ClassName::methodName: meddelande)
+
+Inget kansligt data (losenord/tokens) loggas. Inga tomma catch-block hittade (fixades i #213/#235).
+
+### Uppgift 3: PHP file_put_contents error handling audit (0 buggar)
+Granskade HELA noreko-backend/ for file_put_contents()-anrop.
+
+**Resultat: Inga file_put_contents()-anrop finns i noreko-backend/.** Filskrivning sker via databasen. Inget att fixa.
+
 ## 2026-03-22 Session #242 Worker B — interval cleanup audit + guard/resolver return type audit (0 buggar)
 
 ### Uppgift 1: Angular HTTP polling interval cleanup audit

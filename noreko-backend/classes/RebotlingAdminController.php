@@ -346,7 +346,7 @@ class RebotlingAdminController {
                     if ($wgRow && (int)$wgRow['daily_goal'] > 0) {
                         $dailyTarget = (int)$wgRow['daily_goal'];
                     }
-                } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+                } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
 
                 // Kolla om undantag finns för idag
                 try {
@@ -356,8 +356,8 @@ class RebotlingAdminController {
                     if ($exceptionRow) {
                         $dailyTarget = (int)$exceptionRow['justerat_mal'];
                     }
-                } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+                } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot undantag: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot settings: ' . $e->getMessage()); }
 
             // Linjen kör?
             $isRunning = false;
@@ -366,7 +366,7 @@ class RebotlingAdminController {
                     "SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1"
                 )->fetch(PDO::FETCH_ASSOC);
                 $isRunning = $row ? (bool)$row['running'] : false;
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
 
             // Takt: IBC per timme baserat på produktion senaste 2 timmar
             $ratePerHour = 0.0;
@@ -376,7 +376,7 @@ class RebotlingAdminController {
                      WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
                 )->fetchColumn();
                 $ratePerHour = round($cnt / 2.0, 1);
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot ratePerHour: ' . $e->getMessage()); }
 
             // Skiftlängd från settings
             $shiftHours = 8.0;
@@ -385,7 +385,7 @@ class RebotlingAdminController {
                     "SELECT shift_hours FROM rebotling_settings WHERE id = 1"
                 )->fetch(PDO::FETCH_ASSOC);
                 if ($sh) $shiftHours = (float)$sh['shift_hours'];
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot shiftHours: ' . $e->getMessage()); }
 
             // Prognos: skiftstart 06:00 lokal tid
             $shiftStart = new DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
@@ -520,12 +520,12 @@ class RebotlingAdminController {
             try {
                 $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM rebotling_ibc")->fetch(PDO::FETCH_ASSOC);
                 $lastPlcPing = $row ? $row['last_ping'] : null;
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus lastPlcPing: ' . $e->getMessage()); }
 
             try {
                 $row = $this->pdo->query("SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 $lastLopnummer = $row ? (int)$row['lopnummer'] : null;
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus lopnummer: ' . $e->getMessage()); }
 
             // Databas OK
             $dbOk = true;
@@ -541,14 +541,14 @@ class RebotlingAdminController {
             try {
                 $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_skiftrapport WHERE DATE(created_at) = CURDATE()")->fetchColumn();
                 $reportsToday = (int)$row;
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus reportsToday: ' . $e->getMessage()); }
 
             // Totalt IBC idag från PLC
             $ibcToday = 0;
             try {
                 $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
                 $ibcToday = (int)$row;
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus ibcToday: ' . $e->getMessage()); }
 
             echo json_encode([
                 'success' => true,
@@ -617,7 +617,7 @@ class RebotlingAdminController {
                     "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
                 )->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dagsMal = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+            } catch (Exception $e) { error_log('RebotlingAdminController::getAllLinesStatus dagsMal: ' . $e->getMessage()); }
 
             if ($dagsMal > 0) {
                 $malPct = round($ibcIdag / $dagsMal * 100, 1);
@@ -655,7 +655,7 @@ class RebotlingAdminController {
                                 "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
                             )->fetchColumn();
                             if ($cRow > 0) $snittCykel = (float)$cRow;
-                        } catch (Exception $e) { error_log('RebotlingAdminController: ' . $e->getMessage()); }
+                        } catch (Exception $e) { error_log('RebotlingAdminController::getAllLinesStatus snittCykel: ' . $e->getMessage()); }
                         $maxMojlig = $prodTid / $snittCykel;
                         if ($maxMojlig > 0) {
                             $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
