@@ -106,18 +106,18 @@ Session #236: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL transaction r
 Session #237: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). File locking: rent. PDO error mode: rent. Timezone: rent. HTTP retry idempotency: rent. Form dirty-state: 2 fixar (canDeactivate-guard).
 Session #238: BUGGJAKT — 10 buggar (10 Worker A + 0 Worker B). Output buffering: rent. Prepared stmt reuse: 10 prepare() flyttade utanfor loopar. Header injection: rent. trackBy: rent. Environment config: rent.
 Session #239: BUGGJAKT — 20 buggar (15 Worker A + 5 Worker B). Error response consistency: rent. SQL GROUP BY: rent. usort subtraktion->spaceship: 15 fixar i 7 PHP-filer. Pipe null-safety: 5 fixar i benchmarking.html. Preload strategy: rent.
-Session #240: BUGGJAKT — pagaende.
+Session #240: BUGGJAKT — 13 buggar (0 Worker A + 13 Worker B). SQL DISTINCT: rent. PDO fetchAll: rent. file_get_contents: rent. HTTP error normalization: 13 catchError utan err-param i 5 services. Form validation: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #240):
-- [ ] PHP classes/ SQL DISTINCT correctness audit
-- [ ] PHP classes/ PDO fetchAll memory audit
-- [ ] PHP classes/ file_get_contents error handling audit
-- [ ] Angular HTTP interceptor error normalization re-audit
-- [ ] Angular form validation completeness audit
+### Nasta (session #241):
+- [ ] PHP classes/ array_map/array_filter callback audit
+- [ ] PHP classes/ header() call consistency audit
+- [ ] Angular NgOnChanges null-check audit
+- [ ] PHP classes/ SQL subquery performance audit
+- [ ] Angular template expression complexity audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -129,6 +129,6 @@ Worker B: 0 buggar — trackBy (129 ngFor): rent. Environment config: rent.
 Worker A: 15 buggar — Error response consistency: rent. SQL GROUP BY: rent. usort/uasort subtraktion->spaceship: 15 fixar i 7 PHP-filer.
 Worker B: 5 buggar — Pipe null-safety: 5 fixar i benchmarking.html (number pipe pa undefined). Preload strategy: rent (PreloadAllModules redan konfigurerat).
 
-### 2026-03-22 — Session #240 (pagaende)
-Worker A: SQL DISTINCT audit + PDO fetchAll memory audit + file_get_contents error handling audit.
-Worker B: HTTP interceptor error normalization re-audit + form validation completeness audit.
+### 2026-03-22 — Session #240 (klar)
+Worker A: 0 buggar — SQL DISTINCT (50+ anvandningar): rent. PDO fetchAll (580+ anrop): rent. file_get_contents (46 filer): rent.
+Worker B: 13 buggar — HTTP error normalization: 13 catchError utan err-param i 5 services (backend-fel slukades). Form validation (15 formular): rent.

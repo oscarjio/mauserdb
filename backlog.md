@@ -7,13 +7,6 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #240):
-- [ ] **PHP classes/ SQL DISTINCT correctness audit** — Worker A
-- [ ] **PHP classes/ PDO fetchAll memory audit** — Worker A
-- [ ] **PHP classes/ file_get_contents error handling audit** — Worker A
-- [ ] **Angular HTTP interceptor error normalization re-audit** — Worker B
-- [ ] **Angular form validation completeness audit** — Worker B
-
 ### Nasta buggjakt-items (session #241+):
 - [ ] **PHP classes/ array_map/array_filter callback audit** — felaktiga callbacks
 - [ ] **PHP classes/ header() call consistency audit** — Content-Type, charset, caching
