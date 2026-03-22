@@ -1,3 +1,47 @@
+## 2026-03-22 Session #245 Worker A — PHP error_log, Content-Type, array_key_exists audit (0 buggar)
+
+### Uppgift 1: PHP error_log format consistency audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (116 filer, ~1000 error_log-anrop).
+
+Kontrollerade att alla error_log() anrop inkluderar klassnamn/metod-prefix i formatet "KlassNamn::metod: beskrivning".
+
+**Resultat: RENT** — Samtliga error_log()-anrop foljer redan det konsekvent format:
+- `error_log('KlassNamn::metod: ' . $e->getMessage())`
+- Kontextspecifika varianter med extra detalj (t.ex. "KlassNamn::metod (subdetalj): ...")
+- Sakerhetsloggar med extra kontext (user_id, IP, etc.)
+Inga buggar hittade.
+
+### Uppgift 2: PHP header() Content-Type audit (0 buggar)
+Granskade api.php och alla PHP-filer i noreko-backend/classes/.
+
+**Resultat: RENT** — api.php (rad 56) satter `header('Content-Type: application/json; charset=utf-8')` centralt for ALLA routes innan nagon controller anropas. Alla controllers som returnerar JSON behover inte satta Content-Type sjalva.
+
+Noterade att ~15 controllers redundant satter Content-Type i success/error-hjalpmetoder — detta ar ofarligt men onoedigt tack vare den centrala headern. Inget att fixa.
+
+Specialfall som korrekt overrider Content-Type:
+- RebotlingAnalyticsController: `text/csv` for CSV-export (rad 309), `text/html` for HTML-rendering (rad 5092)
+- TidrapportController: `text/csv` for CSV-export (rad 560)
+- BonusAdminController: `text/csv` for CSV-export (rad 1823)
+
+### Uppgift 3: PHP array_key_exists vs isset consistency audit (0 buggar)
+Granskade ALLA PHP-filer i noreko-backend/classes/ (116 filer).
+
+**array_key_exists() anvandningar (11 st) — alla KORREKTA:**
+- LoginController.php:79 — `array_key_exists('active', $user)` — kolumnen kan saknas i aldre DB:er, maste skilja "finns ej" fran "finns med varde 0"
+- MaintenanceController.php:289,306,312,320,339,345,350 — updateEntry-falt (description, duration_minutes, performed_by, cost_sek, equipment, downtime_minutes, resolved) — alla kan legitimt sattas till null for att rensa vardet
+- ProfileController.php:73 — operator_id kan vara null (avlanka operator)
+- AdminController.php:292 — samma som ProfileController
+- LineSkiftrapportController.php:247 — kommentar kan sattas till null for att rensa
+
+**Okontrollerad array-atkomst med dynamiska nycklar — inga buggar:**
+Alla dynamiska array-atkomster (`$arr[$var]`) anvander antingen:
+- `??` null-coalescing operator for fallback
+- `isset()` check fore atkomst
+- Nycklar fran `array_keys()` pa samma array (garanterat existerande)
+- Sekventiella index inom loop-granser
+
+Inga buggar hittade.
+
 ## 2026-03-22 Session #244 Worker B — setTimeout cleanup + form reset audit (46 buggar)
 
 ### Uppgift 1: Angular setTimeout cleanup audit (42 buggar)
