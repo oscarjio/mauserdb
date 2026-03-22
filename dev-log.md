@@ -1,3 +1,30 @@
+## 2026-03-22 Session #245 Worker B — Angular pipe null-safety + ngIf/loading audit (0 buggar)
+
+### Uppgift 1: Angular pipe chain null-safety audit (0 buggar)
+Granskade ALLA .html template-filer i noreko-frontend/src/app/pages/ (120+ templates, utom live-sidor).
+
+Kontrollerade systematiskt alla anvandningar av `| date`, `| number`, `| percent`, `| currency`, `| uppercase`, `| titlecase`, `| lowercase` och `| slice` pipes pa potentiellt nullable varden.
+
+**Resultat: RENT** — Samtliga pipe-anvandningar ar korrekt skyddade:
+- Nullable objekt (t.ex. `overview: X | null = null`) ar alltid inuti `*ngIf`-block som kontrollerar objektets existens
+- Nullable falt inom objekt (t.ex. `row.oee: number | null`) ar skyddade med `*ngIf="row.oee !== null"` eller ternarar (`value !== null ? (value | pipe) : '-'`)
+- Standalone-variabler (t.ex. `totalProduced`, `spcMean`) ar initierade med default-varden (= 0)
+- `lastRefreshed: Date | null` och liknande ar alltid inuti `*ngIf="lastRefreshed"`
+- Angular 20+ pipes (DatePipe, DecimalPipe, etc.) hanterar aven null/undefined gracefullt (returnerar null)
+Inga buggar hittade.
+
+### Uppgift 2: Angular ngIf/else template reference + loading-state audit (0 buggar)
+Granskade ALLA .html template-filer for:
+1. `*ngIf` med `else`-referens till saknade `ng-template` — inga saknade hittades
+2. Saknad loading-state for async HTTP-data — alla komponenter med HTTP-anrop har:
+   - Loading-flagga i .ts (t.ex. `loading`, `isLoading`, `laddar`, `laddas`)
+   - Loading-indikator i .html (spinner/skeleton/text)
+   - Korrekt felhantering med error-state
+
+**Resultat: RENT** — Kodbasen ar valstrukturerad med konsekvent loading/error-hantering.
+
+---
+
 ## 2026-03-22 Session #245 Worker A — PHP error_log, Content-Type, array_key_exists audit (0 buggar)
 
 ### Uppgift 1: PHP error_log format consistency audit (0 buggar)
