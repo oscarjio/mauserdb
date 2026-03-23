@@ -18303,3 +18303,36 @@ Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/):
 - **Gemensam sendSuccess/sendError**: Samtliga controllers har egna privata sendSuccess()/sendError()-metoder (alternativt sendJson()) som alla inkluderar JSON_UNESCAPED_UNICODE. Inga stallen kringgar dessa metoder.
 
 ### Totalt: 0 buggar hittade
+
+---
+
+## 2026-03-23 Session #264 Worker B — Angular memory leak/HTTP URL audit
+
+### Uppgift 1: Angular memory leak audit
+**Resultat:** 0 buggar
+
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (170+ komponenter/pages):
+
+- **EventEmitter:** Inga manuella subscriptions pa EventEmitters hittades. Alla EventEmitters anvander korrekt (event)-binding i templates eller .emit(). Rent.
+- **DOM event listeners (addEventListener):** 5 filer anvander document.addEventListener('visibilitychange') — alla har matchande removeEventListener i ngOnDestroy: rebotling-admin.ts, klassificeringslinje-admin.ts, saglinje-admin.ts, tvattlinje-admin.ts, andon.ts. Rent.
+- **Chart.js instanser:** 109 filer skapar Chart.js-instanser. Alla har chart?.destroy() i ngOnDestroy (med try/catch). Rent.
+- **window/document event listeners:** Inga ytterligare window.addEventListener utover visibilitychange ovan. Rent.
+- **ResizeObserver/MutationObserver/IntersectionObserver:** Inga forekomster i kodbasen. Rent.
+- **setTimeout/clearTimeout:** Alla setTimeout-anrop sparar timer-ID:n i privata variabler (ReturnType<typeof setTimeout>) eller _timers-arrayer, och clearas i ngOnDestroy. Nagra korta UI-flagg-timeouts (3-4 sek) i rebotling-admin.ts sparar inte timer-ID men kontrollerar this.destroy$.closed — acceptabelt monster.
+- **setInterval/clearInterval:** Alla setInterval-anrop sparar interval-ID:n och clearas i ngOnDestroy. Granskade menu.ts (5 intervaller), oee-trendanalys, gamification, daglig-briefing, operator-dashboard, m.fl. Rent.
+- **BehaviorSubject/ReplaySubject:** Inga komponent-lokala BehaviorSubject/ReplaySubject i .component.ts-filer. Rent.
+- **takeUntil(this.destroy$):** 163 filer anvander takeUntil-monstret konsekvent. Alla .subscribe()-anrop i komponenter gar genom takeUntil(this.destroy$). Rent.
+
+### Uppgift 2: Angular HTTP URL consistency audit
+**Resultat:** 0 buggar
+
+Granskade alla services (90+) och komponenter i noreko-frontend/src/app/:
+
+- **Hardkodade URLs:** Inga hardkodade API-URLs. Alla HTTP-anrop anvander environment.apiUrl eller service-lokala basURL:er haerledda fran environment.apiUrl. Enda externa URL ar en logotyp-URL i header.ts (https://www.noreko.com/...) — korrekt, inte ett API-anrop.
+- **Trailing slashes:** environment.apiUrl = '/noreko-backend/api.php' (bade dev och prod). Inga trailing slashes. Konsekvent.
+- **Query parameters:** Majoriteten anvander template literals med encodeURIComponent() for anvandarinput (stationsnamn, operatorsnamn, sokvarden, kommentarer). Numeriska parametrar (days, period, limit, page, etc.) och hardkodade strangvarden (typ, sort, order) behover inte encoding. 2 services (bonus.service.ts, skiftoverlamning.service.ts) anvander HttpParams korrekt.
+- **URL-encoding:** encodeURIComponent() anvands konsekvent i 20+ services for parametrar som kan innehalla svenska tecken (station, cause, search, date, status, severity, typ, filter_action, filter_user, kommentar, etc.).
+- **Dubbla slashes:** Inga dubbla slashes. baseUrl slutar aldrig med / och alla endpoints borjar med &run= eller ?action=.
+- **Endpoint-matchning:** Alla services foljer samma monster: `${environment.apiUrl}?action=X&run=Y` med withCredentials: true. Konsekvent med PHP-routern i api.php.
+
+### Totalt: 0 buggar hittade
