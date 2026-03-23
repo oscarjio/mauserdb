@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #276):
-- [ ] **PHP rate limiting / brute force** — Worker A — verifiera login-endpoints har skydd
-- [ ] **PHP file upload validering** — Worker A — MIME-type, storlek, path traversal
-- [ ] **PHP session/cookie sakerhet** — Worker A — httponly, secure, samesite
-- [ ] **Angular lazy loading korrekthet** — Worker B — verifiera lazy-loadade moduler
-- [ ] **Angular form validation edge cases** — Worker B — required, min/max, pattern
-- [ ] **Angular pipe/directive buggar** — Worker B — custom pipes, cleanup, edge cases
+### Pagaende (session #277):
+- [ ] **PHP error logging konsistens** — Worker A — verifiera error_log format, saknade catch-logs, log injection
+- [ ] **PHP SQL transaction isolation** — Worker A — beginTransaction/commit/rollback, nested, saknade transaktioner
+- [ ] **PHP CSRF token rotation** — Worker A — generering, validering, rotation, dubbelklick-skydd
+- [ ] **Angular HTTP caching** — Worker B — GET-cache, invalidering, duplicerade anrop
+- [ ] **Angular change detection optimering** — Worker B — OnPush, trackBy, template-funktioner
+- [ ] **Angular service singleton audit** — Worker B — providedIn, state, circular deps
 
-### Nasta buggjakt-items (session #277+):
-- [ ] **PHP error logging konsistens** — verifiera error_log format och niva
-- [ ] **PHP SQL transaction isolation** — verifiera korrekta isolation levels
-- [ ] **Angular HTTP caching** — verifiera att GET-requests cachas korrekt
-- [ ] **Angular change detection optimering** — OnPush strategi dar det saknas
-- [ ] **PHP CSRF token rotation** — verifiera att tokens roteras korrekt
+### Nasta buggjakt-items (session #278+):
+- [ ] **PHP date/timezone konsistens** — verifiera att alla date()-anrop anvander samma timezone
+- [ ] **PHP array bounds/key access** — verifiera isset/array_key_exists fore access
+- [ ] **Angular memory leak regressionstest** — kora profiling pa tunga komponenter
+- [ ] **Angular router lazy chunk felhantering** — verifiera att chunk-ladningsfel hanteras
+- [ ] **PHP SQL injection i dynamiska ORDER BY** — verifiera vitlistning av kolumnnamn
 
 ## Parkerade features (ta inte dessa nu)
 

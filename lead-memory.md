@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #276)*
+*Senast uppdaterad: 2026-03-23 (session #277)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -80,36 +80,38 @@ Session #272: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). try/catch+SQL kor
 Session #273: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). PHP controllers N-Z: 2 fel SQL-kolumnnamn i OperatorDashboardController (operator_id->user_id, orsak/stopporsak->JOIN), 1 saknad Content-Type header i NarvaroController (4 endpoints). Angular services: rent (97 services, alla URL:er/felhantering/cleanup korrekt).
 Session #274: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). api.php router: rent (117 routes, alla controller-filer finns). MorgonrapportController: 5 felaktiga COUNT(*) ersatta med MAX-aggregering (IBC-produktion raknade PLC-rader istallet for faktiska IBC). Angular template null safety: rent (37 filer). @Input/@Output: rent.
 Session #275: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). PHP N-Z djupgranskning + SQL UNION/subquery audit: rent. Angular environment config: rent. HTTP interceptor: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Routing guards: rent.
+Session #276: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). PHP rate limiting: rent. File upload: inga uploads finns. Session/cookie sakerhet: rent. Angular lazy loading: rent. Form validation: rent. Pipes/directives: inga custom finns.
+Session #277: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). Error logging: 1 log injection fixad (Login/Register). SQL transactions: 1 race condition fixad (MaintenanceController). CSRF: rent. HTTP caching: rent. Change detection: rent. Service singletons: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #276):
-- [ ] PHP rate limiting / brute force — login-skydd (Worker A)
-- [ ] PHP file upload validering — MIME, storlek, path traversal (Worker A)
-- [ ] PHP session/cookie sakerhet — httponly, secure, samesite (Worker A)
-- [ ] Angular lazy loading korrekthet (Worker B)
-- [ ] Angular form validation edge cases (Worker B)
-- [ ] Angular pipe/directive buggar (Worker B)
+### Pagaende (session #277):
+- [ ] PHP error logging konsistens (Worker A)
+- [ ] PHP SQL transaction isolation (Worker A)
+- [ ] PHP CSRF token rotation (Worker A)
+- [ ] Angular HTTP caching (Worker B)
+- [ ] Angular change detection optimering (Worker B)
+- [ ] Angular service singleton audit (Worker B)
 
-### Nasta (session #277+):
-- [ ] PHP error logging konsistens
-- [ ] PHP SQL transaction isolation
-- [ ] Angular HTTP caching
-- [ ] Angular change detection optimering
-- [ ] PHP CSRF token rotation
+### Nasta (session #278+):
+- [ ] PHP date/timezone konsistens
+- [ ] PHP array bounds/key access
+- [ ] Angular memory leak regressionstest
+- [ ] Angular router lazy chunk felhantering
+- [ ] PHP SQL injection i dynamiska ORDER BY
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #274 (klar)
-Worker A: 5 buggar — MorgonrapportController: 5 felaktiga COUNT(*) ersatta med MAX-aggregering. 17 ovriga A-M controllers + api.php router: rent.
-Worker B: 0 buggar — 37 template-filer null safety + @Input/@Output: rent.
 
 ### 2026-03-23 — Session #275 (klar)
 Worker A: 0 buggar — PHP N-Z djupgranskning + SQL UNION/subquery audit: rent.
 Worker B: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Environment config + routing guards: rent.
 
 ### 2026-03-23 — Session #276 (klar)
-Worker A: 0 buggar — PHP rate limiting: rent (IP+user lockout, konstant-tid verify). File upload: inga filuppladdningar i backend. Session/cookie: rent (httponly, samesite, strict mode, regenerate_id).
-Worker B: 0 buggar — Lazy loading: rent (150+ routes, alla sokvagar korrekta). Form validation: rent (16+ forms, alla validerar). Pipes/directives: inga custom pipes/directives existerar.
+Worker A: 0 buggar — PHP rate limiting: rent. File upload: inga uploads. Session/cookie sakerhet: rent.
+Worker B: 0 buggar — Lazy loading: rent. Form validation: rent. Pipes/directives: inga custom finns.
+
+### 2026-03-23 — Session #277 (klar)
+Worker A: 2 buggar — log injection i Login/RegisterController (username utan sanitering i error_log), race condition i MaintenanceController (SELECT+INSERT utan transaktion).
+Worker B: 0 buggar — HTTP caching: rent (polling-baserat, korrekt). Change detection: rent (tunga berakningar cachade). Service singletons: rent (alla 96 providedIn root).
