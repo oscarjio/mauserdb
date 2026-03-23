@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #270)*
+*Senast uppdaterad: 2026-03-23 (session #271)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,23 +75,20 @@ Session #267: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). file I/O: 2 fopen
 Session #268: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). timezone: rent. array key validation: rent. PDO error mode: rent. HTTP interceptor: rent (komplett 401/403/500/0 + retry). memory profiling: rent (498/499 trackBy, alla subscriptions+timers korrekt).
 Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection: rent. numeric validation: rent. mail/SMTP: rent. form dirty state: rent. template type safety: rent.
 Session #270: BUGGJAKT — 107 buggar (1 Worker A + 106 Worker B). session race condition: 1 session_write_close i api.php fixad. output buffering: rent. CORS preflight: rent. route resolvers: rent (inga resolvers, lazy loading). getElementById null-guards: 106 saknade null-checks i 61 filer fixade.
+Session #271: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_reporting/display_errors: rent. flock/file writes: rent (all I/O via PDO). PDO prepared statements: rent. Chart.js memory leaks: rent (alla destroy). HTTP retry logic: rent (timeout+catchError+retry).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #271):
-- [ ] PHP error_reporting/display_errors — saknad error_reporting(0) i produktion
-- [ ] Angular memory leaks i charts — Chart.js-instanser som inte destroyas
-- [ ] PHP file lock consistency — flock() vid concurrent file writes
-- [ ] Angular HTTP retry logic — retryWhen/retry felkonfiguration
-- [ ] PHP PDO prepared statement reuse — duplicerade queries
+### Nasta (session #272):
+- [ ] PHP output buffering — ob_start/ob_end konsistens
+- [ ] PHP CORS preflight — OPTIONS-requests i alla endpoints
+- [ ] Angular lazy loading chunking — verifiera lazy routes
+- [ ] PHP mail/SMTP edge cases — timeout, encoding
+- [ ] Angular form validation edge cases — async validators, cross-field
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #268 (klar)
-Worker A: 0 buggar — timezone: rent. array key validation: rent. PDO error mode: rent.
-Worker B: 0 buggar — HTTP interceptor: rent. memory profiling: rent.
 
 ### 2026-03-23 — Session #269 (klar)
 Worker A: 0 buggar — header injection: rent. numeric validation: rent. mail/SMTP: rent.
@@ -100,3 +97,7 @@ Worker B: 0 buggar — form dirty state: rent. template type safety: rent.
 ### 2026-03-23 — Session #270 (klar)
 Worker A: 1 bugg — session race condition: session_write_close() tillagd i api.php + VpnController. output buffering: rent. CORS preflight: rent.
 Worker B: 106 buggar — document.getElementById null-guards: 106 saknade null-checks i 61 komponentfiler fixade. route resolvers: rent (inga resolvers). SSR: ej aktivt.
+
+### 2026-03-23 — Session #271 (klar)
+Worker A: 0 buggar — error_reporting/display_errors: rent (inga display_errors, alla getMessage via error_log). flock: rent (inga filskrivningar, allt via PDO). PDO prepared statements: rent (alla dynamiska varden parametriserade, whitelists for tabell/kolumn).
+Worker B: 0 buggar — Chart.js memory leaks: rent (alla chart?.destroy() i ngOnDestroy). HTTP retry logic: rent (timeout+catchError+takeUntil+retry pa alla anrop).
