@@ -1,3 +1,38 @@
+## 2026-03-23 Session #282 Worker B — Angular localStorage/sessionStorage try/catch (5 buggar)
+
+### Uppgift 1: Angular Chart.js konfiguration (0 buggar)
+
+Granskade alla 109 komponenter som anvander Chart.js. Alla har:
+- `responsive: true` och `maintainAspectRatio: false` konfigurerat
+- `chart.destroy()` anropas innan ny chart skapas OCH i ngOnDestroy
+- Numeriska dataset-varden (inga string-buggar)
+- Korrekt hantering av tom data (early return om canvas saknas eller data ar tom)
+
+### Uppgift 2: Angular localStorage/sessionStorage (5 buggar)
+
+1. **`news/news.ts:312`** — `saveReactions()` anropade `localStorage.setItem()` utan try/catch. I Safari privat surfning kastar detta `QuotaExceededError` och kraschar appen.
+   **Fix:** Lagt till try/catch runt setItem.
+
+2. **`menu/menu.ts:250`** — `onMenuChange()` anropade `localStorage.setItem('selectedMenu', ...)` utan try/catch. Samma QuotaExceededError-risk.
+   **Fix:** Lagt till try/catch runt setItem.
+
+3. **`pages/my-bonus/my-bonus.ts:215`** — `saveAndLoad()` anropade `localStorage.setItem('myOperatorId', ...)` utan try/catch. Krasch i privat surfning.
+   **Fix:** Lagt till try/catch runt setItem.
+
+4. **`pages/funktionshub/funktionshub.ts:235`** — `toggleFavorite()` anropade `localStorage.setItem(...)` utan try/catch. Krasch i privat surfning.
+   **Fix:** Lagt till try/catch runt setItem.
+
+5. **`interceptors/csrf.interceptor.ts:11`** — `sessionStorage.getItem('csrf_token')` utan try/catch i HTTP-interceptor som kors pa VARJE request. Om storage ar helt otillganglig kraschar alla HTTP-anrop.
+   **Fix:** Lagt till try/catch med fallback till null.
+
+### Uppgift 3: Angular SSR/hydration readiness (0 buggar)
+
+Projektet anvander inte SSR (ingen `@angular/platform-server` eller `provideServerRendering`). Direkt `window.`/`document.`/`localStorage`-anrop finns i manga komponenter men ar inte buggar i nuvarande konfiguration. Noterat for framtida SSR-migrering.
+
+### Totalt session #282 Worker B: 5 buggar hittade och fixade
+
+---
+
 ## 2026-03-23 Session #282 Worker A — PHP mail/notification + cron + cache headers (6 buggar)
 
 ### Uppgift 1: PHP mail/notification edge cases (4 buggar)

@@ -247,7 +247,9 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   onMenuChange() {
-    localStorage.setItem('selectedMenu', this.selectedMenu);
+    try {
+      localStorage.setItem('selectedMenu', this.selectedMenu);
+    } catch { /* QuotaExceededError i privat surfning — ignorera */ }
   }
 
   updateProfile() {

@@ -309,7 +309,9 @@ export class News implements OnInit, OnDestroy {
   }
 
   private saveReactions(): void {
-    localStorage.setItem('news_reactions', JSON.stringify(this.reactions));
+    try {
+      localStorage.setItem('news_reactions', JSON.stringify(this.reactions));
+    } catch { /* QuotaExceededError i privat surfning — ignorera */ }
   }
 
   toggleLike(id: number | null): void {

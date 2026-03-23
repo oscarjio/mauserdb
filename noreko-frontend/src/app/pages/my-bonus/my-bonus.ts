@@ -212,7 +212,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   saveAndLoad(): void {
     if (!this.operatorId.trim()) return;
-    localStorage.setItem('myOperatorId', this.operatorId.trim());
+    try { localStorage.setItem('myOperatorId', this.operatorId.trim()); } catch { /* QuotaExceededError */ }
     this.savedOperatorId = this.operatorId.trim();
     this.loadStats();
   }

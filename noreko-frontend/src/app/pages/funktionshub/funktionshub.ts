@@ -232,7 +232,9 @@ export class FunktionshubPage implements OnInit {
     } else {
       this.favorites.add(route);
     }
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify([...this.favorites]));
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify([...this.favorites]));
+    } catch { /* QuotaExceededError i privat surfning — ignorera */ }
   }
 
   isFav(route: string): boolean {

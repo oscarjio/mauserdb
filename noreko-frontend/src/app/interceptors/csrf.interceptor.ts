@@ -8,7 +8,8 @@ import { HttpInterceptorFn } from '@angular/common/http';
 export const csrfInterceptor: HttpInterceptorFn = (req, next) => {
   const mutatingMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
   if (mutatingMethods.includes(req.method.toUpperCase())) {
-    const token = sessionStorage.getItem('csrf_token');
+    let token: string | null = null;
+    try { token = sessionStorage.getItem('csrf_token'); } catch { /* storage otillgänglig */ }
     if (token) {
       req = req.clone({
         setHeaders: { 'X-CSRF-Token': token }
