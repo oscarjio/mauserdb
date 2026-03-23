@@ -1,3 +1,26 @@
+## 2026-03-23 Session #269 Worker B — Angular form dirty state + template type safety audit (0 buggar)
+
+### Uppgift 1: Angular form dirty state audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla Angular-komponenter under noreko-frontend/src/app/pages/ (exkl. *-live-*) for formulär utan canDeactivate guards:
+- **Formulärkomponenter med canDeactivate guards:** news-admin, shift-handover, skiftoverlamning, underhallslogg, produktionsmal, rebotling-admin, bonus-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, create-user, certifications, feature-flag-admin, leveransplanering — alla korrekta.
+- **Login/register:** Anvander ngModel men ar inloggnings-/registreringsformulär — navigering bort ar avsiktligt, ingen risk for dataforlust.
+- **historik, operator-compare:** Anvander ngModel enbart for periodvaljare och dropdown-filter (inga datainmatningsformulär) — ingen risk.
+- **maintenance-form:** Modal-komponent (Input/Output-monster), inte en routad sida — canDeactivate ar ej tillämpligt.
+- Alla riktiga datainmatningsformulär har korrekta pendingChangesGuard-kopplingar i app.routes.ts.
+
+### Uppgift 2: Angular template type safety audit
+**Resultat:** 0 buggar — rent
+
+Granskade ~100+ HTML-templates och inline-templates under noreko-frontend/src/app/pages/ (exkl. *-live-*):
+- **Null-guards:** Alla sidor med HTTP-data anvander `*ngIf` (t.ex. `*ngIf="report"`, `*ngIf="oeeData"`, `*ngIf="profil"`) innan nestade properties accessas. Konsekvent monster genom hela kodbasen.
+- **Optional chaining:** Sidor som operator-ranking anvander `topplistaData?.topplista?.[0]?.operator_namn` korrekt. Morgonrapport anvander `produktion?.totalt_ibc`, `effektivitet?.ibc_per_timme` etc.
+- **Fallback-varden:** Genomgaende bruk av `?? 0`, `?? ''`, `|| '—'` for nullable falt.
+- **Array-access:** Alla arrays initialiseras till `[]`, sa `.length`-anrop ar aldrig pa null. Verifierat over samtliga templates.
+- **Deep property access:** Sidor med `summary.trend.ibc_idag`, `dayDetail.summary.total_ibc` etc. skyddas av yttre `*ngIf`-guards pa foraldraobjektet.
+- Inga runtime null-reference-risker identifierade.
+
 ## 2026-03-23 Session #269 Worker A — PHP header injection/numeric validation/mail safety audit (0 buggar)
 
 ### Uppgift 1: PHP header injection audit
