@@ -1,3 +1,34 @@
+## 2026-03-23 Session #276 Worker B — Angular lazy loading + form validation + pipes/directives audit (0 buggar)
+
+### Uppgift 1: Angular lazy loading korrekthet
+Granskade alla 150+ lazy-loadade routes i `app.routes.ts`:
+- Samtliga `loadComponent`-sokvagar pekar pa existerande .ts-filer.
+- Alla exporterade klassnamn matchar vad routing-filen refererar (verifierade bland annat `SkiftoverlamningProtokollPage`, `DagligBriefingPage`, `GamificationPage`, `PrediktivtUnderhallPage`, `News`).
+- Inga `loadChildren` anvands — allt ar standalone `loadComponent`. Korrekt.
+- Inga cirkulara beroenden hittades — `app.routes.ts` importeras bara fran `app.config.ts`.
+- Guards (`authGuard`, `adminGuard`, `pendingChangesGuard`) importeras korrekt och alla 14 komponenter med `canDeactivate: [pendingChangesGuard]` implementerar `ComponentCanDeactivate`-interfacet.
+- **0 buggar hittade.**
+
+### Uppgift 2: Angular form validation edge cases
+Granskade alla formuler med `(ngSubmit)` (16+ formuler) och alla filer med `ngModel`/`FormGroup`/`FormControl` (103 filer):
+- Inga reaktiva forms (FormGroup/FormBuilder) anvands — allt ar template-driven med FormsModule.
+- Alla submit-handlers gor validering innan API-anrop (t.ex. `register.ts` kontrollerar username-langd, losenorstyrka, e-postformat; `create-user.ts` har `canSubmit`-getter; `kassationskvot-alarm` validerar troskelintervall; `maskinunderhall` validerar maskin_id och namn).
+- Felmeddelanden visas pa svenska overallt (t.ex. "Anvandarnamn maste vara minst 3 tecken!", "Losenorden matchar inte!", "Batch-nummer kravs").
+- `disabled`-state hanteras korrekt — knappar disablas med `[disabled]` under `isLoading`/`savingService`/etc.
+- Formuler med `novalidate` (menu profil-form, kassationskvot-alarm) har fullstandig validering i sina TypeScript-metoder.
+- **0 buggar hittade.**
+
+### Uppgift 3: Angular pipe och directive buggar
+Sokte i hela `noreko-frontend/src/app/` efter `@Pipe` och `@Directive` dekoratorer:
+- **Inga custom pipes hittade** (varken `.pipe.ts`-filer eller `@Pipe`-dekoratorer).
+- **Inga custom directives hittade** (varken `.directive.ts`-filer eller `@Directive`-dekoratorer).
+- Projektet anvander enbart inbyggda Angular pipes (t.ex. `date`, `number`, `async`) och inga custom transformeringar.
+- **0 buggar hittade.**
+
+### Totalt: 0 buggar hittade
+
+Bygget kompilerar utan fel (enbart forvantat CommonJS-varningar for canvg/html2canvas).
+
 ## 2026-03-23 Session #275 Worker B — Angular environment config + HTTP interceptor + routing guards (1 bugg)
 
 ### Uppgift 1 — Angular environment config audit
