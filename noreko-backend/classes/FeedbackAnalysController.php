@@ -214,7 +214,7 @@ class FeedbackAnalysController {
                  FROM operator_feedback f
                  LEFT JOIN operators o ON o.number = f.operator_id
                  WHERE f.datum >= :from
-                 GROUP BY f.operator_id
+                 GROUP BY f.operator_id, o.name
                  ORDER BY antal DESC
                  LIMIT 1"
             );
@@ -328,7 +328,7 @@ class FeedbackAnalysController {
                      WHERE f2.datum >= :from3
                  ) latest ON latest.operator_id = f.operator_id
                  WHERE f.datum >= :from
-                 GROUP BY f.operator_id
+                 GROUP BY f.operator_id, o.name, latest.kommentar
                  ORDER BY snitt_stamning DESC"
             );
             $stmtSent->execute([':from' => $fromDate, ':from2' => $fromDate, ':from3' => $fromDate]);

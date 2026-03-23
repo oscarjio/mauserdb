@@ -555,7 +555,7 @@ class KassationsanalysController {
                         LEFT JOIN operators o2 ON o2.number = i.op2
                         LEFT JOIN operators o3 ON o3.number = i.op3
                         WHERE i.skiftraknare IN ({$placeholders})
-                        GROUP BY i.skiftraknare, DATE(i.datum), i.op1, i.op2, i.op3
+                        GROUP BY i.skiftraknare, DATE(i.datum), i.op1, i.op2, i.op3, o1.name, o2.name, o3.name
                         ORDER BY i.skiftraknare
                     ");
                     $stmtOps->execute(array_values($skiftList));
@@ -894,7 +894,7 @@ class KassationsanalysController {
                         LEFT JOIN operators o2 ON o2.number = i.op2
                         LEFT JOIN operators o3 ON o3.number = i.op3
                         WHERE i.skiftraknare IN ({$ph})
-                        GROUP BY i.skiftraknare, i.op1, i.op2, i.op3
+                        GROUP BY i.skiftraknare, i.op1, i.op2, i.op3, o1.name, o2.name, o3.name
                     ");
                     $stmtOps->execute(array_values($skiftList));
                     foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $op) {

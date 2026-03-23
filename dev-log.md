@@ -19473,3 +19473,70 @@ Filer granskade (120+ PHP-filer):
 - `noreko-backend/classes/AdminController.php`
 - `noreko-backend/classes/MaintenanceController.php`
 - Alla 117 controllers i `noreko-backend/classes/*.php` (error_log + transaction audit)
+
+## 2026-03-23 Session #280 Worker A — PHP error_log konsistens + CSRF audit + GROUP BY korrekthet (2 buggar)
+
+### Uppgift 1: PHP error_log format konsistens (controllers A–M)
+Granskade alla 49 controllers i `noreko-backend/classes/` med namn A–M (AdminController.php t.o.m. MyStatsController.php) plus proxy-filer i `controllers/`.
+
+**error_log-format:**
+- Konsistent format `ControllerName::metodNamn: felmeddelande` i samtliga granskade controllers. Inga avvikelser.
+- Alla catch-block har error_log (kontrollerat med Python brace-counting-analys).
+- De 2 catch-block utan direkt error_log (`BonusAdminController.php:847`, `MaintenanceController.php:693`) ar inner-catch med `throw $txEx` / `throw $txE` — re-throw till outer catch som loggar. Korrekt monster.
+
+**Kansliga data:**
+- Inga losenord, tokens eller personnummer loggas i error_log. Kontrollerat med grep.
+
+**0 error_log-buggar hittade.**
+
+### Uppgift 2: PHP CSRF token validering
+Granskade `api.php` och alla mutating endpoints (POST/PUT/DELETE).
+
+**CSRF-implementation:**
+- Centraliserad validering i `api.php` rad 264-270 for alla POST/PUT/DELETE (utom login/register/status).
+- `AuthHelper::validateCsrfToken()` anvander `hash_equals()` (rad 207) — skyddar mot timing-attacker. Korrekt.
+- Token genereras med `bin2hex(random_bytes(32))` — 256 bitar entropi. Korrekt.
+- Token skickas via `X-CSRF-Token`-header. CORS tillater headern (rad 47). Korrekt.
+- Session stoppas med `session_write_close()` efter CSRF-kontroll (rad 274) — minskar session-lockningsproblem.
+- Inga controllers kan bypassa CSRF-valideringen via GET-parametrar eller liknande.
+
+**0 CSRF-buggar hittade.**
+
+### Uppgift 3: PHP SQL GROUP BY korrekthet (controllers A–M)
+Granskade alla GROUP BY-fragor i controllers A–M systematiskt.
+
+**Hittade buggar:**
+
+**BUGG 1 — KassationsanalysController.php (rad 558, 897): o1.name/o2.name/o3.name ej i GROUP BY**
+- `getDrilldown()` rad 558: `SELECT i.skiftraknare, DATE(i.datum) AS datum, o1.name AS op1_namn, o2.name AS op2_namn, o3.name AS op3_namn, i.op1, i.op2, i.op3 ... GROUP BY i.skiftraknare, DATE(i.datum), i.op1, i.op2, i.op3`
+  - `o1.name`, `o2.name`, `o3.name` var INTE i GROUP BY. I MySQL `ONLY_FULL_GROUP_BY`-lage far man fel; utan det laget ger det odefinierade resultat.
+- `getDetails()` rad 897: Samma monster — `SELECT i.skiftraknare, o1.name AS op1, o2.name AS op2, o3.name AS op3 ... GROUP BY i.skiftraknare, i.op1, i.op2, i.op3`
+- **Fix:** La till `o1.name, o2.name, o3.name` i GROUP BY-klausulerna (rad 558 och 897).
+
+**BUGG 2 — FeedbackAnalysController.php (rad 217, 331): o.name / latest.kommentar ej i GROUP BY**
+- `getFeedbackStats()` rad 217: `SELECT f.operator_id, COALESCE(o.name, ...) AS namn, COUNT(*) ... GROUP BY f.operator_id`
+  - `o.name` fran JOIN var INTE i GROUP BY.
+- `getOperatorSentiment()` rad 331: `SELECT f.operator_id, COALESCE(o.name, ...) AS operator_namn, COUNT(*), AVG(...), MAX(...), latest.kommentar ... GROUP BY f.operator_id`
+  - Bade `o.name` och `latest.kommentar` (fran LEFT JOIN subquery) var INTE i GROUP BY.
+- **Fix:** La till `o.name` resp. `o.name, latest.kommentar` i GROUP BY-klausulerna.
+
+**Korrekt GROUP BY (ej buggar):**
+- Alla subquery-monster (inner GROUP BY + outer SUM/AVG) ar korrekta.
+- Alla `GROUP BY op, o.name` dar bade kolumnerna finns i GROUP BY ar korrekta.
+- `HistorikController` `GROUP BY ar, manad` med `DATE_FORMAT(CONCAT(ar,...,manad,...))` ar funktionellt beroende — korrekt.
+- `MaskinOeeController` `GROUP BY d.maskin_id, mr.namn, oc.oee_mal_pct` — alla SELECT-kolumner i GROUP BY eller aggregerade. Korrekt.
+- `MaintenanceController` `GROUP BY e.id, e.namn, e.kategori` — korrekt.
+- Alla UNION ALL + outer GROUP BY-monster ar korrekta.
+
+### Totalt: 2 buggar fixade
+
+**Bugg 1:** GROUP BY saknar JOINade kolumner i KassationsanalysController (2 stallen).
+- `noreko-backend/classes/KassationsanalysController.php` rad 558, 897
+
+**Bugg 2:** GROUP BY saknar JOINade kolumner i FeedbackAnalysController (2 stallen).
+- `noreko-backend/classes/FeedbackAnalysController.php` rad 217, 331
+
+Filer granskade (49 PHP-controllers A–M + api.php + AuthHelper.php):
+- `noreko-backend/api.php`
+- `noreko-backend/classes/AuthHelper.php`
+- `noreko-backend/classes/AdminController.php` t.o.m. `MyStatsController.php` (alla med begynnelsebokstav A–M)
