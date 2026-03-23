@@ -1,3 +1,45 @@
+## 2026-03-23 Session #279 Worker B — Angular form state + environment config + component communication (0 buggar)
+
+### Uppgift: Buggjakt i Angular-frontend (3 granskningsomraden)
+
+#### 1. Angular form state management
+Granskade alla 19+ komponenter med formular (ngSubmit, ngModel, FormGroup):
+- **Login** (`login.ts`): Submit-knapp disablas med `[disabled]="loading"`, trims username, felhantering OK.
+- **Register** (`register.ts`): Validerar losenord, email, trimmar, aterställer form efter success, redirectar efter 2s.
+- **Create User** (`create-user.ts`): `canSubmit` getter kontrollerar alla falt, `isLoading` disablar, aterställer form efter success.
+- **Operators** (`operators.ts`): `createOperator()` validerar trim + nummer > 0, aterställer `addForm` efter success.
+- **Stoppage Log** (`stoppage-log.ts`): `submittingStoppage` guard mot dubbel-submit, aterställer form efter success.
+- **Maintenance Form** (`maintenance-form.component.ts`): `isSaving` disablar submit, validerar alla obligatoriska falt med trim.
+- **Service Intervals** (`service-intervals.component.ts`): `isSavingService` disablar, validerar maskinnamn trim + intervall > 0.
+- **Maskinunderhall** (`maskinunderhall.component.ts`): `savingService`/`savingMachine` guards, aterställer via `emptyServiceForm()`/`emptyMachineForm()`.
+- **Batch Sparning** (`batch-sparning.component.ts`): `savingBatch` guard, validerar trim + antal >= 1.
+- **News Admin** (`news-admin.ts`): `saving` disablar, `resetForm()` aterställer efter success.
+- **Users** (`users.ts`): `savingUser` guard, expanderad rad stängs efter success.
+
+Inga buggar hittades. Alla formular hanterar reset, dubbel-submit-skydd och validering korrekt.
+
+#### 2. Angular environment-specifik konfiguration
+- `environment.ts` och `environment.prod.ts` ar identiska forutom `production: true/false` — bada anvander `apiUrl: '/noreko-backend/api.php'`.
+- Alla 90+ services anvander `environment.apiUrl` — inga hardkodade API-URLer.
+- Enda hardkodade URLer ar externa logo-bilder i `header.ts`/`header.html` och `layout.html` (inte API-anrop).
+- Feature flags anvands konsekvent via `ff.canAccess()` i meny och routes.
+- Inga hardkodade portnummer eller hostnamn for API-anslutningar.
+
+Inga buggar hittades.
+
+#### 3. Angular component communication
+- **@Input()-dekoratorer**: Alla har default-varden (`header.ts`: `logoUrl = '...'`, `pdf-export-button`: `targetElementId = ''`, `maintenance-form`: `equipmentList: EquipmentItem[] = []`). `shared-skiftrapport` anvander `config!:` med definite assignment assertion men bindas alltid av wrapper-komponenter.
+- **@Output()-events**: Alla EventEmitters i maintenance-log-ekosystemet (addEntry, editEntry, refreshStats, entryDeleted, saved, closed, showSuccess, showError) anvands och lyssnats pa korrekt av parent `maintenance-log.ts`.
+- **ViewChild**: 20+ @ViewChild-anvandningar granskade. Alla anvander optional chaining (`?.`) for ngIf-dolda komponenter (t.ex. `this.statsComp?.loadEquipmentStats()`). Enda undantaget ar `formComp!` som alltid renderas (inte bakom *ngIf).
+- **Services med delad state**: AuthService anvander `BehaviorSubject` for `loggedIn$`, `user$`, `initialized$` — korrekt change notification. ToastService anvander `BehaviorSubject<Toast[]>`.
+- **Auth guard**: Vantar pa `initialized$` innan routing-beslut — ingen race condition.
+
+Inga buggar hittades.
+
+**Sammanfattning: 0 buggar hittades. Alla tre granskningsomraden ar val implementerade.**
+
+---
+
 ## 2026-03-23 Session #278 Worker A — PHP date/timezone + array bounds + SQL injection audit (1 bugg)
 
 ### Uppgift: Buggjakt i PHP-controllers (A-K, forsta halften)
