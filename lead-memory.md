@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #272)*
+*Senast uppdaterad: 2026-03-23 (session #273)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -77,23 +77,20 @@ Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection:
 Session #270: BUGGJAKT — 107 buggar (1 Worker A + 106 Worker B). session race condition: 1 session_write_close i api.php fixad. output buffering: rent. CORS preflight: rent. route resolvers: rent (inga resolvers, lazy loading). getElementById null-guards: 106 saknade null-checks i 61 filer fixade.
 Session #271: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_reporting/display_errors: rent. flock/file writes: rent (all I/O via PDO). PDO prepared statements: rent. Chart.js memory leaks: rent (alla destroy). HTTP retry logic: rent (timeout+catchError+retry).
 Session #272: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). try/catch+SQL korrekthet: rent (17 controllers, alla sendError korrekt, GROUP BY matchar, division skyddad). addEventListener/subscription leaks: rent (36 komponenter, alla takeUntil+destroy$, inga manuella listeners).
+Session #273: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). PHP controllers N-Z: 2 fel SQL-kolumnnamn i OperatorDashboardController (operator_id->user_id, orsak/stopporsak->JOIN), 1 saknad Content-Type header i NarvaroController (4 endpoints). Angular services: rent (97 services, alla URL:er/felhantering/cleanup korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #273):
-- [ ] PHP controllers N-Z — resterande 16 controllers
-- [ ] Angular services audit — URL:er, felhantering, memory leaks
+### Nasta (session #274):
 - [ ] Angular template null safety — osaker property access
 - [ ] PHP router/api.php audit — routes vs controller-metoder
 - [ ] Angular environment config — korrekta API-URL:er
+- [ ] PHP controllers A-M djupgranskning — boundary values, encoding, timezone
+- [ ] Angular component interaktion — @Input/@Output korrekthet
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #270 (klar)
-Worker A: 1 bugg — session race condition: session_write_close() tillagd i api.php + VpnController. output buffering: rent. CORS preflight: rent.
-Worker B: 106 buggar — document.getElementById null-guards: 106 saknade null-checks i 61 komponentfiler fixade.
 
 ### 2026-03-23 — Session #271 (klar)
 Worker A: 0 buggar — error_reporting/display_errors: rent. flock: rent. PDO prepared statements: rent.
@@ -102,3 +99,7 @@ Worker B: 0 buggar — Chart.js memory leaks: rent. HTTP retry logic: rent.
 ### 2026-03-23 — Session #272 (klar)
 Worker A: 0 buggar — try/catch: rent (alla catch har sendError). SQL korrekthet: rent (GROUP BY, JOINs, alias). Division-by-zero: rent (alla > 0 guards). Datum i SQL: rent (DATE BETWEEN konsistent).
 Worker B: 0 buggar — addEventListener: rent (inga manuella listeners). Subscription leaks: rent (alla takeUntil). ViewChild: rent (inga @ViewChild). HTTP URL:er: rent. Promises: rent (try/catch).
+
+### 2026-03-23 — Session #273 (klar)
+Worker A: 3 buggar — OperatorDashboardController: 2 felaktiga SQL-kolumner (operator_id->user_id, orsak/stopporsak->JOIN med stopporsak_kategorier). NarvaroController: saknad Content-Type header pa 4 endpoints.
+Worker B: 0 buggar — 97 Angular services granskade. URL:er, felhantering, memory leaks, typer, HTTP-metoder, hardkodade URL:er: allt rent.
