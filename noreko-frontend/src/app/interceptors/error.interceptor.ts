@@ -59,8 +59,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       } else if (error.status === 429) {
         message = 'För många förfrågningar. Försök igen om en stund.';
       } else if (error.status >= 500) {
-        message = 'Serverfel (' + error.status + '). Försök igen senare.';
+        // Prioritera serverns eget felmeddelande om det finns — annars generiskt
+        message = error.error?.error || ('Serverfel (' + error.status + '). Försök igen senare.');
       } else if (error.error?.error) {
+        // Övriga statuskoder (t.ex. 409, 422) med serverns felmeddelande
         message = error.error.error;
       }
 
