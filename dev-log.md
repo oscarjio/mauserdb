@@ -1,3 +1,40 @@
+## 2026-03-23 Session #271 Worker A — PHP error_reporting + flock + PDO prepared statement audit (0 buggar)
+
+### Uppgift 1: PHP error_reporting/display_errors
+**Resultat:** 0 buggar — inga PHP-filer exponerar felmeddelanden till klienten.
+
+**Granskat:**
+- Alla PHP-filer i noreko-backend/ (api.php, login.php, admin.php, update-weather.php, ~90+ controllers i classes/)
+- Inga forekomster av `display_errors`, `error_reporting()`, `var_dump`, `print_r`, `phpinfo`, `debug_print_backtrace`
+- Alla `$e->getMessage()` gar till `error_log()` — aldrig till `echo`/`json_encode`
+- api.php har top-level try/catch som fangar `\Throwable` och returnerar generiskt "Internt serverfel"
+- Alla controllers returnerar generiska felmeddelanden ("Databasfel", "Kunde inte hamta...") till klienten
+- `header_remove('X-Powered-By')` finns i api.php, login.php, admin.php, update-weather.php
+
+### Uppgift 2: PHP flock/file lock consistency
+**Resultat:** 0 buggar — inga filsystem-skrivoperationer finns i noreko-backend/.
+
+**Granskat:**
+- Inga `file_put_contents()` anrop
+- `fopen('php://output', 'w')` anvands i BonusAdminController och TidrapportController for CSV-export (HTTP output, inte fil)
+- `fwrite($socket, ...)` i VpnController — socket, inte fil
+- All datalagring gar genom PDO (databas), inga fil-writes att skydda med flock
+
+### Uppgift 3: PHP PDO prepared statement reuse
+**Resultat:** 0 buggar — inga SQL injection-risker eller saknad felkontroll.
+
+**Granskat:**
+- Alla `->query()` anrop anvander hardkodade SQL-strangar (inga anvandardata)
+- Dynamiska tabellnamn (LineSkiftrapportController, RuntimeController) valideras med whitelist (`in_array()`)
+- Dynamiska kolumnnamn/ORDER BY (KassationsanalysController, ForstaTimmeAnalysController) beraknas fran hardkodade varden
+- Alla `$_GET/$_POST` varden gar genom `prepare()`/`execute()` med parametrar
+- Inga `eval()`, `unserialize()`, `assert()`, `preg_replace` med /e-flagga
+- Duplicerade prepared statements finns i nagra controllers (t.ex. MorgonrapportController har samma COUNT-query 3x i separata metoder), men detta ar en minor performance-ineffektivitet, inte en bugg
+
+**Bygg:** Inga andringar gjorda, inget bygge behovs.
+
+---
+
 ## 2026-03-23 Session #271 Worker B — Chart.js memory leak + HTTP retry logic audit (0 buggar)
 
 ### Uppgift 1: Chart.js memory leaks
