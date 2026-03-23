@@ -19171,3 +19171,98 @@ Granskade api.php session-konfiguration, LoginController login/logout, och Profi
 Resultat: 0 buggar. Session-sakerheten ar valkonfigurerad.
 
 ### Totalt: 0 buggar hittade
+
+## 2026-03-23 Session #277 Worker B — Angular HTTP caching + change detection + service singleton audit (0 buggar)
+
+### Uppgift 1: Angular HTTP caching audit
+Granskade alla 96 services i `noreko-frontend/src/app/services/` och `noreko-frontend/src/app/rebotling/`:
+
+**GET-requests som borde cachas:**
+- Inga services anvander `shareReplay`, `publishReplay` eller nagon annan caching-operator. Alla GET-requests gor nya HTTP-anrop vid varje anrop.
+- Konfigurationsdata som `FeatureFlagService.loadFlags()` hamtas en gang vid APP_INITIALIZER och lagras i en lokal `Map` — effektiv manuell caching. Korrekt.
+- `AuthService` cachar auth-status i `sessionStorage` och pollar var 60:e sekund. Korrekt.
+- Manga sidor pollar med `setInterval` (30-60s) — dessa gor nya anrop medvetet for realtidsdata.
+- Ingen service cachar data som borde cachas (t.ex. statiska listor) med RxJS-operatorer, men i detta projekt ar det rimligt da all data ar produktionsrelaterad och andras ofta. Ingen bugg.
+
+**Requests som cachas felaktigt:**
+- Inga requests cachas felaktigt. Realtidsdata (live-sidor, produktionspuls, VD-dashboard) hamtas alltid farskt. Korrekt.
+
+**Cache-invalidering:**
+- `FavoriterService` har `add()`/`remove()`/`reorder()` POST-metoder men ingen explicit cache-invalidering — men ingen caching anvands heller, sa detta ar korrekt.
+- `StopporsakRegistreringService` har `registerStop()`/`endStop()` POST-metoder och anropande komponenter laddar om data manuellt efter mutation. Korrekt.
+- `AlertsService` pollar aktiva alerts var 60:e sekund och `acknowledgeAlert()` triggar ny hamtning fran anropande komponent. Korrekt.
+
+**HttpClient headers:**
+- Inga `Cache-Control` eller `Pragma` headers satts manuellt i nagon service — webbservern hanterar caching-headers. Korrekt for detta projekt.
+
+**Duplicerade HTTP-anrop:**
+- Alla services ar `providedIn: 'root'` (singletons) och komponenter anvander `takeUntil(this.destroy$)` for att avbryta pagaende requests vid navigering. Inga duplicerade anrop vid navigering.
+
+**0 buggar hittade.**
+
+### Uppgift 2: Angular change detection audit
+Granskade alla 42 komponentfiler i `noreko-frontend/src/app/pages/` och `noreko-frontend/src/app/rebotling/` (exkl. live-sidor):
+
+**OnPush change detection:**
+- Ingen komponent anvander `ChangeDetectionStrategy.OnPush`. Alla anvander default change detection.
+- Default ar rimligt har da alla komponenter anvander manuella subscriptions med lokala properties (inte observables), och manga har polling med setInterval som andrar data frekvent. OnPush skulle kreva omfattande refaktorering utan tydlig vinst. Inte en bugg.
+
+**ChangeDetectorRef.detectChanges():**
+- Ingen komponent anvander `ChangeDetectorRef.detectChanges()`. Korrekt.
+
+**Async pipe vs manuell subscribe:**
+- Projektet anvander uteslutande manuell `.subscribe()` med `takeUntil(this.destroy$)` for lifecycle management. Inga async pipes anvands i templates.
+- Alla 41 komponenter med subscriptions har korrekt `ngOnDestroy()` med `destroy$.next()` + `destroy$.complete()`. Korrekt.
+
+**Template-funktionsanrop:**
+- `BonusDashboardPage` cachar `cachedActiveRanking` for att undvika `getActiveRanking()` i varje CD-cykel. Korrekt.
+- `MyBonusPage` cachar tunga berakningar i `cachedTrendDirection`, `cachedStatusBadge`, `cachedShiftPrognosis`, etc. via `rebuildStatsCache()`. Korrekt.
+- Template-funktioner som `getOeeColor()`, `formatDatum()`, `trackByIndex()` ar alla latta (O(1)) och sakra att anropa per CD-cykel. Korrekt.
+- `news.html` anropar `getCategoryCountFor()` (filter pa liten array) och `timeAgo()` (enkel berakning) — acceptabelt for en dashboard-sida.
+
+***ngFor trackBy:**
+- Samtliga 150+ `*ngFor`-loopar har `trackBy`-funktioner, utom en enda statisk inline-array i `skiftrapport-sammanstallning.html` (rad 243: `*ngFor="let entry of [...]"`) — detta ar en fast array med 3 element som aldrig andras, sa trackBy ar onodigt. Korrekt.
+
+**setInterval/setTimeout cleanup:**
+- Alla 34 komponenter med `setInterval`/`setTimeout` rensar korrekt i `ngOnDestroy()` med `clearInterval()`/`clearTimeout()`. Korrekt.
+
+**0 buggar hittade.**
+
+### Uppgift 3: Angular service singleton audit
+Granskade alla 96 services:
+
+**providedIn: 'root':**
+- Samtliga 96 services anvander `@Injectable({ providedIn: 'root' })`. Korrekt — alla ar singletons.
+- Inga services anvander `@Injectable()` utan providedIn. Korrekt.
+
+**Services med state (BehaviorSubject):**
+- `AuthService`: `loggedIn$`, `user$`, `initialized$` — alla `BehaviorSubject`, korrekt singleton med `providedIn: 'root'`. Polling hanteras korrekt med `Subscription`.
+- `AlertsService`: `activeAlerts$`, `activeCount$` — alla `BehaviorSubject`, korrekt singleton. `destroy$` Subject anvands for bade polling-kontroll och lifecycle — fungerar korrekt da `stopPolling()` emittar pa `destroy$` utan att completera, och `startPolling()` skapar ny subscription som lyssnar pa framtida emissions.
+- `ToastService`: `toasts$` BehaviorSubject med korrekt `ngOnDestroy()` som rensar timers och completerar subject. Korrekt.
+- `FeatureFlagService`: Lokal `Map<string, string>` + `loaded` boolean. Korrekt singleton.
+
+**Services utan providers i komponenter:**
+- Ingen komponent har `providers: [...]` i sin `@Component`-dekorator — inga lokala instanser skapas. Korrekt.
+
+**Circular dependencies:**
+- `FeatureFlagService` importerar `AuthService` for rollkontroll. Ingen cirkular beroende — `AuthService` importerar inte `FeatureFlagService`.
+- `ErrorInterceptor` injektar `ToastService`, `AuthService` och `Router`. Ingen cirkular beroende.
+- Inga services importerar andra services som importerar tillbaka. Korrekt.
+
+**Oanvanda services:**
+- Alla services importeras och anvands av minst en komponent eller interceptor. Inga oanvanda services hittade.
+- `maintenance-log`-komponenter anvander `HttpClient` direkt istallet for dedikerade services — detta ar en arkitekturbeslut, inte en bugg.
+
+**0 buggar hittade.**
+
+### Totalt: 0 buggar hittade
+
+Filer granskade (96 services + 42 komponenter + 2 interceptors + app.config.ts):
+- `noreko-frontend/src/app/services/*.service.ts` (92 filer)
+- `noreko-frontend/src/app/rebotling/*.service.ts` (4 filer)
+- `noreko-frontend/src/app/pages/**/*.component.ts` (38 filer)
+- `noreko-frontend/src/app/rebotling/**/*.component.ts` (4 filer)
+- `noreko-frontend/src/app/interceptors/csrf.interceptor.ts`
+- `noreko-frontend/src/app/interceptors/error.interceptor.ts`
+- `noreko-frontend/src/app/app.config.ts`
+- Alla tillhorande `.html`-mallfiler for ngFor/trackBy och template-funktionsanrop
