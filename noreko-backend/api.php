@@ -45,6 +45,7 @@ if ($originAllowed) {
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
+    header('Vary: Origin');
 }
 
 // Hantera preflight OPTIONS-request

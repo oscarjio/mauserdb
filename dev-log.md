@@ -1,3 +1,33 @@
+## 2026-03-23 Session #282 Worker A — PHP mail/notification + cron + cache headers (6 buggar)
+
+### Uppgift 1: PHP mail/notification edge cases (4 buggar)
+
+1. **`ShiftHandoverController.php:514`** — `@mail()` undertryckte fel OCH ignorerade returvardet. Inga loggar vid misslyckad e-post.
+   **Fix:** Lagt till returvardeskontroll och error_log vid misslyckande.
+
+2. **`RebotlingAnalyticsController.php:4573-4574`** — XSS i HTML-email: operator-/produktnamn fran DB infogades i HTML utan `htmlspecialchars()`. En ondskefull produktnamn (`<script>...`) kunde injiceras i e-postinnehall.
+   **Fix:** Lagt till `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')` runt `implode()`.
+
+3. **`ShiftHandoverController.php:510-511`** — Mail-headers anvande `\n` istallet for `\r\n` (RFC 2822 kraver CRLF).
+   **Fix:** Andrat till `\r\n` separator i headers-strang.
+
+4. **`RebotlingAnalyticsController.php:4522`** — Subject i `sendAutoShiftReport()` inneholl UTF-8-tecken (em-dash) utan RFC 2047-kodning. Kunde visa mojibake i e-postklienter. `sendWeeklySummaryEmail()` gjorde ratt med base64-encoding.
+   **Fix:** Lagt till `=?UTF-8?B?...?=` encoding pa subject-raden.
+
+### Uppgift 2: PHP cron/scheduled tasks (1 bugg)
+
+5. **`update-weather.php`** — Inget lasskydd (mutex/flock). Om cron-jobbet tar lang tid eller triggras manuellt samtidigt kan tva instanser kora parallellt och infoga dubblett-vader-data.
+   **Fix:** Lagt till `flock(LOCK_EX | LOCK_NB)` i borjan av scriptet och `flock(LOCK_UN)` + `fclose()` i slutet.
+
+### Uppgift 3: PHP response caching headers (1 bugg)
+
+6. **`api.php:43-48`** — Saknad `Vary: Origin` header nar `Access-Control-Allow-Origin` varierar beroende pa requestens `Origin`. En delad cache (CDN/proxy) kunde servera ett svar med Origin A:s CORS-header till Origin B, vilket bryter CORS-skyddet.
+   **Fix:** Lagt till `header('Vary: Origin')` inuti `if ($originAllowed)`.
+
+### Totalt session #282 Worker A: 6 buggar hittade och fixade
+
+---
+
 ## 2026-03-23 Session #281 Worker B — Angular HTTP cancellation + date/time rendering + form validation (6 buggar)
 
 ### Uppgift 1: Angular HTTP request cancellation

@@ -46,6 +46,17 @@ if ($isHttpsWeather) {
 }
 header_remove('X-Powered-By');
 
+// Lås-fil för att förhindra att flera cron-instanser kör samtidigt
+$lockFile = sys_get_temp_dir() . '/noreko-update-weather.lock';
+$lockFp = fopen($lockFile, 'c');
+if (!$lockFp || !flock($lockFp, LOCK_EX | LOCK_NB)) {
+    // En annan instans kör redan — avsluta tyst
+    if ($lockFp) { fclose($lockFp); }
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'error' => 'En annan instans kör redan'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // API URL för väderdata
 $apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=57.96&longitude=12.12&current=temperature_2m&temperature_unit=celsius&timezone=Europe/Stockholm';
 
@@ -107,3 +118,8 @@ try {
     error_log('[update-weather] Fel: ' . get_class($e) . ': ' . $e->getMessage());
 }
 
+// Frigör lås-fil
+if (isset($lockFp) && $lockFp) {
+    flock($lockFp, LOCK_UN);
+    fclose($lockFp);
+}

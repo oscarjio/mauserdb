@@ -507,11 +507,12 @@ class ShiftHandoverController {
 ";
         $message .= "Tid: " . date('Y-m-d H:i:s') . "
 ";
-        $headers  = "From: noreply@noreko.se
-Content-Type: text/plain; charset=UTF-8";
+        $headers  = "From: noreply@noreko.se\r\nContent-Type: text/plain; charset=UTF-8";
 
         foreach ($adminEmails as $email) {
-            @mail($email, $subject, $message, $headers);
+            if (!@mail($email, $subject, $message, $headers)) {
+                error_log("ShiftHandoverController::sendUrgentNotification: Kunde inte skicka e-post till mottagare");
+            }
         }
     }
 

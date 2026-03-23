@@ -4519,7 +4519,7 @@ class RebotlingAnalyticsController {
             );
 
             // Skicka email
-            $subject = "Skiftrapport — $date — $shiftName";
+            $subject = "=?UTF-8?B?" . base64_encode("Skiftrapport — $date — $shiftName") . "?=";
             $headers  = "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
             $headers .= "From: Rebotling System <noreply@noreko.se>\r\n";
@@ -4570,8 +4570,8 @@ class RebotlingAnalyticsController {
         $driftM = $drifttid % 60;
         $rastH  = floor($rasttime / 60);
         $rastM  = $rasttime % 60;
-        $opList      = !empty($operators) ? implode(', ', $operators) : '<em>Ej angivet</em>';
-        $productList = !empty($products) ? implode(', ', $products) : '<em>Ej angivet</em>';
+        $opList      = !empty($operators) ? htmlspecialchars(implode(', ', $operators), ENT_QUOTES, 'UTF-8') : '<em>Ej angivet</em>';
+        $productList = !empty($products) ? htmlspecialchars(implode(', ', $products), ENT_QUOTES, 'UTF-8') : '<em>Ej angivet</em>';
 
         $kvalitetColor = $kvalitet >= 95 ? '#38a169' : ($kvalitet >= 85 ? '#d69e2e' : '#e53e3e');
 
