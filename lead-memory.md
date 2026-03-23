@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-22 (session #260)*
+*Senast uppdaterad: 2026-03-23 (session #261)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -65,31 +65,36 @@ Session #257: BUGGJAKT — 7 buggar (7 Worker A + 0 Worker B). foreach by-refere
 Session #258: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). type juggling: 2 != till !== fixade. SQL LIMIT/OFFSET injection: 1 fixad. error_reporting/templates null-check/guards/URL consistency: alla rent.
 Session #259: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). file_get_contents/curl: rent. session handling: rent. isset/null: rent. change detection: rent. lazy loading routes: rent. reactive forms: rent.
 Session #260: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). date/time: rent. JSON: rent. integer overflow: rent. HTTP timeout: 1 saknad catchError fixad (operator-jamforelse). setInterval: rent.
+Session #261: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. SQL transactions: rent. CORS headers: rent. router params: rent. template expressions: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Klart (session #260):
-- [x] PHP date/time timezone handling audit — rent
-- [x] PHP JSON encode/decode error handling — rent
-- [x] PHP integer overflow/boundary audit — rent
-- [x] Angular HTTP timeout consistency audit — 1 bugg
-- [x] Angular memory leak audit (setInterval) — rent
+### Klart (session #261):
+- [x] PHP error_log format consistency audit — rent
+- [x] PHP SQL transaction audit — rent
+- [x] PHP CORS/security headers consistency audit — rent
+- [x] Angular router parameter validation audit — rent
+- [x] Angular template expression complexity audit — rent
 
-### Nasta (session #261+):
-- [ ] PHP error_log format consistency audit
-- [ ] PHP SQL transaction audit
-- [ ] Angular router parameter validation audit
-- [ ] Angular template expression complexity audit
-- [ ] PHP CORS/security headers consistency audit
+### Nasta (session #262+):
+- [ ] PHP array key existence audit
+- [ ] PHP file upload validation audit
+- [ ] Angular HTTP retry/error recovery audit
+- [ ] Angular form validation consistency audit
+- [ ] PHP regex pattern safety audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
 ### 2026-03-22 — Session #259 (klar)
-Worker A: 0 buggar — file_get_contents/curl: rent (update-weather.php redan korrekt). session handling: rent (regenerate_id+timeout+CSRF). isset/null: rent (alla accesser har ??/isset).
-Worker B: 0 buggar — change detection: rent (inga OnPush-komponenter). lazy loading routes: rent (150+ routes, alla korrekta). reactive forms: rent (template-driven forms).
+Worker A: 0 buggar — file_get_contents/curl: rent. session handling: rent. isset/null: rent.
+Worker B: 0 buggar — change detection: rent. lazy loading routes: rent. reactive forms: rent.
 
 ### 2026-03-22 — Session #260 (klar)
-Worker A: 0 buggar — date/time timezone: rent (api.php satter Europe/Stockholm globalt). JSON encode/decode: rent (alla har null-check/??). integer overflow: rent (bounds-check, max(), NULLIF()).
-Worker B: 1 bugg — HTTP timeout: 1 saknad catchError i operator-jamforelse.ts loadOperatorsList(). setInterval: rent (alla 68 filer med setInterval clearar korrekt i OnDestroy).
+Worker A: 0 buggar — date/time timezone: rent. JSON encode/decode: rent. integer overflow: rent.
+Worker B: 1 bugg — HTTP timeout: 1 saknad catchError fixad. setInterval: rent.
+
+### 2026-03-23 — Session #261 (klar)
+Worker A: 0 buggar — error_log format: rent (konsekvent ControllerName::methodName). SQL transactions: rent (alla multi-writes wrappade). CORS headers: rent (konsekventa over alla endpoints).
+Worker B: 0 buggar — router params: rent (alla 5 filer med ActivatedRoute har korrekt validering). template expressions: rent (136 templates, 16 funktionsanrop i ngFor — alla triviala).

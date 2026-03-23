@@ -3,23 +3,23 @@
 *Lead-agenten fyller pa. Workers plockar uppgifter harifran.*
 *Hall 5-10 oppna items. Markera med [x] nar klart.*
 
-## PRIORITET: BUGGJAKT (2026-03-22)
+## PRIORITET: BUGGJAKT (2026-03-23)
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #260):
-- [x] **PHP date/time timezone handling audit** — Worker A — rent
-- [x] **PHP JSON encode/decode error handling** — Worker A — rent
-- [x] **PHP integer overflow/boundary audit** — Worker A — rent
-- [x] **Angular HTTP timeout consistency audit** — Worker B — 1 bugg fixad
-- [x] **Angular memory leak audit (setInterval)** — Worker B — rent
+### Klart (session #261):
+- [x] **PHP error_log format consistency audit** — Worker A — rent
+- [x] **PHP SQL transaction audit** — Worker A — rent
+- [x] **PHP CORS/security headers consistency audit** — Worker A — rent
+- [x] **Angular router parameter validation audit** — Worker B — rent
+- [x] **Angular template expression complexity audit** — Worker B — rent
 
-### Nasta buggjakt-items (session #261+):
-- [ ] **PHP error_log format consistency audit** — inkonsistenta loggformat, saknade kontextvariabler
-- [ ] **PHP SQL transaction audit** — saknade BEGIN/COMMIT/ROLLBACK i multi-query-operationer
-- [ ] **Angular router parameter validation audit** — route params som anvands utan validering/parseInt
-- [ ] **Angular template expression complexity audit** — tunga berakningar i templates utan pipe/memo
-- [ ] **PHP CORS/security headers consistency audit** — inkonsistenta headers mellan endpoints
+### Nasta buggjakt-items (session #262+):
+- [ ] **PHP array key existence audit** — array_key_exists vs isset, saknade nyckelkontroller
+- [ ] **PHP file upload validation audit** — saknade MIME/storlek/extension-kontroller
+- [ ] **Angular HTTP retry/error recovery audit** — saknad retry-logik, felhantering i services
+- [ ] **Angular form validation consistency audit** — saknade/inkonsistenta validatorer i formulr
+- [ ] **PHP regex pattern safety audit** — ReDoS-risk, saknad input-sanering i preg_match
 
 ## Parkerade features (ta inte dessa nu)
 
