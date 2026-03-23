@@ -1,3 +1,58 @@
+## 2026-03-23 Session #267 Worker A — file I/O safety/session fixation/CORS consistency audit
+
+### Uppgift 1: PHP file I/O safety audit
+**Resultat:** 2 buggar — fixade
+
+Granskade samtliga PHP-filer under noreko-backend/ (exkl. plcbackend/) med sökning efter: fopen, fwrite, file_put_contents, flock, tempnam, tmpfile, fclose.
+
+Hittade 3 platser med fopen():
+- `TidrapportController.php:564` — `fopen('php://output', 'w')` för CSV-export utan felkontroll.
+- `BonusAdminController.php:1831` — `fopen('php://output', 'w')` för CSV-export utan felkontroll.
+- `VpnController.php:103,166` — `@fwrite()` med korrekt `=== false`-kontroll och `@fclose()`. Redan säkert.
+
+Inga file_put_contents(), tempnam(), tmpfile() eller flock()-anrop hittades utanför plcbackend/.
+
+**2 buggar fixade:**
+
+| Fil | Åtgärd |
+|-----|--------|
+| noreko-backend/classes/TidrapportController.php | Lade till `if ($output === false)` felkontroll efter `fopen('php://output', 'w')` med error_log + HTTP 500-svar. |
+| noreko-backend/classes/BonusAdminController.php | Lade till `if ($output === false)` felkontroll efter `fopen('php://output', 'w')` med error_log + HTTP 500-svar. |
+
+### Uppgift 2: PHP session fixation/regeneration audit
+**Resultat:** 0 buggar — rent
+
+Granskade all session-hantering i noreko-backend/:
+- **LoginController.php** — `session_start()` (rad 101) följt av `session_regenerate_id(true)` (rad 105) efter lyckad autentisering. Korrekt.
+- **api.php** — `session_set_cookie_params()` (rad 80-87) med `httponly: true`, `samesite: 'Lax'`, `secure: $isHttps`. Korrekt.
+- **api.php** — `ini_set('session.use_strict_mode', '1')` + `use_only_cookies` + `use_trans_sid=0` (rad 89-91). Skyddar mot session fixation via URL. Korrekt.
+- **ProfileController.php:182** — `session_regenerate_id(true)` vid lösenordsändring. Korrekt.
+- **LoginController.php:154-184** — Logout: `session_unset()` + `session_destroy()` + cookie-radering. Korrekt.
+- Samtliga controllers (100+) anropar `session_start()` eller `session_start(['read_and_close' => true])` utan att exponera session-ID:n.
+
+### Uppgift 3: PHP CORS/preflight consistency audit
+**Resultat:** 2 buggar — fixade
+
+Granskade CORS-hantering i alla entry points (api.php, login.php, admin.php, update-weather.php):
+
+- **api.php** — `Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token`. OPTIONS returnerar 204 + exit. Korrekt.
+- **login.php** — Saknade `X-CSRF-Token` i Allow-Headers (hade bara `Content-Type, Authorization`). Inkonsekvent med api.php.
+- **admin.php** — Samma brist: saknade `X-CSRF-Token` i Allow-Headers.
+- **update-weather.php** — Ingen CORS-hantering (cron-script, anropas inte från browser). Korrekt.
+
+Alla tre entry points (api.php, login.php, admin.php) har identisk OPTIONS-hantering: `http_response_code(204); exit;` — korrekt, preflight går inte vidare till routing.
+
+**2 buggar fixade:**
+
+| Fil | Åtgärd |
+|-----|--------|
+| noreko-backend/login.php | Lade till `X-CSRF-Token` i `Access-Control-Allow-Headers` för konsistens med api.php. |
+| noreko-backend/admin.php | Lade till `X-CSRF-Token` i `Access-Control-Allow-Headers` för konsistens med api.php. |
+
+Build: Inga frontend-filer ändrades — ingen build behövdes.
+
+---
+
 ## 2026-03-23 Session #266 Worker B — HTTP response type/form reset/Observable error audit
 
 ### Uppgift 1: Angular HTTP response type audit
