@@ -1,3 +1,39 @@
+## 2026-03-23 Session #267 Worker B — route param validation/environment config/ChunkLoadError audit
+
+### Uppgift 1: Angular route parameter validation audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla 5 komponentfiler som använder route-parametrar:
+- `pages/stoppage-log/stoppage-log.ts` — Använder `route.queryParams.subscribe()` för QR-kodförfyllning. Parametrar används som strängar (maskin, linje). Validering med `validLines.includes()` och `substring(0, 100)` på plats. Inget numeriskt ID att konvertera. OK.
+- `pages/tvattlinje-statistik/tvattlinje-statistik.ts` — Använder `route.snapshot.queryParams` för vy/år/månad/datum. Alla numeriska värden parsas med `parseInt()` och valideras med `isNaN()` + intervallkontroll (year 2000-2100, month 0-11). OK.
+- `pages/operator-detail/operator-detail.ts` — Använder `route.snapshot.paramMap.get('id')`. Hanterar null korrekt (`!id || isNaN(+id)`) med felmeddelande. Konverterar med `+id`. OK.
+- `pages/login/login.ts` — Använder `route.snapshot.queryParams['returnUrl']`. Validerar med open-redirect-skydd (`startsWith('/') && !startsWith('//')`). Fallback till `'/'`. OK.
+- `pages/rebotling/rebotling-statistik.ts` — Inga route-parametrar, trots import av ActivatedRoute. OK.
+
+### Uppgift 2: Angular environment config audit
+**Resultat:** 0 buggar — rent
+
+Granskade environment-filer:
+- `environments/environment.ts` (dev): `{ production: false, apiUrl: '/noreko-backend/api.php' }`
+- `environments/environment.prod.ts` (prod): `{ production: true, apiUrl: '/noreko-backend/api.php' }`
+
+Alla nycklar (`production`, `apiUrl`) finns i båda filer. apiUrl använder relativ path, vilket är korrekt. Sökte igenom alla 136 filer som refererar `environment.` — samtliga services och komponenter importerar `environment` och använder `environment.apiUrl`. Inga hårdkodade `http://` eller `https://` URLs hittades i services eller pages. Den enda `127.0.0.1`-referensen är informationstext i `vpn-admin.html` ("Management Interface: 127.0.0.1:7505") och inte en funktionell URL.
+
+### Uppgift 3: Angular lazy loading chunk error handling audit
+**Resultat:** 1 bugg — fixad
+
+Appen använder `loadComponent` för 100+ lazy-loaded routes i `app.routes.ts`. Ingen `ErrorHandler`, `ChunkLoadError`-hantering eller `router.events`-felsubskription existerade. Vid deploy medan en användare har gammal version cachad resulterar detta i okontrollerade `ChunkLoadError`-undantag utan recovery.
+
+**Bugg fixad:**
+
+| Fil | Åtgärd |
+|-----|--------|
+| app/app.config.ts | Lade till `GlobalErrorHandler` som fångar `ChunkLoadError` (regex: `/Loading chunk [\d]+ failed\|ChunkLoadError/`). Vid chunk-fel: sparar timestamp i sessionStorage och kör `window.location.reload()`. Loop-skydd: laddar inte om om senaste reload var < 10 sekunder sedan. Registrerad via `{ provide: ErrorHandler, useClass: GlobalErrorHandler }`. |
+
+Build: `npx ng build` — godkänd, inga kompileringsfel.
+
+---
+
 ## 2026-03-23 Session #267 Worker A — file I/O safety/session fixation/CORS consistency audit
 
 ### Uppgift 1: PHP file I/O safety audit
