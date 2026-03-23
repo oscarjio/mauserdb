@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #269):
-- [ ] **PHP header injection** — Worker A — saknad validering av user input i header()-anrop
-- [ ] **PHP numeric validation** — Worker A — is_numeric vs ctype_digit vs intval vid ID-parametrar
-- [ ] **PHP mail/SMTP safety** — Worker A — header injection i mail()-anrop, saknad sanitering
-- [ ] **Angular form dirty state** — Worker B — canDeactivate guards, osparade andringar
-- [ ] **Angular template type safety** — Worker B — null-check, optional chaining, runtime errors
+### Pagaende (session #270):
+- [ ] **PHP output buffering** — Worker A — ob_start/ob_end konsistens, saknade ob_clean vid errors
+- [ ] **PHP session race conditions** — Worker A — session_write_close vid langa requests
+- [ ] **PHP CORS preflight** — Worker A — OPTIONS-requests hanteras korrekt i alla endpoints
+- [ ] **Angular route resolver errors** — Worker B — felhantering i resolvers, loading states
+- [ ] **Angular SSR compatibility** — Worker B — window/document-access utan isPlatformBrowser
 
-### Nasta buggjakt-items (session #270+):
-- [ ] **PHP output buffering** — ob_start/ob_end konsistens, saknade ob_clean vid errors
-- [ ] **Angular route resolver errors** — felhantering i resolvers, loading states
-- [ ] **PHP session race conditions** — session_write_close vid langa requests
-- [ ] **Angular SSR compatibility** — window/document-access utan isPlatformBrowser
-- [ ] **PHP CORS preflight** — OPTIONS-requests hanteras korrekt i alla endpoints
+### Nasta buggjakt-items (session #271+):
+- [ ] **PHP error_reporting/display_errors** — saknad error_reporting(0) i produktion, display_errors on
+- [ ] **Angular memory leaks i charts** — Chart.js-instanser som inte destroyas vid komponentbyte
+- [ ] **PHP file lock consistency** — flock() vid concurrent file writes, saknade LOCK_EX
+- [ ] **Angular HTTP retry logic** — retryWhen/retry felkonfiguration, exponential backoff
+- [ ] **PHP PDO prepared statement reuse** — samma query kopierad istallet for parametriserad
 
 ## Parkerade features (ta inte dessa nu)
 

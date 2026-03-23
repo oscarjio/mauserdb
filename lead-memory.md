@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #269)*
+*Senast uppdaterad: 2026-03-23 (session #270)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -73,29 +73,30 @@ Session #265: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). arithmetic overfl
 Session #266: BUGGJAKT — 22 buggar (15 Worker A + 7 Worker B). error handling: 15 sendError() utan 500 fixade. SQL transaction: rent. password/token: rent. HTTP response type: rent. form reset: rent. Observable catchError: 7 komponenter fixade.
 Session #267: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade. route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
 Session #268: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). timezone: rent. array key validation: rent. PDO error mode: rent. HTTP interceptor: rent (komplett 401/403/500/0 + retry). memory profiling: rent (498/499 trackBy, alla subscriptions+timers korrekt).
-Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection: rent (CRLF-strippning + allowlist). numeric validation: rent (alla ID (int) cast). mail/SMTP: rent (FILTER_VALIDATE_EMAIL + hardkodad From). form dirty state: rent (14 formular med canDeactivate). template type safety: rent (ngIf-guards + optional chaining).
+Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection: rent. numeric validation: rent. mail/SMTP: rent. form dirty state: rent. template type safety: rent.
+Session #270: BUGGJAKT — 107 buggar (1 Worker A + 106 Worker B). session race condition: 1 session_write_close i api.php fixad. output buffering: rent. CORS preflight: rent. route resolvers: rent (inga resolvers, lazy loading). getElementById null-guards: 106 saknade null-checks i 61 filer fixade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #270):
-- [ ] PHP output buffering — ob_start/ob_end konsistens, saknade ob_clean vid errors
-- [ ] Angular route resolver errors — felhantering i resolvers, loading states
-- [ ] PHP session race conditions — session_write_close vid langa requests
-- [ ] Angular SSR compatibility — window/document-access utan isPlatformBrowser
-- [ ] PHP CORS preflight — OPTIONS-requests hanteras korrekt i alla endpoints
+### Nasta (session #271):
+- [ ] PHP error_reporting/display_errors — saknad error_reporting(0) i produktion
+- [ ] Angular memory leaks i charts — Chart.js-instanser som inte destroyas
+- [ ] PHP file lock consistency — flock() vid concurrent file writes
+- [ ] Angular HTTP retry logic — retryWhen/retry felkonfiguration
+- [ ] PHP PDO prepared statement reuse — duplicerade queries
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #267 (klar)
-Worker A: 4 buggar — file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade.
-Worker B: 1 bugg — route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
 
 ### 2026-03-23 — Session #268 (klar)
 Worker A: 0 buggar — timezone: rent. array key validation: rent. PDO error mode: rent.
 Worker B: 0 buggar — HTTP interceptor: rent. memory profiling: rent.
 
 ### 2026-03-23 — Session #269 (klar)
-Worker A: 0 buggar — header injection: rent (CRLF-strippning + allowlist). numeric validation: rent (alla ID (int) cast). mail/SMTP: rent (FILTER_VALIDATE_EMAIL + hardkodad From).
-Worker B: 0 buggar — form dirty state: rent (14 formular med canDeactivate). template type safety: rent (ngIf-guards + optional chaining).
+Worker A: 0 buggar — header injection: rent. numeric validation: rent. mail/SMTP: rent.
+Worker B: 0 buggar — form dirty state: rent. template type safety: rent.
+
+### 2026-03-23 — Session #270 (klar)
+Worker A: 1 bugg — session race condition: session_write_close() tillagd i api.php + VpnController. output buffering: rent. CORS preflight: rent.
+Worker B: 106 buggar — document.getElementById null-guards: 106 saknade null-checks i 61 komponentfiler fixade. route resolvers: rent (inga resolvers). SSR: ej aktivt.
