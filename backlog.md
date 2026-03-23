@@ -7,20 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #267):
-- [x] **PHP file I/O safety** — Worker A — 2 buggar fixade (fopen felkontroll)
-- [x] **PHP session fixation/regeneration** — Worker A — rent
-- [x] **PHP CORS/preflight consistency** — Worker A — 2 buggar fixade (X-CSRF-Token headers)
-- [x] **Angular route parameter validation** — Worker B — rent
-- [x] **Angular environment config audit** — Worker B — rent
-- [x] **Angular lazy loading chunk error handling** — Worker B — 1 bugg fixad (GlobalErrorHandler)
+### Pagaende (session #268):
+- [ ] **PHP timezone consistency** — Worker A — date_default_timezone_set(), DateTime vs strtotime
+- [ ] **PHP array key validation** — Worker A — saknade isset/array_key_exists vid extern data
+- [ ] **PHP PDO error mode consistency** — Worker A — ERRMODE_EXCEPTION vs SILENT
+- [ ] **Angular HTTP interceptor error handling** — Worker B — globala 401/403/500 handlers
+- [ ] **Angular memory profiling** — Worker B — stora dataset, pagination, subscription leaks
 
-### Nasta buggjakt-items (session #268+):
-- [ ] **PHP timezone consistency** — date_default_timezone_set(), DateTime vs strtotime blandning
-- [ ] **Angular HTTP interceptor error handling** — globala 401/403/500 handlers
-- [ ] **PHP array key validation** — saknade array_key_exists/isset vid extern data
-- [ ] **Angular memory profiling** — stora dataset i tabeller, pagination utan limit
-- [ ] **PHP PDO error mode consistency** — ERRMODE_EXCEPTION vs ERRMODE_SILENT
+### Nasta buggjakt-items (session #269+):
+- [ ] **PHP header injection** — saknad validering av user input i header()-anrop
+- [ ] **Angular form dirty state** — canDeactivate guards for osparade andringar
+- [ ] **PHP numeric validation** — is_numeric vs ctype_digit vs intval vid ID-parametrar
+- [ ] **Angular accessibility** — saknade aria-labels, keyboard navigation, screen reader
+- [ ] **PHP mail/SMTP safety** — header injection i mail()-anrop, saknad sanitering
 
 ## Parkerade features (ta inte dessa nu)
 

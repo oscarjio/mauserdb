@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #267)*
+*Senast uppdaterad: 2026-03-23 (session #268)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -72,27 +72,29 @@ Session #264: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() consiste
 Session #265: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). arithmetic overflow/division: rent. SQL injection ORDER BY/GROUP BY: rent. include/require path: rent. router guard: rent. service singleton: rent. template type safety: rent.
 Session #266: BUGGJAKT — 22 buggar (15 Worker A + 7 Worker B). error handling: 15 sendError() utan 500 fixade. SQL transaction: rent. password/token: rent. HTTP response type: rent. form reset: rent. Observable catchError: 7 komponenter fixade.
 Session #267: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade. route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
+Session #268: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). timezone: rent. array key validation: rent. PDO error mode: rent. HTTP interceptor: rent (komplett 401/403/500/0 + retry). memory profiling: rent (498/499 trackBy, alla subscriptions+timers korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #268):
-- [ ] PHP timezone consistency — date_default_timezone_set(), DateTime vs strtotime
-- [ ] Angular HTTP interceptor error handling — globala 401/403/500 handlers
-- [ ] PHP array key validation — saknade array_key_exists/isset vid extern data
-- [ ] Angular memory profiling — stora dataset i tabeller, pagination utan limit
+### Nasta (session #269):
+- [ ] PHP header injection — saknad validering av user input i header()-anrop
+- [ ] Angular form dirty state — canDeactivate guards for osparade andringar
+- [ ] PHP numeric validation — is_numeric vs ctype_digit vs intval vid ID-parametrar
+- [ ] Angular accessibility — saknade aria-labels, keyboard navigation
+- [ ] PHP mail/SMTP safety — header injection i mail()-anrop
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-23 — Session #265 (klar)
-Worker A: 0 buggar — arithmetic overflow/division: rent (80+ divisioner, alla skyddade med > 0 guards/ternary). SQL injection ORDER BY/GROUP BY: rent (alla whitelist-validerade). include/require path: rent (enbart require_once med __DIR__).
-Worker B: 0 buggar — router guard: rent (90+ routes, alla med authGuard/adminGuard). service singleton: rent (96 services, alla providedIn root). template type safety: rent (20 templates, alla med trackBy/null-guards).
-
 ### 2026-03-23 — Session #266 (klar)
-Worker A: 15 buggar — error handling: 15 sendError() utan HTTP 500 i catch-block fixade (7 controllers). SQL transaction: rent (35 metoder, alla legitimt enkel-query eller redan korrekt). password/token: rent (bcrypt+password_verify, bin2hex(random_bytes), hash_equals).
-Worker B: 7 buggar — Observable catchError: 7 komponenter saknade catchError i pipes fixade (avvikelselarm, leveransplanering, skiftoverlamning, batch-sparning, produktionskostnad, kvalitetscertifikat, historisk-produktion). HTTP response type: rent (95 services). form reset: rent.
+Worker A: 15 buggar — error handling: 15 sendError() utan HTTP 500 i catch-block fixade (7 controllers). SQL transaction: rent. password/token: rent.
+Worker B: 7 buggar — Observable catchError: 7 komponenter saknade catchError i pipes fixade. HTTP response type: rent. form reset: rent.
 
 ### 2026-03-23 — Session #267 (klar)
-Worker A: 4 buggar — file I/O: 2 fopen('php://output') utan felkontroll fixade (TidrapportController, BonusAdminController). session fixation: rent (session_regenerate_id(true) finns, httponly+samesite+secure korrekt). CORS: 2 saknade X-CSRF-Token i Access-Control-Allow-Headers fixade (login.php, admin.php).
-Worker B: 1 bugg — route params: rent (5 komponenter, alla parseInt/+/isNaN korrekt). environment config: rent (identiska nycklar dev/prod, alla via environment.apiUrl). chunk error: 1 GlobalErrorHandler tillagd for 100+ lazy-loaded routes (ChunkLoadError -> reload med loop-skydd).
+Worker A: 4 buggar — file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade.
+Worker B: 1 bugg — route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
+
+### 2026-03-23 — Session #268 (klar)
+Worker A: 0 buggar — timezone: rent (date_default_timezone_set korrekt i alla entry points). array key validation: rent (alla $_GET/json_decode med ?? eller isset). PDO error mode: rent (ERRMODE_EXCEPTION + EMULATE_PREPARES=false overallt).
+Worker B: 0 buggar — HTTP interceptor: rent (errorInterceptor hanterar 401/403/500/0/408/429 + retry for GET). memory profiling: rent (498/499 trackBy, alla subscriptions takeUntil, alla timers clearInterval/clearTimeout).
