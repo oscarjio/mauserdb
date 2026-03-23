@@ -280,7 +280,7 @@ class OeeWaterfallController {
             $seg = $this->calcOeeSegments($fromDate, $toDate);
         } catch (\Exception $e) {
             error_log('OeeWaterfallController::getWaterfallData: ' . $e->getMessage());
-            $this->sendError('Kunde inte beräkna OEE-data');
+            $this->sendError('Kunde inte beräkna OEE-data', 500);
             return;
         }
 
@@ -403,7 +403,7 @@ class OeeWaterfallController {
             $prev = $this->calcOeeSegments($prevFromDate, $prevToDate);
         } catch (\Exception $e) {
             error_log('OeeWaterfallController::getSummary: ' . $e->getMessage());
-            $this->sendError('Kunde inte beräkna OEE-data');
+            $this->sendError('Kunde inte beräkna OEE-data', 500);
             return;
         }
 

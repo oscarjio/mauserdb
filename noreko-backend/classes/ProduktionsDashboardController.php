@@ -513,7 +513,7 @@ class ProduktionsDashboardController {
             $stationer = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::stationer-status stationer: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stationer');
+            $this->sendError('Kunde inte hamta stationer', 500);
             return;
         }
 
@@ -633,7 +633,7 @@ class ProduktionsDashboardController {
             ]);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::senaste-alarm: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta alarm');
+            $this->sendError('Kunde inte hamta alarm', 500);
         }
     }
 
@@ -674,7 +674,7 @@ class ProduktionsDashboardController {
             ]);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::senaste-ibc: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta senaste IBC');
+            $this->sendError('Kunde inte hamta senaste IBC', 500);
         }
     }
 }

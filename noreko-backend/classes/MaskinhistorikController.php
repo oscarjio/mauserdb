@@ -471,7 +471,7 @@ class MaskinhistorikController {
             ]);
         } catch (\PDOException $e) {
             error_log('MaskinhistorikController::getStationStopp: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stopphistorik');
+            $this->sendError('Kunde inte hamta stopphistorik', 500);
         }
     }
 

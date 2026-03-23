@@ -1,3 +1,67 @@
+## 2026-03-23 Session #266 Worker A — error handling/SQL transaction/password audit
+
+### Uppgift 1: PHP error handling consistency audit
+**Resultat:** 15 buggar — fixade
+
+Granskade samtliga PHP-filer under noreko-backend/classes/ (100+ filer) och noreko-backend/controllers/ (33 filer), exkl. plcbackend/.
+
+**Inga** `die()` eller `exit()` hittades i controllers/classes.
+
+**Catch-block granskning:**
+- `NewsController.php:608` — `catch (\Exception)` med `break` vid DateTime-parsning. Legitimt (loopiteration avbryts, ej en säkerhetsrisk).
+- `TvattlinjeController.php:706,709` — `catch (\Exception $e) { /* Kolumn finns redan — OK */ }`. Legitimt (DDL-guard för befintlig kolumn).
+- `ShiftPlanController.php:631` och `BonusAdminController.php:847` — inre catch som re-throwrar exception. Legitimt.
+
+**15 buggar fixade: `sendError()` utan HTTP-statuskod 500 i catch-block (databas/serverfel)**
+
+Alla controllers nedan använde `sendError('...')` utan andra argument i PDOException/Exception catch-block, vilket fick PHP att skicka HTTP 400 (Bad Request) istället för korrekt HTTP 500 (Internal Server Error). Fixat med `, 500`:
+
+| Fil | Metod | Rad (före fix) |
+|-----|-------|----------------|
+| classes/HeatmapController.php | getSummary | 307 |
+| classes/MaskinhistorikController.php | getStationStopp | 474 |
+| classes/ProduktionsDashboardController.php | stationer-status | 516 |
+| classes/ProduktionsDashboardController.php | senaste-alarm | 636 |
+| classes/ProduktionsDashboardController.php | senaste-ibc | 677 |
+| classes/ProduktionskalenderController.php | getMonthData | 192 |
+| classes/ProduktionskalenderController.php | getDayDetail | 427 |
+| classes/KapacitetsplaneringController.php | getStationUtnyttjande | 557 |
+| classes/KapacitetsplaneringController.php | getKapacitetstabell | 998 |
+| classes/PrediktivtUnderhallController.php | getHeatmap | 236 |
+| classes/PrediktivtUnderhallController.php | getMtbf | 408 |
+| classes/PrediktivtUnderhallController.php | getTrender | 514 |
+| classes/PrediktivtUnderhallController.php | getRekommendationer | 706 |
+| classes/OeeWaterfallController.php | getWaterfallData | 283 |
+| classes/OeeWaterfallController.php | getSummary | 406 |
+
+### Uppgift 2: PHP SQL transaction consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer under noreko-backend/classes/ och noreko-backend/controllers/, exkl. plcbackend/.
+
+Automatisk analys identifierade 35 metoder med 2+ write-queries utan beginTransaction. Vid manuell granskning av samtliga flaggade metoder befanns alla vara ett av följande legitima mönster:
+- **`ensureTable`/DDL-metoder**: CREATE TABLE + ALTER TABLE (DDL är autocommit i MySQL/MariaDB, transactions hjälper ej).
+- **`if/else`-grenar**: Metoden utför en av flera alternativa single-writes beroende på om posten finns (UPDATE eller INSERT), aldrig båda.
+- **`ON DUPLICATE KEY UPDATE`**: En atomär upsert-operation, behöver ej transaction.
+- **Cleanup-probalisitisk**: `LoginController::handle` kör `mt_rand(1,100)===1` cleanup som en bakgrundsoperation utan koppling till huvud-write.
+
+Alla faktiska multi-write operationer (INSERT + UPDATE, DELETE + INSERT, etc.) i controllers är redan korrekt inbäddade i beginTransaction/commit/rollBack-block.
+
+### Uppgift 3: PHP password/token handling audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer under noreko-backend/classes/ och noreko-backend/controllers/, exkl. plcbackend/.
+
+- **Lösenords-hashing**: `password_hash($password, PASSWORD_BCRYPT)` i `AuthHelper::hashPassword()` — korrekt.
+- **Lösenords-verifiering**: `password_verify($password, $storedHash)` i `AuthHelper::verifyPassword()` — timing-safe, korrekt.
+- **CSRF-token generering**: `bin2hex(random_bytes(32))` i `AuthHelper::generateCsrfToken()` — kryptografiskt säker, korrekt.
+- **CSRF-token jämförelse**: `hash_equals($_SESSION['csrf_token'], $headerToken)` i `AuthHelper::validateCsrfToken()` — timing-safe, korrekt.
+- **`mt_rand` förekomster**: `LoginController::handle` rad 144 — `mt_rand(1, 100)` används för probabilistisk cleanup-schemaläggning (ej säkerhetskritisk). `MaskinOeeController::seedDailyData` rad 187-193 — `mt_rand` används för att generera demo-seed-data (ej säkerhetskritisk).
+- **Token expiry**: CSRF-tokens är sessionsbaserade och lever lika länge som PHP-sessionen — acceptabelt.
+- **Inga** lösenordsjämförelser med `==` eller `strcmp()` hittades.
+
+---
+
 ## Worker A — Session #265
 
 ### Uppgift 1: PHP arithmetic overflow/division audit

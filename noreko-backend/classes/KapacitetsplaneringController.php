@@ -554,7 +554,7 @@ class KapacitetsplaneringController {
             $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getStationUtnyttjande: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta station-utnyttjande');
+            $this->sendError('Kunde inte hamta station-utnyttjande', 500);
             return;
         }
 
@@ -995,7 +995,7 @@ class KapacitetsplaneringController {
             ];
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getKapacitetstabell: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta kapacitetstabell');
+            $this->sendError('Kunde inte hamta kapacitetstabell', 500);
             return;
         }
 

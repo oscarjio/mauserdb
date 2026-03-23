@@ -233,7 +233,7 @@ class PrediktivtUnderhallController {
             ]);
         } catch (\PDOException $e) {
             error_log('PrediktivtUnderhallController::getHeatmap: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -405,7 +405,7 @@ class PrediktivtUnderhallController {
             ]);
         } catch (\PDOException $e) {
             error_log('PrediktivtUnderhallController::getMtbf: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -511,7 +511,7 @@ class PrediktivtUnderhallController {
             ]);
         } catch (\PDOException $e) {
             error_log('PrediktivtUnderhallController::getTrender: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -703,7 +703,7 @@ class PrediktivtUnderhallController {
             ]);
         } catch (\PDOException $e) {
             error_log('PrediktivtUnderhallController::getRekommendationer: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }

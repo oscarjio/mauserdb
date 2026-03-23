@@ -304,7 +304,7 @@ class HeatmapController {
             ]);
         } catch (\PDOException $e) {
             error_log('HeatmapController::getSummary: ' . $e->getMessage());
-            $this->sendError('Databasfel vid hamtning av summering');
+            $this->sendError('Databasfel vid hamtning av summering', 500);
         }
     }
 
