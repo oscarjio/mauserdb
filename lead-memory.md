@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #271)*
+*Senast uppdaterad: 2026-03-23 (session #272)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -76,28 +76,29 @@ Session #268: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). timezone: rent. a
 Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection: rent. numeric validation: rent. mail/SMTP: rent. form dirty state: rent. template type safety: rent.
 Session #270: BUGGJAKT — 107 buggar (1 Worker A + 106 Worker B). session race condition: 1 session_write_close i api.php fixad. output buffering: rent. CORS preflight: rent. route resolvers: rent (inga resolvers, lazy loading). getElementById null-guards: 106 saknade null-checks i 61 filer fixade.
 Session #271: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_reporting/display_errors: rent. flock/file writes: rent (all I/O via PDO). PDO prepared statements: rent. Chart.js memory leaks: rent (alla destroy). HTTP retry logic: rent (timeout+catchError+retry).
+Session #272: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). try/catch+SQL korrekthet: rent (17 controllers, alla sendError korrekt, GROUP BY matchar, division skyddad). addEventListener/subscription leaks: rent (36 komponenter, alla takeUntil+destroy$, inga manuella listeners).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #272):
-- [ ] PHP output buffering — ob_start/ob_end konsistens
-- [ ] PHP CORS preflight — OPTIONS-requests i alla endpoints
-- [ ] Angular lazy loading chunking — verifiera lazy routes
-- [ ] PHP mail/SMTP edge cases — timeout, encoding
-- [ ] Angular form validation edge cases — async validators, cross-field
+### Nasta (session #273):
+- [ ] PHP controllers N-Z — resterande 16 controllers
+- [ ] Angular services audit — URL:er, felhantering, memory leaks
+- [ ] Angular template null safety — osaker property access
+- [ ] PHP router/api.php audit — routes vs controller-metoder
+- [ ] Angular environment config — korrekta API-URL:er
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-23 — Session #269 (klar)
-Worker A: 0 buggar — header injection: rent. numeric validation: rent. mail/SMTP: rent.
-Worker B: 0 buggar — form dirty state: rent. template type safety: rent.
-
 ### 2026-03-23 — Session #270 (klar)
 Worker A: 1 bugg — session race condition: session_write_close() tillagd i api.php + VpnController. output buffering: rent. CORS preflight: rent.
-Worker B: 106 buggar — document.getElementById null-guards: 106 saknade null-checks i 61 komponentfiler fixade. route resolvers: rent (inga resolvers). SSR: ej aktivt.
+Worker B: 106 buggar — document.getElementById null-guards: 106 saknade null-checks i 61 komponentfiler fixade.
 
 ### 2026-03-23 — Session #271 (klar)
-Worker A: 0 buggar — error_reporting/display_errors: rent (inga display_errors, alla getMessage via error_log). flock: rent (inga filskrivningar, allt via PDO). PDO prepared statements: rent (alla dynamiska varden parametriserade, whitelists for tabell/kolumn).
-Worker B: 0 buggar — Chart.js memory leaks: rent (alla chart?.destroy() i ngOnDestroy). HTTP retry logic: rent (timeout+catchError+takeUntil+retry pa alla anrop).
+Worker A: 0 buggar — error_reporting/display_errors: rent. flock: rent. PDO prepared statements: rent.
+Worker B: 0 buggar — Chart.js memory leaks: rent. HTTP retry logic: rent.
+
+### 2026-03-23 — Session #272 (klar)
+Worker A: 0 buggar — try/catch: rent (alla catch har sendError). SQL korrekthet: rent (GROUP BY, JOINs, alias). Division-by-zero: rent (alla > 0 guards). Datum i SQL: rent (DATE BETWEEN konsistent).
+Worker B: 0 buggar — addEventListener: rent (inga manuella listeners). Subscription leaks: rent (alla takeUntil). ViewChild: rent (inga @ViewChild). HTTP URL:er: rent. Promises: rent (try/catch).

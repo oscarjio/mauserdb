@@ -7,19 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #271):
-- [ ] **PHP error_reporting/display_errors** — Worker A — saknad error_reporting(0) i produktion
-- [ ] **PHP file lock consistency** — Worker A — flock() vid concurrent file writes, saknade LOCK_EX
-- [ ] **PHP PDO prepared statement reuse** — Worker A — duplicerade queries, SQL i loopar
-- [ ] **Angular memory leaks i charts** — Worker B — Chart.js-instanser som inte destroyas
-- [ ] **Angular HTTP retry logic** — Worker B — retryWhen/retry felkonfiguration, exponential backoff
+### Pagaende (session #272):
+- [ ] **PHP try/catch + SQL korrekthet** — Worker A — empty catch, GROUP BY, division-by-zero, datum i SQL
+- [ ] **Angular event listener leaks + subscription audit** — Worker B — addEventListener utan cleanup, promises utan catch, ViewChild timing
 
-### Nasta buggjakt-items (session #272+):
-- [ ] **PHP output buffering** — ob_start/ob_end konsistens, saknade ob_clean vid errors
-- [ ] **PHP CORS preflight** — OPTIONS-requests hanteras korrekt i alla endpoints
-- [ ] **Angular lazy loading chunking** — verifiera att alla lazy routes laddar korrekt
-- [ ] **PHP mail/SMTP edge cases** — timeout, encoding, attachment-storlek
-- [ ] **Angular form validation edge cases** — async validators, cross-field validation
+### Nasta buggjakt-items (session #273+):
+- [ ] **PHP controllers N-Z** — StatistikDashboardController, SkiftplaneringController, StopptidsanalysController, RebotlingStationsdetaljController, SkiftoverlamningController, UnderhallsloggController, StopporsakController, ProduktionsmalController, OeeTrendanalysController, OperatorRankingController, VdDashboardController, HistoriskSammanfattningController, StatistikOverblickController, OperatorDashboardController, DagligBriefingController, SkiftjamforelseController
+- [ ] **Angular services audit** — granska alla .service.ts for felaktiga URL:er, saknad felhantering, memory leaks
+- [ ] **Angular template null safety** — granska .component.html for osaker property access utan ?. eller *ngIf
+- [ ] **PHP router/api.php audit** — verifiera att alla routes matchar controller-metoder, inga doda routes
+- [ ] **Angular environment config** — verifiera att environment.ts och environment.prod.ts har korrekta API-URL:er
 
 ## Parkerade features (ta inte dessa nu)
 
