@@ -7,16 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #273):
-- [ ] **PHP controllers N-Z** — Worker A — 16 controllers: StatistikDashboard, Skiftplanering, RebotlingStationsdetalj, Skiftoverlamning, Underhallslogg, Stopporsak, Produktionsmal, OeeTrendanalys, OperatorRanking, VdDashboard, HistoriskSammanfattning, StatistikOverblick, OperatorDashboard, DagligBriefing, Skiftjamforelse, Narvaro
-- [ ] **Angular services audit** — Worker B — alla ~90 services: URL-korrekthet, felhantering, memory leaks, typfel
+### Pagaende (session #274):
+- [ ] **PHP router/api.php audit** — Worker A — verifiera alla routes matchar controllers, hitta doda routes
+- [ ] **PHP controllers A-M djupgranskning** — Worker A — boundary values, encoding, timezone, SQL
+- [ ] **Angular template null safety** — Worker B — osaker property access utan ?. eller *ngIf
+- [ ] **Angular @Input/@Output audit** — Worker B — korrekthet, default-varden, typning
 
-### Nasta buggjakt-items (session #274+):
-- [ ] **Angular template null safety** — granska .component.html for osaker property access utan ?. eller *ngIf
-- [ ] **PHP router/api.php audit** — verifiera att alla routes matchar controller-metoder, inga doda routes
+### Nasta buggjakt-items (session #275+):
 - [ ] **Angular environment config** — verifiera att environment.ts och environment.prod.ts har korrekta API-URL:er
-- [ ] **PHP controllers A-M djupgranskning** — fler buggkategorier: boundary values, encoding, timezone
-- [ ] **Angular component interaktion** — @Input/@Output korrekthet, EventEmitter utan unsubscribe
+- [ ] **PHP controllers N-Z djupgranskning** — boundary values, encoding, timezone (uppfoljning fran #273)
+- [ ] **Angular HTTP interceptor edge cases** — retry-logik, timeout-hantering, offline-beteende
+- [ ] **PHP SQL UNION/subquery audit** — verifiera korrekthet i komplexa fragor
+- [ ] **Angular routing guards** — canActivate/canDeactivate korrekthet, auth-kontroll
 
 ## Parkerade features (ta inte dessa nu)
 
