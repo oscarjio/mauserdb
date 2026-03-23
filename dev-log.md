@@ -17995,3 +17995,121 @@ Inga buggar.
 - Git commit: df91288
 
 ### Totalt: 1 bugg fixad i 1 fil
+
+---
+
+## Worker B — Session #261
+
+### Uppgift 1: Angular router parameter validation audit
+**Resultat:** 0 buggar — rent
+
+Sokte igenom alla Angular-komponenter i noreko-frontend/src/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live) efter ActivatedRoute-anvandning. Hittade 5 filer med route params/queryParams:
+
+- **operator-detail.ts** (rad 469): Anvander `this.route.snapshot.paramMap.get('id')` — korrekt validerat med null-check och `isNaN(+id)` innan anvandning. Felmeddelande visas vid ogiltigt ID.
+- **rebotling-statistik.ts** (rad 256-285): Anvander `this.route.snapshot.queryParams` for view/year/month/dates — korrekt validerat med parseInt(..., 10), isNaN-check, range-validering (year 2000-2100, month 0-11), Date-validering for dates.
+- **tvattlinje-statistik.ts** (rad 124-153): Identisk queryParams-hantering som rebotling-statistik — korrekt validerat.
+- **stoppage-log.ts** (rad 249-261): Anvander `this.route.queryParams` for maskin/linje — korrekt validerat med substring(0, 100) for maskin och allowlist-validering for linje.
+- **login.ts** (rad 90-92): Anvander `this.route.snapshot.queryParams['returnUrl']` — korrekt validerat med typeof-check, startsWith('/') och !startsWith('//') for att forhindra open redirect.
+
+### Uppgift 2: Angular template expression complexity audit
+**Resultat:** 0 buggar — rent
+
+Sokte igenom alla Angular-templates (.html och inline templates i .ts) i noreko-frontend/src/ efter tunga berakningar/funktionsanrop. Hittade 136 filer med template-uttryck.
+
+**Funktionsanrop i *ngFor (granskade):**
+- `getVisiblePeriodCells()` (rebotling-statistik, tvattlinje-statistik): Enkel filter pa periodCells (max ~31 items). Suboptimalt men latt operation.
+- `getAllaOperatorer()` (ranking-historik): Returnerar bara `this.rankingsData?.op_trender ?? []` — trivial lookup.
+- `getExpandedDays()` (narvarotracker): Enkel find + return av op.days — trivial.
+- `getShiftEntries()` (shift-plan): Enkel objektuppslagning `this.weekData[datum]?.[skiftNr]` — trivial.
+- `getUnplannedOps()` (shift-plan): Filter pa liten array i slot — trivial.
+- `getAvailableOpsForSlot()` (shift-plan): Filter med Set, liten lista, visas i modal — trivial.
+- `forlustSegments()` (oee-waterfall): Enkel filter pa segments — trivial.
+- `getSparkdata()` (stopporsak-trend): Map over 6 items — trivial.
+- `getLegendSteps()` (heatmap): Sma arrays — trivial.
+- `getAvailableOperators()` (skiftplanering): Operatorslista — trivial.
+- `getCachedOperatorRanking()` (rebotling-skiftrapport): Redan cachad.
+- `getPagesArray()` (feedback-analys): Sma arrays — trivial.
+- `formatJsonKeys(parseJson(...))` (audit-log): JSON.parse + Object.keys i *ngFor — suboptimalt men audit-log ar lagfrekvens-komponent med liten datamangd. Inte en riktig bugg.
+
+**filter()/map()/sort() i templates:**
+- `slice(0, 10)` pa cachedFilteredRanking (production-analysis) — redan cachad array, slice ar O(1)-liknande.
+- `slice(0, 3)` pa feedbackHistory (my-bonus) — trivial.
+- `day.date.slice(8)` (my-bonus) — enkel string-operation.
+
+Inga av dessa ar riktiga prestandabuggar — alla ar antingen triviala uppslag, sma arrayer, eller lagfrekvens-komponenter.
+
+### Build och deployment:
+- Frontend: Se nedan
+- Git commit: Se nedan
+
+### Totalt: 0 buggar hittade
+
+## Worker A — Session #261
+
+### Uppgift 1: PHP error_log format consistency audit
+**Resultat:** 0 buggar
+
+Granskade alla error_log()-anrop i 115+ PHP-filer under noreko-backend/ (exkl. plcbackend/).
+
+**Format-konvention som anvands konsekvent:** `ControllerName::methodName: felmeddelande`
+- Alla controllers foljer detta monster: `error_log('KlassNamn::metodNamn: ' . $e->getMessage())`
+- api.php och update-weather.php anvander egna prefix som passar deras roll (`api.php:`, `[update-weather]`)
+- Inga saknade tidsstamplar — PHP:s error_log() lagger automatiskt till tidsstampel via syslog/error_log-config
+
+**Noterade smarre format-variationer (ej buggar):**
+- OeeJamforelseController.php (rad 101, 137): Anvander forkortat prefix `OeeJamforelse::` istallet for `OeeJamforelseController::`. Inkonsistent men ofarligt — loggrader fungerar korrekt.
+- BonusAdminController.php (rad 205, 309, 508): Anvander `BonusAdminController: Ogiltigt JSON-format:` (utan metodnamn). Inkonsistent men ofarligt.
+- Alla error_log()-anrop inkluderar exception-meddelande via `$e->getMessage()`.
+- Sakerhetsloggning (obehörig åtkomst) inkluderar user_id och relevant kontext.
+
+### Uppgift 2: PHP SQL transaction audit
+**Resultat:** 0 buggar
+
+Granskade alla PHP-filer med INSERT/UPDATE/DELETE-operationer i noreko-backend/:
+
+**Filer med multipla write-operationer och transaktioner (korrekt):**
+- AdminController.php: 13 writes, 4 transaktioner — varje multi-write ar wrappat
+- BonusAdminController.php: 18 writes, 2 transaktioner — bulk-operationer korrekt wrappade
+- RebotlingAdminController.php: 21 writes, 4 transaktioner — korrekt
+- ShiftPlanController.php: 7 writes, 1 transaktion (copyWeek) — korrekt
+- SkiftrapportController.php: 7 writes, 6 transaktioner — korrekt
+- LineSkiftrapportController.php: 7 writes, 6 transaktioner — korrekt
+- ProduktionsmalController.php: 4 writes, 1 transaktion — korrekt
+- LeveransplaneringController.php: 7 writes, 1 transaktion (seed-data) — korrekt
+- Alla ovriga controllers med transaktioner: korrekt implementerade med try/catch + rollBack
+
+**Filer med multipla writes men 0 explicit transaktioner (OK — ej buggar):**
+- AvvikelselarmController.php: 5 writes — alla i ensureTables() (CREATE + seed), skyddas av IF NOT EXISTS/COUNT-check
+- MaskinOeeController.php: 3 writes — alla i ensureTables() (CREATE + seed), INSERT IGNORE
+- NewsController.php: 3 writes — varje action gor en enstaka INSERT/UPDATE/DELETE
+- UnderhallsprognosController.php: 3 writes — alla i ensureTables() (seed-data), INSERT IGNORE
+- KlassificeringslinjeController.php: 7 writes — read-only kontroller, writes ar i DDL
+- SaglinjeController.php: 7 writes — samma monster som ovan
+- TvattlinjeController.php: 12 writes — samma monster som ovan
+
+**Slutsats:** Alla multi-write-operationer dar data-integritet ar hotad ar korrekt wrappade i BEGIN/COMMIT/ROLLBACK-transaktioner. Seed-data och DDL-operationer behover inte transaktioner.
+
+### Uppgift 3: PHP CORS/security headers consistency audit
+**Resultat:** 0 buggar
+
+Granskade alla 4 entry-point-filer (api.php, admin.php, login.php, update-weather.php):
+
+**api.php (huvudentry point):**
+- CORS: Access-Control-Allow-Origin (dynamisk), Allow-Credentials, Allow-Methods (GET/POST/PUT/DELETE/OPTIONS), Allow-Headers (Content-Type, Authorization, X-CSRF-Token)
+- Security: Content-Type, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Cache-Control, Pragma, CSP, HSTS, header_remove('X-Powered-By')
+- CRLF-injection-skydd pa origin
+
+**admin.php och login.php (legacy stubs — returnerar 410 Gone):**
+- CORS: Samma som api.php UTOM X-CSRF-Token i Allow-Headers. Dock ar detta korrekt — dessa endpoints ar borttagna (410 Gone) och processar inga requests. CORS-headers finns bara for att preflight-requests inte ska ge 404.
+- Security headers: Identiska med api.php
+
+**update-weather.php (cron-script):**
+- Ingen CORS (behövs inte — anropas via cron, inte fran browser)
+- Security headers: Identiska med api.php
+
+**Controllers som satter egna headers:**
+- Manga controllers satter `Content-Type: application/json` i sendSuccess()/sendError() — redundant men ofarligt (api.php satter redan detta)
+- TidrapportController och BonusAdminController satter `Content-Type: text/csv` for CSV-export — korrekt overridning
+- RebotlingAnalyticsController satter `Content-Type: text/html` for e-postrendering — korrekt
+
+### Totalt: 0 buggar hittade
