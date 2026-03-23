@@ -1,3 +1,31 @@
+## 2026-03-23 Session #271 Worker B — Chart.js memory leak + HTTP retry logic audit (0 buggar)
+
+### Uppgift 1: Chart.js memory leaks
+**Resultat:** 0 buggar — alla 107 filer med `new Chart()` i pages/ har korrekt livscykelhantering.
+
+**Granskat:**
+- Alla `new Chart()` sparas i class properties (inte lokala variabler)
+- Alla komponenter implementerar `OnDestroy` och anropar `chart?.destroy()` i `ngOnDestroy()`
+- Alla chart-metoder anropar `destroy()` innan ny chart skapas (destroy-before-create pattern)
+- 2 filer anvander temporar lokal variabel for `new Chart()` men tilldelar korrekt till class property efterat (rebotling-trendanalys, statistik-produktionsmal)
+- Exkluderade filer: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live
+
+### Uppgift 2: HTTP retry logic
+**Resultat:** 0 buggar — alla HTTP-anrop har korrekt felhantering.
+
+**Granskat:**
+- Alla `.subscribe()` har `catchError()` i pipe (107+ filer)
+- Alla HTTP-anrop har `timeout()` (typiskt 8000-20000ms)
+- Alla observables har `takeUntil(this.destroy$)` for cleanup
+- Inga `retryWhen` (deprecated) — services anvander `retry(1)` med interceptor-backoff
+- Error interceptor (`error.interceptor.ts`) ger globalt skyddsnat med retry (1s delay) for GET/HEAD/OPTIONS, korrekt felmeddelanden pa svenska
+- Alla `setInterval`/`setTimeout` har matchande cleanup i `ngOnDestroy`
+- Services med `.subscribe()` (alerts, auth) anvander `takeUntil(destroy$)` korrekt
+
+**Bygg:** Inga andringar gjorda, inget bygge behovs.
+
+---
+
 ## 2026-03-23 Session #270 Worker B — Route resolver + SSR compatibility audit (106 buggar)
 
 ### Uppgift 1: Angular route resolver errors
