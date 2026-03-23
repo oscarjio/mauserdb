@@ -7,18 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #274):
-- [ ] **PHP router/api.php audit** — Worker A — verifiera alla routes matchar controllers, hitta doda routes
-- [ ] **PHP controllers A-M djupgranskning** — Worker A — boundary values, encoding, timezone, SQL
-- [ ] **Angular template null safety** — Worker B — osaker property access utan ?. eller *ngIf
-- [ ] **Angular @Input/@Output audit** — Worker B — korrekthet, default-varden, typning
+### Pagaende (session #276):
+- [ ] **PHP rate limiting / brute force** — Worker A — verifiera login-endpoints har skydd
+- [ ] **PHP file upload validering** — Worker A — MIME-type, storlek, path traversal
+- [ ] **PHP session/cookie sakerhet** — Worker A — httponly, secure, samesite
+- [ ] **Angular lazy loading korrekthet** — Worker B — verifiera lazy-loadade moduler
+- [ ] **Angular form validation edge cases** — Worker B — required, min/max, pattern
+- [ ] **Angular pipe/directive buggar** — Worker B — custom pipes, cleanup, edge cases
 
-### Nasta buggjakt-items (session #275+):
-- [ ] **Angular environment config** — verifiera att environment.ts och environment.prod.ts har korrekta API-URL:er
-- [ ] **PHP controllers N-Z djupgranskning** — boundary values, encoding, timezone (uppfoljning fran #273)
-- [ ] **Angular HTTP interceptor edge cases** — retry-logik, timeout-hantering, offline-beteende
-- [ ] **PHP SQL UNION/subquery audit** — verifiera korrekthet i komplexa fragor
-- [ ] **Angular routing guards** — canActivate/canDeactivate korrekthet, auth-kontroll
+### Nasta buggjakt-items (session #277+):
+- [ ] **PHP error logging konsistens** — verifiera error_log format och niva
+- [ ] **PHP SQL transaction isolation** — verifiera korrekta isolation levels
+- [ ] **Angular HTTP caching** — verifiera att GET-requests cachas korrekt
+- [ ] **Angular change detection optimering** — OnPush strategi dar det saknas
+- [ ] **PHP CSRF token rotation** — verifiera att tokens roteras korrekt
 
 ## Parkerade features (ta inte dessa nu)
 

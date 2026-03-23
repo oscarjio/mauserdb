@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #274)*
+*Senast uppdaterad: 2026-03-23 (session #276)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -79,28 +79,37 @@ Session #271: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_reporting/d
 Session #272: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). try/catch+SQL korrekthet: rent (17 controllers, alla sendError korrekt, GROUP BY matchar, division skyddad). addEventListener/subscription leaks: rent (36 komponenter, alla takeUntil+destroy$, inga manuella listeners).
 Session #273: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). PHP controllers N-Z: 2 fel SQL-kolumnnamn i OperatorDashboardController (operator_id->user_id, orsak/stopporsak->JOIN), 1 saknad Content-Type header i NarvaroController (4 endpoints). Angular services: rent (97 services, alla URL:er/felhantering/cleanup korrekt).
 Session #274: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). api.php router: rent (117 routes, alla controller-filer finns). MorgonrapportController: 5 felaktiga COUNT(*) ersatta med MAX-aggregering (IBC-produktion raknade PLC-rader istallet for faktiska IBC). Angular template null safety: rent (37 filer). @Input/@Output: rent.
+Session #275: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). PHP N-Z djupgranskning + SQL UNION/subquery audit: rent. Angular environment config: rent. HTTP interceptor: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Routing guards: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #275):
-- [ ] Angular environment config — korrekta API-URL:er
-- [ ] PHP controllers N-Z djupgranskning — boundary values, encoding, timezone
-- [ ] Angular HTTP interceptor edge cases — retry-logik, timeout, offline
-- [ ] PHP SQL UNION/subquery audit — komplexa fragor
-- [ ] Angular routing guards — canActivate/canDeactivate korrekthet
+### Pagaende (session #276):
+- [ ] PHP rate limiting / brute force — login-skydd (Worker A)
+- [ ] PHP file upload validering — MIME, storlek, path traversal (Worker A)
+- [ ] PHP session/cookie sakerhet — httponly, secure, samesite (Worker A)
+- [ ] Angular lazy loading korrekthet (Worker B)
+- [ ] Angular form validation edge cases (Worker B)
+- [ ] Angular pipe/directive buggar (Worker B)
+
+### Nasta (session #277+):
+- [ ] PHP error logging konsistens
+- [ ] PHP SQL transaction isolation
+- [ ] Angular HTTP caching
+- [ ] Angular change detection optimering
+- [ ] PHP CSRF token rotation
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-23 — Session #272 (klar)
-Worker A: 0 buggar — try/catch: rent (alla catch har sendError). SQL korrekthet: rent (GROUP BY, JOINs, alias). Division-by-zero: rent (alla > 0 guards). Datum i SQL: rent (DATE BETWEEN konsistent).
-Worker B: 0 buggar — addEventListener: rent (inga manuella listeners). Subscription leaks: rent (alla takeUntil). ViewChild: rent (inga @ViewChild). HTTP URL:er: rent. Promises: rent (try/catch).
-
-### 2026-03-23 — Session #273 (klar)
-Worker A: 3 buggar — OperatorDashboardController: 2 felaktiga SQL-kolumner (operator_id->user_id, orsak/stopporsak->JOIN med stopporsak_kategorier). NarvaroController: saknad Content-Type header pa 4 endpoints.
-Worker B: 0 buggar — 97 Angular services granskade. URL:er, felhantering, memory leaks, typer, HTTP-metoder, hardkodade URL:er: allt rent.
-
 ### 2026-03-23 — Session #274 (klar)
-Worker A: 5 buggar — api.php router: rent (117 routes, alla finns). MorgonrapportController: 5 felaktiga COUNT(*) i getProduktionData/getEffektivitetData/getTrenderData/getKvalitetData/getHighlightsData — raknade PLC-rader istallet for IBC-produktion. Fixat till MAX-aggregering. 17 ovriga A-M controllers: rent.
-Worker B: 0 buggar — 37 template-filer granskade for null safety: alla skyddade med *ngIf/@if. @Input/@Output: alla har korrekta defaults och typning.
+Worker A: 5 buggar — MorgonrapportController: 5 felaktiga COUNT(*) ersatta med MAX-aggregering. 17 ovriga A-M controllers + api.php router: rent.
+Worker B: 0 buggar — 37 template-filer null safety + @Input/@Output: rent.
+
+### 2026-03-23 — Session #275 (klar)
+Worker A: 0 buggar — PHP N-Z djupgranskning + SQL UNION/subquery audit: rent.
+Worker B: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Environment config + routing guards: rent.
+
+### 2026-03-23 — Session #276 (klar)
+Worker A: 0 buggar — PHP rate limiting: rent (IP+user lockout, konstant-tid verify). File upload: inga filuppladdningar i backend. Session/cookie: rent (httponly, samesite, strict mode, regenerate_id).
+Worker B: 0 buggar — Lazy loading: rent (150+ routes, alla sokvagar korrekta). Form validation: rent (16+ forms, alla validerar). Pipes/directives: inga custom pipes/directives existerar.
