@@ -19095,3 +19095,48 @@ Granskade api.php, admin.php och login.php for CORS-hantering:
 - Controllers i classes/ hanteras via api.php som router — behover inga egna CORS-headers
 
 ### Totalt: 1 bugg hittad och fixad
+
+## 2026-03-23 Session #276 Worker A — PHP rate limiting + file upload + session security audit (0 buggar)
+
+### Uppgift 1: PHP rate limiting / brute force skydd
+
+Granskade LoginController.php, RegisterController.php, AuthHelper.php och ProfileController.php:
+
+- **Rate limiting pa login:** Implementerat med bade IP-baserad (AuthHelper::isRateLimited) och anvandarnamnbaserad (AuthHelper::isUsernameLocked) lockout. MAX_ATTEMPTS=5, LOCKOUT_MINUTES=15. Skyddar mot distribuerad brute force.
+- **Rate limiting pa registrering:** RegisterController anvander prefixad IP-nyckel (reg:IP) for att forhindra mass-registreringar.
+- **Rate limiting pa losenordsbyte:** ProfileController anvander prefixad IP-nyckel (pwchange:IP) for att forhindra brute-force av nuvarande losenord via profilsidan.
+- **Timing attacks:** password_verify() (bcrypt) ar konstant-tid av natur. CSRF-validering anvander hash_equals() — korrekt. Inga timing-svagheter hittade.
+- **Session/token-hantering vid login:** session_regenerate_id(true) anropas efter lyckad autentisering. CSRF-token genereras med random_bytes(32). Sessionsdata satts korrekt (user_id, username, role, last_activity).
+- **Indata-begransning:** Anvandardata langdbegransas (username max 100, password max 255). Skyddar mot bcrypt 72-byte trunkering.
+- **Cleanup:** Gamla login_attempts rensas periodiskt (~1% av requests).
+
+Resultat: 0 buggar.
+
+### Uppgift 2: PHP file upload validering
+
+Sokte igenom alla controllers efter $_FILES, move_uploaded_file, tmp_name, file_put_contents:
+
+- **Inga filuppladdningar existerar** i backend-koden. Inga controllers hanterar $_FILES eller move_uploaded_file.
+- De enda fopen-anropen ar till php://output for CSV-export (BonusAdminController, TidrapportController) — dessa skriver till HTTP-responsen, inte till filsystemet.
+- fwrite-anrop i VpnController gar till en socket, inte till filer.
+
+Resultat: 0 buggar (inga filuppladdningar att granska).
+
+### Uppgift 3: PHP session/cookie sakerhet
+
+Granskade api.php session-konfiguration, LoginController login/logout, och ProfileController:
+
+- **Session cookie-parametrar (api.php rad 80-87):** httponly=true, secure=dynamisk (baserat pa HTTPS), samesite=Lax, lifetime=28800 (8h). Korrekt konfigurerat.
+- **session.use_strict_mode=1:** Avvisar oinitierade session-ID:n — skyddar mot session fixation. Korrekt.
+- **session.use_only_cookies=1:** Forhindrar session-ID i URL. Korrekt.
+- **session.use_trans_sid=0:** Forhindrar session-ID i URL-parametrar. Korrekt.
+- **session_regenerate_id(true) vid login:** Anropas pa rad 105 i LoginController efter lyckad autentisering. true = raderar gammal sessionsfil. Korrekt.
+- **session_regenerate_id(true) vid losenordsbyte/rollbyte:** ProfileController rad 182. Korrekt.
+- **Session timeout:** AuthHelper::checkSessionTimeout() kontrollerar last_activity mot SESSION_TIMEOUT (28800s). Centraliserad kontroll i api.php rad 259 for alla POST/PUT/DELETE utom login/register/status.
+- **Logout:** session_unset() + session_destroy() + explicit radering av session-cookie med korrekt parametrar. Korrekt.
+- **.htaccess:** session.gc_maxlifetime=28800 och session.cookie_lifetime=28800 matchar AuthHelper::SESSION_TIMEOUT. Korrekt.
+- **login.php:** Legacy stub som returnerar 410 Gone — processar inte logins. Ingen sakerhetsbrist.
+
+Resultat: 0 buggar. Session-sakerheten ar valkonfigurerad.
+
+### Totalt: 0 buggar hittade
