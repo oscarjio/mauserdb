@@ -1,3 +1,72 @@
+## 2026-03-23 Session #275 Worker B — Angular environment config + HTTP interceptor + routing guards (1 bugg)
+
+### Uppgift 1 — Angular environment config audit
+
+Granskade environment-filer och alla .service.ts-filer:
+
+**environment.ts / environment.prod.ts:**
+- Bada anvander relativ URL `/noreko-backend/api.php` — korrekt och konsistent, ingen localhost i prod.
+- `production: true` korrekt satt i prod-filen.
+
+**Service-audit (90 service-filer granskade):**
+- ALLA services i `src/app/services/` och `src/app/rebotling/` anvander `environment.apiUrl` — inga hardkodade URL:er hittades.
+- Sokt efter `localhost`, `http://`, `https://` — noll traffar.
+
+Resultat: 0 buggar.
+
+### Uppgift 2 — HTTP interceptor edge cases
+
+Granskade `error.interceptor.ts` och `csrf.interceptor.ts`:
+
+**csrf.interceptor.ts:**
+- Bifogar X-CSRF-Token for POST/PUT/DELETE/PATCH fran sessionStorage — korrekt implementation.
+
+**error.interceptor.ts:**
+- Retry-logik: 1 retry med 1s delay enbart for GET/HEAD/OPTIONS vid status 0/502/503/504 — korrekt, sidoeffektsfria metoder skyddas.
+- Offline-beteende: status 0 fangas med svenska felmeddelanden — appen kraschar inte.
+- 401-hantering: rensar session via `auth.clearSession()`, stoppar polling, redirectar till /login med returnUrl — korrekt.
+- 403-hantering: visar toast utan redirect — acceptabelt (anvandaren stannar pa sidan).
+- Timeout: ingen global timeout i interceptorn, men samtliga services har individuella `timeout(10000-15000)` — acceptabel arkitektur.
+
+**BUGG HITTAD och fixad:**
+`error.error?.error`-grenen (rad 63) var praktiskt taget oanropbar for 5xx-svar. `else if (error.status >= 500)` fangade alla serverfel med ett generiskt meddelande "Serverfel (X). Forsok igen senare." — serverns specifika feltext i `error.error?.error` gick darmed forlorad.
+
+Fix: inom 5xx-grenen prioriteras nu `error.error?.error` och faller tillbaka pa det generiska meddelandet: `error.error?.error || ('Serverfel (' + error.status + '). Forsok igen senare.')`.
+
+Fil: `noreko-frontend/src/app/interceptors/error.interceptor.ts`
+Commit: fix: error.interceptor — visa serverns felmeddelande vid 5xx-svar
+
+Resultat: 1 bugg fixad.
+
+### Uppgift 3 — Angular routing guards audit
+
+Granskade `auth.guard.ts`, `pending-changes.guard.ts` och `app.routes.ts`:
+
+**auth.guard.ts:**
+- `authGuard`: vantar pa `initialized$.pipe(filter(init => init === true), take(1))` innan beslut — korrekt, undviker false-redirect vid sidomladdning.
+- `adminGuard`: anvander `user$` som enda kalla (satt EFTER `loggedIn$` i fetchStatus) — undviker race condition dar loggedIn$ och user$ ar ur synk.
+- Bada returnerar `UrlTree` istallet for `router.navigate() + false` — Angular best practice for atomara navigeringar.
+- Roller: `admin` och `developer` far tillgang till admin-routes — korrekt.
+- Ej inloggad vid admin-route: skickas till /login med returnUrl.
+- Inloggad men ej admin: skickas till / utan returnUrl — korrekt.
+
+**pending-changes.guard.ts:**
+- Anvander synkron `confirm()` — fungerar men blockerar UI-trad. Acceptabelt for befintlig design.
+- `CanDeactivateFn<ComponentCanDeactivate>` med interface — korrekt typing.
+
+**app.routes.ts:**
+- Alla admin-routes (`/oversikt`, `/rebotling/admin`, `/admin/*`, `/rebotling/analys`, etc.) skyddas med `adminGuard` — fullstandigt.
+- Autentiserade routes skyddas med `authGuard`.
+- Offentliga routes (live-vyer, `/register`, `/login`, `/about`, `/contact`) ar medvetet utan guard.
+- `register`-sidan ar offentlig (kravs inbjudningskod pa server-sidan) — acceptabelt designval.
+
+Resultat: 0 buggar.
+
+### Sammanfattning
+Totalt: 1 bugg funnen och fixad (error.interceptor 5xx-meddelanden).
+
+---
+
 ## 2026-03-23 Session #274 Worker B — Angular template null safety + @Input/@Output audit (0 buggar)
 
 ### Uppgift 1 — Angular template null safety audit (37 HTML-filer)
