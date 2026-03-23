@@ -1,3 +1,21 @@
+## 2026-03-23 Session #273 Worker B — Angular services buggjakt: API-URL:er, felhantering, memory leaks, typer, HTTP-metoder (0 buggar)
+
+### Granskade omraden (A-F)
+**A) Felaktiga API-URL:er** — Alla ~97 services anvander korrekt action-nyckel som matchar classNameMap i api.php. Inga felinstavade eller saknade routes.
+**B) Saknad felhantering** — Alla HTTP-anrop har catchError. GET-anrop: catchError(() => of(null)). POST-anrop: catchError(err => of({ success: false, error: ... })). Inga anrop utan felhantering.
+**C) Memory leaks** — Inga subscriptions utan cleanup. alerts.service.ts implementerar OnDestroy med destroy$ Subject, complete() och takeUntil. auth.service.ts hanterar pollSub via unsubscribe(). toast.service.ts rensar alla timers i ngOnDestroy. Inga BehaviorSubjects/Subjects som saknar complete() i OnDestroy.
+**D) Typfel** — Alla services har typade request/response-interfaces. any-typer ar begransade till lasliga undantag (t.ex. HttpParams-byggnad, bakatkompabla payload-typer).
+**E) Inkonsekvent HTTP-metod** — Alla las-operationer anvander GET, alla skrivoperationer anvander POST. rebotling.service.ts anvander application/x-www-form-urlencoded for annotations/events (avsiktligt monster, ej bugg).
+**F) Hardkodade URL:er** — Samtliga services anvander environment.apiUrl. Inga hardkodade URL-strangar.
+
+### Granskade filer (97 st)
+Alla .service.ts i /noreko-frontend/src/app/services/ (93 st) och /noreko-frontend/src/app/rebotling/ (4 st):
+auth, users, alerts, operators, skiftrapport, bonus, bonus-admin, stoppage, audit, andon-board, batch-sparning, cykeltid-heatmap, daglig-sammanfattning, drifttids-timeline, effektivitet, feedback-analys, feature-flag, heatmap, forsta-timme-analys, historisk-sammanfattning, historisk-produktion, kapacitetsplanering, kassations-drilldown, kassationsanalys, kassationsorsak-statistik, kassationsorsak-per-station, kvalitets-trendbrott, kvalitetstrendanalys, kvalitetstrend, maskin-drifttid, malhistorik, maskinhistorik, maskin-oee, my-stats, morgonrapport, narvarotracker, maskinunderhall, oee-benchmark, oee-jamforelse, oee-waterfall, oee-trendanalys, operator-personal-dashboard, operator-onboarding, operators-prestanda, pareto, operatorsportal, produktions-dashboard, produktionsflode, produktionskostnad, produktionskalender, produktionsprognos, produktionspuls, produkttyp-effektivitet, ranking-historik, rebotling-stationsdetalj, rebotling-trendanalys, rebotling-sammanfattning, skiftjamforelse, rebotling (storservice ~1900 rader), skiftplanering, skiftrapport-export, skiftrapport-sammanstallning, statistik-overblick, statistik-dashboard, stopporsak-operator, stopptidsanalys, stopporsaker, stopporsak-trend, tidrapport, underhallsprognos, utnyttjandegrad, vd-dashboard, veckorapport, vd-veckorapport, pdf-export, alarm-historik, produktions-sla, kvalitetscertifikat, operatorsbonus, underhallslogg, stopporsak-registrering, line-skiftrapport, leveransplanering, kassationskvot-alarm, produktionsmal, produktionstakt, avvikelselarm, klassificeringslinje, saglinje, tvattlinje, favoriter, skiftoverlamning (services/), operator-ranking, toast, gamification, daglig-briefing, prediktivt-underhall, skiftoverlamning (rebotling/)
+
+**Resultat:** 0 buggar. Samtliga 97 services ar felfria across alla sex granskningskategorier.
+
+---
+
 ## 2026-03-23 Session #273 Worker A — PHP-controller buggranskning: fel SQL-kolumnnamn i stopporsak-queries, saknade Content-Type-headers (3 buggar)
 
 ### Granskade filer (16 st)
