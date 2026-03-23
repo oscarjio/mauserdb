@@ -1,3 +1,50 @@
+## 2026-03-23 Session #274 Worker B — Angular template null safety + @Input/@Output audit (0 buggar)
+
+### Uppgift 1 — Angular template null safety audit (37 HTML-filer)
+Granskade alla .component.html-filer mot matchande .component.ts for osakerda property-accesser pa nullbara objekt.
+
+**Metodik:** Las .ts for att identifiera nullbara egenskaper (| null = null), undersok sedan HTML for ogardade {{ obj.prop }}-accesser utanfor *ngIf="obj"-block.
+
+**Resultat per komponent:**
+Alla 37 template-filer granskade. Varje nullbar dataproperty ar korrekt skyddad av *ngIf, ng-container *ngIf eller @if-block fore anvandning:
+- `overview.*` — alltid inuti `*ngIf="overview && !loadingOverview"` eller liknande
+- `sammanfattning.*` — alltid inuti `*ngIf="sammanfattning"` eller `*ngIf="!loading && sammanfattning"`
+- `rapport.*` — alltid inuti `*ngIf="rapport && !loadingRapport && !errorRapport"`
+- `trendData.*`, `jamforelseData.*`, `prediktionData.*` — alltid inuti `*ngIf="trendData"` etc.
+- `skiftdata.*` — alltid inuti `*ngIf="skiftdata"`
+- `kpi.*`, `kpiData.*` — alltid inuti `*ngIf="!loadingKpi && !errorKpi && kpi"` etc.
+- `selectedBatchDetail.*`, `selectedCert.*`, `selectedSegment.*` — alltid inuti `*ngIf="selectedX"`
+- `prognosData.*` — inuti `*ngIf="prognosData && prognosData.dagar.length > 0"`
+- `flodeData.summary.*` — inuti `*ngIf="flodeData.summary"`
+- `kpiData.flaskhals.forklaring` — inuti `*ngIf="kpiData && kpiData.flaskhals?.forklaring"`
+- Arrays (`stopporsaker`, `stationer`, `trend`, etc.) ar initialiserade till [] i .ts — inga null-accesser
+
+Inga ogardade accesser pa nullbara objekt hittades. 0 buggar.
+
+### Uppgift 2 — @Input/@Output audit
+Granskade alla komponenter med @Input/@Output decoratorer:
+
+**pdf-export-button.component.ts:**
+- `@Input() targetElementId = ''`, `filename = 'rapport'`, `title = ''` — alla har stranding-default, saker mot undefined
+- Anvands pa 4 stallen (avvikelselarm, rebotling-sammanfattning, historisk-produktion, produktionsflode) — alla skickar string-litteraler
+
+**maintenance-list.component.ts:**
+- `@Output() addEntry = new EventEmitter<void>()`, `editEntry = new EventEmitter<MaintenanceEntry>()`, `refreshStats`, `entryDeleted` — alla korrekt typade
+- Foraldrakomponent (maintenance-log.ts) binder `(addEntry)="openAddForm()"`, `(editEntry)="openEditForm($event)"` etc. — korrekt
+
+**maintenance-form.component.ts:**
+- `@Input() equipmentList: EquipmentItem[] = []` — default [] saker mot undefined
+- `@Output() saved = new EventEmitter<void>()`, `closed = new EventEmitter<void>()` — korrekt typade
+- Foraldrakomponent skickar `[equipmentList]="equipmentList"` (EquipmentItem[]) — korrekt typ
+
+**maintenance-service-intervals.component.ts:**
+- `@Output() showSuccess = new EventEmitter<string>()`, `showError = new EventEmitter<string>()` — korrekt typade
+- Foraldrakomponent binder `(showSuccess)="onShowSuccess($event)"` — $event ar string, korrekt
+
+**Resultat:** 0 buggar. Alla @Input-props har defaults, alla @Output-EventEmitters ar korrekt typade och foraldrakomponenter skickar ratt typer.
+
+---
+
 ## 2026-03-23 Session #274 Worker A — PHP router-audit (0 dead routes) + djupgranskning A–M controllers (1 bugg: MorgonrapportController)
 
 ### Uppgift 1 — api.php router-audit
