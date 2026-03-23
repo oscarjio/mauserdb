@@ -1,3 +1,47 @@
+## 2026-03-23 Session #281 Worker A — PHP subqueries + isset/array_key_exists + error_log N-Z (0 buggar)
+
+### Uppgift 1: PHP SQL subquery korrekthet
+Granskade alla PHP-classes for subqueries (WHERE IN SELECT, EXISTS, NOT IN, korrelerade subqueries).
+
+**Filer med subqueries granskade:**
+- `noreko-backend/classes/RebotlingAnalyticsController.php` — CROSS JOIN (SELECT 0) for veckodag-aggregering, samt skalara subqueries for first_start/last_stop. Korrekta.
+- `noreko-backend/classes/RebotlingController.php` — Nasted derived tables for team-rekord (dag/vecka/manad). COALESCE + IS NOT NULL-skydd. Korrekt.
+- `noreko-backend/classes/OperatorController.php` — UNION-baserad ranking med RANK() OVER, COUNT(DISTINCT) i skalar subquery. NULL-filtrering korrekt.
+- `noreko-backend/classes/SkiftrapportController.php` — Skalara subqueries (MIN/MAX datum). Korrekta.
+- `noreko-backend/classes/SkiftoverlamningController.php` — Derived table for AVG over LIMIT 10. Korrekt.
+
+**Resultat:** Inga NOT IN (SELECT ...)-monster hittades (som ar farliga med NULL). Alla subqueries anvander derived tables i FROM eller skalara subqueries i SELECT — inga korrelerade subqueries i WHERE. **0 buggar.**
+
+### Uppgift 2: PHP array_key_exists vs isset edge cases
+Granskade alla 77 filer med isset/array_key_exists och alla 44 filer med json_decode.
+
+**Nyckelobservationer:**
+- `json_decode()` anvands konsekvent med antingen `?? []` (null-safe) eller `is_array()` kontroll efterat.
+- `isset($data['key'])` anvands korrekt for att kolla om en nyckel skickades i POST-data (partial updates).
+- `$_GET` access anvander genomgaende `?? ''`, `?? 0`, `intval()`, `trim()` och `isset()`.
+- `ProfileController.php` (rad 73) anvander korrekt `array_key_exists('operator_id', $data)` dar varden kan vara null.
+- `MaintenanceController.php` anvander korrekt `isset($data['field']) && $data['field'] !== ''` for nullable numeriska falt.
+- `isset($row['priority'])` i NewsController.php anvands for att hantera potentiellt saknad kolumn — korrekt monester.
+
+**Resultat:** **0 buggar.**
+
+### Uppgift 3: PHP error_log format konsistens (Controllers N-Z)
+Granskade 67 filer fran N till Z som innehaller error_log().
+
+**Nyckelobservationer:**
+- Alla error_log() foljder konsekvent formatet: `error_log('ControllerName::methodName: ' . $e->getMessage())`
+- Inga tomma catch-blocks hittades — alla har antingen error_log() eller en kommentar + error_log().
+- Inga error_log() loggar kanslig data (losenord, tokens, personnummer).
+- RegisterController loggar IP-adresser vid rate-limiting — korrekt for sakerhetsloggning, inte kansligt.
+- ProfileController loggar user_id och username vid misslyckade losenordsbyte — korrekt sakerhetspraxis.
+- Bade enkelfnuttar och dubbelfnuttar anvands for error_log-strangar men formatet ar konsekvent.
+
+**Resultat:** **0 buggar.**
+
+### Totalt: 0 buggar hittade/fixade
+
+Granskningen ar ren. Kodbas-kvaliteten pa PHP-backend ar hog — subqueries ar valstrukturerade, isset/json_decode-hantering ar korrekt, och error_log-formatet ar konsekvent med full kontext.
+
 ## 2026-03-23 Session #280 Worker B — Angular ActivatedRoute + async rendering + template null-safety (2 buggar)
 
 ### Uppgift 1: ActivatedRoute-granskning
