@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #268)*
+*Senast uppdaterad: 2026-03-23 (session #269)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -73,28 +73,29 @@ Session #265: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). arithmetic overfl
 Session #266: BUGGJAKT — 22 buggar (15 Worker A + 7 Worker B). error handling: 15 sendError() utan 500 fixade. SQL transaction: rent. password/token: rent. HTTP response type: rent. form reset: rent. Observable catchError: 7 komponenter fixade.
 Session #267: BUGGJAKT — 5 buggar (4 Worker A + 1 Worker B). file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade. route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
 Session #268: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). timezone: rent. array key validation: rent. PDO error mode: rent. HTTP interceptor: rent (komplett 401/403/500/0 + retry). memory profiling: rent (498/499 trackBy, alla subscriptions+timers korrekt).
+Session #269: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header injection: rent (CRLF-strippning + allowlist). numeric validation: rent (alla ID (int) cast). mail/SMTP: rent (FILTER_VALIDATE_EMAIL + hardkodad From). form dirty state: rent (14 formular med canDeactivate). template type safety: rent (ngIf-guards + optional chaining).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #269):
-- [ ] PHP header injection — saknad validering av user input i header()-anrop
-- [ ] Angular form dirty state — canDeactivate guards for osparade andringar
-- [ ] PHP numeric validation — is_numeric vs ctype_digit vs intval vid ID-parametrar
-- [ ] Angular accessibility — saknade aria-labels, keyboard navigation
-- [ ] PHP mail/SMTP safety — header injection i mail()-anrop
+### Nasta (session #270):
+- [ ] PHP output buffering — ob_start/ob_end konsistens, saknade ob_clean vid errors
+- [ ] Angular route resolver errors — felhantering i resolvers, loading states
+- [ ] PHP session race conditions — session_write_close vid langa requests
+- [ ] Angular SSR compatibility — window/document-access utan isPlatformBrowser
+- [ ] PHP CORS preflight — OPTIONS-requests hanteras korrekt i alla endpoints
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #266 (klar)
-Worker A: 15 buggar — error handling: 15 sendError() utan HTTP 500 i catch-block fixade (7 controllers). SQL transaction: rent. password/token: rent.
-Worker B: 7 buggar — Observable catchError: 7 komponenter saknade catchError i pipes fixade. HTTP response type: rent. form reset: rent.
 
 ### 2026-03-23 — Session #267 (klar)
 Worker A: 4 buggar — file I/O: 2 fopen felkontroll fixade. session: rent. CORS: 2 X-CSRF-Token headers fixade.
 Worker B: 1 bugg — route params: rent. environment config: rent. chunk error: 1 GlobalErrorHandler tillagd.
 
 ### 2026-03-23 — Session #268 (klar)
-Worker A: 0 buggar — timezone: rent (date_default_timezone_set korrekt i alla entry points). array key validation: rent (alla $_GET/json_decode med ?? eller isset). PDO error mode: rent (ERRMODE_EXCEPTION + EMULATE_PREPARES=false overallt).
-Worker B: 0 buggar — HTTP interceptor: rent (errorInterceptor hanterar 401/403/500/0/408/429 + retry for GET). memory profiling: rent (498/499 trackBy, alla subscriptions takeUntil, alla timers clearInterval/clearTimeout).
+Worker A: 0 buggar — timezone: rent. array key validation: rent. PDO error mode: rent.
+Worker B: 0 buggar — HTTP interceptor: rent. memory profiling: rent.
+
+### 2026-03-23 — Session #269 (klar)
+Worker A: 0 buggar — header injection: rent (CRLF-strippning + allowlist). numeric validation: rent (alla ID (int) cast). mail/SMTP: rent (FILTER_VALIDATE_EMAIL + hardkodad From).
+Worker B: 0 buggar — form dirty state: rent (14 formular med canDeactivate). template type safety: rent (ngIf-guards + optional chaining).

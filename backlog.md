@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #268):
-- [ ] **PHP timezone consistency** — Worker A — date_default_timezone_set(), DateTime vs strtotime
-- [ ] **PHP array key validation** — Worker A — saknade isset/array_key_exists vid extern data
-- [ ] **PHP PDO error mode consistency** — Worker A — ERRMODE_EXCEPTION vs SILENT
-- [ ] **Angular HTTP interceptor error handling** — Worker B — globala 401/403/500 handlers
-- [ ] **Angular memory profiling** — Worker B — stora dataset, pagination, subscription leaks
+### Pagaende (session #269):
+- [ ] **PHP header injection** — Worker A — saknad validering av user input i header()-anrop
+- [ ] **PHP numeric validation** — Worker A — is_numeric vs ctype_digit vs intval vid ID-parametrar
+- [ ] **PHP mail/SMTP safety** — Worker A — header injection i mail()-anrop, saknad sanitering
+- [ ] **Angular form dirty state** — Worker B — canDeactivate guards, osparade andringar
+- [ ] **Angular template type safety** — Worker B — null-check, optional chaining, runtime errors
 
-### Nasta buggjakt-items (session #269+):
-- [ ] **PHP header injection** — saknad validering av user input i header()-anrop
-- [ ] **Angular form dirty state** — canDeactivate guards for osparade andringar
-- [ ] **PHP numeric validation** — is_numeric vs ctype_digit vs intval vid ID-parametrar
-- [ ] **Angular accessibility** — saknade aria-labels, keyboard navigation, screen reader
-- [ ] **PHP mail/SMTP safety** — header injection i mail()-anrop, saknad sanitering
+### Nasta buggjakt-items (session #270+):
+- [ ] **PHP output buffering** — ob_start/ob_end konsistens, saknade ob_clean vid errors
+- [ ] **Angular route resolver errors** — felhantering i resolvers, loading states
+- [ ] **PHP session race conditions** — session_write_close vid langa requests
+- [ ] **Angular SSR compatibility** — window/document-access utan isPlatformBrowser
+- [ ] **PHP CORS preflight** — OPTIONS-requests hanteras korrekt i alla endpoints
 
 ## Parkerade features (ta inte dessa nu)
 
