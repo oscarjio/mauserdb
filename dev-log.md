@@ -1,3 +1,25 @@
+## 2026-03-23 Session #272 Worker B — Angular komponent-granskning: addEventListener, resize, Promise, ViewChild, URL, subscriptions (0 buggar)
+
+### Granskade omraden (A-F)
+**A) addEventListener utan removeEventListener** — Inga manuella addEventListener pa window/document/element hittades i nagon komponent.
+**B) window.resize/scroll handlers** — Inga manuella addEventListener('resize'/'scroll') hittades.
+**C) Promise-baserad kod utan error handling** — PdfExportButtonComponent har korrekt try/catch/finally. Ovrig kod anvander RxJS med felhantering.
+**D) ViewChild som anvands fore ngAfterViewInit** — Ingen komponent anvander @ViewChild. Canvas-atkomst sker via document.getElementById() i setTimeout-callbacks.
+**E) Felaktiga HTTP URL:er** — Alla komponenter anvander injicerade services for HTTP. Maintenance-log-komponenter anvander environment.apiUrl korrekt.
+**F) Subscription-lackor utanfor destroy$/takeUntil** — Samtliga subscriptions ar korrekt pipade med takeUntil(this.destroy$).
+
+### Granskade filer (36 st)
+- pages/rebotling/: operators-prestanda, maskinunderhall, produktions-sla, skiftplanering, produktionsflode, statistik-dashboard, operatorsbonus, stopptidsanalys, maskin-oee, rebotling-sammanfattning, vd-veckorapport, avvikelselarm, leveransplanering, batch-sparning, produktionskostnad, kvalitetscertifikat, historisk-produktion, kassationskvot-alarm, kapacitetsplanering, stationsdetalj, rebotling-trendanalys, produktions-dashboard, produktionsmal, stopporsaker, maskinhistorik
+- pages/drifttids-timeline/
+- pages/maintenance-log/components/: maintenance-form, equipment-stats, kpi-analysis, service-intervals, maintenance-list
+- pages/historisk-sammanfattning/, statistik-overblick/, vd-dashboard/, oee-trendanalys/, operator-ranking/, tidrapport/
+- rebotling/gamification/, skiftoverlamning/, daglig-briefing/, prediktivt-underhall/
+- components/pdf-export-button/
+
+**Resultat:** 0 buggar. Alla komponenter foljer korrekt lifecycle-monster med OnInit/OnDestroy, destroy$ Subject, takeUntil, clearInterval/clearTimeout, och Chart.js cleanup.
+
+---
+
 ## 2026-03-23 Session #272 Worker A — PHP-controller buggranskning: catch blocks, SQL, respons-format, division-by-zero, datum (0 buggar)
 
 ### Uppgift: Granska 17 PHP-controllers for buggar
