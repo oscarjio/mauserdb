@@ -1,3 +1,44 @@
+## Worker B — Session #265
+
+### Uppgift 1: Angular router guard consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade app.routes.ts (165 rader, 90+ routes), auth.guard.ts och pending-changes.guard.ts.
+
+- **Routes utan AuthGuard**: Alla publika sidor (login, register, about, contact, live-vyer, skiftrapporter, statistik) ar korrekt oguardade. Alla autentiserade sidor har canActivate: [authGuard]. Alla admin-sidor har canActivate: [adminGuard].
+- **Guard-logik**: authGuard och adminGuard anvander Observable<boolean | UrlTree> med korrekt pipe: initialized$ -> filter(true) -> take(1) -> switchMap -> map. Returnerar UrlTree for redirect (Angular best practice), inte router.navigate() + false.
+- **Redirect-logik**: authGuard redirectar till /login med returnUrl queryParam. adminGuard redirectar ej inloggade till /login, inloggade utan admin-roll till /. Inga oandliga loopar mojliga (login-sidan ar oguardad).
+- **canActivate vs canActivateChild**: Inga canActivateChild anvands — alla routes ar flat children under Layout-komponenten, sa canActivate ar korrekt.
+- **Lazy-loaded modules**: Inga lazy-loaded modules finns — alla routes anvander loadComponent (standalone components). Guards sitter pa varje route individuellt.
+- **pendingChangesGuard**: Korrekt implementerad som CanDeactivateFn med ComponentCanDeactivate-interface. Anvands pa 8 routes (overlamning, skiftoverlamning, underhallslogg, produktionsmal, leveransplanering, admin-sidor med formulr).
+- **APP_INITIALIZER**: Auth-status och feature flags laddas parallellt via APP_INITIALIZER innan routing startar — forhindrar race conditions i guards.
+
+### Uppgift 2: Angular service singleton audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla 96 services under noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ (exkl. live-sidor).
+
+- **providedIn: 'root'**: ALLA services anvander @Injectable({ providedIn: 'root' }). Konsekvent over hela kodbasen.
+- **Inga providers-arrays i komponenter/moduler**: Enda providers-arrayen finns i app.config.ts (app-nivan) med APP_INITIALIZER, LOCALE_ID och Angular-providers. Inga komponenter eller moduler registrerar services i lokala providers-arrays — inga duplicerade instanser.
+- **Services med state**: AuthService haller loggedIn$/user$/initialized$ (BehaviorSubjects) med korrekt clearSession()-metod. ToastService haller toasts-array med dismiss()-metod och ngOnDestroy cleanup. FeatureFlagService haller flags Map med clear() i loadFlags(). Ovriga services ar stateless (pure HTTP-anrop med pipe operators).
+- **Inga oanvanda service-imports**: Samtliga services som importeras i komponenter anvands for datahantning (HTTP-anrop via inject() eller constructor DI).
+
+### Uppgift 3: Angular template type safety audit
+**Resultat:** 0 buggar — rent
+
+Granskade 20 HTML-templates under noreko-frontend/src/app/pages/ som INTE granskades i session #263:
+production-analysis, shift-plan, certifications, operator-attendance, underhallslogg, stoppage-log, rebotling/operator-jamforelse, rebotling/kvalitets-trendbrott, rebotling/vd-veckorapport, rebotling/maskin-oee, rebotling/stopptidsanalys, rebotling/produktionseffektivitet, rebotling/produktionskostnad, rebotling/kapacitetsplanering, rebotling/kassationsorsak-statistik, rebotling/produktions-dashboard, rebotling/produktionsflode, rebotling/rebotling-sammanfattning, rebotling/stationsdetalj, rebotling/kassationskvot-alarm.
+
+- **Property access utan null-check**: Alla nested property-accesser skyddas av *ngIf-guards (t.ex. `*ngIf="overview && !loadingOverview"`, `*ngIf="kpiData"`) eller optional chaining (`overview.basta_maskin?.namn`, `kpi?.top_station?.station_namn`). Null-coalescing anvands genomgande (`?? 0`, `?? '--'`, `?? []`).
+- ***ngFor med trackBy**: ALLA *ngFor i granskade templates har trackBy (trackByIndex, trackByOperatorId, trackByShiftNumber, trackByMaskinId, trackById, etc.). 499 trackBy-forekomster raknades over 128 template-filer — exakt lika manga som *ngFor-forekomster.
+- **Event handlers**: Alla (click) och (change) handlers matchar metoder i respektive komponent. Keyboard-tillganglighet finns med (keydown.enter) pa interaktiva element som th-kolumner for sortering.
+- **Interpolation**: Inga fall av {{ object }} utan property-access. Alla interpolationer anvander specifika properties (t.ex. `{{ op.namn }}`, `{{ s.total_min | number:'1.0-0' }}`).
+- **Pipe-argument**: `| number:'1.0-0'` och `| number:'1.1-1'` anvands korrekt for heltal resp. en decimal. `| date:'yyyy-MM-dd HH:mm'` anvands korrekt for tidsformat. Inga felaktiga pipe-argument hittades.
+
+### Totalt: 0 buggar hittade
+
+---
+
 ## Worker A — Session #263
 
 ### Uppgift 1: PHP date/string comparison audit
