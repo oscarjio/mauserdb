@@ -1,3 +1,37 @@
+## 2026-03-23 Session #269 Worker A — PHP header injection/numeric validation/mail safety audit (0 buggar)
+
+### Uppgift 1: PHP header injection audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/) for header(), setcookie(), header_remove():
+- **CORS origin:** api.php, login.php, admin.php — alla strippar CRLF fran `$_SERVER['HTTP_ORIGIN']` med `str_replace(["\r", "\n"], '', $origin)` innan `header("Access-Control-Allow-Origin: $origin")`. Origin valideras mot allowlist fore anvandning. Korrekt.
+- **CSV Content-Disposition:** BonusAdminController saniterar filnamn med `basename()` + `preg_replace('/[^a-zA-Z0-9._-]/', '_', ...)`. TidrapportController och RebotlingAnalyticsController saniterar datumdelar med `preg_replace('/[^0-9-]/', '', ...)`. Korrekt.
+- **setcookie():** LoginController anvandar array-formen med hardkodade parametrar (httponly, samesite, secure). Korrekt.
+- **header_remove():** Bara `header_remove('X-Powered-By')` — statiskt. Korrekt.
+- **Inga Location-redirects:** Inga `header("Location: ...")` anrop finns i kodbasen. Korrekt.
+- Ovriga header()-anrop anvandar enbart statiska strangar (Content-Type, security headers, HSTS). Rent.
+
+### Uppgift 2: PHP numeric validation audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/) for ID-parametrar, is_numeric(), LIMIT/OFFSET:
+- **ID-parametrar fran $_GET:** Alla anvander `(int)` cast eller `intval()` — ca 40 forekoster verifierade (MaintenanceController, RebotlingController, OperatorsPrestandaController, BonusController, AlertsController, m.fl.). Inga anvander is_numeric() pa user input.
+- **is_numeric():** Anvands pa 6 stallen (VpnController, AndonController) — alla pa databasvarden/interna varden, aldrig pa user input. Korrekt.
+- **LIMIT/OFFSET fran user input:** RebotlingController och KvalitetscertifikatController — bada anvander `(int)` cast med `max()/min()` bounds. Korrekt.
+- **SQL-interpolation:** BonusController::getDateFilter() interpolerar datumstrangar i SQL men validerar forst med `preg_match('/^\d{4}-\d{2}-\d{2}$/')`. Ovriga dynamiska SQL (VdDashboardController, NewsController, HistorikController, RebotlingAnalyticsController) anvander enbart hardkodade SQL-fragment utan user input. Korrekt.
+- Alla ovriga ID/numeriska varden i SQL anvander prepared statements med parameterbindning.
+
+### Uppgift 3: PHP mail/SMTP safety audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/) for mail(), SMTP, header injection:
+- **3 mail()-anrop hittade:**
+  1. `ShiftHandoverController::sendUrgentNotification()` — mottagare fran DB validerade med `filter_var(FILTER_VALIDATE_EMAIL)`, From hardkodad (`noreply@noreko.se`), Subject genereras internt med `date()`. `$noteText` och `$username` gar bara i message body, inte i headers.
+  2. `RebotlingAnalyticsController::sendAutoShiftReport()` — mottagare fran DB validerade med `filter_var(FILTER_VALIDATE_EMAIL)`, From hardkodad, Subject genereras fran validerat datum/skiftnamn (inga user-input i headers).
+  3. `RebotlingAnalyticsController::sendWeeklySummaryEmail()` — mottagare validerade med `filter_var()`, Subject base64-kodad med `=?UTF-8?B?...?=`, From hardkodad.
+- **Inga SMTP-bibliotek** (PHPMailer, SwiftMailer) anvands.
+- **Inget user input** nar mail-headers direkt. Rent.
+
 ## 2026-03-23 Session #268 Worker B — Angular HTTP interceptor + memory profiling audit (0 buggar)
 
 ### Uppgift 1: Angular HTTP interceptor error handling audit
