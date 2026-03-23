@@ -1,3 +1,64 @@
+## 2026-03-23 Session #281 Worker B — Angular HTTP cancellation + date/time rendering + form validation (6 buggar)
+
+### Uppgift 1: Angular HTTP request cancellation
+Granskade alla services och komponenter for mergeMap/switchMap/concatMap/exhaustMap-anvandning, saknad unsubscribe/takeUntil, och redundanta HTTP-anrop.
+
+**Resultat:**
+- switchMap anvands korrekt (polling med timer, auth-guards med BehaviorSubject)
+- Alla 160+ komponenter med subscribe() har takeUntil(this.destroy$) pa HTTP-anrop
+- Inga mergeMap-anvandningar hittades dar switchMap borde anvandas
+- Inga concatMap/exhaustMap-problem
+- Undantag: rebotling-live.ts och tvattlinje-live.ts saknar takeUntil men dessa far ej roras (regel 1)
+
+**0 buggar.**
+
+### Uppgift 2: Angular date/time rendering
+Granskade alla templates och komponenter for timezone-problem, DatePipe-format, Date-parsning.
+
+**6 buggar hittade och fixade — alla relaterade till timezone-osaker datumparsning:**
+
+1. **`produktionskalender/produktionskalender.ts:234`** — `new Date(d.datum)` dar `d.datum` ar "YYYY-MM-DD" → parsas som UTC → fel veckonummerberakning i CET/CEST. **Fix:** Andrat till `parseLocalDate(d.datum)`.
+
+2. **`produktionsmal/produktionsmal.ts:245`** — `new Date(d.datum)` for chart-labels → kunde visa fel dag. **Fix:** Andrat till `parseLocalDate(d.datum)`.
+
+3. **`rebotling/rebotling-trendanalys/rebotling-trendanalys.component.ts:300`** — `new Date(d.datum)` for period-filtrering → jmfr UTC vs lokal tid kunde exkludera/inkludera fel dag. **Fix:** Andrat till `parseLocalDate(d.datum)` + lagt till import.
+
+4. **`skiftrapport-export/skiftrapport-export.ts:51`** — `new Date().toISOString().substring(0,10)` → ger morgondagens datum efter 23:00 CET. **Fix:** Andrat till `localToday()`.
+
+5. **`underhallslogg/underhallslogg.ts:121,282`** — Samma `toISOString().substring(0,10)` bug pa 2 stallen. **Fix:** Andrat till `localToday()`.
+
+6. **`skiftoverlamning/skiftoverlamning.ts:276`** — Samma `toISOString().substring(0,10)` bug for formulardatum. **Fix:** Andrat till `localToday()` + lagt till import.
+
+**Aterstaende icke-buggar granskade:**
+- DatePipe-format i templates: alla anvander korrekta Angular-format (yyyy-MM-dd, HH:mm etc), inga YYYY/DD-fel
+- `new Date(cycle.datum)` i rebotling-statistik.ts och tvattlinje-statistik.ts — dessa ar datetime-strangar med tid, inte date-only — korrekt
+- `toLocaleDateString('sv-SE')` anvands konsekvent med locale — korrekt
+- Ingen moment()-anvandning hittades
+
+### Uppgift 3: Angular form validation consistency
+Granskade alla formuler med ngSubmit, FormGroup/FormControl, ngModel.
+
+**Filer granskade:**
+- `register/register.html` — required, minlength, maxlength pa alla falt, disabled-submit med komplex validering. Korrekt.
+- `create-user/create-user.html` — required, minlength, maxlength, disabled-submit med canSubmit-getter. Korrekt.
+- `operators/operators.html` — required, min/max pa PLC-nummer, disabled-submit. Korrekt.
+- `users/users.html` — required, minlength/maxlength, disabled-submit med savingUser-guard. Korrekt.
+- `maskinunderhall/maskinunderhall.component.html` — required, min/max, #ngModel-refs med touched-felmeddelanden, disabled-submit. Korrekt.
+- `batch-sparning/batch-sparning.component.html` — required, min/max, validering i submitCreateBatch(). Korrekt.
+- `kassationskvot-alarm/kassationskvot-alarm.component.html` — sparaTroskel() har manuell validering (0-100, varning < alarm). Korrekt.
+- `maintenance-form.component.ts` — required, min/max, touched-felmeddelanden, disabled-submit, manuell validering i saveEntry(). Korrekt.
+- `service-intervals.component.ts` — required, min/max, disabled-submit, manuell validering. Korrekt.
+- `stoppage-log/stoppage-log.ts` — manuell validering for stopporsak och starttid, submittingStoppage-guard. Korrekt.
+- `underhallslogg/underhallslogg.ts` — manuell validering for station och beskrivning, submitting-guard. Korrekt.
+- `stopporsak-registrering/stopporsak-registrering.ts` — submitting-guard + valdKategori-check. Korrekt.
+- Alla shared/linje-skiftrapporter — redigeringsformular med ngModel, inga kritiska valideringsluckor.
+
+**0 buggar.**
+
+### Totalt session #281 Worker B: 6 buggar hittade och fixade
+
+Alla 6 buggar var timezone-relaterade (new Date pa date-only strangar och toISOString for dagens datum). Frontend-formularen ar val validerade med required/min/max/disabled-submit. HTTP-cancellation med takeUntil ar konsekvent.
+
 ## 2026-03-23 Session #281 Worker A — PHP subqueries + isset/array_key_exists + error_log N-Z (0 buggar)
 
 ### Uppgift 1: PHP SQL subquery korrekthet
