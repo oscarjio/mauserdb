@@ -1,3 +1,13 @@
+## 2026-03-23 Session #274 Worker A — PHP router-audit (0 dead routes) + djupgranskning A–M controllers (1 bugg: MorgonrapportController)
+
+### Uppgift 1 — api.php router-audit
+Granskade alla 117 routes i $classNameMap mot befintliga filer i classes/. Inga dead routes — alla controller-filer finns. Tre klasser utan direkt route (RebotlingAdminController, RebotlingAnalyticsController, VeckotrendController) ar sub-controllers som anvands internt via require_once i RebotlingController.
+
+### Uppgift 2 — Djupgranskning controllers A–M (18 controllers)
+Granskade: AlarmHistorikController, AvvikelselarmController, BatchSparningController, DagligSammanfattningController, DrifttidsTimelineController, EffektivitetController, FeedbackAnalysController, ForstaTimmeAnalysController, HeatmapController, HistoriskProduktionController, KapacitetsplaneringController, KassationsanalysController, KassationsDrilldownController, KvalitetscertifikatController, KvalitetstrendanalysController, LeveransplaneringController, MaskinhistorikController, MorgonrapportController.
+
+**1 bugg hittad och fixad:** MorgonrapportController.php — getProduktionData(), getEffektivitetData(), getTrenderData(), getKvalitetData() och getHighlightsData() anvande COUNT(*) direkt mot rebotling_ibc. Tabellen lagrar kumulativa PLC-rakneverk per skiftraknare, inte individuella IBC-poster. Rattat till MAX(ibc_ok) GROUP BY DATE(datum), skiftraknare-monster (samma som anvands i hela ovriga kodbasen). Commit: 22194a7.
+
 ## 2026-03-23 Session #273 Worker B — Angular services buggjakt: API-URL:er, felhantering, memory leaks, typer, HTTP-metoder (0 buggar)
 
 ### Granskade omraden (A-F)
