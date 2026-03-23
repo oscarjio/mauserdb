@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #277):
-- [ ] **PHP error logging konsistens** — Worker A — verifiera error_log format, saknade catch-logs, log injection
-- [ ] **PHP SQL transaction isolation** — Worker A — beginTransaction/commit/rollback, nested, saknade transaktioner
-- [ ] **PHP CSRF token rotation** — Worker A — generering, validering, rotation, dubbelklick-skydd
-- [ ] **Angular HTTP caching** — Worker B — GET-cache, invalidering, duplicerade anrop
-- [ ] **Angular change detection optimering** — Worker B — OnPush, trackBy, template-funktioner
-- [ ] **Angular service singleton audit** — Worker B — providedIn, state, circular deps
+### Pagaende (session #278):
+- [ ] **PHP date/timezone konsistens** — Worker A — verifiera date()/strtotime()/DateTime, timezone-installningar
+- [ ] **PHP array bounds/key access** — Worker A — isset/array_key_exists fore access, tomma resultatset
+- [ ] **PHP SQL injection i dynamiska ORDER BY** — Worker A — vitlistning av kolumnnamn, (int)-cast LIMIT
+- [ ] **Angular memory leak regressionstest** — Worker B — subscriptions, timers, Chart.js destroy
+- [ ] **Angular router lazy chunk felhantering** — Worker B — chunk-laddningsfel, GlobalErrorHandler
+- [ ] **Angular HTTP felhantering konsistens** — Worker B — catchError, timeout, error callbacks
 
-### Nasta buggjakt-items (session #278+):
-- [ ] **PHP date/timezone konsistens** — verifiera att alla date()-anrop anvander samma timezone
-- [ ] **PHP array bounds/key access** — verifiera isset/array_key_exists fore access
-- [ ] **Angular memory leak regressionstest** — kora profiling pa tunga komponenter
-- [ ] **Angular router lazy chunk felhantering** — verifiera att chunk-ladningsfel hanteras
-- [ ] **PHP SQL injection i dynamiska ORDER BY** — verifiera vitlistning av kolumnnamn
+### Nasta buggjakt-items (session #279+):
+- [ ] **PHP response header konsistens** — Content-Type, Cache-Control, X-Content-Type-Options
+- [ ] **PHP numeric precision** — float-jamforelser, round() konsistens, division-resultat
+- [ ] **Angular form state management** — dirty/pristine, reset efter submit, validering
+- [ ] **Angular environment-specifik konfiguration** — API URL, feature flags, build-env
+- [ ] **PHP SQL JOIN konsistens** — verifiera att alla JOINs matchar ratt kolumner
 
 ## Parkerade features (ta inte dessa nu)
 

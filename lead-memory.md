@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #277)*
+*Senast uppdaterad: 2026-03-23 (session #278)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -82,31 +82,28 @@ Session #274: BUGGJAKT — 5 buggar (5 Worker A + 0 Worker B). api.php router: r
 Session #275: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). PHP N-Z djupgranskning + SQL UNION/subquery audit: rent. Angular environment config: rent. HTTP interceptor: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Routing guards: rent.
 Session #276: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). PHP rate limiting: rent. File upload: inga uploads finns. Session/cookie sakerhet: rent. Angular lazy loading: rent. Form validation: rent. Pipes/directives: inga custom finns.
 Session #277: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). Error logging: 1 log injection fixad (Login/Register). SQL transactions: 1 race condition fixad (MaintenanceController). CSRF: rent. HTTP caching: rent. Change detection: rent. Service singletons: rent.
+Session #278: BUGGJAKT — 1 bugg (1 Worker A + 0 Worker B). Date/timezone: 1 strtotime('monday this week') i GamificationController fixad (fel pa sondagar). Array bounds: rent. SQL ORDER BY: rent. Angular memory leaks: rent. Chunk felhantering: rent. HTTP felhantering: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #277):
-- [ ] PHP error logging konsistens (Worker A)
-- [ ] PHP SQL transaction isolation (Worker A)
-- [ ] PHP CSRF token rotation (Worker A)
-- [ ] Angular HTTP caching (Worker B)
-- [ ] Angular change detection optimering (Worker B)
-- [ ] Angular service singleton audit (Worker B)
+### Pagaende (session #278):
+- [ ] PHP date/timezone konsistens (Worker A)
+- [ ] PHP array bounds/key access (Worker A)
+- [ ] PHP SQL injection i dynamiska ORDER BY (Worker A)
+- [ ] Angular memory leak regressionstest (Worker B)
+- [ ] Angular router lazy chunk felhantering (Worker B)
+- [ ] Angular HTTP felhantering konsistens (Worker B)
 
-### Nasta (session #278+):
-- [ ] PHP date/timezone konsistens
-- [ ] PHP array bounds/key access
-- [ ] Angular memory leak regressionstest
-- [ ] Angular router lazy chunk felhantering
-- [ ] PHP SQL injection i dynamiska ORDER BY
+### Nasta (session #279+):
+- [ ] PHP response header konsistens
+- [ ] PHP numeric precision
+- [ ] Angular form state management
+- [ ] Angular environment-specifik konfiguration
+- [ ] PHP SQL JOIN konsistens
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #275 (klar)
-Worker A: 0 buggar — PHP N-Z djupgranskning + SQL UNION/subquery audit: rent.
-Worker B: 1 bugg — error.interceptor visade inte serverns felmeddelande vid 5xx (fixat). Environment config + routing guards: rent.
 
 ### 2026-03-23 — Session #276 (klar)
 Worker A: 0 buggar — PHP rate limiting: rent. File upload: inga uploads. Session/cookie sakerhet: rent.
@@ -115,3 +112,7 @@ Worker B: 0 buggar — Lazy loading: rent. Form validation: rent. Pipes/directiv
 ### 2026-03-23 — Session #277 (klar)
 Worker A: 2 buggar — log injection i Login/RegisterController (username utan sanitering i error_log), race condition i MaintenanceController (SELECT+INSERT utan transaktion).
 Worker B: 0 buggar — HTTP caching: rent (polling-baserat, korrekt). Change detection: rent (tunga berakningar cachade). Service singletons: rent (alla 96 providedIn root).
+
+### 2026-03-23 — Session #278 (klar)
+Worker A: 1 bugg — GamificationController strtotime('monday this week') returnerade nasta mandag pa sondagar (6 stallen fixade). Array bounds + SQL ORDER BY: rent.
+Worker B: 0 buggar — Memory leaks: rent (170 komponenter). Chunk felhantering: rent (GlobalErrorHandler). HTTP felhantering: rent (alla catchError + interceptors).
