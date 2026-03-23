@@ -7,19 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #262):
-- [x] **PHP array key existence audit** — Worker A — rent
-- [x] **PHP file upload validation audit** — Worker A — rent (ingen upload-funktionalitet)
-- [x] **PHP regex pattern safety audit** — Worker A — rent
-- [x] **Angular HTTP retry/error recovery audit** — Worker B — rent
-- [x] **Angular form validation consistency audit** — Worker B — rent
+### Klart (session #263):
+- [x] **PHP date/string comparison audit** — Worker A — rent
+- [x] **PHP PDO fetch mode consistency audit** — Worker A — rent (alla FETCH_ASSOC)
+- [x] **PHP SQL column alias consistency audit** — Worker A — rent
+- [x] **Angular pipe purity audit** — Worker B — rent (inga custom pipes)
+- [x] **Angular change detection audit** — Worker B — rent
+- [x] **Angular template null safety audit** — Worker B — rent (18 templates)
 
-### Nasta buggjakt-items (session #263+):
-- [ ] **PHP date/string comparison audit** — strtotime edge cases, strcmp vs ===, locale-beroende
-- [ ] **PHP PDO fetch mode consistency audit** — FETCH_ASSOC vs FETCH_BOTH, saknade fetchAll-kontroller
-- [ ] **Angular pipe purity audit** — impure pipes i ngFor, saknade pure pipes for tunga berakningar
-- [ ] **Angular change detection audit** — onPush-strategier, saknade markForCheck(), zoner
-- [ ] **PHP SQL column alias consistency audit** — alias-namn som inte matchar frontend-forvantningar
+### Nasta buggjakt-items (session #264+):
+- [ ] **PHP header() consistency audit** — Content-Type, CORS, caching headers
+- [ ] **PHP json_encode flags audit** — JSON_THROW_ON_ERROR, JSON_UNESCAPED_UNICODE
+- [ ] **Angular memory leak audit** — EventEmitter, DOM listeners, chart instances
+- [ ] **Angular HTTP URL consistency audit** — hardcoded URLs, trailing slashes, query params
+- [ ] **PHP arithmetic overflow/division audit** — division by zero, integer overflow i berakningar
 
 ## Parkerade features (ta inte dessa nu)
 
