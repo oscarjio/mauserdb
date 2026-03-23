@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #265)*
+*Senast uppdaterad: 2026-03-23 (session #266)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -70,24 +70,19 @@ Session #262: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array key existen
 Session #263: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). date/string: rent. PDO fetch: rent. SQL alias: rent. pipe purity: rent. change detection: rent. template null safety: rent.
 Session #264: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() consistency: rent. json_encode flags: rent. memory leak: rent. HTTP URL: rent.
 Session #265: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). arithmetic overflow/division: rent. SQL injection ORDER BY/GROUP BY: rent. include/require path: rent. router guard: rent. service singleton: rent. template type safety: rent.
+Session #266: BUGGJAKT — 22 buggar (15 Worker A + 7 Worker B). error handling: 15 sendError() utan 500 fixade. SQL transaction: rent. password/token: rent. HTTP response type: rent. form reset: rent. Observable catchError: 7 komponenter fixade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #265):
-- [ ] PHP arithmetic overflow/division audit — Worker A
-- [ ] PHP SQL injection i dynamiska ORDER BY/GROUP BY — Worker A
-- [ ] PHP include/require path audit — Worker A
-- [ ] Angular router guard consistency audit — Worker B
-- [ ] Angular service singleton audit — Worker B
-- [ ] Angular template type safety audit — Worker B
+### Nasta (session #267):
+- [ ] PHP file I/O safety — saknade flock(), felhantering vid fopen/fwrite/fclose
+- [ ] Angular route parameter validation — saknad parseInt/validering av route params
+- [ ] PHP session fixation/regeneration — session_regenerate_id() vid login
+- [ ] Angular environment config audit — dev vs prod skillnader, saknade variabler
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #263 (klar)
-Worker A: 0 buggar — date/string comparison: rent. PDO fetch mode: rent (alla FETCH_ASSOC). SQL column alias: rent.
-Worker B: 0 buggar — pipe purity: rent (inga custom pipes). change detection: rent. template null safety: rent (18 templates).
 
 ### 2026-03-23 — Session #264 (klar)
 Worker A: 0 buggar — header() consistency: rent (centralt i api.php). json_encode flags: rent (alla 1085 anrop har JSON_UNESCAPED_UNICODE).
@@ -96,3 +91,7 @@ Worker B: 0 buggar — memory leak: rent (170+ komponenter, alla chart.destroy/r
 ### 2026-03-23 — Session #265 (klar)
 Worker A: 0 buggar — arithmetic overflow/division: rent (80+ divisioner, alla skyddade med > 0 guards/ternary). SQL injection ORDER BY/GROUP BY: rent (alla whitelist-validerade). include/require path: rent (enbart require_once med __DIR__).
 Worker B: 0 buggar — router guard: rent (90+ routes, alla med authGuard/adminGuard). service singleton: rent (96 services, alla providedIn root). template type safety: rent (20 templates, alla med trackBy/null-guards).
+
+### 2026-03-23 — Session #266 (klar)
+Worker A: 15 buggar — error handling: 15 sendError() utan HTTP 500 i catch-block fixade (7 controllers). SQL transaction: rent (35 metoder, alla legitimt enkel-query eller redan korrekt). password/token: rent (bcrypt+password_verify, bin2hex(random_bytes), hash_equals).
+Worker B: 7 buggar — Observable catchError: 7 komponenter saknade catchError i pipes fixade (avvikelselarm, leveransplanering, skiftoverlamning, batch-sparning, produktionskostnad, kvalitetscertifikat, historisk-produktion). HTTP response type: rent (95 services). form reset: rent.
