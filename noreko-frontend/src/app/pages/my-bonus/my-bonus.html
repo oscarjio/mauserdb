@@ -431,19 +431,19 @@
         <div class="row g-2 mt-3">
           <div class="col-4">
             <div class="text-center p-2 rounded" style="background:#2d3748;">
-              <div class="fw-bold text-success" style="font-size:1.1rem;">{{ rankingPosition.my_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="fw-bold text-success" style="font-size:1.1rem;">{{ rankingPosition.my_ibc_per_h !== null ? (rankingPosition.my_ibc_per_h | number:'1.1-1') : '–' }}</div>
               <div class="text-muted" style="font-size:.75rem;">Min: /h</div>
             </div>
           </div>
           <div class="col-4">
             <div class="text-center p-2 rounded" style="background:#2d3748;">
-              <div class="fw-bold text-warning" style="font-size:1.1rem;">{{ rankingPosition.avg_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="fw-bold text-warning" style="font-size:1.1rem;">{{ rankingPosition.avg_ibc_per_h !== null ? (rankingPosition.avg_ibc_per_h | number:'1.1-1') : '–' }}</div>
               <div class="text-muted" style="font-size:.75rem;">Snitt: /h</div>
             </div>
           </div>
           <div class="col-4">
             <div class="text-center p-2 rounded" style="background:#2d3748;">
-              <div class="fw-bold text-secondary" style="font-size:1.1rem;">{{ rankingPosition.top_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="fw-bold text-secondary" style="font-size:1.1rem;">{{ rankingPosition.top_ibc_per_h !== null ? (rankingPosition.top_ibc_per_h | number:'1.1-1') : '–' }}</div>
               <div class="text-muted" style="font-size:.75rem;">Bäst: /h</div>
             </div>
           </div>

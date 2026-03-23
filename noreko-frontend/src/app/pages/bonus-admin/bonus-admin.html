@@ -660,13 +660,13 @@
                   <div class="col-6 col-md-3">
                     <div class="sim-kpi-card">
                       <div class="sim-kpi-label">Total bonuskostnad</div>
-                      <div class="sim-kpi-value sim-animated-number text-warning">{{ simResult.total_cost | number }} kr</div>
+                      <div class="sim-kpi-value sim-animated-number text-warning">{{ simResult.total_cost !== undefined ? (simResult.total_cost | number) : '–' }} kr</div>
                     </div>
                   </div>
                   <div class="col-6 col-md-3">
                     <div class="sim-kpi-card">
                       <div class="sim-kpi-label">Snitt per operatör</div>
-                      <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.avg_bonus_per_operator | number }} kr</div>
+                      <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.avg_bonus_per_operator !== undefined ? (simResult.avg_bonus_per_operator | number) : '–' }} kr</div>
                     </div>
                   </div>
                   <div class="col-6 col-md-3">
@@ -719,7 +719,7 @@
                       <tr class="table-active">
                         <td colspan="4"><strong>Totalt</strong></td>
                         <td></td>
-                        <td class="text-end fw-bold text-warning">{{ simResult.total_cost | number }} kr</td>
+                        <td class="text-end fw-bold text-warning">{{ simResult.total_cost !== undefined ? (simResult.total_cost | number) : '–' }} kr</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -854,13 +854,13 @@
             <div class="col-12 col-md-4">
               <div class="sim-kpi-card">
                 <div class="sim-kpi-label">Nuvarande totalkostnad</div>
-                <div class="sim-kpi-value sim-animated-number text-muted">{{ simBaselineResult.total_cost | number }} kr</div>
+                <div class="sim-kpi-value sim-animated-number text-muted">{{ simBaselineResult.total_cost !== undefined ? (simBaselineResult.total_cost | number) : '–' }} kr</div>
               </div>
             </div>
             <div class="col-12 col-md-4">
               <div class="sim-kpi-card">
                 <div class="sim-kpi-label">Ny totalkostnad</div>
-                <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.total_cost | number }} kr</div>
+                <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.total_cost !== undefined ? (simResult.total_cost | number) : '–' }} kr</div>
               </div>
             </div>
             <div class="col-12 col-md-4">
@@ -1007,13 +1007,13 @@
               <div class="col-6 col-md-3">
                 <div class="sim-kpi-card">
                   <div class="sim-kpi-label">Baslinje totalkostnad</div>
-                  <div class="sim-kpi-value sim-animated-number text-muted">{{ simHistResult.baseline.total_cost | number }} kr</div>
+                  <div class="sim-kpi-value sim-animated-number text-muted">{{ simHistResult.baseline.total_cost !== undefined ? (simHistResult.baseline.total_cost | number) : '–' }} kr</div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
                 <div class="sim-kpi-card">
                   <div class="sim-kpi-label">Simulerad totalkostnad</div>
-                  <div class="sim-kpi-value sim-animated-number text-info">{{ simHistResult.simulated.total_cost | number }} kr</div>
+                  <div class="sim-kpi-value sim-animated-number text-info">{{ simHistResult.simulated.total_cost !== undefined ? (simHistResult.simulated.total_cost | number) : '–' }} kr</div>
                 </div>
               </div>
               <div class="col-6 col-md-3">
@@ -1349,8 +1349,8 @@
                   <td class="text-muted small">{{ p.period_start }}<br>{{ p.period_end }}</td>
                   <td class="text-end fw-bold text-success">{{ formatSek(p.amount_sek) }}</td>
                   <td class="text-end text-muted">{{ p.ibc_count }}</td>
-                  <td class="text-end text-muted">{{ p.avg_ibc_per_h | number:'1.1-1' }}</td>
-                  <td class="text-end text-muted">{{ p.avg_quality_pct | number:'1.1-1' }}%</td>
+                  <td class="text-end text-muted">{{ p.avg_ibc_per_h !== undefined ? (p.avg_ibc_per_h | number:'1.1-1') : '–' }}</td>
+                  <td class="text-end text-muted">{{ p.avg_quality_pct !== undefined ? (p.avg_quality_pct | number:'1.1-1') : '–' }}%</td>
                   <td class="text-muted small" style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                     {{ p.notes || '—' }}
                   </td>

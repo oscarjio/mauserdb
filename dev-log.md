@@ -1,3 +1,75 @@
+## 2026-03-23 Session #280 Worker B — Angular ActivatedRoute + async rendering + template null-safety (2 buggar)
+
+### Uppgift 1: ActivatedRoute-granskning
+Granskade alla Angular-komponenter som anvander ActivatedRoute (params, queryParams, paramMap).
+
+**Filer granskade:**
+- `noreko-frontend/src/app/pages/operator-detail/operator-detail.ts` — snapshot + isNaN-check. Korrekt.
+- `noreko-frontend/src/app/pages/stoppage-log/stoppage-log.ts` — subscribe + takeUntil + whitelist-validering. Korrekt.
+- `noreko-frontend/src/app/pages/tvattlinje-statistik/tvattlinje-statistik.ts` — snapshot + parseInt/isNaN. Korrekt.
+- `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — snapshot + parseInt/isNaN. Korrekt.
+- `noreko-frontend/src/app/pages/login/login.ts` — snapshot i constructor + security guard (starts with `/`). Korrekt.
+
+**0 ActivatedRoute-buggar hittade.**
+
+### Uppgift 2: Asynkron rendering och race conditions
+Granskade komponenter med HTTP-polling och laddningstillstand.
+
+**Filer granskade:**
+- `operator-trend.ts` — loadVersion-counter-monster for race condition prevention. Korrekt.
+- `daglig-sammanfattning.ts/html` — `*ngIf="summaryLoaded && !summaryError && summary"`. Korrekt.
+- `executive-dashboard.ts/html` — `*ngIf="!loading && dashData"`. Korrekt.
+- `andon-board.ts` — isFetching-guard, clearInterval i ngOnDestroy. Korrekt.
+- `operator-personal-dashboard.ts` — alla timers clearTimeout/clearInterval i ngOnDestroy. Korrekt.
+- `statistik-overblick.component.ts` — multi-chart timer cleanup. Korrekt.
+- `drifttids-timeline.component.html` — `*ngIf="!loadingSummary && summary"`. Korrekt.
+- `shared-skiftrapport.ts` — cachedAvgQuality/cachedAvgIbcPerSkift initialiserade till 0. Korrekt.
+
+**0 async-buggar hittade.**
+
+### Uppgift 3: Template null-safety
+Granskade HTML-templates for null-osaker `| number`-pipe-anrop, saknade null-checks och trasiga bindings.
+
+**Hittade buggar:**
+
+**BUGG 1 — my-bonus.html (rad 434, 440, 446): `| number` pa `number | null`-falten**
+- `rankingPosition.my_ibc_per_h`, `rankingPosition.avg_ibc_per_h`, `rankingPosition.top_ibc_per_h` ar typade `number | null` i TypeScript-interfacet.
+- Det yttre `*ngIf` (rad 384) skyddar bara mot `rankingPosition.my_rank !== null` — garanterar INTE att de tre IBC/h-falten ar non-null.
+- Angulars DecimalPipe kastar fel nar den tar emot `null`.
+- **Fix:** Ersatte med ternary: `{{ val !== null ? (val | number:'1.1-1') : '–' }}` for alla tre falt.
+
+**BUGG 2 — bonus-admin.html (flera rader): `| number` pa `number | undefined`-falten**
+- `SimulationResult.total_cost?: number` och `SimulationResult.avg_bonus_per_operator?: number` ar optional (undefined-risk).
+- `PayoutRecord.avg_ibc_per_h?: number` och `PayoutRecord.avg_quality_pct?: number` ar optional.
+- Angulars DecimalPipe behandlar `undefined` som `null` och kastar fel.
+- **Fix:** Ersatte pa 8 stallen med ternary `!== undefined`-checks i bonus-admin.html (rader 663, 669, 722, 857, 863, 1010, 1016, 1352, 1353).
+
+### Totalt: 2 buggar fixade
+
+**Bugg 1:** Null-osaker `| number`-pipe pa nullable falten i my-bonus.html.
+- `noreko-frontend/src/app/pages/my-bonus/my-bonus.html` rad 434, 440, 446
+
+**Bugg 2:** Null-osaker `| number`-pipe pa optional falten i bonus-admin.html.
+- `noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html` rad 663, 669, 722, 857, 863, 1010, 1016, 1352, 1353
+
+Filer granskade (Angular frontend):
+- `noreko-frontend/src/app/pages/operator-detail/operator-detail.ts`
+- `noreko-frontend/src/app/pages/stoppage-log/stoppage-log.ts`
+- `noreko-frontend/src/app/pages/tvattlinje-statistik/tvattlinje-statistik.ts`
+- `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+- `noreko-frontend/src/app/pages/login/login.ts`
+- `noreko-frontend/src/app/pages/operator-trend/operator-trend.ts`
+- `noreko-frontend/src/app/pages/daglig-sammanfattning/daglig-sammanfattning.ts`
+- `noreko-frontend/src/app/pages/executive-dashboard/executive-dashboard.ts`
+- `noreko-frontend/src/app/pages/andon-board/andon-board.ts`
+- `noreko-frontend/src/app/pages/operator-personal-dashboard/operator-personal-dashboard.ts`
+- `noreko-frontend/src/app/pages/statistik-overblick/statistik-overblick.component.ts`
+- `noreko-frontend/src/app/pages/my-bonus/my-bonus.ts`
+- `noreko-frontend/src/app/pages/my-bonus/my-bonus.html` (fixad)
+- `noreko-frontend/src/app/pages/bonus-admin/bonus-admin.ts`
+- `noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html` (fixad)
+- `noreko-frontend/src/app/services/bonus-admin.service.ts`
+
 ## 2026-03-23 Session #279 Worker A — PHP response headers + numeric precision + SQL JOIN audit (0 buggar)
 
 ### Uppgift: Buggjakt i PHP-backend (3 granskningsomraden)
