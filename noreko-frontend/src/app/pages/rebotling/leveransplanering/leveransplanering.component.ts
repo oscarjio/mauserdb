@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 
 import { Chart, registerables } from 'chart.js';
 import {
@@ -145,7 +145,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       this.loading = false;
       this.isFetching = false;
@@ -160,7 +160,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   private loadOrdrar(): void {
     this.loadingOrdrar = true;
     this.errorOrdrar = false;
-    this.svc.getOrdrar(this.filterStatus, this.filterPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOrdrar(this.filterStatus, this.filterPeriod).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOrdrar = false;
       if (res?.success) {
         this.ordrarData = res.data;
@@ -174,7 +174,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   private loadKapacitet(): void {
     this.loadingKapacitet = true;
     this.errorKapacitet = false;
-    this.svc.getKapacitet(30).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getKapacitet(30).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingKapacitet = false;
       if (res?.success) {
         this.kapacitetData = res.data;
@@ -259,7 +259,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
 
   updateStatus(id: number, status: string): void {
     this.updateStatusError = '';
-    this.svc.uppdateraOrder(id, status).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.uppdateraOrder(id, status).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadAll();
       } else {
@@ -282,7 +282,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
     }
 
     this.savingOrder = true;
-    this.svc.skapaOrder(this.newOrder).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.skapaOrder(this.newOrder).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.savingOrder = false;
       if (res?.success) {
         this.showNewOrderModal = false;

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KvalitetscertifikatService,
@@ -123,7 +123,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOverview = false;
         this.isFetching = false;
         if (res?.success) { this.overview = res.data; }
@@ -140,7 +140,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     const period = this.filterPeriod || undefined;
     const opId   = this.filterOperator > 0 ? this.filterOperator : undefined;
 
-    this.svc.getLista(status, period, opId).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getLista(status, period, opId).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingLista = false;
         if (res?.success) {
           this.certifikat = res.data.certifikat;
@@ -199,7 +199,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   loadDetalj(id: number): void {
     this.loadingDetalj = true;
     this.errorDetalj = false;
-    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getDetalj(id).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingDetalj = false;
         if (res?.success) {
           this.selectedCert = res.data.certifikat as Certifikat;
@@ -228,7 +228,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.selectedCert.id,
       this.bedomStatus as 'godkand' | 'underkand',
       this.bedomKommentar
-    ).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    ).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.bedomLoading = false;
         if (res?.success) {
           this.bedomMessage = res.message || 'Bedomning sparad';
@@ -280,7 +280,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       antal_ibc: this.genAntalIbc,
       kassation_procent: this.genKassationPct,
       cykeltid_snitt: this.genCykeltidSnitt,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.genLoading = false;
         if (res?.success) {
           this.genMessage = `Certifikat skapat (Kvalitetspoang: ${res.kvalitetspoang})`;
@@ -303,7 +303,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   loadStatistik(): void {
     this.loadingStatistik = true;
     this.errorStatistik = false;
-    this.svc.getStatistik(30).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getStatistik(30).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStatistik = false;
         if (res?.success) {
           this.statistik = res.data;

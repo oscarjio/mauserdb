@@ -1,3 +1,49 @@
+## 2026-03-23 Session #266 Worker B — HTTP response type/form reset/Observable error audit
+
+### Uppgift 1: Angular HTTP response type audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla 95 service-filer under:
+- noreko-frontend/src/app/services/ (90 filer)
+- noreko-frontend/src/app/rebotling/ (5 service-filer)
+
+Samtliga HTTP-anrop använder generisk typparameter: `this.http.get<T>(...)`, `this.http.post<T>(...)` etc. Inga `this.http.get(...)` utan typparameter hittades. Förekomster av `: any` är begränsade till payload-parametrar (t.ex. `skapaOrder(order: any)`) och interna interface-fält — dessa är code smells men orsakar inga runtime-fel.
+
+### Uppgift 2: Angular form reset audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla komponenter med formulär (ReactiveFormsModule/template-driven/ngForm/ngModel):
+- noreko-frontend/src/app/pages/maintenance-log/components/maintenance-form.component.ts
+- noreko-frontend/src/app/pages/maintenance-log/components/maintenance-list.component.ts
+- noreko-frontend/src/app/pages/maintenance-log/components/service-intervals.component.ts
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.ts (har resetForm() efter lyckad submit)
+- noreko-frontend/src/app/pages/rebotling/leveransplanering/leveransplanering.component.ts (nollställer newOrder efter lyckad submit)
+- noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.ts (nollställer gen-form efter lyckad submit)
+- noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.ts (nollställer createForm via openCreateModal())
+
+Alla submit-knappar har `[disabled]`-guard under pågående request (isSaving, savingBatch, bedomLoading etc.). Alla formulär nollställs korrekt efter lyckad submit. Inga stale-data-problem hittades.
+
+### Uppgift 3: Angular Observable error handling audit
+**Resultat:** 7 buggar — fixade
+
+Granskade alla 41 komponent-filer. Identifierade 7 komponenter som saknade `catchError` i sina Observable pipes — samtliga använde enbart `.pipe(takeUntil(this.destroy$)).subscribe(...)` utan error-hantering. Vid HTTP-fel (nätverksavbrott, 500-svar etc.) propagerar RxJS felet som ett uncaught exception, vilket orsakar "ERROR Error: Uncaught" i webbläsarkonsolen och kan krascha Angulars change detection.
+
+**7 buggar fixade:**
+
+| Fil | Åtgärd |
+|-----|--------|
+| pages/rebotling/avvikelselarm/avvikelselarm.component.ts | Lade till `catchError(() => of(null))` i 7 subscribes (loadOverview, loadAktiva, loadHistorik, loadRegler, loadTrend, submitKvittera, toggleRegel, updateGrans). Lade till `of` i rxjs-import och `catchError` i operators-import. |
+| pages/rebotling/leveransplanering/leveransplanering.component.ts | Lade till `catchError(() => of(null))` i 5 subscribes (loadOverview, loadOrdrar, loadKapacitet, updateStatus, skapaOrder). Lade till `of` och `catchError` i imports. |
+| rebotling/skiftoverlamning/skiftoverlamning.component.ts | Lade till `catchError(() => of(null))` i 2 subscribes (loadSkiftdata, loadHistorik). Lade till `of` och `catchError` i imports. |
+| pages/rebotling/batch-sparning/batch-sparning.component.ts | Lade till `catchError(() => of(null))` i 6 subscribes (getOverview, getActiveBatches, getBatchHistory, getBatchDetail, completeBatch, createBatch). Lade till `of` och `catchError` i imports. |
+| pages/rebotling/produktionskostnad/produktionskostnad.component.ts | Lade till `catchError(() => of(null))` i 7 subscribes (getOverview, getBreakdown, getTrend, getDailyTable, getShiftComparison, getConfig, updateConfig). Lade till `of` och `catchError` i imports. |
+| pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.ts | Lade till `catchError(() => of(null))` i 6 subscribes (getOverview, getLista, getDetalj, bedom, generera, getStatistik). Lade till `of` och `catchError` i imports. |
+| pages/rebotling/historisk-produktion/historisk-produktion.component.ts | Lade till `catchError(() => of(null))` i 4 subscribes (getOverview, getProduktionPerPeriod, getJamforelse, getDetaljTabell). Lade till `of` och `catchError` i imports. |
+
+Build: `npx ng build` — godkänd, inga kompileringsfel.
+
+---
+
 ## 2026-03-23 Session #266 Worker A — error handling/SQL transaction/password audit
 
 ### Uppgift 1: PHP error handling consistency audit
