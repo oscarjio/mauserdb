@@ -1,3 +1,43 @@
+## 2026-03-23 Session #283 Worker B — Angular frontend buggjakt (4 buggar)
+
+### Uppgift 1: Angular route guard race conditions (0 buggar — rent)
+
+Granskade auth.guard.ts och pending-changes.guard.ts:
+- authGuard: Vantar korrekt pa initialized$ med filter+take+switchMap, returnerar UrlTree (Angular best practice)
+- adminGuard: Samma monster, kollar user$.role korrekt, ingen race condition
+- pendingChangesGuard: Korrekt CanDeactivateFn med confirm()-dialog
+- Inga redirect-loopar: login-sidan ar publik (inget authGuard), guards redirectar med returnUrl
+- APP_INITIALIZER anropar fetchStatus() innan routing startar + sessionStorage-cache som fallback
+
+### Uppgift 2: Angular ngModel vs FormControl mixing (0 buggar — rent)
+
+Granskade 96 HTML-templates med ngModel:
+- Inga templates anvander [formControl], [formGroup] eller formControlName — hela kodbasen anvander template-driven forms
+- Alla komponenter med ngModel importerar FormsModule korrekt
+- Inga fall av ngModel + formControl pa samma input (forbjudet i Angular)
+- Inga ReactiveFormsModule-importer behövs da reactive forms inte anvands
+
+### Uppgift 3: Angular HTTP retry/backoff — polling utan isFetching-guard (4 buggar fixade)
+
+Granskade 40+ komponenter med setInterval-polling. Hittade 4 komponenter dar setInterval anropar
+loadAll()/fetchAll() utan isFetching-guard, vilket kan orsaka overlappande HTTP-requests om
+servern svarar langsammare an polling-intervallet:
+
+1. **kassationsorsak-statistik.ts** — 60s interval, 5 parallella HTTP-anrop utan guard.
+   Fix: La till isFetching + pendingLoads-raknare med onLoadDone() i varje subscribe.
+
+2. **kvalitetstrendanalys.ts** — 60s interval, 5 parallella HTTP-anrop utan guard.
+   Fix: Samma monster: isFetching + pendingLoads + onLoadDone().
+
+3. **produktionspuls.ts** — 30s interval, 4 parallella HTTP-anrop utan guard.
+   Fix: Samma monster: isFetching + pendingLoads + onLoadDone().
+
+4. **min-dag.ts** — 60s interval, forkJoin med 3 anrop utan guard.
+   Fix: isFetching-guard pa loadAll(), reset i subscribe-callback.
+
+Ovriga komponenter med setInterval (batch-sparning, produktionseffektivitet, m.fl.) hade
+redan korrekt loadingXxx-guard eller isFetching-pattern.
+
 ## 2026-03-23 Session #283 Worker A — PHP backend buggjakt (0 buggar)
 
 ### Uppgift 1: PHP pagination edge cases (0 buggar — rent)

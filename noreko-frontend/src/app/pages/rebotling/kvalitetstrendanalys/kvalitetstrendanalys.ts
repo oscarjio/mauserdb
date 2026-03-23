@@ -65,6 +65,8 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshInterval: any = null;
+  private isFetching = false;
+  private pendingLoads = 0;
 
   // Farger for stationer
   readonly stationColors = [
@@ -91,15 +93,26 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
   }
 
   onPeriodChange(): void {
+    this.isFetching = false;
     this.loadAll();
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
+    this.pendingLoads = 5;
     this.loadOverview();
     this.loadTrend();
     this.loadOperators();
     this.loadAlarm();
     this.loadHeatmap();
+  }
+
+  private onLoadDone(): void {
+    this.pendingLoads--;
+    if (this.pendingLoads <= 0) {
+      this.isFetching = false;
+    }
   }
 
   // ---- Overview ----
@@ -112,6 +125,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingOverview = false;
+      this.onLoadDone();
       if (res?.success) {
         this.overview = res.data;
       } else if (res !== null) {
@@ -130,6 +144,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingTrend = false;
+      this.onLoadDone();
       if (res?.success) {
         this.trendData = res.data;
         // Init station checkboxar
@@ -155,6 +170,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingOperators = false;
+      this.onLoadDone();
       if (res?.success) {
         this.operatorData = res.data;
       } else if (res !== null) {
@@ -173,6 +189,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingAlarm = false;
+      this.onLoadDone();
       if (res?.success) {
         this.alarmData = res.data;
       } else if (res !== null) {
@@ -191,6 +208,7 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingHeatmap = false;
+      this.onLoadDone();
       if (res?.success) {
         this.heatmapData = res.data;
       } else if (res !== null) {

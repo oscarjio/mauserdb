@@ -39,6 +39,7 @@ export class MinDagPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(
     private rebotlingService: RebotlingService,
@@ -68,6 +69,8 @@ export class MinDagPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loading = true;
     this.error = null;
 
@@ -79,6 +82,7 @@ export class MinDagPage implements OnInit, OnDestroy {
       trend:   this.rebotlingService.getMinDagCycleTrend(opId).pipe(timeout(10000), catchError(() => of(null))),
     }).pipe(timeout(15000), catchError(() => of({ summary: null, goals: null, trend: null })), takeUntil(this.destroy$)).subscribe(({ summary, goals, trend }) => {
       this.loading = false;
+      this.isFetching = false;
 
       if (summary?.success) {
         this.summary = summary.data ?? null;

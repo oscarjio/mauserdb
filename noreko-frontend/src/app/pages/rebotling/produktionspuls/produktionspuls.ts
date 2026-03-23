@@ -20,6 +20,8 @@ import {
 export class ProduktionspulsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
+  private pendingLoads = 0;
 
   // Legacy ticker data
   items: PulsItem[] = [];
@@ -51,12 +53,16 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
   }
 
   fetchAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
+    this.pendingLoads = 4;
     this.error = null;
 
     // Legacy: senaste IBC:er for ticker
     this.pulsService.getLatest(50).pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.onLoadDone();
       if (res?.success && Array.isArray(res.data)) {
         this.items = res.data;
       } else if (this.loading) {
@@ -69,6 +75,7 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
     this.pulsService.getHourlyStats().pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.onLoadDone();
       if (res?.success) {
         this.currentHour = res.current;
         this.previousHour = res.previous;
@@ -79,6 +86,7 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
     this.pulsService.getPulse(20).pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.onLoadDone();
       if (res?.success && Array.isArray(res.data)) {
         this.pulseEvents = res.data;
       }
@@ -88,10 +96,18 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
     this.pulsService.getLiveKpi().pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.onLoadDone();
       if (res?.success) {
         this.liveKpi = res;
       }
     });
+  }
+
+  private onLoadDone(): void {
+    this.pendingLoads--;
+    if (this.pendingLoads <= 0) {
+      this.isFetching = false;
+    }
   }
 
   onTickerMouseEnter(): void {

@@ -70,6 +70,8 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private _timers: ReturnType<typeof setTimeout>[] = [];
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
+  private pendingLoads = 0;
 
   constructor(private svc: KassationsorsakStatistikService) {}
 
@@ -92,15 +94,26 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   setPeriod(p: number): void {
     this.period = p;
     this.drilldownData = null;
+    this.isFetching = false;
     this.loadAll();
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
+    this.pendingLoads = 5;
     this.loadOverview();
     this.loadPareto();
     this.loadTrend();
     this.loadPerOperator();
     this.loadPerShift();
+  }
+
+  private onLoadDone(): void {
+    this.pendingLoads--;
+    if (this.pendingLoads <= 0) {
+      this.isFetching = false;
+    }
   }
 
   // ---- Overview ----
@@ -109,6 +122,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.errorOverview = false;
     this.svc.getOverview(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
+      this.onLoadDone();
       if (res?.success) {
         this.overview = res.data;
         this.cachedTrendText = this.getTrendText();
@@ -124,6 +138,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.loadingPareto = true;
     this.svc.getPareto(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPareto = false;
+      this.onLoadDone();
       if (res?.success) {
         this.paretoData = res.data;
         this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100));
@@ -136,6 +151,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.loadingTrend = true;
     this.svc.getTrend(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
+      this.onLoadDone();
       if (res?.success) {
         this.trendData = res.data;
         // Välj top 3 orsaker som standard
@@ -155,6 +171,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.loadingOperator = true;
     this.svc.getPerOperator(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOperator = false;
+      this.onLoadDone();
       if (res?.success) {
         this.operatorData = res.data;
       }
@@ -166,6 +183,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
     this.loadingShift = true;
     this.svc.getPerShift(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingShift = false;
+      this.onLoadDone();
       if (res?.success) {
         this.shiftData = res.data;
       }
