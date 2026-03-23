@@ -268,6 +268,10 @@ if (!in_array($actionKey, $publicActions, true) && in_array($_SERVER['REQUEST_ME
         echo json_encode(['success' => false, 'error' => 'Ogiltig CSRF-token. Ladda om sidan och försök igen.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    // Släpp session-låset nu — timeout och CSRF är validerade, last_activity uppdaterad.
+    // Controllers som behöver skriva till sessionen (t.ex. ProfileController) öppnar den igen själva.
+    // Utan detta blockerar tunga requests (SQL, nätverks-I/O) alla andra requests för samma session.
+    session_write_close();
 }
 
 // Ladda klassen manuellt

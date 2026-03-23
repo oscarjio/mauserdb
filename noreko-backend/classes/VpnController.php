@@ -43,6 +43,12 @@ class VpnController {
             return;
         }
 
+        // Släpp session-låset innan nätverks-I/O (fsockopen till VPN management interface).
+        // Session-data (user_id, role) finns kvar i minnet via $_SESSION.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         if ($method === 'GET') {
             $this->getVpnStatus();
         } elseif ($method === 'POST') {

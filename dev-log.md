@@ -18740,3 +18740,40 @@ Granskade alla services (90+) och komponenter i noreko-frontend/src/app/:
 - **Endpoint-matchning:** Alla services foljer samma monster: `${environment.apiUrl}?action=X&run=Y` med withCredentials: true. Konsekvent med PHP-routern i api.php.
 
 ### Totalt: 0 buggar hittade
+
+## 2026-03-23 Session #270 Worker A — PHP output buffering / session race / CORS preflight audit (1 bugg)
+
+### Uppgift 1: PHP output buffering — ob_start/ob_end konsistens
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer i noreko-backend/controllers/ och noreko-backend/classes/. Inga controllers anvander ob_start/ob_end — all output sker via echo json_encode() direkt. Inga output buffering-problem.
+
+### Uppgift 2: PHP session race conditions
+**Resultat:** 1 bugg fixad
+
+**Bugg:** api.php holll session-laset under hela controller-exekveringen for POST/PUT/DELETE-requests. Session oppnades vid rad 257 for timeout- och CSRF-validering, men stangdes aldrig innan controllern exekverade. Detta blockerade alla andra requests for samma anvandares session under tunga operationer (SQL-queries, natverks-I/O).
+
+Sarskilt allvarligt for VpnController som gor fsockopen till OpenVPN management interface med upp till 5 sekunders connect-timeout + flesekunders lasningar — under hela denna tid var andra requests (t.ex. status-polling) blockerade.
+
+**Fix 1 (api.php):** Lade till `session_write_close()` efter CSRF-validering (rad 271). Vid denna punkt ar last_activity redan uppdaterad och CSRF-token validerad — sessionen behover inte langre vara oppen. Controllers som behover skriva till sessionen (t.ex. ProfileController) opnar den igen sjalva via sin session_start()-logik.
+
+**Fix 2 (VpnController.php):** Lade till explicit `session_write_close()` innan natverks-I/O paborjas. VpnController oppnar sessionen for POST-requests i sin handle()-metod — den nya koden slapper laset fore fsockopen-anropet.
+
+StatusController hade redan korrekt monster med session_write_close() fore DB-fragor (rad 52). De flesta GET-only-controllers anvander session_start(['read_and_close' => true]) korrekt.
+
+**Filer andrade:**
+- noreko-backend/api.php
+- noreko-backend/classes/VpnController.php
+
+### Uppgift 3: PHP CORS preflight — OPTIONS-requests
+**Resultat:** 0 buggar — rent
+
+Granskade api.php, admin.php och login.php for CORS-hantering:
+- Alla tre har korrekt OPTIONS-hantering med tidigt exit (http_response_code(204) + exit)
+- Access-Control-Allow-Methods inkluderar GET, POST, PUT, DELETE, OPTIONS
+- Access-Control-Allow-Headers inkluderar Content-Type, Authorization, X-CSRF-Token
+- Access-Control-Allow-Credentials: true sätts korrekt
+- Origin-validering med vitlista + subdoman-stod + header-injection-skydd (CRLF-strip)
+- Controllers i classes/ hanteras via api.php som router — behover inga egna CORS-headers
+
+### Totalt: 1 bugg hittad och fixad
