@@ -7,13 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #282+):
-- [ ] **PHP mail/notification edge cases** — felhantering vid misslyckad e-post, timeout
-- [ ] **PHP cron/scheduled tasks** — race conditions, timeout-hantering, dubbletter
-- [ ] **Angular chart.js konfiguration** — felaktiga options, saknade defaults, responsive
-- [ ] **Angular localStorage/sessionStorage** — quota exceeded, JSON parse errors, fallbacks
-- [ ] **PHP response caching headers** — per-endpoint Cache-Control, ETag, 304 korrekthet
-- [ ] **Angular SSR/hydration readiness** — window/document-anvandning, isPlatformBrowser
+### Nasta buggjakt-items (session #283+):
+- [ ] **PHP pagination edge cases** — off-by-one, negativa sidor, extremt stora LIMIT
+- [ ] **Angular HTTP retry/backoff** — exponential backoff, max retries, user feedback
+- [ ] **PHP SQL UNION/INTERSECT** — kolumntyp-mismatch, sortering, NULL-hantering
+- [ ] **Angular route guard race conditions** — auth-check timing, redirect loops
+- [ ] **PHP file_put_contents atomicity** — concurrent writes, temp-fil + rename
+- [ ] **Angular ngModel vs FormControl mixing** — inkonsekvent formularbindning, onodiga hybrid-monster
 
 ## Parkerade features (ta inte dessa nu)
 

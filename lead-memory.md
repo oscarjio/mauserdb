@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #281)*
+*Senast uppdaterad: 2026-03-23 (session #282)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -86,24 +86,20 @@ Session #278: BUGGJAKT — 1 bugg (1 Worker A + 0 Worker B). Date/timezone: 1 st
 Session #279: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Response headers: rent (api.php sattar globalt). Numeric precision: rent (alla divisioner skyddade). SQL JOINs: rent (~140 LEFT JOINs korrekt). Form state: rent. Environment config: rent. Component communication: rent.
 Session #280: BUGGJAKT — 4 buggar (2 Worker A + 2 Worker B). GROUP BY: 4 queries fixade (KassationsanalysController+FeedbackAnalysController). DecimalPipe null: 12 stallen fixade (my-bonus+bonus-admin). error_log: rent. CSRF: rent. Router params: rent. Async rendering: rent.
 Session #281: BUGGJAKT — 6 buggar (0 Worker A + 6 Worker B). SQL subqueries: rent. array_key_exists/isset: rent. error_log N-Z: rent. HTTP cancellation: rent. Date/time timezone: 6 new Date() timezone-buggar fixade (3 date-only parsing + 3 toISOString). Form validation: rent.
+Session #282: BUGGJAKT — 11 buggar (6 Worker A + 5 Worker B). Mail: 4 buggar (returvarde, XSS, CRLF, UTF-8 subject). Cron: 1 flock-las. CORS cache: 1 Vary header. Chart.js: rent. localStorage: 5 saknade try/catch. SSR: ej relevant.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #282+):
-- [ ] PHP mail/notification edge cases
-- [ ] PHP cron/scheduled tasks
-- [ ] Angular chart.js konfiguration
-- [ ] Angular localStorage/sessionStorage
-- [ ] PHP response caching headers per endpoint
-- [ ] Angular SSR/hydration readiness
+### Nasta (session #283+):
+- [ ] PHP pagination edge cases
+- [ ] Angular HTTP retry/backoff
+- [ ] PHP SQL UNION/INTERSECT
+- [ ] Angular route guard race conditions
+- [ ] PHP file_put_contents atomicity
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #279 (klar)
-Worker A: 0 buggar — Response headers: rent (api.php sattar Content-Type/Cache-Control/X-Content-Type-Options globalt). Numeric precision: rent (739 divisioner, alla skyddade). SQL JOINs: rent (~140 LEFT JOINs, alla korrekta ON-villkor).
-Worker B: 0 buggar — Form state: rent (19+ forms, alla aterställs/disablas korrekt). Environment config: rent (90+ services, alla environment.apiUrl). Component communication: rent (@Input default-varden, @ViewChild optional chaining).
 
 ### 2026-03-23 — Session #280 (klar)
 Worker A: 2 buggar — GROUP BY saknade JOINade kolumner i KassationsanalysController (2 queries) + FeedbackAnalysController (2 queries). error_log format: rent. CSRF: rent (centralt i api.php).
@@ -112,3 +108,7 @@ Worker B: 2 buggar — DecimalPipe null/undefined crashes i my-bonus.html (3 sta
 ### 2026-03-23 — Session #281 (klar)
 Worker A: 0 buggar — SQL subqueries: rent (5 filer, inga NOT IN med NULL-risk). array_key_exists/isset: rent (77 filer, korrekt null-hantering). error_log N-Z: rent (67 filer, konsekvent format).
 Worker B: 6 buggar — Date/time timezone: 3 st `new Date('YYYY-MM-DD')` parsas som UTC (fel dag i CET), 3 st `toISOString().substring(0,10)` ger fel datum efter 23:00 CET. Alla fixade med parseLocalDate()/localToday(). HTTP cancellation: rent. Form validation: rent.
+
+### 2026-03-23 — Session #282 (klar)
+Worker A: 6 buggar — mail(): 1 ignorerat returvarde + 1 XSS i HTML-email + 1 CRLF headers + 1 UTF-8 subject utan RFC 2047. Cron: 1 saknad flock i update-weather.php. CORS: 1 saknad Vary: Origin i api.php.
+Worker B: 5 buggar — localStorage/sessionStorage: 5 saknade try/catch (news, menu, my-bonus, funktionshub, csrf-interceptor). Chart.js: rent (109 komponenter). SSR/hydration: ej relevant.
