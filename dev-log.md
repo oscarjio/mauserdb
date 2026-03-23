@@ -1,3 +1,42 @@
+## 2026-03-23 Session #272 Worker A — PHP-controller buggranskning: catch blocks, SQL, respons-format, division-by-zero, datum (0 buggar)
+
+### Uppgift: Granska 17 PHP-controllers for buggar
+
+**Granskade filer (classes/-implementationerna, ej proxy-filerna i controllers/):**
+1. KassationsanalysController.php (1522 rader, 14 endpoints)
+2. VeckorapportController.php (571 rader, 1 endpoint)
+3. AlarmHistorikController.php (524 rader, 3 endpoints)
+4. HeatmapController.php (326 rader, 2 endpoints)
+5. ParetoController.php (263 rader, 2 endpoints)
+6. OeeWaterfallController.php (449 rader, 2 endpoints)
+7. MorgonrapportController.php (750 rader, 1 endpoint)
+8. DrifttidsTimelineController.php (514 rader, 2 endpoints)
+9. KassationsDrilldownController.php (311 rader, 3 endpoints)
+10. ProduktionspulsController.php (475 rader, 4 endpoints)
+11. ForstaTimmeAnalysController.php (374 rader, 2 endpoints)
+12. MyStatsController.php (680 rader, 3 endpoints)
+13. ProduktionsPrognosController.php (460 rader, 2 endpoints)
+14. StopporsakOperatorController.php (542 rader, 3 endpoints)
+15. OperatorOnboardingController.php (417 rader, 3 endpoints)
+16. FavoriterController.php (250 rader, 4 endpoints)
+17. KvalitetsTrendbrottController.php (562 rader, 3 endpoints)
+
+**Sokta buggkategorier:**
+
+A) **Empty/silent catch blocks:** 0 buggar — alla yttre catch-block anropar sendError() med HTTP 500. Inre nestade catch-block (t.ex. operators-lookup i KassationsanalysController) loggar och fortsatter, men foraldra-metoden returnerar fortfarande ett giltigt svar med partiell data. Detta ar korrekt defensiv kodning.
+
+B) **SQL query-korrekthet:** 0 buggar — alla GROUP BY matchar SELECT-kolumner eller anvander aggregeringsfunktioner. LEFT JOIN anvands korrekt for optionella lookups. Kumulativ PLC-aggregering (MAX per skiftraknare, sedan SUM) tillampas konsekvent.
+
+C) **Inkonsistent respons-format:** 0 buggar — alla controllers anvander konsekvent sendSuccess()/sendError() som returnerar {success: true/false, data/error, timestamp}. ProduktionspulsController har avvikande format for live-kpi (ingen data-wrapper), men det ar konsekvent internt och markerat som bakatkompat.
+
+D) **Division by zero:** 0 buggar — alla divisioner har > 0-kontroller fore berakning.
+
+E) **Felaktig datum-hantering i SQL:** 0 buggar — DATE(datum) BETWEEN anvands for datumjamforelser, datetime-ranges anvander korrekt BETWEEN med timestamps. Inga formatfel hittade.
+
+**Bygg:** Inga andringar gjorda, inget bygge behovs.
+
+---
+
 ## 2026-03-23 Session #271 Worker A — PHP error_reporting + flock + PDO prepared statement audit (0 buggar)
 
 ### Uppgift 1: PHP error_reporting/display_errors
