@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #279):
-- [ ] **PHP response header konsistens** — Worker A — Content-Type, Cache-Control, X-Content-Type-Options
-- [ ] **PHP numeric precision** — Worker A — float-jamforelser, round() konsistens, division-by-zero
-- [ ] **PHP SQL JOIN konsistens** — Worker A — verifiera att alla JOINs matchar ratt kolumner
-- [ ] **Angular form state management** — Worker B — dirty/pristine, reset efter submit, dubbel-submit
-- [ ] **Angular environment-specifik konfiguration** — Worker B — hardkodade URLer, feature flags
-- [ ] **Angular component communication** — Worker B — @Input/@Output, ViewChild timing, race conditions
+### Pagaende (session #280):
+- [ ] **PHP error_log format konsistens** — Worker A — controllers A-M, kansklig data, catch-blocks
+- [ ] **PHP CSRF token validering** — Worker A — mutating endpoints, token-bypass
+- [ ] **PHP SQL GROUP BY korrekthet** — Worker A — SELECT vs GROUP BY kolumner, HAVING
+- [ ] **Angular router parameter parsing** — Worker B — ActivatedRoute, typ-konvertering, subscriptions
+- [ ] **Angular async rendering** — Worker B — loading states, *ngIf guards, race conditions
+- [ ] **Angular template type safety** — Worker B — null-checks, pipe-anvandning, event handlers
 
-### Nasta buggjakt-items (session #280+):
-- [ ] **PHP error_log format konsistens** — verifiera att loggmeddelanden ar konsistenta och informativa
-- [ ] **PHP CSRF token validering** — granska att alla mutating endpoints validerar CSRF-token
-- [ ] **Angular router parameter parsing** — verifiera att route params hanteras korrekt i alla sidor
-- [ ] **Angular async rendering** — *ngIf med async data, loading states, race conditions
-- [ ] **PHP SQL GROUP BY korrekthet** — verifiera att SELECT-kolumner matchar GROUP BY
+### Nasta buggjakt-items (session #281+):
+- [ ] **PHP error_log format konsistens (N-Z)** — controllers N-Z, samma granskning som A-M
+- [ ] **PHP SQL subquery korrekthet** — verifiera att subqueries returnerar forvantade resultat
+- [ ] **Angular HTTP request cancellation** — switchMap vs mergeMap, avbryt vid navigation
+- [ ] **Angular date/time rendering** — timezone-problem, locale-format, moment vs Date
+- [ ] **PHP array_key_exists vs isset** — edge cases med null-varden i arrayer
 
 ## Parkerade features (ta inte dessa nu)
 

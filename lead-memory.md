@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #279)*
+*Senast uppdaterad: 2026-03-23 (session #280)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -84,31 +84,28 @@ Session #276: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). PHP rate limiting
 Session #277: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). Error logging: 1 log injection fixad (Login/Register). SQL transactions: 1 race condition fixad (MaintenanceController). CSRF: rent. HTTP caching: rent. Change detection: rent. Service singletons: rent.
 Session #278: BUGGJAKT — 1 bugg (1 Worker A + 0 Worker B). Date/timezone: 1 strtotime('monday this week') i GamificationController fixad (fel pa sondagar). Array bounds: rent. SQL ORDER BY: rent. Angular memory leaks: rent. Chunk felhantering: rent. HTTP felhantering: rent.
 Session #279: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Response headers: rent (api.php sattar globalt). Numeric precision: rent (alla divisioner skyddade). SQL JOINs: rent (~140 LEFT JOINs korrekt). Form state: rent. Environment config: rent. Component communication: rent.
+Session #280: BUGGJAKT — 4 buggar (2 Worker A + 2 Worker B). GROUP BY: 4 queries fixade (KassationsanalysController+FeedbackAnalysController). DecimalPipe null: 12 stallen fixade (my-bonus+bonus-admin). error_log: rent. CSRF: rent. Router params: rent. Async rendering: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #279):
-- [ ] PHP response header konsistens (Worker A) — rent
-- [ ] PHP numeric precision (Worker A) — rent
-- [ ] PHP SQL JOIN konsistens (Worker A) — rent
-- [ ] Angular form state management (Worker B) — rent
-- [ ] Angular environment-specifik konfiguration (Worker B) — rent
-- [ ] Angular component communication (Worker B) — rent
+### Pagaende (session #280):
+- [ ] PHP error_log format konsistens (Worker A)
+- [ ] PHP CSRF token validering (Worker A)
+- [ ] PHP SQL GROUP BY korrekthet (Worker A)
+- [ ] Angular router parameter parsing (Worker B)
+- [ ] Angular async rendering (Worker B)
+- [ ] Angular template type safety (Worker B)
 
-### Nasta (session #280+):
-- [ ] PHP error_log format konsistens
-- [ ] PHP CSRF token validering
-- [ ] Angular router parameter parsing
-- [ ] Angular async rendering
-- [ ] PHP SQL GROUP BY korrekthet
+### Nasta (session #281+):
+- [ ] PHP error_log format konsistens (N-Z)
+- [ ] PHP SQL subquery korrekthet
+- [ ] Angular HTTP request cancellation
+- [ ] Angular date/time rendering
+- [ ] PHP array_key_exists vs isset
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #277 (klar)
-Worker A: 2 buggar — log injection i Login/RegisterController (username utan sanitering i error_log), race condition i MaintenanceController (SELECT+INSERT utan transaktion).
-Worker B: 0 buggar — HTTP caching: rent (polling-baserat, korrekt). Change detection: rent (tunga berakningar cachade). Service singletons: rent (alla 96 providedIn root).
 
 ### 2026-03-23 — Session #278 (klar)
 Worker A: 1 bugg — GamificationController strtotime('monday this week') returnerade nasta mandag pa sondagar (6 stallen fixade). Array bounds + SQL ORDER BY: rent.
@@ -117,3 +114,7 @@ Worker B: 0 buggar — Memory leaks: rent (170 komponenter). Chunk felhantering:
 ### 2026-03-23 — Session #279 (klar)
 Worker A: 0 buggar — Response headers: rent (api.php sattar Content-Type/Cache-Control/X-Content-Type-Options globalt). Numeric precision: rent (739 divisioner, alla skyddade). SQL JOINs: rent (~140 LEFT JOINs, alla korrekta ON-villkor).
 Worker B: 0 buggar — Form state: rent (19+ forms, alla aterställs/disablas korrekt). Environment config: rent (90+ services, alla environment.apiUrl). Component communication: rent (@Input default-varden, @ViewChild optional chaining).
+
+### 2026-03-23 — Session #280 (klar)
+Worker A: 2 buggar — GROUP BY saknade JOINade kolumner i KassationsanalysController (2 queries) + FeedbackAnalysController (2 queries). error_log format: rent. CSRF: rent (centralt i api.php).
+Worker B: 2 buggar — DecimalPipe null/undefined crashes i my-bonus.html (3 stallen) + bonus-admin.html (9 stallen). Router params: rent. Async rendering: rent.
