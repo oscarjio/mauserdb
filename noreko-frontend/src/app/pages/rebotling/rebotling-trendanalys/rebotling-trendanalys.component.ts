@@ -13,6 +13,7 @@ import {
   PrognisData,
   PrognosDag,
 } from '../../../services/rebotling-trendanalys.service';
+import { parseLocalDate } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -297,7 +298,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     // Filtrera på vald period
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - this.aktivPeriod);
-    const filtered = this.historikData.filter(d => new Date(d.datum) >= cutoff);
+    const filtered = this.historikData.filter(d => parseLocalDate(d.datum) >= cutoff);
 
     if (filtered.length === 0) return;
 

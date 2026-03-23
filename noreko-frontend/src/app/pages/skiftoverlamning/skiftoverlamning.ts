@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { localToday } from '../../utils/date-utils';
 import {
   SkiftoverlamningService,
   SkiftoverlamningItem,
@@ -273,7 +274,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   private emptyForm(): CreatePayload {
     return {
       skift_typ: this.detectSkiftTyp(),
-      datum: new Date().toISOString().substring(0, 10),
+      datum: localToday(),
       ibc_totalt: 0,
       ibc_per_h: 0,
       stopptid_min: 0,

@@ -10,7 +10,7 @@ import {
   DagSummary,
   MultiDaySumma,
 } from '../../services/skiftrapport-export.service';
-import { localDateStr } from '../../utils/date-utils';
+import { localDateStr, localToday } from '../../utils/date-utils';
 
 // pdfmake är installerat via package.json
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -48,7 +48,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
   genererarPdf = false;
 
   // Används i template för [max]-binding (new Date() är inte tillåtet i Angular-template)
-  readonly todayISO: string = new Date().toISOString().substring(0, 10);
+  readonly todayISO: string = localToday();
 
   private destroy$ = new Subject<void>();
 

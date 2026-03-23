@@ -118,7 +118,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
       if (v && !this.formUtfordAv) this.formUtfordAv = v.username || '';
     });
 
-    this.formDatum = new Date().toISOString().substring(0, 10);
+    this.formDatum = localToday();
 
     this.loadStationer();
     this.loadKpi();
@@ -279,7 +279,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   toggleForm(): void {
     this.showForm = !this.showForm;
     if (this.showForm) {
-      this.formDatum = new Date().toISOString().substring(0, 10);
+      this.formDatum = localToday();
       this.formStationId = 0;
       this.formTyp = 'planerat';
       this.formBeskrivning = '';

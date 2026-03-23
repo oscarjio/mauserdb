@@ -242,7 +242,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     const malPerDag = this.progress.mal_per_dag;
 
     const labels = daglig.map(d => {
-      const dt = new Date(d.datum);
+      const dt = parseLocalDate(d.datum);
       return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'numeric' });
     });
     const values = daglig.map(d => d.antal);

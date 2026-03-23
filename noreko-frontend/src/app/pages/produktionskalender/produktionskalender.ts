@@ -231,7 +231,7 @@ export class ProduktionskalenderComponent implements OnInit, OnDestroy {
       let veckoNr = 0;
       for (const d of veckasDagar) {
         if (d.datum) {
-          const ts = new Date(d.datum);
+          const ts = parseLocalDate(d.datum);
           const jan4 = new Date(ts.getFullYear(), 0, 4);
           const startOfWeek1 = new Date(jan4);
           startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
