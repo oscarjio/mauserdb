@@ -7,18 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #264):
-- [x] **PHP header() consistency audit** — Worker A — rent
-- [x] **PHP json_encode flags audit** — Worker A — rent (1085 anrop, alla JSON_UNESCAPED_UNICODE)
-- [x] **Angular memory leak audit** — Worker B — rent (170+ komponenter)
-- [x] **Angular HTTP URL consistency audit** — Worker B — rent (alla via environment.apiUrl)
+### Klart (session #265):
+- [x] **PHP arithmetic overflow/division audit** — Worker A — rent
+- [x] **PHP SQL injection i dynamiska ORDER BY/GROUP BY** — Worker A — rent
+- [x] **PHP include/require path audit** — Worker A — rent
+- [x] **Angular router guard consistency audit** — Worker B — rent
+- [x] **Angular service singleton audit** — Worker B — rent
+- [x] **Angular template type safety audit** — Worker B — rent
 
-### Nasta buggjakt-items (session #265+):
-- [ ] **PHP arithmetic overflow/division audit** — division by zero, integer overflow i berakningar
-- [ ] **PHP include/require path audit** — saknade filer, relativa vs absoluta sokvagar
-- [ ] **Angular router guard consistency audit** — saknade guards, felaktig redirect-logik
-- [ ] **PHP SQL injection i dynamiska ORDER BY/GROUP BY** — kolumnnamn fran user input
-- [ ] **Angular service singleton audit** — providedIn root vs komponent-scope, oavsiktlig multi-instans
+### Nasta buggjakt-items (session #266+):
+- [ ] **PHP error handling consistency** — try/catch vs die() vs exit, saknade catch-block
+- [ ] **Angular HTTP response type audit** — saknade typningar pa HTTP-responses, any-typer
+- [ ] **PHP SQL transaction consistency** — saknade BEGIN/COMMIT/ROLLBACK vid multi-query
+- [ ] **Angular form reset audit** — formuler som inte rensas efter submit/navigation
+- [ ] **PHP password/token handling** — timing-safe comparison, token expiry
 
 ## Parkerade features (ta inte dessa nu)
 
