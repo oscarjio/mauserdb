@@ -7,19 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #281):
-- [ ] **PHP SQL subquery korrekthet** — Worker A — verifiera subqueries, NULL i NOT IN, kolumnreferenser
-- [ ] **PHP array_key_exists vs isset** — Worker A — null-edge cases, $_GET/$_POST utan check
-- [ ] **PHP error_log format konsistens (N-Z)** — Worker A — controllers N-Z, catch-blocks, kanslig data
-- [ ] **Angular HTTP request cancellation** — Worker B — switchMap vs mergeMap, takeUntil vid navigation
-- [ ] **Angular date/time rendering** — Worker B — timezone, DatePipe format, Date vs moment
-- [ ] **Angular form validation consistency** — Worker B — saknade validators, felmeddelanden, submit-checks
-
 ### Nasta buggjakt-items (session #282+):
-- [ ] **PHP mail/notification edge cases** — felhantering vid misslyckad e-post
-- [ ] **PHP cron/scheduled tasks** — race conditions, timeout-hantering
-- [ ] **Angular chart.js konfiguration** — felaktiga options, saknade defaults
-- [ ] **Angular localStorage/sessionStorage** — quota exceeded, JSON parse errors
+- [ ] **PHP mail/notification edge cases** — felhantering vid misslyckad e-post, timeout
+- [ ] **PHP cron/scheduled tasks** — race conditions, timeout-hantering, dubbletter
+- [ ] **Angular chart.js konfiguration** — felaktiga options, saknade defaults, responsive
+- [ ] **Angular localStorage/sessionStorage** — quota exceeded, JSON parse errors, fallbacks
+- [ ] **PHP response caching headers** — per-endpoint Cache-Control, ETag, 304 korrekthet
+- [ ] **Angular SSR/hydration readiness** — window/document-anvandning, isPlatformBrowser
 
 ## Parkerade features (ta inte dessa nu)
 
