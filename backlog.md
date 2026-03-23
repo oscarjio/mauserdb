@@ -7,20 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #263):
-- [x] **PHP date/string comparison audit** — Worker A — rent
-- [x] **PHP PDO fetch mode consistency audit** — Worker A — rent (alla FETCH_ASSOC)
-- [x] **PHP SQL column alias consistency audit** — Worker A — rent
-- [x] **Angular pipe purity audit** — Worker B — rent (inga custom pipes)
-- [x] **Angular change detection audit** — Worker B — rent
-- [x] **Angular template null safety audit** — Worker B — rent (18 templates)
+### Klart (session #264):
+- [x] **PHP header() consistency audit** — Worker A — rent
+- [x] **PHP json_encode flags audit** — Worker A — rent (1085 anrop, alla JSON_UNESCAPED_UNICODE)
+- [x] **Angular memory leak audit** — Worker B — rent (170+ komponenter)
+- [x] **Angular HTTP URL consistency audit** — Worker B — rent (alla via environment.apiUrl)
 
-### Nasta buggjakt-items (session #264+):
-- [ ] **PHP header() consistency audit** — Content-Type, CORS, caching headers
-- [ ] **PHP json_encode flags audit** — JSON_THROW_ON_ERROR, JSON_UNESCAPED_UNICODE
-- [ ] **Angular memory leak audit** — EventEmitter, DOM listeners, chart instances
-- [ ] **Angular HTTP URL consistency audit** — hardcoded URLs, trailing slashes, query params
+### Nasta buggjakt-items (session #265+):
 - [ ] **PHP arithmetic overflow/division audit** — division by zero, integer overflow i berakningar
+- [ ] **PHP include/require path audit** — saknade filer, relativa vs absoluta sokvagar
+- [ ] **Angular router guard consistency audit** — saknade guards, felaktig redirect-logik
+- [ ] **PHP SQL injection i dynamiska ORDER BY/GROUP BY** — kolumnnamn fran user input
+- [ ] **Angular service singleton audit** — providedIn root vs komponent-scope, oavsiktlig multi-instans
 
 ## Parkerade features (ta inte dessa nu)
 

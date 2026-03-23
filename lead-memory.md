@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #263)*
+*Senast uppdaterad: 2026-03-23 (session #264)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -68,31 +68,26 @@ Session #260: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). date/time: rent. JS
 Session #261: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. SQL transactions: rent. CORS headers: rent. router params: rent. template expressions: rent.
 Session #262: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array key existence: rent. file upload: rent. regex safety: rent. HTTP retry/error: rent. form validation: rent.
 Session #263: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). date/string: rent. PDO fetch: rent. SQL alias: rent. pipe purity: rent. change detection: rent. template null safety: rent.
+Session #264: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() consistency: rent. json_encode flags: rent. memory leak: rent. HTTP URL: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #263):
-- [ ] PHP date/string comparison audit — Worker A
-- [ ] PHP PDO fetch mode consistency audit — Worker A
-- [ ] PHP SQL column alias consistency audit — Worker A
-- [ ] Angular pipe purity audit — Worker B
-- [ ] Angular change detection audit — Worker B
-- [ ] Angular template null safety audit — Worker B
+### Pagaende (session #264):
+- [ ] PHP header() consistency audit — Worker A
+- [ ] PHP json_encode flags audit — Worker A
+- [ ] Angular memory leak audit — Worker B
+- [ ] Angular HTTP URL consistency audit — Worker B
 
-### Nasta (session #264+):
-- [ ] PHP header() consistency audit
-- [ ] PHP json_encode flags audit
-- [ ] Angular memory leak audit
-- [ ] Angular HTTP URL consistency audit
+### Nasta (session #265+):
 - [ ] PHP arithmetic overflow/division audit
+- [ ] PHP include/require path audit
+- [ ] Angular router guard consistency audit
+- [ ] PHP SQL injection i dynamiska ORDER BY/GROUP BY
+- [ ] Angular service singleton audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #261 (klar)
-Worker A: 0 buggar — error_log format: rent. SQL transactions: rent. CORS headers: rent.
-Worker B: 0 buggar — router params: rent. template expressions: rent.
 
 ### 2026-03-23 — Session #262 (klar)
 Worker A: 0 buggar — array key existence: rent. file upload: rent. regex safety: rent.
@@ -101,3 +96,7 @@ Worker B: 0 buggar — HTTP retry/error: rent. form validation: rent.
 ### 2026-03-23 — Session #263 (klar)
 Worker A: 0 buggar — date/string comparison: rent. PDO fetch mode: rent (alla FETCH_ASSOC). SQL column alias: rent.
 Worker B: 0 buggar — pipe purity: rent (inga custom pipes). change detection: rent. template null safety: rent (18 templates).
+
+### 2026-03-23 — Session #264 (klar)
+Worker A: 0 buggar — header() consistency: rent (centralt i api.php). json_encode flags: rent (alla 1085 anrop har JSON_UNESCAPED_UNICODE).
+Worker B: 0 buggar — memory leak: rent (170+ komponenter, alla chart.destroy/removeEventListener/takeUntil korrekt). HTTP URL: rent (alla via environment.apiUrl).
