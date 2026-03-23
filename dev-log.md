@@ -1,3 +1,35 @@
+## Worker A — Session #263
+
+### Uppgift 1: PHP date/string comparison audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla .php-filer under noreko-backend/ (exkl. plcbackend/):
+- **strtotime() utan === false check**: Alla strtotime()-anrop som sparar resultat i variabler kontrolleras korrekt. AuthHelper (rad 123-124) kollar `=== false`. OperatorsportalController (rad 229-230) kollar `$senaste !== false`. ProduktionsDashboardController (rad 573-574) kollar `$senasteTid !== false`. UnderhallsloggController (rad 487-488) kollar `$parsed !== false`. Ovriga anvandningar ar inuti date()-anrop (t.ex. `date('Y-m-d', strtotime('-7 days'))`) dar strtotime alltid lyckas pa hardkodade relativa stranggar.
+- **Datum-jamforelser med < > == pa strangar**: Inga forekomster hittades. Datum jamforelser gors antingen via strtotime() (t.ex. DrifttidsTimelineController, StopporsakTrendController) eller via SQL WHERE-satser med parametriserade datum.
+- **strcmp() anvandning**: 12 forekomster — samtliga anvands korrekt i usort()-callbacks for sortering av arrayer (t.ex. `strcmp($b['datum'], $a['datum'])`). Ingen anvands dar === borde anvandas istallet.
+- **strtolower() utan mb_strtolower()**: 5 forekomster — api.php:243 (action-routing, alltid ASCII), LineSkiftrapportController:25 (linje-namn, alltid ASCII: tvattlinje/saglinje/klassificeringslinje), OperatorsPrestandaController:97 (skift-namn: dag/kvall/natt), HistoriskSammanfattningController:81 (typ: manad/kvartal), AndonController:27 (run-parameter, alltid ASCII). Alla opererar pa hardkodade ASCII-varden. Ovriga stallen som hanterar fritt textinnehall anvander korrekt mb_strtolower() (MorgonrapportController, VeckorapportController, StopporsakController, KapacitetsplaneringController, KvalitetscertifikatController).
+- **date() med felaktiga format-stranggar**: Inga forekomster. Alla date()-anrop anvander korrekta format (Y-m-d, H:i:s, Y-m-d H:i:s, Y-m-t, W, N, n, H:00).
+
+### Uppgift 2: PHP PDO fetch mode consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla .php-filer under noreko-backend/ (exkl. plcbackend/):
+- **Blandning av FETCH_ASSOC och FETCH_BOTH**: Inga forekomster av FETCH_BOTH. Alla fetch/fetchAll-anrop anvander konsekvent PDO::FETCH_ASSOC (eller \PDO::FETCH_ASSOC).
+- **fetch() utan explicit fetch mode**: 0 forekomster. Alla fetch()-anrop specificerar PDO::FETCH_ASSOC.
+- **fetchAll() utan explicit fetch mode**: 0 forekomster. Alla fetchAll()-anrop specificerar PDO::FETCH_ASSOC.
+- **Saknade ->execute() fore ->fetch()**: Inga forekomster. Alla prepare()-anrop foljs av execute() fore fetch()/fetchAll().
+- **Kolumn-access med numeriskt index**: Inga forekomster av `$row[0]`, `$row[1]` etc pa databasrader. Alla kolumn-accesser anvander associativa nycklar.
+
+### Uppgift 3: PHP SQL column alias consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade PHP-controllers under noreko-backend/controllers/ och classes/ (exkl. plcbackend/):
+- **SQL AS-alias som inte matchar PHP-access**: Verifierade KassationsDrilldownController (totalt_ok/totalt_ej_ok/reason/reason_id/total_antal/registreringar/dag_ok/dag_ej_ok/dag — alla matchar), MaintenanceController (total_events/total_minutes/total_cost/akut_count/pagaende_count/antal_handelser/total_driftstopp_min/antal_fel/total_stillestand_h — alla matchar), ProduktionsDashboardController (ok_antal/ej_ok_antal/aktiva/tot/senaste_datum/ibc_ok/ibc_ej_ok — alla matchar), OperatorCompareController (ibc_per_h/kvalitet_pct/aktiva_dagar/cykeltid/total_ibc_ok/total_ibc_ej_ok/total_ibc/total_runtime_h/antal_skift/snitt_ibc_per_h — alla matchar), MaskinOeeController (maskin_namn/oee_pct/avg_oee/mal — alla matchar).
+- **Kolumner som refereras i PHP men saknas i SELECT**: Inga forekomster hittade.
+- **JOIN-kolumner som krockar**: Alla JOINs anvander tydliga tabellalias (u/usr, d/mr, sl/sr, kr/kt etc.) och kolumnreferenser specificerar alltid tabellalias.
+
+---
+
 ## Worker B — Session #263
 
 ### Uppgift 1: Angular pipe purity audit
