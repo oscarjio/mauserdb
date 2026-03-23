@@ -217,11 +217,19 @@ class MorgonrapportController {
         string $avg30Start,
         string $avg30End
     ): array {
-        // Totalt IBC for datumet
+        // Totalt IBC for datumet — korrekt aggregering for kumulativa PLC-rakneverk
         $totalIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ?"
+                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
+                 FROM (
+                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                     FROM rebotling_ibc
+                     WHERE DATE(datum) = ?
+                       AND skiftraknare IS NOT NULL
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub"
             );
             $stmt->execute([$date]);
             $totalIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -237,7 +245,15 @@ class MorgonrapportController {
         $prevWeekIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ?"
+                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
+                 FROM (
+                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                     FROM rebotling_ibc
+                     WHERE DATE(datum) = ?
+                       AND skiftraknare IS NOT NULL
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub"
             );
             $stmt->execute([$prevWeekDate]);
             $prevWeekIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -245,13 +261,23 @@ class MorgonrapportController {
             error_log('MorgonrapportController::getProduktionData (prevWeek): ' . $e->getMessage());
         }
 
-        // Genomsnitt senaste 30 dagar
+        // Genomsnitt senaste 30 dagar — summerar korrekt IBC per dag och beraknar snitt
         $avg30 = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT ROUND(COUNT(*) / COUNT(DISTINCT DATE(datum)), 1) AS snitt
-                 FROM rebotling_ibc
-                 WHERE DATE(datum) BETWEEN ? AND ?"
+                "SELECT ROUND(AVG(dag_ibc), 1) AS snitt
+                 FROM (
+                     SELECT DATE(datum) AS dag, SUM(max_ok) AS dag_ibc
+                     FROM (
+                         SELECT datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                         FROM rebotling_ibc
+                         WHERE DATE(datum) BETWEEN ? AND ?
+                           AND skiftraknare IS NOT NULL
+                         GROUP BY DATE(datum), skiftraknare
+                         HAVING COUNT(*) > 1
+                     ) sub_inner
+                     GROUP BY DATE(datum)
+                 ) sub_outer"
             );
             $stmt->execute([$avg30Start, $avg30End]);
             $avg30 = (float)($stmt->fetchColumn() ?: 0);
@@ -287,17 +313,25 @@ class MorgonrapportController {
         $drifttid      = $this->getRuntimeHoursForDate($date);
         $prevDrifttid  = $this->getRuntimeHoursForDate($prevWeekDate);
 
-        // Totalt IBC för uträkning av IBC/tim
+        // Totalt IBC for utrakning av IBC/tim — korrekt aggregering for kumulativa PLC-rakneverk
         $totalIbc = 0;
         $prevIbc  = 0;
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ?"
+            $stmtIbc = $this->pdo->prepare(
+                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
+                 FROM (
+                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                     FROM rebotling_ibc
+                     WHERE DATE(datum) = ?
+                       AND skiftraknare IS NOT NULL
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub"
             );
-            $stmt->execute([$date]);
-            $totalIbc = (int)($stmt->fetchColumn() ?: 0);
-            $stmt->execute([$prevWeekDate]);
-            $prevIbc = (int)($stmt->fetchColumn() ?: 0);
+            $stmtIbc->execute([$date]);
+            $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
+            $stmtIbc->execute([$prevWeekDate]);
+            $prevIbc = (int)($stmtIbc->fetchColumn() ?: 0);
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getEffektivitetData: ' . $e->getMessage());
         }
@@ -463,21 +497,29 @@ class MorgonrapportController {
         $prevTotalt     = 0;
         $toppOrsak      = '-';
 
-        // rebotling_ibc: ibc_ej_ok
+        // rebotling_ibc: ibc_ej_ok — korrekt MAX/GROUP BY-aggregering for kumulativa PLC-rakneverk
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(ibc_ej_ok), 0) AS kasserade,
-                        COUNT(*) AS total
-                 FROM rebotling_ibc
-                 WHERE DATE(datum) = ?"
+            $stmtKval = $this->pdo->prepare(
+                "SELECT COALESCE(SUM(max_ej_ok), 0) AS kasserade,
+                        COALESCE(SUM(max_ok), 0)    AS total
+                 FROM (
+                     SELECT skiftraknare,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok,
+                            MAX(COALESCE(ibc_ok, 0))    AS max_ok
+                     FROM rebotling_ibc
+                     WHERE DATE(datum) = ?
+                       AND skiftraknare IS NOT NULL
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub"
             );
-            $stmt->execute([$date]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmtKval->execute([$date]);
+            $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $kasserade         += (int)($row['kasserade'] ?? 0);
             $totaltProducerade  = (int)($row['total'] ?? 0);
 
-            $stmt->execute([$prevWeekDate]);
-            $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmtKval->execute([$prevWeekDate]);
+            $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $prevKasserade += (int)($prevRow['kasserade'] ?? 0);
             $prevTotalt     = (int)($prevRow['total'] ?? 0);
         } catch (\Exception $e) {
@@ -550,14 +592,21 @@ class MorgonrapportController {
         string $prevWeekDate,
         string $avg30Start
     ): array {
-        // Daglig IBC fran 30 dagar bakåt (for trendlinje)
+        // Daglig IBC fran 30 dagar bakåt (for trendlinje) — korrekt MAX/GROUP BY-aggregering
         $dagligIbc = [];
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-                 FROM rebotling_ibc
-                 WHERE DATE(datum) BETWEEN ? AND ?
-                 GROUP BY DATE(datum)
+                "SELECT dag, SUM(max_ok) AS cnt
+                 FROM (
+                     SELECT DATE(datum) AS dag, skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                     FROM rebotling_ibc
+                     WHERE DATE(datum) BETWEEN ? AND ?
+                       AND skiftraknare IS NOT NULL
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub
+                 GROUP BY dag
                  ORDER BY dag ASC"
             );
             $stmt->execute([$avg30Start, $date]);
@@ -595,13 +644,20 @@ class MorgonrapportController {
         $snabbastOperator  = null;
         $snabbastAntal     = 0;
 
-        // Basta timme (flest IBC)
+        // Basta timme (flest IBC) — korrekt MAX/GROUP BY per skiftraknare+timme
         try {
             $stmt = $this->pdo->prepare("
-                SELECT HOUR(datum) AS timme, COUNT(*) AS cnt
-                FROM rebotling_ibc
-                WHERE DATE(datum) = ?
-                GROUP BY HOUR(datum)
+                SELECT timme, SUM(max_ok) AS cnt
+                FROM (
+                    SELECT HOUR(datum) AS timme, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = ?
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), HOUR(datum), skiftraknare
+                    HAVING COUNT(*) > 1
+                ) sub
+                GROUP BY timme
                 ORDER BY cnt DESC
                 LIMIT 1
             ");
@@ -620,20 +676,30 @@ class MorgonrapportController {
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'operators'");
             if ($check && $check->rowCount() > 0) {
+                // Operator-IBC raknas per skiftraknare dar operatorn ar registrerad (korrekt aggregering)
                 $stmt = $this->pdo->prepare("
-                    SELECT op, SUM(cnt) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
+                    SELECT op, SUM(max_ok) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
                     FROM (
-                        SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        SELECT op1 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                        FROM rebotling_ibc
                         WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op1
+                        HAVING COUNT(*) > 1
                         UNION ALL
-                        SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        SELECT op2 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                        FROM rebotling_ibc
                         WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op2
+                        HAVING COUNT(*) > 1
                         UNION ALL
-                        SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        SELECT op3 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                        FROM rebotling_ibc
                         WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op3
+                        HAVING COUNT(*) > 1
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
                     GROUP BY op, o.name
