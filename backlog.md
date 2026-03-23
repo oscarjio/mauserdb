@@ -7,20 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #280):
-- [ ] **PHP error_log format konsistens** — Worker A — controllers A-M, kansklig data, catch-blocks
-- [ ] **PHP CSRF token validering** — Worker A — mutating endpoints, token-bypass
-- [ ] **PHP SQL GROUP BY korrekthet** — Worker A — SELECT vs GROUP BY kolumner, HAVING
-- [ ] **Angular router parameter parsing** — Worker B — ActivatedRoute, typ-konvertering, subscriptions
-- [ ] **Angular async rendering** — Worker B — loading states, *ngIf guards, race conditions
-- [ ] **Angular template type safety** — Worker B — null-checks, pipe-anvandning, event handlers
+### Pagaende (session #281):
+- [ ] **PHP SQL subquery korrekthet** — Worker A — verifiera subqueries, NULL i NOT IN, kolumnreferenser
+- [ ] **PHP array_key_exists vs isset** — Worker A — null-edge cases, $_GET/$_POST utan check
+- [ ] **PHP error_log format konsistens (N-Z)** — Worker A — controllers N-Z, catch-blocks, kanslig data
+- [ ] **Angular HTTP request cancellation** — Worker B — switchMap vs mergeMap, takeUntil vid navigation
+- [ ] **Angular date/time rendering** — Worker B — timezone, DatePipe format, Date vs moment
+- [ ] **Angular form validation consistency** — Worker B — saknade validators, felmeddelanden, submit-checks
 
-### Nasta buggjakt-items (session #281+):
-- [ ] **PHP error_log format konsistens (N-Z)** — controllers N-Z, samma granskning som A-M
-- [ ] **PHP SQL subquery korrekthet** — verifiera att subqueries returnerar forvantade resultat
-- [ ] **Angular HTTP request cancellation** — switchMap vs mergeMap, avbryt vid navigation
-- [ ] **Angular date/time rendering** — timezone-problem, locale-format, moment vs Date
-- [ ] **PHP array_key_exists vs isset** — edge cases med null-varden i arrayer
+### Nasta buggjakt-items (session #282+):
+- [ ] **PHP mail/notification edge cases** — felhantering vid misslyckad e-post
+- [ ] **PHP cron/scheduled tasks** — race conditions, timeout-hantering
+- [ ] **Angular chart.js konfiguration** — felaktiga options, saknade defaults
+- [ ] **Angular localStorage/sessionStorage** — quota exceeded, JSON parse errors
 
 ## Parkerade features (ta inte dessa nu)
 

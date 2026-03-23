@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #280)*
+*Senast uppdaterad: 2026-03-23 (session #281)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -85,31 +85,27 @@ Session #277: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). Error logging: 1 
 Session #278: BUGGJAKT — 1 bugg (1 Worker A + 0 Worker B). Date/timezone: 1 strtotime('monday this week') i GamificationController fixad (fel pa sondagar). Array bounds: rent. SQL ORDER BY: rent. Angular memory leaks: rent. Chunk felhantering: rent. HTTP felhantering: rent.
 Session #279: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Response headers: rent (api.php sattar globalt). Numeric precision: rent (alla divisioner skyddade). SQL JOINs: rent (~140 LEFT JOINs korrekt). Form state: rent. Environment config: rent. Component communication: rent.
 Session #280: BUGGJAKT — 4 buggar (2 Worker A + 2 Worker B). GROUP BY: 4 queries fixade (KassationsanalysController+FeedbackAnalysController). DecimalPipe null: 12 stallen fixade (my-bonus+bonus-admin). error_log: rent. CSRF: rent. Router params: rent. Async rendering: rent.
+Session #281: BUGGJAKT — pagaende...
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Pagaende (session #280):
-- [ ] PHP error_log format konsistens (Worker A)
-- [ ] PHP CSRF token validering (Worker A)
-- [ ] PHP SQL GROUP BY korrekthet (Worker A)
-- [ ] Angular router parameter parsing (Worker B)
-- [ ] Angular async rendering (Worker B)
-- [ ] Angular template type safety (Worker B)
+### Pagaende (session #281):
+- [ ] PHP SQL subquery korrekthet (Worker A)
+- [ ] PHP array_key_exists vs isset (Worker A)
+- [ ] PHP error_log format konsistens N-Z (Worker A)
+- [ ] Angular HTTP request cancellation (Worker B)
+- [ ] Angular date/time rendering (Worker B)
+- [ ] Angular form validation consistency (Worker B)
 
-### Nasta (session #281+):
-- [ ] PHP error_log format konsistens (N-Z)
-- [ ] PHP SQL subquery korrekthet
-- [ ] Angular HTTP request cancellation
-- [ ] Angular date/time rendering
-- [ ] PHP array_key_exists vs isset
+### Nasta (session #282+):
+- [ ] PHP mail/notification edge cases
+- [ ] PHP cron/scheduled tasks
+- [ ] Angular chart.js konfiguration
+- [ ] Angular localStorage/sessionStorage
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #278 (klar)
-Worker A: 1 bugg — GamificationController strtotime('monday this week') returnerade nasta mandag pa sondagar (6 stallen fixade). Array bounds + SQL ORDER BY: rent.
-Worker B: 0 buggar — Memory leaks: rent (170 komponenter). Chunk felhantering: rent (GlobalErrorHandler). HTTP felhantering: rent (alla catchError + interceptors).
 
 ### 2026-03-23 — Session #279 (klar)
 Worker A: 0 buggar — Response headers: rent (api.php sattar Content-Type/Cache-Control/X-Content-Type-Options globalt). Numeric precision: rent (739 divisioner, alla skyddade). SQL JOINs: rent (~140 LEFT JOINs, alla korrekta ON-villkor).
@@ -118,3 +114,7 @@ Worker B: 0 buggar — Form state: rent (19+ forms, alla aterställs/disablas ko
 ### 2026-03-23 — Session #280 (klar)
 Worker A: 2 buggar — GROUP BY saknade JOINade kolumner i KassationsanalysController (2 queries) + FeedbackAnalysController (2 queries). error_log format: rent. CSRF: rent (centralt i api.php).
 Worker B: 2 buggar — DecimalPipe null/undefined crashes i my-bonus.html (3 stallen) + bonus-admin.html (9 stallen). Router params: rent. Async rendering: rent.
+
+### 2026-03-23 — Session #281 (pagaende)
+Worker A: PHP SQL subquery korrekthet + array_key_exists vs isset + error_log N-Z. Pagaende...
+Worker B: Angular HTTP request cancellation + date/time rendering + form validation. Pagaende...
