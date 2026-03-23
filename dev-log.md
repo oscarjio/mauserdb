@@ -19266,3 +19266,74 @@ Filer granskade (96 services + 42 komponenter + 2 interceptors + app.config.ts):
 - `noreko-frontend/src/app/interceptors/error.interceptor.ts`
 - `noreko-frontend/src/app/app.config.ts`
 - Alla tillhorande `.html`-mallfiler for ngFor/trackBy och template-funktionsanrop
+
+## 2026-03-23 Session #277 Worker A — PHP error logging + SQL transactions + CSRF audit (2 buggar)
+
+### Uppgift 1: PHP error logging konsistens
+Granskade alla 117 controllers i `noreko-backend/classes/` for catch-block, error_log-format, loggningskonsistens och log injection.
+
+**Catch-block utan error_log:**
+- Anvande Python-baserad brace-counting-analys over alla PHP-filer.
+- 5 catch-block saknar direkt error_log — men alla 5 ar inner-catch som gor `throw` till en outer catch som loggar. Korrekt monster (transaction rollback + re-throw).
+  - `BonusAdminController.php:847`, `RebotlingAdminController.php:198`, `RuntimeController.php:129`, `ShiftPlanController.php:631` — inner transaction catch med re-throw.
+  - `NewsController.php:608` — DateTime-parsning i loop, `catch { break; }` ar avsiktligt (ogiltig datumsformat avbryter streak-rakning).
+
+**error_log-format:**
+- Konsistent format: `ControllerNamn::metodNamn: felmeddelande` i samtliga controllers. Inga avvikelser.
+
+**Log injection (BUGG 1 — fixad):**
+- `LoginController.php` rad 55, 64, 83, 137: `$username` (anvandardata) inkluderades direkt i error_log utan sanering av kontrolltecken (\n, \r). En angripare kunde injicera nya loggrader genom att skicka anvandarnamn med radbrytningar.
+- `RegisterController.php` rad 138: Samma problem.
+- **Fix:** La till `$safeUsername = preg_replace('/[\x00-\x1F\x7F]/', '', $username)` och ersatte `$username` med `$safeUsername` i alla error_log-anrop.
+
+### Uppgift 2: PHP SQL transaction isolation
+Granskade alla 31 controllers med beginTransaction/commit/rollback.
+
+**Transaction balance:**
+- Alla controllers har korrekt begin/commit/rollback-monster. `RuntimeController.php` har 1 begin + 2 commits (i if/else-grenar) + 1 rollback i catch — korrekt.
+
+**Saknade transaktioner (BUGG 2 — fixad):**
+- `MaintenanceController.php::setServiceInterval()` rad 667-688: SELECT + INSERT utan transaktion. Kommentaren sade "Race condition-skydd" men SELECT + INSERT var INTE i en transaktion, sa parallella requests kunde passera dup-checken och skapa dubbletter.
+- **Fix:** Wrappade SELECT FOR UPDATE + INSERT i beginTransaction/commit med rollback i catch. Anvander FOR UPDATE for att lasa raden under transaktionen.
+
+**Nested transactions:**
+- Inga controllers anvander nested beginTransaction. Inner try/catch-monster anvander re-throw korrekt.
+
+**Transaktioner oppna for lange:**
+- Inga transaktioner gor HTTP-anrop, sleep, eller andra langvariga operationer. Alla transaktioner ar snabba (SELECT + INSERT/UPDATE).
+
+### Uppgift 3: PHP CSRF token rotation
+Granskade `api.php`, `LoginController.php`, `AuthHelper.php`, `StatusController.php`, `admin.php`, `login.php`.
+
+**CSRF-implementation:**
+- Token genereras vid login: `AuthHelper::generateCsrfToken()` anvander `bin2hex(random_bytes(32))` — 256 bitar entropi. Korrekt.
+- Token lagras i `$_SESSION['csrf_token']`. Korrekt.
+- Token valideras med `hash_equals()` (AuthHelper rad 207) — skyddar mot timing-attacker. Korrekt.
+- Token skickas via `X-CSRF-Token` header (tillaten i CORS pa rad 47). Korrekt.
+- Centraliserad validering i `api.php` rad 266 for alla POST/PUT/DELETE (utom login/register/status). Korrekt.
+- Token returneras till klienten vid login (LoginController rad 127) och vid status-check (StatusController rad 85). Korrekt.
+- Token roteras INTE per request — den ar sessionsbaserad. Detta ar acceptabelt for session-cookie-baserad auth med SameSite=Lax. Per-request-rotation kan orsaka problem med parallella AJAX-requests.
+- `admin.php` och `login.php` ar legacy stubs (HTTP 410 Gone) — ingen funktionalitet exponeras.
+
+**0 CSRF-buggar hittade.**
+
+### Totalt: 2 buggar fixade
+
+**Bugg 1:** Log injection i LoginController + RegisterController — anvandardata med kontrolltecken i error_log.
+- `noreko-backend/classes/LoginController.php` rad 39-41, 55, 64, 83, 137
+- `noreko-backend/classes/RegisterController.php` rad 40-41, 138
+
+**Bugg 2:** Race condition i MaintenanceController::setServiceInterval — SELECT+INSERT utan transaktion.
+- `noreko-backend/classes/MaintenanceController.php` rad 667-700
+
+Filer granskade (120+ PHP-filer):
+- `noreko-backend/api.php`
+- `noreko-backend/admin.php`
+- `noreko-backend/login.php`
+- `noreko-backend/classes/AuthHelper.php`
+- `noreko-backend/classes/LoginController.php`
+- `noreko-backend/classes/RegisterController.php`
+- `noreko-backend/classes/StatusController.php`
+- `noreko-backend/classes/AdminController.php`
+- `noreko-backend/classes/MaintenanceController.php`
+- Alla 117 controllers i `noreko-backend/classes/*.php` (error_log + transaction audit)

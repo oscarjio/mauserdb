@@ -36,6 +36,9 @@ class LoginController {
         $username = strip_tags(trim($data['username'] ?? ''));
         $password = $data['password'] ?? '';
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        // Sanera användarnamn för loggning — ta bort kontrolltecken som \n, \r, \t
+        // för att förhindra log injection (förfalskade loggrader).
+        $safeUsername = preg_replace('/[\x00-\x1F\x7F]/', '', $username);
 
         if ($username === '' || $password === '') {
             http_response_code(400);
@@ -52,7 +55,7 @@ class LoginController {
         // Rate limiting — kontrollera både IP och användarnamn (skyddar mot distribuerad brute force)
         if (AuthHelper::isRateLimited($pdo, $ip)) {
             $remaining = AuthHelper::getLockoutRemaining($pdo, $ip);
-            error_log("LoginController::handle: Rate limit (IP) triggered for IP {$ip}, user '{$username}'");
+            error_log("LoginController::handle: Rate limit (IP) triggered for IP {$ip}, user '{$safeUsername}'");
             http_response_code(429);
             echo json_encode([
                 'success' => false,
@@ -61,7 +64,7 @@ class LoginController {
             return;
         }
         if (AuthHelper::isUsernameLocked($pdo, $username)) {
-            error_log("LoginController::handle: Rate limit (username) triggered for user '{$username}' from IP {$ip}");
+            error_log("LoginController::handle: Rate limit (username) triggered for user '{$safeUsername}' from IP {$ip}");
             http_response_code(429);
             echo json_encode([
                 'success' => false,
@@ -80,7 +83,7 @@ class LoginController {
                 AuthHelper::recordAttempt($pdo, $ip, $username, false);
                 AuditLogger::log($pdo, 'login_blocked_inactive', 'user', (int)$user['id'],
                     "Inloggningsförsök till inaktiverat konto: {$username}");
-                error_log("LoginController::handle: Inloggningsförsök till inaktiverat konto '{$username}' från IP {$ip}");
+                error_log("LoginController::handle: Inloggningsförsök till inaktiverat konto '{$safeUsername}' från IP {$ip}");
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Kontot är inaktiverat. Kontakta administratören.'], JSON_UNESCAPED_UNICODE);
                 return;
@@ -134,7 +137,7 @@ class LoginController {
                 }
 
                 AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
-                error_log("LoginController::handle: Misslyckat inloggningsförsök för '{$username}' från IP {$ip}");
+                error_log("LoginController::handle: Misslyckat inloggningsförsök för '{$safeUsername}' från IP {$ip}");
 
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);

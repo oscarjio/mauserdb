@@ -36,6 +36,9 @@ class RegisterController {
 
         // Hämta och validera input
         $username = strip_tags(trim($data['username'] ?? ''));
+        // Sanera användarnamn för loggning — ta bort kontrolltecken (\n, \r, \t etc.)
+        // för att förhindra log injection.
+        $safeUsername = preg_replace('/[\x00-\x1F\x7F]/', '', $username);
         $password = $data['password'] ?? '';
         $password2 = $data['password2'] ?? '';
         $email = strip_tags(trim($data['email'] ?? ''));
@@ -135,7 +138,7 @@ class RegisterController {
             }
             // Hantera duplicate key-fel (extra säkerhet om UNIQUE constraint finns)
             if ((string)$e->getCode() === '23000') {
-                error_log('RegisterController::create_user — duplicate key for username: ' . $username);
+                error_log('RegisterController::create_user — duplicate key for username: ' . $safeUsername);
                 http_response_code(409);
                 echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
                 return;
