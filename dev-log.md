@@ -18277,3 +18277,29 @@ Granskade alla 96 HTML-filer med ngModel-bindningar och alla komponentfiler med 
 **`[(ngModel)]` utan `name`-attribut:** 96+ forekomster UTANFOR `<form>`-taggar (filtrerings-selects, sokfaltar, etc.) — korrekt Angular-beteende, `name` behovs enbart inuti formularet.
 
 ### Totalt: 0 buggar hittade
+
+---
+
+## 2026-03-23 Session #264 Worker A — PHP header()/json_encode audit
+
+### Uppgift 1: PHP header() consistency audit
+**Resultat:** 0 buggar
+
+Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/):
+- **Content-Type header**: api.php (rad 56) satter `Content-Type: application/json; charset=utf-8` centralt for alla endpoints. Controllers som behover annat format (CSV-export, HTML) overstyrer korrekt: BonusAdminController (1825), RebotlingAnalyticsController (309, 5097), TidrapportController (560).
+- **CORS-headers**: api.php (rad 43-48) satter konsekventa CORS-headers inkl. `X-CSRF-Token` i Allow-Headers. Legacy-stubs login.php och admin.php saknar `X-CSRF-Token` i Allow-Headers men returnerar 410 Gone utan att bearbeta nagra requests — funktionellt irrelevant.
+- **Caching headers**: api.php (rad 62-63) satter `Cache-Control: no-store, no-cache, must-revalidate, private` + `Pragma: no-cache` centralt. update-weather.php (rad 39-40) gor detsamma. Inga controllers overstyrer detta.
+- **Error-responses**: Alla sendError()-metoder i controllers satter `header('Content-Type: application/json; charset=utf-8')` korrekt. api.php:s egna felhantering (rad 100, 112, 246, 261, 268, 287-290, 295-298) satter ocksa Content-Type (redan centralt satt pa rad 56).
+- **Dubbletter av header()-anrop**: Manga controllers satter Content-Type i sendSuccess/sendError trots att api.php redan gjort det. Funktionellt harmlost (sista header() vinner, och varden ar identiska) men redundant. Inte en bugg.
+- **Sakerheetsheaders**: api.php satter X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, CSP, HSTS centralt. Inga controllers kringgar dessa.
+
+### Uppgift 2: PHP json_encode flags audit
+**Resultat:** 0 buggar
+
+Granskade alla PHP-filer under noreko-backend/ (exkl. plcbackend/):
+- **JSON_UNESCAPED_UNICODE**: Samtliga 1085 `json_encode()`-anrop i classes/ och controllers/ har `JSON_UNESCAPED_UNICODE`-flaggan. api.php:s egna anrop (rad 100, 112, 246, 261, 268, 290, 298) har ocksa flaggan. update-weather.php likadesamma. Inga undantag hittades.
+- **JSON_THROW_ON_ERROR**: Anvands inte i nagon fil. Dock anvands alternativa skyddsmekanismer: `json_last_error()` kontrolleras i BonusAdminController (rad 204, 308, 507, 649, 799, 1711). Ovriga controllers skyddas av `?? []` null-coalescing pa json_decode() eller `is_array()`-validering.
+- **json_decode() validering**: 45 filer anvander json_decode(). Alla validerar returvardet via `?? []` null-coalescing, `json_last_error()`, `is_array()`, eller `!$data`-kontroller. LeveransplaneringController (rad 82) anvander en inline-closure med `is_array($d) ? $d : []`. Inga ovaliderade json_decode()-anrop hittades.
+- **Gemensam sendSuccess/sendError**: Samtliga controllers har egna privata sendSuccess()/sendError()-metoder (alternativt sendJson()) som alla inkluderar JSON_UNESCAPED_UNICODE. Inga stallen kringgar dessa metoder.
+
+### Totalt: 0 buggar hittade
