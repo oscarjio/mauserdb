@@ -946,7 +946,7 @@ class OperatorDashboardController {
                     SELECT COUNT(*) AS cnt,
                            COALESCE(SUM(TIMESTAMPDIFF(SECOND, start_time, COALESCE(end_time, NOW()))), 0) AS sek
                     FROM stopporsak_registreringar
-                    WHERE operator_id = :op AND DATE(start_time) = :today
+                    WHERE user_id = :op AND DATE(start_time) = :today
                 ";
                 $stStopp = $this->pdo->prepare($sqlStopp);
                 $stStopp->execute([':op' => $opNum, ':today' => $today]);
@@ -1009,12 +1009,13 @@ class OperatorDashboardController {
                 $sql = "
                     SELECT
                         sr.id,
-                        COALESCE(sr.orsak, sr.stopporsak, 'Okänd') AS orsak,
+                        COALESCE(sk.namn, sr.kommentar, 'Okänd') AS orsak,
                         sr.start_time,
                         sr.end_time,
                         TIMESTAMPDIFF(SECOND, sr.start_time, COALESCE(sr.end_time, NOW())) AS varaktighet_sek
                     FROM stopporsak_registreringar sr
-                    WHERE sr.operator_id = :op
+                    LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                    WHERE sr.user_id = :op
                       AND DATE(sr.start_time) = :today
                     ORDER BY sr.start_time DESC
                 ";

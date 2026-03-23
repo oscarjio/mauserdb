@@ -19,6 +19,7 @@ class NarvaroController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['success' => false, 'error' => 'Inloggning kravs'], JSON_UNESCAPED_UNICODE);
             return;
         }
@@ -30,6 +31,7 @@ class NarvaroController {
             $this->monthlyOverview();
         } else {
             http_response_code(404);
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['success' => false, 'error' => 'Okand endpoint'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -161,6 +163,7 @@ class NarvaroController {
                 }
             }
 
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -181,6 +184,7 @@ class NarvaroController {
         } catch (Exception $e) {
             error_log('NarvaroController::monthlyOverview: ' . $e->getMessage());
             http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta narvarodata'], JSON_UNESCAPED_UNICODE);
         }
     }

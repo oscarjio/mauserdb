@@ -1,3 +1,22 @@
+## 2026-03-23 Session #273 Worker A — PHP-controller buggranskning: fel SQL-kolumnnamn i stopporsak-queries, saknade Content-Type-headers (3 buggar)
+
+### Granskade filer (16 st)
+StatistikDashboardController.php, SkiftplaneringController.php, RebotlingStationsdetaljController.php, SkiftoverlamningController.php, UnderhallsloggController.php, StopporsakController.php, ProduktionsmalController.php, OeeTrendanalysController.php, OperatorRankingController.php, VdDashboardController.php, HistoriskSammanfattningController.php, StatistikOverblickController.php, OperatorDashboardController.php, DagligBriefingController.php, SkiftjamforelseController.php, NarvaroController.php
+
+### Buggar hittade och fixade
+
+**BUGG 1 — A (fel SQL-kolumnnamn) — OperatorDashboardController.php ~rad 949**
+`getMinBonus()`: `WHERE operator_id = :op` mot tabellen `stopporsak_registreringar` — kolumnen `operator_id` existerar inte. Korrekt kolumn är `user_id`.
+Fix: `operator_id` → `user_id`.
+
+**BUGG 2 — A (fel SQL-kolumnnamn) — OperatorDashboardController.php ~rad 1009-1019**
+`getMinaStopp()`: Queryn refererade tre icke-existerande kolumner: `sr.orsak`, `sr.stopporsak`, `sr.operator_id`. Tabellen `stopporsak_registreringar` har kolumnerna `(id, kategori_id, linje, kommentar, user_id, start_time, end_time)`.
+Fix: Lade till `LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id`, ersatte `COALESCE(sr.orsak, sr.stopporsak, 'Okänd')` med `COALESCE(sk.namn, sr.kommentar, 'Okänd')`, och bytte `sr.operator_id` → `sr.user_id`.
+
+**BUGG 3 — E (inkonsekvent API-responsformat) — NarvaroController.php rad 22, 33, 164, 183**
+Alla `echo json_encode(...)` anrop saknade `header('Content-Type: application/json; charset=utf-8')` — till skillnad från samtliga övriga controllers i projektet.
+Fix: Lade till Content-Type-header omedelbart före varje JSON-echo (401-fel, 404-fel, 200-svar, 500-fel).
+
 ## 2026-03-23 Session #272 Worker B — Angular komponent-granskning: addEventListener, resize, Promise, ViewChild, URL, subscriptions (0 buggar)
 
 ### Granskade omraden (A-F)

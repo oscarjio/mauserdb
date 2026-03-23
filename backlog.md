@@ -7,16 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #272):
-- [ ] **PHP try/catch + SQL korrekthet** — Worker A — empty catch, GROUP BY, division-by-zero, datum i SQL
-- [ ] **Angular event listener leaks + subscription audit** — Worker B — addEventListener utan cleanup, promises utan catch, ViewChild timing
+### Pagaende (session #273):
+- [ ] **PHP controllers N-Z** — Worker A — 16 controllers: StatistikDashboard, Skiftplanering, RebotlingStationsdetalj, Skiftoverlamning, Underhallslogg, Stopporsak, Produktionsmal, OeeTrendanalys, OperatorRanking, VdDashboard, HistoriskSammanfattning, StatistikOverblick, OperatorDashboard, DagligBriefing, Skiftjamforelse, Narvaro
+- [ ] **Angular services audit** — Worker B — alla ~90 services: URL-korrekthet, felhantering, memory leaks, typfel
 
-### Nasta buggjakt-items (session #273+):
-- [ ] **PHP controllers N-Z** — StatistikDashboardController, SkiftplaneringController, StopptidsanalysController, RebotlingStationsdetaljController, SkiftoverlamningController, UnderhallsloggController, StopporsakController, ProduktionsmalController, OeeTrendanalysController, OperatorRankingController, VdDashboardController, HistoriskSammanfattningController, StatistikOverblickController, OperatorDashboardController, DagligBriefingController, SkiftjamforelseController
-- [ ] **Angular services audit** — granska alla .service.ts for felaktiga URL:er, saknad felhantering, memory leaks
+### Nasta buggjakt-items (session #274+):
 - [ ] **Angular template null safety** — granska .component.html for osaker property access utan ?. eller *ngIf
 - [ ] **PHP router/api.php audit** — verifiera att alla routes matchar controller-metoder, inga doda routes
 - [ ] **Angular environment config** — verifiera att environment.ts och environment.prod.ts har korrekta API-URL:er
+- [ ] **PHP controllers A-M djupgranskning** — fler buggkategorier: boundary values, encoding, timezone
+- [ ] **Angular component interaktion** — @Input/@Output korrekthet, EventEmitter utan unsubscribe
 
 ## Parkerade features (ta inte dessa nu)
 
