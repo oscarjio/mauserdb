@@ -1829,6 +1829,12 @@ class BonusAdminController {
         echo "\xEF\xBB\xBF";
 
         $output = fopen('php://output', 'w');
+        if ($output === false) {
+            error_log('BonusAdminController::exportCSV: fopen(php://output) misslyckades');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte skapa CSV-export'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
 
         // Headers
         if (count($data) > 0) {

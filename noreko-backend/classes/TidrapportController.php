@@ -562,6 +562,12 @@ class TidrapportController {
             header('Cache-Control: no-cache, no-store, must-revalidate');
 
             $output = fopen('php://output', 'w');
+            if ($output === false) {
+                error_log('TidrapportController::getExportCsv: fopen(php://output) misslyckades');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Kunde inte skapa CSV-export'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
 
             // BOM för Excel-kompatibilitet
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
