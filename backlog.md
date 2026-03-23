@@ -7,21 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #266):
-- [x] **PHP error handling consistency** — Worker A — 15 buggar fixade
-- [x] **PHP SQL transaction consistency** — Worker A — rent
-- [x] **PHP password/token handling** — Worker A — rent
-- [x] **Angular HTTP response type audit** — Worker B — rent
-- [x] **Angular form reset audit** — Worker B — rent
-- [x] **Angular Observable error handling audit** — Worker B — 7 buggar fixade
+### Klart (session #267):
+- [x] **PHP file I/O safety** — Worker A — 2 buggar fixade (fopen felkontroll)
+- [x] **PHP session fixation/regeneration** — Worker A — rent
+- [x] **PHP CORS/preflight consistency** — Worker A — 2 buggar fixade (X-CSRF-Token headers)
+- [x] **Angular route parameter validation** — Worker B — rent
+- [x] **Angular environment config audit** — Worker B — rent
+- [x] **Angular lazy loading chunk error handling** — Worker B — 1 bugg fixad (GlobalErrorHandler)
 
-### Nasta buggjakt-items (session #267+):
-- [ ] **PHP file I/O safety** — saknade flock(), felhantering vid fopen/fwrite/fclose
-- [ ] **Angular route parameter validation** — saknad parseInt/validering av route params
-- [ ] **PHP session fixation/regeneration** — session_regenerate_id() vid login
-- [ ] **Angular environment config audit** — dev vs prod skillnader, saknade variabler
-- [ ] **PHP CORS/preflight consistency** — OPTIONS-hantering, Access-Control headers
-- [ ] **Angular lazy loading chunk error handling** — ChunkLoadError retry/redirect
+### Nasta buggjakt-items (session #268+):
+- [ ] **PHP timezone consistency** — date_default_timezone_set(), DateTime vs strtotime blandning
+- [ ] **Angular HTTP interceptor error handling** — globala 401/403/500 handlers
+- [ ] **PHP array key validation** — saknade array_key_exists/isset vid extern data
+- [ ] **Angular memory profiling** — stora dataset i tabeller, pagination utan limit
+- [ ] **PHP PDO error mode consistency** — ERRMODE_EXCEPTION vs ERRMODE_SILENT
 
 ## Parkerade features (ta inte dessa nu)
 
