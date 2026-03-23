@@ -18113,3 +18113,43 @@ Granskade alla 4 entry-point-filer (api.php, admin.php, login.php, update-weathe
 - RebotlingAnalyticsController satter `Content-Type: text/html` for e-postrendering — korrekt
 
 ### Totalt: 0 buggar hittade
+
+## Session #262 — Worker A (2026-03-23)
+
+### Uppgift 1: PHP array key existence audit
+**Resultat:** 0 buggar
+
+Granskade alla 33 controllers i noreko-backend/controllers/ (alla ar proxy-filer som delegerar till classes/). Granskade sedan alla ~94 controller-klasser i noreko-backend/classes/ noggrant:
+
+- **$_GET/$_POST/$_REQUEST utan nyckelkontroll:** Samtliga ~500+ anvandningar av $_GET[] anvander antingen `??` (null coalescing), `isset()`, eller `!empty()` innan access. Sokningar efter osakrade $_GET-accesser hittade 3 forekomster som alla var korrekt skyddade (RebotlingAdminController:1228 inuti isset-ternary, MinDagController:53 inuti !empty(), FeedbackAnalysController:91 inuti isset-ternary). Inga $_POST-accesser utan skydd hittades.
+- **json_decode()-resultat utan kontroll:** Hittade ~55 anvandningar av json_decode(file_get_contents('php://input')). Av dessa anvander ~25 `?? []` for fallback och resten har explicit `if (!is_array($data))` kontroll med 400-svar. Inget fall saknar validering.
+- **DB-resultat ($row['kolumn']):** ~1294 forekomster av $row[]-access. Samtliga anvander kolumner som explicit namns i SELECT-satser med PDO::FETCH_ASSOC, vilket garanterar att nycklarna finns. Manga anvander ocksa `?? null` eller `?? 0` som extra skydd.
+- **Ingen anvandning av array_key_exists() hittades — alla anvander isset() eller ?? som ar korrekt for detta use-case.**
+- **api.php och routes:** Sakert — $_GET['action'] anvander `?? ''`, whitelist-validering via $classNameMap, och 404 vid okand action.
+
+Granskade filer (alla): KassationsanalysController, VeckorapportController, AlarmHistorikController, HeatmapController, ParetoController, OeeWaterfallController, MorgonrapportController, DrifttidsTimelineController, KassationsDrilldownController, ProduktionspulsController, ForstaTimmeAnalysController, MyStatsController, ProduktionsPrognosController, StopporsakOperatorController, OperatorOnboardingController, FavoriterController, KvalitetsTrendbrottController, StatistikDashboardController, SkiftplaneringController, StopptidsanalysController, RebotlingStationsdetaljController, SkiftoverlamningController, UnderhallsloggController, StopporsakController, ProduktionsmalController, OeeTrendanalysController, OperatorRankingController, VdDashboardController, HistoriskSammanfattningController, StatistikOverblickController, OperatorDashboardController, DagligBriefingController, SkiftjamforelseController, samt api.php.
+
+### Uppgift 2: PHP file upload validation audit
+**Resultat:** 0 buggar
+
+Sakte genom hela noreko-backend/ efter: $_FILES, move_uploaded_file, upload, file_put_contents, fopen med write-mode. Resultat:
+- **$_FILES:** Inga forekomster. Kodbasen hanterar INTE filuppladdning.
+- **move_uploaded_file():** Inga forekomster.
+- **file_put_contents():** Inga forekomster.
+- **fopen() med write:** Tva forekomster — BonusAdminController:1831 och TidrapportController:564, bada oppnar `php://output` for CSV-export (inte filer pa disk). Filnamn saniteras med preg_replace('/[^a-zA-Z0-9._-]/', '_') respektive preg_replace('/[^0-9-]/', '').
+- **Ingen filuppladdningsfunktionalitet finns i systemet.**
+
+### Uppgift 3: PHP regex pattern safety audit
+**Resultat:** 0 buggar
+
+Sakte genom hela noreko-backend/ efter preg_match, preg_replace, preg_split. Hittade ~100 anvandningar.
+
+- **preg_replace med /e modifier:** Inga forekomster. Alla preg_replace anvander sakra ersattningsstranger.
+- **ReDoS-sarbara monster:** Inga forekomster. Samtliga regex-monster ar enkla och linjara, t.ex. `/^\d{4}-\d{2}-\d{2}$/`, `/^[\w\.\-@]+$/u`, `/[A-Za-z]/`, `/[0-9]/`, `/\s+/`. Inga nested quantifiers som (a+)+ eller (a|a)*.
+- **Ovaliderad user input i regex-monster:** Inga forekomster. Det enda stallet dar variabelt innehall anvands i regex ar CORS-koden i api.php/admin.php/login.php dar serverns eget domainnamn ($_SERVER['SERVER_NAME']) infogas — korrekt skyddat med preg_quote().
+- **Saknad felhantering vid preg_match:** Alla preg_match-anrop anvands i if-satser eller ternary-uttryck dar false (fel) behandlas som icke-matchning, vilket ar korrekt beteende.
+- **preg_split:** 5 forekomster, alla pa `/\s+/` for att splitta namn fran DB-resultat (inte direkt user input). Sakert.
+- **eval():** Inga forekomster.
+- **shell_exec/system/passthru/popen:** Inga forekomster.
+
+### Totalt: 0 buggar hittade
