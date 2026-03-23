@@ -1,3 +1,49 @@
+## Worker A — Session #265
+
+### Uppgift 1: PHP arithmetic overflow/division audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer under noreko-backend/controllers/ (33 filer) och noreko-backend/classes/ (100+ filer), exkl. plcbackend/.
+
+Identifierade 80+ divisionsoperationer i kodbasen. Samtliga ar korrekt skyddade:
+
+- **Procent-berakningar**: Alla anvander ternary `$total > 0 ? round($x / $total * 100, N) : 0` — t.ex. KvalitetstrendanalysController (rad 224, 230, 243, 260, 318, 362, 366, 371, 435, 450, 522), KassationsorsakPerStationController, UnderhallsloggController, BatchSparningController, MorgonrapportController, VeckorapportController, WeeklyReportController.
+- **OEE-berakningar**: Alla anvander `max(..., 1)` for denominatorer — t.ex. RebotlingAnalyticsController (rad 547-552, 604-609, 2085-2089), OeeBenchmarkController (rad 144, 168, 173), DagligSammanfattningController (rad 247, 249, 251).
+- **Division med $n (count)**: RebotlingTrendanalysController (rad 234-241) — $n ar alltid >= 1 tack vare `if (empty($dagdata)) return` pa rad 205. Samma monster i anomalier() (rad 464) med guard `if (count($dagdata) < 4)` pa rad 449.
+- **Statistiska funktioner**: stddev() i CykeltidHeatmapController och KvalitetsTrendbrottController har guard `if ($n < 2) return 0`. linjarRegression() i RebotlingTrendanalysController har guard `if ($n < 2)` och `if ($denom === 0)`.
+- **IBC/timme**: Alla anvander `$runtime > 0 ? round($ibc / ($runtime / 60), 1) : 0` eller `$drifttid > 0 ? ...`.
+- **Kapacitetsplanering**: `max(1, $ibcPerOpPerDag)` och `max(1, $dagar)` forhindrar nolldivision (KapacitetsplaneringController rad 1123, 1093).
+- **Cykeltid-division**: RebotlingController rad 418 — guard `$cycleTime > 0` pa rad 415. StatusController/RebotlingAdminController — $snittCykel startar som 60, andras bara om `$cRow > 0`.
+- **Jandring-procent**: MorgonrapportController, DagligSammanfattningController, StopporsakTrendController — alla har `$prev > 0 ? ... : 0` guards.
+- **Limit/pagination**: AuditController rad 147 — `$limit` ar alltid >= 10 (via `max(10, ...)`).
+
+Inga integer overflow-risker hittades — PHP hanterar big integers automatiskt (konverterar till float).
+
+### Uppgift 2: PHP SQL injection i dynamiska ORDER BY/GROUP BY
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer under noreko-backend/controllers/ och noreko-backend/classes/, exkl. plcbackend/.
+
+- **ORDER BY med dynamiska variabler**: KassationsanalysController (rad 777, 1247) — `$orderExpr` skapas fran hardkodad switch baserad pa whitelist-validerad `$group` (rad 731: `in_array($group, ['week', 'month'], true)`). ForstaTimmeAnalysController (rad 151, 311) — `$ibcCol` returneras av `getIbcTimestampColumn()` som enbart returnerar 'timestamp' eller 'datum' baserat pa databaskolumninspektion.
+- **Sort-parametrar fran user input**: HistoriskProduktionController (rad 383-384) — `$sort` whitelist-valideras mot `['date', 'ibc_ok', 'ibc_ej_ok', 'total', 'kassation_pct']` och anvands for PHP usort(), inte SQL. `$order` valideras till 'ASC' eller 'DESC'. OperatorsPrestandaController (rad 429-431) — `$sortBy` whitelist-valideras mot `['ibc', 'kassation', 'oee', 'cykeltid']` och anvands for PHP usort(). RebotlingAdminController (rad 1082) — `$sortBy` whitelist-valideras med in_array().
+- **GROUP BY med dynamiska variabler**: BonusController, BonusAdminController, RebotlingAnalyticsController — `$pos` anvands i `op{$pos}` men kommer alltid fran hardkodad `for ($pos = 1; $pos <= 3; $pos++)` loop.
+- **LIMIT/OFFSET fran user input**: Samtliga 15+ forekoster anvander (int) cast + min/max bounds — t.ex. `max(1, min(100, (int)$_GET['limit']))`.
+- **Dynamiska tabellnamn**: RuntimeController — `$line . '_runtime'` dar `$line` whitelist-valideras mot `['tvattlinje', 'rebotling']` i varje metod.
+- **Inga ovaliderade user inputs i SQL-stranginterpolering hittades.**
+
+### Uppgift 3: PHP include/require path audit
+**Resultat:** 0 buggar — rent
+
+Granskade samtliga PHP-filer under noreko-backend/, exkl. plcbackend/.
+
+- **Inga include/include_once anvands** — alla anvander require eller require_once. Detta ar korrekt for kritiska filer (require ger fatal error vid misslyckande, include ger bara warning).
+- **Alla sokvargar anvander `__DIR__`**: controllers/-filer anvander `require_once __DIR__ . '/../classes/XxxController.php'` (33 proxy-filer). classes/-filer anvander `require_once __DIR__ . '/AuthHelper.php'` etc. api.php anvander `require_once __DIR__ . '/classes/' . $className . '.php'`.
+- **Inga variabla sokvargar fran user input**: `$className` i api.php (rad 274) kommer fran hardkodad `$classNameMap` whitelist (120+ entries, rad 125-241), validerad via `isset($classNameMap[$actionKey])` (rad 244).
+- **Autoloader**: api.php rad 117-120 — `spl_autoload_register` anvander `__DIR__ . '/classes/' . $class . '.php'` med `file_exists()` guard.
+- **Config-filer**: db_config.php, cors_origins.php, app_config.php — alla laddas med `__DIR__` + `file_exists()` guard.
+- **Relativa sokvargar**: Inga relativa sokvargar anvands — alla ar absolutifierade via `__DIR__`.
+- **Saknade filer**: Alla require_once-anrop pekar pa filer som existerar i kodbasen.
+
 ## Worker B — Session #265
 
 ### Uppgift 1: Angular router guard consistency audit
