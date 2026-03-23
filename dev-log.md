@@ -1,3 +1,35 @@
+## 2026-03-23 Session #278 Worker B — Angular memory leaks + router chunk felhantering + HTTP felhantering audit (0 buggar)
+
+### Uppgift 1: Angular memory leak regressionstest
+Granskade samtliga ~170 komponenter med `subscribe()` i pages/, rebotling/ och components/:
+- Alla komponenter med subscriptions implementerar `OnDestroy` med `destroy$.next()` + `destroy$.complete()`.
+- Alla `subscribe()`-anrop har `takeUntil(this.destroy$)` i sin pipe-kedja.
+- Alla `setInterval`/`setTimeout` har matchande `clearInterval`/`clearTimeout` i `ngOnDestroy`.
+- Alla 109 filer med `new Chart()` har matchande `.destroy()`-anrop i `ngOnDestroy`.
+- Alla 5 filer med `addEventListener` har matchande `removeEventListener` i `ngOnDestroy`.
+- **0 buggar hittade.**
+
+### Uppgift 2: Angular router lazy chunk felhantering
+Granskade `app.config.ts` och `app.routes.ts`:
+- `GlobalErrorHandler` fangar `ChunkLoadError`/`Loading chunk \d+ failed` korrekt.
+- Oandlig reload-loop forhinrads med `sessionStorage`-baserad tidskontroll (10s cooldown).
+- `ErrorHandler` registrerad korrekt i `appConfig.providers`.
+- Samtliga 150+ routes anvander `loadComponent` med lazy-loading.
+- `PreloadAllModules`-strategi anvands for att preloada chunks i bakgrunden.
+- **0 buggar hittade.**
+
+### Uppgift 3: Angular HTTP felhantering konsistens
+Granskade alla services (90+) och komponenter for HTTP-felhantering:
+- Alla HTTP-anrop i komponenter har `catchError` i pipe-kedjan ELLER `error:`-callback i subscribe-objektet.
+- `errorInterceptor` hanterar alla HTTP-statuskoder (0, 401, 403, 404, 408, 429, 500+) med svenska felmeddelanden och toast-notiser.
+- Retry-logik i interceptorn begransas korrekt till idempotenta metoder (GET/HEAD/OPTIONS).
+- `csrfInterceptor` bifogar CSRF-token korrekt pa alla mutating-requests (POST/PUT/DELETE/PATCH).
+- Alla services returnerar observables med `timeout()` och `catchError()` eller later komponenterna hantera fel.
+- `AuthService` hanterar polling, logout och session-rensning korrekt med Subscription-hantering.
+- **0 buggar hittade.**
+
+### Totalt: 0 buggar hittade
+
 ## 2026-03-23 Session #276 Worker B — Angular lazy loading + form validation + pipes/directives audit (0 buggar)
 
 ### Uppgift 1: Angular lazy loading korrekthet
