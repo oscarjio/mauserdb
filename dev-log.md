@@ -18153,3 +18153,55 @@ Sakte genom hela noreko-backend/ efter preg_match, preg_replace, preg_split. Hit
 - **shell_exec/system/passthru/popen:** Inga forekomster.
 
 ### Totalt: 0 buggar hittade
+
+## Session #262 — Worker B (2026-03-23)
+
+### Uppgift 1: Angular HTTP retry/error recovery audit
+**Resultat:** 0 buggar
+
+Granskade samtliga 92 service-filer i noreko-frontend/src/app/services/ samt 4 rebotling-specifika services (gamification, daglig-briefing, prediktivt-underhall, skiftoverlamning). Totalt ca 600+ HTTP-anrop analyserade.
+
+**Vad som kontrollerades:**
+- Varje HTTP-anrop (get/post/put/delete) har `.pipe(timeout(), catchError())`
+- rebotling.service.ts (1903 rader, 74 HTTP-anrop): Alla 74 har timeout + catchError
+- Alla GET-anrop har `retry(1)`, POST-anrop har enbart catchError (korrekt — POST ska inte retry:as)
+- Timeout-varden ar konsekventa: 8000-15000ms for normala anrop, 30000ms for tunga queries (kapacitetsplanering)
+- catchError returnerar `of(null)` for GET (graceful degradation) och `of({ success: false, error: ... })` for POST (feedback till anvandaren)
+
+**Error interceptor (error.interceptor.ts):**
+- Hanterar 0 (natverksfel), 401 (session expired → redirect login med returnUrl), 403, 404, 408, 429, 5xx
+- Retry:ar enbart idempotenta metoder (GET/HEAD/OPTIONS) vid 502/503/504 med 1s delay
+- Visar svenska felmeddelanden via ToastService
+- CSRF-interceptor bifogar X-CSRF-Token pa alla state-andrande requests
+
+**Sammanfattning:** Kodbasen ar extremt konsekvent. Alla HTTP-anrop har korrekt timeout, retry-logik och catchError. Inga buggar hittade.
+
+### Uppgift 2: Angular form validation consistency audit
+**Resultat:** 0 buggar
+
+Granskade alla 96 HTML-filer med ngModel-bindningar och alla komponentfiler med formular. Projektet anvander uteslutande template-driven forms (FormsModule + ngModel), inga ReactiveFormsModule/FormGroup/FormBuilder anvands.
+
+**Vad som kontrollerades:**
+- Alla `[(ngModel)]` inuti `<form>`-taggar har korrekt `name`-attribut
+- Alla obligatoriska falt har `required`-attribut
+- Submit-knappar ar korrekta: `[disabled]` baserat pa formvalidering eller manuella villkor
+- Felmeddelanden visas nar validering misslyckas (t.ex. maintenance-form: `*ngIf="titleCtrl.invalid && titleCtrl.touched"`)
+- Validering ar konsekvent: minlength, maxlength, min, max pa alla relevanta falt
+
+**Granskade formular:**
+- maintenance-form.component.ts: Komplett med `required`, felmeddelanden, server-side formError, disabled submit
+- login.ts: required + minlength + maxlength, disabled submit
+- register.html: Losenardsvalidering (styrka + match), e-postvalidering, kontrollkod
+- create-user.html: `canSubmit` getter, e-postvalidering, losenardsvalidering
+- users.html: required + minlength + maxlength pa anvandarnamn
+- operators.html: required + manuella villkor pa submit-knapp
+- news-admin.ts: required pa rubrik, disabled submit, formError-meddelanden
+- stoppage-log.html: required pa stopporsak + starttid, disabled submit
+- skiftoverlamning.component.html: Checklista + bekraftelsedialog
+- kassationskvot-alarm.component.html: Validering av troskel-varden
+- batch-sparning.component.html: required pa batchnummer + planerat antal
+- maskinunderhall.component.html: required pa maskin-id + service-datum
+
+**`[(ngModel)]` utan `name`-attribut:** 96+ forekomster UTANFOR `<form>`-taggar (filtrerings-selects, sokfaltar, etc.) — korrekt Angular-beteende, `name` behovs enbart inuti formularet.
+
+### Totalt: 0 buggar hittade
