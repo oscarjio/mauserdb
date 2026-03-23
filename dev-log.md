@@ -1,3 +1,28 @@
+## 2026-03-23 Session #268 Worker B — Angular HTTP interceptor + memory profiling audit (0 buggar)
+
+### Uppgift 1: Angular HTTP interceptor error handling audit
+**Resultat:** 0 buggar — rent
+
+Granskade 2 interceptorer + app.config.ts + auth.service.ts + samtliga ~90 service-filer under noreko-frontend/src/app/services/:
+- `errorInterceptor` (error.interceptor.ts): Hanterar 401 (clearSession + redirect till /login med returnUrl), 403 (toast "Atkomst nekad"), 404, 408, 429, 500+ (toast med statuskod), och status 0 ("Ingen kontakt med servern"). Korrekt.
+- Retry-logik: retry count=1 med 1s delay for GET/HEAD/OPTIONS vid status 0/502/503/504. POST/PUT/DELETE retry:as INTE. Korrekt.
+- `csrfInterceptor` (csrf.interceptor.ts): Bifogar X-CSRF-Token fran sessionStorage pa POST/PUT/DELETE/PATCH. Korrekt.
+- Interceptorer registrerade i app.config.ts via `provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]))`. Korrekt.
+- Alla HTTP-anrop i services anvander `withCredentials: true` — ingen missad. Verifierat genom automatisk rakning av http-anrop vs withCredentials per service-fil.
+- Inga HTTP-anrop gar forbi interceptorn (inga `new HttpClient`, `HttpBackend` eller `HttpXhrBackend`).
+- AuthService.clearSession() anropas korrekt vid 401, stoppar polling och rensar sessionStorage.
+
+### Uppgift 2: Angular memory profiling — stora dataset i tabeller
+**Resultat:** 0 buggar — rent
+
+Granskade 165 TypeScript-filer + 130 HTML-templates under noreko-frontend/src/app/pages/ (exkl. *-live-sidor):
+- **ngFor/trackBy:** 499 `*ngFor`-loopar hittades, 498 har `trackBy`. Den enda utan trackBy itererar over en 3-elements inline array-literal (skiftrapport-sammanstallning). 4 `@for`-loopar, alla med `track`. Rent.
+- **Subscriptions:** Alla 37 komponentfiler med `.subscribe()` har matchande `destroy$` + `takeUntil` + `ngOnDestroy`. Inga subscription leaks.
+- **setInterval/setTimeout:** 31 komponentfiler med timers — alla har `clearInterval`/`clearTimeout` i `ngOnDestroy`. Rent.
+- **Chart.js:** ~100 `new Chart`-instanser over alla sidor — alla har lika manga eller fler `.destroy()`-anrop (destroy fore recreate-monster). Inga canvas-leaks.
+- **Pagination:** Sidor med potentiellt stora dataset (audit-log, stoppage-log, maskinhistorik m.fl.) anvander server-side pagination eller periodfiltrering.
+- **Service-caching:** Inga unbounded caches hittades. ToastService auto-dismissar toasts. AlertsService anvander destroy$/takeUntil for polling. FeatureFlagService har statisk flagg-Map (begransat).
+
 ## 2026-03-23 Session #268 Worker A — PHP timezone/array key validation/PDO error mode audit
 
 ### Uppgift 1: PHP timezone consistency audit
