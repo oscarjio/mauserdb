@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #261):
-- [x] **PHP error_log format consistency audit** — Worker A — rent
-- [x] **PHP SQL transaction audit** — Worker A — rent
-- [x] **PHP CORS/security headers consistency audit** — Worker A — rent
-- [x] **Angular router parameter validation audit** — Worker B — rent
-- [x] **Angular template expression complexity audit** — Worker B — rent
+### Klart (session #262):
+- [x] **PHP array key existence audit** — Worker A — rent
+- [x] **PHP file upload validation audit** — Worker A — rent (ingen upload-funktionalitet)
+- [x] **PHP regex pattern safety audit** — Worker A — rent
+- [x] **Angular HTTP retry/error recovery audit** — Worker B — rent
+- [x] **Angular form validation consistency audit** — Worker B — rent
 
-### Nasta buggjakt-items (session #262+):
-- [ ] **PHP array key existence audit** — array_key_exists vs isset, saknade nyckelkontroller
-- [ ] **PHP file upload validation audit** — saknade MIME/storlek/extension-kontroller
-- [ ] **Angular HTTP retry/error recovery audit** — saknad retry-logik, felhantering i services
-- [ ] **Angular form validation consistency audit** — saknade/inkonsistenta validatorer i formulr
-- [ ] **PHP regex pattern safety audit** — ReDoS-risk, saknad input-sanering i preg_match
+### Nasta buggjakt-items (session #263+):
+- [ ] **PHP date/string comparison audit** — strtotime edge cases, strcmp vs ===, locale-beroende
+- [ ] **PHP PDO fetch mode consistency audit** — FETCH_ASSOC vs FETCH_BOTH, saknade fetchAll-kontroller
+- [ ] **Angular pipe purity audit** — impure pipes i ngFor, saknade pure pipes for tunga berakningar
+- [ ] **Angular change detection audit** — onPush-strategier, saknade markForCheck(), zoner
+- [ ] **PHP SQL column alias consistency audit** — alias-namn som inte matchar frontend-forvantningar
 
 ## Parkerade features (ta inte dessa nu)
 

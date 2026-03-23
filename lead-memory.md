@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-23 (session #261)*
+*Senast uppdaterad: 2026-03-23 (session #262)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -66,35 +66,36 @@ Session #258: BUGGJAKT — 3 buggar (3 Worker A + 0 Worker B). type juggling: 2 
 Session #259: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). file_get_contents/curl: rent. session handling: rent. isset/null: rent. change detection: rent. lazy loading routes: rent. reactive forms: rent.
 Session #260: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). date/time: rent. JSON: rent. integer overflow: rent. HTTP timeout: 1 saknad catchError fixad (operator-jamforelse). setInterval: rent.
 Session #261: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). error_log format: rent. SQL transactions: rent. CORS headers: rent. router params: rent. template expressions: rent.
+Session #262: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array key existence: rent. file upload: ingen upload-funktionalitet. regex safety: rent. HTTP retry/error: rent. form validation: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Klart (session #261):
-- [x] PHP error_log format consistency audit — rent
-- [x] PHP SQL transaction audit — rent
-- [x] PHP CORS/security headers consistency audit — rent
-- [x] Angular router parameter validation audit — rent
-- [x] Angular template expression complexity audit — rent
+### Klart (session #262):
+- [x] PHP array key existence audit — Worker A — rent
+- [x] PHP file upload validation audit — Worker A — rent (ingen upload-funktionalitet)
+- [x] PHP regex pattern safety audit — Worker A — rent
+- [x] Angular HTTP retry/error recovery audit — Worker B — rent
+- [x] Angular form validation consistency audit — Worker B — rent
 
-### Nasta (session #262+):
-- [ ] PHP array key existence audit
-- [ ] PHP file upload validation audit
-- [ ] Angular HTTP retry/error recovery audit
-- [ ] Angular form validation consistency audit
-- [ ] PHP regex pattern safety audit
+### Nasta (session #263+):
+- [ ] PHP date/string comparison audit
+- [ ] PHP PDO fetch mode consistency audit
+- [ ] Angular pipe purity audit
+- [ ] Angular change detection audit
+- [ ] PHP SQL column alias consistency audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-22 — Session #259 (klar)
-Worker A: 0 buggar — file_get_contents/curl: rent. session handling: rent. isset/null: rent.
-Worker B: 0 buggar — change detection: rent. lazy loading routes: rent. reactive forms: rent.
 
 ### 2026-03-22 — Session #260 (klar)
 Worker A: 0 buggar — date/time timezone: rent. JSON encode/decode: rent. integer overflow: rent.
 Worker B: 1 bugg — HTTP timeout: 1 saknad catchError fixad. setInterval: rent.
 
 ### 2026-03-23 — Session #261 (klar)
-Worker A: 0 buggar — error_log format: rent (konsekvent ControllerName::methodName). SQL transactions: rent (alla multi-writes wrappade). CORS headers: rent (konsekventa over alla endpoints).
-Worker B: 0 buggar — router params: rent (alla 5 filer med ActivatedRoute har korrekt validering). template expressions: rent (136 templates, 16 funktionsanrop i ngFor — alla triviala).
+Worker A: 0 buggar — error_log format: rent. SQL transactions: rent. CORS headers: rent.
+Worker B: 0 buggar — router params: rent. template expressions: rent.
+
+### 2026-03-23 — Session #262 (klar)
+Worker A: 0 buggar — array key existence: rent (500+ $_GET/$_POST med ??/isset). file upload: rent (ingen upload-funktionalitet). regex safety: rent (inga ReDoS, ingen /e modifier).
+Worker B: 0 buggar — HTTP retry/error: rent (600+ anrop med timeout/catchError/retry). form validation: rent (alla ngModel med name-attribut, submit-knappar disabled vid ogiltig form).
