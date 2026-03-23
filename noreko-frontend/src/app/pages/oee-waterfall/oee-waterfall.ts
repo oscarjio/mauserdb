@@ -126,6 +126,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
   private buildWaterfallChart(): void {
     this.destroyChart();
     const canvas = document.getElementById('waterfallChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.segments.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

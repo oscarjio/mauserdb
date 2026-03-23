@@ -177,6 +177,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
   private renderTrendChart(): void {
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('feedbackTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData || !this.trendData.trend.length) return;
 
     const labels      = this.trendData.trend.map((p: TrendPunkt) => this.formatVecka(p.vecka_start));

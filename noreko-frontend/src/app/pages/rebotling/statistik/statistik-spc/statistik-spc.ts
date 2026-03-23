@@ -66,6 +66,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
   private renderSPCChart(points: { label: string; ibc_per_hour: number }[]) {
     try { this.spcChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('spcChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !points.length) return;
 
     const labels  = points.map(p => p.label);

@@ -164,6 +164,7 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
     this.destroyChart();
 
     const canvas = document.getElementById('effektivitetTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData) return;
 
     const { trend, snitt_30d } = this.trendData;

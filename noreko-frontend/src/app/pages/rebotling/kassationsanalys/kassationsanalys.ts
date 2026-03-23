@@ -223,6 +223,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.paretoChart = null;
 
     const canvas = document.getElementById('kasParetoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.orsaker.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -324,6 +325,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('kasTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData?.har_data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -825,6 +825,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
 
   buildWeekChart(): void {
     const canvas = document.getElementById('weekChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.historyData) return;
 
     try { this.weekChart?.destroy(); } catch (e) {}

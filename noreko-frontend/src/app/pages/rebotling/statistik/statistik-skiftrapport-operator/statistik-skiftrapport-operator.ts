@@ -196,6 +196,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
     this.chart = null;
 
     const canvas = document.getElementById('skiftrapportOpChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.data.length === 0) return;
 
     // Sortera kronologiskt

@@ -228,6 +228,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
   private byggTrendChart(): void {
     this.destroyCharts();
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trendData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -147,6 +147,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   private renderCycleTrendChart() {
     try { this.cycleTrendChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.cycleTrendData.length) return;
 
     const labels = this.cycleTrendData.map((d: any) => d.label ?? d.dag.substring(5));

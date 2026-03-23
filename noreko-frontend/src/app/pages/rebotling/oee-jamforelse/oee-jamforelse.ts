@@ -87,6 +87,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
     this.oeeChart = null;
 
     const canvas = document.getElementById('oeeJamforelseChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

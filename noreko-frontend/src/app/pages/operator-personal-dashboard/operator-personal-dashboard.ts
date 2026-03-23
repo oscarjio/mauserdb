@@ -196,6 +196,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
     this.produktionChart = null;
 
     const canvas = document.getElementById('produktionTimmeChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.produktion) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -250,6 +251,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
     this.veckotrendChart = null;
 
     const canvas = document.getElementById('veckotrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.veckotrend) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

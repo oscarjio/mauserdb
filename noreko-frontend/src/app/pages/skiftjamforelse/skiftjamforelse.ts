@@ -149,6 +149,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     this.radarChart = null;
 
     const canvas = document.getElementById('skiftRadarChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.jamforelse?.radar) return;
 
     const radar = this.jamforelse.radar;
@@ -217,6 +218,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('skiftTrendOeeChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData?.trend) return;
 
     const points = this.trendData.trend;

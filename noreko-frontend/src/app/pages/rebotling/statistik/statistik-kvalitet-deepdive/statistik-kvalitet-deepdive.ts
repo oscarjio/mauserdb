@@ -242,6 +242,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     try { this.donutChart?.destroy(); } catch (e) {}
     this.donutChart = null;
     const canvas = document.getElementById('kvalitetDeepDiveDonut') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.orsaker.length || !this.hasParetoData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -290,6 +291,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     try { this.barChart?.destroy(); } catch (e) {}
     this.barChart = null;
     const canvas = document.getElementById('kvalitetDeepDiveBar') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.orsaker.length || !this.hasParetoData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -402,6 +404,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
     const canvas = document.getElementById('kvalitetDeepDiveTrend') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData.length || !this.trendOrsaker.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

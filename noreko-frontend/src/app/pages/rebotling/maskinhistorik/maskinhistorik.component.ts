@@ -174,6 +174,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.drifttidChart = null;
 
     const canvas = document.getElementById('drifttidChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.drifttidData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -273,6 +274,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
     this.oeeChart = null;
 
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.oeeTrendData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

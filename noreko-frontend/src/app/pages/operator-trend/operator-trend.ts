@@ -201,6 +201,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
     this.chart = null;
 
     const canvas = document.getElementById('trendMainChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trendData.length === 0) return;
 
     const EXTRA_WEEKS = 3;

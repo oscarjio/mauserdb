@@ -225,6 +225,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
     this.veckoChart = null;
 
     const canvas = document.getElementById('tidrapportVeckoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.veckodata) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

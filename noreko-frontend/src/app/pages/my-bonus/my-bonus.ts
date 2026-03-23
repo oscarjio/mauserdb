@@ -1055,6 +1055,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     try { this.weeklyChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myWeeklyChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.weeklyData.length === 0) return;
 
     const labels = this.weeklyData.map(w => w.label);
@@ -1189,6 +1190,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     try { this.historyChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myHistoryChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || history.length === 0) return;
 
     const recent = history.slice(0, 15).reverse();
@@ -1231,6 +1233,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     try { this.ibcTrendChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myIbcTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || history.length < 2) return;
 
     const recent = history.slice(0, 7).reverse();

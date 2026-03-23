@@ -170,6 +170,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
   private renderGauge(): void {
     try { this.gaugeChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('oeeGaugeChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.oeeData) return;
 
     const pct   = this.oeeData.oee_pct;
@@ -208,6 +209,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
   private renderTrendChart(): void {
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData) return;
 
     const labels = this.trendData.trend.map((p: TrendPoint) => this.formatDatum(p.datum));

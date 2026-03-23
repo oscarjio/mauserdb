@@ -155,6 +155,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
   private buildTimelineChart(): void {
     this.destroyChart();
     const canvas = document.getElementById('alarmTimelineChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.timelineData?.har_data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

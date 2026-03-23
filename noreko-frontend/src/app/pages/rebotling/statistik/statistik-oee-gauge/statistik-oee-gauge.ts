@@ -89,6 +89,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
     this.gaugeChart = null;
 
     const canvas = document.getElementById('oeeGaugeCanvas') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.data) return;
 
     const oee = this.data.oee_percent;

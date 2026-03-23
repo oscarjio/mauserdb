@@ -84,6 +84,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
   private renderCycleByOpChart() {
     try { this.cycleByOpChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.rankedData.length) return;
 
     const chartData = [...this.rankedData].reverse();

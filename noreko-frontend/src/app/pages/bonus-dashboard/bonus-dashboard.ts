@@ -391,6 +391,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.kpiRadarChart = null;
 
     const canvas = document.getElementById('kpiRadarChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.operatorData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -430,6 +431,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.operatorKPIData?.chart_data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -492,6 +494,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.weekTrendChart = null;
 
     const canvas = document.getElementById('weekTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.weekTrendData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -667,6 +670,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.shiftCompareChart = null;
 
     const canvas = document.getElementById('shiftCompareChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.shifts.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -183,6 +183,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
   private buildReasonChart(): void {
     this.destroyReasonChart();
     const canvas = document.getElementById('reasonChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.reasons.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -259,6 +260,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
   private buildTrendChart(): void {
     this.destroyTrendChart();
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trendData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

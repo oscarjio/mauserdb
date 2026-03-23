@@ -49,6 +49,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
   private renderOeeWaterfallChart() {
     try { this.oeeWaterfallChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('oeeWaterfallChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.oeeWaterfallData) return;
     const d = this.oeeWaterfallData;
     const avail = d.availability ?? 0; const perf = d.performance ?? 0;

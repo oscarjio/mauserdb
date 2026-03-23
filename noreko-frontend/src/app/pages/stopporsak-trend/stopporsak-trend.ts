@@ -193,6 +193,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('stopporsakTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.weeklyData) return;
 
     const { veckor, top_reasons } = this.weeklyData;
@@ -281,6 +282,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.detailChart = null;
 
     const canvas = document.getElementById('stopporsakDetailChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.detailData) return;
 
     const { tidslinje, reason } = this.detailData;

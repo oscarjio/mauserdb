@@ -247,6 +247,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     setter(null);
 
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || data.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -288,6 +289,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     this.huvudChart = null;
 
     const canvas = document.getElementById('huvudChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.historikData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

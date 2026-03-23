@@ -274,6 +274,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
     }
 
     const canvas = document.getElementById('trendChart_' + id) as HTMLCanvasElement;
+    if (!canvas) return;
     const data = this.trendData[id];
     if (!canvas || !data || data.length === 0) return;
 

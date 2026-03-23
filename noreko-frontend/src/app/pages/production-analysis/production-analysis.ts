@@ -461,6 +461,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.dailyTrendChart) this.dailyTrendChart.destroy(); } catch (e) {}
     this.dailyTrendChart = null;
     const canvas = document.getElementById('dailyTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dailyData.length) return;
 
     this.dailyTrendChart = new Chart(canvas, {
@@ -508,6 +509,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.weekdayChart) this.weekdayChart.destroy(); } catch (e) {}
     this.weekdayChart = null;
     const canvas = document.getElementById('weekdayChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.weekdayData.length) return;
 
     this.weekdayChart = new Chart(canvas, {
@@ -669,6 +671,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.bubbleChart) this.bubbleChart.destroy(); } catch (e) {}
     this.bubbleChart = null;
     const canvas = document.getElementById('bubbleChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.allShifts.length) return;
 
     const points = this.allShifts.map(s => ({
@@ -830,6 +833,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.stoppageDailyChart) this.stoppageDailyChart.destroy(); } catch (e) {}
     this.stoppageDailyChart = null;
     const canvas = document.getElementById('stoppageDailyChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stoppageByDay.length) return;
 
     // Sortera dagarna kronologiskt
@@ -992,6 +996,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.bestShiftsChart) this.bestShiftsChart.destroy(); } catch (e) {}
     this.bestShiftsChart = null;
     const canvas = document.getElementById('bestShiftsChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.bestShifts.length) return;
 
     const labels = this.bestShifts.map(s => `#${s.skiftraknare} (${s.dag})`);
@@ -1198,6 +1203,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     try { if (this.paretoChart) this.paretoChart.destroy(); } catch (e) {}
     this.paretoChart = null;
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.paretoData.length) return;
 
     const labels = this.paretoData.map(d => d.orsak ?? 'Okänd');

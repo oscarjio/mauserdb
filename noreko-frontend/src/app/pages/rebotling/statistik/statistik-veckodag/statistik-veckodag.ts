@@ -56,6 +56,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
   private buildWeekdayChart(): void {
     try { this.weekdayChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('weekdayChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.weekdayData.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -524,6 +524,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
 
   buildTrendChart(): void {
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.profil || this.profil.trend_weekly.length === 0) return;
 
     try { this.trendChart?.destroy(); } catch (e) {}

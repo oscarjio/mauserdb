@@ -32,6 +32,7 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
   private buildHourlyRhythmChart(): void {
     try { this.hourlyRhythmChart?.destroy(); } catch (e) {} this.hourlyRhythmChart = null;
     const canvas = document.getElementById('hourlyRhythmChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.hourlyRhythm.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.hourlyRhythm.map(h => h.label); const values = this.hourlyRhythm.map(h => h.avg_ibc_h); const maxVal = Math.max(...values);

@@ -238,6 +238,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
     const canvas = document.getElementById('prediktivtTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trendStationer.length === 0) return;
 
     const colors = [

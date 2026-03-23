@@ -257,6 +257,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     this.poangChart = null;
 
     const canvas = document.getElementById('poangFordelningChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.poangfordelningData?.chart_data?.length) return;
 
     const items = this.poangfordelningData.chart_data;
@@ -328,6 +329,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     this.historikChart = null;
 
     const canvas = document.getElementById('historikChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.historikData?.datasets?.length) return;
 
     const colors = ['#4fd1c5', '#4299e1', '#ecc94b', '#b794f4', '#fc8181'];

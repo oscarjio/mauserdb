@@ -231,6 +231,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('kassationsTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

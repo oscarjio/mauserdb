@@ -199,6 +199,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
   private buildTrendChart(): void {
     try { this.trendChart?.destroy(); } catch (_) {}
     const canvas = document.getElementById('briefingTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trend.length === 0) return;
 
     this.trendChart = new Chart(canvas, {

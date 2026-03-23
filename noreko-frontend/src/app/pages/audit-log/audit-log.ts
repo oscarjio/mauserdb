@@ -363,6 +363,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
     try { this.activityChart?.destroy(); } catch (e) {}
     this.activityChart = null;
     const canvas = document.getElementById('activityChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stats) return;
 
     const daily = this.stats.daily;

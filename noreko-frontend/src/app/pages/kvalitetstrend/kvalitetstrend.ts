@@ -207,6 +207,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('kvalitetTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.operatorsData) return;
 
     const { operatorer, veckonycklar, team_snitt_per_vecka } = this.operatorsData;
@@ -410,6 +411,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     this.detailChart = null;
 
     const canvas = document.getElementById('kvalitetDetailChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.detailData) return;
 
     const { tidslinje } = this.detailData;

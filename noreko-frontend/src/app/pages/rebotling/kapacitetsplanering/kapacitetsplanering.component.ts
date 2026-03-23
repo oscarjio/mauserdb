@@ -245,6 +245,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.kapacitetsChart = null;
 
     const canvas = document.getElementById('kapacitetsChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.dagligData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -382,6 +383,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.stationChart = null;
 
     const canvas = document.getElementById('stationChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.stationData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -484,6 +486,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trendData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -595,6 +598,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.stopporsakChart = null;
 
     const canvas = document.getElementById('stopporsakChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.stopporsakData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -670,6 +674,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.tidFordelningChart = null;
 
     const canvas = document.getElementById('tidFordelningChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.tidFordelningData.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

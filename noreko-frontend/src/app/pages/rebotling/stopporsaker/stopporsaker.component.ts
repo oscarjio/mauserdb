@@ -263,6 +263,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     this.paretoChart = null;
 
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.paretoData?.pareto?.length) return;
 
     const items = this.paretoData.pareto;
@@ -341,6 +342,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     this.stationChart = null;
 
     const canvas = document.getElementById('stationChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stationData?.stationer?.length) return;
 
     const items = this.stationData.stationer;
@@ -391,6 +393,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData?.dates?.length) return;
 
     const dates = this.trendData.dates.map(d => {

@@ -62,6 +62,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
     try { this.histogramChart?.destroy(); } catch (e) {}
     this.histogramChart = null;
     const canvas = document.getElementById('cycleHistogramChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.histogramBuckets.length) return;
 
     const labels = this.histogramBuckets.map(b => b.label);

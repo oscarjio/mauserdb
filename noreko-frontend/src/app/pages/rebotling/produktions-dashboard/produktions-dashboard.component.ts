@@ -215,6 +215,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
     this.prodChart = null;
 
     const canvas = document.getElementById('prodChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.veckoProd.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -300,6 +301,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
     this.oeeChart = null;
 
     const canvas = document.getElementById('oeeChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.veckoOee.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

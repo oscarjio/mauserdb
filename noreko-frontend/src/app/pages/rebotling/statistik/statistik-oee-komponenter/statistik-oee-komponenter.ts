@@ -38,6 +38,7 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
   buildOeeComponentsChart(): void {
     try { this.oeeComponentsChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('oeeComponentsChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.oeeComponentsData.length === 0) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.oeeComponentsData.map(d => { const p = d.datum.split('-'); return p[2]+'/'+p[1]; });

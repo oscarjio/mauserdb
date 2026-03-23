@@ -216,6 +216,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.stapelChart = null;
 
     const canvas = document.getElementById('kpsStapelChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.perStation) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -289,6 +290,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.orsakChart = null;
 
     const canvas = document.getElementById('kpsOrsakChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.topOrsaker) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -344,6 +346,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('kpsTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

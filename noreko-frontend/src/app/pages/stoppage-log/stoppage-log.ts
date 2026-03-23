@@ -753,6 +753,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.hourlyChart?.destroy(); } catch (e) {}
     this.hourlyChart = null;
     const canvas = document.getElementById('hourlyChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.patternData?.hourly_distribution) return;
 
     const distribution = this.patternData.hourly_distribution;
@@ -895,6 +896,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.monthlyStopChart?.destroy(); } catch (e) {}
     this.monthlyStopChart = null;
     const canvas = document.getElementById('monthlyStopChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.monthlyStopItems.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -960,6 +962,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.paretoChart?.destroy(); } catch (e) {}
     this.paretoChart = null;
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stats) return;
 
     const reasons = this.stats.reasons;
@@ -1012,6 +1015,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.weekly14Chart?.destroy(); } catch (e) {}
     this.weekly14Chart = null;
     const canvas = document.getElementById('weekly14Chart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.weeklySummary) return;
 
     const daily = this.weeklySummary.daily_14;
@@ -1094,6 +1098,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.dailyChart?.destroy(); } catch (e) {}
     this.dailyChart = null;
     const canvas = document.getElementById('dailyChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stats) return;
 
     const daily = this.stats.daily;
@@ -1160,6 +1165,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     try { this.paretoDetailChart?.destroy(); } catch (e) {}
     this.paretoDetailChart = null;
     const canvas = document.getElementById('paretoDetailChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.paretoData || this.paretoData.orsaker.length === 0) return;
 
     const orsaker = this.paretoData.orsaker;

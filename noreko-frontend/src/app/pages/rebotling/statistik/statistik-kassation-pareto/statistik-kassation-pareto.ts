@@ -55,6 +55,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
   private buildKassationParetoChart(): void {
     try { this.kassationParetoChart?.destroy(); } catch (e) {} this.kassationParetoChart = null;
     const canvas = document.getElementById('kassationParetoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.kassationPareto.length) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.kassationPareto.map(p => p.namn); const values = this.kassationPareto.map(p => p.antal); const kumulativ = this.kassationPareto.map(p => p.kumulativ_pct); const maxVal = Math.max(...values, 1);

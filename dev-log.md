@@ -1,3 +1,32 @@
+## 2026-03-23 Session #270 Worker B — Route resolver + SSR compatibility audit (106 buggar)
+
+### Uppgift 1: Angular route resolver errors
+**Resultat:** 0 buggar — projektet anvander inga route resolvers. Alla routes anvander lazy-loaded `loadComponent` utan `resolve: {}`. Inga resolver-relaterade problem finns.
+
+### Uppgift 2: Angular SSR compatibility — window/document-access
+**Resultat:** 106 buggar fixade i 61 filer.
+
+**SSR-status:** Projektet anvander INTE `@angular/platform-server` eller SSR. Inga `isPlatformBrowser`-kontroller behovs for produktion. Granskning gjord anda for testmiljo-kompatibilitet och basta praxis.
+
+**Buggkategori: Osaker `document.getElementById()` utan null-guard (106 st)**
+- 106 anrop till `document.getElementById('...') as HTMLCanvasElement` saknade null-kontroll
+- Om DOM-elementet inte finns (t.ex. pga ngIf, routing-race, eller testmiljo utan DOM) kraschar Chart.js-instansieringen med TypeError
+- Fix: Lade till `if (!canvas) return;` direkt efter varje osaker getElementById-anrop
+- Paverkade 61 komponentfiler over hela frontend (pages/, rebotling/, statistik/)
+- Exkluderade filer: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live (ej rorda enligt regler)
+
+**Ovriga observationer (inga buggar):**
+- Alla `document.addEventListener('visibilitychange')` har matchande `removeEventListener` i ngOnDestroy
+- Alla `setInterval` har matchande `clearInterval` i ngOnDestroy
+- Alla HTTP-anrop anvander `takeUntil(destroy$)` och `timeout()`
+- `localStorage`/`sessionStorage`-anvandning ar korrekt (5 filer) — inga laxor
+- `window.print()`, `window.open()`, `window.scrollTo()` anvands korrekt i user-triggered actions
+- `document.body.style.cursor` i layout.ts har korrekt cleanup i clearTimers()
+
+**Bygg:** OK (inga fel)
+
+---
+
 ## 2026-03-23 Session #269 Worker B — Angular form dirty state + template type safety audit (0 buggar)
 
 ### Uppgift 1: Angular form dirty state audit

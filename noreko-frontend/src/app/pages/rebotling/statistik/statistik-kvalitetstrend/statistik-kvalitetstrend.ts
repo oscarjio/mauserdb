@@ -56,6 +56,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
   private renderQualityTrendChart() {
     try { this.qualityTrendChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('qualityTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.qualityTrendData.length) return;
     const labels = this.qualityTrendData.map(d => d.date.substring(5));
     const dailyData = this.qualityTrendData.map(d => d.quality_pct);

@@ -163,6 +163,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     this.doughnutChart = null;
 
     const canvas = document.getElementById('progressDoughnut') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.progress?.har_mal) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -232,6 +233,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     this.barChart = null;
 
     const canvas = document.getElementById('dagligBarChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.progress?.har_mal || !this.progress.daglig_produktion?.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

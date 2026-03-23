@@ -148,6 +148,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     this.skiftChart = null;
 
     const canvas = document.getElementById('skiftStapelChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dagligData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -212,6 +213,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     this.jamforelseChart = null;
 
     const canvas = document.getElementById('skiftJamforelseChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.jamforelseData) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -244,6 +244,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     this.trendChart = null;
 
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.trendData?.trend?.length) return;
 
     const items = this.trendData.trend;
@@ -327,6 +328,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     this.prediktionChart = null;
 
     const canvas = document.getElementById('prediktionChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.prediktionData) return;
 
     const hist = this.prediktionData.historisk || [];

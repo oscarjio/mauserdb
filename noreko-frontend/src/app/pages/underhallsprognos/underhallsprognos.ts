@@ -151,6 +151,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
     this.destroyChart();
 
     const canvas = document.getElementById('timelineChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.scheduleData?.schema?.length) return;
 
     // Ta de 10 närmaste underhållspunkterna (sorterade efter nasta_datum)

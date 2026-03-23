@@ -126,6 +126,7 @@ export class ParetoPage implements OnInit, OnDestroy {
   private buildParetoChart(): void {
     this.destroyChart();
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.paretoItems.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

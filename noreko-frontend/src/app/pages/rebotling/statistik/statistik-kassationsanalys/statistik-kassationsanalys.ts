@@ -176,6 +176,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     this.stackedChart = null;
 
     const canvas = document.getElementById('kassationsStackedChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.stackedData?.har_data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

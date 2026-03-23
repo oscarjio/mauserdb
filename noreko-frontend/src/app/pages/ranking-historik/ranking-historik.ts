@@ -169,6 +169,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   private renderTrendChart(): void {
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('rankingTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.rankingsData) return;
 
     const labels = this.rankingsData.veckor;
@@ -249,6 +250,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   renderH2HChart(): void {
     try { this.h2hChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('h2hChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.rankingsData) return;
     if (this.h2hOp1Id === null || this.h2hOp2Id === null) return;
 

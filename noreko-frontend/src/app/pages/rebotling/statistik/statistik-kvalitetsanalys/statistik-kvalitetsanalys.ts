@@ -64,6 +64,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
   private renderRejectionTrendChart(): void {
     try { this.rejectionTrendChart?.destroy(); } catch (e) {} this.rejectionTrendChart = null;
     const canvas = document.getElementById('rejectionTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.rejectionTrendData.length) return;
     const labels = this.rejectionTrendData.map(d => d.datum.substring(5));
     const dailyData = this.rejectionTrendData.map(d => d.kvalitet_pct);
@@ -84,6 +85,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
   private renderRejectionParetoChart(): void {
     try { this.rejectionParetoChart?.destroy(); } catch (e) {} this.rejectionParetoChart = null;
     const canvas = document.getElementById('rejectionParetoDeepChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.rejectionParetoData.length || !this.rejectionHasParetoData) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const labels = this.rejectionParetoData.map(p => p.namn); const values = this.rejectionParetoData.map(p => p.antal); const kumulativ = this.rejectionParetoData.map(p => p.kumulativ_pct); const maxVal = Math.max(...values, 1);

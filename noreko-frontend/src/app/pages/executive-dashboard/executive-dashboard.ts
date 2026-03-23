@@ -449,6 +449,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       }
     } catch (e) { this.barChart = null; }
     const canvas = document.getElementById('days7Chart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dashData?.days7?.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -594,6 +595,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     } catch (e) { this.moodChart = null; }
 
     const canvas = document.getElementById('moodTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.feedbackPerDag.length) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

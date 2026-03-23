@@ -95,6 +95,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
     this.barChart = null;
 
     const canvas = document.getElementById('skiftJamforelseBarChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dag || !this.natt) return;
 
     const labels = ['IBC (totalt)', 'Snitt IBC/skift', 'Kvalitet %', 'OEE %', 'IBC/h'];
@@ -174,6 +175,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
     this.lineChart = null;
 
     const canvas = document.getElementById('skiftJamfLinjediagram') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || this.trend.length === 0) return;
 
     const labels = this.trend.map(t => {

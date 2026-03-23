@@ -316,6 +316,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
   private renderPatternChart(): void {
     try { this.patternChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('dayPatternChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dayPattern.length) return;
 
     const labels = this.dayPattern.map(p => this.formatHour(p.hour));

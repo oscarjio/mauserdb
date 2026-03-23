@@ -179,6 +179,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     this.barChart = null;
 
     const canvas = document.getElementById('utnyttjandegradBarChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.dailyData) return;
 
     const rows = this.dailyData.daily.filter(r => r.tillganglig_h > 0);
@@ -277,6 +278,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     this.doughnutChart = null;
 
     const canvas = document.getElementById('utnyttjandegradDoughnutChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.lossesData) return;
 
     // Exkludera drifttid från doughnut (visa bara förluster)

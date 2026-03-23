@@ -108,6 +108,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
     if (!canvas || !this.oeeTrendDays.length) return;
 
     const labels = this.oeeTrendDays.map(d => d.label ?? d.date.substring(5));
