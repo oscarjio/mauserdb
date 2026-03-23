@@ -27,6 +27,16 @@ class GamificationController {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Returnerar mandagens datum (Y-m-d) for aktuell vecka.
+     * strtotime('monday this week') ar oppalitligt pa sondagar i PHP
+     * (kan returnera NASTA mandag). Denna metod ger ratt resultat alla veckodagar.
+     */
+    private function getMondayThisWeek(): string {
+        $dayOfWeek = (int)date('N'); // 1=man ... 7=son
+        return date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days'));
+    }
+
     public function handle(): void {
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);
@@ -94,11 +104,11 @@ class GamificationController {
             case 'dag':
                 return [$today, $today, 'dag'];
             case 'vecka':
-                return [date('Y-m-d', strtotime('monday this week')), $today, 'vecka'];
+                return [$this->getMondayThisWeek(), $today, 'vecka'];
             case 'manad':
                 return [date('Y-m-01'), $today, 'manad'];
             default:
-                return [date('Y-m-d', strtotime('monday this week')), $today, 'vecka'];
+                return [$this->getMondayThisWeek(), $today, 'vecka'];
         }
     }
 
@@ -511,7 +521,7 @@ class GamificationController {
         // ---- Stoppjagare: minst stopp denna vecka ----
         if ($this->tableExists('stopporsak_registreringar')) {
             try {
-                $mondayThisWeek = date('Y-m-d', strtotime('monday this week'));
+                $mondayThisWeek = $this->getMondayThisWeek();
                 $today = date('Y-m-d');
 
                 $sql = "
@@ -545,7 +555,7 @@ class GamificationController {
 
         // ---- Teamspelare: basta operatoren sammanlagt (vecka) ----
         try {
-            $mondayThisWeek = date('Y-m-d', strtotime('monday this week'));
+            $mondayThisWeek = $this->getMondayThisWeek();
             $today = date('Y-m-d');
 
             $sql = "
@@ -729,7 +739,7 @@ class GamificationController {
             }
 
             // Hamta rank fran vecko-leaderboard
-            $from = date('Y-m-d', strtotime('monday this week'));
+            $from = $this->getMondayThisWeek();
             $to = date('Y-m-d');
             $leaderboard = $this->calcLeaderboard($from, $to);
 
@@ -827,7 +837,7 @@ class GamificationController {
 
     private function overview(): void {
         try {
-            $from = date('Y-m-d', strtotime('monday this week'));
+            $from = $this->getMondayThisWeek();
             $to = date('Y-m-d');
             $leaderboard = $this->calcLeaderboard($from, $to);
 

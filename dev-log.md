@@ -1,3 +1,33 @@
+## 2026-03-23 Session #278 Worker A — PHP date/timezone + array bounds + SQL injection audit (1 bugg)
+
+### Uppgift: Buggjakt i PHP-controllers (A-K, forsta halften)
+
+Granskade 37 controllers i noreko-backend/classes/ for tre buggkategorier:
+
+#### 1. PHP date/timezone konsistens
+- `api.php` sattar `date_default_timezone_set('Europe/Stockholm')` globalt — alla controllers arver detta.
+- Controllers som explicit anger `Europe/Stockholm` (BonusController, ForstaTimmeAnalysController, KassationsanalysController) ar konsistenta med den globala installningen.
+- `strtotime("-N days")`, `date('Y-m-d')`, `date('Y-m-t')` anvands korrekt genomgaende.
+- AndonController anvander `DateTimeImmutable` korrekt (modify() returnerar nytt objekt, originalvariabeln forblir oforandrad).
+- **BUGG HITTAD: GamificationController.php** — 6 forekomster av `strtotime('monday this week')` som i PHP returnerar NASTA mandag pa sondagar, inte FOREGAENDE mandag. Fixat med ny hjalpmetod `getMondayThisWeek()` som beraknar mandag via `date('N')` (veckodagsnummer).
+
+#### 2. PHP array bounds/key access
+- Alla `json_decode(file_get_contents('php://input'), true)` utan `?? []` foljs av `if (!is_array($data))` check (AdminController, AlertsController, DashboardLayoutController, FeatureFlagController, KlassificeringslinjeController, BonusController).
+- Alla `$_GET`-parametrar anvander `?? default` eller `isset()` fore access.
+- Alla `->fetch(PDO::FETCH_ASSOC)` pa icke-aggregerande queries kollar for `false`/`null` (t.ex. `if ($row)`, `if (!$batch)`, `$nameRow ? ... : ...`).
+- Aggregerande queries (SUM, MAX, COUNT) returnerar alltid en rad och anvander `?? 0` for null-varden. Korrekt.
+
+#### 3. PHP SQL injection i dynamiska ORDER BY/LIMIT
+- KassationsanalysController: `$orderExpr`/`$groupExpr` skapas fran hardkodade SQL-uttryck baserat pa vitlistade `$group`-varden ('week'/'month'). Sakert.
+- ForstaTimmeAnalysController: `$ibcCol` kommer fran `getIbcTimestampColumn()` som returnerar antingen 'timestamp' eller 'datum' (DB-kolumnkontroll, ej user input). Sakert.
+- AuditController: LIMIT/OFFSET ar `(int)`-castade. WHERE-klausul byggs med parametriserade villkor.
+- BonusController: LIMIT ar `(int)`-castad.
+- Inga dynamiska kolumnnamn fran user input hittat i nagon av de 37 controllerna.
+
+**Sammanfattning: 1 bugg fixad (GamificationController strtotime('monday this week')-problem).**
+
+---
+
 ## 2026-03-23 Session #278 Worker B — Angular memory leaks + router chunk felhantering + HTTP felhantering audit (0 buggar)
 
 ### Uppgift 1: Angular memory leak regressionstest
