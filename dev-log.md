@@ -1,3 +1,43 @@
+## Worker B — Session #263
+
+### Uppgift 1: Angular pipe purity audit
+Granskade alla .ts-filer under noreko-frontend/src/app/ (exkl. live-sidor).
+
+- **Inga custom pipes finns** i projektet — inga .pipe.ts-filer, inga @Pipe-dekoratorer, inget pure: false.
+- All formatering sker via inbyggda Angular-pipes: `number`, `date`, `keyvalue`, `slice`, `titlecase` — alla pure by default.
+- `| date`-pipe används i 30+ templates, alltid med korrekta null-guards (ternary eller *ngIf).
+- Inga impure pipes, inga pipes med sidoeffekter, inga locale-problem.
+
+**Resultat: rent** — inga custom pipes existerar, inbyggda pipes används korrekt.
+
+### Uppgift 2: Angular change detection audit
+Granskade alla .ts-filer under noreko-frontend/src/app/pages/ (exkl. live-sidor).
+
+- **Inga komponenter använder OnPush** — ingen ChangeDetectionStrategy.OnPush hittad, därmed inget behov av markForCheck().
+- **ngAfterViewChecked** finns i monthly-report.ts:233 — korrekt skyddad med boolean-flagga `chartPendingRender` som förhindrar tung logik vid varje check-cykel.
+- **Ingen ngDoCheck** hittad.
+- **Ingen runOutsideAngular()** används, inga Zone.js-problem.
+- **Alla subscribe()-anrop** använder konsekvent `takeUntil(this.destroy$)` med korrekt cleanup i ngOnDestroy().
+- **setInterval/setTimeout** i t.ex. live-ranking.ts, produktionsprognos.ts, daglig-sammanfattning.ts — alla clearas korrekt i ngOnDestroy().
+
+**Resultat: rent** — lifecycle och change detection hanteras korrekt genomgående.
+
+### Uppgift 3: Angular template null safety audit
+Granskade 18 HTML-filer under noreko-frontend/src/app/pages/ (exkl. live-sidor):
+monthly-report, bonus-dashboard, executive-dashboard, daglig-sammanfattning, veckorapport, morgonrapport, kvalitetstrend, heatmap, oee-benchmark, malhistorik, feedback-analys, underhallsprognos, skiftrapport-export, forsta-timme-analys, ranking-historik, produktionsprognos, operator-ranking, oee-trendanalys.
+
+- **{{ object.property }} utan ?.**: Alla data-beroende sektioner skyddas av *ngIf-guards (t.ex. `*ngIf="report"`, `*ngIf="forecast"`). Inga nakna property-accesser utan guard.
+- ***ngFor på arrayer**: Arrayer initieras alltid som `[]` i komponenterna eller skyddas med `*ngIf`/`?? []`-fallback (t.ex. `rankingData?.ranking ?? []`).
+- **Async pipe**: Ingen async pipe används i templates (all data hämtas via subscribe i komponenterna).
+- **[property]="expr"**: Ternary-uttryck och null-checks används genomgående (t.ex. `forecast.skift_start ? (forecast.skift_start | date:'HH:mm') : '–'`).
+- **Non-null assertion (!)**: Används i monthly-report.html inom `*ngIf`-skyddade block (t.ex. `compareData!.operator_of_month!.namn` inom `*ngIf="compareData?.operator_of_month"`) — korrekt användning.
+
+**Resultat: rent** — null safety hanteras korrekt i alla granskade templates.
+
+### Totalt: 0 buggar hittade
+
+---
+
 ## Worker A — Session #259
 
 ### Uppgift 1: PHP file_get_contents/curl error handling audit
