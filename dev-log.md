@@ -1,3 +1,37 @@
+## 2026-03-23 Session #268 Worker A — PHP timezone/array key validation/PDO error mode audit
+
+### Uppgift 1: PHP timezone consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade 4 entry points + 117 klassfiler + 33 controller-proxyfiler under noreko-backend/ (exkl. plcbackend/):
+- `api.php` (rad 6): `date_default_timezone_set('Europe/Stockholm')` — korrekt satt.
+- `update-weather.php` (rad 9): `date_default_timezone_set('Europe/Stockholm')` — korrekt satt.
+- `login.php` och `admin.php`: Legacy stubs som inte gor nagra date()-anrop — ingen timezone behovs.
+- Inga `strftime()`, `mktime()`, `gmmktime()` eller `setlocale()` hittades i nagon PHP-fil.
+- Alla 109 klassfiler som anvander `date()`/`strtotime()`/`new DateTime` nar de narmas via api.php arver timezone fran entry point.
+
+### Uppgift 2: PHP array key validation audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla 117 klassfiler + 33 controller-proxyfiler under noreko-backend/ (exkl. plcbackend/):
+- Alla `$_GET[]`-accesser anvander `??` (null coalescing operator) eller `isset()`.
+- Inga direkta `$_POST[]` (utom 1 i ShiftHandoverController med `??`), `$_REQUEST[]` eller `$_FILES[]` hittades.
+- Alla 37 `json_decode(file_get_contents('php://input'), true)` utan `?? []` foljdes av `!is_array($data)` null-check.
+- Alla JSON-body-nycklar accessas med `$data['key'] ?? default`.
+- PDO fetch-resultat kontrolleras med `if (!$row)` eller liknande innan kolumnaccess.
+
+### Uppgift 3: PHP PDO error mode consistency audit
+**Resultat:** 0 buggar — rent
+
+Granskade alla PHP-filer som skapar PDO-anslutningar:
+- `api.php` (rad 104-108): `ATTR_ERRMODE => ERRMODE_EXCEPTION`, `ATTR_DEFAULT_FETCH_MODE => FETCH_ASSOC`, `ATTR_EMULATE_PREPARES => false` — korrekt.
+- `update-weather.php` (rad 21-23): `ATTR_ERRMODE => ERRMODE_EXCEPTION`, `ATTR_EMULATE_PREPARES => false` — korrekt.
+- Inga andra PDO-instansieringar finns. Alla 117 klassfiler anvander `global $pdo` fran api.php.
+- Inga `setAttribute()`-anrop som andrar error mode hittades.
+- Inga `ERRMODE_SILENT` eller `ERRMODE_WARNING` hittades.
+
+---
+
 ## 2026-03-23 Session #267 Worker B — route param validation/environment config/ChunkLoadError audit
 
 ### Uppgift 1: Angular route parameter validation audit
