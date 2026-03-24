@@ -1,3 +1,50 @@
+## 2026-03-24 Session #299 Worker A — 23:59:59 off-by-one i DATETIME-fragor (19 buggar)
+
+### Uppgift 1: PHP array type coercion — implicit int/string-konvertering i array-nycklar (0 buggar)
+Granskade samtliga PHP-controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*).
+- Alla in_array()-anrop anvander redan strict=true (tredje parametern).
+- array_key_exists() anvands korrekt i MaintenanceController, ProfileController, LoginController, LineSkiftrapportController, AdminController.
+- Inga blandade int/string-nycklar i samma array. DB-resultat anvands konsekvent som string-nycklar.
+- Inga isset() med fel nyckeltyp hittades.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: PHP file_put_contents atomicitet — race conditions vid samtidig skrivning (0 buggar)
+Granskade samtliga PHP-filer i noreko-backend/ (exkl. plcbackend/).
+- Inga file_put_contents() anrop existerar i kodbasen.
+- fopen() anvands enbart for: (1) update-weather.php med korrekt flock(LOCK_EX|LOCK_NB), (2) php://output for CSV-export (TidrapportController, BonusAdminController), (3) VpnController for socket-kommunikation.
+- Inga filskrivningar utan lasing hittades.
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: PHP SQL BETWEEN med datum — off-by-one vid midnatt (19 buggar)
+Granskade samtliga SQL-fragor med BETWEEN/>=/<= pa DATETIME-kolumner i ca 90 controllers.
+
+**Problem**: Manga controllers anvande `$date . ' 23:59:59'` som ovre grans i `datum BETWEEN` eller `datum <=` fragor mot DATETIME-kolumner (rebotling_onoff, rebotling_ibc, stopporsak_registreringar, stoppage_log, audit_log m.fl.). Om databasen anvander DATETIME med fraktionssekunder (DATETIME(3) eller DATETIME(6)) missar detta poster med tidsstamplar mellan 23:59:59.001 och 23:59:59.999. Dessutom ar monsterachanteraren for skiftgranser (KassationskvotAlarmController) felaktig med 13:59:59/21:59:59/05:59:59 istallet for < 14:00:00/22:00:00/06:00:00.
+
+**Fix**: Andrade fran `datum <= 'YYYY-MM-DD 23:59:59'` / `datum BETWEEN x AND 'YYYY-MM-DD 23:59:59'` till `datum < 'YYYY-MM-DD+1 00:00:00'` / `datum >= x AND datum < 'YYYY-MM-DD+1 00:00:00'`.
+
+**19 fixar i 15 filer:**
+1. DagligSammanfattningController — calcDrifttidSek SQL + calcOee toDt
+2. OeeBenchmarkController — calcDrifttidSek SQL + calcOeeForPeriod toDt
+3. OeeTrendanalysController — calcDrifttidSek SQL + calcOeeForPeriod toDt (2 st) + stopporsak-fraga
+4. StatistikOverblickController — calcOeeForDay SQL + toDt
+5. MaskinhistorikController — getDrifttidSek SQL (2 st) + calcOee toDt + getDrifttidPerDag toDt (2 st)
+6. KapacitetsplaneringController — getDrifttidSek SQL + 5 st toDt-berakningar
+7. ProduktionsDashboardController — getDrifttidSek SQL + calcOeeForPeriod SQL + 4 st toDt
+8. VdDashboardController — calcDrifttidSek SQL + calcOeeForDay toDt + stationOee toDt
+9. GamificationController — stopporsak-fraga SQL + toDt
+10. OeeWaterfallController — calcDrifttidSek SQL + toDt
+11. OeeJamforelseController — calcDrifttidSek SQL + toDt
+12. DagligBriefingController — calcOeeForDay SQL + toDt + 3 st stopporsak-fragor
+13. OperatorRankingController — stopporsak-fraga SQL + toDt
+14. KassationskvotAlarmController — skiftgranser (13:59:59->14:00:00, 21:59:59->22:00:00, 05:59:59->06:00:00, 23:59:59->nasta dag 06:00:00) + >= <= till >= <
+15. StoppageController — prevWeekEnd 23:59:59 -> nasta dag 00:00:00 + <= till <
+16. UnderhallsloggController — historik-fraga toDt + statistik-fraga endDate + <= till <
+17. BatchSparningController — historik-fraga toDt + <= till <
+18. AuditController — dateEnd toDt + fallback dateEnd + <= till <
+19. BonusAdminController — stopporsak-fraga toDt + <= till <
+
+---
+
 ## 2026-03-24 Session #299 Worker B — switchMap/POST granskning + accessibility-fixar (4 buggar)
 
 ### Uppgift 1: Angular HTTP request cancellation — switchMap vs mergeMap for POST-anrop (0 buggar)
