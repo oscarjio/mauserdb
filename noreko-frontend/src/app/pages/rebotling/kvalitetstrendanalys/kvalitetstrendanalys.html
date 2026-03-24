@@ -99,7 +99,7 @@
             <thead>
               <tr>
                 <th scope="col" class="sortable" (click)="sortOperators('op_namn')" tabindex="0" (keydown.enter)="sortOperators('op_namn')">
-                  Operator <i [class]="getSortIcon('op_namn')"></i>
+                  Operatör <i [class]="getSortIcon('op_namn')"></i>
                 </th>
                 <th scope="col" class="text-end sortable" (click)="sortOperators('total')" tabindex="0" (keydown.enter)="sortOperators('total')">
                   Producerade <i [class]="getSortIcon('total')"></i>
@@ -181,7 +181,7 @@
                  [class.alarm-warning]="a.niva === 'varning'">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <span [class]="getTypBadge(a.typ)" class="me-2">{{ a.typ === 'station' ? 'Station' : 'Operator' }}</span>
+                  <span [class]="getTypBadge(a.typ)" class="me-2">{{ a.typ === 'station' ? 'Station' : 'Operatör' }}</span>
                   <strong>{{ a.namn }}</strong>
                 </div>
                 <div>

@@ -265,7 +265,7 @@
   <!-- =================== KOMPATIBILITETSMATRIS =================== -->
   <div class="ops-card mb-4">
     <div class="ops-card-header d-flex justify-content-between align-items-center">
-      <span><i class="fas fa-th me-2 text-success"></i>Operator x Produkt — Kompatibilitetsmatris</span>
+      <span><i class="fas fa-th me-2 text-success"></i>Operatör x Produkt — Kompatibilitetsmatris</span>
       <button class="btn btn-sm btn-outline-secondary" (click)="showCompat = !showCompat">
         {{ showCompat ? 'Dölj' : 'Visa' }}
       </button>
@@ -290,7 +290,7 @@
           <table class="compat-table">
             <thead>
               <tr>
-                <th class="compat-corner" scope="col">Operator / Produkt</th>
+                <th class="compat-corner" scope="col">Operatör / Produkt</th>
                 <th *ngFor="let prod of compatProducts; trackBy: trackByIndex" class="compat-prod-header" scope="col">
                   {{ prod.namn }}
                 </th>

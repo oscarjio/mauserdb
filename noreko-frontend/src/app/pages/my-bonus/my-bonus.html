@@ -480,7 +480,7 @@
       <!-- Ingen kopplad operatör -->
       <div class="ranking-body" *ngIf="!rankingLoading && !savedOperatorId">
         <p class="text-muted small mb-0 text-center py-2">
-          <i class="fas fa-info-circle me-1"></i>Koppla ditt Operator-ID i kontoinstaellningarna foer att se din placering
+          <i class="fas fa-info-circle me-1"></i>Koppla ditt Operatör-ID i kontoinställningarna för att se din placering
         </p>
       </div>
 
@@ -613,7 +613,7 @@
               <td class="fw-bold">{{ peer.rank }}</td>
               <td>
                 <span *ngIf="peer.is_you" class="peer-you-tag">Du</span>
-                <span *ngIf="!peer.is_you" class="peer-anon">Operator {{ peer.rank }}</span>
+                <span *ngIf="!peer.is_you" class="peer-anon">Operatör {{ peer.rank }}</span>
               </td>
               <td class="text-end fw-bold">{{ peer.ibc_h | number:'1.1-1' }}</td>
               <td class="text-end">{{ peer.quality | number:'1.1-1' }}%</td>

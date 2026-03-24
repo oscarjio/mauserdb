@@ -93,7 +93,7 @@
       <option value="ej_bedomd">Ej bedomd</option>
     </select>
 
-    <select class="filter-select" aria-label="Filtrera operator" [(ngModel)]="filterOperator" (change)="onFilterChange()">
+    <select class="filter-select" aria-label="Filtrera operatör" [(ngModel)]="filterOperator" (change)="onFilterChange()">
       <option [ngValue]="0">Alla operatorer</option>
       <option *ngFor="let op of operatorer; trackBy: trackByOperatorId" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
     </select>
@@ -246,7 +246,7 @@
               <span class="cert-field-value">{{ formatDate(selectedCert.datum) }}</span>
             </div>
             <div class="cert-field">
-              <span class="cert-field-label">Operator</span>
+              <span class="cert-field-label">Operatör</span>
               <span class="cert-field-value">{{ selectedCert.operator_namn || '\u2014' }}</span>
             </div>
             <div class="cert-field">
@@ -404,8 +404,8 @@
             <input type="date" id="genDatum" class="cert-input" [(ngModel)]="genDatum" />
           </div>
           <div class="col-md-6">
-            <label class="form-label text-muted small" for="genOperatorNamn">Operator</label>
-            <input type="text" id="genOperatorNamn" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" maxlength="200" />
+            <label class="form-label text-muted small" for="genOperatorNamn">Operatör</label>
+            <input type="text" id="genOperatorNamn" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatörsnamn" maxlength="200" />
           </div>
           <div class="col-md-6">
             <label class="form-label text-muted small" for="genAntalIbc">Antal IBC</label>
