@@ -1,3 +1,75 @@
+## 2026-03-24 Session #285 Worker B — Angular frontend buggjakt (1 bugg)
+
+### Uppgift 1: Angular HTTP params encoding (0 buggar — rent)
+
+Granskade ALLA 90+ services i noreko-frontend/src/app/services/ och alla components
+som bygger HTTP-anrop med query parameters.
+
+- Majoriteten av URL-parametrar ar numeriska (days, period, maskin_id, op_id) som inte
+  behover encoding.
+- Strangparametrar som station, cause, operator, typ, search, datum, period etc ar
+  korrekt kodade med encodeURIComponent dar det behovs:
+  - rebotling.service.ts: cause, operator
+  - alarm-historik.service.ts: status, severity, typ
+  - historisk-sammanfattning.service.ts: typ, period (via params()-hjalp)
+  - maskinhistorik.service.ts: station
+  - veckorapport.service.ts: week
+  - batch-sparning.service.ts: search
+  - audit.service.ts: alla filterparametrar
+  - stopporsak-trend.service.ts: reason
+  - underhallslogg.service.ts: type, category
+  - kassationsorsak-per-station.service.ts: station
+  - rebotling-stationsdetalj.service.ts: station
+  - maskin-drifttid.service.ts: datum
+  - morgonrapport.service.ts: date
+  - bonus-admin.service.ts: period
+  - skiftrapport.service.ts: datum
+- rebotling.service.ts getManualAnnotations() har typ-param utan encodeURIComponent,
+  men varden ar fasta strangkonstanter fran dropdown (t.ex. "manual", "stopp") —
+  ingen user-input. Bedoms som sakert.
+- POST-anrop anvander URLSearchParams/JSON.stringify korrekt.
+- Inga fall av dubbel-encoding hittades.
+- Inga saknade params som backend forvantar hittades.
+
+### Uppgift 2: Angular number formatting (1 bugg fixad)
+
+Granskade ALLA templates (.html) i noreko-frontend/src/app/pages/ for nummerhantering.
+Over 300 stallen med | number pipe granskades.
+
+**Bugg fixad — division med noll i skiftoverlamning:**
+- Fil: noreko-frontend/src/app/pages/skiftoverlamning/skiftoverlamning.html (rad 133)
+- Problem: `[style.width.%]="(skiftSammanfattning.ibc_ok / skiftSammanfattning.mal.ibc_mal) * 100"`
+  Divisor `ibc_mal` kan vara 0 om inget produktionsmal ar satt, vilket ger Infinity
+  och felaktig progress-bar rendering.
+- Fix: Lade till guard `skiftSammanfattning.mal.ibc_mal > 0 ? (...) : 0`
+
+Ovriga granskade monster (alla rent):
+- DecimalPipe null-guards: my-bonus och bonus-admin fixades i session #280.
+  Ovriga sidor anvander antingen ternary null-guards (operator-trend, kvalitetstrend,
+  statistik-produkttyp-effektivitet, etc) eller har variabler initierade till 0
+  (shared-skiftrapport cachedAvgQuality/cachedAvgIbcPerSkift) eller ar inuti *ngIf-block.
+- parseFloat/parseInt: Alla ~50 anvandningar i pages/ har NaN-check (isNaN, || 0, parseInt(...) || 0).
+- Division med noll: alarm-historik, stoppage-log, underhallslogg, kassationsorsak,
+  kapacitetsplanering, operator-onboarding — alla har explicit > 0 guard.
+- Inga Infinity/NaN-varden visas i UI (alla procent-berakningar har namnare-guard).
+
+### Uppgift 3: Template type safety n-z (0 buggar — rent)
+
+Granskade ALLA templates i noreko-frontend/src/app/pages/ som borjar pa n-z
+(51 sidor + 40+ rebotling sub-pages).
+
+- *ngFor: ALLA har trackBy (trackByIndex, trackById, trackByReason, etc.)
+- Math: Alla templates som anvander Math. (stopporsak-operator, operator-personal-dashboard,
+  operator-onboarding, operator-trend, executive-dashboard, underhallsprognos, my-bonus,
+  andon, production-analysis) exponerar Math = Math i component-klassen.
+- Pipe-anvandningar: number, date, slice, keyvalue — alla korrekt anvanda.
+- [ngClass]/[class.x]: Alla uttryck har ratt syntax och refererar befintliga properties.
+- Event handlers: Alla (click), (change), (keydown.enter) etc refererar existerande metoder.
+- Angular build (npx ng build) gar igenom utan nagon error — bekraftar att alla
+  template-bindningar ar korrekta.
+
+---
+
 ## 2026-03-24 Session #285 Worker A — PHP backend buggjakt (15 buggar)
 
 ### Uppgift 1: PHP strtotime edge cases (15 buggar fixade)
