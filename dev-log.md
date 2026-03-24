@@ -1,3 +1,41 @@
+## 2026-03-24 Session #297 Worker A — date()/mktime() DST + header()/exit() flode + fetchAll() memory (0 buggar)
+
+### Uppgift 1: PHP date()/mktime() edge cases (0 buggar)
+Granskade alla PHP-controllers i noreko-backend/classes/ och noreko-backend/controllers/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*, plcbackend/). Totalt ~90 filer granskade.
+
+- **Timezone-hantering**: api.php satter `date_default_timezone_set('Europe/Stockholm')` globalt (rad 6), och update-weather.php gor detsamma (rad 9). Alla `date()`, `strtotime()`, `mktime()`-anrop arver darfor korrekt CET/CEST-hantering automatiskt.
+- **DateTime med timezone**: RuntimeController (rad 331-336), StoppageController (rad 293-294), StatusController (rad 107-108), WeeklyReportController (rad 61, 275, 282), alla skapar DateTime med explicit `new DateTimeZone('Europe/Stockholm')`.
+- **DateTime utan explicit timezone**: GamificationController (rad 371, 377) anvander `new \DateTime($date)` utan explicit tz, men arver fran date_default_timezone_set — korrekt.
+- **strtotime() med ogiltiga datum**: DrifttidsTimelineController validerar datum-input med regex `preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)` (rad 53) fore anvandning. AuditController validerar datum liknande (rad 66-67).
+- **DST-kansliga tider**: DrifttidsTimelineController anvander skift 06:00-22:00 (SKIFT_START/SKIFT_SLUT-konstanter). Dessa tider ligger utanfor DST-overgangen (02:00/03:00 i Sverige), sa strtotime() ger korrekt resultat aven pa overgangsdag.
+- **GamificationController::getMondayThisWeek()** (rad 35-37): Hanterar sondag-edge-caset korrekt genom att rakna fran `date('N')` istallet for `strtotime('monday this week')`, med kommentar som forklarar varfor.
+
+Inga buggar hittades.
+
+### Uppgift 2: PHP header()/exit() flode (0 buggar)
+Granskade alla PHP-controllers (samma scope som ovan).
+
+- **header('Location:...')**: Noll forekomster av redirect-headers i hela noreko-backend/. Alla controllers returnerar JSON via echo json_encode.
+- **sendError/sendSuccess utan return**: Alla controllers som anvander sendError/sendSuccess-monster (ProduktionseffektivitetController, ParetoController, MaintenanceController, GamificationController m.fl.) foljer konsekvent med `return` efter anrop, eller sa ar anropet sista satsen i metoden/switch-case.
+- **echo json_encode utan return**: RuntimeController, NewsController, AdminController, LoginController, AuditController — alla har korrekt flodeskontroll: antingen `return` efter echo, eller echo som sista sats i metod/catch-block. LoginController ar sarskilt valgranskat (rad 26-27, 33-34, 45-46, 63-64, 72-73, 88-89) — alla echo-satser foljs av return.
+- **Multipla headers**: Inga fall av multipla header()-anrop som overskrider varandra.
+
+Inga buggar hittades.
+
+### Uppgift 3: PHP PDO fetchAll() memory (0 buggar)
+Granskade alla PHP-controllers (samma scope som ovan).
+
+- **fetchAll() mot rebotling_onoff (PLC-data, tusentals rader/dag)**: StatistikOverblickController (rad 380-386), SkiftoverlamningController (rad 214-222), VdDashboardController (rad 108-113), DrifttidsTimelineController (rad 95-101) — alla har datumintervall (BETWEEN :from_dt AND :to_dt) som begransas till enstaka dagar eller skiftperioder.
+- **fetchAll() mot rebotling_ibc**: Alla forekomster har WHERE-datum-begransning (DATE(datum) = :date, DATE(datum) BETWEEN, datum >= DATE_SUB, etc.).
+- **LIMIT 50000 i BonusAdminController** (rad 474): Hog LIMIT men begransad till en manads data (WHERE DATE_FORMAT(datum, '%Y-%m') = :period). Rimligt for export-endpoint.
+- **AdminController SELECT FROM users utan LIMIT** (rad 373-375): Users-tabellen ar inherent liten (admin-panel). Inget minnesproblem.
+- **SELECT * forekomster**: BonusAdminController (rad 151, 1530) anvander SELECT * FROM bonus_config WHERE id = 1 (en rad). RebotlingAdminController (rad 32) SELECT * FROM rebotling_settings WHERE id = 1 (en rad). Inga SELECT * mot stora tabeller utan begransning.
+- **fetchAll() i loopar**: ParetoController (rad 93, 129) har fetchAll inuti foreach-iteration over resultatraden, men det ar korrekt — det itererar over det hamtade resultatet, inte dubbelhamtar.
+
+Inga buggar hittades.
+
+---
+
 ## 2026-03-24 Session #296 Worker B — ViewChild/ElementRef null + service circular dependency (0 buggar)
 
 ### Uppgift 1: Angular ViewChild/ElementRef null-check (0 buggar)
