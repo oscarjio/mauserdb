@@ -387,7 +387,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   loadOperators() {
     this.operatorsLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=skiftrapport&run=operator-list`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.operatorsLoading = false;
         if (res?.success) this.operators = res.data ?? [];
