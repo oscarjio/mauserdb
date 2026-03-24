@@ -1,3 +1,26 @@
+## 2026-03-24 Session #305 Worker A — PHP IFNULL/COALESCE, date/DateTime, LEFT/INNER JOIN (0 buggar)
+
+### Uppgift 1: PHP SQL IFNULL/COALESCE consistency (0 buggar)
+- Granskade alla controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*).
+- Inga IFNULL()-anrop finns i hela kodbasen — COALESCE anvands konsekvent overallt.
+- Alla SUM/AVG-aggregeringar pa kolumner fran LEFT JOIN-tabeller har korrekt COALESCE-skydd.
+- SUM/AVG pa huvudtabellers kolumner hanterar NULL-fallet antingen via COALESCE i SQL eller via PHP (?? 0, ?: 0).
+- Inga buggar hittade.
+
+### Uppgift 2: PHP date() vs DateTime — inkonsekvent datumhantering (0 buggar)
+- Granskade alla controllers for blandning av date()/strtotime() och DateTime-objekt.
+- api.php satter date_default_timezone_set('Europe/Stockholm') som entrypoint — alla controllers arver korrekt timezone.
+- Alla DateTime-anrop anvander explicit DateTimeZone('Europe/Stockholm') eller $tz-variabel.
+- date()/strtotime()-anrop i controllers anvander den globalt satta timezonen korrekt.
+- Inga faktiska buggar hittade — ingen inkonsekvent timezone-hantering.
+
+### Uppgift 3: PHP SQL LEFT JOIN vs INNER JOIN (0 buggar)
+- Granskade alla LEFT JOIN och INNER JOIN i relevanta controllers.
+- Alla LEFT JOINs ar korrekta: de anvands for tabeller dar relaterade rader kan saknas (operators, users, stoppage_reasons, stopporsak_kategorier, kassationsorsak_typer, rebotling_products) och WHERE-klausuler filtrerar bara pa huvudtabellens kolumner.
+- COALESCE-fallbacks anvands konsekvent for kolumner fran LEFT JOIN-tabeller (t.ex. COALESCE(o.name, CONCAT('Operator ', id))).
+- De fa INNER JOINs ar korrekta: OperatorController (INNER JOIN operators — avsiktligt for att bara visa kanda operatorer), FeedbackAnalysController (INNER JOIN subquery for senaste kommentar), StopporsakRegistreringController (INNER JOIN for dedup).
+- Inga LEFT JOINs som borde vara INNER JOIN eller vice versa.
+
 ## 2026-03-24 Session #304 Worker B — ViewChild static timing + httpClient memory on navigation (1 bugg)
 
 ### Uppgift 1: Angular ViewChild static timing (0 buggar)
