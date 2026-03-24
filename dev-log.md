@@ -20566,3 +20566,48 @@ Granskade alla 100+ services i noreko-frontend/src/app/services/:
 - switchMap anvands korrekt (bara for polling/auth, ej for HTTP-mutationer)
 
 ### Totalt: 127 buggar fixade
+
+## Session #292 — Worker A (2026-03-24)
+Fokus: PHP array_key_exists/isset, PDO lastInsertId, SQL GROUP BY strict (controllers A-M)
+Resultat: 2 buggar hittade och fixade
+
+### Uppgift 1: array_key_exists vs isset (0 buggar)
+Granskade alla 12 controller-klassfiler (A-M):
+- AlarmHistorikController.php
+- DagligBriefingController.php
+- DrifttidsTimelineController.php
+- FavoriterController.php
+- ForstaTimmeAnalysController.php
+- HeatmapController.php
+- HistoriskSammanfattningController.php
+- KassationsanalysController.php
+- KassationsDrilldownController.php
+- KvalitetsTrendbrottController.php
+- MorgonrapportController.php
+- MyStatsController.php
+
+Alla isset()-anrop anvands pa interna PHP-arrayer (kontrollerar nyckelexistens, inte null-varden)
+eller pa $_GET/$_POST-parametrar. Inga isset() pa DB-resultatkolumner dar NULL ar legitimt.
+Rent — inga buggar.
+
+### Uppgift 2: PDO lastInsertId (0 buggar)
+Enda lastInsertId i A-M-controllers: FavoriterController.php rad 120.
+PDO ar konfigurerat med ERRMODE_EXCEPTION (api.php rad 106), sa execute() kastar exception
+vid misslyckande och lastInsertId() nas aldrig om INSERT failar. try/catch-blocket fangar detta.
+Rent — inga buggar.
+
+### Uppgift 3: SQL GROUP BY strict mode (2 buggar)
+**MyStatsController.php — getMyStats() (2 buggar fixade):**
+
+Bugg 1 (rad 177): Subquery i sqlOp hade `op_num` i SELECT men INTE i GROUP BY:
+```sql
+SELECT op_num, DATE(datum) AS datum, skiftraknare, MAX(...)
+FROM (...) GROUP BY DATE(datum), skiftraknare
+```
+op_num ar inte aggregerad och inte i GROUP BY — MySQL strict mode krasch.
+Fix: Tog bort `op_num` fran SELECT (anvands inte av yttre query).
+
+Bugg 2 (rad 212): Subquery i sqlBast hade samma problem — `op_num` i SELECT men inte i GROUP BY.
+Fix: Tog bort `op_num` fran SELECT (anvands inte av yttre query).
+
+OBS: Teamsnitt-queryn (sqlTeam) hade op_num korrekt i GROUP BY — ingen bugg dar.

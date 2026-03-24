@@ -174,7 +174,7 @@ class MyStatsController {
                            SUM(shift_ej_ok)   AS dag_ej_ok,
                            SUM(shift_runtime) AS dag_runtime
                     FROM (
-                        SELECT op_num, DATE(datum) AS datum, skiftraknare,
+                        SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                                MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                                MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
@@ -209,7 +209,7 @@ class MyStatsController {
                     SELECT DATE(datum) AS dag,
                            SUM(shift_ibc) AS dag_ibc
                     FROM (
-                        SELECT op_num, DATE(datum) AS datum, skiftraknare,
+                        SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM ({$this->buildUnion($opNum)}) AS u3
                         GROUP BY DATE(datum), skiftraknare
