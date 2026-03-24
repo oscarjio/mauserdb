@@ -1,3 +1,50 @@
+## 2026-03-24 Session #301 Worker A — header/exit, array_unique, DATE() i WHERE (0 buggar)
+
+### Uppgift 1: PHP header() + exit() consistency (0 buggar)
+Granskade samtliga PHP-controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*).
+- Inga header('Location: ...') redirect-anrop finns i kodbasen — bekraftar SPA-arkitektur (Angular hanterar routing).
+- Alla header()-anrop ar Content-Type (application/json, text/csv, text/html) eller Content-Disposition for filnedladdning.
+- Dessa foljs korrekt av echo + return (i metoder som jsonSuccess/jsonError) eller direkt output (CSV-export i BonusAdminController, TidrapportController, RebotlingAnalyticsController).
+- Ingen kod exekveras efter header() utan avsikt.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: PHP array_unique type juggling (0 buggar)
+Granskade 25+ array_unique()-anrop i controllers.
+- Alla anrop anvander default SORT_REGULAR (ingen anvander SORT_STRING explicit).
+- Dock: samtliga arrayer innehaller enbart en typ (antingen int fran (int)-cast, eller strang fran array_column/explode/array_keys). SORT_REGULAR-problemet (dar "1" == true == 1) uppstar bara vid blandade typer i samma array.
+- Specifika fall granskade:
+  - BonusController:476 — array_unique pa strang-array fran explode() + array_filter. Enbart strangar, ingen typblandning.
+  - CykeltidHeatmapController:138,163,372 — array_column pa DB-resultat (strangar), sort() efterat. Korrekt beteende.
+  - OperatorDashboardController:469 — int-array (allOps byggs med (int)-cast). Korrekt.
+  - OperatorController:735 — int-array ((int)-castade varden). Korrekt.
+  - MaintenanceController:573 — datumstrangar. Korrekt.
+  - StopporsakTrendController:286, RankingHistorikController:271 — array_keys() returvarden (strangar). Korrekt.
+- Rekommendation: Att lagga till SORT_STRING dar strangvarden anvands vore bra praxis men ar inte en bugg i nuvarande kod.
+Resultat: RENT — inga buggar (inga blandade typer i array_unique-anrop).
+
+### Uppgift 3: PHP SQL index usage — DATE() i WHERE forhindrar indexanvandning (0 buggar, observation)
+Granskade SQL-fragor i PHP-controllers. Hittade ett utbrett monster dar `DATE(datum)` anvands i WHERE-klausuler, vilket forhindrar MySQL fran att anvanda index pa `datum`-kolumnen (funktionsanrop runt kolumn = full table scan eller index scan).
+
+**Monster som hittades (100+ forekomster i 20+ controllers):**
+- `WHERE DATE(datum) BETWEEN :from_date AND :to_date` — mycket vanligt i OperatorsportalController (15+ st), StatistikOverblickController, KassationsDrilldownController, HeatmapController, KvalitetstrendanalysController, KassationsorsakPerStationController, Maskinhistorikcontroller m.fl.
+- `WHERE DATE(datum) = CURDATE()` — VdDashboardController, RuntimeController, FeedbackController
+- `WHERE DATE(datum) = :date` — StatistikOverblickController, VdDashboardController
+- `WHERE DATE(sl.start_time) BETWEEN ...` — ParetoController (bade stoppage_log och stopporsak_registreringar)
+- `GROUP BY DATE(datum)` — anvands ofta tillsammans med ovanstaende (inte indexrelaterat men visar monstret)
+- `WHERE DATE(datum) BETWEEN ... AND DATE(datum) BETWEEN ...` i UNION-fragor — OperatorsPrestandaController (3 unioner med DATE()-filter)
+
+**Optimalt monster (som redan anvands pa nagra stallen):**
+- RuntimeController anvander `datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)` korrekt i nagra fall, men `DATE(datum) >= DATE_SUB(...)` i andra (inkonsekvent).
+- OperatorCompareController:233 anvander `datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)` korrekt.
+
+**Varfor detta inte fixas nu:**
+1. Vi vet inte vilka index som finns i produktions-DB.
+2. Andringen fran `DATE(datum) BETWEEN :from AND :to` till `datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)` kraver att parameterformatet anpassas (datum-strangar vs datetime).
+3. Om det redan finns ett funktionellt index pa DATE(datum) vore andringen meningslos.
+4. Risken for regressioner ar hog vid bred andring.
+
+Resultat: OBSERVATION — inga fixar, men rekommenderar framtida optimering av DATE()-wrapper i WHERE-klausuler, speciellt for tabellerna rebotling_ibc, rebotling_skiftrapport, stoppage_log och stopporsak_registreringar som troligen har stora datamangder.
+
 ## 2026-03-24 Session #299 Worker A — 23:59:59 off-by-one i DATETIME-fragor (19 buggar)
 
 ### Uppgift 1: PHP array type coercion — implicit int/string-konvertering i array-nycklar (0 buggar)
