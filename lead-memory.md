@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #304)*
+*Senast uppdaterad: 2026-03-24 (session #305)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -109,23 +109,20 @@ Session #301: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header()+exit(): 
 Session #302: BUGGJAKT — 3 buggar (2 Worker A + 1 Worker B). date() timezone: rent. COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent. innerHTML/renderer security: rent. lazy loading chunk errors: 1 fixad (esbuild regex+overlay). long list rendering: rent.
 Session #303: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). GROUP_CONCAT truncation: rent (alla <1024 bytes). error_log rotation: rent (alla default syslog). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false+int cast). scrollPositionRestoration: 1 fixad (app.config.ts). switchMap race: rent (alla GET). template expressions: 1 fixad (stoppage-log getter->cached).
 Session #304: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). SQL implicit type conversion: rent (alla TINYINT/INT). array_splice: rent (inga finns). HAVING without GROUP BY: rent (alla har GROUP BY). ViewChild static timing: rent (alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil).
+Session #305: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). IFNULL/COALESCE: rent (COALESCE konsekvent, inga IFNULL). date/DateTime: rent (timezone korrekt via api.php). LEFT/INNER JOIN: rent (alla LEFT JOINs motiverade). ChangeDetectorRef: rent (inga OnPush, default CD). i18n: 1 fixad (26 "Operator"->"Operatör" i 19 filer).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #305+):
-- [ ] PHP SQL IFNULL/COALESCE consistency — blandad anvandning kan ge null-relaterade buggar
-- [ ] PHP date() vs DateTime — inkonsekvent datumhantering, potentiella timezone-problem
-- [ ] Angular ChangeDetectorRef markForCheck — saknade manuella CD-triggers vid async data
-- [ ] PHP SQL LEFT JOIN vs INNER JOIN — felaktiga JOINs som filtrerar bort rader med NULL
-- [ ] Angular template i18n hardcoded strings — icke-svenska strangar i templates
+### Nasta (session #306+):
+- [ ] PHP SQL subquery correlation — korrelerade subqueries som refererar fel tabell/alias
+- [ ] PHP $_GET/$_POST default values — saknade default-varden vid tomma parametrar
+- [ ] Angular router param unsubscribe — route.params/queryParams subscriptions utan cleanup
+- [ ] PHP SQL COUNT vs SUM confusion — felaktig aggregering i rapporter
+- [ ] Angular HTTP error message display — felmeddelanden fran backend visas ej for anvandaren
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #302 (klar)
-Worker A: 2 buggar — date() timezone: rent (globalt i api.php). COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent (korrekt uppdelning ASCII/mb_).
-Worker B: 1 bugg — innerHTML/renderer security: rent (inga innerHTML/bypassSecurityTrust). lazy loading chunk errors: 1 fixad (esbuild chunk-fel regex + overlay). long list rendering: rent (alla trackBy).
 
 ### 2026-03-24 — Session #303 (klar)
 Worker A: 0 buggar — GROUP_CONCAT truncation: rent (alla <1024 bytes, manga anvander SUBSTRING_INDEX). error_log rotation: rent (alla default syslog, inga custom filer). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false, genomgaende int-cast).
@@ -134,3 +131,7 @@ Worker B: 2 buggar — scrollPositionRestoration: 1 fixad (saknades i provideRou
 ### 2026-03-24 — Session #304 (klar)
 Worker A: 0 buggar — SQL implicit type conversion: rent (alla TINYINT/INT, ENUM jamfors med strangar). array_splice: rent (inga forekomster). HAVING without GROUP BY: rent (60+ HAVING, alla har matchande GROUP BY).
 Worker B: 1 bugg — ViewChild static timing: rent (33 dekorationer, alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil(destroy$)).
+
+### 2026-03-24 — Session #305 (klar)
+Worker A: 0 buggar — IFNULL/COALESCE: rent (COALESCE konsekvent, inga IFNULL). date/DateTime: rent (timezone korrekt via api.php entrypoint). LEFT/INNER JOIN: rent (alla LEFT JOINs motiverade, WHERE filtrerar inte pa LEFT JOIN-tabeller).
+Worker B: 1 bugg — ChangeDetectorRef: rent (inga OnPush-komponenter, default CD). i18n hardcoded strings: 1 fixad (26 "Operator"->"Operatör" i 19 filer + 1 felstavning i my-bonus).

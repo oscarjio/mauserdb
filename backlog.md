@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #304):
-- [ ] **PHP SQL implicit type conversion** — WHERE string_col = int kan ge oforutsagbara resultat (Worker A)
-- [ ] **PHP array_splice off-by-one** — kontrollera offset/length i alla array_splice-anrop (Worker A)
-- [ ] **PHP SQL HAVING without GROUP BY** — ogiltig SQL som MySQL tillater i lax-lage (Worker A)
-- [ ] **Angular ViewChild static timing** — static:true vs static:false vid dynamic content (Worker B)
-- [ ] **Angular httpClient memory on navigation** — ofullstandiga HTTP-anrop vid route-byte (Worker B)
+### Pagaende (session #305):
+- [ ] **PHP SQL IFNULL/COALESCE consistency** — blandad anvandning kan ge null-relaterade buggar (Worker A)
+- [ ] **PHP date() vs DateTime** — inkonsekvent datumhantering, potentiella timezone-problem (Worker A)
+- [ ] **PHP SQL LEFT JOIN vs INNER JOIN** — felaktiga JOINs som filtrerar bort rader med NULL (Worker A)
+- [ ] **Angular ChangeDetectorRef markForCheck** — saknade manuella CD-triggers vid async data (Worker B)
+- [ ] **Angular template i18n hardcoded strings** — icke-svenska strangar i templates (Worker B)
 
-### Nasta buggjakt-items (session #305+):
-- [ ] **PHP SQL IFNULL/COALESCE consistency** — blandad anvandning kan ge null-relaterade buggar
-- [ ] **PHP date() vs DateTime** — inkonsekvent datumhantering, potentiella timezone-problem
-- [ ] **Angular ChangeDetectorRef markForCheck** — saknade manuella CD-triggers vid async data
-- [ ] **PHP SQL LEFT JOIN vs INNER JOIN** — felaktiga JOINs som filtrerar bort rader med NULL
-- [ ] **Angular template i18n hardcoded strings** — icke-svenska strängar i templates
+### Nasta buggjakt-items (session #306+):
+- [ ] **PHP SQL subquery correlation** — korrelerade subqueries som refererar fel tabell/alias
+- [ ] **PHP $_GET/$_POST default values** — saknade default-varden vid tomma parametrar
+- [ ] **Angular router param unsubscribe** — route.params/queryParams subscriptions utan cleanup
+- [ ] **PHP SQL COUNT vs SUM confusion** — felaktig aggregering i rapporter
+- [ ] **Angular HTTP error message display** — felmeddelanden fran backend visas ej for anvandaren
 
 ## Parkerade features (ta inte dessa nu)
 
