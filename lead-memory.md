@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #298)*
+*Senast uppdaterad: 2026-03-24 (session #300)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -104,23 +104,20 @@ Session #296: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_merge i loo
 Session #297: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). date()/mktime(): rent. header()/exit(): rent. PDO fetchAll: rent. OnDestroy cleanup: rent. HTTP error display: 2 fixade.
 Session #298: BUGGJAKT — 14 buggar (14 Worker A + 0 Worker B). try/catch: rent. COALESCE(SUM): 2 fixade. htmlspecialchars: 12 fixade. zone.js change detection: 2 prestandafixar. canDeactivate: rent.
 Session #299: BUGGJAKT — 23 buggar (19 Worker A + 4 Worker B). array type coercion: rent. file_put_contents: rent. SQL BETWEEN datum: 19 fixade. HTTP switchMap: rent. accessibility: 4 fixade.
+Session #300: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_combine: rent (inga finns). exception leakage: rent (alla error_log). SQL transaction isolation: rent (55 beginTransaction, alla med rollBack). Angular memory profiling: rent (518 ngFor med trackBy, alla cleanup korrekt). form state persistence: rent (canDeactivate pa alla 14 sidor).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #300+):
-- [ ] PHP array_combine/array_zip — missmatch i array-langder som ger false
-- [ ] PHP exception message leakage — felmeddelanden som exponerar interna detaljer
-- [ ] Angular memory profiling — komponentstorlek, DOM-nodantal i tunga vyer
-- [ ] Angular form state persistence — formularvarden som forsvinner vid navigation
-- [ ] PHP SQL transaction isolation — dirty reads vid concurrent batch-operationer
+### Nasta (session #301+):
+- [ ] PHP header() + exit() consistency — alla API-endpoints som gor redirect utan exit()
+- [ ] PHP array_unique type juggling — SORT_REGULAR vs SORT_STRING i array_unique()
+- [ ] Angular zone.js performance — template-uttryck som triggar onnodig change detection
+- [ ] Angular HTTP caching — GET-anrop som borde cachas men gor nytt request varje gang
+- [ ] PHP SQL index usage — fragor utan index som ger full table scan pa stora tabeller
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #297 (klar)
-Worker A: 0 buggar — date()/mktime(): rent. header()/exit(): rent. PDO fetchAll: rent.
-Worker B: 2 buggar — OnDestroy cleanup: rent. HTTP error display: 2 fixade (leveransplanering+batch-sparning).
 
 ### 2026-03-24 — Session #298 (klar)
 Worker A: 14 buggar — try/catch: rent. COALESCE(SUM): 2 fixade (BatchSparningController). htmlspecialchars sanitering: 12 strip_tags ersatta med htmlspecialchars i 12 controllers.
@@ -129,3 +126,7 @@ Worker B: 0 buggar + 2 prestandafixar — zone.js change detection: 2 template-m
 ### 2026-03-24 — Session #299 (klar)
 Worker A: 19 buggar — array type coercion: rent. file_put_contents: rent (inga finns). SQL BETWEEN datum: 19 off-by-one fixade (23:59:59 -> < nasta dag 00:00:00) i 19 controllers.
 Worker B: 4 buggar — HTTP switchMap: rent (inga switchMap pa POST/PUT/DELETE). accessibility: 4 fixade (1 a->button, 3 saknade aria-label pa inputs).
+
+### 2026-03-24 — Session #300 (klar)
+Worker A: 0 buggar — array_combine/array_zip: rent (inga finns). exception message leakage: rent (alla $e->getMessage() i error_log, aldrig till klient). SQL transaction isolation: rent (55 beginTransaction, alla med commit+rollBack, FOR UPDATE korrekt).
+Worker B: 0 buggar — Angular memory profiling: rent (518 *ngFor med trackBy, alla setInterval/Chart.js/subscribe korrekt rensade). form state persistence: rent (14 sidor med canDeactivate, route params med takeUntil, laddningsindikatorer).
