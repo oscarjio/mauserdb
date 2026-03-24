@@ -1,3 +1,28 @@
+## 2026-03-24 Session #294 Worker B — FormControl validators / router param type safety granskning (0 buggar)
+
+### Uppgift 1: Angular FormControl validators (0 buggar)
+
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live) for FormControl/FormGroup/Validators-anvandning.
+
+Resultat:
+- **Inga reaktiva formulat (FormControl/FormGroup/Validators) anvands i nagon komponent.** Projektet anvander uteslutande template-driven forms (FormsModule med ngModel). Darmed finns inga buggar relaterade till saknade required-validators, asynkrona validators utan catchError, *ngIf-dolda falt med kvarvarande validators, felaktiga Validators.pattern() regex, eller saknade updateValueAndValidity()-anrop.
+- Sokte med: `FormControl`, `FormGroup`, `FormBuilder`, `Validators`, `ReactiveFormsModule`, `addValidators`, `setValidators`, `removeValidators`, `updateValueAndValidity` — inga traffar.
+
+### Uppgift 2: Angular router param type safety (0 buggar)
+
+Granskade alla 5 komponenter som anvander ActivatedRoute:
+
+1. **operator-detail.ts**: `route.snapshot.paramMap.get('id')` — validerar null + isNaN innan Number-konvertering. Korrekt.
+2. **login.ts**: `route.snapshot.queryParams['returnUrl']` — strangparam, valideras mot relative-path + forhindrar open redirect. Korrekt.
+3. **stoppage-log.ts**: `route.queryParams` — `params['maskin']` saneras med substring(0,100), `params['linje']` valideras mot vitlista (validLines.includes). Korrekt.
+4. **tvattlinje-statistik.ts**: `route.snapshot.queryParams` — parseInt med isNaN-check och intervallvalidering for year/month, view valideras mot tillaten enum, dates parsas med Date + isNaN-guard. Korrekt.
+5. **rebotling-statistik.ts**: Samma monster som tvattlinje-statistik — parseInt + isNaN + range checks. Korrekt.
+
+Resultat:
+- **Alla route-params anvandningar har korrekt typkonvertering och null/NaN-hantering.** Inga buggar hittades.
+
+---
+
 ## 2026-03-24 Session #293 Worker A — empty()/strtotime() granskning (0 buggar)
 
 ### Uppgift 1: PHP empty() gotchas — controllers N-Z (0 buggar)
