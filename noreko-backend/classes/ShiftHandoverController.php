@@ -236,7 +236,7 @@ class ShiftHandoverController {
     private function addNote(): void {
         $data     = json_decode(file_get_contents('php://input'), true) ?? [];
         $skiftNr  = isset($data['skift_nr'])  ? intval($data['skift_nr'])  : 0;
-        $note     = isset($data['note'])       ? strip_tags(trim($data['note']))        : '';
+        $note     = isset($data['note'])       ? htmlspecialchars(trim($data['note']), ENT_QUOTES, 'UTF-8')        : '';
         $priority = isset($data['priority'])   ? trim($data['priority'])    : 'normal';
         $opNumber = isset($data['op_number'])  ? intval($data['op_number']) : null;
         $audience = isset($data['audience'])   ? trim($data['audience'])    : 'alla';

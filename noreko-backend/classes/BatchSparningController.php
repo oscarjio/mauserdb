@@ -204,8 +204,8 @@ class BatchSparningController {
                 "SELECT bo.id, bo.batch_nummer, bo.planerat_antal, bo.kommentar, bo.status,
                         bo.skapad_datum, bo.avslutad_datum,
                         COUNT(bi.id) AS antal_ibc,
-                        SUM(CASE WHEN bi.klar IS NOT NULL THEN 1 ELSE 0 END) AS antal_klara,
-                        SUM(bi.kasserad) AS antal_kasserade,
+                        COALESCE(SUM(CASE WHEN bi.klar IS NOT NULL THEN 1 ELSE 0 END), 0) AS antal_klara,
+                        COALESCE(SUM(bi.kasserad), 0) AS antal_kasserade,
                         AVG(bi.cykeltid_sekunder) AS snitt_cykeltid
                  FROM batch_order bo
                  LEFT JOIN batch_ibc bi ON bi.batch_id = bo.id
@@ -423,8 +423,8 @@ class BatchSparningController {
                 "SELECT bo.id, bo.batch_nummer, bo.planerat_antal, bo.kommentar, bo.status,
                         bo.skapad_datum, bo.avslutad_datum,
                         COUNT(bi.id) AS antal_ibc,
-                        SUM(CASE WHEN bi.klar IS NOT NULL THEN 1 ELSE 0 END) AS antal_klara,
-                        SUM(bi.kasserad) AS antal_kasserade,
+                        COALESCE(SUM(CASE WHEN bi.klar IS NOT NULL THEN 1 ELSE 0 END), 0) AS antal_klara,
+                        COALESCE(SUM(bi.kasserad), 0) AS antal_kasserade,
                         AVG(bi.cykeltid_sekunder) AS snitt_cykeltid,
                         TIMESTAMPDIFF(MINUTE, bo.skapad_datum, bo.avslutad_datum) AS ledtid_min
                  FROM batch_order bo
@@ -474,7 +474,7 @@ class BatchSparningController {
     private function createBatch(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        $batchNummer = strip_tags(trim($data['batch_nummer'] ?? ''));
+        $batchNummer = htmlspecialchars(trim($data['batch_nummer'] ?? ''), ENT_QUOTES, 'UTF-8');
         if (!$batchNummer) {
             $this->sendError('batch_nummer krävs');
             return;
@@ -484,7 +484,7 @@ class BatchSparningController {
         }
 
         $planeratAntal = max(1, min(99999, (int)($data['planerat_antal'] ?? 0)));
-        $kommentar = isset($data['kommentar']) ? strip_tags(trim($data['kommentar'])) : null;
+        $kommentar = isset($data['kommentar']) ? htmlspecialchars(trim($data['kommentar']), ENT_QUOTES, 'UTF-8') : null;
         if ($kommentar && mb_strlen($kommentar) > 2000) {
             $kommentar = mb_substr($kommentar, 0, 2000);
         }

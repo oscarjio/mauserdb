@@ -965,11 +965,11 @@ class SkiftoverlamningController {
         $stopptidMin = max(0, (int)($data['stopptid_min'] ?? 0));
         $kassationer = max(0, (int)($data['kassationer'] ?? 0));
 
-        $problemText    = isset($data['problem_text'])    ? mb_substr(strip_tags(trim($data['problem_text'])), 0, 2000)    : null;
-        $pagaendeArbete = isset($data['pagaende_arbete']) ? mb_substr(strip_tags(trim($data['pagaende_arbete'])), 0, 2000) : null;
-        $instruktioner  = isset($data['instruktioner'])   ? mb_substr(strip_tags(trim($data['instruktioner'])), 0, 2000)   : null;
-        $kommentar      = isset($data['kommentar'])       ? mb_substr(strip_tags(trim($data['kommentar'])), 0, 2000)       : null;
-        $malNastaSkift  = isset($data['mal_nasta_skift']) ? mb_substr(strip_tags(trim($data['mal_nasta_skift'])), 0, 500)  : null;
+        $problemText    = isset($data['problem_text'])    ? mb_substr(htmlspecialchars(trim($data['problem_text']), ENT_QUOTES, 'UTF-8'), 0, 2000)    : null;
+        $pagaendeArbete = isset($data['pagaende_arbete']) ? mb_substr(htmlspecialchars(trim($data['pagaende_arbete']), ENT_QUOTES, 'UTF-8'), 0, 2000) : null;
+        $instruktioner  = isset($data['instruktioner'])   ? mb_substr(htmlspecialchars(trim($data['instruktioner']), ENT_QUOTES, 'UTF-8'), 0, 2000)   : null;
+        $kommentar      = isset($data['kommentar'])       ? mb_substr(htmlspecialchars(trim($data['kommentar']), ENT_QUOTES, 'UTF-8'), 0, 2000)       : null;
+        $malNastaSkift  = isset($data['mal_nasta_skift']) ? mb_substr(htmlspecialchars(trim($data['mal_nasta_skift']), ENT_QUOTES, 'UTF-8'), 0, 500)  : null;
 
         $harPagaende = !empty($data['har_pagaende_problem']) ? 1 : 0;
 
@@ -1188,11 +1188,10 @@ class SkiftoverlamningController {
         $checkSakerhet    = !empty($data['checklista_sakerhet']) ? 1 : 0;
         $checkMaterial    = !empty($data['checklista_material']) ? 1 : 0;
 
-        // Bugfix: korrekt ordning — strip_tags+trim forst, sedan mb_substr for langdbegransning.
-        // Tidigare: mb_substr forst kunde klippa mitt i en HTML-tagg, sa strip_tags missade den.
-        $kommentarHande   = isset($data['kommentar_hande'])   ? mb_substr(strip_tags(trim($data['kommentar_hande'])), 0, 5000)   : null;
-        $kommentarAtgarda = isset($data['kommentar_atgarda']) ? mb_substr(strip_tags(trim($data['kommentar_atgarda'])), 0, 5000) : null;
-        $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? mb_substr(strip_tags(trim($data['kommentar_ovrigt'])), 0, 5000)  : null;
+        // htmlspecialchars med ENT_QUOTES for korrekt XSS-skydd (ersatter strip_tags).
+        $kommentarHande   = isset($data['kommentar_hande'])   ? mb_substr(htmlspecialchars(trim($data['kommentar_hande']), ENT_QUOTES, 'UTF-8'), 0, 5000)   : null;
+        $kommentarAtgarda = isset($data['kommentar_atgarda']) ? mb_substr(htmlspecialchars(trim($data['kommentar_atgarda']), ENT_QUOTES, 'UTF-8'), 0, 5000) : null;
+        $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? mb_substr(htmlspecialchars(trim($data['kommentar_ovrigt']), ENT_QUOTES, 'UTF-8'), 0, 5000)  : null;
 
         try {
             // Race condition-skydd: transaktion + SELECT FOR UPDATE forhindrar dubbletter

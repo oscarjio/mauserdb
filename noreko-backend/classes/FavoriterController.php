@@ -78,10 +78,10 @@ class FavoriterController {
         $userId = (int) $_SESSION['user_id'];
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        $route = strip_tags(trim($body['route'] ?? ''));
-        $label = strip_tags(trim($body['label'] ?? ''));
-        $icon  = strip_tags(trim($body['icon']  ?? 'fas fa-star'));
-        $color = strip_tags(trim($body['color'] ?? '#4299e1'));
+        $route = htmlspecialchars(trim($body['route'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $label = htmlspecialchars(trim($body['label'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $icon  = htmlspecialchars(trim($body['icon']  ?? 'fas fa-star'), ENT_QUOTES, 'UTF-8');
+        $color = htmlspecialchars(trim($body['color'] ?? '#4299e1'), ENT_QUOTES, 'UTF-8');
 
         if (!$route || !$label) {
             $this->sendError('route och label krävs');

@@ -171,7 +171,7 @@ class FeedbackController {
         // Sanitera kommentar
         $kommentar = null;
         if (isset($data['kommentar']) && is_string($data['kommentar'])) {
-            $kommentar = mb_substr(strip_tags(trim($data['kommentar'])), 0, 280);
+            $kommentar = mb_substr(htmlspecialchars(trim($data['kommentar']), ENT_QUOTES, 'UTF-8'), 0, 280);
             if ($kommentar === '') $kommentar = null;
         }
 

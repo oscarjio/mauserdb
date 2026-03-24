@@ -187,7 +187,7 @@ class LineSkiftrapportController {
             $antal_ok    = max(0, min(999999, intval($data['antal_ok'] ?? 0)));
             $antal_ej_ok = max(0, min(999999, intval($data['antal_ej_ok'] ?? 0)));
             $totalt      = $antal_ok + $antal_ej_ok;
-            $kommentar   = strip_tags(trim($data['kommentar'] ?? '')) ?: null;
+            $kommentar   = htmlspecialchars(trim($data['kommentar'] ?? ''), ENT_QUOTES, 'UTF-8') ?: null;
             if ($kommentar !== null && mb_strlen($kommentar) > 2000) {
                 $kommentar = mb_substr($kommentar, 0, 2000);
             }
@@ -245,7 +245,7 @@ class LineSkiftrapportController {
                 $params[] = max(0, min(999999, intval($data['antal_ej_ok'])));
             }
             if (array_key_exists('kommentar', $data)) {
-                $kommentar = strip_tags(trim($data['kommentar'])) ?: null;
+                $kommentar = htmlspecialchars(trim($data['kommentar']), ENT_QUOTES, 'UTF-8') ?: null;
                 if ($kommentar !== null && mb_strlen($kommentar) > 2000) {
                     $kommentar = mb_substr($kommentar, 0, 2000);
                 }

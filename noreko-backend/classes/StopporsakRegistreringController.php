@@ -223,7 +223,7 @@ class StopporsakRegistreringController {
             }
 
             $linje     = $this->validatedLinje($data['linje'] ?? 'rebotling');
-            $kommentar = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 500);
+            $kommentar = mb_substr(htmlspecialchars(trim($data['kommentar'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 500);
             $userId    = (int)$_SESSION['user_id'];
             $startTime = date('Y-m-d H:i:s');
 

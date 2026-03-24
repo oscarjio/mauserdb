@@ -134,14 +134,14 @@ class MaintenanceController {
         try {
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-            $title           = strip_tags(trim($data['title'] ?? ''));
+            $title           = htmlspecialchars(trim($data['title'] ?? ''), ENT_QUOTES, 'UTF-8');
             $line            = trim($data['line'] ?? 'rebotling');
             $maintenanceType = trim($data['maintenance_type'] ?? 'ovrigt');
-            $description     = strip_tags(trim($data['description'] ?? ''));
+            $description     = htmlspecialchars(trim($data['description'] ?? ''), ENT_QUOTES, 'UTF-8');
             $startTime       = trim($data['start_time'] ?? '');
             $durationMinutes = isset($data['duration_minutes']) && $data['duration_minutes'] !== '' && $data['duration_minutes'] !== null
                                ? max(0, min(14400, intval($data['duration_minutes']))) : null;
-            $performedBy     = strip_tags(trim($data['performed_by'] ?? ''));
+            $performedBy     = htmlspecialchars(trim($data['performed_by'] ?? ''), ENT_QUOTES, 'UTF-8');
             $costSekRaw      = isset($data['cost_sek']) && $data['cost_sek'] !== '' && $data['cost_sek'] !== null
                                ? floatval($data['cost_sek']) : null;
             $costSek         = ($costSekRaw !== null && is_finite($costSekRaw))
@@ -150,7 +150,7 @@ class MaintenanceController {
             $createdBy       = intval($_SESSION['user_id']);
 
             // Nya fält
-            $equipment       = isset($data['equipment']) && $data['equipment'] !== '' ? strip_tags(trim($data['equipment'])) : null;
+            $equipment       = isset($data['equipment']) && $data['equipment'] !== '' ? htmlspecialchars(trim($data['equipment']), ENT_QUOTES, 'UTF-8') : null;
             if ($equipment !== null && mb_strlen($equipment) > 100) {
                 $equipment = mb_substr($equipment, 0, 100);
             }
@@ -258,7 +258,7 @@ class MaintenanceController {
             $params = [];
 
             if (isset($data['title'])) {
-                $title = strip_tags(trim($data['title']));
+                $title = htmlspecialchars(trim($data['title']), ENT_QUOTES, 'UTF-8');
                 if (empty($title)) {
                     $this->sendError('Titel krävs', 400);
                     return;
@@ -287,7 +287,7 @@ class MaintenanceController {
                 $params[':maintenance_type'] = $data['maintenance_type'];
             }
             if (array_key_exists('description', $data)) {
-                $desc = strip_tags(trim($data['description'])) ?: null;
+                $desc = htmlspecialchars(trim($data['description']), ENT_QUOTES, 'UTF-8') ?: null;
                 if ($desc !== null && mb_strlen($desc) > 2000) {
                     $desc = mb_substr($desc, 0, 2000);
                 }
@@ -310,7 +310,7 @@ class MaintenanceController {
                 $params[':duration_minutes'] = $durVal;
             }
             if (array_key_exists('performed_by', $data)) {
-                $pb = strip_tags(trim($data['performed_by'])) ?: null;
+                $pb = htmlspecialchars(trim($data['performed_by']), ENT_QUOTES, 'UTF-8') ?: null;
                 if ($pb !== null && mb_strlen($pb) > 100) {
                     $pb = mb_substr($pb, 0, 100);
                 }
@@ -337,7 +337,7 @@ class MaintenanceController {
             }
             // Nya fält
             if (array_key_exists('equipment', $data)) {
-                $eq = $data['equipment'] !== '' ? strip_tags(trim($data['equipment'])) : null;
+                $eq = $data['equipment'] !== '' ? htmlspecialchars(trim($data['equipment']), ENT_QUOTES, 'UTF-8') : null;
                 if ($eq !== null && mb_strlen($eq) > 100) $eq = mb_substr($eq, 0, 100);
                 $fields[] = 'equipment = :equipment';
                 $params[':equipment'] = $eq;
@@ -628,7 +628,7 @@ class MaintenanceController {
         try {
             $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
-            $maskinNamn       = strip_tags(trim($data['maskin_namn'] ?? ''));
+            $maskinNamn       = htmlspecialchars(trim($data['maskin_namn'] ?? ''), ENT_QUOTES, 'UTF-8');
             $intervallIbc     = isset($data['intervall_ibc']) ? max(0, min(99999999, intval($data['intervall_ibc']))) : 0;
             $senasteDatum     = $data['senaste_service_datum'] ?? null;
             $senasteIbc       = isset($data['senaste_service_ibc']) ? max(0, min(99999999, intval($data['senaste_service_ibc']))) : 0;

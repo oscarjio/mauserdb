@@ -456,10 +456,10 @@ class UnderhallsloggController {
 
             $stationId     = max(0, (int)($data['station_id'] ?? 0));
             $typ           = $data['typ'] ?? '';
-            $beskrivning   = mb_substr(strip_tags(trim($data['beskrivning'] ?? '')), 0, 5000);
+            $beskrivning   = mb_substr(htmlspecialchars(trim($data['beskrivning'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 5000);
             $varaktighetMin = max(0, min(14400, (int)($data['varaktighet_min'] ?? 0)));
-            $stopporsak    = mb_substr(strip_tags(trim($data['stopporsak'] ?? '')), 0, 255);
-            $utfordAv      = mb_substr(strip_tags(trim($data['utford_av'] ?? '')), 0, 100);
+            $stopporsak    = mb_substr(htmlspecialchars(trim($data['stopporsak'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 255);
+            $utfordAv      = mb_substr(htmlspecialchars(trim($data['utford_av'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 100);
             $datum         = trim($data['datum'] ?? '');
 
             // Fallback: hamta username fran session
@@ -582,11 +582,11 @@ class UnderhallsloggController {
                 return;
             }
 
-            $kategori       = mb_substr(strip_tags(trim($data['kategori'] ?? '')), 0, 50);
+            $kategori       = mb_substr(htmlspecialchars(trim($data['kategori'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 50);
             $typ            = $data['typ'] ?? '';
             $varaktighetMin = max(0, min(14400, intval($data['varaktighet_min'] ?? 0)));
-            $kommentar      = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 2000);
-            $maskin         = mb_substr(strip_tags(trim($data['maskin'] ?? 'Rebotling')), 0, 100);
+            $kommentar      = mb_substr(htmlspecialchars(trim($data['kommentar'] ?? ''), ENT_QUOTES, 'UTF-8'), 0, 2000);
+            $maskin         = mb_substr(htmlspecialchars(trim($data['maskin'] ?? 'Rebotling'), ENT_QUOTES, 'UTF-8'), 0, 100);
 
             if (empty($kategori)) {
                 $this->sendError('Kategori saknas');

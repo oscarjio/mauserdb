@@ -96,9 +96,9 @@ class NewsController {
             return;
         }
 
-        $title     = strip_tags(trim($body['title'] ?? ''));
-        $content   = strip_tags(trim($body['content'] ?? ''));
-        $category  = strip_tags(trim($body['category'] ?? 'info'));
+        $title     = htmlspecialchars(trim($body['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $content   = htmlspecialchars(trim($body['content'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $category  = htmlspecialchars(trim($body['category'] ?? 'info'), ENT_QUOTES, 'UTF-8');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
         $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
@@ -155,9 +155,9 @@ class NewsController {
         }
 
         $id        = intval($body['id'] ?? 0);
-        $title     = strip_tags(trim($body['title'] ?? ''));
-        $content   = strip_tags(trim($body['content'] ?? ''));
-        $category  = strip_tags(trim($body['category'] ?? 'info'));
+        $title     = htmlspecialchars(trim($body['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $content   = htmlspecialchars(trim($body['content'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $category  = htmlspecialchars(trim($body['category'] ?? 'info'), ENT_QUOTES, 'UTF-8');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
         $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
