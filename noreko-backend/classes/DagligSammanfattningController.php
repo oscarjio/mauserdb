@@ -193,7 +193,7 @@ class DagligSammanfattningController {
     private function calcDrifttidSek(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT datum, running FROM rebotling_onoff
-            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+            WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -213,7 +213,7 @@ class DagligSammanfattningController {
      */
     private function calcOee(string $date): array {
         $fromDt = $date . ' 00:00:00';
-        $toDt   = $date . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($date . ' +1 day')) . ' 00:00:00';
 
         // Drifttid från rebotling_onoff (datum + running kolumner)
         $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);

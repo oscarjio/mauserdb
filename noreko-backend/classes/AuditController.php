@@ -67,7 +67,7 @@ class AuditController {
                     ? $fromDate . ' 00:00:00'
                     : date('Y-m-d 00:00:00', strtotime('-30 days'));
                 $dateEnd = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate))
-                    ? $toDate . ' 23:59:59'
+                    ? date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00'
                     : null;
                 // Validera att from <= to, annars byt plats
                 if ($dateEnd !== null && $dateStart > $dateEnd) {
@@ -85,7 +85,7 @@ class AuditController {
                     } catch (\Exception $e) {
                         error_log('AuditController: datumberäkning fallback — ' . $e->getMessage());
                         $dateStart = date('Y-m-d 00:00:00', strtotime('-30 days'));
-                        $dateEnd   = date('Y-m-d 23:59:59');
+                        $dateEnd   = date('Y-m-d', strtotime('+1 day')) . ' 00:00:00';
                     }
                 }
             }
@@ -94,7 +94,7 @@ class AuditController {
             $params = [$dateStart];
 
             if ($dateEnd) {
-                $where[]  = 'created_at <= ?';
+                $where[]  = 'created_at < ?';
                 $params[] = $dateEnd;
             }
             if ($actionFilter) {

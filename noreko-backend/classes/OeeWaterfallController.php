@@ -83,7 +83,7 @@ class OeeWaterfallController {
     private function calcDrifttidSek(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT datum, running FROM rebotling_onoff
-            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+            WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -110,7 +110,7 @@ class OeeWaterfallController {
             if ($checkOnoff && $checkOnoff->rowCount() > 0) {
                 $drifttidSek = $this->calcDrifttidSek(
                     $fromDate . ' 00:00:00',
-                    $toDate   . ' 23:59:59'
+                    date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00'
                 );
             }
         } catch (\PDOException $e) {

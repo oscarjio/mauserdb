@@ -137,7 +137,7 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
@@ -254,7 +254,7 @@ class KapacitetsplaneringController {
         $today = date('Y-m-d');
 
         $fromDt = $fromDate . ' 00:00:00';
-        $toDt   = $toDate . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00';
 
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
 
@@ -480,7 +480,7 @@ class KapacitetsplaneringController {
             $antalStationer = 1;
 
             $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = $dagStr . ' 23:59:59';
+            $toDt   = date('Y-m-d', strtotime($dagStr . ' +1 day')) . ' 00:00:00';
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
             $teorMax     = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
             $mal         = $this->getProduktionsmal($dagStr);
@@ -558,7 +558,7 @@ class KapacitetsplaneringController {
             return;
         }
 
-        $drifttidSek = $this->getDrifttidSek($fromDate . ' 00:00:00', $today . ' 23:59:59');
+        $drifttidSek = $this->getDrifttidSek($fromDate . ' 00:00:00', date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00');
         $defaultTeorPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
         $timmarPeriod = $period * (self::PLANERAD_DRIFTTID_SEK / 3600);
 
@@ -606,7 +606,7 @@ class KapacitetsplaneringController {
         $fromDate = date('Y-m-d', strtotime("-{$period} days"));
 
         $fromDt = $fromDate . ' 00:00:00';
-        $toDt   = $today   . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00';
 
         $planeradSek = $period * self::PLANERAD_DRIFTTID_SEK;
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
@@ -620,7 +620,7 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
@@ -734,7 +734,7 @@ class KapacitetsplaneringController {
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
             $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = $dagStr . ' 23:59:59';
+            $toDt   = date('Y-m-d', strtotime($dagStr . ' +1 day')) . ' 00:00:00';
 
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
             $planeradSek = self::PLANERAD_DRIFTTID_SEK;

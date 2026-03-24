@@ -114,7 +114,7 @@ class OeeTrendanalysController {
     private function calcDrifttidSek(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT datum, running FROM rebotling_onoff
-            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+            WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -134,7 +134,7 @@ class OeeTrendanalysController {
     private function calcOeeForPeriod(string $from, string $to): array {
         // Drifttid fran rebotling_onoff (datum + running)
         $fromDt = $from . ' 00:00:00';
-        $toDt   = $to   . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
         $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid
@@ -226,7 +226,7 @@ class OeeTrendanalysController {
         $driftByStation = [];
         try {
             $fromDt = $from . ' 00:00:00';
-            $toDt   = $to   . ' 23:59:59';
+            $toDt   = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
             $totalDrift = $this->calcDrifttidSek($fromDt, $toDt);
             $stationCount = max(1, count($stationer));
             foreach ($stationer as $s) {
@@ -568,12 +568,12 @@ class OeeTrendanalysController {
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                     WHERE sr.start_time >= :from
-                      AND sr.start_time <= :to
+                      AND sr.start_time < :to
                     GROUP BY sk.namn
                     ORDER BY antal DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $to . ' 23:59:59']);
+                $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
                 $topOrsak = null;
                 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     if ($topOrsak === null) {

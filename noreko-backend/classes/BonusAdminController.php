@@ -1344,12 +1344,12 @@ class BonusAdminController {
                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 WHERE s.line = 'rebotling'
                   AND s.start_time >= :start
-                  AND s.start_time <= :end_ts
+                  AND s.start_time < :end_ts
                 ORDER BY s.duration_minutes DESC
             ");
             $stoppStmt->execute([
                 'start'  => $startDate . ' 00:00:00',
-                'end_ts' => $endDate . ' 23:59:59',
+                'end_ts' => date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 00:00:00',
             ]);
             $stoppages = $stoppStmt->fetchAll(PDO::FETCH_ASSOC);
 

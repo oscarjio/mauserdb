@@ -619,7 +619,7 @@ class StoppageController {
             $dow = (int)date('N'); // 1=man..7=son
             $thisWeekStart = date('Y-m-d 00:00:00', strtotime('-' . ($dow - 1) . ' days'));
             $prevWeekStart = date('Y-m-d 00:00:00', strtotime('-' . ($dow - 1 + 7) . ' days'));
-            $prevWeekEnd   = date('Y-m-d 23:59:59', strtotime('-' . $dow . ' days'));
+            $prevWeekEnd   = date('Y-m-d', strtotime('-' . ($dow - 1) . ' days')) . ' 00:00:00';
 
             // This week
             $stmt = $this->pdo->prepare("
@@ -638,7 +638,7 @@ class StoppageController {
                        COALESCE(SUM(duration_minutes), 0) as total_minutes,
                        COALESCE(ROUND(AVG(duration_minutes), 0), 0) as avg_minutes
                 FROM stoppage_log
-                WHERE line = ? AND start_time >= ? AND start_time <= ?
+                WHERE line = ? AND start_time >= ? AND start_time < ?
             ");
             $stmt->execute([$line, $prevWeekStart, $prevWeekEnd]);
             $prevWeek = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -91,7 +91,7 @@ class OeeBenchmarkController {
         $stmt = $this->pdo->prepare("
             SELECT datum, running
             FROM rebotling_onoff
-            WHERE datum BETWEEN :from_dt AND :to_dt
+            WHERE datum >= :from_dt AND datum < :to_dt
             ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
@@ -129,7 +129,7 @@ class OeeBenchmarkController {
         // Summera drifttid (ON-perioder) från rebotling_onoff.
         // Kolumner: datum (DATETIME), running (BOOLEAN). En rad = en statusändring.
         $fromDt = $fromDate . ' 00:00:00';
-        $toDt   = $toDate   . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00';
         $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid = antal dagar i perioden × 8 tim (en normalarbetsdag).

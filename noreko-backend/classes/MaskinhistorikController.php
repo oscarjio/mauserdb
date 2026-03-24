@@ -98,7 +98,7 @@ class MaskinhistorikController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
@@ -137,7 +137,7 @@ class MaskinhistorikController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
@@ -212,7 +212,7 @@ class MaskinhistorikController {
      */
     private function calcOee(string $fromDate, string $toDate): array {
         $fromDt = $fromDate . ' 00:00:00';
-        $toDt   = $toDate   . ' 23:59:59';
+        $toDt   = date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00';
 
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
 
@@ -331,7 +331,7 @@ class MaskinhistorikController {
         }
 
         // Batch-hamta drifttid for hela perioden (1 query istallet for N)
-        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', $toDateStr . ' 23:59:59');
+        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', date('Y-m-d', strtotime($toDateStr . ' +1 day')) . ' 00:00:00');
 
         $result = [];
         for ($i = $period - 1; $i >= 0; $i--) {
@@ -369,7 +369,7 @@ class MaskinhistorikController {
 
         // Batch-hamta all data i 2 queries istallet for 3*N (N+1 fix)
         // 1. Drifttid per dag
-        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', $toDateStr . ' 23:59:59');
+        $drifttidPerDag = $this->getDrifttidPerDag($fromDateStr . ' 00:00:00', date('Y-m-d', strtotime($toDateStr . ' +1 day')) . ' 00:00:00');
 
         // 2. IBC-data per dag
         $ibcPerDag = [];

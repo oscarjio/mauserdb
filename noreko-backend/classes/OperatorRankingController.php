@@ -234,13 +234,13 @@ class OperatorRankingController {
                 FROM stopporsak_registreringar sr
                 JOIN users u ON sr.user_id = u.id
                 WHERE sr.start_time >= :from
-                  AND sr.start_time <= :to
+                  AND sr.start_time < :to
                   AND u.operator_id IS NOT NULL
                   AND u.operator_id > 0
                 GROUP BY u.operator_id
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $to . ' 23:59:59']);
+            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['op_number'];
                 $result[$uid] = [

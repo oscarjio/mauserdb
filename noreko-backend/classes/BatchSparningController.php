@@ -407,8 +407,8 @@ class BatchSparningController {
                 $params[] = $from . ' 00:00:00';
             }
             if ($to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
-                $where .= " AND bo.avslutad_datum <= ?";
-                $params[] = $to . ' 23:59:59';
+                $where .= " AND bo.avslutad_datum < ?";
+                $params[] = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
             }
 
             $search = mb_substr(trim($_GET['search'] ?? ''), 0, 200);

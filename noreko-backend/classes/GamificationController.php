@@ -219,13 +219,13 @@ class GamificationController {
                     COUNT(*) AS antal_stopp
                 FROM stopporsak_registreringar sr
                 WHERE sr.start_time >= :from
-                  AND sr.start_time <= :to
+                  AND sr.start_time < :to
                   AND sr.user_id IS NOT NULL
                   AND sr.user_id > 0
                 GROUP BY sr.user_id
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $to . ' 23:59:59']);
+            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['user_id'];
                 $result[$uid] = [

@@ -97,14 +97,14 @@ class DagligBriefingController {
 
     private function calcOeeForDay(string $date): array {
         $from = $date . ' 00:00:00';
-        $to   = $date . ' 23:59:59';
+        $to   = date('Y-m-d', strtotime($date . ' +1 day')) . ' 00:00:00';
 
         // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
         $drifttidSek = 0;
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
@@ -209,7 +209,7 @@ class DagligBriefingController {
                         WHERE DATE(start_time) = :date
                           AND linje = 'rebotling'
                     ");
-                    $stmt->execute([':date' => $datum, ':to1' => $datum . ' 23:59:59']);
+                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $stoppMinuter = max(0, (int)($row['stopp_min'] ?? 0));
                 } catch (\Exception $e) {
@@ -305,7 +305,7 @@ class DagligBriefingController {
                         LIMIT 1
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':date' => $datum, ':to1' => $datum . ' 23:59:59']);
+                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row && (int)$row['minuter'] > 0) {
                         $framstaOrsak = $row['orsak'];
@@ -380,7 +380,7 @@ class DagligBriefingController {
                         LIMIT 5
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':date' => $datum, ':to1' => $datum . ' 23:59:59']);
+                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Exception $e) {
                     error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());

@@ -196,23 +196,24 @@ class KassationskvotAlarmController {
         $skiftNamn = $this->getSkiftNamn($hour);
         if ($skiftNamn === 'dag') {
             $skiftFrom = $today . ' 06:00:00';
-            $skiftTo   = $today . ' 13:59:59';
+            $skiftTo   = $today . ' 14:00:00';
         } elseif ($skiftNamn === 'kvall') {
             $skiftFrom = $today . ' 14:00:00';
-            $skiftTo   = $today . ' 21:59:59';
+            $skiftTo   = $today . ' 22:00:00';
         } else {
-            // Natt: 22:00 igår – 05:59 idag, eller 22:00 idag – nu om timmen >= 22
+            // Natt: 22:00 igar - 06:00 idag, eller 22:00 idag - nu om timmen >= 22
             if ($hour < 6) {
                 $yesterday = (clone $now)->modify('-1 day')->format('Y-m-d');
                 $skiftFrom = $yesterday . ' 22:00:00';
-                $skiftTo   = $today . ' 05:59:59';
+                $skiftTo   = $today . ' 06:00:00';
             } else {
                 $skiftFrom = $today . ' 22:00:00';
-                $skiftTo   = $today . ' 23:59:59';
+                $tomorrow  = (clone $now)->modify('+1 day')->format('Y-m-d');
+                $skiftTo   = $tomorrow . ' 06:00:00';
             }
         }
         $skift = $this->beraknaKvot(
-            "datum >= :from_dt AND datum <= :to_dt",
+            "datum >= :from_dt AND datum < :to_dt",
             [':from_dt' => $skiftFrom, ':to_dt' => $skiftTo]
         );
 

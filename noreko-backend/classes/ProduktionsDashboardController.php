@@ -85,7 +85,7 @@ class ProduktionsDashboardController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+                WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -206,7 +206,7 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE datum BETWEEN :from AND :to
+                    WHERE datum >= :from AND datum < :to
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) sub
@@ -308,7 +308,7 @@ class ProduktionsDashboardController {
 
         // --- Drifttid idag ---
         $fromDtIdag = $idag . ' 00:00:00';
-        $toDtIdag   = $idag . ' 23:59:59';
+        $toDtIdag   = date('Y-m-d', strtotime($idag . ' +1 day')) . ' 00:00:00';
         $drifttidSekIdag = $this->getDrifttidSek($fromDtIdag, $toDtIdag);
         $planeradSekIdag = self::PLANERAD_DAG_SEK;
         $drifttidPctIdag = round(min(100, $drifttidSekIdag / $planeradSekIdag * 100), 1);
@@ -318,7 +318,7 @@ class ProduktionsDashboardController {
 
         // --- OEE forra veckan (7 dagar sedan) ---
         $fromDt7 = $fromSek7 . ' 00:00:00';
-        $toDt7   = $igar     . ' 23:59:59';
+        $toDt7   = date('Y-m-d', strtotime($igar . ' +1 day')) . ' 00:00:00';
         $oee7 = $this->calcOeeForPeriod($fromDt7, $toDt7);
 
         // OEE-trend vs forra veckan
@@ -473,7 +473,7 @@ class ProduktionsDashboardController {
         for ($i = 6; $i >= 0; $i--) {
             $dagStr = date('Y-m-d', strtotime("-{$i} days"));
             $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = $dagStr . ' 23:59:59';
+            $toDt   = date('Y-m-d', strtotime($dagStr . ' +1 day')) . ' 00:00:00';
 
             $oee = $this->calcOeeForPeriod($fromDt, $toDt);
 
@@ -518,7 +518,7 @@ class ProduktionsDashboardController {
         }
 
         // Maskinens totala drifttid for idag (ej per station)
-        $drifttidSekIdag = $this->getDrifttidSek($idag . ' 00:00:00', $idag . ' 23:59:59');
+        $drifttidSekIdag = $this->getDrifttidSek($idag . ' 00:00:00', date('Y-m-d', strtotime($idag . ' +1 day')) . ' 00:00:00');
         $periodSek = self::PLANERAD_DAG_SEK;
 
         // Hamta alla stationers data i en enda query (istallet for N+1)

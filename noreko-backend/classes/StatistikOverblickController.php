@@ -372,14 +372,14 @@ class StatistikOverblickController {
 
     private function calcOeeForDay(string $date): array {
         $from = $date . ' 00:00:00';
-        $to   = $date . ' 23:59:59';
+        $to   = date('Y-m-d', strtotime($date . ' +1 day')) . ' 00:00:00';
 
         // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
         $drifttidSek = 0;
         try {
             $stmt = $this->pdo->prepare("
                 SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum <= :to_dt
+                WHERE datum >= :from_dt AND datum < :to_dt
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);

@@ -231,8 +231,8 @@ class UnderhallsloggController {
                 $params[] = $from . ' 00:00:00';
             }
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
-                $where[]  = 'datum <= ?';
-                $params[] = $to . ' 23:59:59';
+                $where[]  = 'datum < ?';
+                $params[] = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
             }
 
             $whereSql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -398,7 +398,7 @@ class UnderhallsloggController {
             $firstOfMonth = new \DateTime('first day of this month');
             $startDt = (clone $firstOfMonth)->modify('-' . ($months - 1) . ' months');
             $startDate = $startDt->format('Y-m-01');
-            $endDate   = date('Y-m-t 23:59:59');
+            $endDate   = date('Y-m-d', strtotime('first day of next month')) . ' 00:00:00';
 
             $stmt = $this->pdo->prepare(
                 "SELECT
@@ -406,7 +406,7 @@ class UnderhallsloggController {
                     COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS p,
                     COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS o
                  FROM rebotling_underhallslogg
-                 WHERE datum >= ? AND datum <= ?
+                 WHERE datum >= ? AND datum < ?
                  GROUP BY DATE_FORMAT(datum, '%Y-%m')
                  ORDER BY manad ASC"
             );

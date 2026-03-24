@@ -107,7 +107,7 @@ class VdDashboardController {
     private function calcDrifttidSek(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT datum, running FROM rebotling_onoff
-            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+            WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -126,7 +126,7 @@ class VdDashboardController {
      */
     private function calcOeeForDay(string $date): array {
         $from = $date . ' 00:00:00';
-        $to   = $date . ' 23:59:59';
+        $to   = date('Y-m-d', strtotime($date . ' +1 day')) . ' 00:00:00';
 
         // Drifttid fran rebotling_onoff (datum + running kolumner)
         $drifttidSek = 0;
@@ -478,7 +478,7 @@ class VdDashboardController {
             $totalDrifttidSek = 0;
             try {
                 $from = $today . ' 00:00:00';
-                $to   = $today . ' 23:59:59';
+                $to   = date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00';
                 $totalDrifttidSek = $this->calcDrifttidSek($from, $to);
             } catch (\Exception $e) {
                 error_log('VdDashboardController::stationOee (drifttid): ' . $e->getMessage());
