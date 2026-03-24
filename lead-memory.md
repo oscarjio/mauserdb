@@ -107,6 +107,7 @@ Session #299: BUGGJAKT — 23 buggar (19 Worker A + 4 Worker B). array type coer
 Session #300: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_combine: rent (inga finns). exception leakage: rent (alla error_log). SQL transaction isolation: rent (55 beginTransaction, alla med rollBack). Angular memory profiling: rent (518 ngFor med trackBy, alla cleanup korrekt). form state persistence: rent (canDeactivate pa alla 14 sidor).
 Session #301: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (inga blandade typer). SQL index usage: observation — 100+ DATE() i WHERE forhindrar index, ej fixat (kravs DB-kunskap). zone.js performance: rent (tunga berakningar pre-cachade). HTTP caching: rent (alla anrop filterbaserade). template null dereference: rent (alla skyddade).
 Session #302: BUGGJAKT — 3 buggar (2 Worker A + 1 Worker B). date() timezone: rent. COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent. innerHTML/renderer security: rent. lazy loading chunk errors: 1 fixad (esbuild regex+overlay). long list rendering: rent.
+Session #303: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). GROUP_CONCAT truncation: rent (alla <1024 bytes). error_log rotation: rent (alla default syslog). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false+int cast). scrollPositionRestoration: 1 fixad (app.config.ts). switchMap race: rent (alla GET). template expressions: 1 fixad (stoppage-log getter->cached).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -121,10 +122,6 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-24 — Session #300 (klar)
-Worker A: 0 buggar — array_combine/array_zip: rent (inga finns). exception message leakage: rent (alla $e->getMessage() i error_log, aldrig till klient). SQL transaction isolation: rent (55 beginTransaction, alla med commit+rollBack, FOR UPDATE korrekt).
-Worker B: 0 buggar — Angular memory profiling: rent (518 *ngFor med trackBy, alla setInterval/Chart.js/subscribe korrekt rensade). form state persistence: rent (14 sidor med canDeactivate, route params med takeUntil, laddningsindikatorer).
-
 ### 2026-03-24 — Session #301 (klar)
 Worker A: 0 buggar — header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (25+ anrop, inga blandade typer). SQL index usage: 100+ DATE()-wrapper i WHERE forhindrar indexanvandning i 20+ controllers (observation, ej fixat).
 Worker B: 0 buggar — zone.js performance: rent (260+ template-metoder, alla latta). HTTP caching: rent (93 services, alla filterbaserade). template null dereference: rent (129 ngFor + 200+ bindings, alla skyddade).
@@ -132,3 +129,7 @@ Worker B: 0 buggar — zone.js performance: rent (260+ template-metoder, alla la
 ### 2026-03-24 — Session #302 (klar)
 Worker A: 2 buggar — date() timezone: rent (globalt i api.php). COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent (korrekt uppdelning ASCII/mb_).
 Worker B: 1 bugg — innerHTML/renderer security: rent (inga innerHTML/bypassSecurityTrust). lazy loading chunk errors: 1 fixad (esbuild chunk-fel regex + overlay). long list rendering: rent (alla trackBy).
+
+### 2026-03-24 — Session #303 (klar)
+Worker A: 0 buggar — GROUP_CONCAT truncation: rent (alla <1024 bytes, manga anvander SUBSTRING_INDEX). error_log rotation: rent (alla default syslog, inga custom filer). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false, genomgaende int-cast).
+Worker B: 2 buggar — scrollPositionRestoration: 1 fixad (saknades i provideRouter, app.config.ts). switchMap race conditions: rent (alla 7 wrappar GET). template expressions: 1 fixad (stoppage-log: getter->cached property for filteredStoppages+stopSummaryStats+getMaxCostlyMin+qrCount).
