@@ -51,7 +51,7 @@ class AdminController {
                     echo json_encode(['success' => false, 'error' => 'Användarnamn, lösenord och e-post krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                if (strlen($username) < 3 || strlen($username) > 50) {
+                if (mb_strlen($username) < 3 || mb_strlen($username) > 50) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Användarnamn måste vara 3–50 tecken'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -292,7 +292,7 @@ class AdminController {
             $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
 
             // Validera username om angiven
-            if ($username !== null && (strlen($username) < 3 || strlen($username) > 50)) {
+            if ($username !== null && (mb_strlen($username) < 3 || mb_strlen($username) > 50)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Användarnamn måste vara 3–50 tecken'], JSON_UNESCAPED_UNICODE);
                 return;

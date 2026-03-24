@@ -246,7 +246,7 @@ class WeeklyReportController {
         $words = preg_split('/\s+/', trim($op['name'] ?? ''));
         $initials = '';
         foreach ($words as $w) {
-            if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+            if ($w !== '') $initials .= mb_strtoupper(mb_substr($w, 0, 1));
         }
 
         return [

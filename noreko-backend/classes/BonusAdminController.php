@@ -884,7 +884,7 @@ class BonusAdminController {
                 $words = preg_split('/\s+/', trim($r['name']));
                 $initials = '';
                 foreach ($words as $w) {
-                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                    if ($w !== '') $initials .= mb_strtoupper(mb_substr($w, 0, 1));
                 }
                 $operators[] = [
                     'id'       => (int)$r['id'],
@@ -956,7 +956,7 @@ class BonusAdminController {
                 $words = preg_split('/\s+/', trim($r['namn'] ?? ''));
                 $initials = '';
                 foreach ($words as $w) {
-                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                    if ($w !== '') $initials .= mb_strtoupper(mb_substr($w, 0, 1));
                 }
                 $r['initialer']       = $initials;
                 $r['op_id']           = (int)$r['op_id'];
@@ -1191,7 +1191,7 @@ class BonusAdminController {
                 $words = preg_split('/\s+/', trim($r['namn'] ?? ''));
                 $initials = '';
                 foreach ($words as $w) {
-                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                    if ($w !== '') $initials .= mb_strtoupper(mb_substr($w, 0, 1));
                 }
                 $r['initialer']            = $initials;
                 $r['op_id']                = (int)$r['op_id'];

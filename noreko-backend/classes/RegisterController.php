@@ -50,9 +50,9 @@ class RegisterController {
         
         if (empty($username)) {
             $errors[] = 'Användarnamn krävs';
-        } elseif (strlen($username) < 3) {
+        } elseif (mb_strlen($username) < 3) {
             $errors[] = 'Användarnamn måste vara minst 3 tecken';
-        } elseif (strlen($username) > 50) {
+        } elseif (mb_strlen($username) > 50) {
             $errors[] = 'Användarnamn får vara max 50 tecken';
         }
         

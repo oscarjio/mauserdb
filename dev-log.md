@@ -1,3 +1,54 @@
+## 2026-03-24 Session #291 Worker A — numeric-comparison/mb_string/COALESCE granskning (6 buggar)
+
+### Uppgift 1: PHP numeric string comparison (0 buggar — rent)
+
+Granskade alla 107 tillåtna PHP-controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*).
+Sökte efter loose comparison (== och !=) mellan variabler som kan vara numeriska strängar.
+
+Resultat:
+- **Alla PHP-jämförelser använder redan === och !==**. Inga loose comparisons hittades i PHP-logik.
+- De enda == och != som förekom var inuti SQL-strängarna (t.ex. `AND status != 'klar'`), vilket är korrekt SQL-syntax.
+- PDO fetchColumn-resultat castas konsekvent med (int), (float) eller jämförs med !== null/!== false.
+
+### Uppgift 2: PHP mb_string consistency (6 buggar — fixade)
+
+Granskade alla 107 tillåtna PHP-filer efter strlen/substr/strtolower/strtoupper på data som kan innehålla UTF-8.
+
+Hittade och fixade 6 buggar:
+
+**strtoupper() på operatörsinitialer (4 filer, 6 ställen):**
+Operatörsnamn från databasen kan innehålla åäö (t.ex. "Örjan", "Åsa"). `strtoupper()` hanterar inte UTF-8 korrekt — ändrat till `mb_strtoupper()`.
+- `BonusAdminController.php` rad 887, 959, 1194: `strtoupper(mb_substr(...))` -> `mb_strtoupper(mb_substr(...))`
+- `OperatorDashboardController.php` rad 84: samma fix
+- `ShiftPlanController.php` rad 359, 361: samma fix
+- `WeeklyReportController.php` rad 249: samma fix
+
+**strlen() på användarnamn (2 filer, 4 ställen):**
+Användarnamn kan innehålla svenska tecken. `strlen('Åsa')` returnerar 4 bytes men 3 tecken. Felmeddelanden säger "3–50 tecken", så `mb_strlen()` krävs.
+- `AdminController.php` rad 54, 295: `strlen($username)` -> `mb_strlen($username)`
+- `RegisterController.php` rad 53, 55: samma fix
+
+**Ej bugg (korrekt befintlig kod):**
+- `strlen()` på lösenord — korrekt (bcrypt arbetar på bytes, max 72 bytes)
+- `strlen()` på e-post/telefon — korrekt (ASCII-tecken)
+- `substr()` på datumsträngar (YYYY-MM-DD) — korrekt (ren ASCII)
+- `strtolower()`/`strtoupper()` på API-parametrar (run, line, shift) — korrekt (ASCII-nyckelord)
+- `strpos()`/`stripos()` i VpnController — korrekt (ASCII-protokolldata)
+
+### Uppgift 3: PHP SQL COALESCE (0 buggar — rent)
+
+Granskade alla LEFT JOIN-queries i 107 tillåtna PHP-filer. Hittade LEFT JOINs i 38 filer.
+
+Resultat:
+- **8 filer saknade COALESCE/IFNULL helt**, men PHP-koden hanterar NULL korrekt i alla fall:
+  - Aggregatfunktioner (COUNT/SUM/AVG) med GROUP BY hanterar NULL internt
+  - `(int)null` castas korrekt till 0 i PHP
+  - Namnkolumner från LEFT JOIN hanteras med `?? 'fallback'` eller `?? null`
+  - Ternary-operatorer (`$val ? (float)$val : 0`) hanterar NULL korrekt
+- Övriga 30 filer använder COALESCE/IFNULL eller explicit PHP-null-hantering.
+
+Inga COALESCE-buggar hittades.
+
 ## 2026-03-24 Session #291 Worker B — HTTP timeout, ViewChild timing granskning (0 buggar)
 
 ### Uppgift 1: Angular HTTP timeout (0 buggar — rent)

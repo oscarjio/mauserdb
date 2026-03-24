@@ -81,7 +81,7 @@ class OperatorDashboardController {
         $delar = explode(' ', trim($namn));
         $ini = '';
         foreach ($delar as $d) {
-            if ($d !== '') $ini .= strtoupper(mb_substr($d, 0, 1));
+            if ($d !== '') $ini .= mb_strtoupper(mb_substr($d, 0, 1));
         }
         return mb_substr($ini, 0, 2);
     }
