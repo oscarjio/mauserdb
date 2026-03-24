@@ -2344,7 +2344,7 @@ class RebotlingController {
                 SELECT
                     YEAR(s.datum)                                           AS yr,
                     WEEK(s.datum, 3)                                        AS wk,
-                    CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0'))           AS vecka_label,
+                    MIN(CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0')))    AS vecka_label,
                     SUM(s.ibc_ok)                                           AS total_ibc,
                     SUM(COALESCE(s.drifttid, 0))                            AS total_drifttid_min,
                     ROUND(
@@ -2373,7 +2373,7 @@ class RebotlingController {
                 SELECT
                     YEAR(s.datum)                                           AS yr,
                     WEEK(s.datum, 3)                                        AS wk,
-                    CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0'))           AS vecka_label,
+                    MIN(CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0')))    AS vecka_label,
                     ROUND(
                         SUM(t.ibc_ok) / NULLIF(SUM(COALESCE(t.drifttid_min, 0)) / 60.0, 0),
                         2

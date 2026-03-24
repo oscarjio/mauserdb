@@ -284,7 +284,7 @@ class OperatorCompareController {
                     SELECT
                         DATE(datum) AS dag,
                         skiftraknare,
-                        op1, op2, op3,
+                        MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3,
                         MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
                         MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS skift_ibc_ej_ok,
                         MAX(runtime_plc) / 60.0          AS skift_runtime_h,
@@ -329,7 +329,7 @@ class OperatorCompareController {
                     SELECT
                         DATE(datum) AS dag,
                         skiftraknare,
-                        op1, op2, op3,
+                        MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3,
                         MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
                         MAX(runtime_plc) / 60.0          AS skift_runtime_h
                     FROM rebotling_ibc
@@ -441,7 +441,7 @@ class OperatorCompareController {
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 56 DAY)
                   AND (op1 = ? OR op2 = ? OR op3 = ?)
-                GROUP BY DATE(datum), skiftraknare
+                GROUP BY DATE(datum), skiftraknare, YEARWEEK(datum, 1)
             ) x
             GROUP BY vecka
             ORDER BY vecka

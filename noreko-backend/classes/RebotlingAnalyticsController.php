@@ -4258,7 +4258,7 @@ class RebotlingAnalyticsController {
                 SELECT
                     YEAR(start_time) AS yr,
                     WEEK(start_time, 1) AS wk,
-                    CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0')) AS vecka,
+                    MIN(CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0'))) AS vecka,
                     COUNT(*) AS antal_underhall,
                     COALESCE(SUM(duration_minutes), 0) AS total_underhallstid
                 FROM maintenance_log
@@ -4275,7 +4275,7 @@ class RebotlingAnalyticsController {
                 SELECT
                     YEAR(start_time) AS yr,
                     WEEK(start_time, 1) AS wk,
-                    CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0')) AS vecka,
+                    MIN(CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0'))) AS vecka,
                     COUNT(*) AS antal_stopp,
                     COALESCE(SUM(duration_minutes), 0) AS total_stopptid
                 FROM stoppage_log
