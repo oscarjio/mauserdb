@@ -126,7 +126,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
     this.settingsLoading = true;
     this.settingsError = '';
     this.klassService.getSettings()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.settingsLoading = false;
@@ -161,7 +161,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
     this.settingsSaving = true;
     this.settingsError = '';
     this.klassService.saveSettings(this.settings)
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.settingsSaving = false;
@@ -184,7 +184,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError = '';
     this.klassService.getWeekdayGoals()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsLoading = false;
@@ -212,7 +212,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
     this.weekdayGoalsError = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
     this.klassService.saveWeekdayGoals(payload)
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsSaving = false;
@@ -239,7 +239,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
       this.systemStatusError = '';
     }
     this.klassService.getSystemStatus()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.isFetchingStatus = false;
@@ -279,7 +279,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy, Compone
     this.isFetchingSnapshot  = true;
     this.todaySnapshotLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=klassificeringslinje&run=today-snapshot`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.isFetchingSnapshot  = false;

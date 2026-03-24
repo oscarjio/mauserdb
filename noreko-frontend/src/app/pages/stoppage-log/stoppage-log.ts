@@ -354,9 +354,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.paretoError = '';
     this.stoppageService.getPareto(this.selectedLine, this.paretoDagar)
       .pipe(
-        takeUntil(this.destroy$),
         timeout(5000),
-        catchError(() => of({ success: false, orsaker: [], total_minuter: 0, dagar: this.paretoDagar }))
+        catchError(() => of({ success: false, orsaker: [], total_minuter: 0, dagar: this.paretoDagar })), takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res: any) => {
@@ -549,9 +548,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
     this.stoppageService.update(entry.id, { duration_minutes: duration, comment })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of({ success: false, message: 'Timeout' }))
+        catchError(() => of({ success: false, message: 'Timeout' })), takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res: any) => {
@@ -682,9 +680,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.patternLoading = true;
     this.stoppageService.getPatternAnalysis(this.selectedLine, 30)
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res: any) => {
@@ -854,9 +851,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
     this.rebotlingService.getMonthlyStopSummary(this.monthlyStopMonth)
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of({ success: false, items: [], error: 'Timeout' }))
+        catchError(() => of({ success: false, items: [], error: 'Timeout' })), takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res: any) => {

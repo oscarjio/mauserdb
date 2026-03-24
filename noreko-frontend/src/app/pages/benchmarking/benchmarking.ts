@@ -211,7 +211,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   loadPersonalBests(): void {
     this.personalBestsLoading = true;
     this.rebotlingService.getPersonalBests()
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: PersonalBestsResponse | null) => {
         this.personalBestsLoading = false;
         if (res?.success && res.data) this.personalBests = res.data;
@@ -221,7 +221,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   loadMonthlyLeaders(): void {
     this.monthlyLeadersLoading = true;
     this.rebotlingService.getMonthlyLeaders()
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: MonthlyLeadersResponse | null) => {
         this.monthlyLeadersLoading = false;
         if (res?.success && res.data) this.monthlyLeaders = res.data;
@@ -231,7 +231,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   loadHallOfFame(): void {
     this.hallOfFameLoading = true;
     this.rebotlingService.getHallOfFameDays()
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: HallOfFameDaysResponse | null) => {
         this.hallOfFameLoading = false;
         if (res?.success && res.data) this.hallOfFame = res.data;

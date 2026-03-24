@@ -77,8 +77,8 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getCycleTrend(this.cycleTrendDays, this.cycleTrendGranularity).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.cycleTrendLoading = false;
       if (res?.success && res.data) {
@@ -94,8 +94,8 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   private loadAnnotations(startDate: string, endDate: string) {
     this.rebotlingService.getAnnotations(startDate, endDate).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       if (res?.success && res.annotations) {
         this.chartAnnotations = res.annotations.map((ann: any) => ({
@@ -114,8 +114,8 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   private loadManualAnnotations(startDate: string, endDate: string) {
     this.rebotlingService.getManualAnnotations(startDate, endDate).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       if (res?.success && res.annotations) {
         this.manualAnnotations = res.annotations;

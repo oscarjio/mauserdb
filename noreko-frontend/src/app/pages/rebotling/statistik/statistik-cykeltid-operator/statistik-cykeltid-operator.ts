@@ -57,8 +57,8 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getCycleByOperator(fmt(startDate), fmt(endDate)).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: CycleByOperatorResponse | null) => {
       this.cycleByOpLoading = false;
       if (res?.success && res.data) {

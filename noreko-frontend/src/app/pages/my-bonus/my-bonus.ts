@@ -171,8 +171,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.auth.user$.pipe(
-      takeUntil(this.destroy$),
-      distinctUntilChanged((a: any, b: any) => a?.operator_id === b?.operator_id)
+      distinctUntilChanged((a: any, b: any) => a?.operator_id === b?.operator_id),
+      takeUntil(this.destroy$)
     ).subscribe((user: any) => {
       if (user?.operator_id) {
         this.operatorId = String(user.operator_id);

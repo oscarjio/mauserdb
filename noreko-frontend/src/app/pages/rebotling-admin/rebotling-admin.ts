@@ -977,7 +977,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   loadGoalHistory() {
     this.goalHistoryLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-history&days=${this.goalHistoryPeriod}`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.goalHistoryLoading = false;
         if (res?.success) {
@@ -1070,9 +1070,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   loadLrSettings() {
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-settings`, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         if (res?.success && res.data) this.lrSettings = res.data;
@@ -1084,9 +1083,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-live-ranking-settings`,
       this.lrSettings, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         this.lrSettingsSaving = false;
@@ -1100,9 +1098,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   loadLrConfig() {
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=live-ranking-config`, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         if (res?.success && res.data) this.lrConfig = res.data;
@@ -1114,9 +1111,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=set-live-ranking-config`,
       this.lrConfig, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         this.lrConfigSaving = false;
@@ -1134,9 +1130,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=create-record-news`, {},
       { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(10000),
-        catchError(() => of({ success: false, error: 'Nätverksfel' }))
+        catchError(() => of({ success: false, error: 'Nätverksfel' })), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         this.recordNewsCreating = false;
@@ -1172,7 +1167,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
 
   loadKassationTyper() {
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-typer`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: any) => {
         if (res?.success) {
           this.kassationTyper = res.data || [];
@@ -1186,7 +1181,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   loadKassationSenaste() {
     this.kassationLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-senaste&limit=10`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: any) => {
         this.kassationLoading = false;
         if (res?.success) this.kassationSenaste = res.data || [];
@@ -1203,7 +1198,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.kassationSaved   = false;
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=kassation-register`,
       this.kassationForm, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe((res: any) => {
         this.kassationLoading = false;
         if (res?.success) {
@@ -1225,9 +1220,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.goalExceptionsLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-exceptions`, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         this.goalExceptionsLoading = false;
@@ -1251,9 +1245,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     };
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-goal-exception`, body, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         this.savingException = false;
@@ -1275,9 +1268,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=delete-goal-exception`,
       { datum }, { withCredentials: true })
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
-        catchError(() => of(null))
+        catchError(() => of(null)), takeUntil(this.destroy$)
       )
       .subscribe((res: any) => {
         if (res?.success) {

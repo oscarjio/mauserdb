@@ -45,8 +45,8 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
     this.weekComparisonLoading = true;
     this.rebotlingService.getWeekComparison(this.weekGranularity).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.weekComparisonLoading = false;
       if (res?.success && res.data) {

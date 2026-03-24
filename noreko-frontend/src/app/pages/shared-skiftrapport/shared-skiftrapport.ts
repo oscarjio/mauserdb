@@ -177,12 +177,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.fetchSub?.unsubscribe();
     this.fetchSub = this.service.getReports(this.config.line)
       .pipe(
-        takeUntil(this.destroy$),
         timeout(8000),
         catchError(err => {
           console.error('Fel vid hämtning av rapporter:', err);
           return of({ success: false, error: 'Kunde inte hämta rapporter', data: [] });
-        })
+        }),
+        takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res) => {
@@ -213,10 +213,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.addingReport = true;
     this.loading = true;
     this.service.createReport(this.config.line, this.newReport)
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+      .pipe(timeout(8000), catchError(err => {
         console.error('Fel vid skapande av rapport:', err);
         return of({ success: false, error: 'Kunde inte skapa rapport' });
-      }))
+      }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.loading = false;
@@ -240,10 +240,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       antal_ok: parseInt(report.antal_ok, 10) || 0,
       antal_ej_ok: parseInt(report.antal_ej_ok, 10) || 0,
       kommentar: report.kommentar || ''
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+    }).pipe(timeout(8000), catchError(err => {
       console.error('Fel vid uppdatering av rapport:', err);
       return of({ success: false, error: 'Kunde inte uppdatera rapport' });
-    })).subscribe({
+    }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           report.totalt = (parseInt(report.antal_ok, 10) || 0) + (parseInt(report.antal_ej_ok, 10) || 0);
@@ -261,10 +261,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   deleteReport(id: number) {
     if (!confirm('Ta bort rapport?')) return;
     this.service.deleteReport(this.config.line, id)
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+      .pipe(timeout(8000), catchError(err => {
         console.error('Fel vid borttagning av rapport:', err);
         return of({ success: false, error: 'Kunde inte ta bort rapport' });
-      }))
+      }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res.success) {
@@ -283,10 +283,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!this.selectedIds.size) { this.errorMessage = 'Inga rader valda'; return; }
     if (!confirm(`Ta bort ${this.selectedIds.size} rapport(er)?`)) return;
     this.service.bulkDelete(this.config.line, Array.from(this.selectedIds))
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+      .pipe(timeout(8000), catchError(err => {
         console.error('Fel vid massborttagning:', err);
         return of({ success: false, error: 'Kunde inte ta bort rapporter' });
-      }))
+      }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res.success) {
@@ -304,10 +304,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   toggleInlagd(report: any) {
     const v = !report.inlagd;
     this.service.updateInlagd(this.config.line, report.id, v)
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+      .pipe(timeout(8000), catchError(err => {
         console.error('Fel vid uppdatering av inlagd-status:', err);
         return of({ success: false });
-      }))
+      }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res.success) { report.inlagd = v ? 1 : 0; this.showSuccess('Status uppdaterad'); }
@@ -318,10 +318,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   bulkMarkInlagd(inlagd: boolean) {
     if (!this.selectedIds.size) { this.errorMessage = 'Inga rader valda'; return; }
     this.service.bulkUpdateInlagd(this.config.line, Array.from(this.selectedIds), inlagd)
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
+      .pipe(timeout(8000), catchError(err => {
         console.error('Fel vid massuppdatering av inlagd-status:', err);
         return of({ success: false });
-      }))
+      }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res.success) {

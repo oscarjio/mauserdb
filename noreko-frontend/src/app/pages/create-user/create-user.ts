@@ -96,14 +96,14 @@ export class CreateUserPage implements OnInit, OnDestroy, ComponentCanDeactivate
     };
 
     this.usersService.createUser(trimmedUser).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
         console.error('Skapande av användare misslyckades:', err);
         this.isLoading = false;
         this.errorMessage = err?.error?.error || 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
         return of(null);
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) return;

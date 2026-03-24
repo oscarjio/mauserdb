@@ -63,12 +63,12 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
     this.rebotlingService
       .getWeeklyKpis()
       .pipe(
-        takeUntil(this.destroy$),
         catchError(() => {
           this.error = 'Kunde inte hämta veckotrend-data.';
           this.loading = false;
           return of(null);
-        })
+        }),
+        takeUntil(this.destroy$)
       )
       .subscribe((resp: WeeklyKpisResponse | null) => {
         this.loading = false;

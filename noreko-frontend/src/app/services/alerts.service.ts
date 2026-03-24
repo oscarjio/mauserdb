@@ -111,10 +111,10 @@ export class AlertsService implements OnDestroy {
     // Kör omedelbart, sedan var 60:e sekund
     timer(0, this.POLL_INTERVAL_MS)
       .pipe(
-        takeUntil(this.destroy$),
         switchMap(() =>
           this.getActiveAlerts().pipe(catchError(() => of(null)))
-        )
+        ),
+        takeUntil(this.destroy$)
       )
       .subscribe((res) => {
         if (res?.success) {

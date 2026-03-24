@@ -35,8 +35,8 @@ export class StatistikPrediktionComponent implements OnInit, OnDestroy {
     this.prediktionLoading = true;
     this.rebotlingService.getLiveStats().pipe(
       timeout(6000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((liveRes: any) => {
       if (liveRes?.success && liveRes.data) {
         this.prediktionIBC = liveRes.data.ibcToday;

@@ -45,8 +45,8 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getSPC(this.spcDays).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: SPCResponse | null) => {
       this.spcLoading = false;
       if (res?.success && res.data) {

@@ -100,14 +100,14 @@ export class RegisterPage implements OnDestroy {
       phone: this.user.phone.trim(),
       code: this.user.code.trim()
     }, { withCredentials: true }).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
         console.error('Registrering misslyckades:', err);
         this.isLoading = false;
         this.errorMessage = err?.error?.error || 'Ett fel uppstod vid registrering. Försök igen senare.';
         return of(null);
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) return;

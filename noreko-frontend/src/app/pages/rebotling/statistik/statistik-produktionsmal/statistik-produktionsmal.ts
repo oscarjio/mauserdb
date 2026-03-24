@@ -83,8 +83,8 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
     this.loadingToday = true;
     this.rebotlingService.getProductionGoalProgress('today').pipe(
       timeout(15000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: ProductionGoalProgressResponse | null) => {
       this.loadingToday = false;
       if (res?.success) {
@@ -109,8 +109,8 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
     this.loadingWeek = true;
     this.rebotlingService.getProductionGoalProgress('week').pipe(
       timeout(15000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: ProductionGoalProgressResponse | null) => {
       this.loadingWeek = false;
       if (res?.success) {
@@ -249,8 +249,8 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
     this.saveMsg = null;
     this.rebotlingService.setProductionGoal(type, target).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      catchError(() => of({ success: false, error: 'Nätverksfel' })),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.saving = false;
       if (res?.success) {

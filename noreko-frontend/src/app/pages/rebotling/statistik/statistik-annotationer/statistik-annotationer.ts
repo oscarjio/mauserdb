@@ -65,8 +65,8 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
       this.fmtDate(start), this.fmtDate(end), this.filterTyp || undefined
     ).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.loading = false;
       if (res?.success && res.annotations) {
@@ -89,8 +89,8 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
       beskrivning: this.newBeskrivning.trim()
     }).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError((err) => of({ success: false, error: err?.error?.error || 'Serverfel' }))
+      catchError((err) => of({ success: false, error: err?.error?.error || 'Serverfel' })),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.saving = false;
       if (res?.success) {
@@ -111,8 +111,8 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.deleteManualAnnotation(ann.id).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of({ success: false }))
+      catchError(() => of({ success: false })),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       this.deleting = null;
       if (res?.success) {

@@ -93,12 +93,12 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
     this.rebotlingService
       .getMachineUptimeHeatmap(this.days)
       .pipe(
-        takeUntil(this.destroy$),
         catchError(() => {
           this.error = 'Kunde inte hämta maskinupptid-data.';
           this.loading = false;
           return of(null);
-        })
+        }),
+        takeUntil(this.destroy$)
       )
       .subscribe((resp: UptimeHeatmapResponse | null) => {
         this.loading = false;

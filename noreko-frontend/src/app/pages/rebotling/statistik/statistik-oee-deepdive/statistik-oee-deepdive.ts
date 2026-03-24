@@ -53,16 +53,16 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getOEE('month').pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((oeeRes: any) => {
       if (oeeRes?.success && oeeRes.data) {
         this.oeeData = oeeRes.data;
       }
       this.rebotlingService.getOEETrend(30, this.oeeGranularity).pipe(
         timeout(8000),
-        takeUntil(this.destroy$),
-        catchError(() => of(null))
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
       ).subscribe((trendRes: any) => {
         this.oeeLoading = false;
         if (trendRes?.success && trendRes.data) {
@@ -79,8 +79,8 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
   private loadAnnotations(startDate: string, endDate: string) {
     this.rebotlingService.getAnnotations(startDate, endDate).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: any) => {
       if (res?.success && res.annotations) {
         this.chartAnnotations = res.annotations.map((ann: any) => ({

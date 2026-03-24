@@ -53,11 +53,11 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
     this.error = null;
     this.rebotlingService.getRealtimeOee(this.selectedPeriod).pipe(
       timeout(15000),
-      takeUntil(this.destroy$),
       catchError((_err) => {
         this.error = 'Kunde inte hämta OEE-data';
         return of(null);
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe((res: RealtimeOeeResponse | null) => {
       this.loading = false;
       if (res?.success && res.data) {

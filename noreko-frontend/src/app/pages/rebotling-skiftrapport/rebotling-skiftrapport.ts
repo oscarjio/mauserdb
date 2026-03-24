@@ -167,7 +167,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   private loadSettings() {
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid laddning av inställningar:', err); return of(null); }))
+      .pipe(timeout(8000), catchError(err => { console.error('Fel vid laddning av inställningar:', err); return of(null); }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res?.success && res.data) {
@@ -387,7 +387,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   loadOperators() {
     this.operatorsLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=skiftrapport&run=operator-list`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)))
       .subscribe(res => {
         this.operatorsLoading = false;
         if (res?.success) this.operators = res.data ?? [];
@@ -418,7 +418,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   fetchProducts() {
-    this.skiftrapportService.getProducts().pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid hämtning av produkter:', err); return of(null); })).subscribe({
+    this.skiftrapportService.getProducts().pipe(timeout(8000), catchError(err => { console.error('Fel vid hämtning av produkter:', err); return of(null); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success) {
           this.products = res.data || [];
@@ -438,7 +438,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
     this.fetchSub?.unsubscribe();
     this.fetchSub = this.skiftrapportService.getSkiftrapporter()
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid hämtning av skiftrapporter:', err); return of({ success: false, message: 'Kunde inte hämta skiftrapporter', data: [] }); }))
+      .pipe(timeout(8000), catchError(err => { console.error('Fel vid hämtning av skiftrapporter:', err); return of({ success: false, message: 'Kunde inte hämta skiftrapporter', data: [] }); }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (!silent) {
@@ -514,7 +514,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // ========== Inlagd ==========
   toggleInlagd(report: any) {
     const newInlagd = !report.inlagd;
-    this.skiftrapportService.updateInlagd(report.id, newInlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.updateInlagd(report.id, newInlagd).pipe(timeout(8000), catchError(err => { console.error('Fel vid uppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           report.inlagd = newInlagd ? 1 : 0;
@@ -533,7 +533,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     const ids = Array.from(this.selectedIds);
-    this.skiftrapportService.bulkUpdateInlagd(ids, inlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massuppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.bulkUpdateInlagd(ids, inlagd).pipe(timeout(8000), catchError(err => { console.error('Fel vid massuppdatering av inlagd-status:', err); return of({ success: false, error: 'Ett fel uppstod' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports.forEach(r => {
@@ -556,7 +556,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.skiftrapportService.deleteSkiftrapport(id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid borttagning av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.deleteSkiftrapport(id).pipe(timeout(8000), catchError(err => { console.error('Fel vid borttagning av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports = this.reports.filter(r => r.id !== id);
@@ -580,7 +580,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     const ids = Array.from(this.selectedIds);
-    this.skiftrapportService.bulkDelete(ids).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid massborttagning:', err); return of({ success: false, error: 'Ett fel uppstod' }); })).subscribe({
+    this.skiftrapportService.bulkDelete(ids).pipe(timeout(8000), catchError(err => { console.error('Fel vid massborttagning:', err); return of({ success: false, error: 'Ett fel uppstod' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports = this.reports.filter(r => !this.selectedIds.has(r.id));
@@ -619,7 +619,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       bur_ej_ok:   this.newReport.bur_ej_ok,
       ibc_ej_ok:   this.newReport.ibc_ej_ok,
       totalt:      totalt
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid skapande av skiftrapport:', err); this.loading = false; this.addingReport = false; return of({ success: false, error: 'Ett fel uppstod vid skapande av skiftrapport' }); })).subscribe({
+    }).pipe(timeout(8000), catchError(err => { console.error('Fel vid skapande av skiftrapport:', err); this.loading = false; this.addingReport = false; return of({ success: false, error: 'Ett fel uppstod vid skapande av skiftrapport' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.loading = false;
         this.addingReport = false;
@@ -658,7 +658,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const id = report.id;
     this.lopnummerLoading[id] = true;
     this.skiftrapportService.getLopnummer(report.skiftraknare, report.datum || report.start_datum)
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid laddning av löpnummer:', err); return of(null); }))
+      .pipe(timeout(8000), catchError(err => { console.error('Fel vid laddning av löpnummer:', err); return of(null); }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.lopnummerLoading[id] = false;
@@ -689,7 +689,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       ibc_ok:     parseInt(report.ibc_ok,     10) || 0,
       bur_ej_ok:  parseInt(report.bur_ej_ok,  10) || 0,
       ibc_ej_ok:  parseInt(report.ibc_ej_ok,  10) || 0
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid uppdatering av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod vid uppdatering' }); })).subscribe({
+    }).pipe(timeout(8000), catchError(err => { console.error('Fel vid uppdatering av skiftrapport:', err); return of({ success: false, error: 'Ett fel uppstod vid uppdatering' }); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           report.totalt = (parseInt(report.ibc_ok, 10) || 0)
@@ -726,7 +726,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=skift-kommentar&datum=${datum}&skift_nr=${skiftNr}`,
       { withCredentials: true }
     )
-    .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid laddning av kommentar:', err); return of(null); }))
+    .pipe(timeout(8000), catchError(err => { console.error('Fel vid laddning av kommentar:', err); return of(null); }), takeUntil(this.destroy$))
     .subscribe({
       next: (res) => {
         this.kommentarLoading[id] = false;
@@ -757,7 +757,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       { datum, skift_nr: skiftNr, kommentar: text },
       { withCredentials: true }
     )
-    .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid sparande av kommentar:', err); this.spararKommentar[id] = false; this.errorMessage = 'Serverfel vid sparande av kommentar'; return of(null); }))
+    .pipe(timeout(8000), catchError(err => { console.error('Fel vid sparande av kommentar:', err); this.spararKommentar[id] = false; this.errorMessage = 'Serverfel vid sparande av kommentar'; return of(null); }), takeUntil(this.destroy$))
     .subscribe({
       next: (res) => {
         if (!res) return;
@@ -1447,7 +1447,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=shift-compare&date_a=${this.compareDateA}&date_b=${this.compareDateB}`,
       { withCredentials: true }
     )
-    .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fel vid skiftjämförelse:', err); this.compareLoading = false; this.compareError = 'Serverfel vid jämförelse'; return of(null); }))
+    .pipe(timeout(8000), catchError(err => { console.error('Fel vid skiftjämförelse:', err); this.compareLoading = false; this.compareError = 'Serverfel vid jämförelse'; return of(null); }), takeUntil(this.destroy$))
     .subscribe({
       next: (res) => {
         if (!res) return;

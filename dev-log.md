@@ -20233,3 +20233,34 @@ Granskade alla 700+ GROUP BY-fragor i samtliga PHP-controllers (exkl. Kassations
 - `noreko-backend/classes/RebotlingAnalyticsController.php`
 
 ### Totalt: 7 buggar fixade
+
+## Worker B — Session #287 (2026-03-24)
+### Uppgifter: ngOnChanges edge cases, RxJS operator ordering, service audit
+
+### Uppgift 1: Angular ngOnChanges edge cases (0 buggar)
+Sochte igenom alla .component.ts-filer i noreko-frontend/src/app/ — inga komponenter implementerar ngOnChanges. Inget att fixa.
+
+### Uppgift 2: RxJS takeUntil operator ordering (127 buggar i 38 filer)
+Hittade 127 instanser dar takeUntil(this.destroy$) INTE var sista operatorn i .pipe()-kedjan. Operatorer efter takeUntil (timeout, catchError, switchMap, distinctUntilChanged) kan fortsatta emittera efter att komponenten/servicen forstors, vilket kan ge minneslaeckor och "destroyed component"-fel.
+
+Fixade filer (38 st):
+- alerts.service.ts — takeUntil fore switchMap pa timer (KRITISK: laekt polling)
+- benchmarking.ts, bonus-dashboard.ts, create-user.ts, login.ts, register.ts
+- klassificeringslinje-admin.ts, tvattlinje-admin.ts, saglinje-admin.ts
+- operators.ts, operator-attendance.ts, users.ts
+- my-bonus.ts (takeUntil fore distinctUntilChanged)
+- production-analysis.ts (9 instanser)
+- rebotling-admin.ts (12 instanser)
+- rebotling-skiftrapport.ts (14 instanser)
+- shared-skiftrapport.ts (8 instanser)
+- stoppage-log.ts, narvarotracker.ts
+- 19 statistik-komponenter under rebotling/statistik/
+
+### Uppgift 3: Service audit (0 buggar)
+Granskade alla 100+ services i noreko-frontend/src/app/services/:
+- Inga dubbla snedstreck i API-URLs
+- HttpClient satter Content-Type automatiskt for JSON-body (korrekt)
+- catchError anvands konsekvent pa alla endpoints
+- switchMap anvands korrekt (bara for polling/auth, ej for HTTP-mutationer)
+
+### Totalt: 127 buggar fixade

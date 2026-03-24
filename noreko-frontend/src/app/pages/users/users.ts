@@ -63,9 +63,8 @@ export class UsersPage implements OnInit, OnDestroy {
 
   fetchOperators() {
     this.operatorsService.getOperators().pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of({ operators: [] }))
+      catchError(() => of({ operators: [] })), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => { this.operators = res.operators || []; },
       error: () => {}
@@ -80,9 +79,8 @@ export class UsersPage implements OnInit, OnDestroy {
   fetchUsers() {
     this.loading = true;
     this.usersService.getUsers().pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) {
@@ -196,9 +194,8 @@ export class UsersPage implements OnInit, OnDestroy {
     }
     this.savingUser = true;
     this.usersService.updateUser(user).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         this.savingUser = false;
@@ -223,9 +220,8 @@ export class UsersPage implements OnInit, OnDestroy {
     }
 
     this.usersService.deleteUser(user.id).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte ta bort användare'); return; }
@@ -244,9 +240,8 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleAdmin(user: any) {
     this.usersService.toggleAdmin(user.id).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte ändra admin-status'); return; }
@@ -266,9 +261,8 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleActive(user: any) {
     this.usersService.toggleActive(user.id).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte ändra status'); return; }

@@ -220,8 +220,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getRanking(this.selectedPeriod, 20).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda rankingdata'; this.loading = false; } return of(null); })
+      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda rankingdata'; this.loading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success && res.data) {
@@ -385,8 +385,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getTeamStats(this.selectedPeriod === 'week' ? 'week' : 'month').pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda dagsdata'; this.loading = false; } return of(null); })
+      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda dagsdata'; this.loading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success && res.data) {
@@ -548,8 +548,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     // Använd den aggregerade heatmap-endpointen (1 anrop istället för N)
     this.rebotlingService.getHeatmap(days).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda timdata'; this.loading = false; } return of(null); })
+      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda timdata'; this.loading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe((res: HeatmapApiResponse | null) => {
       if (version !== this.loadVersion) return;
       if (!res?.success || !Array.isArray(res.data)) { this.loading = false; return; }
@@ -647,8 +647,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getTeamStats(this.selectedPeriod === 'week' ? 'week' : 'month').pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda skiftdata'; this.loading = false; } return of(null); })
+      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda skiftdata'; this.loading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success && res.data) {
@@ -731,8 +731,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     // Hämta riktig stoppdata från stoppage_log
     this.rebotlingService.getStoppageAnalysis(this.stopDays).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda stoppdata'; this.stopAnalysisLoading = false; } return of(null); })
+      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda stoppdata'; this.stopAnalysisLoading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success) {
@@ -755,8 +755,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     // Hämta rast-status för tidslinje (kompletterande data)
     this.rebotlingService.getRastStatus().pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success) {
         this.rastStatus = res.data;
@@ -767,8 +767,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     // Hämta linjestatus
     this.rebotlingService.getRunningStatus().pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res?.success) this.lineStatus = res.data;
     });
@@ -977,8 +977,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.bestShiftsLoading = true;
     this.rebotlingService.getBestShifts(this.bestShiftsLimit).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda bästa skift'; this.bestShiftsLoading = false; } return of(null); })
+      catchError(err => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda bästa skift'; this.bestShiftsLoading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success && res.data) {
@@ -1151,8 +1151,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.error = '';
     this.rebotlingService.getParetoStoppage(this.paretoPeriod).pipe(
       timeout(8000),
-      takeUntil(this.destroy$),
-      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda paretodata'; this.paretoLoading = false; } return of(null); })
+      catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda paretodata'; this.paretoLoading = false; } return of(null); }),
+      takeUntil(this.destroy$)
     ).subscribe(res => {
       if (version !== this.loadVersion) return;
       if (res?.success) {

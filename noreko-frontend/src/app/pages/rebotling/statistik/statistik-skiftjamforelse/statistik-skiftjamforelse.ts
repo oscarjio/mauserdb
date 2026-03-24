@@ -66,8 +66,8 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getShiftDayNightComparison(this.days).pipe(
       timeout(12000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: ShiftDayNightResponse | null) => {
       this.loading = false;
       if (res?.success) {

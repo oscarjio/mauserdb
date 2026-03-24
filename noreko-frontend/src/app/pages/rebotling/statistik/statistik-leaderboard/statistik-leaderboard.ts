@@ -62,8 +62,8 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
 
     this.rebotlingService.getTopOperatorsLeaderboard(this.days).pipe(
       timeout(12000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: LeaderboardResponse | null) => {
       if (!silent) this.loading = false;
 

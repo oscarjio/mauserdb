@@ -126,7 +126,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
     this.settingsLoading = true;
     this.settingsError   = '';
     this.saglinjeService.getSettings()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.settingsLoading = false;
@@ -159,7 +159,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
     this.settingsSaving = true;
     this.settingsError  = '';
     this.saglinjeService.saveSettings(this.settings)
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.settingsSaving = false;
@@ -182,7 +182,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError   = '';
     this.saglinjeService.getWeekdayGoals()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsLoading = false;
@@ -210,7 +210,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
     this.weekdayGoalsError  = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
     this.saglinjeService.saveWeekdayGoals(payload)
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsSaving = false;
@@ -237,7 +237,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
       this.systemStatusError   = '';
     }
     this.saglinjeService.getSystemStatus()
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(timeout(5000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.isFetchingStatus = false;
@@ -277,7 +277,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeactiv
     this.isFetchingSnapshot  = true;
     this.todaySnapshotLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=saglinje&run=today-snapshot`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.isFetchingSnapshot  = false;

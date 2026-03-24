@@ -89,8 +89,8 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
 
     this.narvaroService.getMonthlyOverview(this.year, this.month).pipe(
       timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe((res: NarvaroMonthlyResponse | null) => {
       this.loading = false;
       this.loaded = true;

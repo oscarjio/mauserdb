@@ -105,14 +105,14 @@ export class LoginPage implements OnDestroy {
       username: this.username.trim(),
       password: this.password
     }, { withCredentials: true }).pipe(
-      takeUntil(this.destroy$),
       timeout(8000),
       catchError(err => {
         console.error('Inloggning misslyckades:', err);
         this.error = err?.error?.error || 'Inloggningen misslyckades. Försök igen.';
         this.loading = false;
         return of(null);
-      })
+      }),
+      takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (!res) return;
@@ -130,12 +130,12 @@ export class LoginPage implements OnDestroy {
           this.auth.onLoginSuccess();
           this.router.navigateByUrl(this.returnUrl);
           this.auth.fetchStatus().pipe(
-            takeUntil(this.destroy$),
             timeout(8000),
             catchError(err => {
               console.error('Verifiering av inloggningsstatus misslyckades:', err);
               return of(null);
-            })
+            }),
+            takeUntil(this.destroy$)
           ).subscribe(); // bakgrundsverifiering
         } else {
           this.error = res.error || 'Fel användarnamn eller lösenord.';
