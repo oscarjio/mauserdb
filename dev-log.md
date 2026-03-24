@@ -1,3 +1,38 @@
+## 2026-03-24 Session #291 Worker B — HTTP timeout, ViewChild timing granskning (0 buggar)
+
+### Uppgift 1: Angular HTTP timeout (0 buggar — rent)
+
+Granskade samtliga Angular services och components i noreko-frontend/src/app/ (exklusive rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+Sokte efter HTTP-anrop (this.http.get/post/put/delete) som saknar timeout()-operator i sin pipe.
+
+Genomgang av 132 filer med HTTP-anrop (services + components). Resultat:
+
+- **Alla HTTP-anrop har timeout()**: Varje fil med this.http.get/post/put/delete har minst lika manga timeout()-anrop som HTTP-anrop. Typiskt monster: `.pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))`.
+- **Timeout-varden**: Varierar fran 8000ms till 20000ms beroende pa anropets komplexitet (t.ex. monthly-report anvander 20000ms for tunga rapporter, de flesta services anvander 8000-10000ms).
+- **Polling-anrop**: Alla polling-anrop (setInterval) i komponenter som produktionstakt, benchmarking, rebotling-skiftrapport har timeout pa sina HTTP-anrop.
+- **Login/register**: Aven login.ts och register.ts har timeout pa sina anrop.
+
+Inga saknade timeouts hittades.
+
+### Uppgift 2: Angular ViewChild timing (0 buggar — rent)
+
+Granskade samtliga 20 Angular-komponenter med @ViewChild i noreko-frontend/src/app/ (exklusive forbjudna mappar).
+Sokte efter:
+- @ViewChild utan { static: true } som refereras i ngOnInit (bugg)
+- @ViewChild med { static: true } som refereras i ngOnInit i *ngIf (bugg)
+- ViewChild-referenser som anvands utan null-check (kan vara undefined i *ngIf)
+
+Genomgang av alla 20 filer med @ViewChild. Resultat:
+
+- **Ingen ViewChild refereras i ngOnInit**: Automatisk analys av alla ngOnInit-kroppar bekraftar att ingen this.chartRef, this.canvasRef etc. forekomst finns i ngOnInit.
+- **setTimeout-monster**: Majoriteten av komponenterna anvander setTimeout (50-150ms) efter dataladdning for att bygga Chart.js-grafer, vilket ger Angular tid att rendera DOM:en. T.ex. produktionstakt, benchmarking, operator-compare, operatorsportal, statistik-pareto-stopp.
+- **Null-checks**: Alla chart-builder-metoder har null-checks: `if (!this.chartRef) return;` eller `if (!this.chartRef?.nativeElement) return;`.
+- **ngAfterViewInit**: Komponenter som historik, andon, underhallslogg, weekly-report, tvattlinje-statistik implementerar ngAfterViewInit korrekt.
+- **AfterViewChecked**: monthly-report anvander AfterViewChecked med en chartPendingRender-flagga — korrekt monster for chart-rendering efter asynkron dataladdning.
+- **Optional ViewChild med ?**: maintenance-log anvander `@ViewChild('listComp') listComp?:` med optional chaining vid access (`this.statsComp?.loadEquipmentStats()`). Korrekt for *ngIf-skyddade barn.
+
+Inga ViewChild timing-buggar hittades.
+
 ## 2026-03-24 Session #290 Worker B — ngIf race conditions, router event memory leaks granskning (0 buggar)
 
 ### Uppgift 1: Angular ngIf race conditions (0 buggar — rent)
