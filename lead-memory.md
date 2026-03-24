@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #284)*
+*Senast uppdaterad: 2026-03-24 (session #285)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -89,28 +89,25 @@ Session #281: BUGGJAKT — 6 buggar (0 Worker A + 6 Worker B). SQL subqueries: r
 Session #282: BUGGJAKT — 11 buggar (6 Worker A + 5 Worker B). Mail: 4 buggar (returvarde, XSS, CRLF, UTF-8 subject). Cron: 1 flock-las. CORS cache: 1 Vary header. Chart.js: rent. localStorage: 5 saknade try/catch. SSR: ej relevant.
 Session #283: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). PHP pagination: rent. SQL UNION: rent. file writes: rent. Route guards: rent. ngModel/FormControl: rent. HTTP polling: 4 saknade isFetching-guards fixade.
 Session #284: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter: rent. preg_match/preg_replace: rent. JSON encode/decode: rent. ViewChild/ContentChild: rent. async pipe vs subscribe: rent. template type safety (a-m): rent.
+Session #285: BUGGJAKT — 16 buggar (15 Worker A + 1 Worker B). strtotime sondags-bugg: 15 stallen i 11 filer fixade. array_merge: rent. fetchAll memory: rent. HTTP params encoding: rent. number formatting: 1 division-med-noll fixad (skiftoverlamning). template type safety (n-z): rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #285+):
-- [ ] PHP strtotime edge cases
-- [ ] Angular HTTP params encoding
-- [ ] PHP array_merge vs + operator
-- [ ] Angular number formatting
-- [ ] PHP PDO fetchAll memory
+### Nasta (session #286+):
+- [ ] PHP header/redirect consistency
+- [ ] Angular Router navigation edge cases
+- [ ] PHP SQL date range queries
+- [ ] Angular HttpClient response handling
+- [ ] PHP password_hash/token timing
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-23 — Session #282 (klar)
-Worker A: 6 buggar — mail(): 1 ignorerat returvarde + 1 XSS i HTML-email + 1 CRLF headers + 1 UTF-8 subject utan RFC 2047. Cron: 1 saknad flock i update-weather.php. CORS: 1 saknad Vary: Origin i api.php.
-Worker B: 5 buggar — localStorage/sessionStorage: 5 saknade try/catch (news, menu, my-bonus, funktionshub, csrf-interceptor). Chart.js: rent (109 komponenter). SSR/hydration: ej relevant.
-
-### 2026-03-23 — Session #283 (klar)
-Worker A: 0 buggar — PHP pagination: rent (14 controllers, korrekt validering). SQL UNION/INTERSECT: rent (31 filer). file_put_contents: rent (4 filer, alla med flock/felkontroll).
-Worker B: 4 buggar — Route guards: rent. ngModel/FormControl: rent. HTTP polling: 4 saknade isFetching-guards fixade.
 
 ### 2026-03-24 — Session #284 (klar)
 Worker A: 0 buggar — array_map/array_filter: rent (158 PHP-filer, korrekt callback-signatur och null-hantering). preg_match/preg_replace: rent (alla null-guardade). JSON encode/decode: rent (alla json_decode med true, alla json_encode med JSON_UNESCAPED_UNICODE).
 Worker B: 0 buggar — ViewChild/ContentChild: rent (27 refs, alla null-guardade). async pipe: rent (inga | async anvands, alla subscribe har takeUntil). Template type safety (a-m): rent (35 templates, inga saknade metoder/felaktiga bindningar).
+
+### 2026-03-24 — Session #285 (klar)
+Worker A: 15 buggar — strtotime('monday this week') sondags-bugg i 11 filer (15 stallen). array_merge vs +: rent. PDO fetchAll memory: rent.
+Worker B: 1 bugg — HTTP params encoding: rent. Number formatting: 1 division-med-noll i skiftoverlamning fixad. Template type safety (n-z): rent.
