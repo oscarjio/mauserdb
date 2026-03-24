@@ -20201,3 +20201,35 @@ Filer granskade (49 PHP-controllers A–M + api.php + AuthHelper.php):
 - `noreko-backend/api.php`
 - `noreko-backend/classes/AuthHelper.php`
 - `noreko-backend/classes/AdminController.php` t.o.m. `MyStatsController.php` (alla med begynnelsebokstav A–M)
+
+## Worker A — Session #287 (2026-03-24)
+### Uppgifter: PHP in_array strict, file path traversal, SQL GROUP BY
+
+#### Uppgift 1: PHP in_array() utan strict mode + array_search()
+Granskade samtliga PHP-controllers i noreko-backend/classes/.
+- **in_array():** Alla 95+ anrop har redan `true` som tredje parameter (strict mode). Inga buggar.
+- **array_search():** Inga forekomster hittades i nagon controller. Inga buggar.
+
+#### Uppgift 2: PHP file path traversal
+Granskade alla anrop till file_get_contents, file_put_contents, fopen, readfile, include, require.
+- Alla file_get_contents() anvander antingen `php://input` (for JSON body) eller hardkodade migrationssokvargar (`__DIR__ . '/../migrations/...'`).
+- Alla fopen() anvander `php://output` (for CSV-export).
+- Inga filsokvargar kommer fran user input ($_GET, $_POST, $data). Inga buggar.
+
+#### Uppgift 3: SQL GROUP BY strictness (ONLY_FULL_GROUP_BY)
+Granskade alla 700+ GROUP BY-fragor i samtliga PHP-controllers (exkl. KassationsanalysController + FeedbackAnalysController som fixades i session #280).
+
+**Bugg 1-2:** `OperatorCompareController.php` rad 287, 332 — subquery valjer `op1, op2, op3` utan aggregering, GROUP BY ar `DATE(datum), skiftraknare`. Fix: `MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3`.
+
+**Bugg 3:** `OperatorCompareController.php` rad 439 — `YEARWEEK(datum, 1) AS vecka` ej i GROUP BY (bara `DATE(datum), skiftraknare`). Fix: lade till `YEARWEEK(datum, 1)` i GROUP BY.
+
+**Bugg 4-5:** `RebotlingController.php` rad 2347, 2376 — `CONCAT('V.', LPAD(WEEK(...)))` som vecka_label ej aggregerad. GROUP BY ar `yr, wk`. Fix: `MIN(CONCAT(...))`.
+
+**Bugg 6-7:** `RebotlingAnalyticsController.php` rad 4261, 4278 — `CONCAT(YEAR(...), '-V', LPAD(WEEK(...)))` ej aggregerad. GROUP BY ar `YEAR(...), WEEK(...)`. Fix: `MIN(CONCAT(...))`.
+
+### Fixade filer:
+- `noreko-backend/classes/OperatorCompareController.php`
+- `noreko-backend/classes/RebotlingController.php`
+- `noreko-backend/classes/RebotlingAnalyticsController.php`
+
+### Totalt: 7 buggar fixade
