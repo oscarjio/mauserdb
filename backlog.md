@@ -7,14 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #294+):
-- [ ] **PHP array_key_exists vs isset** — controllers N-Z (resterande fran #292)
-- [ ] **PHP PDO lastInsertId** — controllers N-Z (resterande fran #292)
-- [ ] **PHP SQL GROUP BY strict mode** — controllers N-Z (resterande fran #292)
-- [ ] **PHP intval/floatval pa $_GET/$_POST** — user input som inte castas korrekt
-- [ ] **PHP SQL ORDER BY injection** — ORDER BY/LIMIT fran user input utan whitelist
-- [ ] **Angular FormControl validators** — asynkrona validators, required pa dolda falt
-- [ ] **Angular router param type safety** — params.get() utan validering/parseInt
+### Nasta buggjakt-items (session #295+):
+- [ ] **PHP array_key_exists vs isset** — controllers A-M (ny granskning med djupare fokus)
+- [ ] **PHP preg_match return value** — controllers som inte kontrollerar false-retur fran preg_match
+- [ ] **PHP array_merge i loopar** — performance-bugg, borde anvanda spread eller +=
+- [ ] **Angular *ngIf + async pipe** — race conditions vid lazy-laddade data
+- [ ] **Angular HttpParams encoding** — specialtecken i query params som inte encodas korrekt
 
 ## Parkerade features (ta inte dessa nu)
 
