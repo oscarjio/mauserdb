@@ -1,3 +1,53 @@
+## 2026-03-24 Session #284 Worker B — Angular frontend buggjakt (0 buggar)
+
+### Uppgift 1: Angular ViewChild/ContentChild timing (0 buggar — rent)
+
+Granskade alla @ViewChild-deklarationer i noreko-frontend/src/app/pages/ och components/:
+
+Filer med @ViewChild (27 st totalt):
+- weekly-report.ts, tvattlinje-statistik.ts, monthly-report.ts, andon.ts, shift-handover.ts,
+  rebotling-skiftrapport.ts, benchmarking.ts, maintenance-log.ts, statistik-produkttyp-effektivitet.ts,
+  historik.ts, operatorsportal.ts, underhallslogg.ts, operator-compare.ts, saglinje-statistik.ts,
+  klassificeringslinje-statistik.ts, produktionstakt.ts, rebotling-statistik.ts, rebotling-admin.ts,
+  statistik-pareto-stopp.ts, statistik-veckotrend.ts
+
+Resultat:
+- Inga ViewChild som accessas i ngOnInit (alla canvas-refs anvands i ngAfterViewInit, setTimeout-callbacks eller separata metoder)
+- Alla ViewChild pa element inuti *ngIf har korrekt null-check (?.nativeElement) fore access
+- operator-compare.ts: trendChartCanvas och radarChartCanvas ar inuti *ngIf, men har null-checks (if (!this.trendChartCanvas || ...))
+- historik.ts: monthlyChartRef/yearlyChartRef ar inuti *ngIf, men anvander ?.nativeElement korrekt
+- rebotling-admin.ts: correlationChartRef ar deklarerad men aldrig anvand (anvander document.getElementById istallet) — harmlost dött kod
+- Inga @ContentChild-deklarationer i hela kodbasen
+
+### Uppgift 2: Angular async pipe vs manual subscribe — dubbla subscriptions (0 buggar — rent)
+
+Granskade alla 169 TypeScript-filer och HTML-templates:
+
+- Inga templates anvander `| async` pipe — varken enstaka eller multipla pa samma Observable
+- Alla 169 komponenter med .subscribe() har korrekt cleanup-mekanism (takeUntil(this.destroy$), Subscription eller unsubscribe)
+- De enda komponenterna utan takeUntil (rebotling-live.ts, tvattlinje-live.ts, saglinje-live.ts, klassificeringslinje-live.ts) far ej rorast per projektreglerna
+- Inga dubbla subscriptions (async pipe + manuell subscribe) pa samma Observable
+- Inga race conditions fran saknad switchMap/mergeMap
+
+### Uppgift 3: Angular template type safety och strictTemplates (0 buggar — rent)
+
+Granskade alla HTML-templates i pages/a-m (35 sidor):
+about, alarm-historik, andon, andon-board, audit-log, benchmarking, bonus-admin, bonus-dashboard,
+certifications, contact, create-user, cykeltid-heatmap, daglig-sammanfattning, drifttids-timeline,
+effektivitet, executive-dashboard, favoriter, feature-flag-admin, feedback-analys, forsta-timme-analys,
+funktionshub, heatmap, historik, historisk-sammanfattning, kassations-drilldown,
+klassificeringslinje-admin, klassificeringslinje-live, klassificeringslinje-skiftrapport,
+klassificeringslinje-statistik, kvalitetstrend, live-ranking, login, maintenance-log,
+malhistorik, monthly-report, morgonrapport, my-bonus
+
+Resultat:
+- Inga metod-anrop i templates som saknas i komponenterna (verifierat via skript for alla (click)/(change)/(submit)-bindningar)
+- Inga $event.target.value utan HTMLInputElement-cast
+- Inga [ngClass] eller [ngStyle] med felaktig syntax
+- Alla *ngFor har trackBy (alla 35 sidor rent)
+- Inga saknade null-checks pa objekt som kan vara undefined
+- Angular build: PASS (inga kompileringsfel, enbart kanda CommonJS-varningar)
+
 ## 2026-03-23 Session #283 Worker B — Angular frontend buggjakt (4 buggar)
 
 ### Uppgift 1: Angular route guard race conditions (0 buggar — rent)
