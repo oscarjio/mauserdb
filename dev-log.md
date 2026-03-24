@@ -1,3 +1,33 @@
+## 2026-03-24 Session #288 Worker A — PHP exception handling, LIKE injection, pagination granskning (0 buggar)
+
+### Uppgift 1: PHP exception handling — catch(Exception) som svaljer felmeddelanden utan loggning (0 buggar)
+
+Granskade samtliga 115 PHP-klasser i noreko-backend/classes/ (dit controllers/ delegerar).
+Hittade 0 catch-block som svaljer exceptions utan loggning.
+Alla catch-block antingen:
+- Loggar med error_log() + getMessage()
+- Aterkastar (throw) exceptionen vidare
+- Har avsiktlig kommentar (t.ex. ALTER TABLE "kolumn finns redan")
+
+### Uppgift 2: PHP SQL LIKE injection — saknad escaping av % och _ (0 buggar)
+
+Granskade alla LIKE-fragor med user input i noreko-backend/classes/.
+Hittade 3 LIKE-anvandningar med user input:
+- AuditController.php rad 106, 114: addcslashes($var, '%_\\') redan applicerat
+- BatchSparningController.php rad 417: addcslashes($search, '%_\\') redan applicerat
+
+### Uppgift 3: PHP integer overflow i pagination (0 buggar)
+
+Granskade alla pagination-parametrar (page, limit, offset, per_page, antal) i noreko-backend/classes/.
+Hittade 28 pagination-anvandningar i 15 filer — samtliga har:
+- (int) eller intval() casting
+- max/min-clamping (t.ex. max(1, min(200, ...)))
+- Inga negativa varden kan passera
+
+Resultat: 0 buggar totalt i alla 3 kategorier. Kodbasen ar redan valmojligt skyddad.
+
+---
+
 ## 2026-03-24 Session #288 Worker B — Angular retry logic + trackBy granskning (0 buggar)
 
 ### Uppgift 1: Angular HTTP retry logic pa kritiska GET-requests (0 buggar)
