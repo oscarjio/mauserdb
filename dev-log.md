@@ -1,3 +1,44 @@
+## 2026-03-24 Session #293 Worker A — empty()/strtotime() granskning (0 buggar)
+
+### Uppgift 1: PHP empty() gotchas — controllers N-Z (0 buggar)
+
+Granskade alla PHP-controllers N-Z i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*):
+NarvaroController, NewsController, OeeBenchmarkController, OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController, OperatorController, OperatorDashboardController, OperatorJamforelseController, OperatorOnboardingController, OperatorRankingController, OperatorsbonusController, OperatorsportalController, OperatorsPrestandaController, ParetoController, PrediktivtUnderhallController, ProductionsSlaController, ProduktionsDashboardController, ProduktionseffektivitetController, ProduktionsflodeController, ProduktionskalenderController, ProduktionskostnadController, ProduktionsmalController, ProduktionsPrognosController, ProduktionspulsController, ProduktionsTaktController, ProduktTypEffektivitetController, ProfileController, RankingHistorikController, RegisterController, RuntimeController, ShiftHandoverController, ShiftPlanController, SkiftjamforelseController, SkiftoverlamningController, SkiftplaneringController, SkiftrapportController, SkiftrapportExportController, StatistikDashboardController, StatistikOverblickController, StatusController, StoppageController, StopporsakController, StopporsakOperatorController, StopporsakRegistreringController, StopporsakTrendController, StopptidsanalysController, TidrapportController, UnderhallsloggController, UnderhallsprognosController, UtnyttjandegradController, VdDashboardController, VDVeckorapportController, VeckotrendController, VeckorapportController, VpnController, WeeklyReportController.
+
+Resultat:
+- **Alla empty()-anvandningar ar sakra.** Anvandningsmonstren ar:
+  - `empty($_SESSION['user_id'])` — session-ID ar alltid positiva heltal, "0" ar aldrig giltigt.
+  - `empty($rows)` / `empty($data)` — kontrollerar tomma arrayer fran DB-fragor, korrekt.
+  - `empty($title)` / `empty($utfordAv)` / `empty($weekParam)` — strangvalidering dar tom strang ar ogiltigt.
+  - `!empty($body['pinned'])` — boolean/flaggor, truthy-check ar korrekt.
+  - `!empty($nonZero)` / `!empty($vals)` — guard fore array_sum/count, korrekt.
+- **Inga fall dar empty("0") eller empty(0) kan dolja giltiga varden.**
+
+### Uppgift 2: PHP empty() gotchas — controllers A-M (0 buggar)
+
+Granskade alla PHP-controllers A-M (exkl. forbjudna):
+AdminController, AlertsController, AlarmHistorikController, AndonController, AuditController, AvvikelselarmController, BatchSparningController, BonusAdminController, BonusController, CertificationController, CykeltidHeatmapController, DagligBriefingController, DagligSammanfattningController, DashboardLayoutController, DrifttidsTimelineController, EffektivitetController, FavoriterController, FeatureFlagController, FeedbackAnalysController, FeedbackController, ForstaTimmeAnalysController, GamificationController, HeatmapController, HistorikController, HistoriskProduktionController, HistoriskSammanfattningController, KapacitetsplaneringController, KassationsanalysController, KassationsDrilldownController, KassationsorsakController, KassationsorsakPerStationController, KassationskvotAlarmController, KvalitetscertifikatController, KvalitetsTrendbrottController, KvalitetstrendanalysController, KvalitetstrendController, LeveransplaneringController, LineSkiftrapportController, LoginController, MaintenanceController, MalhistorikController, MaskinDrifttidController, MaskinhistorikController, MaskinOeeController, MaskinunderhallController, MinDagController, MorgonrapportController, MyStatsController.
+
+Resultat:
+- **Alla empty()-anvandningar ar sakra.** Samma monster som controllers N-Z.
+- **BonusAdminController rad 1539-1542**: `!empty($cfg['productivity_target_...'])` och `!empty($cfg['max_bonus'])` — undersoktes noggrant. Targets ar begransade till 1.0-100.0 vid sparning (rad 1751), max_bonus till 100-500. Varde 0 kan aldrig finnas i DB via normalt flode, sa empty() ar sakert har.
+- **RegisterController rad 51/59/73**: `empty($username)` / `empty($password)` / `empty($email)` — "0" som anvandarnamn faller pa langdkravet (min 3 tecken), "0" som losenord faller pa langdkravet (min 8 tecken), "0" som email faller pa FILTER_VALIDATE_EMAIL.
+
+### Uppgift 3: PHP strtotime() edge cases — controllers N-Z (0 buggar)
+
+Granskade alla strtotime()-anvandningar i controllers N-Z.
+
+Resultat:
+- **Inga strtotime('monday this week')** eller liknande oppalitliga relativa veckodag-uttryck. Alla fixades i session #285/#289 och anvander nu `strtotime('-' . ((int)date('N') - 1) . ' days')`.
+- **Inga strtotime() pa ratt user input** — all user input (datum fran GET/POST) valideras med preg_match forst.
+- **Alla relativa datum** (`strtotime("-N days")`, `strtotime('+1 day', $ts)`) ar korrekta — de anvander "now" som implicit bas, vilket ar korrekt for dessa berakningar.
+- **strtotime() pa DB-varden** (t.ex. `strtotime($row['datum'])`) ar sakra — DB-varden ar redan validerade datum.
+- **Ingen risk for DST-problem** — de stallen dar DST kunde vara ett problem (ProduktionsTaktController) har redan bugfix-kommentar och anvander DateTime-diff.
+
+### Sammanfattning
+
+Kodbasen ar i gott skick avseende empty() och strtotime(). Inga buggar hittades. Tidigare sessioner (#285, #289) har redan fixat de vanligaste strtotime-fallgroparna, och empty() anvands genomgaende pa sakra satt (session-ID:n, tomma arrayer, strangvalidering, boolean-flaggor).
+
 ## 2026-03-24 Session #293 Worker B — HTTP-retry/trackBy/template-logik granskning (0 buggar)
 
 ### Uppgift 1: Angular HTTP retry pa POST/PUT/DELETE (0 buggar — rent)
