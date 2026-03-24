@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #294)*
+*Senast uppdaterad: 2026-03-24 (session #296)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -100,23 +100,20 @@ Session #292: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). array_key_exists/
 Session #293: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). empty() gotchas: rent (~388 anvandningar, alla sakra). strtotime() edge cases: rent (~550 anvandningar, alla validerade). HTTP retry: rent (bekraftad). trackBy *ngFor: rent. template logik N-Z: rent.
 Session #294: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). intval/floatval: rent (425 $_GET/$_POST, alla castade). ORDER BY injection: rent (alla whitelistade). FormControl validators: rent (inga reaktiva forms). router param type safety: rent (5 komponenter, alla parseInt+isNaN).
 Session #295: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_key_exists vs isset A-M: rent (49 controllers, korrekt anvandning). preg_match return value: rent (alla enkla, sakra monster). *ngIf+async pipe: rent (ingen async pipe anvands, alla subscribe i ngOnInit). HttpParams encoding: rent (encodeURIComponent konsekvent).
+Session #296: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_merge i loopar: rent (35 anvandningar, alla engangskopior). str_replace/substr: rent (alla strikt jamforelse, null-sakra). ViewChild/ElementRef: rent (20+19 filer, alla null-guards). service circular dependency: rent (96 tjanster, max 2 beroenden).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #296+):
-- [ ] PHP array_merge i loopar — performance-bugg, borde anvanda spread eller +=
-- [ ] PHP str_replace/substr edge cases — ovaentade typer eller tomma strangar
+### Nasta (session #297+):
 - [ ] PHP date()/mktime() edge cases — sommar/vintertid, skottdag
-- [ ] Angular ViewChild/ElementRef null — saknad null-check i ngAfterViewInit
-- [ ] Angular service circular dependency — tjanster som injicerar varandra
+- [ ] PHP header()/exit() flode — saknad exit/return efter header-redirect
+- [ ] PHP PDO fetchAll memory — stora resultset utan LIMIT
+- [ ] Angular OnDestroy cleanup audit — setInterval/setTimeout utan rensning
+- [ ] Angular HTTP error message display — felmeddelanden fran backend visas korrekt
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #293 (klar)
-Worker A: 0 buggar — empty() gotchas: rent (~388 anvandningar). strtotime() edge cases: rent (~550 anvandningar, alla validerade).
-Worker B: 0 buggar — HTTP retry: rent (bekraftad). trackBy *ngFor: rent. template logik N-Z: rent.
 
 ### 2026-03-24 — Session #294 (klar)
 Worker A: 0 buggar — intval/floatval: rent (425 $_GET/$_POST-anvandningar, alla korrekt castade). ORDER BY injection: rent (alla sort/limit/offset whitelistade).
@@ -125,3 +122,7 @@ Worker B: 0 buggar — FormControl validators: rent (inga reaktiva forms, bara t
 ### 2026-03-24 — Session #295 (klar)
 Worker A: 0 buggar — array_key_exists vs isset A-M: rent (49 controllers, korrekt anvandning genomgaende). preg_match return value: rent (alla enkla sakra monster, inga catastrophic backtracking-risker).
 Worker B: 0 buggar — *ngIf+async pipe: rent (ingen async pipe anvands, alla subscribe i ngOnInit). HttpParams encoding: rent (encodeURIComponent konsekvent, inga manuella strangkonkateneringar).
+
+### 2026-03-24 — Session #296 (klar)
+Worker A: 0 buggar — array_merge i loopar: rent (35 anvandningar, alla engangsanrop). str_replace/substr: rent (strikt jamforelse, null-sakra, mb_substr for anvandardata).
+Worker B: 0 buggar — ViewChild/ElementRef: rent (20+19 filer, alla null-guards korrekt). service circular dependency: rent (96 tjanster, inga cykler, max 2 beroenden).

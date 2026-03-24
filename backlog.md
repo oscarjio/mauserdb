@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #296+):
-- [ ] **PHP array_merge i loopar** — performance-bugg, borde anvanda spread eller +=
-- [ ] **PHP str_replace/substr edge cases** — controllers A-Z, ovaentade typer eller tomma strangar
-- [ ] **PHP date() / mktime() edge cases** — controllers A-Z, sommar/vintertid, skottdag
-- [ ] **Angular ViewChild/ElementRef null** — komponenter som anvaender ViewChild utan null-check i ngAfterViewInit
-- [ ] **Angular service circular dependency** — tjanster som injicerar varandra (ger runtime-error)
+### Nasta buggjakt-items (session #297+):
+- [ ] **PHP date()/mktime() edge cases** — sommar/vintertid, skottdag, ogiltiga datum
+- [ ] **PHP header()/exit() flode** — controllers som saknar exit/return efter header-redirect
+- [ ] **PHP PDO fetchAll memory** — stora resultset utan LIMIT, potentiell OOM
+- [ ] **Angular OnDestroy cleanup audit** — komponenter med setInterval/setTimeout utan rensning i ngOnDestroy
+- [ ] **Angular HTTP error message display** — verifiera att felmeddelanden fran backend visas korrekt i UI
 
 ## Parkerade features (ta inte dessa nu)
 
