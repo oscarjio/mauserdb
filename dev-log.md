@@ -21151,3 +21151,39 @@ catchError-audit:
 - Inga returnerar undefined, EMPTY anvands inte men of(null) ar semantiskt ekvivalent har
 - Inga ohanterande felfall
 Rent — inga buggar.
+
+## 2026-03-24 — Session #300, Worker A
+
+### Uppgift 1: array_combine/array_zip — missmatch i array-langder (0 buggar)
+Granskade samtliga PHP-controllers i noreko-backend/controllers/ (33 proxy-filer) samt
+noreko-backend/classes/ (100+ implementationsfiler).
+- Inga array_combine() anrop existerar i kodbasen.
+- Inga array_zip_key() anrop existerar i kodbasen.
+- array_map() med multipla arrayer: 0 forekomster. Enda array_map med tva dollar-tecken-argument
+  (RebotlingController.php:1945) ar i sjalva verket en closure med use()-klausul, dvs enbart
+  en enda array som argument — inget langd-mismatch-problem.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: exception message leakage (0 buggar)
+Granskade samtliga catch-block i noreko-backend/classes/ (100+ filer, hundratals catch-block).
+- ALLA getMessage()-anrop ar inuti error_log() — inte ett enda fall av getMessage() som
+  skickas till klienten via echo/json_encode/sendError/sendResponse.
+- api.php:s yttre catch (Throwable) returnerar generiskt "Internt serverfel" till klienten
+  och loggar den faktiska feldetaljen med error_log().
+- Valideringsfel (t.ex. RebotlingAdminController ogiltig e-post, RegisterController) anvander
+  htmlspecialchars pa anvandarinput, INTE exception-meddelanden.
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: SQL transaction isolation (0 buggar)
+Granskade samtliga 55 beginTransaction()-anrop i 31 filer i noreko-backend/classes/.
+- ALLA transaktioner har matchande commit() OCH rollBack() i catch-block.
+- rollBack() skyddas med inTransaction()-kontroll dar det behovs.
+- FOR UPDATE anvands korrekt for att forhindra race conditions (RuntimeController, AdminController,
+  CertificationController, BatchSparningController, RebotlingAnalyticsController m.fl.).
+- Inga saknade rollBack i catch-block.
+- Inga kodvagar dar beginTransaction() anropas men varken commit() eller rollBack() kors.
+- RuntimeController har 2 commit()-anrop for 1 beginTransaction — korrekt (if/else-grening,
+  bada grenarna committar).
+- AdminController har tidiga rollBack()+return for valideringsfel inom transaktion — korrekt
+  monster for att undvika oanvand transaktion.
+Resultat: RENT — inga buggar.
