@@ -105,23 +105,20 @@ Session #297: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). date()/mktime(): 
 Session #298: BUGGJAKT — 14 buggar (14 Worker A + 0 Worker B). try/catch: rent. COALESCE(SUM): 2 fixade. htmlspecialchars: 12 fixade. zone.js change detection: 2 prestandafixar. canDeactivate: rent.
 Session #299: BUGGJAKT — 23 buggar (19 Worker A + 4 Worker B). array type coercion: rent. file_put_contents: rent. SQL BETWEEN datum: 19 fixade. HTTP switchMap: rent. accessibility: 4 fixade.
 Session #300: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_combine: rent (inga finns). exception leakage: rent (alla error_log). SQL transaction isolation: rent (55 beginTransaction, alla med rollBack). Angular memory profiling: rent (518 ngFor med trackBy, alla cleanup korrekt). form state persistence: rent (canDeactivate pa alla 14 sidor).
+Session #301: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (inga blandade typer). SQL index usage: observation — 100+ DATE() i WHERE forhindrar index, ej fixat (kravs DB-kunskap). zone.js performance: rent (tunga berakningar pre-cachade). HTTP caching: rent (alla anrop filterbaserade). template null dereference: rent (alla skyddade).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #301+):
-- [ ] PHP header() + exit() consistency — alla API-endpoints som gor redirect utan exit()
-- [ ] PHP array_unique type juggling — SORT_REGULAR vs SORT_STRING i array_unique()
-- [ ] Angular zone.js performance — template-uttryck som triggar onnodig change detection
-- [ ] Angular HTTP caching — GET-anrop som borde cachas men gor nytt request varje gang
-- [ ] PHP SQL index usage — fragor utan index som ger full table scan pa stora tabeller
+### Nasta (session #302+):
+- [ ] PHP date() timezone consistency — explicit timezone i alla date()/strtotime()
+- [ ] PHP SQL COUNT vs EXISTS — ineffektiva COUNT(*) dar EXISTS racker
+- [ ] Angular renderer security — innerHTML/bypassSecurityTrust utan sanitering
+- [ ] Angular lazy loading chunk errors — saknad felhantering vid chunk-laddningsfel
+- [ ] PHP mb_string consistency — blandning av strlen/substr och mb_strlen/mb_substr
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #298 (klar)
-Worker A: 14 buggar — try/catch: rent. COALESCE(SUM): 2 fixade (BatchSparningController). htmlspecialchars sanitering: 12 strip_tags ersatta med htmlspecialchars i 12 controllers.
-Worker B: 0 buggar + 2 prestandafixar — zone.js change detection: 2 template-metoder preberaknade (oee-waterfall+skiftplanering). router canDeactivate: rent (pendingChangesGuard redan pa 14 rutter).
 
 ### 2026-03-24 — Session #299 (klar)
 Worker A: 19 buggar — array type coercion: rent. file_put_contents: rent (inga finns). SQL BETWEEN datum: 19 off-by-one fixade (23:59:59 -> < nasta dag 00:00:00) i 19 controllers.
@@ -130,3 +127,7 @@ Worker B: 4 buggar — HTTP switchMap: rent (inga switchMap pa POST/PUT/DELETE).
 ### 2026-03-24 — Session #300 (klar)
 Worker A: 0 buggar — array_combine/array_zip: rent (inga finns). exception message leakage: rent (alla $e->getMessage() i error_log, aldrig till klient). SQL transaction isolation: rent (55 beginTransaction, alla med commit+rollBack, FOR UPDATE korrekt).
 Worker B: 0 buggar — Angular memory profiling: rent (518 *ngFor med trackBy, alla setInterval/Chart.js/subscribe korrekt rensade). form state persistence: rent (14 sidor med canDeactivate, route params med takeUntil, laddningsindikatorer).
+
+### 2026-03-24 — Session #301 (klar)
+Worker A: 0 buggar — header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (25+ anrop, inga blandade typer). SQL index usage: 100+ DATE()-wrapper i WHERE forhindrar indexanvandning i 20+ controllers (observation, ej fixat).
+Worker B: 0 buggar — zone.js performance: rent (260+ template-metoder, alla latta). HTTP caching: rent (93 services, alla filterbaserade). template null dereference: rent (129 ngFor + 200+ bindings, alla skyddade).

@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #300):
-- [ ] **PHP array_combine/array_zip** — missmatch i array-langder som ger false (Worker A)
-- [ ] **PHP exception message leakage** — felmeddelanden som exponerar interna detaljer (Worker A)
-- [ ] **PHP SQL transaction isolation** — dirty reads vid concurrent batch-operationer (Worker A)
-- [ ] **Angular memory profiling** — komponentstorlek, DOM-nodantal i tunga vyer (Worker B)
-- [ ] **Angular form state persistence** — formularvarden som forsvinner vid navigation (Worker B)
+### Pagaende (session #301):
+- [ ] **PHP header() + exit() consistency** — alla API-endpoints som gor redirect utan exit() (Worker A)
+- [ ] **PHP array_unique type juggling** — SORT_REGULAR vs SORT_STRING i array_unique() (Worker A)
+- [ ] **PHP SQL index usage** — fragor utan index som ger full table scan (Worker A)
+- [ ] **Angular zone.js performance** — template-uttryck som triggar onnodig change detection (Worker B)
+- [ ] **Angular HTTP caching** — GET-anrop som borde cachas men gor nytt request varje gang (Worker B)
 
-### Nasta buggjakt-items (session #301+):
-- [ ] **PHP header() + exit() consistency** — alla API-endpoints som gor redirect utan exit()
-- [ ] **PHP array_unique type juggling** — SORT_REGULAR vs SORT_STRING i array_unique()
-- [ ] **Angular zone.js performance** — template-uttryck som triggar onnodig change detection
-- [ ] **Angular HTTP caching** — GET-anrop som borde cachas men gor nytt request varje gang
-- [ ] **PHP SQL index usage** — fragor utan index som ger full table scan pa stora tabeller
+### Nasta buggjakt-items (session #302+):
+- [ ] **PHP date() timezone consistency** — explicit timezone i alla date()/strtotime() vs server default
+- [ ] **PHP SQL COUNT vs EXISTS** — ineffektiva COUNT(*) dar EXISTS racker
+- [ ] **Angular renderer security** — innerHTML/bypassSecurityTrust utan sanitering
+- [ ] **Angular lazy loading chunk errors** — saknad felhantering vid chunk-laddningsfel
+- [ ] **PHP mb_string consistency** — blandning av strlen/substr och mb_strlen/mb_substr
 
 ## Parkerade features (ta inte dessa nu)
 
