@@ -37,6 +37,52 @@ Resultat: 2 buggar fixade i ProduktionsmalController.php. Array bounds och mail-
 
 ---
 
+## 2026-03-24 Session #289 Worker B — unsubscribed Observables, template null dereference granskning (0 buggar)
+
+### Uppgift 1: Angular unsubscribed Observables (0 buggar)
+
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (169 filer med .subscribe()).
+
+Strategi:
+- Sokte efter .subscribe() utan takeUntil i pipe-kedjan
+- Kontrollerade interval/timer/fromEvent/Subject-baserade observables separat
+- Granskade ActivatedRoute-anvandningar (params, queryParams, snapshot)
+
+Fynd:
+- components/toast/toast.ts: Anvander Subscription + explicit unsubscribe() i ngOnDestroy — korrekt
+- services/auth.service.ts: Singleton-service (providedIn: root), lever hela appens livstid — pollSub/logoutSub hanteras med unsubscribe() — korrekt
+- pages/rebotling-skiftrapport/rebotling-skiftrapport.ts: loadOperators() ar ett HTTP-anrop (auto-complete) — ej minnesläcka
+- Alla interval()-baserade observables i kassationskvot-alarm, statistik-produktionsmal, statistik-oee-gauge har takeUntil(this.destroy$)
+- Alla ActivatedRoute-anvandningar (operator-detail, stoppage-log, tvattlinje-statistik, rebotling-statistik) anvander snapshot — ingen subscription behovs
+
+Resultat: 0 buggar. Alla langlivade observables ar korrekt hanterade.
+
+### Uppgift 2: Angular template null dereference (0 buggar)
+
+Granskade alla 97 Angular HTML-templates i noreko-frontend/src/app/ exklusive live-linjer.
+
+Strategi:
+- Sokte efter tripledjup property-access (obj.prop.val) utan optional chaining (?.)
+- Kontrollerade *ngIf-guards runt alla HTTP-laddade dataobjekt
+- Granskade property bindings [attr]="..." med nestade varden
+
+Kontrollerade specifikt:
+- daglig-sammanfattning.html: summary.trend.trend, summary.oee.*, summary.senaste_skift.* — alla inside *ngIf="summaryLoaded && !summaryError && summary && summary.produktion.har_data"
+- executive-dashboard.html: dashData.today.*, dashData.week.* — inside *ngIf="!loading && dashData"
+- rebotling-statistik.html: overviewData.* — inside *ngIf="overviewData && !overviewLoading"
+- vd-veckorapport.html: trenderData.trender.* — inside *ngIf="!loadingTrender && trenderData"
+- kapacitetsplanering.html: kpiData.idag.*, kpiData.period.* — inside *ngIf="!loadingKpi && !errorKpi && kpiData"
+- monthly-report.html: report.summary.* — inside *ngIf="hasData && report"
+- batch-sparning.html: selectedBatchDetail.batch.* — inside *ngIf="selectedBatchDetail"
+- kassationskvot-alarm.html: dag.dag/kvall/natt — inside *ngIf per block
+- audit-log.html: stats.by_user/by_action — inside *ngIf="activeTab === 'stats' && stats"
+- bonus-admin.html: simResult.results, simHistResult.baseline.* — inside respektive *ngIf-guards
+- daglig-briefing.html: sammanfattning.basta_operator.* — inside *ngIf="sammanfattning.basta_operator"
+
+Resultat: 0 buggar. Alla djupa property-accesser ar korrekt skyddade av *ngIf-guards.
+
+---
+
 ## 2026-03-24 Session #288 Worker B — Angular HTTP retry logic, trackBy granskning (0 buggar)
 
 ### Uppgift 1: Angular HTTP retry logic (0 buggar)
