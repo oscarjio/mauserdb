@@ -1,3 +1,24 @@
+## 2026-03-24 Session #305 Worker B — Angular ChangeDetectorRef + i18n svenska (1 bugg)
+
+### Uppgift 1: Angular ChangeDetectorRef markForCheck (0 buggar)
+- Granskade ALLA komponenter i noreko-frontend/src/app/pages/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- Inga komponenter använder ChangeDetectionStrategy.OnPush — samtliga använder default change detection.
+- Ingen ChangeDetectorRef.markForCheck() eller detectChanges() behövs eftersom default change detection hanterar async callbacks (setTimeout, setInterval, subscribe) automatiskt inom Angular's zone.
+- 134 filer använder setInterval/setTimeout men alla kör inom Angular zone — inga buggar.
+
+### Uppgift 2: Angular template i18n — hardcoded icke-svenska strängar (1 bugg)
+- Granskade ALLA HTML-templates och inline templates i noreko-frontend/src/app/pages/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- Hittade att "Operator" (engelska) användes istället för "Operatör" (svenska) i 26 ställen i 19 filer:
+  - Tabellrubriker (<th>Operator</th>)
+  - Formulärlabels
+  - Användartext (t.ex. "Operator {{ peer.rank }}", "Operator / Produkt", "Operator-onboarding")
+  - aria-labels
+  - Placeholder-text ("Operatornamn" -> "Operatörsnamn")
+  - Felstavade/brutna svenska tecken ("kontoinstaellningarna foer" -> "kontoinställningarna för")
+- Fixade alla 26 förekomster i 19 filer.
+- Alla övriga UI-texter var redan på svenska. "Status", "Total", "OK", "Start", "Station", "Info", "Bonus" etc. är identiska på svenska och engelska.
+- Byggt frontend utan fel (npx ng build).
+
 ## 2026-03-24 Session #305 Worker A — PHP IFNULL/COALESCE, date/DateTime, LEFT/INNER JOIN (0 buggar)
 
 ### Uppgift 1: PHP SQL IFNULL/COALESCE consistency (0 buggar)
