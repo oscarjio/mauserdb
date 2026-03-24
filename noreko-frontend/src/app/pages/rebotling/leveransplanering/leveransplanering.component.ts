@@ -263,7 +263,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
       if (res?.success) {
         this.loadAll();
       } else {
-        this.updateStatusError = 'Kunde inte uppdatera orderstatus. Försök igen.';
+        this.updateStatusError = (res as any)?.error || 'Kunde inte uppdatera orderstatus. Försök igen.';
       }
     });
   }
@@ -296,7 +296,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
         };
         this.loadAll();
       } else {
-        this.newOrderError = 'Kunde inte skapa order';
+        this.newOrderError = (res as any)?.error || 'Kunde inte skapa order';
       }
     });
   }

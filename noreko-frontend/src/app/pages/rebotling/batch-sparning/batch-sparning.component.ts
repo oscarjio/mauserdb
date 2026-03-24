@@ -185,7 +185,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
         this.loadAll();
         this.closeDetail();
       } else {
-        this.completeError = 'Kunde inte markera batchen som klar. Försök igen.';
+        this.completeError = res?.error || 'Kunde inte markera batchen som klar. Försök igen.';
       }
     });
   }
