@@ -139,7 +139,9 @@ class ProduktionsTaktController {
             // Veckans snitt
             // Bugfix: anvand DateTime-diff for timberakning istallet for (time() - strtotime()) / 3600.
             // time() - strtotime() ar av med 1 timme nar veckan spanner DST-overgangen (mars/oktober).
-            $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $dow = (int)date('N'); // 1=man..7=son
+            $weekStart = date('Y-m-d 00:00:00', strtotime('-' . ($dow - 1) . ' days'));
             $weekStartDt = new \DateTime($weekStart, new \DateTimeZone('Europe/Stockholm'));
             $hoursThisWeek = max(1, ($nowDt->getTimestamp() - $weekStartDt->getTimestamp()) / 3600);
             $countWeek = $this->countIbcBetween($weekStart, $now);

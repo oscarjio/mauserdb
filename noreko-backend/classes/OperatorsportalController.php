@@ -319,7 +319,8 @@ class OperatorsportalController {
      */
     private function getMyStats(int $opId): void {
         $today      = date('Y-m-d');
-        $weekStart  = date('Y-m-d', strtotime('monday this week'));
+        // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+        $weekStart  = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
         $monthStart = date('Y-m-01');
         $month30    = date('Y-m-d', strtotime('-30 days'));
 

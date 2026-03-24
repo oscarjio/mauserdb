@@ -155,7 +155,9 @@ class RankingHistorikController {
      * Returnerar ['year' => int, 'week' => int, 'label' => 'V12']
      */
     private function getWeekInfo(int $weeksAgo): array {
-        $ts   = strtotime("-{$weeksAgo} weeks", strtotime('monday this week'));
+        // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+        $mondayTs = strtotime('-' . ((int)date('N') - 1) . ' days');
+        $ts   = strtotime("-{$weeksAgo} weeks", $mondayTs);
         $year = (int)date('o', $ts); // ISO year
         $week = (int)date('W', $ts); // ISO week
         return [

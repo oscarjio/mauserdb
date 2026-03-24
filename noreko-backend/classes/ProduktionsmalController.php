@@ -472,7 +472,8 @@ class ProduktionsmalController {
             $dagPct = $dagMal > 0 ? round(($dagUtfall / $dagMal) * 100, 1) : 0.0;
 
             // Vecko-mal och utfall (hittills i veckan)
-            $weekStart = date('Y-m-d', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $weekStart = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             $weekFactual = $this->getFactualIbcByDate($weekStart, $today);
             $veckoMal = 0;
             $veckoUtfall = 0;
@@ -906,7 +907,8 @@ class ProduktionsmalController {
                 : $dagIbc;
             $dagPrognosPct = $dagMal > 0 ? round(($dagPrognosIbc / $dagMal) * 100, 1) : 0.0;
 
-            $weekStart = date('Y-m-d', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $weekStart = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             $weekEnd   = $today;
             $weekFactual = $this->getFactualIbcByDate($weekStart, $weekEnd);
 

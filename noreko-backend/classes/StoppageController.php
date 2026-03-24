@@ -615,9 +615,11 @@ class StoppageController {
             $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
 
-            $thisWeekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
-            $prevWeekStart = date('Y-m-d 00:00:00', strtotime('monday last week'));
-            $prevWeekEnd   = date('Y-m-d 23:59:59', strtotime('sunday last week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $dow = (int)date('N'); // 1=man..7=son
+            $thisWeekStart = date('Y-m-d 00:00:00', strtotime('-' . ($dow - 1) . ' days'));
+            $prevWeekStart = date('Y-m-d 00:00:00', strtotime('-' . ($dow - 1 + 7) . ' days'));
+            $prevWeekEnd   = date('Y-m-d 23:59:59', strtotime('-' . $dow . ' days'));
 
             // This week
             $stmt = $this->pdo->prepare("

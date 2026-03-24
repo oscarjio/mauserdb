@@ -60,7 +60,8 @@ class TidrapportController {
 
         switch ($period) {
             case 'vecka':
-                $fromDate = date('Y-m-d', strtotime('monday this week'));
+                // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+                $fromDate = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
                 $toDate = $today;
                 break;
             case 'manad':
@@ -323,7 +324,8 @@ class TidrapportController {
             }
 
             // Beräkna vecko/månads-total
-            $veckoStart = date('Y-m-d', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $veckoStart = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             $manadStart = date('Y-m-01');
             $veckoTimmar = 0;
             $manadTimmar = 0;

@@ -230,7 +230,8 @@ class MaskinDrifttidController {
 
     private function getKpi(): void {
         // Denna vecka (man-son)
-        $veckaStart = date('Y-m-d', strtotime('monday this week'));
+        // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+        $veckaStart = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
         $veckaSlut  = date('Y-m-d'); // idag
         $dagar      = $this->getDagar();
         $fromDate   = date('Y-m-d', strtotime("-{$dagar} days"));

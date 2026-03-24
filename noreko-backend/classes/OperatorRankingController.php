@@ -101,7 +101,8 @@ class OperatorRankingController {
             case 'idag':
                 return [$today, $today, $period];
             case 'vecka':
-                return [date('Y-m-d', strtotime('monday this week')), $today, $period];
+                // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+                return [date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days')), $today, $period];
             case 'manad':
                 return [date('Y-m-01'), $today, $period];
             case '30d':
@@ -695,7 +696,8 @@ class OperatorRankingController {
             if ($typ === 'manad') {
                 $from = date('Y-m-01');
             } else {
-                $from = date('Y-m-d', strtotime('monday this week'));
+                // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+                $from = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             }
             $to = date('Y-m-d');
 

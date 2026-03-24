@@ -840,7 +840,8 @@ class SkiftoverlamningController {
             );
             $last = $lastStmt->fetch(\PDO::FETCH_ASSOC);
 
-            $weekStart = date('Y-m-d', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $weekStart = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             $weekStmt  = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM skiftoverlamning_logg WHERE datum >= ?"
             );

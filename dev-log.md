@@ -1,3 +1,66 @@
+## 2026-03-24 Session #285 Worker A — PHP backend buggjakt (15 buggar)
+
+### Uppgift 1: PHP strtotime edge cases (15 buggar fixade)
+
+Granskade ALLA 94 PHP-filer i noreko-backend/classes/ som anvander strtotime().
+
+**Sodag-bugg i strtotime('monday this week'):** PHP:s strtotime('monday this week') returnerar
+NASTA mandag nar det ar sondag (ISO-vecka vs PHP-tolkning). Fixades i GamificationController
+i session #278, men 13 andra stallen i 11 filer anvande fortfarande den osaikra varianten.
+
+Fixade filer (alla med samma monster: ersatte strtotime('monday this week') med
+strtotime('-' . ((int)date('N') - 1) . ' days') som ger ratt mandag oavsett veckodag):
+
+1. ProduktionsTaktController.php (rad 142) — veckans snitt-berakning
+2. OperatorsportalController.php (rad 322) — getMyStats veckostart
+3. SkiftoverlamningController.php (rad 843) — veckostatistik
+4. StoppageController.php (rad 618-620) — getWeeklySummary, aven monday/sunday last week
+5. MaskinDrifttidController.php (rad 233) — KPI veckostart
+6. OperatorRankingController.php (rad 104, 698) — getDateRange + mvp
+7. TidrapportController.php (rad 63, 326) — getDateRange + vecko/manadstotal
+8. ProduktionsmalController.php (rad 475, 909) — vecko-mal (2 stallen)
+9. OperatorDashboardController.php (rad 519) — getSummary
+10. RankingHistorikController.php (rad 158) — getWeekInfo base-timestamp
+11. OperatorsPrestandaController.php (rad 643-644) — "monday -{$i} weeks"/"sunday -{$i} weeks"
+
+Ovriga strtotime-monster granskade och bedomda som sakra:
+- strtotime pa $row['datum'] (DB-data, alltid valformatterat)
+- strtotime($row['event_datum']) ?: time() i NewsController — redan false-guard
+- strtotime pa beraknade datumstrangar (date()-output) — alltid giltigt format
+- Inga strtotime direkt pa $_GET/$_POST-input utan validering
+
+### Uppgift 2: PHP array_merge vs + operator (0 buggar — rent)
+
+Granskade alla 28 filer med array_merge() och sokte specifikt efter array + array:
+
+- array_merge($defaults, $saved): Alla anvands korrekt for associativa arrays (config/threshold
+  override-monster). Alla har is_array()-check pa json_decode-resultat fore merge.
+- array_merge($opIds, [$cutoff], ...): Korrekt for PDO parameter-byggnad (numeriska nycklar,
+  re-indexering ar onskat beteende).
+- array_merge($alarms, $this->getXxx(...)): Korrekt for att samla numeriskt indexerade larm.
+- Inga array + array operationer pa arrays hittades — alla $x + $y ar numeriska (int+int).
+- Inga array_merge med null/false-argument utan is_array()-check.
+
+### Uppgift 3: PHP PDO fetchAll memory (0 buggar — rent)
+
+Granskade alla 109 filer med fetchAll()-anrop:
+
+- AuditController: Huvudlista har LIMIT/OFFSET paginering. Stats-queries ar GROUP BY (begransade).
+- UnderhallsloggController: LIMIT pa alla listningar (max 200/500).
+- HistorikController: 3-ars query ar GROUP BY (ar, vecka) = max ~156 rader.
+- AlarmHistorikController: getDays() begransar till max 365 dagar. collectAlarms() samlar
+  stopp (>30 min) + dagsaggregat — rimligt begransade.
+- SkiftrapportExportController: Multi-day max 31 dagar, dagsrapport = enstaka dag.
+- rebotling_onoff-queries (drifttidsberakning): Alla har datumfilter, max 365 dagar.
+  Data ar tva kolumner (datum, running) — liten minnesavtryck per rad.
+- SkiftrapportController fetchLopnummer: Per skift, naturligt begransat (~200 rader max).
+- Alla settings-queries: WHERE id = 1, enstaka rad.
+- RuntimeController: Max manad (30 dagar) datumfilter.
+
+Inga fetchAll-anrop behovde andras — alla har tillrackliga begrensningar.
+
+---
+
 ## 2026-03-24 Session #284 Worker A — PHP backend buggjakt (0 buggar)
 
 ### Uppgift 1: PHP array_map/array_filter callback-buggar (0 buggar — rent)

@@ -640,8 +640,10 @@ class OperatorsPrestandaController {
             ) sub
         ");
         for ($i = 11; $i >= 0; $i--) {
-            $veckoStart = date('Y-m-d', strtotime("monday -{$i} weeks"));
-            $veckoSlut  = date('Y-m-d', strtotime("sunday -{$i} weeks"));
+            // Bugfix #285: strtotime("monday -N weeks") ger fel pa sondagar
+            $mondayTs   = strtotime('-' . ((int)date('N') - 1) . ' days');
+            $veckoStart = date('Y-m-d', strtotime("-{$i} weeks", $mondayTs));
+            $veckoSlut  = date('Y-m-d', strtotime("-{$i} weeks +6 days", $mondayTs));
             $veckoNr    = (int)date('W', strtotime($veckoStart));
             $ar         = (int)date('o', strtotime($veckoStart)); // 'o' = ISO-8601 år (korrekt vid årsgräns)
 

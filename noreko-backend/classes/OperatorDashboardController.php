@@ -516,7 +516,8 @@ class OperatorDashboardController {
     private function getSummary() {
         try {
             $today        = date('Y-m-d');
-            $mondayThisWeek = date('Y-m-d', strtotime('monday this week'));
+            // Bugfix #285: strtotime('monday this week') ger nasta mandag pa sondagar
+            $mondayThisWeek = date('Y-m-d', strtotime('-' . ((int)date('N') - 1) . ' days'));
             $monthStart   = date('Y-m-01');
 
             // Hjälpfunktion: bygg UNION ALL-subquery med datumfilter för kumulativ IBC
