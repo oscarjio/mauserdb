@@ -1,3 +1,42 @@
+## 2026-03-24 Session #289 Worker A — mail() injection, date/time edge cases, array bounds granskning (2 buggar)
+
+### Uppgift 1: PHP mail() injektionsrisk (0 buggar — rent)
+
+Granskade alla PHP-filer i noreko-backend/ med mail()-anrop:
+- noreko-backend/classes/ShiftHandoverController.php (rad 513): Subject innehaller enbart date()-utdata (ej user input). Headers ar statiska strangar. Emailadresser valideras med filter_var(..., FILTER_VALIDATE_EMAIL). Rent.
+- noreko-backend/classes/RebotlingAnalyticsController.php (rad 4529, 5678): Subject enkodas med base64_encode() (RFC-2047). Headers ar statiska strangar. Emailadresser fran DB valideras med filter_var. Rent.
+
+Bekraftar session #282:s fixes — inga CRLF-injektionssarbarheter kvarstar.
+
+### Uppgift 2: PHP date/time edge cases (2 buggar fixade)
+
+Granskade alla 94 PHP-filer i noreko-backend/classes/ med strtotime()-anvandningar. Session #285:s 15 sondags-buggar verifierades — alla korrekt fixade med monstret `strtotime('-' . ((int)date('N') - 1) . ' days')`.
+
+Hittade 2 kvarstaende buggar i noreko-backend/classes/ProduktionsmalController.php:
+
+**Bugg 1 (rad 927 — getPrognos-metoden):** `strtotime('sunday this week')` ger nasta sondag nar dagens datum ar en sondag. $weekStart beraknades korrekt pa raden ovan med session #285:s monster, men $fullWeekEnd anvande den trasiga varianten.
+Fix: `$fullWeekEnd = date('Y-m-d', strtotime($weekStart . ' +6 days'));`
+
+**Bugg 2 (rad 1024 — getWeekly-metoden):** `strtotime("-{$weeks} weeks monday")` ar ett oppalitligt relativt uttryck — "monday" i kombination med "-N weeks" beter sig inkonsekvent pa sondagar och vid ar-/veckogranser.
+Fix: Berakna veckans mandag forst med det etablerade sakra monstret, subtrahera sedan N veckor:
+```php
+$mondayThisWeek = strtotime('-' . ((int)date('N') - 1) . ' days');
+$fromDate = date('Y-m-d', strtotime("-{$weeks} weeks", $mondayThisWeek));
+```
+
+### Uppgift 3: PHP array bounds (0 buggar — rent)
+
+Granskade alla PHP-filer i noreko-backend/classes/ for okyddad array-access. Kontrollerade:
+- $array[0] efter fetchAll() / DB-queries: Alla ar skyddade med !empty(), count() > 0 eller tidiga return-satser.
+- end(), current(), reset() pa potentiellt tomma arrayer: Alla fall ar skyddade (OperatorsPrestandaController, MaskinOeeController, RankingHistorikController, RebotlingController, OperatorController, ShiftPlanController, RebotlingTrendanalysController, UnderhallsprognosController, DagligSammanfattningController).
+- array_shift() i VpnController.php: Foljt av if (count($parts) >= 3) — skyddat.
+- array_pop(), list(), array destructuring: Alla anvandningar ar skyddade.
+- $nums[0] i SkiftrapportController::buildRanges() och SkiftrapportExportController::buildRanges(): Skyddade med if (empty($nums)) return '–'.
+
+Resultat: 2 buggar fixade i ProduktionsmalController.php. Array bounds och mail-kod ar rena.
+
+---
+
 ## 2026-03-24 Session #288 Worker B — Angular HTTP retry logic, trackBy granskning (0 buggar)
 
 ### Uppgift 1: Angular HTTP retry logic (0 buggar)

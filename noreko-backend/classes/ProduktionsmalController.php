@@ -924,7 +924,8 @@ class ProduktionsmalController {
             }
             $veckoPct = $veckoMal > 0 ? round(($veckoIbc / $veckoMal) * 100, 1) : 0.0;
 
-            $fullWeekEnd = date('Y-m-d', strtotime('sunday this week'));
+            // Bugfix #289: strtotime('sunday this week') ger nasta sondag pa sondagar
+            $fullWeekEnd = date('Y-m-d', strtotime($weekStart . ' +6 days'));
             $fullVeckoMal = 0;
             $cur2 = strtotime($weekStart);
             $end2 = strtotime($fullWeekEnd);
@@ -1021,7 +1022,10 @@ class ProduktionsmalController {
         $weeks = max(4, min(52, (int)($_GET['weeks'] ?? 12)));
         try {
             $weekdayGoals = $this->getWeekdayGoals();
-            $fromDate = date('Y-m-d', strtotime("-{$weeks} weeks monday"));
+            // Bugfix #289: strtotime("-N weeks monday") ar oppalitligt pa sondagar
+            // Berakna veckans mandag forst, subtrahera sedan N veckor
+            $mondayThisWeek = strtotime('-' . ((int)date('N') - 1) . ' days');
+            $fromDate = date('Y-m-d', strtotime("-{$weeks} weeks", $mondayThisWeek));
             $factual = $this->getFactualIbcByDate($fromDate, date('Y-m-d'));
 
             $result = [];
