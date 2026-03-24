@@ -34,12 +34,14 @@
           <!-- Custom range -->
           <input type="date" class="form-control form-control-sm date-input"
                  [(ngModel)]="customFrom"
-                 [max]="customTo || todayStr" />
+                 [max]="customTo || todayStr"
+                 aria-label="Fran datum" />
           <span class="text-muted">-</span>
           <input type="date" class="form-control form-control-sm date-input"
                  [(ngModel)]="customTo"
                  [min]="customFrom"
-                 [max]="todayStr" />
+                 [max]="todayStr"
+                 aria-label="Till datum" />
           <button class="btn btn-sm btn-outline-primary"
                   (click)="applyCustomRange()"
                   [disabled]="!customFrom || !customTo || selectedOperatorId <= 0">

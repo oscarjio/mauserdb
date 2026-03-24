@@ -39,15 +39,15 @@
         <div class="d-flex gap-2 align-items-center">
           <div class="text-center">
             <small class="text-muted d-block">Vikt (%)</small>
-            <input type="number" class="config-input" [(ngModel)]="item.vikt" min="0" max="100" step="5" style="width:80px;" />
+            <input type="number" class="config-input" [(ngModel)]="item.vikt" min="0" max="100" step="5" style="width:80px;" aria-label="Vikt procent" />
           </div>
           <div class="text-center">
             <small class="text-muted d-block">Malvarde</small>
-            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;"  max="99999" />
+            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;"  max="99999" aria-label="Malvarde" />
           </div>
           <div class="text-center">
             <small class="text-muted d-block">Max bonus (kr)</small>
-            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;"  max="99999" />
+            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;"  max="99999" aria-label="Max bonus kronor" />
           </div>
         </div>
       </div>
