@@ -7,12 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #286+):
-- [ ] **PHP header/redirect consistency** — exit efter header('Location:'), saknade Content-Type
-- [ ] **Angular Router navigation edge cases** — queryParams forlust vid navigate, fragment-hantering
-- [ ] **PHP SQL date range queries** — BETWEEN med felaktigt format, timezone-mismatch
-- [ ] **Angular HttpClient response handling** — felaktig responseType, saknad observe: 'response'
-- [ ] **PHP password_hash/token timing** — timing attacks vid jamforelser, saknad hash_equals
+### Klart (session #286):
+- [x] **PHP header/redirect consistency** — rent (inga redirects anvands)
+- [x] **Angular Router navigation edge cases** — rent (alla subscriptions korrekt)
+- [x] **PHP SQL date range queries** — rent (alla BETWEEN korrekt, datum valideras)
+- [x] **Angular HttpClient response handling** — rent (alla catchError, inga subscribe-i-subscribe)
+- [x] **PHP password_hash/token timing** — 1 bugg fixad (hash_equals i RegisterController)
+
+### Nasta buggjakt-items (session #287+):
+- [ ] **PHP array type coercion** — in_array() utan strict mode, array_search() returvarde-check
+- [ ] **Angular ngOnChanges edge cases** — SimpleChanges null-check, firstChange-hantering
+- [ ] **PHP file path traversal** — saknad basename/realpath-validering i filoperationer
+- [ ] **Angular RxJS operator ordering** — takeUntil sist i pipe, switchMap vs mergeMap val
+- [ ] **PHP SQL GROUP BY strictness** — kolumner i SELECT utan GROUP BY/aggregering
 
 ## Parkerade features (ta inte dessa nu)
 
