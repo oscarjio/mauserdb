@@ -1,3 +1,60 @@
+## 2026-03-24 Session #286 Worker A — PHP backend buggjakt (1 bugg)
+
+### Uppgift 1: PHP header/redirect consistency (0 buggar — rent)
+
+Granskade ALLA 33 PHP-controllers i noreko-backend/controllers/ (proxy-stubs) och
+alla 120+ PHP-klasser i noreko-backend/classes/. Granskade aven api.php, login.php,
+admin.php och update-weather.php.
+
+- Inga `header('Location: ...')` utan exit/die() hittades — projektet anvander inte
+  PHP-redirects, all kommunikation ar JSON API.
+- Content-Type: application/json satts centralt i api.php (rad 57) innan nagon
+  controller-kod kors. Alla controllers delegerar via api.php-routern.
+- login.php och admin.php (legacy stubs) satter Content-Type pa rad 46 resp 46.
+- update-weather.php satter Content-Type i alla kodvagar (rad 14, 27, 55, 98, 109).
+- Alla controller-klasser i classes/ har `sendSuccess()`/`sendError()` hjalp-metoder
+  som satter Content-Type konsekvent.
+- http_response_code() anvands konsekvent overallt — inga `header('HTTP/1.1 ...')`.
+- Inga fall av output fore headers hittades.
+
+### Uppgift 2: PHP SQL date range queries (0 buggar — rent)
+
+Granskade alla BETWEEN-queries i noreko-backend/classes/. Over 50 BETWEEN-anvandningar
+hittades, alla foljer samma korrekta monster:
+
+- `DATE(column) BETWEEN :from_date AND :to_date` — extraherar DATE-delen sa att
+  timestamp-granser inte ar ett problem.
+- Datumparametrar fran $_GET valideras med `preg_match('/^\d{4}-\d{2}-\d{2}$/', ...)`
+  i alla controllers som tar datum-input (UnderhallsloggController, SkiftoverlamningController,
+  BatchSparningController, OperatorsbonusController, AuditController, MaintenanceController,
+  SkiftplaneringController, ProduktionskalenderController, DrifttidsTimelineController,
+  DagligSammanfattningController m.fl.).
+- Beraknade datum anvander `date('Y-m-d', strtotime(...))` konsekvent.
+- `date_default_timezone_set('Europe/Stockholm')` satts i api.php och update-weather.php.
+- Inga strftime()-anrop hittades — date() anvands konsekvent.
+- From/to-intervall valideras (from <= to byts, max 365 dagars begransning).
+
+### Uppgift 3: PHP password_hash/token timing (1 bugg fixad)
+
+Granskade AuthHelper.php, LoginController.php, RegisterController.php,
+ProfileController.php, AdminController.php, StatusController.php och VpnController.php.
+
+**Bugg fixad — timing-unsafe jamforelse av registreringskod:**
+- Fil: noreko-backend/classes/RegisterController.php (rad 92)
+- Problem: `if ($code !== $registrationCode)` — registreringskoden (en hemlighet
+  fran app_config.php) jamfors med `!==` som ar sårbar for timing-attacker.
+- Fix: Andrade till `if (!hash_equals($registrationCode, $code))`
+
+Ovriga granskade monster (alla rent):
+- password_verify() anvands korrekt i AuthHelper::verifyPassword() (rad 18)
+- password_hash(PASSWORD_BCRYPT) anvands i AuthHelper::hashPassword() (rad 25)
+- CSRF-token-validering anvander hash_equals() i AuthHelper::validateCsrfToken() (rad 207)
+- Token-generering anvander bin2hex(random_bytes(32)) i AuthHelper::generateCsrfToken() (rad 183)
+- mt_rand() anvands INTE for sakerhet — bara for seed-data (MaskinOeeController rad 187-193)
+  och probabilistisk cleanup (LoginController rad 147). Korrekt.
+- Inga sha1/md5 for losenord — bara en kommentar om historisk migration.
+- Inga reset_token, api_key eller secret_key-jamforelser hittades.
+
 ## 2026-03-24 Session #285 Worker B — Angular frontend buggjakt (1 bugg)
 
 ### Uppgift 1: Angular HTTP params encoding (0 buggar — rent)

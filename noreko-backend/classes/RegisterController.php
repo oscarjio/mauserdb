@@ -89,7 +89,7 @@ class RegisterController {
             $config = require $configFile;
             $registrationCode = $config['registration_code'] ?? $registrationCode;
         }
-        if ($code !== $registrationCode) {
+        if (!hash_equals($registrationCode, $code)) {
             $errors[] = 'Fel Kontrollkod.';
         }
 
