@@ -1,3 +1,20 @@
+## 2026-03-24 Session #304 Worker B — ViewChild static timing + httpClient memory on navigation (1 bugg)
+
+### Uppgift 1: Angular ViewChild static timing (0 buggar)
+- Granskade samtliga @ViewChild-dekorationer i alla komponenter (exkl. *-live).
+- Inga komponenter anvander `static: true` — alla ViewChild ar default `static: false`.
+- Ingen komponent anvander ViewChild-referens direkt i ngOnInit utan setTimeout-guard.
+- Alla canvas-element inuti *ngIf har korrekt null-guard (t.ex. `if (!this.chartRef?.nativeElement) return;`) i buildChart-metoder.
+- Inga buggar hittade.
+
+### Uppgift 2: Angular httpClient memory on navigation (1 bugg)
+- Systematiskt sokt igenom ~170 filer med .subscribe() for HTTP-anrop utan takeUntil(this.destroy$).
+- Alla komponenter med setInterval har korrekt clearInterval i ngOnDestroy.
+- Alla HTTP-anrop i setInterval-callbacks anvander takeUntil(this.destroy$).
+- **BUGG**: `loadOperators()` i rebotling-skiftrapport.ts (rad 389) saknade `takeUntil(this.destroy$)` — HTTP-prenumerationen fortsatte efter komponentens ngOnDestroy vid navigation.
+- Fix: lade till `takeUntil(this.destroy$)` i pipe-kedjan.
+- Filer: `noreko-frontend/src/app/pages/rebotling-skiftrapport/rebotling-skiftrapport.ts`
+
 ## 2026-03-24 Session #304 Worker A — PHP SQL implicit type conversion, array_splice, HAVING without GROUP BY (0 buggar)
 
 ### Uppgift 1: PHP SQL implicit type conversion (0 buggar)
