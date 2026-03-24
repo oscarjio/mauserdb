@@ -1,3 +1,25 @@
+## 2026-03-24 Session #304 Worker A — PHP SQL implicit type conversion, array_splice, HAVING without GROUP BY (0 buggar)
+
+### Uppgift 1: PHP SQL implicit type conversion (0 buggar)
+- Granskade alla controllers i noreko-backend/classes/ (exkl. Rebotling*/Tvattlinje*/Saglinje*/Klassificeringslinje*).
+- Kontrollerade alla WHERE-klausuler som jamfor kolumner med heltalsliteraler (= 0, = 1, >= 30, etc.).
+- Korsrefererade mot databasschemat i migrations/INSTALL_ALL.sql och AuthHelper.php.
+- Alla jamforelser ar korrekta: `active`, `aktiv`, `kvitterad`, `success`, `running`, `har_pagaende_problem` ar TINYINT(1); `id`, `cycle_sek`, `oee_val` ar INT/numeriska.
+- ENUM-kolumner (`status`, `category`, `allvarlighetsgrad`, `severity`, `typ`) jamfors alltid med strangvarden (t.ex. `status = 'avbokat'`).
+- Inga buggar hittade.
+
+### Uppgift 2: PHP array_splice off-by-one (0 buggar)
+- Sokte igenom alla PHP-filer i noreko-backend/classes/ efter `array_splice`.
+- Inga forekomster av array_splice hittades i nagon controller.
+
+### Uppgift 3: PHP SQL HAVING without GROUP BY (0 buggar)
+- Hittade 60+ HAVING-klausuler i icke-exkluderade controllers.
+- Kontrollerade varje HAVING mot narmaste GROUP BY (inom 60 rader uppat).
+- Alla HAVING-klausuler har korrekt matchande GROUP BY.
+- Inga buggar hittade.
+
+---
+
 ## 2026-03-24 Session #303 Worker B — scrollPositionRestoration + template-berakningar (2 buggar)
 
 ### Uppgift 1: Angular router scroll position (1 bugg)
