@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #289):
-- [ ] **PHP mail() injektionsrisk** — sanitering av mail-headers, CRLF-injection
-- [ ] **Angular unsubscribed Observables** — manuella subscribe() utan takeUntil/unsubscribe
-- [ ] **PHP date/time edge cases** — DST/timezone-problem, strtotime edge cases
-- [ ] **Angular template null dereference** — saknade ?. operatorer i templates
-- [ ] **PHP array bounds** — array-access utan isset/array_key_exists-guard
+### Klart (session #290 — alla rent):
+- [x] **PHP header() redirect consistency** — rent (inga header(Location:), SPA-arkitektur)
+- [x] **PHP PDO fetchColumn edge cases** — rent (191 anvandningar, alla korrekt hanterade)
+- [x] **PHP error suppression (@)** — rent (13 motiverade anvandningar)
+- [x] **Angular ngIf race conditions** — rent (arrayer initieras som [])
+- [x] **Angular router event memory leaks** — rent (inga router.events.subscribe)
 
-### Nasta buggjakt-items (session #290+):
-- [ ] **PHP header() redirect consistency** — kontrollera exit/die efter header(Location:) i alla controllers
-- [ ] **Angular ngIf race conditions** — async data som renderas fore HTTP-svar (strukturella direktiv)
-- [ ] **PHP PDO fetchColumn edge cases** — fetchColumn(0) nar query returnerar 0 rader (false vs 0)
-- [ ] **Angular router memory** — komponenter som prenumererar pa router events utan cleanup
-- [ ] **PHP error suppression (@)** — granska anvandning av @ operator som doljer fel
+### Nasta buggjakt-items (session #291+):
+- [ ] **PHP numeric string comparison** — loose comparison (==) mellan numeriska strangar i controllers
+- [ ] **Angular HTTP timeout** — saknade timeout-operatorer i HTTP-anrop
+- [ ] **PHP mb_string consistency** — strlen/substr vs mb_strlen/mb_substr for UTF-8 data
+- [ ] **Angular ViewChild timing** — ViewChild-referenser anvanda fore ngAfterViewInit
+- [ ] **PHP SQL COALESCE** — saknade COALESCE/IFNULL i queries med LEFT JOIN
 
 ## Parkerade features (ta inte dessa nu)
 

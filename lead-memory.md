@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #289)*
+*Senast uppdaterad: 2026-03-24 (session #290)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -94,23 +94,20 @@ Session #286: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). header/redirect
 Session #287: BUGGJAKT — 134 buggar (7 Worker A + 127 Worker B). in_array strict: rent. file path traversal: rent. GROUP BY: 7 fixade (3 controllers). ngOnChanges: rent (inga implementerar). takeUntil ordering: 127 fixade i 38 filer. service audit: rent.
 Session #288: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). catch(Exception) loggning: rent. LIKE injection escaping: rent. pagination validering: rent. HTTP retry logic: rent. trackBy *ngFor: rent.
 Session #289: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). mail() injection: rent. date/time: 2 strtotime edge cases fixade (ProduktionsmalController). array bounds: rent. unsubscribed Observables: rent. template null dereference: rent.
+Session #290: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() redirect: rent (inga header(Location:) i PHP, SPA-arkitektur). PDO fetchColumn: rent (191 anvandningar, alla med korrekt cast/check). error suppression @: rent (13 motiverade @-anvandningar). ngIf race conditions: rent (alla arrayer initieras som []). router event leaks: rent (inga router.events.subscribe).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #290+):
-- [ ] PHP header() redirect consistency — exit/die efter header(Location:)
-- [ ] Angular ngIf race conditions — async data fore HTTP-svar
-- [ ] PHP PDO fetchColumn edge cases — fetchColumn(0) false vs 0
-- [ ] Angular router memory — router events utan cleanup
-- [ ] PHP error suppression (@) — @ operator som doljer fel
+### Nasta (session #291+):
+- [ ] PHP numeric string comparison — loose comparison mellan numeriska strangar
+- [ ] Angular HTTP timeout — saknade timeout-operatorer
+- [ ] PHP mb_string consistency — strlen vs mb_strlen for UTF-8
+- [ ] Angular ViewChild timing — ViewChild fore ngAfterViewInit
+- [ ] PHP SQL COALESCE — saknade COALESCE i LEFT JOIN queries
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #287 (klar)
-Worker A: 7 buggar — GROUP BY fixade (3 controllers).
-Worker B: 127 buggar — takeUntil ordering fixade i 38 filer.
 
 ### 2026-03-24 — Session #288 (klar)
 Worker A: 0 buggar — catch(Exception) loggning: rent. LIKE injection: rent. Pagination validering: rent.
@@ -119,3 +116,7 @@ Worker B: 0 buggar — HTTP retry logic: rent. trackBy *ngFor: rent.
 ### 2026-03-24 — Session #289 (klar)
 Worker A: 2 buggar — strtotime edge cases fixade (ProduktionsmalController getPrognos + getWeekly).
 Worker B: 0 buggar — unsubscribed Observables: rent. Template null dereference: rent.
+
+### 2026-03-24 — Session #290 (klar)
+Worker A: 0 buggar — header() redirect: rent (SPA). fetchColumn: rent (191 anv). error suppression @: rent (13 motiverade).
+Worker B: 0 buggar — ngIf race conditions: rent. router event leaks: rent (inga router.events.subscribe).
