@@ -616,12 +616,14 @@ class SkiftrapportController {
         // Steg 1: Hitta rätt skifträknare i rebotling_ibc (fallback nedåt)
         $foundSkiftraknare = null;
         $chk = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM rebotling_ibc
-             WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
+            "SELECT EXISTS(
+                SELECT 1 FROM rebotling_ibc
+                WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998
+            )"
         );
         foreach ([$skiftraknare, $skiftraknare - 1, $skiftraknare - 2] as $testId) {
             $chk->execute([$testId]);
-            if ((int)$chk->fetchColumn() > 0) {
+            if ((bool)$chk->fetchColumn()) {
                 $foundSkiftraknare = $testId;
                 break;
             }

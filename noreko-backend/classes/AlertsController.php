@@ -553,13 +553,15 @@ class AlertsController {
     private function recentActiveAlertExists(string $type, int $withinMinutes): bool {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) FROM alerts
-                WHERE type = :type
-                  AND acknowledged = 0
-                  AND created_at >= DATE_SUB(NOW(), INTERVAL :mins MINUTE)
+                SELECT EXISTS(
+                    SELECT 1 FROM alerts
+                    WHERE type = :type
+                      AND acknowledged = 0
+                      AND created_at >= DATE_SUB(NOW(), INTERVAL :mins MINUTE)
+                )
             ");
             $stmt->execute(['type' => $type, 'mins' => $withinMinutes]);
-            return (int)$stmt->fetchColumn() > 0;
+            return (bool)$stmt->fetchColumn();
         } catch (\PDOException $e) {
             error_log('AlertsController::recentActiveAlertExists: ' . $e->getMessage());
             return false;

@@ -21315,3 +21315,29 @@ Granskade samtliga Angular-komponenter med formular (ngModel, FormControl, Forms
 - Ingen komponent forlorar formulardata vid parameterandringar — data laddas pa nytt vid navigation.
 
 Resultat: RENT — inga buggar.
+
+## Worker A — Session #302 (2026-03-24) — 2 buggar
+
+### Uppgift 1: PHP date() timezone consistency (0 buggar)
+Granskade api.php och alla controllers i classes/. `date_default_timezone_set('Europe/Stockholm')` ar satt pa rad 6 i api.php, som ar den enda ingangsplanen for alla API-anrop. Alla controllers laddas via api.php, sa timezone ar alltid satt innan nagon date()/strtotime() exekveras. Hittade manga date()/strtotime()-anrop i classes/ (RuntimeController, ParetoController, KassationsDrilldownController, MaintenanceController, m.fl.) — samtliga ar skyddade av den globala timezone-installningen.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: PHP SQL COUNT vs EXISTS (2 buggar)
+Granskade alla SQL-fragor med COUNT(*) i classes/. Hittade tva fall dar COUNT(*) anvands enbart for existenskontroll (resultat > 0) pa stora datatabeller:
+
+**Bugg 1: AlertsController.php rad 556** — `SELECT COUNT(*) FROM alerts WHERE ...` anvandes enbart for att kolla om det finns nagon matchande rad (returnerade bool). Bytte till `SELECT EXISTS(SELECT 1 FROM alerts WHERE ...)` som stoppar sokningen efter forsta traffen.
+
+**Bugg 2: SkiftrapportController.php rad 619** — `SELECT COUNT(*) FROM rebotling_ibc WHERE ...` anvandes i en loop (3 iterationer) enbart for att hitta forsta skiftraknare med data. Bytte till `SELECT EXISTS(SELECT 1 FROM ...)` for battre prestanda — rebotling_ibc kan ha manga rader per skiftraknare.
+
+Ovrigt: Hittade ~8 COUNT(*)-fragor mot information_schema.tables (tableExists-metoder i VdDashboard, Tidrapport, DagligBriefing, Stopporsak, PrediktivtUnderhall, Gamification, OperatorRanking, RebotlingAdmin). Dessa returnerar alltid 0 eller 1 rad, sa prestanda-skillnaden ar forsumbar — lamnades ororda. Hittade aven COUNT(*)-fragor i MaintenanceController, VdDashboardController, RebotlingAdminController m.fl. som anvander det faktiska antalet (pagination, dagsmal, statistik) — dessa BEHOVER COUNT och lamnades ororda.
+
+### Uppgift 3: PHP mb_string consistency (0 buggar)
+Granskade alla strlen/substr-anrop i classes/. Samtliga anvander icke-multibyte-funktioner pa ren ASCII-data:
+- strlen() pa passwords, emails, telefonnummer, feature keys — max-langd-validering dar multibyte ar irrelevant
+- substr() pa datum-strangar (YYYY-MM-DD), yearweek-varden, datetime-strangar — alltid fast ASCII-format
+- strtolower()/strtoupper() pa enum-liknande varden ('dag', 'kvall', 'natt', 'ASC'/'DESC', linjenamn) — aldrig svenska tecken
+
+Kontrollerade aven att mb_-varianter redan anvands korrekt dar det behovs: initialer fran operatorsnamn (mb_strtoupper + mb_substr), stationsnamn (mb_strtolower), och andra stallen dar svenska tecken kan forekomma.
+
+Resultat: RENT — inga buggar.
