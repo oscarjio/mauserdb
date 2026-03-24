@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #303):
-- [ ] **PHP SQL GROUP_CONCAT truncation** — default max_length 1024 kan trunkera data (Worker A)
-- [ ] **PHP error_log rotation/size** — kontrollera att loggfiler inte vaxer obegransat (Worker A)
-- [ ] **PHP PDO::ATTR_STRINGIFY_FETCHES** — inkonsekvent typning fran DB-fragor (Worker A)
-- [ ] **Angular router scroll position** — saknad scrollPositionRestoration vid navigation (Worker B)
-- [ ] **Angular HTTP race conditions** — switchMap vs exhaustMap pa POST/PUT anrop (Worker B)
+### Pagaende (session #304):
+- [ ] **PHP SQL implicit type conversion** — WHERE string_col = int kan ge oforutsagbara resultat (Worker A)
+- [ ] **PHP array_splice off-by-one** — kontrollera offset/length i alla array_splice-anrop (Worker A)
+- [ ] **PHP SQL HAVING without GROUP BY** — ogiltig SQL som MySQL tillater i lax-lage (Worker A)
+- [ ] **Angular ViewChild static timing** — static:true vs static:false vid dynamic content (Worker B)
+- [ ] **Angular httpClient memory on navigation** — ofullstandiga HTTP-anrop vid route-byte (Worker B)
 
-### Nasta buggjakt-items (session #304+):
-- [ ] **PHP SQL implicit type conversion** — WHERE string_col = int kan ge oforutsagbara resultat
-- [ ] **PHP array_splice off-by-one** — kontrollera offset/length i alla array_splice-anrop
-- [ ] **Angular ViewChild static timing** — static:true vs static:false vid dynamic content
-- [ ] **PHP SQL HAVING without GROUP BY** — ogiltig SQL som MySQL tillater i lax-lage
-- [ ] **Angular httpClient memory on navigation** — ofullstandiga HTTP-anrop vid route-byte
+### Nasta buggjakt-items (session #305+):
+- [ ] **PHP SQL IFNULL/COALESCE consistency** — blandad anvandning kan ge null-relaterade buggar
+- [ ] **PHP date() vs DateTime** — inkonsekvent datumhantering, potentiella timezone-problem
+- [ ] **Angular ChangeDetectorRef markForCheck** — saknade manuella CD-triggers vid async data
+- [ ] **PHP SQL LEFT JOIN vs INNER JOIN** — felaktiga JOINs som filtrerar bort rader med NULL
+- [ ] **Angular template i18n hardcoded strings** — icke-svenska strängar i templates
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #302)*
+*Senast uppdaterad: 2026-03-24 (session #304)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -108,23 +108,20 @@ Session #300: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_combine: re
 Session #301: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (inga blandade typer). SQL index usage: observation — 100+ DATE() i WHERE forhindrar index, ej fixat (kravs DB-kunskap). zone.js performance: rent (tunga berakningar pre-cachade). HTTP caching: rent (alla anrop filterbaserade). template null dereference: rent (alla skyddade).
 Session #302: BUGGJAKT — 3 buggar (2 Worker A + 1 Worker B). date() timezone: rent. COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent. innerHTML/renderer security: rent. lazy loading chunk errors: 1 fixad (esbuild regex+overlay). long list rendering: rent.
 Session #303: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). GROUP_CONCAT truncation: rent (alla <1024 bytes). error_log rotation: rent (alla default syslog). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false+int cast). scrollPositionRestoration: 1 fixad (app.config.ts). switchMap race: rent (alla GET). template expressions: 1 fixad (stoppage-log getter->cached).
+Session #304: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). SQL implicit type conversion: rent (alla TINYINT/INT). array_splice: rent (inga finns). HAVING without GROUP BY: rent (alla har GROUP BY). ViewChild static timing: rent (alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #303+):
-- [ ] PHP SQL GROUP_CONCAT truncation — default max_length 1024 kan trunkera data
-- [ ] PHP error_log rotation/size — kontrollera att loggfiler inte vaxer obegransat
-- [ ] Angular router scroll position — saknad scrollPositionRestoration vid navigation
-- [ ] PHP PDO::ATTR_STRINGIFY_FETCHES — inkonsekvent typning fran DB-fragor
-- [ ] Angular HTTP race conditions — switchMap vs exhaustMap pa POST/PUT anrop
+### Nasta (session #305+):
+- [ ] PHP SQL IFNULL/COALESCE consistency — blandad anvandning kan ge null-relaterade buggar
+- [ ] PHP date() vs DateTime — inkonsekvent datumhantering, potentiella timezone-problem
+- [ ] Angular ChangeDetectorRef markForCheck — saknade manuella CD-triggers vid async data
+- [ ] PHP SQL LEFT JOIN vs INNER JOIN — felaktiga JOINs som filtrerar bort rader med NULL
+- [ ] Angular template i18n hardcoded strings — icke-svenska strangar i templates
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #301 (klar)
-Worker A: 0 buggar — header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (25+ anrop, inga blandade typer). SQL index usage: 100+ DATE()-wrapper i WHERE forhindrar indexanvandning i 20+ controllers (observation, ej fixat).
-Worker B: 0 buggar — zone.js performance: rent (260+ template-metoder, alla latta). HTTP caching: rent (93 services, alla filterbaserade). template null dereference: rent (129 ngFor + 200+ bindings, alla skyddade).
 
 ### 2026-03-24 — Session #302 (klar)
 Worker A: 2 buggar — date() timezone: rent (globalt i api.php). COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent (korrekt uppdelning ASCII/mb_).
@@ -133,3 +130,7 @@ Worker B: 1 bugg — innerHTML/renderer security: rent (inga innerHTML/bypassSec
 ### 2026-03-24 — Session #303 (klar)
 Worker A: 0 buggar — GROUP_CONCAT truncation: rent (alla <1024 bytes, manga anvander SUBSTRING_INDEX). error_log rotation: rent (alla default syslog, inga custom filer). PDO STRINGIFY_FETCHES: rent (EMULATE_PREPARES=false, genomgaende int-cast).
 Worker B: 2 buggar — scrollPositionRestoration: 1 fixad (saknades i provideRouter, app.config.ts). switchMap race conditions: rent (alla 7 wrappar GET). template expressions: 1 fixad (stoppage-log: getter->cached property for filteredStoppages+stopSummaryStats+getMaxCostlyMin+qrCount).
+
+### 2026-03-24 — Session #304 (klar)
+Worker A: 0 buggar — SQL implicit type conversion: rent (alla TINYINT/INT, ENUM jamfors med strangar). array_splice: rent (inga forekomster). HAVING without GROUP BY: rent (60+ HAVING, alla har matchande GROUP BY).
+Worker B: 1 bugg — ViewChild static timing: rent (33 dekorationer, alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil(destroy$)).
