@@ -40,6 +40,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
   // -- Data --
   summary: OeeSummaryData | null = null;
   segments: WaterfallSegment[] = [];
+  forlustSegmentsCached: WaterfallSegment[] = [];
   totalTimmar = 0;
 
   // -- Chart --
@@ -109,11 +110,13 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
         this.loadingWaterfall = false;
         if (res?.success) {
           this.segments    = res.data.segments ?? [];
+          this.forlustSegmentsCached = this.segments.filter(s => s.typ === 'forlust');
           this.totalTimmar = res.data.total_timmar ?? 0;
           this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildWaterfallChart(); }, 0));
         } else {
           this.errorWaterfall = true;
           this.segments    = [];
+          this.forlustSegmentsCached = [];
           this.totalTimmar = 0;
         }
       });
@@ -252,8 +255,9 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
     return `${helH}h ${min}min`;
   }
 
+  /** @deprecated Använd forlustSegmentsCached istället — preberäknad vid dataladdning */
   forlustSegments(): WaterfallSegment[] {
-    return this.segments.filter(s => s.typ === 'forlust');
+    return this.forlustSegmentsCached;
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

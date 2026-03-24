@@ -266,11 +266,11 @@
         <label class="form-label" for="assignOpSelect">Välj operatör</label>
         <select id="assignOpSelect" class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp" aria-label="Valj operator">
           <option [ngValue]="0" disabled>-- Välj operatör --</option>
-          <option *ngFor="let op of getAvailableOperators(); trackBy: trackById" [ngValue]="op.id">
+          <option *ngFor="let op of availableOperatorsCached; trackBy: trackById" [ngValue]="op.id">
             {{ op.namn }}
           </option>
         </select>
-        <small class="text-muted" *ngIf="getAvailableOperators().length === 0">
+        <small class="text-muted" *ngIf="availableOperatorsCached.length === 0">
           Alla operatörer är redan inplanerade denna dag.
         </small>
       </div>

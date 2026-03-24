@@ -152,7 +152,7 @@
 
       <!-- Förluster -->
       <div class="forlust-rad"
-           *ngFor="let seg of forlustSegments(); trackBy: trackByIndex"
+           *ngFor="let seg of forlustSegmentsCached; trackBy: trackByIndex"
            [class.forlust-negativ]="seg.typ === 'forlust'">
         <div class="forlust-label">
           <span class="forlust-dot" [style.background]="seg.farg"></span>

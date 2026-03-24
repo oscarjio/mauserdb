@@ -61,6 +61,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   assignMessage = '';
   assignError = '';
   savingAssign = false;
+  availableOperatorsCached: OperatorItem[] = [];
 
   // Chart
   private capacityChart: Chart | null = null;
@@ -219,10 +220,13 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
         this.loadingOperators = false;
         if (res?.success) {
           this.allOperators = res.operatorer;
+          this.refreshAvailableOperatorsCache();
         } else {
           this.errorOperators = true;
         }
       });
+    } else {
+      this.refreshAvailableOperatorsCache();
     }
   }
 
@@ -381,10 +385,16 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   }
 
   getAvailableOperators(): OperatorItem[] {
-    if (!this.showAssignModal) return [];
-    // Filter out operators already assigned on this day
+    return this.availableOperatorsCached;
+  }
+
+  private refreshAvailableOperatorsCache(): void {
+    if (!this.showAssignModal) {
+      this.availableOperatorsCached = [];
+      return;
+    }
     const assignedOnDay = this.getAssignedOperatorIds(this.assignDatum);
-    return this.allOperators.filter(op => !assignedOnDay.includes(op.id));
+    this.availableOperatorsCached = this.allOperators.filter(op => !assignedOnDay.includes(op.id));
   }
 
   private getAssignedOperatorIds(datum: string): number[] {
