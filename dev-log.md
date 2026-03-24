@@ -1,3 +1,29 @@
+## 2026-03-24 Session #290 Worker B — ngIf race conditions, router event memory leaks granskning (0 buggar)
+
+### Uppgift 1: Angular ngIf race conditions (0 buggar — rent)
+
+Granskade samtliga Angular-komponenters templates (*.html) i noreko-frontend/src/app/ (exklusive rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+Sokte efter `*ngIf` med `.length`-access pa variabler som laddas via HTTP och kan vara undefined/null.
+
+Genomgang av ~115 HTML-filer med ~300+ `.length`-anvandningar i `*ngIf`-uttryck. Resultat:
+
+- **Arrayer initierade som `[]`**: Majoriteten av `.length`-checkar anvander lokala arrayer (t.ex. `notes`, `ranking`, `stoppages`, `operators`) som ar deklarerade som `Type[] = []` i TS-filen. Dessa kan aldrig vara undefined. Sakert.
+- **Nested property access med parent guard**: Manga monster som `obj.prop.length` ar inuti en foralders `*ngIf="obj"` eller `*ngIf="loaded && obj"`. T.ex. `weeklyData.operators.length` inuti `*ngIf="weeklyData && !weeklyLoading"`, `dagDetalj.stopporsaker.length` inuti `*ngIf="detaljLoaded && dagDetalj"`, `report.daily_production.length` inuti `*ngIf="hasData && report"`. Sakert.
+- **Explicit null-safe patterns**: Manga anvander redan `?.length`, `(data?.prop?.length ?? 0)`, eller `data && data.prop.length`. T.ex. operator-ranking, tidrapport, oee-trendanalys, stopporsaker. Sakert.
+- **Ternary guards**: Arrayer med `[0]`-access anvander antingen ternary (`op.orsaker.length > 0 ? op.orsaker[0].orsak : '-'`) eller `?.[]`-syntax. Sakert.
+
+Inga ngIf race conditions hittades.
+
+### Uppgift 2: Angular router event memory leaks (0 buggar — rent)
+
+Granskade samtliga Angular-komponenters TS-filer (*.ts) i noreko-frontend/src/app/ (exklusive forbjudna livesidor).
+Sokte efter:
+- `this.router.events.subscribe(` utan `takeUntil` — 0 forekomster i hela kodbasen
+- `this.route.params.subscribe(` — 0 forekomster
+- `this.route.queryParams.subscribe(` — 0 forekomster
+
+Ingen komponent prenumererar direkt pa router.events, route.params eller route.queryParams. Routing hanteras via andra mekanismer (t.ex. ActivatedRoute snapshot, queryParamMap). Inga memory leaks.
+
 ## 2026-03-24 Session #290 Worker A — header() redirect, PDO fetchColumn, error suppression granskning (0 buggar)
 
 ### Uppgift 1: PHP header() redirect consistency (0 buggar — rent)
