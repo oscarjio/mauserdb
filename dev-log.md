@@ -1,3 +1,47 @@
+## Worker A — Session #306 (2026-03-24) — 0 buggar
+
+### Uppgift 1: SQL subquery correlation (0 buggar)
+Granskade alla controllers i noreko-backend/classes/ efter subqueries (IN (SELECT ...), korrelerade subqueries, EXISTS-subqueries).
+
+Enda subquery-monstret i hela klassen var tre forekomster i RebotlingAnalyticsController.php (raderna 4082, 4155, 5136) — korrelerade subqueries av formen:
+```sql
+(SELECT CASE WHEN HOUR(MIN(i.datum)) ... END FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare)
+```
+Dessa ar korrekta: den yttre fragorns alias `s` (rebotling_skiftrapport) korrelerar korrekt med inner queryn pa `i.skiftraknare = s.skiftraknare`. Ingen felaktig tabell/alias-referens.
+
+Ovriga klasser i noreko-backend/classes/[A-M]*.php: inga subqueries alls.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: $_GET/$_POST default values (0 buggar)
+Granskade alla controllers/[A-M]*.php (proxy-filer) och classes/[A-Ma-m]*.php (implementationsfiler) for oskyddade $_GET/$_POST-atkomster.
+
+Metodik: soktes efter $_GET/$_POST-atkomster utan `isset`, `??` (null coalescing) eller `empty` pa samma rad, sedan granskades varje treff i kontext.
+
+Hittade tre rader utan `isset`/`??` pa exakt samma rad — alla granskades:
+- FeedbackAnalysController.php rad 91: `intval($_GET['operator_id'])` — skyddad av `isset($_GET['operator_id']) && $_GET['operator_id'] !== ''` pa rad 90 (tvaradigt villkor). Saker.
+- MinDagController.php rad 53: `intval($_GET['operator'])` — skyddad av `!empty($_GET['operator'])` pa rad 52. Saker.
+
+Alla ovriga $_GET/$_POST-atkomster i A-M controllers anvander konsekvent `$_GET['param'] ?? default` eller `isset($_GET['param'])`. Inga oskyddade atkomster.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: SQL COUNT vs SUM confusion (0 buggar)
+Granskade 49 filer (classes/[A-Ma-m]*.php) med COUNT/SUM/AVG-anvandning. Fokus pa:
+1. COUNT(*) dar SUM() borde anvandas
+2. COUNT(kolumn) pa numeriska matkolumner
+3. Felaktig aggregering
+
+Fynd och bedomningar:
+- COUNT(*) pa rebotling_ibc-tabellen: varje rad = en IBC-enhet. COUNT(*) = korrekt satt att rakna IBC-enheter (t.ex. AndonController, DagligBriefingController). Korrekt.
+- COUNT(bi.id) i BatchSparningController: raknar antal batch-IBC-poster. Korrekt.
+- COUNT(m.id) i MaintenanceController: raknar antal underhallshindelser. Korrekt.
+- COUNT(*)/SUM() kombination i BonusController, BonusAdminController: COUNT(*) raknar skift (rader), SUM() summerar poang/ibc/runtime. Konsekvent korrekt anvandning.
+- `CASE WHEN COUNT(bi.id) > 0 THEN (SUM(bi.kasserad) / COUNT(bi.id)) * 100` i BatchSparningController: kassationsprocent = kasserade/totalt*100. Korrekt formelfragning.
+- COUNT(*) enbart for existenskontroll (COUNT > 0): granskades fran session #302-perspektivet — inga nya fall hittades i A-M controllers utover de som redan fixades i session #302.
+
+Resultat: RENT — inga buggar.
+
 ## 2026-03-24 Session #305 Worker B — Angular ChangeDetectorRef + i18n svenska (1 bugg)
 
 ### Uppgift 1: Angular ChangeDetectorRef markForCheck (0 buggar)
