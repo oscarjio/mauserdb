@@ -1,3 +1,52 @@
+## 2026-03-24 Session #298 Worker B — zone.js change detection + canDeactivate granskning (0 buggar)
+
+### Uppgift 1: Angular zone.js change detection — onnodig rendering, tunga template-uttryck (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live/, tvattlinje-live/, saglinje-live/, klassificeringslinje-live/). Ca 70 komponent-filer och lika manga HTML-templates granskade.
+
+**setInterval-minnesläckor**: Alla 65+ komponenter med setInterval sparar timer-ID och rensar i ngOnDestroy med clearInterval. Den synbara mismatch (setInterval=2 vs clearInterval=1 per fil) beror pa `ReturnType<typeof setInterval>` typdeklarationer — inga faktiska lackor.
+
+**setTimeout-hantering**: Tva monster anvands: (1) enstaka timer-variabler med clearTimeout i ngOnDestroy, (2) `_timers: ReturnType<typeof setTimeout>[]` med `_timers.forEach(t => clearTimeout(t))` i ngOnDestroy. Alla korrekt implementerade.
+
+**ngFor med metodanrop (prestandafix, ej bugg)**:
+- `oee-waterfall.html`: `*ngFor="let seg of forlustSegments()"` anropade `.filter()` varje CD-cykel. Fix: Preberaknad `forlustSegmentsCached` vid dataladdning, template andrad till `*ngFor="let seg of forlustSegmentsCached"`.
+- `skiftplanering.component.html`: `*ngFor="let op of getAvailableOperators()"` anropade filter+nested loop varje CD-cykel (2 ggr i template). Fix: Preberaknad `availableOperatorsCached` som uppdateras nar modal oppnas eller operatorer laddas.
+
+**Ovrigt granskat (rent)**:
+- 200+ template-metodanrop granskade ({{ formatX() }}, {{ getY() }}). De flesta ar latta formatteringsfunktioner (O(1)) — prestandapåverkan minimal.
+- `[ngStyle]="{'color': getOeeBgColor()}"` i daglig-sammanfattning — skapar nytt objekt varje cykel men enskilt element, ej kritiskt.
+- `*ngFor` med `parseJson()+formatJsonKeys()` i audit-log — tungt men bara nar en rad ar expanderad (expandedId), begransad paverkan.
+- trackBy anvands pa alla *ngFor (utom 1 statisk arrayliteral i template — OK).
+- Inga `@for`-loopar (Angular 17+) utan track.
+
+### Uppgift 2: Angular router canDeactivate — osparade andringar utan varning vid navigering (0 buggar)
+Granskade alla routing-konfigurationer och formular-komponenter.
+
+**Befintlig guard**: `pending-changes.guard.ts` existerar med `ComponentCanDeactivate`-interface och `pendingChangesGuard: CanDeactivateFn`.
+
+**Rutter med canDeactivate (11 st, alla korrekt konfigurerade)**:
+- rebotling/overlamning (shift-handover)
+- rebotling/skiftoverlamning
+- rebotling/underhallslogg
+- rebotling/produktionsmal
+- rebotling/leveransplanering
+- rebotling/admin (rebotling-admin)
+- rebotling/bonus-admin
+- tvattlinje/admin
+- saglinje/admin
+- klassificeringslinje/admin
+- admin/create-user
+- admin/news
+- admin/certifiering
+- admin/feature-flags
+
+**FormGroup/FormControl**: Grep pa FormGroup, FormControl, FormBuilder gav 0 träffar i komponent-filer (dessa filer anvander vanlig [(ngModel)] och `canDeactivate()` med dirty-flaggor istallet for ReactiveFormsModule).
+
+**isEditing/editMode/isDirty**: Grep gav 0 träffar — komponenterna anvander `formDirty`-flaggor med canDeactivate-interfacet.
+
+Inga buggar hittades. canDeactivate ar korrekt implementerat for alla sidor med redigerbar data.
+
+---
+
 ## 2026-03-24 Session #297 Worker B — OnDestroy cleanup audit + HTTP error message display (2 buggar)
 
 ### Uppgift 1: Angular OnDestroy cleanup audit (0 buggar)
