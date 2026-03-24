@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #292)*
+*Senast uppdaterad: 2026-03-24 (session #293)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -97,23 +97,22 @@ Session #289: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). mail() injection:
 Session #290: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() redirect: rent (inga header(Location:) i PHP, SPA-arkitektur). PDO fetchColumn: rent (191 anvandningar, alla med korrekt cast/check). error suppression @: rent (13 motiverade @-anvandningar). ngIf race conditions: rent (alla arrayer initieras som []). router event leaks: rent (inga router.events.subscribe).
 Session #291: BUGGJAKT — 6 buggar (6 Worker A + 0 Worker B). numeric string comparison: rent (alla ===). mb_string: 6 fixade (4 strtoupper->mb_strtoupper pa initialer, 2 strlen->mb_strlen pa username). SQL COALESCE: rent. HTTP timeout: rent (alla har timeout). ViewChild timing: rent (inga i ngOnInit).
 Session #292: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). array_key_exists/isset: rent. PDO lastInsertId: rent (ERRMODE_EXCEPTION). GROUP BY strict: 2 fixade (MyStatsController). OnPush: rent (inga OnPush-komponenter). pipe chaining: rent (alla null-guards). HTTP retry: rent (retry bara pa GET).
+Session #293: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). empty() gotchas: rent (~388 anvandningar, alla sakra). strtotime() edge cases: rent (~550 anvandningar, alla validerade). HTTP retry: rent (bekraftad). trackBy *ngFor: rent. template logik N-Z: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #293+):
+### Nasta (session #294+):
 - [ ] PHP array_key_exists vs isset — controllers N-Z
 - [ ] PHP PDO lastInsertId — controllers N-Z
 - [ ] PHP SQL GROUP BY strict mode — controllers N-Z
-- [ ] Angular HTTP retry pa POST/PUT/DELETE — retry() ska bara finnas pa GET
-- [ ] PHP empty() gotchas — empty("0")/empty([]) farligt for validering
+- [ ] PHP intval/floatval pa $_GET/$_POST — user input som inte castas korrekt
+- [ ] PHP SQL ORDER BY injection — ORDER BY/LIMIT fran user input utan whitelist
+- [ ] Angular FormControl validators — asynkrona validators, required pa dolda falt
+- [ ] Angular router param type safety — params.get() utan validering/parseInt
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #290 (klar)
-Worker A: 0 buggar — header() redirect: rent (SPA). fetchColumn: rent (191 anv). error suppression @: rent (13 motiverade).
-Worker B: 0 buggar — ngIf race conditions: rent. router event leaks: rent (inga router.events.subscribe).
 
 ### 2026-03-24 — Session #291 (klar)
 Worker A: 6 buggar — mb_string: 4 strtoupper->mb_strtoupper (initialer), 2 strlen->mb_strlen (username). numeric comparison: rent. COALESCE: rent.
@@ -122,3 +121,7 @@ Worker B: 0 buggar — HTTP timeout: rent (alla har timeout). ViewChild timing: 
 ### 2026-03-24 — Session #292 (klar)
 Worker A: 2 buggar — GROUP BY strict: 2 subqueries i MyStatsController (op_num i SELECT utan GROUP BY). isset/array_key_exists: rent. lastInsertId: rent.
 Worker B: 0 buggar — OnPush: rent (inga OnPush-komponenter). pipe chaining: rent. HTTP retry: rent (retry bara pa GET).
+
+### 2026-03-24 — Session #293 (klar)
+Worker A: 0 buggar — empty() gotchas: rent (~388 anvandningar). strtotime() edge cases: rent (~550 anvandningar, alla validerade).
+Worker B: 0 buggar — HTTP retry: rent (bekraftad). trackBy *ngFor: rent. template logik N-Z: rent.
