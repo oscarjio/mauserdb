@@ -1,3 +1,30 @@
+## 2026-03-24 Session #301 Worker B — Angular zone.js / HTTP caching / null dereference granskning (0 buggar)
+
+### Uppgift 1: Angular zone.js performance — template-uttryck (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Ca 45 komponentfiler och lika manga HTML-templates.
+- **Metodanrop i templates**: 260+ metodanrop i templates identifierade (getColor, formatDate, formatKr, sortIkon, etc.). Samtliga ar latta one-liner-metoder (enkel if/switch + return) utan tunga berakningar. Inga array-iterationer, DOM-operationer eller objektskapande i template-metoder.
+- **No-arg metoder i templates**: 9 stycken (getMalBarWidth, getMalBarColor, getJamforelseText, senastUppdateradText, trendLabel, trendColor, granularityLabel, getTrendText, getPeriodLabel). Alla gor enkla property-lookups pa this.oversikt/this.overview etc. — negligibel kostnad.
+- **Cachat sorterade listor**: cachedSortedDetaljer, cachedSortedStopp, cachedSortedHistorik, cachedVisibleSegments, cachedSortedEquipmentStats, sortedRanking — alla beraknas i komponenten vid dataandring, inte i templates. Korrekt monster.
+- Session #298 fixade de tva verkliga problemen (oee-waterfall + skiftplanering). Inga ytterligare problem kvarstar.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: Angular HTTP caching — GET-anrop utan caching (0 buggar)
+Granskade alla 93+ Angular services i noreko-frontend/src/app/services/.
+- **shareReplay**: Anvands inte i nagon service. Dock ar detta korrekt for detta projekt — alla services gor period-/filter-baserade anrop dar caching skulle ge stale data. Polling-intervall (30s–300s) ger tillracklig uppdatering.
+- **getMaskiner()**: Bade MaskinOeeService och StopptidsanalysService har getMaskiner() utan caching, men anropas bara en gang per komponent-init (ngOnInit), inte vid polling. Acceptabelt.
+- **Polling-monster**: 30+ komponenter med setInterval. Alla pollar bara dynamisk data (oversikt, produktion, alarm) — inte statiska listor (maskiner, operatorer, periodOptions).
+- **BehaviorSubject/signal**: Inga behov identifierade — varje komponent hanterar sin egen data, inga delade observables mellan komponenter (utom auth.service som redan anvander BehaviorSubject).
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: Angular template null dereference — saknade null-guards (0 buggar)
+Granskade alla templates for null-dereference-risker. 129 *ngFor-direktiv och 200+ template-bindningar granskade.
+- **ngFor med null-safe access**: Alla *ngFor med potentiellt null-data anvander antingen `?? []` (t.ex. `stoppNu.aktiva_stopp ?? []`, `perMaskinData?.maskiner ?? []`) eller ar innanfor en `*ngIf`-guard (t.ex. `*ngIf="skiftData"` runt `skiftData.skift`).
+- **ngFor innanfor *ngIf**: 30+ *ngFor som nar nested properties (t.ex. `overviewData.top3`, `historikData.historik`, `stationerData.rows`) verifierade — alla ar innanfor en *ngIf-guard pa parent-objektet.
+- **.toFixed() pa null**: 9 toFixed()-anrop i templates — alla anvander `?? 0` fallback.
+- **Optional chaining**: Genomgaende anvandning av `?.` i templates for potentiellt null sub-properties (aktuellData.senaste_timme?.farg, sammanfattning?.dag_mal, etc.).
+- Session #284 granskade a-m, #287 resten, #289 unsubscribed+null, #290 ngIf race conditions. Inget nytt hittat.
+Resultat: RENT — inga buggar.
+
 ## 2026-03-24 Session #301 Worker A — header/exit, array_unique, DATE() i WHERE (0 buggar)
 
 ### Uppgift 1: PHP header() + exit() consistency (0 buggar)
