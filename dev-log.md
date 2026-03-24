@@ -1,3 +1,40 @@
+## 2026-03-24 Session #299 Worker B — switchMap/POST granskning + accessibility-fixar (4 buggar)
+
+### Uppgift 1: Angular HTTP request cancellation — switchMap vs mergeMap for POST-anrop (0 buggar)
+Granskade samtliga Angular services och components i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- switchMap anvands enbart for GET-baserade operationer: auth-polling (interval + switchMap -> fetchStatus), alerts-polling (timer + switchMap -> getActiveAlerts), auth guards (switchMap -> user$).
+- Inga switchMap med POST/PUT/DELETE-anrop hittades.
+- POST/PUT/DELETE-anrop gors via direkt .subscribe() i components med [disabled]-guards pa knappar for att forhindra dubbelklick.
+- Inga exhaustMap/mergeMap/concatMap anvands i kodbasen — inte nodvandigt da POST-anrop inte triggas fran Observables/Subjects.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: Angular template accessibility (4 buggar)
+Granskade alla HTML-templates i noreko-frontend/src/app/ (exkl. live-sidor).
+
+**Bugg 1: menu.html:231 — <a> utan href for "Logga ut"**
+- `<a class="dropdown-item" (click)="logout()">` saknade href, ej fokuserbar via tangentbord, ej semantisk knapp.
+- Fix: Bytte till `<button class="dropdown-item" type="button" (click)="logout()">`.
+
+**Bugg 2: statistik-skiftrapport-operator.html:35,39 — datumfalts-inputs utan label**
+- Tva date-inputs (customFrom, customTo) saknade bade label for-attribut och aria-label.
+- Fix: La till aria-label="Fran datum" och aria-label="Till datum".
+
+**Bugg 3: operatorsbonus.component.html:42,46,50 — config-inputs utan aria-label**
+- Tre number-inputs for vikt/malvarde/max-bonus anvande `<small>` som visuell etikett men saknade programmatisk koppling.
+- Fix: La till aria-label pa varje input (Vikt procent, Malvarde, Max bonus kronor).
+
+**Bugg 4: statistik-histogram.html:11 — datumfalt utan aria-label**
+- Date-input med adjacent `<label>` men utan for/id-koppling.
+- Fix: La till aria-label="Valj datum".
+
+**Ovrigt granskat utan fynd:**
+- Alla img-taggar har alt-attribut.
+- href="#" anvands korrekt for Bootstrap dropdown-triggers (data-bs-toggle="dropdown") — forvantad Bootstrap-mekanism.
+- Klickbara div/span har generellt role="button", tabindex="0" och keydown-handlers.
+- Formularelement i register, create-user, stopporsak-registrering, shift-handover m.fl. har korrekta label/for-kopplingar.
+
+---
+
 ## 2026-03-24 Session #298 Worker A — try/catch granularitet + SUM/AVG COALESCE + htmlspecialchars sanitering (14 buggar)
 
 ### Uppgift 1: PHP try/catch granularitet (0 buggar)
