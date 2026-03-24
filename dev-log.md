@@ -1,3 +1,39 @@
+## 2026-03-24 Session #293 Worker B — HTTP-retry/trackBy/template-logik granskning (0 buggar)
+
+### Uppgift 1: Angular HTTP retry pa POST/PUT/DELETE (0 buggar — rent)
+
+Granskade alla Angular services i noreko-frontend/src/app/services/ samt error.interceptor.ts.
+
+Resultat:
+- **Inga retry() pa POST/PUT/DELETE.** Alla POST-anrop (operatorsbonus, kvalitetscertifikat, produktions-sla, skiftplanering, produktionskostnad, maskinunderhall, batch-sparning) har enbart `timeout()` + `catchError()` utan retry.
+- **error.interceptor.ts** har retry med explicit guard: `safeToRetry = ['GET', 'HEAD', 'OPTIONS'].includes(req.method)` — POST/PUT/DELETE gar direkt till throwError.
+- **Inga retryWhen()** i hela kodbasen.
+- **Inga http.put(), http.delete() eller http.patch()** i services — alla mutationer gar via POST.
+- retry(1) anvands korrekt pa ~80 GET-anrop i diverse services.
+
+### Uppgift 2: Angular template *ngFor utan trackBy (0 buggar — rent)
+
+Granskade alla ~200 *ngFor i Angular templates under noreko-frontend/src/app/.
+
+Resultat:
+- **Alla dynamiska *ngFor har trackBy: trackByIndex.** Enda undantaget ar en statisk inline-array i skiftrapport-sammanstallning.html rad 243 (`*ngFor="let entry of [{...}, {...}, {...}]"`) som ar en hardkodad 3-elements layout — ingen prestandarisk.
+- Alla komponenter med setInterval/polling (74 filer) anvander trackBy korrekt.
+
+### Uppgift 3: Angular template aritmetik/logik, komponenter N-Z (0 buggar — rent)
+
+Granskade templates for alla pages/[n-z]* och pages/rebotling/[n-z]* komponenter.
+
+Resultat:
+- **Inga === 'true' eller == 'false' jamforelser** i nagon template.
+- **toFixed()-anrop** ar korrekt guardade med `?? 0`, `?.toFixed()`, eller ternary-checks (t.ex. `val !== null ? val.toFixed(1) : '—'`).
+- **Djup property-access** (t.ex. `trenderData.trender.produktion.trend`) ar skyddat av overordnade *ngIf-guards eller @if-block.
+- **Math.max()** i production-analysis.html rad 750 ar korrekt — komponenten exponerar `Math = Math` pa rad 54.
+- **Inga divide-by-zero-risker** i templates — divisions ar antingen guardade med `> 0`-check eller anvander backend-beraknade varden.
+- rebotling-trendanalys anvander genomgaende `?.`-operatorn for optional chaining.
+- operators-prestanda anvander `@if (skift.basta_operator)` for att guarda djup access.
+
+---
+
 ## 2026-03-24 Session #291 Worker A — numeric-comparison/mb_string/COALESCE granskning (6 buggar)
 
 ### Uppgift 1: PHP numeric string comparison (0 buggar — rent)
