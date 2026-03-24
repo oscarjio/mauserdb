@@ -21341,3 +21341,29 @@ Granskade alla strlen/substr-anrop i classes/. Samtliga anvander icke-multibyte-
 Kontrollerade aven att mb_-varianter redan anvands korrekt dar det behovs: initialer fran operatorsnamn (mb_strtoupper + mb_substr), stationsnamn (mb_strtolower), och andra stallen dar svenska tecken kan forekomma.
 
 Resultat: RENT — inga buggar.
+
+## Worker B — Session #302 (2026-03-24) — 1 bugg
+
+### Uppgift 1: Angular renderer security — innerHTML/bypassSecurityTrust (0 buggar)
+Granskade samtliga Angular-komponenter i noreko-frontend/src/app/ (42 .component.ts-filer, 37 .component.html-filer, plus sidspecifika .html/.ts). Sokte efter innerHTML-bindningar i templates, DomSanitizer-anvandning och bypassSecurityTrust-anrop i TypeScript-filer.
+
+- **innerHTML**: Inga forekomster hittade i nagon template.
+- **bypassSecurityTrustHtml/Style/Script/Url/ResourceUrl**: Inga forekomster hittade.
+- **DomSanitizer**: Inga forekomster hittade — ingen komponent injicerar DomSanitizer.
+
+Resultat: RENT — inga buggar. Projektet anvander enbart Angulars inbyggda interpolation ({{ }}) och property-bindningar, vilket ger automatisk XSS-sanitering.
+
+### Uppgift 2: Angular lazy loading chunk errors (1 bugg)
+Granskade app.routes.ts (164 rader, ~100 lazy-loaded routes med loadComponent) och app.config.ts dar GlobalErrorHandler fran session #267 ar definierad.
+
+**Bugg 1: GlobalErrorHandler fangade inte esbuild-stil chunk-fel** — Projektet anvander @angular/build:application (esbuild-baserad bundler) sedan uppgradering, men GlobalErrorHandler:s regex matchade bara webpack-stil meddelanden ("Loading chunk X failed" / "ChunkLoadError"). Esbuild producerar "Failed to fetch dynamically imported module" vid chunk-laddningsfel. Utokade regex till att matcha bade webpack- och esbuild-format. Dessutom: nar reload-loop-skyddet slog in (chunk-fel inom 10 sek efter forsta reload) loggades felet tyst till console.error utan nagon anvandbar aterkomst. La till showChunkErrorOverlay() som visar ett svenskt meddelande ("Sidan kunde inte laddas") med en "Ladda om sidan"-knapp i dark theme-stil (#2d3748 bg, #e2e8f0 text).
+
+Positivt: PreloadAllModules ar aktiverat (rad 53 i app.config.ts) vilket forladdar alla chunks direkt — minimerar risken for chunk-fel avsevart. Men det eliminerar inte alla fall (langvarig session, natverksfel under forladdning).
+
+### Bonus: Angular long list rendering (0 buggar)
+Granskade alla *ngFor- och @for-loopar i templates:
+- **trackBy/track**: Samtliga *ngFor har trackBy: trackByIndex. Samtliga @for (4 st i operators-prestanda) har track-uttryck. Session #268:s fix haller.
+- **Enda undantaget**: skiftrapport-sammanstallning.html rad 243 — sag ut som saknad trackBy vid forsta grep, men vid lasning visade det sig att trackBy: trackByIndex faktiskt finns pa rad 247 (flerrads-syntax).
+- **Virtuell scrollning**: Inga listor i nuvarande implementation visar 100+ rader i en enda vy — de flesta anvander pagination, begransade API-fragor (LIMIT), eller ar relativt sma dataset (operatorer, stationer, skift). Virtuell scrollning behovs inte i nuvarande tillstand.
+
+Resultat: RENT — inga buggar.

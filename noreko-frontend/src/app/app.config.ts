@@ -17,12 +17,17 @@ registerLocaleData(localeSv);
  * Global ErrorHandler som fångar ChunkLoadError (uppstår när lazy-loaded
  * chunks inte kan hämtas, t.ex. efter en ny deploy medan användaren har
  * gammal version cachad). Laddar om sidan en gång för att hämta nya chunks.
+ *
+ * Hanterar både webpack-stil ("Loading chunk X failed") och esbuild-stil
+ * ("Failed to fetch dynamically imported module") samt generiska TypeError
+ * från nätverksfel vid dynamisk import.
  */
 class GlobalErrorHandler implements ErrorHandler {
   handleError(error: any): void {
-    const chunkFailedMessage = /Loading chunk [\d]+ failed|ChunkLoadError/;
+    const chunkFailedMessage = /Loading chunk [\d]+ failed|ChunkLoadError|Failed to fetch dynamically imported module|dynamically imported module/i;
     const innerError = error?.rejection ?? error;
-    if (chunkFailedMessage.test(innerError?.message || '')) {
+    const msg = innerError?.message || '';
+    if (chunkFailedMessage.test(msg)) {
       // Förhindra oändlig reload-loop: kontrollera om vi redan laddade om nyligen
       const lastReload = sessionStorage.getItem('chunk_reload_ts');
       const now = Date.now();
@@ -31,9 +36,34 @@ class GlobalErrorHandler implements ErrorHandler {
         window.location.reload();
         return;
       }
+      // Reload-loop skydd: visa felmeddelande istället för tyst console.error
+      this.showChunkErrorOverlay();
+      return;
     }
     // Fallback: logga övriga fel till konsolen
     console.error(error);
+  }
+
+  /**
+   * Visar ett overlay-meddelande på svenska som informerar användaren om att
+   * sidan inte kunde laddas och erbjuder en knapp för att ladda om.
+   */
+  private showChunkErrorOverlay(): void {
+    // Undvik duplicerade overlays
+    if (document.getElementById('chunk-error-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'chunk-error-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(26,32,44,0.92)';
+    overlay.innerHTML = `
+      <div style="background:#2d3748;color:#e2e8f0;border-radius:12px;padding:2rem 2.5rem;max-width:420px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4)">
+        <h2 style="margin:0 0 0.75rem;font-size:1.25rem">Sidan kunde inte laddas</h2>
+        <p style="margin:0 0 1.25rem;font-size:0.95rem;opacity:0.85">En ny version finns tillgänglig eller så uppstod ett nätverksfel. Ladda om sidan för att fortsätta.</p>
+        <button onclick="sessionStorage.removeItem('chunk_reload_ts');window.location.reload()"
+          style="background:#4299e1;color:#fff;border:none;border-radius:6px;padding:0.6rem 1.5rem;font-size:1rem;cursor:pointer">
+          Ladda om sidan
+        </button>
+      </div>`;
+    document.body.appendChild(overlay);
   }
 }
 
