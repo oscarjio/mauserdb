@@ -21187,3 +21187,57 @@ Granskade samtliga 55 beginTransaction()-anrop i 31 filer i noreko-backend/class
 - AdminController har tidiga rollBack()+return for valideringsfel inom transaktion — korrekt
   monster for att undvika oanvand transaktion.
 Resultat: RENT — inga buggar.
+
+---
+
+## 2026-03-24 — Session #300, Worker B
+
+### Uppgift 1: Angular memory profiling — komponentstorlek, DOM-nodantal i tunga vyer (0 buggar)
+Granskade samtliga Angular-komponenter i noreko-frontend/src/app/ (42 .component.ts-filer + ~100 .ts-sidfiler).
+
+**ngFor utan trackBy:**
+- 518 *ngFor-instanser i hela kodbasen — samtliga har trackBy-funktion. Rent.
+
+**setInterval/setTimeout utan cleanup:**
+- ~70 filer med setInterval. Samtliga har matchande clearInterval i ngOnDestroy. Rent.
+- setTimeout-instanser lagras i variabler och rensas i ngOnDestroy. Rent.
+
+**Chart.js-instanser utan destroy:**
+- Alla filer med `new Chart()` har matchande `.destroy()` i ngOnDestroy och innan ny chart skapas. Rent.
+
+**BehaviorSubject/ReplaySubject utan complete:**
+- Inga BehaviorSubject/ReplaySubject i komponentfiler (bara i services, dar de lever for appens livslangd). Rent.
+
+**subscribe utan takeUntil:**
+- Samtliga .subscribe()-anrop har takeUntil(this.destroy$) i pipe-kedjan, eller explicit .unsubscribe() i ngOnDestroy (ToastComponent). Rent.
+
+**addEventListener utan removeEventListener:**
+- 5 filer med document.addEventListener('visibilitychange') — samtliga har matchande removeEventListener i ngOnDestroy. Rent.
+- @HostListener anvands korrekt (hanteras automatiskt av Angular). Rent.
+
+**Tunga template-uttryck:**
+- Template-metodanrop ar latta formatters (formatDatum, formatMinuter, etc.).
+- Getters som hogAntalOperatorer, countBradskande returnerar primitiva varden (tal) — inte arrayer som orsakar re-render.
+- ranking-historik-komponenten cachar tunga berakningar (rebuildChangesCache, rebuildStreakCache). Rent.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: Angular form state persistence — formularvarden som forsvinner vid navigation (0 buggar)
+Granskade samtliga Angular-komponenter med formular (ngModel, FormControl, FormsModule).
+
+**canDeactivate-guards:**
+- Alla sidor med datainmatning (rebotling-admin, bonus-admin, news-admin, shift-handover, skiftoverlamning, underhallslogg, create-user, certifications, feature-flag-admin, leveransplanering, produktionsmal, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin) har canDeactivate: [pendingChangesGuard] i app.routes.ts.
+- Sidorna implementerar canDeactivate()-metoden med formDirty-flagga eller liknande.
+- Modala formular (maintenance-form, service-intervals) behover inte canDeactivate da de ovelays over huvudsidan.
+
+**Route params-prenumerationer:**
+- 5 filer anvander ActivatedRoute — samtliga prenumererar med takeUntil(this.destroy$). Rent.
+
+**Laddningsindikatorer:**
+- Samtliga formularsidor som laddar data fran API har laddningsindikatorer (isLoading, loadingXxx, skeleton-UI). Rent.
+
+**FormControl/FormGroup-aterinitiering:**
+- Formular i modal-komponenter (maintenance-form, service-intervals) aterstalls korrekt vid openAdd/openEdit. Rent.
+- Ingen komponent forlorar formulardata vid parameterandringar — data laddas pa nytt vid navigation.
+
+Resultat: RENT — inga buggar.
