@@ -239,7 +239,7 @@
             </div>
             <div class="card-body">
               <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
-                <div *ngFor="let cell of getVisiblePeriodCells(); trackBy: trackByIndex"
+                <div *ngFor="let cell of visiblePeriodCells; trackBy: trackByIndex"
                      class="period-cell"
                      [class.has-data]="cell.hasData"
                      [class.selected]="cell.isSelected"
@@ -259,7 +259,7 @@
               </div>
               <div class="mt-3" *ngIf="viewMode !== 'day'">
                 <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showOnlyDaysWithCycles = !showOnlyDaysWithCycles">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="toggleShowOnlyDaysWithCycles()">
                     <i class="fas fa-filter me-2"></i>
                     <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
                     <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>

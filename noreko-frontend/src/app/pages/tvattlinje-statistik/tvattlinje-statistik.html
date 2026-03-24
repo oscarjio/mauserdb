@@ -267,7 +267,7 @@
           <div class="card-body">
             <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
               <div
-                *ngFor="let cell of getVisiblePeriodCells(); trackBy: trackByIndex"
+                *ngFor="let cell of visiblePeriodCells; trackBy: trackByIndex"
                 class="period-cell"
                 [class.has-data]="cell.hasData"
                 [class.selected]="cell.isSelected"
@@ -296,7 +296,7 @@
                 <button
                   type="button"
                   class="btn btn-outline-secondary btn-sm"
-                  (click)="showOnlyDaysWithCycles = !showOnlyDaysWithCycles">
+                  (click)="toggleShowOnlyDaysWithCycles()">
                   <i class="fas fa-filter me-2"></i>
                   <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
                   <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>

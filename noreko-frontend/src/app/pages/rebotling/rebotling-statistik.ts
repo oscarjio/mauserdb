@@ -141,6 +141,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   private heatmapLoadedOnce = false;
 
   periodCells: PeriodCell[] = [];
+  // Cachad filtrerad lista — uppdateras i generatePeriodCells/updatePeriodCellsData, undviker .filter() i template
+  visiblePeriodCells: PeriodCell[] = [];
   monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
                 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
 
@@ -547,6 +549,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       }
     }
+    this.updateVisiblePeriodCells();
   }
 
   onCellMouseDown(cell: PeriodCell, event: MouseEvent) {
@@ -600,13 +603,24 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadStatistics();
   }
 
-  /** Celler som ska visas i kalendern (filtrerar bort dagar utan data i månadsvy om showOnlyDaysWithCycles) */
-  getVisiblePeriodCells(): PeriodCell[] {
+  /** Uppdaterar cachad lista visiblePeriodCells — anropas efter att periodCells ändrats */
+  private updateVisiblePeriodCells(): void {
     if (this.viewMode !== 'month' || !this.showOnlyDaysWithCycles) {
-      return this.periodCells;
+      this.visiblePeriodCells = this.periodCells;
+      return;
     }
     const withData = this.periodCells.filter(cell => cell.hasData);
-    return withData.length > 0 ? withData : this.periodCells;
+    this.visiblePeriodCells = withData.length > 0 ? withData : this.periodCells;
+  }
+
+  toggleShowOnlyDaysWithCycles(): void {
+    this.showOnlyDaysWithCycles = !this.showOnlyDaysWithCycles;
+    this.updateVisiblePeriodCells();
+  }
+
+  /** Behålls för bakåtkompatibilitet — använd visiblePeriodCells i template istället */
+  getVisiblePeriodCells(): PeriodCell[] {
+    return this.visiblePeriodCells;
   }
 
   private resetChartSelection() {
@@ -798,6 +812,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (this.viewMode === 'day') {
       this.trimEmptyPeriods();
     }
+    this.updateVisiblePeriodCells();
   }
 
   trimEmptyPeriods() {

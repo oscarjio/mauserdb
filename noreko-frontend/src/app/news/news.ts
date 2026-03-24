@@ -89,6 +89,8 @@ export class News implements OnInit, OnDestroy {
   filteredEvents: NewsEvent[] = [];
   loadingEvents = true;
   activeCategory: NewsCategory = 'alla';
+  // Cachade kategoriantal — uppdateras när events laddas, undviker .filter() i template
+  categoryCounts: Record<string, number> = {};
 
   readonly categories: { key: NewsCategory; label: string }[] = [
     { key: 'alla',        label: 'Alla' },
@@ -290,6 +292,17 @@ export class News implements OnInit, OnDestroy {
     } else {
       this.filteredEvents = this.events.filter(e => e.category === this.activeCategory);
     }
+    this.updateCategoryCounts();
+  }
+
+  private updateCategoryCounts(): void {
+    const counts: Record<string, number> = { alla: this.events.length };
+    for (const cat of this.categories) {
+      if (cat.key !== 'alla') {
+        counts[cat.key] = this.events.filter(e => e.category === cat.key).length;
+      }
+    }
+    this.categoryCounts = counts;
   }
 
   getCategoryCountFor(cat: NewsCategory): number {

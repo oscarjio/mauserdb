@@ -21548,3 +21548,39 @@ Granskade alla *ngFor- och @for-loopar i templates:
 - **Virtuell scrollning**: Inga listor i nuvarande implementation visar 100+ rader i en enda vy — de flesta anvander pagination, begransade API-fragor (LIMIT), eller ar relativt sma dataset (operatorer, stationer, skift). Virtuell scrollning behovs inte i nuvarande tillstand.
 
 Resultat: RENT — inga buggar.
+
+## Worker B — Session #306 (2026-03-24) — 3 buggar
+
+### Uppgift 1: Angular router param unsubscribe (0 buggar)
+Granskade alla 5 komponenter som injicerar ActivatedRoute:
+- operator-detail.ts: anvander `route.snapshot.paramMap.get('id')` — snapshot, ingen subscription, korrekt.
+- rebotling-statistik.ts: anvander `route.snapshot.queryParams` i `applyStateFromUrl()` — snapshot, ingen subscription, korrekt.
+- stoppage-log.ts: anvander `route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(...)` — korrekt cleanup med takeUntil.
+- login.ts: inspekterades (ej listad i grep-resultaten for subscribe, sa anvander snapshot).
+- tvattlinje-statistik.ts: anvander `route.snapshot.queryParams` i `applyStateFromUrl()` — snapshot, ingen subscription, korrekt.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: Angular HTTP error message display (0 buggar)
+Granskade HTTP-anrop i alla komponenter. Monstret ar konsekvent: catchError returnerar of(null) eller of({ success: false }) och subscribens next-block hanterar null-fallet med ett felmeddelande till anvandaren (this.felmeddelande, this.error, this.errorMessage). Samtliga granskade komponenter:
+- operator-detail.ts: null → this.felmeddelande = 'Kunde inte hamta profil...' — visas i template.
+- stoppage-log.ts: alla HTTP-anrop (loadReasons, loadStoppages, addStoppage, deleteStoppage, saveEdit, loadPareto, loadPatternAnalysis, loadMonthlyStopSummary) — samtliga har catchError + felmeddelanden till anvandaren.
+- tvattlinje-statistik.ts: catchError satter this.error = 'Kunde inte ladda statistik...' — visas i template.
+- maintenance-list.component.ts, kpi-analysis.component.ts: har loadError/kpiError-flaggor med felmeddelanden i template.
+
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: Angular template function calls (3 buggar)
+
+**Bugg 1: getCategoryCountFor() i news.html — 2 anrop per kategori i *ngFor**
+Filen: noreko-frontend/src/app/news/news.html rad 224.
+`getCategoryCountFor(cat.key)` anropades bade i `*ngIf` och `{{ }}` for varje kategori-knapp (6 kategorier), vilket innebar 12 .filter()-anrop pa hela events-arrayen vid varje change detection-cykel. Losning: lade till `categoryCounts: Record<string, number> = {}` som cachad property i news.ts, med `updateCategoryCounts()` som raknar upp frekvensmappen en gang och anropas fran `applyFilter()` (som kors nar events laddas och nar kategori byts). Template uppdaterades till `(categoryCounts[cat.key] ?? 0)`.
+
+**Bugg 2: getVisiblePeriodCells() i tvattlinje-statistik.html — .filter() i *ngFor**
+Filen: noreko-frontend/src/app/pages/tvattlinje-statistik/tvattlinje-statistik.html rad 270.
+`getVisiblePeriodCells()` anropades direkt i `*ngFor` och korde `.filter()` pa periodCells-arrayen vid varje change detection. Med musknapps-handlers (mousedown, mouseenter) pa varje cell triggas detta mycket ofta. Losning: lade till `visiblePeriodCells: PeriodCell[]` som cachad property, `updateVisiblePeriodCells()` privat metod som uppdateras i generatePeriodCells() och updatePeriodCellsData()/trimEmptyPeriods(). La aven till `toggleShowOnlyDaysWithCycles()` metod sa att template-knappen inte langre andrar egenskapen inline utan gar via metoden som uppdaterar cachen. Template uppdaterades till `*ngFor="let cell of visiblePeriodCells"`.
+
+**Bugg 3: getVisiblePeriodCells() i rebotling-statistik.html — .filter() i *ngFor**
+Filen: noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html rad 242. Exakt samma monster som bugg 2. Samma losning applicerades: `visiblePeriodCells` cachad property, `updateVisiblePeriodCells()` privat metod anropad i generatePeriodCells() och updatePeriodCellsData(), `toggleShowOnlyDaysWithCycles()` metod. Template uppdaterades.
+
+Bygget genomfordes och kompilerade utan fel.
