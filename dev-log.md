@@ -1,3 +1,48 @@
+## 2026-03-24 Session #290 Worker A — header() redirect, PDO fetchColumn, error suppression granskning (0 buggar)
+
+### Uppgift 1: PHP header() redirect consistency (0 buggar — rent)
+
+Granskade alla PHP-filer i noreko-backend/classes/ (94+ filer) och noreko-backend/api.php.
+Soktes efter `header('Location:` och `header("Location:` som saknar `exit;`/`die;` efterat.
+Resultat: Inga header(Location:)-anrop finns i kodbasen overhuvudtaget. Alla redirects hanteras via frontend (Angular SPA). Rent.
+
+### Uppgift 2: PHP PDO fetchColumn edge cases (0 buggar — rent)
+
+Granskade alla ~191 fetchColumn()-anvandningar i noreko-backend/classes/.
+Kategorisering av samtliga monster:
+- **COUNT(*)-fragor med (int)-cast**: Majoriteten. `(int)false === 0` ar korrekt fallback for COUNT-fragor. Sakert.
+- **Explicit `!== false`-checkar**: T.ex. ProduktionsTaktController:90, MinDagController:102, KapacitetsplaneringController:184. Korrekt.
+- **`?: 0` med COALESCE**: T.ex. MaskinOeeController:275,284, MorgonrapportController:144, VeckorapportController:340. COALESCE forhindrar NULL/false, sakert.
+- **`!$check` pa information_schema COUNT(*)**: T.ex. UnderhallsloggController:143, SkiftoverlamningController:142,164,1057, BatchSparningController:102, SkiftplaneringController:97. Fungerar korrekt — PHPs "0" ar falsy sa `!"0"` === true (tabell saknas) och `!"1"` === false (tabell finns).
+- **`intval()`/`floatval()`-casts**: T.ex. AndonController:392,407,445,541, BonusController:1404, RebotlingAdminController:1356,1408. Sakert, hanterar false som 0.
+- **`$val !== null && $val > 0`**: T.ex. MinDagController:136. Explicit och korrekt.
+- **`$val ? (int)$val : default`**: T.ex. MorgonrapportController:120 (daily_goal). Teoretiskt riskabelt om mal=0, men produktionsmal pa 0 ar ej realistiskt.
+
+Inga buggar hittades. Alla fetchColumn()-anvandningar har antingen explicit false-hantering eller (int)/(float)-cast som korrekt konverterar false till 0.
+
+### Uppgift 3: PHP error suppression @ (0 buggar — rent)
+
+Granskade alla PHP-filer i noreko-backend/classes/ och noreko-backend/api.php.
+Hittade @ operatorn pa foljande stallen:
+
+**noreko-backend/api.php rad 89-92: @ini_set()** (4 forekomster)
+Session-konfiguration (@ini_set for gc_maxlifetime, strict_mode, use_only_cookies, use_trans_sid). Liknar @session_start() — ini_set emittar warnings om session redan startats. Undantag enligt reglerna.
+
+**noreko-backend/classes/VpnController.php rad 94,109,111,148,172,174,236: @fsockopen/@fwrite/@fclose** (7 forekomster)
+Alla har korrekt felhantering direkt efter:
+- @fsockopen: returvarde checkas med `if (!$socket)` + error_log med $errno/$errstr
+- @fwrite: returvarde checkas med `if ($written === false)` + error_log
+- @fclose: anvands i cleanup/error-paths dar fclose-fel ar irrelevanta
+@ behovs har for att undertrycka PHPs inbyggda E_WARNING som annars duplicerar den explicita felhanteringen.
+
+**noreko-backend/classes/ShiftHandoverController.php rad 513: @mail()** (1 forekomst)
+Returvarde checkas med `if (!@mail(...))` + error_log. @ behovs for att undertrycka PHPs inbyggda warning — koden loggar redan felet explicit.
+
+**noreko-backend/update-weather.php rad 73: @file_get_contents** (1 forekomst — utanfor scope classes/)
+Checkas med `if ($response === false)` + throw. Korrekt hantering.
+
+Alla @ anvandningar foljer best practice: funktioner som bade returnerar false OCH emittar warnings, dar koden redan har explicit felhantering. Att ta bort @ skulle bara skapa dubbletter i error-loggen.
+
 ## 2026-03-24 Session #289 Worker A — mail() injection, date/time edge cases, array bounds granskning (2 buggar)
 
 ### Uppgift 1: PHP mail() injektionsrisk (0 buggar — rent)
