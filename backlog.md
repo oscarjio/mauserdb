@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #298):
-- [ ] **PHP try/catch granularitet** — for breda catch-block som doljer specifika fel
-- [ ] **PHP SQL COUNT vs SUM** — aggregeringsfunktioner som ger fel resultat pa tomma set
-- [ ] **PHP input sanitering** — htmlspecialchars/strip_tags konsistens pa utdata
-- [ ] **Angular zone.js change detection** — onnodig rendering, tunga template-uttryck
-- [ ] **Angular router canDeactivate** — osparade andringar utan varning vid navigering
+### Pagaende (session #299):
+- [ ] **PHP array type coercion** — implicit int/string-konvertering i array-nycklar (Worker A)
+- [ ] **PHP file_put_contents atomicitet** — race conditions vid samtidig skrivning (Worker A)
+- [ ] **PHP SQL BETWEEN med datum** — off-by-one vid midnatt, timezone-medvetenhet (Worker A)
+- [ ] **Angular HTTP request cancellation** — switchMap vs mergeMap for POST-anrop (Worker B)
+- [ ] **Angular template accessibility** — aria-attribut, tabindex, semantisk HTML (Worker B)
 
-### Nasta buggjakt-items (session #299+):
-- [ ] **PHP array type coercion** — implicit int/string-konvertering i array-nycklar
-- [ ] **PHP file_put_contents atomicitet** — race conditions vid samtidig skrivning
-- [ ] **Angular HTTP request cancellation** — switchMap vs mergeMap for POST-anrop
-- [ ] **Angular template accessibility** — aria-attribut, tabindex, semantisk HTML
-- [ ] **PHP SQL BETWEEN med datum** — off-by-one vid midnatt, timezone-medvetenhet
+### Nasta buggjakt-items (session #300+):
+- [ ] **PHP array_combine/array_zip** — missmatch i array-langder som ger false
+- [ ] **PHP exception message leakage** — felmeddelanden som exponerar interna detaljer
+- [ ] **Angular memory profiling** — komponentstorlek, DOM-nodantal i tunga vyer
+- [ ] **Angular form state persistence** — formularvarden som forsvinner vid navigation
+- [ ] **PHP SQL transaction isolation** — dirty reads vid concurrent batch-operationer
 
 ## Parkerade features (ta inte dessa nu)
 

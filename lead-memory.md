@@ -103,23 +103,20 @@ Session #295: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_key_exists 
 Session #296: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_merge i loopar: rent (35 anvandningar, alla engangskopior). str_replace/substr: rent (alla strikt jamforelse, null-sakra). ViewChild/ElementRef: rent (20+19 filer, alla null-guards). service circular dependency: rent (96 tjanster, max 2 beroenden).
 Session #297: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). date()/mktime(): rent. header()/exit(): rent. PDO fetchAll: rent. OnDestroy cleanup: rent. HTTP error display: 2 fixade.
 Session #298: BUGGJAKT — 14 buggar (14 Worker A + 0 Worker B). try/catch: rent. COALESCE(SUM): 2 fixade. htmlspecialchars: 12 fixade. zone.js change detection: 2 prestandafixar. canDeactivate: rent.
+Session #299: BUGGJAKT — 23 buggar (19 Worker A + 4 Worker B). array type coercion: rent. file_put_contents: rent. SQL BETWEEN datum: 19 fixade. HTTP switchMap: rent. accessibility: 4 fixade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #299+):
-- [ ] PHP array type coercion — implicit int/string-konvertering i array-nycklar
-- [ ] PHP file_put_contents atomicitet — race conditions vid samtidig skrivning
-- [ ] Angular HTTP request cancellation — switchMap vs mergeMap for POST-anrop
-- [ ] Angular template accessibility — aria-attribut, tabindex, semantisk HTML
-- [ ] PHP SQL BETWEEN med datum — off-by-one vid midnatt, timezone-medvetenhet
+### Nasta (session #300+):
+- [ ] PHP array_combine/array_zip — missmatch i array-langder som ger false
+- [ ] PHP exception message leakage — felmeddelanden som exponerar interna detaljer
+- [ ] Angular memory profiling — komponentstorlek, DOM-nodantal i tunga vyer
+- [ ] Angular form state persistence — formularvarden som forsvinner vid navigation
+- [ ] PHP SQL transaction isolation — dirty reads vid concurrent batch-operationer
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #296 (klar)
-Worker A: 0 buggar — array_merge i loopar: rent. str_replace/substr: rent.
-Worker B: 0 buggar — ViewChild/ElementRef: rent. service circular dependency: rent.
 
 ### 2026-03-24 — Session #297 (klar)
 Worker A: 0 buggar — date()/mktime(): rent. header()/exit(): rent. PDO fetchAll: rent.
@@ -128,3 +125,7 @@ Worker B: 2 buggar — OnDestroy cleanup: rent. HTTP error display: 2 fixade (le
 ### 2026-03-24 — Session #298 (klar)
 Worker A: 14 buggar — try/catch: rent. COALESCE(SUM): 2 fixade (BatchSparningController). htmlspecialchars sanitering: 12 strip_tags ersatta med htmlspecialchars i 12 controllers.
 Worker B: 0 buggar + 2 prestandafixar — zone.js change detection: 2 template-metoder preberaknade (oee-waterfall+skiftplanering). router canDeactivate: rent (pendingChangesGuard redan pa 14 rutter).
+
+### 2026-03-24 — Session #299 (klar)
+Worker A: 19 buggar — array type coercion: rent. file_put_contents: rent (inga finns). SQL BETWEEN datum: 19 off-by-one fixade (23:59:59 -> < nasta dag 00:00:00) i 19 controllers.
+Worker B: 4 buggar — HTTP switchMap: rent (inga switchMap pa POST/PUT/DELETE). accessibility: 4 fixade (1 a->button, 3 saknade aria-label pa inputs).
