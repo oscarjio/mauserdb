@@ -1,3 +1,38 @@
+## 2026-03-24 Session #297 Worker B — OnDestroy cleanup audit + HTTP error message display (2 buggar)
+
+### Uppgift 1: Angular OnDestroy cleanup audit (0 buggar)
+Granskade alla 41 Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Filer granskade:
+
+- **setInterval/setTimeout**: 34 komponenter med timers. Alla sparar timer-ID korrekt (ReturnType<typeof setInterval/setTimeout>) och rensar i ngOnDestroy med clearInterval/clearTimeout. Tidigare fixar fran session #283/#286 verifierade.
+- **destroy$ + takeUntil**: Alla 41 komponenter med .subscribe() har private destroy$ = new Subject<void>(), anropar destroy$.next()/complete() i ngOnDestroy, och varje subscription-pipe har takeUntil(this.destroy$). Korrekt ordning (takeUntil sist i pipe) verifierad (fix fran session #287).
+- **Chart.js destroy**: 32 komponenter med Chart.js-instanser. Alla anropar chart?.destroy() i ngOnDestroy (direkt eller via destroyChart()/destroyCharts()-hjalpmetoder).
+- **addEventListener**: Inga komponenter anvander window/document.addEventListener.
+- **ResizeObserver/MutationObserver/IntersectionObserver**: Inga forekomster.
+- **pdf-export-button.component.ts**: Stateless komponent utan subscriptions/timers — OK.
+
+Inga buggar hittades. Alla tidigare fixar korrekt implementerade.
+
+### Uppgift 2: Angular HTTP error message display (2 buggar)
+Granskade alla Angular-komponenter och services (samma scope som ovan). 97 service-filer och 41 komponent-filer granskade.
+
+**Bugg 1: leveransplanering.service.ts — skapaOrder/uppdateraOrder svalde serverns felmeddelande**
+catchError returnerade { success: false, data: null, timestamp: '' } utan error-falt. Komponenten kunde darfor inte visa serverns specifika felmeddelande och visade hardkodat "Kunde inte skapa order" / "Kunde inte uppdatera orderstatus".
+Fix: Lade till `error: err?.error?.error || 'Natverksfel'` i catchError-returnvardena.
+Fix i komponent: Andrade till `(res as any)?.error || 'fallback-meddelande'` for bada operationer.
+
+**Bugg 2: batch-sparning.component.ts — completeBatch visade generiskt felmeddelande**
+Servicen (batch-sparning.service.ts) returnerade redan `error: err?.error?.error || 'Okant fel'` korrekt, men komponentens completeBatch-hanterare anvande hardkodat meddelande istallet for `res?.error`.
+Fix: Andrade till `res?.error || 'Kunde inte markera batchen som klar. Forsok igen.'`
+
+**Ovrigt granskat (rent)**:
+- Alla services med POST/mutationsanrop (26 st) anvander catchError med error-falt — nu alla korrekt.
+- Alla felmeddelanden i templates ar pa svenska.
+- Inga alert()-anrop hittades.
+- Inga engelska felmeddelanden i UI.
+- Felmeddelanden visas via error-flaggor i template (*ngIf="errorX") — persistent tills ny laddning, ej tidsbegransade.
+
+---
+
 ## 2026-03-24 Session #297 Worker A — date()/mktime() DST + header()/exit() flode + fetchAll() memory (0 buggar)
 
 ### Uppgift 1: PHP date()/mktime() edge cases (0 buggar)
