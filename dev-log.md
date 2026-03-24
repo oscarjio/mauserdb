@@ -1,3 +1,33 @@
+## 2026-03-24 Session #295 Worker B — *ngIf/async race conditions + HttpParams encoding (0 buggar)
+
+### Uppgift 1: Angular *ngIf + async pipe race conditions (0 buggar)
+
+Granskade alla Angular-komponenter och templates i noreko-frontend/src/app/ (exkl. de fyra live-sidorna).
+
+Undersokta monster:
+- **async pipe i templates**: Ingen async pipe anvands overhuvudtaget i HTML-templates. Alla komponenter prenumererar i TypeScript (subscribe i ngOnInit) och lagrar resultatet i klassvariabler som sedan binds i templates. Inga `| async`-bindningar hittades.
+- **forkJoin med icke-avslutande Observables**: 4 anvandningar av forkJoin (monthly-report, menu, produktions-dashboard, vd-dashboard, min-dag). Alla slar in HTTP-anrop med `catchError(() => of(null))`, vilket garanterar att varje Observable avslutas — forkJoin vanter inte evigt.
+- **switchMap race conditions**: switchMap anvands pa 5 stallen (auth.guard, users, create-user, operators, vpn-admin) for att kedja `auth.initialized$` -> `auth.user$`. Bada ar BehaviorSubjects med initialt varde, och `filter(init => init === true)` + `take(1)` anvands korrekt for att undvika race conditions. alerts.service anvander `timer(0, 60_000).pipe(switchMap(...))` for polling — korrekt monster dar switchMap avbryter foregaende HTTP-anrop.
+- **Subject vs BehaviorSubject**: Alla Subject-instanser ar `destroy$`-signaler for takeUntil (korrekt anvandning). Alla delade tillstandsstrommar ar BehaviorSubjects (auth.loggedIn$, auth.user$, auth.initialized$, alerts.activeAlerts$, toast.toasts$).
+- **ngFor utan trackBy**: Alla *ngFor-bindningar i templates anvander trackBy-funktioner (trackByIndex, trackByCat, trackByRoute).
+
+Inga buggar hittades.
+
+### Uppgift 2: Angular HttpParams encoding (0 buggar)
+
+Granskade alla Angular services och komponenter for felaktig URL-byggnad.
+
+Undersokta monster:
+- **Fri text med encodeURIComponent**: Alla parametrar som kan innehalla specialtecken anvander `encodeURIComponent()` konsekvent: audit.service (period, filter_action, filter_user, filter_entity, search, from_date, to_date), batch-sparning.service (search), rebotling.service (operator, cause), kassationsorsak-per-station.service (station), stopporsak-trend.service (reason), morgonrapport.service (date), veckorapport.service (week), skiftrapport.service (datum), bonus-admin.ts (status).
+- **Konstranerade varden utan encoding**: Parametrar som skiftkod ('dag'/'kvall'/'natt'/'alla'), periodfilter ('idag'/'vecka'/'manad'), typ-varden fran select-element, numeriska ID:n och antal dagar (integers) skickas utan encoding — korrekt eftersom dessa ar readonly-konstanter eller heltal, aldrig fri text.
+- **HttpParams vs manuell strangbyggnad**: HttpParams anvands korrekt i bonus.service och skiftoverlamning.service. Ovriga services bygger URL manuellt med `url += \`&param=${varde}\`` — acceptabelt for numeriska och konstranerade strangvarden.
+- **fetch() istallet for HttpClient**: Inga fetch()-anrop hittades. All HTTP-trafik gar via Angular HttpClient.
+- **Template literals i URLs**: Datum-parametrar (YYYY-MM-DD) skickas utan encoding — korrekt eftersom ISO-datum inte innehaller reserverade URL-tecken.
+
+Inga buggar hittades.
+
+---
+
 ## 2026-03-24 Session #295 Worker A — array_key_exists/isset + preg_match granskning (0 buggar)
 
 ### Uppgift 1: PHP array_key_exists vs isset — controllers A-M (0 buggar)
