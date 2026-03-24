@@ -1,3 +1,52 @@
+## 2026-03-24 Session #298 Worker A — try/catch granularitet + SUM/AVG COALESCE + htmlspecialchars sanitering (14 buggar)
+
+### Uppgift 1: PHP try/catch granularitet (0 buggar)
+Granskade samtliga PHP-controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*) — ca 90 controller-filer.
+
+**catch(Exception $e) granularitet**: Alla controllers anvander breda catch(\Exception $e) eller catch(Exception $e). Samtliga catch-block innehaller error_log() med controller-namn och metod. Generiska felmeddelanden ("Internt serverfel", "Serverfel") skickas till frontend, men det faktiska felet loggas alltid. Ingen felinformation forsvinner.
+
+**Specifika undantagstyper**: Majoriteten fangar \PDOException dar det ar relevant (rena DB-operationer). For metoder som kombinerar DB + berakningar anvands \Exception vilket ar motiverat da bade PDOException och RuntimeException/TypeError kan uppsta.
+
+**try-block storlek**: Alla try-block ar rimligt avgransade — en endpoint-metod per try-block. Inga fall dar for mycket kod omsluts.
+
+Inga buggar hittades.
+
+### Uppgift 2: PHP SQL COUNT vs SUM — aggregeringsfunktioner pa tomma set (2 buggar)
+Granskade samtliga SQL-fragor med SUM(), AVG(), COUNT() i ca 90 controllers.
+
+**COALESCE(SUM(...), 0) konsistens**: Majoriteten av controllers (DagligSammanfattning, VdDashboard, Heatmap, SkiftoverlamningController m.fl.) anvander korrekt COALESCE(SUM(...), 0). Men tva fragor i BatchSparningController saknade COALESCE.
+
+**Bugg 1: BatchSparningController::getActiveBatches() rad 207-208** — SUM(bi.kasserad) utan COALESCE i LEFT JOIN-fraga. Nar en batch saknar IBC-rader returnerar SUM NULL istallet for 0. PHP:s (int)null ger 0 men SQL-nivakorrektheten saknades. Fix: COALESCE(SUM(bi.kasserad), 0) och COALESCE(SUM(CASE...), 0).
+
+**Bugg 2: BatchSparningController::getBatchHistory() rad 426-427** — Samma problem i getBatchHistory-metoden. Samma fix.
+
+**AVG() utan COALESCE**: Manga controllers anvander AVG() utan COALESCE, men alla har null-check i PHP-koden (t.ex. `$row['snitt'] !== null ? (float)$row['snitt'] : null` eller `$cRow > 0`). Inga buggar har.
+
+**Division med aggregeringsresultat**: Alla divisioner med SUM/AVG anvander NULLIF() eller CASE WHEN-skydd mot division med noll. Korrekt implementerat.
+
+### Uppgift 3: PHP input sanitering — htmlspecialchars/strip_tags konsistens (12 buggar)
+Granskade samtliga POST-endpoints som tar emot anvandardata for DB-lagring i ca 90 controllers.
+
+**Problem**: Alla controllers anvande strip_tags() for input-sanitering. strip_tags() tar bort HTML-taggar men kan fallera med malformad HTML (t.ex. `<script x=">">alert(1)</script>` — strip_tags missar den stangande delen). htmlspecialchars() med ENT_QUOTES och UTF-8 ar den korrekta metoden — den escapar <, >, &, " och ' till HTML-entiteter.
+
+**12 controllers fixade (strip_tags -> htmlspecialchars)**:
+1. AvvikelselarmController — kommentar, kvitterad_av i kvittera()
+2. BatchSparningController — batch_nummer, kommentar i createBatch()
+3. FavoriterController — route, label, icon, color i addFavorit()
+4. FeedbackController — kommentar i submit()
+5. LeveransplaneringController — kundnamn, notering i create()
+6. LineSkiftrapportController — kommentar i create() och update()
+7. MaintenanceController — title, description, performed_by, equipment, maskin_namn i addEntry(), updateEntry(), setServiceInterval()
+8. NewsController — title, content, category i create() och update()
+9. ShiftHandoverController — note i addNote()
+10. SkiftoverlamningController — problem_text, pagaende_arbete, instruktioner, kommentar, mal_nasta_skift, kommentar_hande/atgarda/ovrigt
+11. StopporsakRegistreringController — kommentar i registrera()
+12. UnderhallsloggController — beskrivning, stopporsak, utford_av, kategori, kommentar, maskin
+
+**OBS**: Angular escapar redan HTML i templates, sa frontend ar saker. Men defence-in-depth: data bor vara korrekt saniterad redan vid DB-lagring.
+
+---
+
 ## 2026-03-24 Session #298 Worker B — zone.js change detection + canDeactivate granskning (0 buggar)
 
 ### Uppgift 1: Angular zone.js change detection — onnodig rendering, tunga template-uttryck (0 buggar)
