@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #290 — alla rent):
-- [x] **PHP header() redirect consistency** — rent (inga header(Location:), SPA-arkitektur)
-- [x] **PHP PDO fetchColumn edge cases** — rent (191 anvandningar, alla korrekt hanterade)
-- [x] **PHP error suppression (@)** — rent (13 motiverade anvandningar)
-- [x] **Angular ngIf race conditions** — rent (arrayer initieras som [])
-- [x] **Angular router event memory leaks** — rent (inga router.events.subscribe)
+### Klart (session #291):
+- [x] **PHP numeric string comparison** — rent (alla anvander redan === och !==)
+- [x] **Angular HTTP timeout** — rent (alla HTTP-anrop har timeout() i pipe)
+- [x] **PHP mb_string consistency** — 6 buggar fixade (strtoupper+strlen pa UTF-8)
+- [x] **Angular ViewChild timing** — rent (inga ViewChild i ngOnInit, alla har null-checks)
+- [x] **PHP SQL COALESCE** — rent (alla LEFT JOIN NULL hanteras i PHP)
 
-### Nasta buggjakt-items (session #291+):
-- [ ] **PHP numeric string comparison** — loose comparison (==) mellan numeriska strangar i controllers
-- [ ] **Angular HTTP timeout** — saknade timeout-operatorer i HTTP-anrop
-- [ ] **PHP mb_string consistency** — strlen/substr vs mb_strlen/mb_substr for UTF-8 data
-- [ ] **Angular ViewChild timing** — ViewChild-referenser anvanda fore ngAfterViewInit
-- [ ] **PHP SQL COALESCE** — saknade COALESCE/IFNULL i queries med LEFT JOIN
+### Nasta buggjakt-items (session #292+):
+- [ ] **PHP array_key_exists vs isset** — isset returnerar false for null-varden, array_key_exists gor inte det
+- [ ] **Angular zone.js change detection** — onPush-komponenter som muterar state istallet for nya referenser
+- [ ] **PHP PDO lastInsertId** — kontrollera att INSERT lyckades fore lastInsertId-anrop
+- [ ] **Angular template pipe chaining** — osakra pipe-kedjor som kan krascha vid null/undefined
+- [ ] **PHP SQL GROUP BY strict mode** — kolumner i SELECT som inte ar i GROUP BY eller aggregerade
 
 ## Parkerade features (ta inte dessa nu)
 

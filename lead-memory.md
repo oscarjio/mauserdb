@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #290)*
+*Senast uppdaterad: 2026-03-24 (session #291)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -95,23 +95,20 @@ Session #287: BUGGJAKT — 134 buggar (7 Worker A + 127 Worker B). in_array stri
 Session #288: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). catch(Exception) loggning: rent. LIKE injection escaping: rent. pagination validering: rent. HTTP retry logic: rent. trackBy *ngFor: rent.
 Session #289: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). mail() injection: rent. date/time: 2 strtotime edge cases fixade (ProduktionsmalController). array bounds: rent. unsubscribed Observables: rent. template null dereference: rent.
 Session #290: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header() redirect: rent (inga header(Location:) i PHP, SPA-arkitektur). PDO fetchColumn: rent (191 anvandningar, alla med korrekt cast/check). error suppression @: rent (13 motiverade @-anvandningar). ngIf race conditions: rent (alla arrayer initieras som []). router event leaks: rent (inga router.events.subscribe).
+Session #291: BUGGJAKT — 6 buggar (6 Worker A + 0 Worker B). numeric string comparison: rent (alla ===). mb_string: 6 fixade (4 strtoupper->mb_strtoupper pa initialer, 2 strlen->mb_strlen pa username). SQL COALESCE: rent. HTTP timeout: rent (alla har timeout). ViewChild timing: rent (inga i ngOnInit).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #291+):
-- [ ] PHP numeric string comparison — loose comparison mellan numeriska strangar
-- [ ] Angular HTTP timeout — saknade timeout-operatorer
-- [ ] PHP mb_string consistency — strlen vs mb_strlen for UTF-8
-- [ ] Angular ViewChild timing — ViewChild fore ngAfterViewInit
-- [ ] PHP SQL COALESCE — saknade COALESCE i LEFT JOIN queries
+### Nasta (session #292+):
+- [ ] PHP array_key_exists vs isset — isset false for null
+- [ ] Angular zone.js change detection — onPush mutation
+- [ ] PHP PDO lastInsertId — INSERT-kontroll
+- [ ] Angular template pipe chaining — null/undefined
+- [ ] PHP SQL GROUP BY strict mode — kolumner ej aggregerade
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #288 (klar)
-Worker A: 0 buggar — catch(Exception) loggning: rent. LIKE injection: rent. Pagination validering: rent.
-Worker B: 0 buggar — HTTP retry logic: rent. trackBy *ngFor: rent.
 
 ### 2026-03-24 — Session #289 (klar)
 Worker A: 2 buggar — strtotime edge cases fixade (ProduktionsmalController getPrognos + getWeekly).
@@ -120,3 +117,7 @@ Worker B: 0 buggar — unsubscribed Observables: rent. Template null dereference
 ### 2026-03-24 — Session #290 (klar)
 Worker A: 0 buggar — header() redirect: rent (SPA). fetchColumn: rent (191 anv). error suppression @: rent (13 motiverade).
 Worker B: 0 buggar — ngIf race conditions: rent. router event leaks: rent (inga router.events.subscribe).
+
+### 2026-03-24 — Session #291 (klar)
+Worker A: 6 buggar — mb_string: 4 strtoupper->mb_strtoupper (initialer), 2 strlen->mb_strlen (username). numeric comparison: rent. COALESCE: rent.
+Worker B: 0 buggar — HTTP timeout: rent (alla har timeout). ViewChild timing: rent (inga i ngOnInit).
