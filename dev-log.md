@@ -1,3 +1,38 @@
+## 2026-03-24 Session #294 Worker A — intval/floatval + ORDER BY injection granskning (0 buggar)
+
+### Uppgift 1: PHP intval/floatval pa $_GET/$_POST (0 buggar)
+
+Granskade alla PHP-controllers i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*) — 112 filer med $_GET/$_POST-anvandning, 425 anvandningar totalt.
+
+Letade efter:
+- $_GET/$_POST anvanda direkt i SQL utan intval()/floatval()/(int)/(float) cast
+- User input i aritmetik utan cast
+- User input som array-index utan validering
+
+Resultat:
+- **Alla numeriska parametrar** (id, page, limit, offset, days, period, etc.) anvander (int), intval(), max()/min() eller filter_var().
+- **Alla strangparametrar** (datum, period, linje, etc.) anvander trim(), mb_substr(), preg_match()-validering eller in_array()-vitlista.
+- **Alla SQL-fragor** anvander prepared statements med ? eller :named parametrar. Inga strang-interpoleringar med user input i SQL.
+- **POST body-data** (json_decode) anvander konsekvent intval(), (int), (float), strip_tags(), mb_substr() och prepared statements.
+
+### Uppgift 2: PHP SQL ORDER BY injection (0 buggar)
+
+Granskade alla PHP-controllers for:
+- ORDER BY med user input
+- LIMIT/OFFSET med user input
+- Dynamiska kolumn/tabellnamn fran user input
+
+Resultat:
+- **$_GET['sort']** i HistoriskProduktionController.php: valideras med in_array() mot vitlista ['date', 'ibc_ok', 'ibc_ej_ok', 'total', 'kassation_pct']. Anvands i PHP usort(), inte SQL.
+- **$_GET['order']** i HistoriskProduktionController.php: binart val ASC/DESC via ternary.
+- **$_GET['sort_by']** i OperatorsPrestandaController.php: valideras med in_array() mot ['ibc', 'kassation', 'oee', 'cykeltid'].
+- **LIMIT/OFFSET**: Alla anvandningar har (int) cast + max()/min() begransning.
+- **Dynamiska tabellnamn** (LineSkiftrapportController, RuntimeController): valideras med in_array() mot vitlistor.
+- **Dynamiska kolumnnamn** (BonusAdminController): anvander column_map vitlista.
+- **$orderExpr** i KassationsanalysController: satt internt fran if/else-logik, inte fran user input.
+
+---
+
 ## 2026-03-24 Session #294 Worker B — FormControl validators / router param type safety granskning (0 buggar)
 
 ### Uppgift 1: Angular FormControl validators (0 buggar)
