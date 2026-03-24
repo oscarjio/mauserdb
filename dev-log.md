@@ -1,3 +1,35 @@
+## 2026-03-24 Session #295 Worker A — array_key_exists/isset + preg_match granskning (0 buggar)
+
+### Uppgift 1: PHP array_key_exists vs isset — controllers A-M (0 buggar)
+
+Granskade alla 49 PHP-controllers i noreko-backend/classes/ vars namn borjar med A-M (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*):
+
+AdminController, AlarmHistorikController, AlertsController, AndonController, AuditController, AuthHelper, AvvikelselarmController, BatchSparningController, BonusAdminController, BonusController, CertificationController, CykeltidHeatmapController, DagligBriefingController, DagligSammanfattningController, DashboardLayoutController, DrifttidsTimelineController, EffektivitetController, FavoriterController, FeatureFlagController, FeedbackAnalysController, FeedbackController, ForstaTimmeAnalysController, GamificationController, HeatmapController, HistorikController, HistoriskProduktionController, HistoriskSammanfattningController, KapacitetsplaneringController, KassationsanalysController, KassationsDrilldownController, KassationskvotAlarmController, KassationsorsakController, KassationsorsakPerStationController, KvalitetscertifikatController, KvalitetstrendanalysController, KvalitetsTrendbrottController, KvalitetstrendController, LeveransplaneringController, LineSkiftrapportController, LoginController, MaintenanceController, MalhistorikController, MaskinDrifttidController, MaskinhistorikController, MaskinOeeController, MaskinunderhallController, MinDagController, MorgonrapportController, MyStatsController.
+
+Letade efter:
+- isset() dar array_key_exists() borde anvandas (null-varden giltiga)
+- isset() pa $_GET/$_POST dar tom strang ska behandlas annorlunda
+- Array-access utan kontroll ($arr['key'] utan isset/array_key_exists)
+- empty() pa numeriska varden dar "0" ar giltigt
+
+Resultat: Koden ar korrekt genomgaende. Dar null-varden ar semantiskt viktiga (t.ex. operator_id i AdminController rad 292) anvands array_key_exists() korrekt. Dar isset() anvands pa $_GET/$_POST ar det OK — parametrar som kan saknas, ej null-i-array-fall. empty() anvands enbart pa strangar (title, startTime) dar tom strang faktiskt ar ogiltigt. Inga reella buggar hittades.
+
+### Uppgift 2: PHP preg_match return value — alla controllers (0 buggar)
+
+Granskade alla preg_match()/preg_replace()-anvandningar i samtliga A-M-controllers.
+
+Alla monstren ar enkla och sakra:
+- /^\d{4}-\d{2}-\d{2}$/ — datumvalidering (returnerar 0 eller 1, aldrig false)
+- /^Q[1-4]-\d{4}$/ — kvartalsformat
+- /^(\d{4})-(\d{2})$/ — manad-format
+- /[A-Za-z]/, /[0-9]/ — losenordsvalidering
+- /[^0-9-]/ — sanering av filnamn
+- /[\x00-\x1F\x7F]/ — log injection-skydd
+
+Ingen av dessa kan orsaka catastrophic backtracking. Anvandningen i if-satser och ternary-uttryck ar korrekt — koden hanterar bade 0 (ingen matchning) och 1 (matchning). preg_replace() anvands med enkla teckenklass-monster utan risk for null-retur pa normala strangvarden. Inga reella buggar hittades.
+
+---
+
 ## 2026-03-24 Session #294 Worker A — intval/floatval + ORDER BY injection granskning (0 buggar)
 
 ### Uppgift 1: PHP intval/floatval pa $_GET/$_POST (0 buggar)
