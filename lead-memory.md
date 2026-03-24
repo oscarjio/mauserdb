@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #288)*
+*Senast uppdaterad: 2026-03-24 (session #289)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -93,23 +93,20 @@ Session #285: BUGGJAKT — 16 buggar (15 Worker A + 1 Worker B). strtotime sonda
 Session #286: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). header/redirect: rent. SQL date range: rent. password/token timing: 1 hash_equals fixad (RegisterController). Router navigation: rent. HttpClient response: rent. setTimeout cleanup: 15 timer-IDn sparade+rensade i 3 komponenter.
 Session #287: BUGGJAKT — 134 buggar (7 Worker A + 127 Worker B). in_array strict: rent. file path traversal: rent. GROUP BY: 7 fixade (3 controllers). ngOnChanges: rent (inga implementerar). takeUntil ordering: 127 fixade i 38 filer. service audit: rent.
 Session #288: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). catch(Exception) loggning: rent. LIKE injection escaping: rent. pagination validering: rent. HTTP retry logic: rent. trackBy *ngFor: rent.
+Session #289: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). mail() injection: rent. date/time: 2 strtotime edge cases fixade (ProduktionsmalController). array bounds: rent. unsubscribed Observables: rent. template null dereference: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #289+):
-- [ ] PHP mail() injektionsrisk — sanitering av mail-headers
-- [ ] Angular unsubscribed Observables — manuella subscribe() utan takeUntil/unsubscribe
-- [ ] PHP date/time edge cases — DST/timezone-problem
-- [ ] Angular template null dereference — saknade ?. operatorer
-- [ ] PHP array bounds — array-access utan isset/array_key_exists-guard
+### Nasta (session #290+):
+- [ ] PHP header() redirect consistency — exit/die efter header(Location:)
+- [ ] Angular ngIf race conditions — async data fore HTTP-svar
+- [ ] PHP PDO fetchColumn edge cases — fetchColumn(0) false vs 0
+- [ ] Angular router memory — router events utan cleanup
+- [ ] PHP error suppression (@) — @ operator som doljer fel
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #286 (klar)
-Worker A: 1 bugg — hash_equals fixad (RegisterController).
-Worker B: 15 buggar — setTimeout cleanup i 3 komponenter.
 
 ### 2026-03-24 — Session #287 (klar)
 Worker A: 7 buggar — GROUP BY fixade (3 controllers).
@@ -118,3 +115,7 @@ Worker B: 127 buggar — takeUntil ordering fixade i 38 filer.
 ### 2026-03-24 — Session #288 (klar)
 Worker A: 0 buggar — catch(Exception) loggning: rent. LIKE injection: rent. Pagination validering: rent.
 Worker B: 0 buggar — HTTP retry logic: rent. trackBy *ngFor: rent.
+
+### 2026-03-24 — Session #289 (klar)
+Worker A: 2 buggar — strtotime edge cases fixade (ProduktionsmalController getPrognos + getWeekly).
+Worker B: 0 buggar — unsubscribed Observables: rent. Template null dereference: rent.
