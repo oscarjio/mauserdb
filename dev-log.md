@@ -1,3 +1,52 @@
+## 2026-03-24 Session #296 Worker B — ViewChild/ElementRef null + service circular dependency (0 buggar)
+
+### Uppgift 1: Angular ViewChild/ElementRef null-check (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+Hittade 20 filer med @ViewChild och 19 filer med ElementRef-anvandning. Undersokta monster:
+- **@ViewChild anvand i ngOnInit/constructor**: Ingen komponent anvander ViewChild-refs i ngOnInit eller constructor. Alla chart-byggmetoder anropas via setTimeout-callbacks eller i ngAfterViewInit.
+- **@ViewChild utan null-check inuti *ngIf**: Flera ViewChild-refs ligger inuti *ngIf-block (historik, operatorsportal, operator-compare, monthly-report, statistik-produkttyp-effektivitet, rebotling/produktionstakt, rebotling/statistik-pareto-stopp). Alla har null-guards (`if (!this.ref) return;` eller `?.nativeElement`) innan nativeElement accessas.
+- **ElementRef.nativeElement utan null-check**: Alla 19 filer med nativeElement-anvandning har korrekt null-check fore access, antingen via optional chaining (`?.nativeElement`) eller explicit if-guard.
+- **@ViewChild utan { static: true }**: Alla ViewChild-deklarationer saknar `{ static: true }` (korrekt, de anvands inte i ngOnInit).
+
+Inga buggar hittades.
+
+### Uppgift 2: Angular service circular dependency (0 buggar)
+Granskade alla 96 Angular-tjanster i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+- **Cirkulara beroenden**: Inga. Alla tjanster injicerar enbart HttpClient (1 beroende), forutom FeatureFlagService som injicerar HttpClient + AuthService (2 beroenden). AuthService injicerar bara HttpClient. Inget cykliskt beroendetrad.
+- **For manga beroenden (>5)**: Inga. Maximal injection-count ar 2 (FeatureFlagService).
+- **forwardRef-workarounds**: Inga forekomster av forwardRef i nagon service.
+- **Tjanster som injicerar komponenter**: Inga forekomster.
+
+Inga buggar hittades.
+
+---
+
+## 2026-03-24 Session #296 Worker A — array_merge i loopar + str_replace/substr edge cases (0 buggar)
+
+### Uppgift 1: PHP array_merge i loopar (0 buggar)
+Granskade alla PHP-controllers i noreko-backend/classes/ och noreko-backend/controllers/ samt api.php, login.php, admin.php (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*, plcbackend/).
+Hittade 35 anvandningar av array_merge() totalt. Ingen av dem ligger inuti for/foreach/while-loopar. Alla anvandningar ar antingen:
+- Engangs-merge av parametrar for SQL-execute (KassationsanalysController, OperatorRankingController, GamificationController m.fl.)
+- Merge av success-flagga med data for JSON-svar (OperatorsbonusController, BatchSparningController m.fl.)
+- Merge av CORS-origins vid uppstart (api.php, login.php, admin.php)
+- Sammanslagning av alarm-resultat utanfor loopar (AlarmHistorikController)
+
+Inga buggar hittades.
+
+### Uppgift 2: PHP str_replace/substr edge cases (0 buggar)
+Granskade alla PHP-controllers i noreko-backend/classes/ och noreko-backend/controllers/ samt api.php, login.php, admin.php (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*, plcbackend/).
+
+Undersokta monster:
+- **strpos() == false (type juggling)**: Alla strpos()-anvandningar (VpnController) anvander === eller !== (strikt jamforelse). Inga loose comparisons hittades.
+- **str_replace() med null-varden (PHP 8.1 deprecation)**: Alla str_replace()-anrop opererar pa varden som redan ar garanterat icke-null (t.ex. $origin initieras med ?? '', $color fran palette-array, $dag fran SQL-resultat med NOT NULL-kolumner). NewsController anvander ?? '' guard.
+- **substr() med negativa offset**: Tre anvandningar av substr($yw, -2) for att extrahera veckonummer fran yearweek — detta ar ett korrekt och sakert monster.
+- **substr vs mb_substr**: Alla substr()-anrop opererar pa ASCII-only data (datum i YYYY-MM-DD-format, datetime-strangar, yearweek-nummer). Inga anvandningar pa anvandargenererad text eller UTF-8-innehall. All anvandargenererad text anvander redan mb_substr().
+- **str_replace med array/strang-mismatch**: api.php/login.php/admin.php anvander array som forsta argument och strang som andra — detta ar korrekt PHP-beteende (varje element i arrayen ersatts med samma strang).
+
+Inga buggar hittades.
+
+---
+
 ## 2026-03-24 Session #295 Worker B — *ngIf/async race conditions + HttpParams encoding (0 buggar)
 
 ### Uppgift 1: Angular *ngIf + async pipe race conditions (0 buggar)
