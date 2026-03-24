@@ -1,3 +1,56 @@
+## 2026-03-24 Session #286 Worker B — Angular frontend buggjakt (15 buggar)
+
+### Uppgift 1: Angular Router navigation edge cases (0 buggar)
+
+Granskade alla 5 filer med ActivatedRoute i pages/:
+- operator-detail.ts — snapshot.paramMap (korrekt for statisk param, ej subscription behov)
+- stoppage-log.ts — queryParams med takeUntil(destroy$) (rad 249)
+- tvattlinje-statistik.ts — snapshot.queryParams + syncStateToUrl med queryParamsHandling:'merge' (rad 169)
+- rebotling-statistik.ts — snapshot.queryParams + syncStateToUrl med queryParamsHandling:'merge' (rad 301)
+- login.ts — snapshot.queryParams i constructor (korrekt, engangslasning)
+
+Granskade alla 8 router.navigate()-anrop. Alla ar korrekta:
+- 5 st navigerar till fast sokvag (/, /login) — inga queryParams att bevara
+- 2 st (tvattlinje-statistik, rebotling-statistik) anvander queryParamsHandling:'merge' korrekt
+- 1 st (register.ts) navigerar efter redirect-timeout, korrekt
+
+Granskade auth.guard.ts och pending-changes.guard.ts:
+- authGuard returnerar Observable<boolean | UrlTree> korrekt
+- adminGuard returnerar Observable<boolean | UrlTree> korrekt
+- pendingChangesGuard returnerar boolean korrekt
+- Inga NavigationEnd-subscriptions i hela projektet
+
+### Uppgift 2: Angular HttpClient response handling (0 buggar)
+
+Granskade alla 96 services i noreko-frontend/src/app/services/:
+- Alla HTTP-anrop har catchError() i pipe (601 catchError mot 511 pipe-anrop)
+- Inga felaktiga responseType-anvandningar hittades
+- 2 filer anvander HttpParams (skiftoverlamning.service.ts, bonus.service.ts) — alla med
+  korrekta null-guards (if-satser fore params.set)
+- Inga subscribe-i-subscribe-monster hittades
+- alerts.service.ts polling anvander takeUntil(destroy$)
+- auth.service.ts polling anvander Subscription + unsubscribe korrekt
+
+### Uppgift 3: Angular template/component edge cases (15 buggar)
+
+Granskade alla ~160 component-filer for setTimeout/setInterval utan clearTimeout/clearInterval:
+
+**Bugg 1 (rebotling-statistik.ts rad 1996):** setTimeout utan sparad timer-ID for
+exportChartFeedback. Fixat: la till private exportFeedbackTimer + clearTimeout i ngOnDestroy.
+
+**Buggar 2-13 (rebotling-admin.ts rad 379, 424, 501, 710, 818, 897, 955, 982, 1213, 1264, 1314, 1348):**
+12 st setTimeout utan sparade timer-IDn for UI-feedback-meddelanden och chart-rendering.
+Fixat: la till private _feedbackTimers array + forEach clearTimeout i ngOnDestroy.
+
+**Bugg 14 (tvattlinje-admin.ts rad 431):** setTimeout utan sparad timer-ID for
+alertThresholdsSaved. Fixat: la till private alertFeedbackTimerId + clearTimeout i ngOnDestroy.
+
+Ovriga granskningar (rent):
+- Alla *ngFor i templates (540+ forekomster i 147 filer) har trackBy
+- Alla EventEmitter (10 st i maintenance-log/) har @Output() decorator
+- Alla ActivatedRoute-subscriptions har takeUntil(destroy$)
+- Alla komponenter implementerar OnDestroy med destroy$.next() + destroy$.complete()
+
 ## 2026-03-24 Session #286 Worker A — PHP backend buggjakt (1 bugg)
 
 ### Uppgift 1: PHP header/redirect consistency (0 buggar — rent)

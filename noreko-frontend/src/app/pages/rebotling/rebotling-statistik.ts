@@ -230,6 +230,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
+  private exportFeedbackTimer: any = null;
 
   constructor(
     private rebotlingService: RebotlingService,
@@ -382,6 +383,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
+    clearTimeout(this.exportFeedbackTimer);
     try {
       if (this.productionChart) {
         const canvas = this.productionChart.canvas;
@@ -1993,7 +1995,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       chartName: 'Produktionsanalys - ' + periodLabel
     });
     this.exportChartFeedback = true;
-    setTimeout(() => { if (!this.destroy$.closed) this.exportChartFeedback = false; }, 2000);
+    clearTimeout(this.exportFeedbackTimer);
+    this.exportFeedbackTimer = setTimeout(() => { if (!this.destroy$.closed) this.exportChartFeedback = false; }, 2000);
   }
 
   exportCSV() {

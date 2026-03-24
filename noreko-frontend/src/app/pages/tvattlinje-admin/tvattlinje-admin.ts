@@ -90,6 +90,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
   showSuccessMessage = false;
   successMessage = '';
   private successTimerId: any = null;
+  private alertFeedbackTimerId: any = null;
 
   // ---- Visibilitychange-guard ----
   private visibilityHandler = () => this.onVisibilityChange();
@@ -116,6 +117,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
   ngOnDestroy() {
     document.removeEventListener('visibilitychange', this.visibilityHandler);
     clearTimeout(this.successTimerId);
+    clearTimeout(this.alertFeedbackTimerId);
     this.stopPollingTimers();
     this.destroy$.next();
     this.destroy$.complete();
@@ -428,7 +430,8 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
         next: (res) => {
           if (res?.success) {
             this.alertThresholdsSaved = true;
-            setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000);
+            clearTimeout(this.alertFeedbackTimerId);
+            this.alertFeedbackTimerId = setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000);
           } else {
             this.alertThresholdsError = res?.error || 'Kunde inte spara trösklar';
           }

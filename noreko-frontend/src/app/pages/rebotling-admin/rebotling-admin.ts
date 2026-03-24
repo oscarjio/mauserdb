@@ -54,6 +54,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   showSuccessMessage = false;
   successMessage = '';
   private successTimerId: any = null;
+  private _feedbackTimers: any[] = [];
   showAddProductForm = false;
 
   // ---- Admin-inställningar (befintliga) ----
@@ -236,6 +237,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   ngOnDestroy() {
     document.removeEventListener('visibilitychange', this.visibilityHandler);
     clearTimeout(this.successTimerId);
+    this._feedbackTimers.forEach(t => clearTimeout(t));
+    this._feedbackTimers = [];
     clearInterval(this.systemStatusInterval);
     clearInterval(this.maintenanceTimer);
     clearInterval(this.todaySnapshotInterval);
@@ -376,7 +379,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res?.success) {
             this.settingsSaved = true;
             this.showSuccess('Inställningar sparade!');
-            setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000));
           } else {
             this.settingsError = res?.error || 'Kunde inte spara inställningar';
           }
@@ -421,7 +424,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res?.success) {
             this.weekdaySaved = true;
             this.showSuccess('Veckodagsmål sparade!');
-            setTimeout(() => { if (!this.destroy$.closed) this.weekdaySaved = false; }, 3000);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.weekdaySaved = false; }, 3000));
           } else {
             this.weekdayError = res?.error || 'Kunde inte spara';
           }
@@ -498,7 +501,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res?.success) {
             this.shiftTimesSaved = true;
             this.showSuccess('Skifttider sparade!');
-            setTimeout(() => { if (!this.destroy$.closed) this.shiftTimesSaved = false; }, 3000);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.shiftTimesSaved = false; }, 3000));
           } else {
             this.shiftTimesError = res?.error || 'Kunde inte spara';
           }
@@ -707,7 +710,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res.success) {
             this.maintenanceData   = res;
             this.maintenanceStatus = res.status as 'ok' | 'warning' | 'danger';
-            setTimeout(() => { if (!this.destroy$.closed) this.renderMaintenanceChart(); }, 0);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderMaintenanceChart(); }, 0));
           }
           this.maintenanceLoading = false;
         },
@@ -815,7 +818,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
         this.maintenanceLogText   = '';
         this.showMaintenanceLogForm = false;
         this.showSuccess('Underhållsåtgärd loggad!');
-        setTimeout(() => { if (!this.destroy$.closed) this.maintenanceLogSaved = false; }, 4000);
+        this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.maintenanceLogSaved = false; }, 4000));
       } else {
         this.maintenanceLogError = res?.error || 'Kunde inte spara underhållslogg';
       }
@@ -894,7 +897,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res?.success) {
             this.alertThresholdsSaved = true;
             this.showSuccess('Alert-trösklar sparade!');
-            setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000));
           } else {
             this.alertThresholdsError = res?.error || 'Kunde inte spara trösklar';
           }
@@ -952,7 +955,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (res?.success) {
             this.notificationSettingsSaved = true;
             this.showSuccess('Notifikationsinställningar sparade!');
-            setTimeout(() => { if (!this.destroy$.closed) this.notificationSettingsSaved = false; }, 3000);
+            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.notificationSettingsSaved = false; }, 3000));
           } else {
             this.notificationSettingsError = res?.error || 'Kunde inte spara inställningar';
           }
@@ -979,7 +982,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
         this.goalHistoryLoading = false;
         if (res?.success) {
           this.goalHistory = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildGoalHistoryChart(); }, 100);
+          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildGoalHistoryChart(); }, 100));
         }
       });
   }
@@ -1210,7 +1213,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.kassationForm.datum     = localToday();
           this.showSuccess('Kassation registrerad!');
           this.loadKassationSenaste();
-          setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000);
+          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000));
         } else {
           this.kassationError = res?.error || 'Kunde inte registrera kassation';
         }
@@ -1261,7 +1264,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.newExceptionDatum = localToday();
           this.loadGoalExceptions();
           this.showSuccess('Undantag sparat!');
-          setTimeout(() => { if (!this.destroy$.closed) this.exceptionSaveMsg = ''; }, 3000);
+          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.exceptionSaveMsg = ''; }, 3000));
         } else {
           this.exceptionSaveMsg = res?.error || 'Kunde inte spara undantag';
         }
@@ -1311,7 +1314,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.serviceResetMsg = 'Service registrerad!';
           this.serviceNote = '';
           this.loadServiceStatus();
-          setTimeout(() => { if (!this.destroy$.closed) this.serviceResetMsg = ''; }, 3000);
+          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.serviceResetMsg = ''; }, 3000));
         } else {
           this.serviceResetMsg = 'Fel vid registrering av service.';
         }
@@ -1345,7 +1348,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
         this.correlationLoading = false;
         if (res?.success) {
           this.correlationData = res;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderCorrelationChart(); }, 100);
+          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderCorrelationChart(); }, 100));
         } else {
           this.correlationError = res?.error || 'Kunde inte ladda korrelationsdata';
         }
