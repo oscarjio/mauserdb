@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #300)*
+*Senast uppdaterad: 2026-03-24 (session #302)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -106,23 +106,20 @@ Session #298: BUGGJAKT — 14 buggar (14 Worker A + 0 Worker B). try/catch: rent
 Session #299: BUGGJAKT — 23 buggar (19 Worker A + 4 Worker B). array type coercion: rent. file_put_contents: rent. SQL BETWEEN datum: 19 fixade. HTTP switchMap: rent. accessibility: 4 fixade.
 Session #300: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_combine: rent (inga finns). exception leakage: rent (alla error_log). SQL transaction isolation: rent (55 beginTransaction, alla med rollBack). Angular memory profiling: rent (518 ngFor med trackBy, alla cleanup korrekt). form state persistence: rent (canDeactivate pa alla 14 sidor).
 Session #301: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (inga blandade typer). SQL index usage: observation — 100+ DATE() i WHERE forhindrar index, ej fixat (kravs DB-kunskap). zone.js performance: rent (tunga berakningar pre-cachade). HTTP caching: rent (alla anrop filterbaserade). template null dereference: rent (alla skyddade).
+Session #302: BUGGJAKT — 3 buggar (2 Worker A + 1 Worker B). date() timezone: rent. COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent. innerHTML/renderer security: rent. lazy loading chunk errors: 1 fixad (esbuild regex+overlay). long list rendering: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #302+):
-- [ ] PHP date() timezone consistency — explicit timezone i alla date()/strtotime()
-- [ ] PHP SQL COUNT vs EXISTS — ineffektiva COUNT(*) dar EXISTS racker
-- [ ] Angular renderer security — innerHTML/bypassSecurityTrust utan sanitering
-- [ ] Angular lazy loading chunk errors — saknad felhantering vid chunk-laddningsfel
-- [ ] PHP mb_string consistency — blandning av strlen/substr och mb_strlen/mb_substr
+### Nasta (session #303+):
+- [ ] PHP SQL GROUP_CONCAT truncation — default max_length 1024 kan trunkera data
+- [ ] PHP error_log rotation/size — kontrollera att loggfiler inte vaxer obegransat
+- [ ] Angular router scroll position — saknad scrollPositionRestoration vid navigation
+- [ ] PHP PDO::ATTR_STRINGIFY_FETCHES — inkonsekvent typning fran DB-fragor
+- [ ] Angular HTTP race conditions — switchMap vs exhaustMap pa POST/PUT anrop
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #299 (klar)
-Worker A: 19 buggar — array type coercion: rent. file_put_contents: rent (inga finns). SQL BETWEEN datum: 19 off-by-one fixade (23:59:59 -> < nasta dag 00:00:00) i 19 controllers.
-Worker B: 4 buggar — HTTP switchMap: rent (inga switchMap pa POST/PUT/DELETE). accessibility: 4 fixade (1 a->button, 3 saknade aria-label pa inputs).
 
 ### 2026-03-24 — Session #300 (klar)
 Worker A: 0 buggar — array_combine/array_zip: rent (inga finns). exception message leakage: rent (alla $e->getMessage() i error_log, aldrig till klient). SQL transaction isolation: rent (55 beginTransaction, alla med commit+rollBack, FOR UPDATE korrekt).
@@ -131,3 +128,7 @@ Worker B: 0 buggar — Angular memory profiling: rent (518 *ngFor med trackBy, a
 ### 2026-03-24 — Session #301 (klar)
 Worker A: 0 buggar — header()+exit(): rent (SPA, inga redirects). array_unique type juggling: rent (25+ anrop, inga blandade typer). SQL index usage: 100+ DATE()-wrapper i WHERE forhindrar indexanvandning i 20+ controllers (observation, ej fixat).
 Worker B: 0 buggar — zone.js performance: rent (260+ template-metoder, alla latta). HTTP caching: rent (93 services, alla filterbaserade). template null dereference: rent (129 ngFor + 200+ bindings, alla skyddade).
+
+### 2026-03-24 — Session #302 (klar)
+Worker A: 2 buggar — date() timezone: rent (globalt i api.php). COUNT vs EXISTS: 2 fixade (AlertsController+SkiftrapportController). mb_string: rent (korrekt uppdelning ASCII/mb_).
+Worker B: 1 bugg — innerHTML/renderer security: rent (inga innerHTML/bypassSecurityTrust). lazy loading chunk errors: 1 fixad (esbuild chunk-fel regex + overlay). long list rendering: rent (alla trackBy).
