@@ -1,3 +1,47 @@
+## 2026-03-24 Session #284 Worker A — PHP backend buggjakt (0 buggar)
+
+### Uppgift 1: PHP array_map/array_filter callback-buggar (0 buggar — rent)
+
+Granskade ALLA 158 PHP-filer i noreko-backend/ (controllers/, classes/, root-filer).
+
+controllers/ (33 filer): Alla är tunna proxy-filer som delegerar till classes/ via require_once.
+Ingen fil i controllers/ innehåller array_map eller array_filter — all logik ligger i classes/.
+
+classes/ (120+ filer): Granskade alla array_map/array_filter-anrop:
+- Callback-signatur: Alla fn($v), fn($r), fn($k), function($row) etc. har korrekt antal
+  parametrar relativt hur många arrays som skickas in.
+- Null-input: Alla variabler som skickas till array_map/array_filter är antingen:
+  a) Resultat av fetchAll() som alltid returnerar [] (aldrig null)
+  b) Literala arrays
+  c) Tilldelade med ?? [] som fallback
+  Inga fall av ?? null -> array_map utan is_array()-check hittades.
+- Nyckelförlust: Alla ställen där nyckelordning spelar roll använder array_values() korrekt
+  efter array_filter(). Inga ställen förutsätter att array_map bevarar nycklar som array_filter.
+- Parameterordning: Inga fall av array_filter(callback, array) eller array_map(array, callback).
+
+### Uppgift 2: PHP preg_match/preg_replace — NULL-input och PHP 8.1 (0 buggar — rent)
+
+Granskade alla preg_match/preg_replace/preg_replace_callback-anrop i hela noreko-backend/:
+- NULL-input (PHP 8.1): Alla variabler skyddas av ?? '', if ($var), if ($var !== null) etc.
+  Inga fall av preg_match($pattern, null) utan föregående null-check.
+- Saknad delimiter: Alla regex-mönster använder korrekt delimiter (/, #).
+- /e modifier: Ingen preg_replace med /e-modifier hittades.
+- Returvärde: Alla preg_match-anrop i if-satser hanterar false korrekt (faller till else-gren).
+- api.php: $origin skyddas av if ($origin) innan preg_match för CORS-check.
+
+### Uppgift 3: PHP JSON encode/decode edge cases (0 buggar — rent)
+
+Granskade alla json_decode och json_encode-anrop i hela noreko-backend/:
+- json_decode: Alla anrop använder , true som andra parameter (returnerar array, ej stdClass).
+  Alla resultat kontrolleras med is_array(), ?? [], if (!$data) direkt efter anropet.
+- json_encode utan JSON_UNESCAPED_UNICODE: Verifierade med DOTALL-regex att ALLA
+  echo json_encode()-block (även multirad) innehåller JSON_UNESCAPED_UNICODE. 0 undantag.
+  Alla tilldelade json_encode (sparas till DB) använder JSON_UNESCAPED_UNICODE.
+- INF/NAN: Alla numeriska värden är intval()/round()-skyddade eller via is_finite()-check.
+  Variansberäkningar med ($n - 1) skyddas av if ($n > 1) i RebotlingAnalyticsController.
+
+---
+
 ## 2026-03-24 Session #284 Worker B — Angular frontend buggjakt (0 buggar)
 
 ### Uppgift 1: Angular ViewChild/ContentChild timing (0 buggar — rent)
