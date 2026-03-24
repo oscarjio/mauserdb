@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #295+):
-- [ ] **PHP array_key_exists vs isset** — controllers A-M (ny granskning med djupare fokus)
-- [ ] **PHP preg_match return value** — controllers som inte kontrollerar false-retur fran preg_match
+### Nasta buggjakt-items (session #296+):
 - [ ] **PHP array_merge i loopar** — performance-bugg, borde anvanda spread eller +=
-- [ ] **Angular *ngIf + async pipe** — race conditions vid lazy-laddade data
-- [ ] **Angular HttpParams encoding** — specialtecken i query params som inte encodas korrekt
+- [ ] **PHP str_replace/substr edge cases** — controllers A-Z, ovaentade typer eller tomma strangar
+- [ ] **PHP date() / mktime() edge cases** — controllers A-Z, sommar/vintertid, skottdag
+- [ ] **Angular ViewChild/ElementRef null** — komponenter som anvaender ViewChild utan null-check i ngAfterViewInit
+- [ ] **Angular service circular dependency** — tjanster som injicerar varandra (ger runtime-error)
 
 ## Parkerade features (ta inte dessa nu)
 

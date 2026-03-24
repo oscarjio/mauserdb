@@ -99,23 +99,20 @@ Session #291: BUGGJAKT — 6 buggar (6 Worker A + 0 Worker B). numeric string co
 Session #292: BUGGJAKT — 2 buggar (2 Worker A + 0 Worker B). array_key_exists/isset: rent. PDO lastInsertId: rent (ERRMODE_EXCEPTION). GROUP BY strict: 2 fixade (MyStatsController). OnPush: rent (inga OnPush-komponenter). pipe chaining: rent (alla null-guards). HTTP retry: rent (retry bara pa GET).
 Session #293: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). empty() gotchas: rent (~388 anvandningar, alla sakra). strtotime() edge cases: rent (~550 anvandningar, alla validerade). HTTP retry: rent (bekraftad). trackBy *ngFor: rent. template logik N-Z: rent.
 Session #294: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). intval/floatval: rent (425 $_GET/$_POST, alla castade). ORDER BY injection: rent (alla whitelistade). FormControl validators: rent (inga reaktiva forms). router param type safety: rent (5 komponenter, alla parseInt+isNaN).
+Session #295: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_key_exists vs isset A-M: rent (49 controllers, korrekt anvandning). preg_match return value: rent (alla enkla, sakra monster). *ngIf+async pipe: rent (ingen async pipe anvands, alla subscribe i ngOnInit). HttpParams encoding: rent (encodeURIComponent konsekvent).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #295+):
-- [ ] PHP array_key_exists vs isset — controllers A-M (ny granskning med djupare fokus)
-- [ ] PHP preg_match return value — controllers som inte kontrollerar false-retur
+### Nasta (session #296+):
 - [ ] PHP array_merge i loopar — performance-bugg, borde anvanda spread eller +=
-- [ ] Angular *ngIf + async pipe — race conditions vid lazy-laddade data
-- [ ] Angular HttpParams encoding — specialtecken i query params som inte encodas korrekt
+- [ ] PHP str_replace/substr edge cases — ovaentade typer eller tomma strangar
+- [ ] PHP date()/mktime() edge cases — sommar/vintertid, skottdag
+- [ ] Angular ViewChild/ElementRef null — saknad null-check i ngAfterViewInit
+- [ ] Angular service circular dependency — tjanster som injicerar varandra
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #292 (klar)
-Worker A: 2 buggar — GROUP BY strict: 2 subqueries i MyStatsController (op_num i SELECT utan GROUP BY). isset/array_key_exists: rent. lastInsertId: rent.
-Worker B: 0 buggar — OnPush: rent (inga OnPush-komponenter). pipe chaining: rent. HTTP retry: rent (retry bara pa GET).
 
 ### 2026-03-24 — Session #293 (klar)
 Worker A: 0 buggar — empty() gotchas: rent (~388 anvandningar). strtotime() edge cases: rent (~550 anvandningar, alla validerade).
@@ -124,3 +121,7 @@ Worker B: 0 buggar — HTTP retry: rent (bekraftad). trackBy *ngFor: rent. templ
 ### 2026-03-24 — Session #294 (klar)
 Worker A: 0 buggar — intval/floatval: rent (425 $_GET/$_POST-anvandningar, alla korrekt castade). ORDER BY injection: rent (alla sort/limit/offset whitelistade).
 Worker B: 0 buggar — FormControl validators: rent (inga reaktiva forms, bara template-driven). router param type safety: rent (5 komponenter, alla med parseInt+isNaN).
+
+### 2026-03-24 — Session #295 (klar)
+Worker A: 0 buggar — array_key_exists vs isset A-M: rent (49 controllers, korrekt anvandning genomgaende). preg_match return value: rent (alla enkla sakra monster, inga catastrophic backtracking-risker).
+Worker B: 0 buggar — *ngIf+async pipe: rent (ingen async pipe anvands, alla subscribe i ngOnInit). HttpParams encoding: rent (encodeURIComponent konsekvent, inga manuella strangkonkateneringar).
