@@ -1,5 +1,5 @@
 import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
+import { provideRouter, withPreloading, PreloadAllModules, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
 import localeSv from '@angular/common/locales/sv';
@@ -80,7 +80,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideRouter(routes, withPreloading(PreloadAllModules), withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })),
     provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]), withFetch()),
     { provide: APP_INITIALIZER, useFactory: initApp, deps: [AuthService, FeatureFlagService], multi: true },
     { provide: LOCALE_ID, useValue: 'sv' },

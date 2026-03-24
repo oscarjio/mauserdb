@@ -1,3 +1,57 @@
+## 2026-03-24 Session #303 Worker B — scrollPositionRestoration + template-berakningar (2 buggar)
+
+### Uppgift 1: Angular router scroll position (1 bugg)
+- **BUGG**: `scrollPositionRestoration` saknades i `provideRouter()` i `app.config.ts`. Anvandare som navigerade tillbaka i appen fick inte sin scrollposition aterstallda — sidan scrollades alltid till toppen.
+- **FIX**: Lade till `withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })` i `provideRouter()`.
+- Fil: `noreko-frontend/src/app/app.config.ts`
+
+### Uppgift 2: Angular HTTP race conditions — switchMap vs exhaustMap (0 buggar)
+- Granskade alla 7 filer med `switchMap` i noreko-frontend/src/app/:
+  - `services/auth.service.ts` — switchMap runt GET (fetchStatus polling), OK
+  - `guards/auth.guard.ts` — switchMap runt BehaviorSubject-lasning (loggedIn$, user$), OK
+  - `services/alerts.service.ts` — switchMap runt GET (getActiveAlerts polling), OK
+  - `pages/operators/operators.ts` — switchMap runt BehaviorSubject (auth.user$), OK
+  - `pages/users/users.ts` — switchMap runt BehaviorSubject (auth.user$), OK
+  - `pages/vpn-admin/vpn-admin.ts` — switchMap runt BehaviorSubject (auth.user$), OK
+  - `pages/create-user/create-user.ts` — switchMap runt BehaviorSubject (auth.user$), OK
+- **Resultat**: Ingen switchMap wrappar POST/PUT/DELETE-anrop. Alla anvandningar ar korrekta.
+
+### Uppgift 3: Angular template expressions — tunga berakningar (1 bugg)
+- **BUGG**: I `stoppage-log.html` och `stoppage-log.ts`:
+  - `filteredStoppages` var en getter med `.filter()` + `.sort()` som kors varje change detection-cykel (refereras 10+ ganger i template)
+  - `stopSummaryStats` var en getter med `.reduce()` varje CD-cykel
+  - `getMaxCostlyMin()` anropades i template med `.map()` + `Math.max()` varje CD-cykel
+  - `Object.keys(qrDataUrls).length` beraknades i template varje CD-cykel
+- **FIX**: Konverterade alla till cachade properties som uppdateras explicit vid datainlasning/filterandring/sortering via `updateCachedComputations()` och `recomputeFilteredStoppages()`.
+- Filer: `noreko-frontend/src/app/pages/stoppage-log/stoppage-log.ts`, `noreko-frontend/src/app/pages/stoppage-log/stoppage-log.html`
+- Granskade aven alla ovriga HTML-templates (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live). Inga andra templates hade tunga berakningar.
+
+---
+
+## 2026-03-24 Session #303 Worker A — GROUP_CONCAT truncation, error_log rotation, PDO STRINGIFY_FETCHES (0 buggar)
+
+### Uppgift 1: PHP SQL GROUP_CONCAT truncation (0 buggar)
+Sokte igenom alla GROUP_CONCAT-anvandningar i noreko-backend/classes/ (exkl. Rebotling*, Tvattlinje*, Saglinje*, Klassificeringslinje*-controllers).
+- **SUBSTRING_INDEX-monster**: Majoriteten av alla GROUP_CONCAT-anvandningar (ca 40+) anvander SUBSTRING_INDEX(..., '|', 1) for att hamta enbart det senaste vardet. Aven om den fulla konkatenerade strangen trunkeras, plockas det forsta elementet ut intakt — ingen dataforlust.
+- **GROUP_CONCAT(DISTINCT op1/op2/op3)**: BonusController.php rad 457-459 konkatenerar distinkta operatorsnummer per skift. Operatorsnummer ar korta (1-4 siffror), typiskt 1-3 distinkta per position per skift. Max realistisk langd: ~50 bytes. Ingen risk for 1024-byte-trunkering.
+- **GROUP_CONCAT(DISTINCT DATE(...))**: NewsController.php rad 590 (max 14 dagar * 11 tecken = 154 bytes) och SkiftrapportController.php rad 638 (1-2 datum per skift). Bada val inom grans.
+Resultat: RENT — inga buggar.
+
+### Uppgift 2: PHP error_log rotation/size (0 buggar)
+Sokte efter error_log()-anrop med 3 parametrar (custom loggfil) i hela noreko-backend/.
+- **Inga custom loggfiler**: Samtliga error_log()-anrop (100+) anvander enbart standardformat error_log($msg) utan tredje parameter. Ingen skriver till egna filer.
+- **Systemhanterad loggning**: All loggning gar via PHP:s default error_log som hanteras av serverns logrotate-konfiguration.
+- Granskade api.php och update-weather.php separat — bada anvander standard error_log().
+Resultat: RENT — inga buggar.
+
+### Uppgift 3: PHP PDO::ATTR_STRINGIFY_FETCHES consistency (0 buggar)
+Granskade alla PDO-anslutningar och typhantering i noreko-backend/.
+- **Tva anslutningspunkter**: api.php (rad 105-109) och update-weather.php (rad 21-24). Bada satter ATTR_EMULATE_PREPARES => false, vilket ger nativa MySQL-typer (int/float fran DB returneras som PHP int/float).
+- **ATTR_STRINGIFY_FETCHES**: Inte explicit satt i nagon anslutning. Med EMULATE_PREPARES => false ar detta korrekt — nativa typer returneras anda.
+- **Typsakra jamforelser**: Sokte igenom alla === jamforelser mot numeriska varden fran DB-rader. Samtliga anvander explicit (int)-cast fore jamforelse (t.ex. (int)$row['running'] === 1, (int)$user['admin'] === 1). Ingen riskerar typ-mismatch.
+- **Konsekvent konfiguration**: update-weather.php saknar ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC men gor enbart INSERT (ingen fetch), sa detta ar irrelevant.
+Resultat: RENT — inga buggar.
+
 ## 2026-03-24 Session #301 Worker B — Angular zone.js / HTTP caching / null dereference granskning (0 buggar)
 
 ### Uppgift 1: Angular zone.js performance — template-uttryck (0 buggar)

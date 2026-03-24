@@ -89,8 +89,13 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   cachedWeekDiffCount: number | null = null;
   cachedWeekDiffMinutes: number | null = null;
   cachedMonthLabel = '';
+  cachedMaxCostlyMin = 0;
+  cachedQrCount = 0;
+  stopSummaryStats: { total: number; totalMin: number; avgMin: number } = { total: 0, totalMin: 0, avgMin: 0 };
 
-  get filteredStoppages(): StoppageEntry[] {
+  filteredStoppages: StoppageEntry[] = [];
+
+  private recomputeFilteredStoppages(): void {
     let result = this.stoppages;
 
     // Text search (debounced)
@@ -131,11 +136,12 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       return this.sortDirection === 'asc' ? cmp : -cmp;
     });
 
-    return result;
+    this.filteredStoppages = result;
   }
 
   /** Uppdatera alla cachade berakningar — anropas vid datainlasning, filterandring, sortering */
   private updateCachedComputations(): void {
+    this.recomputeFilteredStoppages();
     const filtered = this.filteredStoppages;
 
     // cachedAvgDuration
@@ -171,6 +177,19 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
     // cachedMonthLabel
     this.cachedMonthLabel = this.getMonthLabel(this.monthlyStopMonth);
+
+    // stopSummaryStats
+    const stops = filtered;
+    const totalMin = stops.reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
+    this.stopSummaryStats = { total: stops.length, totalMin, avgMin: stops.length > 0 ? Math.round(totalMin / stops.length) : 0 };
+
+    // cachedMaxCostlyMin
+    this.cachedMaxCostlyMin = this.patternData?.costly_reasons?.length
+      ? Math.max(...this.patternData.costly_reasons.map((r: any) => r.total_min))
+      : 0;
+
+    // cachedQrCount
+    this.cachedQrCount = Object.keys(this.qrDataUrls).length;
   }
 
   private _calcWeekDiff(field: 'count' | 'total_minutes'): number | null {
@@ -188,6 +207,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       this.sortColumn = column;
       this.sortDirection = column === 'start_time' ? 'desc' : 'asc';
     }
+    this.updateCachedComputations();
   }
 
   getSortIcon(column: string): string {
@@ -580,11 +600,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       });
   }
 
-  get stopSummaryStats(): { total: number; totalMin: number; avgMin: number } {
-    const stops = this.filteredStoppages || this.stoppages || [];
-    const totalMin = stops.reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
-    return { total: stops.length, totalMin, avgMin: stops.length > 0 ? Math.round(totalMin / stops.length) : 0 };
-  }
+  /** stopSummaryStats ar nu en cachad property — uppdateras i updateCachedComputations() */
 
   formatMinutes(min: number): string {
     const h = Math.floor(min / 60);
@@ -688,6 +704,9 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           this.patternLoading = false;
           if (res && res.success) {
             this.patternData = res;
+            this.cachedMaxCostlyMin = this.patternData?.costly_reasons?.length
+              ? Math.max(...this.patternData.costly_reasons.map((r: any) => r.total_min))
+              : 0;
             clearTimeout(this.chartTimerId);
             this.chartTimerId = setTimeout(() => {
               if (!this.destroy$.closed) this.buildHourlyChart();
@@ -740,6 +759,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       }
     }
     this.qrLoading = false;
+    this.cachedQrCount = Object.keys(this.qrDataUrls).length;
   }
 
   printQRCodes() {

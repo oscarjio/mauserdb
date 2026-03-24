@@ -361,7 +361,7 @@
                   <div class="costly-info">
                     <div class="costly-name">{{ c.orsak }}</div>
                     <div class="costly-bar-wrap">
-                      <div class="costly-bar-fill" [style.width.%]="getCostlyBarWidth(c.total_min, getMaxCostlyMin())"></div>
+                      <div class="costly-bar-fill" [style.width.%]="getCostlyBarWidth(c.total_min, cachedMaxCostlyMin)"></div>
                     </div>
                   </div>
                   <div class="costly-stats">
@@ -813,7 +813,7 @@
             <i *ngIf="!qrLoading" class="fas fa-qrcode me-1"></i>
             Generera QR-koder
           </button>
-          <button class="btn btn-sm btn-outline-secondary" (click)="printQRCodes()" *ngIf="Object.keys(qrDataUrls).length > 0">
+          <button class="btn btn-sm btn-outline-secondary" (click)="printQRCodes()" *ngIf="cachedQrCount > 0">
             <i class="fas fa-print me-1"></i>Skriv ut
           </button>
         </div>
