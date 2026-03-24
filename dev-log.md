@@ -20611,3 +20611,40 @@ Bugg 2 (rad 212): Subquery i sqlBast hade samma problem — `op_num` i SELECT me
 Fix: Tog bort `op_num` fran SELECT (anvands inte av yttre query).
 
 OBS: Teamsnitt-queryn (sqlTeam) hade op_num korrekt i GROUP BY — ingen bugg dar.
+
+## Session #292 — Worker B (2026-03-24)
+Fokus: Angular OnPush change detection, template pipe chaining, HTTP error handling
+Resultat: 0 buggar hittade och fixade
+
+### Uppgift 1: OnPush change detection (0 buggar)
+Sokte efter ChangeDetectionStrategy.OnPush i alla 42 komponentfiler under noreko-frontend/src/app/.
+Resultat: Inga komponenter anvander OnPush — alla anvander default change detection.
+Darfor finns inga risker for muterad state utan ny referens.
+Rent — inga buggar.
+
+### Uppgift 2: Template pipe chaining (0 buggar)
+Granskade alla 37 .component.html-filer och ytterligare ~20 .html-mallar.
+Sokte efter pipe-kedjor ({{ value | pipe1 | pipe2 }}) — inga hittades.
+Granskade alla {{ value | number }} och {{ value | date }} — totalt ~100+ forekomster:
+- Majoriteten har korrekt null-guard: ternary (value !== null ? (value | number) : '-')
+- Ovriga ar pa varden som alltid ar satta fran API (t.ex. b.skapad_datum, d.datum, kpi.total_ibc)
+  eller skyddade av *ngIf pa foraldraelement
+- Inga osakra pipe-chains utan null-hantering hittades
+Rent — inga buggar.
+
+### Uppgift 3: HTTP error handling retry/timeout (0 buggar)
+Granskade alla ~95 servicefiler i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/.
+Verifierade session #291-resultat (timeout pa alla HTTP-anrop) — bekraftat korrekt.
+
+retry()-audit:
+- retry(1) anvands BARA pa GET-requests (http.get) — korrekt
+- POST/PUT/DELETE-metoder (produktionsmal.service, operators.service, underhallslogg.service,
+  alerts.service, skiftoverlamning.service, leveransplanering.service, bonus-admin.service,
+  line-skiftrapport.service, stopporsak-registrering.service, klassificeringslinje.service,
+  kassationskvot-alarm.service, avvikelselarm.service, produktionstakt.service) — INGEN har retry()
+
+catchError-audit:
+- Alla catchError returnerar of(null), of({success: false, ...}), eller of({success: false, data: []})
+- Inga returnerar undefined, EMPTY anvands inte men of(null) ar semantiskt ekvivalent har
+- Inga ohanterande felfall
+Rent — inga buggar.
