@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #286)*
+*Senast uppdaterad: 2026-03-24 (session #287)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -91,23 +91,20 @@ Session #283: BUGGJAKT — 4 buggar (0 Worker A + 4 Worker B). PHP pagination: r
 Session #284: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). array_map/array_filter: rent. preg_match/preg_replace: rent. JSON encode/decode: rent. ViewChild/ContentChild: rent. async pipe vs subscribe: rent. template type safety (a-m): rent.
 Session #285: BUGGJAKT — 16 buggar (15 Worker A + 1 Worker B). strtotime sondags-bugg: 15 stallen i 11 filer fixade. array_merge: rent. fetchAll memory: rent. HTTP params encoding: rent. number formatting: 1 division-med-noll fixad (skiftoverlamning). template type safety (n-z): rent.
 Session #286: BUGGJAKT — 16 buggar (1 Worker A + 15 Worker B). header/redirect: rent. SQL date range: rent. password/token timing: 1 hash_equals fixad (RegisterController). Router navigation: rent. HttpClient response: rent. setTimeout cleanup: 15 timer-IDn sparade+rensade i 3 komponenter.
+Session #287: BUGGJAKT — 134 buggar (7 Worker A + 127 Worker B). in_array strict: rent. file path traversal: rent. GROUP BY: 7 fixade (3 controllers). ngOnChanges: rent (inga implementerar). takeUntil ordering: 127 fixade i 38 filer. service audit: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #287+):
-- [ ] PHP array type coercion — in_array() utan strict, array_search() returvarde
-- [ ] Angular ngOnChanges edge cases — SimpleChanges null-check
-- [ ] PHP file path traversal — saknad basename/realpath-validering
-- [ ] Angular RxJS operator ordering — takeUntil sist i pipe
-- [ ] PHP SQL GROUP BY strictness — kolumner utan aggregering
+### Nasta (session #288+):
+- [ ] PHP exception handling — catch(Exception) utan loggning
+- [ ] Angular HTTP retry logic — saknade retry pa kritiska GET
+- [ ] PHP SQL LIKE injection — saknad escaping av % och _
+- [ ] Angular trackBy i *ngFor — stora listor utan trackBy
+- [ ] PHP integer overflow i pagination — page/limit validering
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-24 — Session #284 (klar)
-Worker A: 0 buggar — array_map/array_filter: rent. preg_match/preg_replace: rent. JSON encode/decode: rent.
-Worker B: 0 buggar — ViewChild/ContentChild: rent. async pipe: rent. Template type safety (a-m): rent.
 
 ### 2026-03-24 — Session #285 (klar)
 Worker A: 15 buggar — strtotime sondags-bugg i 11 filer (15 stallen). array_merge: rent. fetchAll memory: rent.
@@ -116,3 +113,7 @@ Worker B: 1 bugg — HTTP params encoding: rent. Number formatting: 1 division-m
 ### 2026-03-24 — Session #286 (klar)
 Worker A: 1 bugg — header/redirect: rent. SQL date range: rent. password/token timing: 1 hash_equals fixad (RegisterController registreringskod).
 Worker B: 15 buggar — Router navigation: rent. HttpClient response: rent. setTimeout cleanup: 15 timer-IDn sparade+rensade i 3 komponenter (rebotling-admin, rebotling-statistik, tvattlinje-admin).
+
+### 2026-03-24 — Session #287 (klar)
+Worker A: 7 buggar — in_array strict: rent. file path traversal: rent. GROUP BY: 7 fixade (OperatorCompareController 3, RebotlingController 2, RebotlingAnalyticsController 2).
+Worker B: 127 buggar — ngOnChanges: rent (inga implementerar). takeUntil ordering: 127 fixade i 38 filer. service audit: rent.
