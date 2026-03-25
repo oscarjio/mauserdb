@@ -1,3 +1,56 @@
+## Worker B — Session #316 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: Angular subscription/timer cleanup N-Z (0 buggar)
+Granskade alla 24 Angular-komponenter N-Z i noreko-frontend/src/app/:
+- oee-trendanalys, operator-ranking, operatorsbonus, operators-prestanda
+- pdf-export-button, prediktivt-underhall, produktions-dashboard, produktionsflode
+- produktionskostnad, produktionsmal, produktions-sla, rebotling-sammanfattning
+- rebotling-trendanalys, service-intervals, skiftoverlamning, skiftplanering
+- stationsdetalj, statistik-dashboard, statistik-overblick, stopporsaker
+- stopptidsanalys, tidrapport, vd-dashboard, vd-veckorapport
+
+Kontrollerade for varje komponent:
+- OnDestroy implementerad med destroy$ Subject + next()/complete() i ngOnDestroy — alla korrekt
+- takeUntil(this.destroy$) sist i pipe (fore subscribe, efter alla andra operatorer) — alla korrekt
+- Alla setInterval sparade i variabel och rensade med clearInterval i ngOnDestroy — alla korrekt
+- Alla setTimeout sparade i variabel och rensade med clearTimeout i ngOnDestroy — alla korrekt
+- Chart.js-instanser (trendChart, barChart, etc.) har destroy() i ngOnDestroy — alla korrekt
+- chartTimers-arrayer rensas med forEach(clearTimeout) + toms i ngOnDestroy — alla korrekt
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: PHP response Content-Type audit (0 buggar)
+Granskade api.php och alla ~97 PHP-controllers i noreko-backend/classes/ (hela listan A-Z).
+- api.php rad 57: satter globalt `Content-Type: application/json; charset=utf-8` — korrekt
+- Alla controllers som ocksa satter `Content-Type: application/json` ar redundanta men inte felaktiga (VdDashboardController, UnderhallsloggController, SkiftoverlamningController, StatistikDashboardController, SkiftplaneringController, StatistikOverblickController, NarvaroController, SkiftjamforelseController, DagligBriefingController, StopporsakController, RebotlingStationsdetaljController, HistoriskSammanfattningController, OperatorRankingController, OeeTrendanalysController, StopptidsanalysController, OperatorDashboardController, ProduktionsmalController)
+- Korrekta overridningar: BonusAdminController satter `text/csv` for CSV-export, TidrapportController satter `text/csv` for CSV-export, RebotlingAnalyticsController satter `text/csv` for CSV-export och `text/html` for HTML-rapporter/emails
+- ShiftHandoverController anvander `Content-Type: text/plain` i email-headers (inte HTTP-response) — korrekt
+- Inga endpoints overridar med fel Content-Type
+Resultat: rent — inga buggar hittade.
+
+### Audit 3: Angular HTTP error handling N-Z (0 buggar)
+Granskade alla 54 Angular-services N-Z i noreko-frontend/src/app/services/:
+- narvarotracker, oee-benchmark, oee-jamforelse, oee-trendanalys, oee-waterfall
+- operator-onboarding, operator-personal-dashboard, operator-ranking, operatorsbonus
+- operatorsportal, operators-prestanda, operators, pareto, pdf-export
+- produktions-dashboard, produktionsflode, produktionskalender, produktionskostnad
+- produktionsmal, produktionsprognos, produktionspuls, produktions-sla, produktionstakt
+- produkttyp-effektivitet, ranking-historik, rebotling-sammanfattning, rebotling
+- rebotling-stationsdetalj, rebotling-trendanalys, saglinje, skiftjamforelse
+- skiftoverlamning, skiftplanering, skiftrapport-export, skiftrapport-sammanstallning
+- skiftrapport, statistik-dashboard, statistik-overblick, stoppage, stopporsaker
+- stopporsak-operator, stopporsak-registrering, stopporsak-trend, stopptidsanalys
+- tidrapport, toast, tvattlinje, underhallslogg, underhallsprognos, users
+- utnyttjandegrad, vd-dashboard, vd-veckorapport, veckorapport
+
+Kontrollerade for varje service:
+- Alla HTTP-anrop har catchError() — alla returnerar of(null) vid fel, konsekvent monster
+- timeout() anvands pa alla anrop (10000-30000ms beroende pa endpoint) — alla korrekt
+- retry(1) anvands pa GET-anrop for automatisk retry — alla korrekt
+- POST-anrop har catchError med felmeddelande-extraktion (err?.error?.error) — korrekt
+- Inga switchMap/mergeMap race conditions hittade — alla services anvander enkla HTTP-anrop utan kedjade operatorer
+- Felhantering delegeras till komponenter som kontrollerar res?.success — konsekvent monster
+Resultat: rent — inga buggar hittade.
+
 ## Worker A — Session #316 (2026-03-25) — 0 buggar (alla 3 audits rena)
 
 ### Audit 1: PHP exception handling consistency N-Z (0 buggar)
