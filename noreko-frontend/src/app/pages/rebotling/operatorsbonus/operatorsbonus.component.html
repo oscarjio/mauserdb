@@ -191,7 +191,7 @@
           <canvas id="bonusRadarChart"></canvas>
         </div>
         <div *ngIf="!selectedOperator" class="text-muted small py-3 text-center">
-          Valj en operator.
+          Välj en operatör.
         </div>
       </div>
     </div>
@@ -320,7 +320,7 @@
       <button class="btn btn-sm btn-info" (click)="runSimulering()" [disabled]="loadingSimulering">
         <span *ngIf="loadingSimulering" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
         <i *ngIf="!loadingSimulering" class="fas fa-play me-1"></i>
-        Kor simulering
+        Kör simulering
       </button>
     </div>
 
@@ -378,7 +378,7 @@
     <i class="fas fa-info-circle me-1"></i>
     Bonusformel: Bonus per faktor = min(verkligt / mal, 1.0) x max_bonus_kr.
     Faktorer: IBC/h (40%), Kvalitet (30%), Narvaro (20%), Team-mal (10%).
-    Klicka <strong>Bonuskonfiguration</strong> for att justera parametrar.
+    Klicka <strong>Bonuskonfiguration</strong> för att justera parametrar.
     Data uppdateras automatiskt var 60:e sekund.
   </div>
 

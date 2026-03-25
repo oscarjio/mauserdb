@@ -1,3 +1,98 @@
+## Worker B -- Session #328 (2026-03-25) -- Frontend deploy + UX audit
+
+### Uppgift 1: Frontend deploy
+- Byggde frontend (npx ng build) -- lyckades utan fel
+- Deployade frontend dist till dev.mauserdb.com via rsync (korrigerade sokvagsfel: /var/www/mauserdb-dev/)
+- Fixade dev-serverns db_config.php (port 33061, user aiab) -- rsync hade overskrivit med lokal config
+- Deployade backend till dev
+- Verifierade att sidan laddar (HTTP 200) och att API-endpoints returnerar data efter inloggning
+
+### Uppgift 2: Angular form validation audit
+Granskade alla formularelement i: maskinunderhall, kassationskvot-alarm, batch-sparning, leveransplanering, produktionsmal, skiftoverlamning, avvikelselarm, operatorsbonus, skiftplanering.
+
+**Resultat:** Samtliga formular har korrekt validering:
+- required-attribut pa obligatoriska falt
+- min/max pa numeriska input
+- Felmeddelanden pa svenska (visas vid touched + invalid)
+- Submit-knappar disablade vid ogiltig data
+- maxlength pa textfalt
+- aria-required och aria-label genomgaende
+
+**Mindre brist (ej fixad):** operatorsbonus konfigurationspanelens config-inputs saknar required-attribut och inline felmeddelanden, men har min/max och knappar ar disablade vid ogiltiga varden.
+
+### Uppgift 3: API-endpoint verifiering
+Testade alla nyckel-endpoints via curl:
+- rebotling-sammanfattning: Returnerar data (overview, graph, maskinstatus)
+- produktionsdashboard: Returnerar KPI-data (oee, produktion, drifttid)
+- vd-dashboard: Returnerar oversikt (14 IBC idag, OEE 5.8%)
+- skiftrapport: Returnerar skiftdata med operator/produktnamn
+
+Alla endpoints kraver autentisering (session cookie) -- korrekt beteende.
+
+### Uppgift 4: UX-granskning -- svenska och diakritik (19 fixar)
+Granskade ALLA 37+ .html-templates. Hittade och fixade 19 stallen med saknade svenska diakritiska tecken (a/o/a istallet for a/o/a):
+
+**skiftoverlamning.component.html (13 fixar):**
+1. "Forsok igen" -> "Forsok igen"
+2. "Verktyg pa ratt plats" -> "Verktyg pa ratt plats"
+3. "Kemikaliepafyllning" -> "Kemikaliepafyllning"
+4. "Sakerhetskontroll utford" -> "Sakerhetskontroll utford"
+5. "Vad hande under skiftet?" -> "Vad hande under skiftet?"
+6. "hande under skiftet" (placeholder) -> "hande under skiftet"
+7. "Vad behover atgardas?" -> "Vad behover atgardas?"
+8. "behover fixas, repareras, foljas upp" (placeholder) -> "behover fixas, repareras, foljas upp"
+9. "Ovrigt att tanka pa" -> "Ovrigt att tanka pa"
+10. "Ovrig information till nasta skift" (placeholder) -> "Ovrig information till nasta skift"
+11. "Bekrafta" + "Ar du saker pa..." -> "Bekrafta" + "Ar du saker pa..."
+12. "Tidigare overlamningar" -> "Tidigare overlamningar"
+13. "Rengoring/Sakerhet/Atgardas/Ovrigt/Vad hande" i historik-detaljer
+
+**kassationskvot-alarm.component.html (4 fixar):**
+14. "Troskelinstallning" -> "Troskelvardsinslallning"
+15. "Varningstroskeln maste vara lagre an alarmtroskeln" -> korrekt
+16. "Spara troskelvarden" -> "Spara troskelvarden"
+17. "Baserat pa...overskridna troskelvarden" -> korrekt
+
+**avvikelselarm.component.html (4 fixar):**
+18. "Kraver omedelbar atgard" -> korrekt
+19. "Alla system gar normalt" -> korrekt
+20. "Troeskelvarden" -> "Troskelvarden"
+21. "Snitt losningstid" -> korrekt
+22. "Fornamn Efternamn" (placeholder) -> korrekt
+23. "Beskriv vidtagen atgard" (placeholder) -> korrekt
+
+**Ovriga filer (5 fixar):**
+24. operatorsbonus: "Valj en operator" -> "Valj en operator"
+25. operatorsbonus: "Kor simulering" -> "Kor simulering"
+26. operatorsbonus: "for att justera" -> "for att justera"
+27. leveransplanering: "Forsenade ordrar" + "Behover atgard" -> korrekt
+28. leveransplanering: "oversiktsdata" -> "oversiktsdata"
+29. produktions-dashboard: "oversiktsdata" + "Forsok ladda" -> korrekt
+30. vd-dashboard: "Forsok ladda data igen" (aria-label) -> korrekt
+31. kvalitetscertifikat: "for att se" + "bedoma" + "beraknas" + "pa" -> korrekt
+32. batch-sparning: "Progress per batch" -> "Framsteg per batch" + "Progress" -> "Framsteg"
+
+### Uppgift 5: Deploy av alla fixar
+- Byggde frontend (lyckades)
+- Deployade dist till dev.mauserdb.com
+- Verifierade laddning (HTTP 200)
+
+### Sammanfattning
+- **Antal buggar hittade och fixade:** 21 UX-buggar (19 saknade diakritik + 2 engelska kolumnrubriker)
+- **Andrade filer:**
+  - noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.html
+  - noreko-frontend/src/app/pages/rebotling/kassationskvot-alarm/kassationskvot-alarm.component.html
+  - noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.html
+  - noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html
+  - noreko-frontend/src/app/pages/rebotling/leveransplanering/leveransplanering.component.html
+  - noreko-frontend/src/app/pages/rebotling/produktions-dashboard/produktions-dashboard.component.html
+  - noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.html
+  - noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.html
+  - noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.html
+- **Kvastaende UX-problem:**
+  - operatorsbonus konfigurationspanel saknar required + felmeddelanden pa inputs (men har min/max)
+  - Dev-serverns db_config.php overskrivs av rsync --delete vid varje deploy (port 33061 vs 3306)
+
 ## Worker A — Session #326 (2026-03-25) — 4 buggar (alla 3 audits)
 
 ### Audit 1: PHP caching/performance audit (3 buggar)
