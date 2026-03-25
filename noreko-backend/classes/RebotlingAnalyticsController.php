@@ -3686,7 +3686,7 @@ class RebotlingAnalyticsController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT
-                   COALESCE(r.name, s.reason_free) AS orsak,
+                   COALESCE(r.name, s.comment) AS orsak,
                    COALESCE(r.category, 'övrigt')  AS kategori,
                    COUNT(*)                         AS antal_stopp,
                    COALESCE(SUM(s.duration_minutes), 0) AS total_minuter,
@@ -3694,8 +3694,7 @@ class RebotlingAnalyticsController {
                  FROM stoppage_log s
                  LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                  WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                   AND s.deleted_at IS NULL
-                 GROUP BY r.id, COALESCE(r.name, s.reason_free)
+                 GROUP BY r.id, COALESCE(r.name, s.comment)
                  ORDER BY total_minuter DESC
                  LIMIT 20"
             );
@@ -3707,8 +3706,7 @@ class RebotlingAnalyticsController {
                 "SELECT COUNT(*) AS total_stopp,
                         COALESCE(SUM(duration_minutes), 0) AS total_minuter
                  FROM stoppage_log
-                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                   AND deleted_at IS NULL"
+                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)"
             );
             $stmtSum->execute([$days]);
             $summary = $stmtSum->fetch(PDO::FETCH_ASSOC);
@@ -3803,14 +3801,13 @@ class RebotlingAnalyticsController {
                    COALESCE(s.duration_minutes, 0) AS duration_minutes,
                    s.comment,
                    COALESCE(u.username, 'Okänd') AS operator,
-                   COALESCE(r.name, s.reason_free) AS orsak,
+                   COALESCE(r.name, s.comment) AS orsak,
                    COALESCE(r.category, 'övrigt') AS kategori
                  FROM stoppage_log s
                  LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                  LEFT JOIN users u ON s.user_id = u.id
-                 WHERE COALESCE(r.name, s.reason_free) = ?
+                 WHERE COALESCE(r.name, s.comment) = ?
                    AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                   AND (s.deleted_at IS NULL)
                  ORDER BY s.start_time DESC"
             );
             $stmt->execute([$cause, $days]);
@@ -5954,8 +5951,13 @@ HTML;
      * Kräver admin-session.
      */
     public function createAnnotation(): void {
-        // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data        = json_decode(file_get_contents('php://input'), true) ?? [];
+        // Stöd både JSON och form-urlencoded (Angular skickar form-urlencoded)
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data) || empty($data)) {
+            parse_str($raw, $data);
+        }
+        if (!is_array($data)) $data = [];
         $datum       = trim($data['datum'] ?? '');
         $typ         = trim($data['typ'] ?? '');
         $titel       = strip_tags(trim($data['titel'] ?? ''));
@@ -6004,8 +6006,13 @@ HTML;
      * Kräver admin-session.
      */
     public function deleteAnnotation(): void {
-        // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        // Stöd både JSON och form-urlencoded (Angular skickar form-urlencoded)
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data) || empty($data)) {
+            parse_str($raw, $data);
+        }
+        if (!is_array($data)) $data = [];
         $id = intval($data['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(400);

@@ -1689,6 +1689,20 @@ class RebotlingController {
             [$start, $end] = [$end, $start];
         }
         try {
+            // Säkerställ att tabellen finns
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS `production_events` (
+                    `id`          INT          NOT NULL AUTO_INCREMENT,
+                    `event_date`  DATE         NOT NULL,
+                    `title`       VARCHAR(200) NOT NULL,
+                    `description` TEXT         NULL DEFAULT NULL,
+                    `event_type`  VARCHAR(50)  NOT NULL DEFAULT 'ovrigt',
+                    `created_by`  INT          NULL DEFAULT NULL,
+                    `created_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    INDEX `idx_event_date` (`event_date`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
             $stmt = $this->pdo->prepare(
                 "SELECT id, event_date, title, description, event_type
                  FROM production_events
@@ -1699,8 +1713,8 @@ class RebotlingController {
             echo json_encode(['success' => true, 'events' => $stmt->fetchAll(PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingController::getEvents: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta händelser', 'events' => []], JSON_UNESCAPED_UNICODE);
+            // Returnera tom lista istället för 500 om tabellen saknas
+            echo json_encode(['success' => true, 'events' => []], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1713,8 +1727,13 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data  = json_decode(file_get_contents('php://input'), true) ?? [];
+        // Stöd både JSON och form-urlencoded (Angular skickar form-urlencoded)
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data) || empty($data)) {
+            parse_str($raw, $data);
+        }
+        if (!is_array($data)) $data = [];
         $date  = trim($data['event_date']   ?? '');
         $title = strip_tags(trim($data['title']   ?? ''));
         $desc  = strip_tags(trim($data['description'] ?? ''));
@@ -1757,8 +1776,13 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        // Läs JSON-body (Angular skickar application/json, inte form-data)
-        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        // Stöd både JSON och form-urlencoded (Angular skickar form-urlencoded)
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        if (!is_array($data) || empty($data)) {
+            parse_str($raw, $data);
+        }
+        if (!is_array($data)) $data = [];
         $id = intval($data['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
@@ -2634,15 +2658,20 @@ class RebotlingController {
 
             // KPI: total produktion (IBC) under perioden för att beräkna kassation%
             $stmtProd = $this->pdo->prepare("
-                SELECT COALESCE(SUM(MAX(r.ibc_ok) + MAX(r.ibc_ej_ok) + MAX(r.bur_ej_ok)), 0) AS total_prod
-                FROM rebotling_ibc r
-                WHERE DATE(r.datum) BETWEEN :from_date AND :to_date
-                  AND r.skiftraknare IS NOT NULL
-                GROUP BY r.skiftraknare
+                SELECT COALESCE(SUM(shift_total), 0) AS total_prod
+                FROM (
+                    SELECT
+                        r.skiftraknare,
+                        MAX(COALESCE(r.ibc_ok, 0)) + MAX(COALESCE(r.ibc_ej_ok, 0)) + MAX(COALESCE(r.bur_ej_ok, 0)) AS shift_total
+                    FROM rebotling_ibc r
+                    WHERE DATE(r.datum) BETWEEN :from_date AND :to_date
+                      AND r.skiftraknare IS NOT NULL
+                    GROUP BY DATE(r.datum), r.skiftraknare
+                ) AS per_shift
             ");
             $stmtProd->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $prodRows = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
-            $totalProduktion = array_sum(array_column($prodRows, 'total_prod'));
+            $prodRow = $stmtProd->fetch(PDO::FETCH_ASSOC);
+            $totalProduktion = (int)($prodRow['total_prod'] ?? 0);
 
             $kassationPct = $totalProduktion > 0
                 ? round($totalKassation / $totalProduktion * 100, 2)
