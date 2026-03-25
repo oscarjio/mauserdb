@@ -1,3 +1,52 @@
+## Worker A — Session #326 (2026-03-25) — 4 buggar (alla 3 audits)
+
+### Audit 1: PHP caching/performance audit (3 buggar)
+Granskade ALLA 116 PHP-controllers i noreko-backend/classes/ systematiskt for redundanta DB-anrop, saknad caching, N+1-problem, SELECT * och ineffektiv PHP-bearbetning.
+
+**Hittade och fixade:**
+1. **OeeTrendanalysController::trend()** — Kritisk N+1: anropade calcOeeForPeriod() (2 DB-queries) per dag i en loop. For 30 dagar = 60 queries, for 365 dagar = 730 queries. Ersatte med batch-metoder batchDrifttidPerDag() och batchIbcPerDag() (2 queries totalt oavsett period).
+2. **OeeTrendanalysController::prediktion()** — Samma N+1: anropade calcOeeForPeriod() 30 ganger i loop (60 queries). Refaktorerad till batch (2 queries).
+3. **KapacitetsplaneringController::getDagligKapacitet() + getTidFordelning()** — N+1: anropade getDrifttidSek() per dag i loop (up to 365 queries). Lade till batchDrifttidPerDag() och anvander den istallet (1 query).
+
+**Ytterligare fixar (ej raknande som separata buggar):**
+- KapacitetsplaneringController::loadKapacitetConfig(): Lade till request-level caching ($cachedConfig). Metoden anropades 1-6 ganger per request.
+- DagligBriefingController::stationsstatus(): Redundant omberakning av OEE-komponenter fran data som calcOeeForDay() redan beraknat. Anvander nu det befintliga resultatet direkt.
+
+**Granskat utan anmarkning:**
+- DagligBriefingController: Korrekt aggregering, inga N+1 (veckotrend anroper prepared statement i loop men med reused statement = OK).
+- HistoriskSammanfattningController: Inga N+1, batch queries for IBC per dag, operator-namn hamtas separat med IN-klausul.
+- KvalitetstrendanalysController: Effektiva batch-queries med fetchStationDailyData() och fetchOperatorData().
+- MinDagController: Korrekt per-skift aggregering, inga N+1.
+- OperatorJamforelseController: Prepared statements ateranvands utanfor loopen.
+- ProduktionskalenderController: Batch query for manadsdata, enskild query for dagdetalj.
+- SELECT * i RebotlingAdminController/BonusAdminController/TvattlinjeController: Acceptabelt — single-row settings-tabeller med fa kolumner, WHERE id = 1.
+
+### Audit 2: PHP API response format audit (1 bugg)
+Granskade ALLA PHP-controllers for inkonsekvent JSON-svarformat, statuskoder, felmeddelanden och Content-Type.
+
+**Hittade och fixade:**
+1. **OperatorsbonusController::sendSuccess()** — Anvande array_merge(['success' => true], $data) som flattade data till toppniva istallet for konsekvent {success: true, data: {...}}. Vissa endpoints returnerade {success, data: {data: {...}}} (dubblerad nyckel) medan andra returnerade {success, konfig: ..., max_total: ...} (ingen data-wrapper). Fixade sendSuccess() och alla anropare till konsekvent format.
+
+**Granskat utan anmarkning:**
+- api.php: Sattar Content-Type: application/json globalt — controllers behover inte satta det individuellt. Centraliserad try/catch fangar alla fel med generiskt 500-svar och loggar detaljerna internt. Inga stack traces/SQL-fragor exponeras.
+- Samtliga 116 controllers: Felhantering anvander http_response_code() korrekt (401/403/500/400). Felmeddelanden ar anvandarvänliga pa svenska utan interna detaljer. run-parametrar saniteras med htmlspecialchars() i felmeddelanden.
+- KlassificeringslinjeController: Direkt json_encode utan sendSuccess-wrapper — avviker fran monstra men konsekvent internt. Korrekt error handling.
+- RebotlingAdminController: Direkt json_encode utan wrapper — men denna controller anropas via RebotlingController, inte api.php direkt. Konsekvent internt.
+
+### Audit 3: PHP error handling depth audit (0 buggar)
+Granskade ALLA PHP-controllers for tomma catch-block, saknad felhantering, saknad validering, division by zero-risker, och null-kontroller.
+
+**Granskat utan anmarkning:**
+- Inga tomma catch-block hittade i nagon controller. Alla catch-block loggar via error_log().
+- Samtliga DB-operationer ar wrappade i try/catch med korrekta felmeddelanden.
+- Division by zero: Alla divisioner ar skyddade med villkor ($total > 0, $drifttidSek > 0, etc.).
+- Null-kontroller: DB-resultat anvands med ?? 0 / ?? null / if ($row) genomgaende.
+- Parameter-validering: run-parametrar har default-grenar, datum valideras med regex, numeriska parametrar begransas med max()/min().
+- DagligBriefingController: Dubbelsakring med inner try/catch + outer try/catch i sammanfattning(). Korrekt.
+- KapacitetsplaneringController: ensureConfigTable() wrappat i try/catch, korrekt felhantering.
+- OperatorsbonusController: beraknaBonus() hantera mal <= 0 korrekt (return 0). countWorkDays() returnerar max(1,...) for att undvika division by zero.
+- RebotlingAdminController: Alla settings-methods ar wrappade i try/catch. Transaktioner har rollback i catch-block.
+
 ## Worker B — Session #326 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: Angular change detection audit (0 buggar)
