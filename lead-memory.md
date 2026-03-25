@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #311)*
+*Senast uppdaterad: 2026-03-25 (session #312)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -116,23 +116,20 @@ Session #308: BUGGJAKT — ~171 buggar (~150 Worker A + 21 Worker B). SQL DATE()
 Session #309: BUGGJAKT — 7 buggar (0 Worker A + 7 Worker B). SQL implicit type conversion: rent. Exception handling: rent (563 catch-block). Array bounds: rent. ngIf/ngSwitch: rent. innerHTML: rent. Template expression complexity: 7 fixade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker).
 Session #310: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL LIKE escaping: rent (addcslashes korrekt). Content-Type: rent (api.php globalt). Route param type safety: rent (4 komponenter, alla isNaN). HTTP retry logic: rent (interceptor korrekt).
 Session #311: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL ORDER BY dynamic: rent (alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (alla har context). Form validation: rent (template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla korrekt).
+Session #312: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). array_key_exists vs isset: rent (399 isset, alla korrekt). SQL UNION: rent (30+ filer, alla typer matchar). PDO transaction nesting: rent (55 beginTransaction, inga nestade). HTTP polling: 12 saknade isFetching-guards fixade i 11 filer. innerHTML XSS: rent (inga [innerHTML] i templates). Observable subscriptions: rent (alla takeUntil sist i pipe).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #312+):
-- [ ] PHP array_key_exists vs isset deep audit — isset returnerar false for null-varden
-- [ ] PHP SQL UNION type mismatch — kolumntyper i UNION-delar som inte matchar
-- [ ] Angular HTTP polling interval drift — setInterval+HTTP kan orsaka request-stacking
-- [ ] Angular template string interpolation XSS — innerHTML med dynamisk data
-- [ ] PHP PDO transaction nesting — beginTransaction inuti annan transaktion
+### Nasta (session #313+):
+- [ ] PHP dead code audit — oanvanda metoder/routes
+- [ ] Angular unused imports/variables — TS-diagnostik visar oanvanda deklarationer
+- [ ] PHP SQL prepared statement parameter count — antal ? vs bind-parametrar
+- [ ] Angular ngOnDestroy completeness — komponenter med subscriptions utan OnDestroy
+- [ ] PHP error response consistency — alla endpoints JSON med samma felformat
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #309 (klar)
-Worker A: 0 buggar — SQL implicit type conversion: rent. Exception handling: rent (563 catch-block, alla med error_log). Array bounds: rent.
-Worker B: 7 buggar — template expression complexity: 7 funktionsanrop cachade. ngIf/ngSwitch: rent. innerHTML: rent.
 
 ### 2026-03-25 — Session #310 (klar)
 Worker A: 0 buggar — SQL LIKE escaping: rent (2 controllers med LIKE+user input, alla har addcslashes). Content-Type: rent (api.php sattar globalt).
@@ -141,3 +138,7 @@ Worker B: 0 buggar — Route param type safety: rent (4 komponenter, alla med is
 ### 2026-03-25 — Session #311 (klar)
 Worker A: 0 buggar — SQL ORDER BY dynamic: rent (5 fall, alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (100+ anrop, alla har context).
 Worker B: 0 buggar — Form validation: rent (96 filer, template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla destroy+null).
+
+### 2026-03-25 — Session #312 (klar)
+Worker A: 0 buggar — array_key_exists vs isset: rent (399 isset, alla sakra). SQL UNION: rent (30+ filer). PDO transaction nesting: rent (55 beginTransaction).
+Worker B: 12 buggar — HTTP polling isFetching: 12 saknade guards fixade i 11 filer (menu 5, alerts 1, stoppage-log 1, operator-dashboard 5, produktionsmal 5, trendanalys 5, stationsdetalj 3, leaderboard 1, uptid-heatmap 1, veckotrend 1, produktionspuls 1, stopporsak-registrering 1). innerHTML XSS: rent. Observable subscriptions: rent.
