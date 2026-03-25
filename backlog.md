@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #322):
-- [ ] **PHP SQL query builder audit** — prepared statements, parameter binding, query concatenation (Worker A)
-- [ ] **PHP CORS/header security audit** — Access-Control headers, content-type validation (Worker A)
-- [ ] **PHP input sanitization audit** — $_GET/$_POST validering, filter_input, typ-casting (Worker A)
-- [ ] **Angular state management audit** — BehaviorSubject race conditions, stale state (Worker B)
-- [ ] **Angular environment config audit** — hardcoded URLs, missing env variables (Worker B)
-- [ ] **Angular HTTP interceptor audit** — error interceptors, token refresh, timeout (Worker B)
+### Pagaende (session #323):
+- [ ] **PHP logging/audit trail audit** — saknad loggning av viktiga handelser, loggniva-konsistens (Worker A)
+- [ ] **PHP race condition audit** — concurrent requests, DB-lasning, optimistic locking (Worker A)
+- [ ] **PHP date/timezone audit** — datum-/tidshantering, timezone-setting, datumformat (Worker A)
+- [ ] **Angular memory profiling audit** — DOM-lackor, detached elements, stora arrayer i minnet (Worker B)
+- [ ] **Angular router guard audit** — auth guards, canActivate/canDeactivate, redirect-logik (Worker B)
+- [ ] **Angular form validation audit** — reactive forms, template-driven forms, error-display (Worker B)
 
-### Nasta buggjakt-items (session #323+):
-- [ ] **PHP logging/audit trail audit** — saknad loggning av viktiga handelser, loggniva-konsistens
-- [ ] **Angular memory profiling audit** — DOM-lackor, detached elements, stora arrayer i minnet
-- [ ] **PHP race condition audit** — concurrent requests, DB-lasning, optimistic locking
-- [ ] **Angular router guard audit** — auth guards, canActivate/canDeactivate, redirect-logik
+### Nasta buggjakt-items (session #324+):
+- [ ] **PHP session management audit** — session fixation, session timeout, cookie flags
+- [ ] **Angular SSR/hydration audit** — server-side rendering kompatibilitet, hydration-fel
+- [ ] **PHP file upload audit** — MIME-validering, filstorlek, path traversal
+- [ ] **Angular pipe/transform audit** — rena vs orena pipes, prestandaproblem, edge cases
 
 ## Parkerade features (ta inte dessa nu)
 

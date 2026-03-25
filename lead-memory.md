@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #322)*
+*Senast uppdaterad: 2026-03-25 (session #323)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,24 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#322: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#323: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #323+):
-- [ ] PHP logging/audit trail audit
-- [ ] Angular memory profiling audit
-- [ ] PHP race condition audit
-- [ ] Angular router guard audit
+### Nasta (session #324+):
+- [ ] PHP session management audit
+- [ ] Angular SSR/hydration audit
+- [ ] PHP file upload audit
+- [ ] Angular pipe/transform audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #321 (klar)
-Worker A: 0 buggar — Session/cookie security: rent. File I/O: rent. Error handling consistency: rent.
-Worker B: 0 buggar — Lazy loading: rent. Accessibility: rent. Change detection: rent.
-
 ### 2026-03-25 — Session #322 (klar)
-Worker A: 0 buggar — SQL query builder: rent (90+ controllers, prepared statements, vitlistor). CORS/header security: rent (vitlistad origin, alla security headers). Input sanitization: rent (typ-casting, filter_var, JSON-validering).
-Worker B: 0 buggar — State management: rent (3 services, 41 components, korrekt livscykel). Environment config: rent (environment.apiUrl konsekvent, inga hardcoded URLs). HTTP interceptor: rent (retry-logik, CSRF, timeout, catchError).
+Worker A: 0 buggar — SQL query builder: rent. CORS/header security: rent. Input sanitization: rent.
+Worker B: 0 buggar — State management: rent. Environment config: rent. HTTP interceptor: rent.
+
+### 2026-03-25 — Session #323 (klar)
+Worker A: 0 buggar — Logging/audit trail: rent. Race conditions: rent. Date/timezone: rent.
+Worker B: 0 buggar — Memory profiling: rent. Router guards: rent. Form validation: rent.
