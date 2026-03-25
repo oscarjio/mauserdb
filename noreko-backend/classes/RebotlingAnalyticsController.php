@@ -5536,7 +5536,7 @@ HTML;
                 foreach ($rows as $r) {
                     $prod = htmlspecialchars($r['product_name'] ?? '-', ENT_QUOTES, 'UTF-8');
                     $lopnr = (int)($r['lopnummer'] ?? 0);
-                    $lopnrStr = $lopnr > 0 ? (string)$lopnr : '-';
+                    $lopnrStr = ($lopnr > 0 && $lopnr < 900) ? (string)$lopnr : '-';
                     $ibcOk = (int)($r['ibc_ok'] ?? 0);
                     $burEj = (int)($r['bur_ej_ok'] ?? 0);
                     $ibcEj = (int)($r['ibc_ej_ok'] ?? 0);
