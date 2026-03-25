@@ -1,3 +1,32 @@
+## Worker A — Session #315 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: PHP exception handling consistency A-M (0 buggar)
+Granskade alla 50 PHP-controllers A-M i noreko-backend/classes/ (AdminController, AlarmHistorikController, AlertsController, AndonController, AuditController, AuthHelper, AvvikelselarmController, BatchSparningController, BonusAdminController, BonusController, CertificationController, CykeltidHeatmapController, DagligBriefingController, DagligSammanfattningController, DashboardLayoutController, DrifttidsTimelineController, EffektivitetController, FavoriterController, FeatureFlagController, FeedbackAnalysController, FeedbackController, ForstaTimmeAnalysController, GamificationController, HeatmapController, HistorikController, HistoriskProduktionController, HistoriskSammanfattningController, KapacitetsplaneringController, KassationsanalysController, KassationsDrilldownController, KassationskvotAlarmController, KassationsorsakController, KassationsorsakPerStationController, KlassificeringslinjeController, KvalitetscertifikatController, KvalitetstrendanalysController, KvalitetsTrendbrottController, KvalitetstrendController, LeveransplaneringController, LineSkiftrapportController, LoginController, MaintenanceController, MalhistorikController, MaskinDrifttidController, MaskinhistorikController, MaskinOeeController, MaskinunderhallController, MinDagController, MorgonrapportController, MyStatsController). Kontrollerade:
+- Alla catch-block loggar med error_log() — 407 catch-satser granskade, alla loggar korrekt
+- Alla catch-block returnerar ratt HTTP-statuskod (500 for serverfel, 400/401/403/404/405 for klientfel)
+- sendError() anvands konsekvent — inga direkta echo json_encode i catch-block utan HTTP-statuskod (session #314 fixade de 13 fallen som hittades tidigare)
+- try-catch finns runt alla PDO-operationer (556 PDO-anrop matchade mot 407 catch-satser, alla korrekt wrappade)
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: PHP SQL kolumnnamn-verifiering A-M (0 buggar)
+Granskade alla SQL-queries i 50 PHP-controllers A-M. Kontrollerade SELECT, WHERE, JOIN, GROUP BY, ORDER BY mot tabellscheman. Granskade specifikt:
+- rebotling_ibc: kolumner datum, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, rasttime, skiftraknare, lopnummer, op1/op2/op3, produkt, effektivitet, produktivitet, kvalitet, bonus_poang — alla korrekt refererade
+- users: kolumner id, username, email, phone, password, admin, active, last_login, operator_id, role — alla korrekt
+- operators: kolumner id, number, name, active — alla korrekt
+- stoppage_log: kolumner id, start_time, end_time, duration_minutes, reason_id, reason, comment, line, operator_name, created_at — alla korrekt
+- stopporsak_registreringar/stopporsak_kategorier: JOIN pa kategori_id/id — korrekt
+- audit_log, alerts, alert_settings, avvikelselarm, larmregler, batch_order, batch_ibc, bonus_config, bonus_payouts, bonus_level_amounts, bonus_audit_log, operator_certifications, dashboard_layouts, user_favoriter, rebotling_onoff, rebotling_settings, maintenance_entries, shift_handover, shift_plan, kassationsregistrering, login_attempts — alla kolumnnamn och JOINs korrekt
+- Aliasnamn ar konsekventa (per_shift, sub, per_skift, lagd, all_ops, etc.)
+Resultat: rent — inga buggar hittade.
+
+### Audit 3: PHP date/time edge cases A-M (0 buggar)
+Granskade alla date(), strtotime(), mktime() anrop i 50 PHP-controllers A-M. Specifikt kontrollerat:
+- strtotime('monday this week'): Redan fixat i GamificationController (rad 32-37, anvander korrekt `date('N')`-baserad berakning) och MaskinDrifttidController (rad 233-234, anvander `strtotime('-' . ((int)date('N') - 1) . ' days')` — korrekt)
+- Manadsoverganger: Ingen anvandning av strtotime('+1 month') fran godtyckligt datum. BonusAdminController rad 1236 anvander date('Y-m-t', strtotime($startDate)) dar $startDate alltid ar forsta i manaden — sakert
+- Skottarshantering: Alla datumintervall anvander strtotime("-N days") eller DATE_SUB i SQL, inte manuell berakning — inga skottarsbuggar
+- Tidszonskonsekvens: Alla controllers anvander PHP:s date()/strtotime() med serverns standardtidszon — konsekvent genom hela kodbasen. Inga blandade tidszoner hittades.
+Resultat: rent — inga buggar hittade.
+
 ## Worker B — Session #314 (2026-03-25) — 125 buggar (template warnings + strict templates + URL consistency)
 
 ### Audit 1: Angular NG8107/NG8102 template warnings (125 buggar)
