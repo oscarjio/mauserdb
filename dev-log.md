@@ -1,3 +1,32 @@
+## Worker A — Session #311 (2026-03-25) — 0 buggar (ORDER BY whitelist + cookie attributes + error_log format)
+
+### Audit 1: PHP SQL ORDER BY dynamic (0 buggar)
+Granskade alla PHP-controllers i noreko-backend/classes/ efter ORDER BY med dynamiska kolumnnamn fran user input.
+- Sokte efter $_GET/$_POST med sort/order/column-relaterade nycklar, samt alla $sort/$orderBy-variabler och ORDER BY ... $ interpolation.
+- OperatorsPrestandaController.php rad 429-431: $_GET['sort_by'] whitelistas med in_array(['ibc','kassation','oee','cykeltid'], true). OK.
+- HistoriskProduktionController.php rad 383-384: $_GET['sort'] whitelistas med in_array(['date','ibc_ok','ibc_ej_ok','total','kassation_pct'], true), $_GET['order'] begransas till ASC/DESC. OK.
+- RebotlingAdminController.php rad 1082: $body['sort_by'] whitelistas med in_array(['ibc_per_hour','quality_pct','bonus_level','goal_progress','ibc_today'], true). OK.
+- KassationsanalysController.php rad 739/777/1235/1247: $orderExpr bestams av $group som ar whitelistad (in_array(['week','month'], true)). OK.
+- ForstaTimmeAnalysController.php rad 151/311: $ibcCol fran getIbcTimestampColumn() returnerar enbart 'timestamp' eller 'datum' (hardkodade varden). OK.
+- Alla ovriga ORDER BY anvander hardkodade kolumnnamn, inga user-input-variabler.
+Resultat: RENT — alla dynamiska ORDER BY har korrekt whitelist-validering.
+
+### Audit 2: PHP session/cookie attribute audit (0 buggar)
+Granskade alla PHP-filer som satter cookies i noreko-backend/.
+- api.php rad 81-88: session_set_cookie_params() med secure=$isHttps, httponly=true, samesite='Lax'. OK.
+- LoginController.php rad 173-184: setcookie() vid logout med secure=$isHttps, httponly=true, samesite='Lax'. OK.
+- api.php rad 90-92: session.use_strict_mode=1, session.use_only_cookies=1, session.use_trans_sid=0 (extra session fixation-skydd). OK.
+- Inga andra forekomster av setcookie(), session_set_cookie_params() eller header('Set-Cookie:') i nagon controller.
+Resultat: RENT — alla cookies har korrekta sakerhetsflaggor.
+
+### Audit 3: PHP error_log format consistency (0 buggar)
+Granskade alla error_log()-anrop i noreko-backend/classes/ (100+ forekomster over alla controllers).
+- Majoriteten foljer formatet ControllerName::methodName - meddelande (t.ex. RuntimeController::registerBreak, AuthHelper::ensureRateLimitTable).
+- 23 error_log-anrop anvander formatet ControllerName beskrivning: (t.ex. 'AuditController: datumberakning fallback', 'RebotlingController rast-events query:') — saknar ::methodName men har controller-kontext och beskrivande label.
+- Inga error_log-anrop HELT saknar kontext (alla har minst controllernamn).
+- Enligt instruktion: fixar INTE kosmetiska skillnader, enbart error_log som HELT saknar context.
+Resultat: RENT — alla error_log har tillracklig kontext (controller + beskrivning).
+
 ## Worker B — Session #310 (2026-03-25) — 0 buggar (route param type safety + HTTP retry logic)
 
 ### Audit 1: Route param type safety (0 buggar)
