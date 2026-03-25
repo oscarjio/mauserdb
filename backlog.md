@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #314):
-- [x] **PHP sendError() vs echo inkonsistens** — 13 fixade i 10 controllers
-- [x] **PHP SQL N+1 queries** — rent (alla loopar begransade)
-- [x] **PHP input sanitization audit** — rent (alla intval/whitelist/prepared)
-- [x] **Angular NG8107/NG8102 template warnings** — 125 fixade i 23 filer
-- [x] **Angular strict template type checking** — redan aktivt, bygget rent
+### Klart (session #315):
+- [x] **PHP exception handling consistency A-M** — rent (407 catch, 556 PDO)
+- [x] **Angular HTTP timeout audit** — rent (92 services)
+- [x] **PHP SQL kolumnnamn-verifiering A-M** — rent (50 controllers)
+- [x] **Angular component @Input validation** — rent (4 komponenter)
+- [x] **Angular subscription/timer cleanup A-M** — rent (~60 komponenter)
 
-### Nasta buggjakt-items (session #315+):
-- [ ] **PHP exception handling consistency** — granska att alla catch-block loggar korrekt och returnerar ratt HTTP-status
-- [ ] **Angular HTTP timeout audit** — verifiera att alla HTTP-anrop har timeout och catchError
-- [ ] **PHP SQL kolumnnamn-verifiering** — jamfor query-kolumner mot faktiskt DB-schema
-- [ ] **Angular component input validation** — granska att @Input-properties hanterar undefined/null korrekt
+### Nasta buggjakt-items (session #316+):
+- [ ] **PHP exception handling consistency N-Z** — granska catch-block, loggning, HTTP-status
+- [ ] **PHP SQL kolumnnamn-verifiering N-Z** — jamfor query-kolumner mot DB-schema
 - [ ] **PHP date/time edge cases** — testa gransfall (midnatt, manadsskifte, skottaar)
+- [ ] **Angular subscription/timer cleanup N-Z** — takeUntil-ordning, timer-rensning
+- [ ] **PHP response Content-Type audit** — verifiera att alla endpoints satter korrekt Content-Type
 
 ## Parkerade features (ta inte dessa nu)
 

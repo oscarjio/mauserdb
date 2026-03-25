@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #314)*
+*Senast uppdaterad: 2026-03-25 (session #315)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -119,35 +119,29 @@ Session #311: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL ORDER BY dyna
 Session #312: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). array_key_exists vs isset: rent. SQL UNION: rent. PDO transaction nesting: rent. HTTP polling: 12 saknade isFetching-guards fixade. innerHTML XSS: rent. Observable subscriptions: rent.
 Session #313: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). PHP dead code: rent (116 controllers, alla routes matchar). SQL prepared statement params: rent (850+ execute). PHP error response: rent. Angular unused imports: rent (tsc rent). ngOnDestroy: rent (169 komponenter). Template type safety: rent.
 Session #314: BUGGJAKT — 138 buggar (13 Worker A + 125 Worker B). sendError() inkonsistens: 13 direkt-echo fixade i 10 controllers. SQL N+1: rent. Input sanitization: rent. NG8107/NG8102: 125 template-varningar fixade i 23 filer. strictTemplates: redan aktivt. Service URL: rent.
+Session #315: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). Exception handling A-M: rent (407 catch, 556 PDO). SQL kolumnnamn A-M: rent. Date/time A-M: rent. HTTP timeout: rent (92 services). @Input validation: rent (4 komponenter). Subscription cleanup A-M: rent (~60 komponenter).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Klart (session #314):
-- [x] PHP sendError() vs echo inkonsistens — 13 fixade
-- [x] PHP SQL N+1 queries — rent
-- [x] PHP input sanitization audit — rent
-- [x] Angular NG8107/NG8102 template warnings — 125 fixade
-- [x] Angular strict template type checking — redan aktivt
-
-### Nasta (session #315+):
-- [ ] PHP exception handling consistency
-- [ ] Angular HTTP timeout audit
-- [ ] PHP SQL kolumnnamn-verifiering
-- [ ] Angular component input validation
+### Nasta (session #316+):
+- [ ] PHP exception handling consistency N-Z
+- [ ] PHP SQL kolumnnamn-verifiering N-Z
 - [ ] PHP date/time edge cases
+- [ ] Angular subscription/timer cleanup N-Z
+- [ ] PHP response Content-Type audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #312 (klar)
-Worker A: 0 buggar — array_key_exists vs isset: rent. SQL UNION: rent. PDO transaction nesting: rent.
-Worker B: 12 buggar — HTTP polling isFetching: 12 saknade guards fixade i 11 filer.
-
 ### 2026-03-25 — Session #313 (klar)
 Worker A: 0 buggar — PHP dead code audit: rent (116 controllers, alla routes matchar). SQL prepared statement parameter count: rent (850+ execute). PHP error response consistency: rent.
-Worker B: 0 buggar — Angular unused imports/variables: rent (tsc rent). ngOnDestroy completeness: rent (169 komponenter). Template type safety: rent (125 kosmetiska NG8107/NG8102 varningar, inga runtime-buggar).
+Worker B: 0 buggar — Angular unused imports/variables: rent (tsc rent). ngOnDestroy completeness: rent (169 komponenter). Template type safety: rent.
 
 ### 2026-03-25 — Session #314 (klar)
 Worker A: 13 buggar — sendError() inkonsistens: 13 direkt-echo ersatta med sendError() i 10 controllers. SQL N+1: rent (alla loopar begransade). Input sanitization: rent (alla intval/whitelist/prepared).
-Worker B: 125 buggar — NG8107/NG8102: 125 template-varningar fixade i 23 filer (93 onodvandiga ?. + 32 onodvandiga ?? 0). strictTemplates: redan aktivt. Service URL: rent (alla environment.apiUrl).
+Worker B: 125 buggar — NG8107/NG8102: 125 template-varningar fixade i 23 filer. strictTemplates: redan aktivt. Service URL: rent.
+
+### 2026-03-25 — Session #315 (klar)
+Worker A: 0 buggar — Exception handling A-M: rent (407 catch-satser, 556 PDO-ops). SQL kolumnnamn A-M: rent (50 controllers). Date/time edge cases A-M: rent (strtotime redan fixade).
+Worker B: 0 buggar — HTTP timeout: rent (92 services, alla timeout+catchError). @Input validation: rent (4 komponenter, alla har defaults). Subscription/timer cleanup A-M: rent (~60 komponenter, alla takeUntil+destroy$).
