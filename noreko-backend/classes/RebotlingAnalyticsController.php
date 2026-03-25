@@ -14,110 +14,80 @@ class RebotlingAnalyticsController {
      * 4) Använder rebotling_onoff: senaste running=1 FÖRE första cykel = starttid,
      *    första running=0 EFTER sista cykel = stopptid
      */
-    private function resolveSkiftTider(array $skiftraknareList, string $date): array {
+    private function resolveSkiftTider(array $skiftraknareList, string $date, int $totalDrifttid = 0): array {
         if (count($skiftraknareList) === 0) {
             return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
-        // Steg 1: Hitta rätt skifträknare i rebotling_ibc (original + fallback nedåt)
-        // Sök UTAN datumfilter först (skifträknare är tillräckligt unikt),
-        // med datumfilter som sekundärt fallback (hanterar dag-efter-scenariot)
-        $foundSkiftraknare = null;
-        $chk = $this->pdo->prepare(
-            "SELECT COUNT(*) as cnt FROM rebotling_ibc
-             WHERE skiftraknare = ?
-             AND lopnummer > 0 AND lopnummer < 998"
-        );
+        $skIds = array_map('intval', array_keys($skiftraknareList));
+        $placeholders = implode(',', array_fill(0, count($skIds), '?'));
 
-        foreach (array_keys($skiftraknareList) as $sk) {
-            // Testa original, sedan n-1, n-2 — utan datumfilter
-            foreach ([(int)$sk, (int)$sk - 1, (int)$sk - 2] as $testId) {
-                $chk->execute([$testId]);
-                $cnt = (int)$chk->fetchColumn();
-                if ($cnt > 0) {
-                    $foundSkiftraknare = $testId;
-                    break 2;
-                }
-            }
-        }
-
-        if ($foundSkiftraknare === null) {
-            return ['start' => null, 'slut' => null, 'cykel_datum' => null];
-        }
-
-        // Steg 2: Hämta cykeldatum från rebotling_ibc med den hittade skifträknaren
-        $ibcStmt = $this->pdo->prepare("
-            SELECT GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
-            FROM rebotling_ibc
-            WHERE skiftraknare = ?
-            AND lopnummer > 0 AND lopnummer < 998
-        ");
-        $ibcStmt->execute([$foundSkiftraknare]);
-        $ibcRow = $ibcStmt->fetch(PDO::FETCH_ASSOC);
-        $cykelDatum = $ibcRow['cykel_datum'] ?? null;
-
-        // Steg 3: Använd SAMMA skifträknare i rebotling_onoff för start/stopp
-        // Första running=1 = maskinstart, sista running=0 = maskinstopp
+        // Steg 1: Start/stopp från rebotling_onoff — ALLA skifträknare
         $skiftStart = null;
         $skiftSlut  = null;
         try {
             $onStmt = $this->pdo->prepare(
                 "SELECT
-                    (SELECT MIN(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 1) AS first_start,
-                    (SELECT MAX(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 0) AS last_stop"
+                    MIN(CASE WHEN running = 1 THEN datum END) AS first_start,
+                    MAX(CASE WHEN running = 0 THEN datum END) AS last_stop,
+                    MAX(datum) AS last_any
+                 FROM rebotling_onoff WHERE skiftraknare IN ($placeholders)"
             );
-            $onStmt->execute([$foundSkiftraknare, $foundSkiftraknare]);
+            $onStmt->execute($skIds);
             $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
             if ($onRow) {
                 $skiftStart = $onRow['first_start'] ?? null;
-                $skiftSlut  = $onRow['last_stop'] ?? null;
+                $skiftSlut  = $onRow['last_stop'] ?? ($onRow['last_any'] ?? null);
             }
-            // Om inget running=0 finns (maskin lämnades på), fallback till MAX(datum)
-            if (!$skiftSlut && $skiftStart) {
-                $maxStmt = $this->pdo->prepare(
-                    "SELECT MAX(datum) AS last FROM rebotling_onoff WHERE skiftraknare = ?"
-                );
-                $maxStmt->execute([$foundSkiftraknare]);
-                $skiftSlut = $maxStmt->fetchColumn() ?: null;
+
+            // Rimlighetskontroll: om onoff-spann < 30 min men drifttid > 60 min,
+            // betrakta onoff som ofullständig (äldre data innan PLC loggade korrekt)
+            if ($skiftStart && $skiftSlut && $totalDrifttid > 60) {
+                $spanMin = (strtotime($skiftSlut) - strtotime($skiftStart)) / 60;
+                if ($spanMin < 30) {
+                    $skiftStart = null;
+                    $skiftSlut  = null;
+                }
             }
         } catch (Exception $e) {
-            error_log('RebotlingAnalyticsController::resolveSkiftTider onoff: ' . $e->getMessage());
+            error_log('resolveSkiftTider onoff: ' . $e->getMessage());
         }
 
-        // Fallback: om onoff saknar data, använd cykeltider
+        // Steg 2: Fallback — rebotling_ibc cykeltider
         if (!$skiftStart || !$skiftSlut) {
-            $fallStmt = $this->pdo->prepare(
-                "SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
-                 FROM rebotling_ibc WHERE skiftraknare = ?
-                 AND lopnummer > 0 AND lopnummer < 998"
-            );
-            $fallStmt->execute([$foundSkiftraknare]);
-            $fallRow = $fallStmt->fetch(PDO::FETCH_ASSOC);
-            if (!$skiftStart) $skiftStart = $fallRow['first_cycle'] ?? null;
-            if (!$skiftSlut)  $skiftSlut  = $fallRow['last_cycle'] ?? null;
+            try {
+                $ibcStmt = $this->pdo->prepare(
+                    "SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
+                     FROM rebotling_ibc WHERE skiftraknare IN ($placeholders)"
+                );
+                $ibcStmt->execute($skIds);
+                $ibcRow = $ibcStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$skiftStart) $skiftStart = $ibcRow['first_cycle'] ?? null;
+                if (!$skiftSlut)  $skiftSlut  = $ibcRow['last_cycle'] ?? null;
+            } catch (Exception $e) {
+                error_log('resolveSkiftTider ibc fallback: ' . $e->getMessage());
+            }
         }
 
-        // Fallback: estimera från runtime_plc om fortfarande saknas
-        if ((!$skiftStart || !$skiftSlut) && $date) {
-            try {
-                $rtStmt = $this->pdo->prepare(
-                    "SELECT MAX(COALESCE(runtime_plc, 0)) AS runtime_min
-                     FROM rebotling_ibc WHERE skiftraknare = ?"
-                );
-                $rtStmt->execute([$foundSkiftraknare]);
-                $runtimeMin = (int)($rtStmt->fetchColumn() ?? 0);
-                if ($runtimeMin > 0) {
-                    $baseDate = substr($date, 0, 10);
-                    if (!$skiftStart) {
-                        $skiftStart = $baseDate . ' 06:00:00';
-                    }
-                    if (!$skiftSlut) {
-                        $skiftSlut = date('Y-m-d H:i:s', strtotime($skiftStart) + ($runtimeMin * 60));
-                    }
-                }
-            } catch (Exception $e) {
-                error_log('RebotlingAnalyticsController::resolveSkiftTider runtime fallback: ' . $e->getMessage());
-            }
+        // Steg 3: Om fortfarande saknas — estimera från rapportdatum + drifttid
+        if ((!$skiftStart || !$skiftSlut) && $totalDrifttid > 0 && $date) {
+            $baseDate = substr($date, 0, 10);
+            if (!$skiftStart) $skiftStart = $baseDate . ' 06:00:00';
+            if (!$skiftSlut)  $skiftSlut  = date('Y-m-d H:i:s', strtotime($skiftStart) + ($totalDrifttid * 60));
+        }
+
+        // Steg 4: Cykeldatum
+        $cykelDatum = null;
+        try {
+            $cdStmt = $this->pdo->prepare(
+                "SELECT GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
+                 FROM rebotling_onoff WHERE skiftraknare IN ($placeholders)"
+            );
+            $cdStmt->execute($skIds);
+            $cdRow = $cdStmt->fetch(PDO::FETCH_ASSOC);
+            $cykelDatum = $cdRow['cykel_datum'] ?? null;
+        } catch (Exception $e) {
+            error_log('resolveSkiftTider cykel_datum: ' . $e->getMessage());
         }
 
         return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];
@@ -4446,7 +4416,7 @@ class RebotlingAnalyticsController {
             }
 
             // Hämta start/stopptid: fallback nedåt + onoff (maskin start/stopp)
-            $tider = $this->resolveSkiftTider($skiftraknareList, $date);
+            $tider = $this->resolveSkiftTider($skiftraknareList, $date, $totalDrift);
             $skiftStart = $tider['start'];
             $skiftSlut  = $tider['slut'];
 
@@ -5371,7 +5341,7 @@ HTML;
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
                     s.drifttid, s.rasttime, s.lopnummer, s.skiftraknare,
-                    s.op1, s.op2, s.op3,
+                    s.product_id, s.op1, s.op2, s.op3,
                     s.created_at,
                     u.username AS user_name,
                     p.name AS product_name,
@@ -5417,6 +5387,8 @@ HTML;
             $totalTotalt = 0; $totalDrift = 0; $totalRast = 0;
             $operatorNames = []; $products = [];
 
+            // Samla per-produkt data
+            $perProduct = [];
             foreach ($rows as $r) {
                 $totalIbcOk  += (int)($r['ibc_ok'] ?? 0);
                 $totalBurEj  += (int)($r['bur_ej_ok'] ?? 0);
@@ -5427,27 +5399,63 @@ HTML;
                 foreach (['op1_name','op2_name','op3_name'] as $opField) {
                     if (!empty($r[$opField])) $operatorNames[$r[$opField]] = true;
                 }
-                if (!empty($r['product_name'])) $products[$r['product_name']] = true;
+                $pName = $r['product_name'] ?: 'Okänd';
+                if (!empty($pName)) {
+                    $products[$pName] = true;
+                    if (!isset($perProduct[$pName])) {
+                        $perProduct[$pName] = ['ibc_ok' => 0, 'totalt' => 0, 'drifttid' => 0];
+                    }
+                    $perProduct[$pName]['ibc_ok']   += (int)($r['ibc_ok'] ?? 0);
+                    $perProduct[$pName]['totalt']    += (int)($r['totalt'] ?? 0);
+                    $perProduct[$pName]['drifttid']  += (int)($r['drifttid'] ?? 0);
+                }
                 if (!empty($r['skiftraknare'])) {
                     $skiftraknareList[(int)$r['skiftraknare']] = true;
                 }
             }
 
-            // Hämta start/stopptid: fallback nedåt + onoff (maskin start/stopp)
-            $tider = $this->resolveSkiftTider($skiftraknareList, $date);
+            // Hämta cykeltider per produkt
+            $productCycleTimes = [];
+            try {
+                $ctStmt = $this->pdo->query("SELECT id, name, cycle_time_minutes FROM rebotling_products");
+                while ($ct = $ctStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $productCycleTimes[$ct['name']] = max((int)$ct['cycle_time_minutes'], 1);
+                }
+            } catch (Exception $e) { error_log('ShiftPdf products: ' . $e->getMessage()); }
+
+            // Hämta start/stopptid från onoff (alla skifträknare)
+            $tider = $this->resolveSkiftTider($skiftraknareList, $date, $totalDrift);
             $skiftStart = $tider['start'];
             $skiftSlut  = $tider['slut'];
 
+            // Beräkna effektivitet per produkt
+            $productEfficiency = [];
+            foreach ($perProduct as $pName => $pd) {
+                $cycleMin = $productCycleTimes[$pName] ?? 3; // default 3 min
+                $targetPerH = 60.0 / $cycleMin; // förväntad IBC/h
+                $actualPerH = $pd['drifttid'] > 0 ? round(($pd['ibc_ok'] / ($pd['drifttid'] / 60)), 1) : 0;
+                $effPct = $targetPerH > 0 ? round(($actualPerH / $targetPerH) * 100, 1) : null;
+                $productEfficiency[$pName] = [
+                    'ibc_ok'      => $pd['ibc_ok'],
+                    'drifttid'    => $pd['drifttid'],
+                    'cycle_min'   => $cycleMin,
+                    'target_per_h'=> round($targetPerH, 1),
+                    'actual_per_h'=> $actualPerH,
+                    'eff_pct'     => $effPct,
+                ];
+            }
+
             $kvalitet = $totalTotalt > 0 ? round(($totalIbcOk / $totalTotalt) * 100, 1) : null;
-            $planned = $totalDrift + $totalRast;
-            $avail = $planned > 0 ? min($totalDrift / $planned, 1) : null;
-            $idealRatePerMin = 15.0 / 60.0;
-            $perf = ($totalDrift > 0 && $totalTotalt > 0)
-                ? min(($totalTotalt / $totalDrift) / $idealRatePerMin, 1.0)
-                : null;
-            $qr = $totalTotalt > 0 ? ($totalIbcOk / $totalTotalt) : null;
-            $oee = ($avail !== null && $perf !== null && $qr !== null) ? round($avail * $perf * $qr * 100, 1) : null;
+            // Viktad effektivitet: summera (ibc_ok * cykeltid) / total drifttid
+            $weightedCycleMin = 0;
+            foreach ($perProduct as $pName => $pd) {
+                $cycleMin = $productCycleTimes[$pName] ?? 3;
+                $weightedCycleMin += $pd['ibc_ok'] * $cycleMin;
+            }
+            $avgCycleMin = $totalIbcOk > 0 ? $weightedCycleMin / $totalIbcOk : 3;
+            $targetPerH = 60.0 / $avgCycleMin;
             $ibcPerH = $totalDrift > 0 ? round(($totalIbcOk / ($totalDrift / 60)), 1) : null;
+            $effPctTotal = ($ibcPerH !== null && $targetPerH > 0) ? round(($ibcPerH / $targetPerH) * 100, 1) : null;
 
             $kommentar = '';
             try {
@@ -5487,11 +5495,11 @@ HTML;
                 elseif ($kvalitet >= 70) $kvalitetFarg = '#996600';
                 else $kvalitetFarg = '#cc0000';
             }
-            $oeeFarg = '#333';
-            if ($oee !== null) {
-                if ($oee >= 75) $oeeFarg = '#006600';
-                elseif ($oee >= 50) $oeeFarg = '#996600';
-                else $oeeFarg = '#cc0000';
+            $effFarg = '#333';
+            if ($effPctTotal !== null) {
+                if ($effPctTotal >= 90) $effFarg = '#006600';
+                elseif ($effPctTotal >= 70) $effFarg = '#996600';
+                else $effFarg = '#cc0000';
             }
 
             $operatorHtml = '';
@@ -5543,7 +5551,7 @@ HTML;
             $dateEsc = htmlspecialchars($date, ENT_QUOTES, 'UTF-8');
             $shiftNameEsc = htmlspecialchars($shiftName, ENT_QUOTES, 'UTF-8');
             $kvalitetStr = $kvalitet !== null ? "{$kvalitet}%" : '-';
-            $oeeStr = $oee !== null ? "{$oee}%" : '-';
+            $effStr = $effPctTotal !== null ? "{$effPctTotal}%" : '-';
             $ibcPerHStr = $ibcPerH !== null ? "{$ibcPerH} st/h" : '-';
             $antalRap = count($rows);
             $genererad = date('Y-m-d H:i');
@@ -5568,9 +5576,53 @@ HTML;
             $html .= '<div class="kpi-grid">';
             $html .= '<div class="kpi-card"><div class="kpi-label">IBC OK</div><div class="kpi-value" style="color:#0066cc;">' . $totalIbcOk . '</div></div>';
             $html .= '<div class="kpi-card"><div class="kpi-label">Kvalitet</div><div class="kpi-value" style="color:' . $kvalitetFarg . ';">' . $kvalitetStr . '</div></div>';
-            $html .= '<div class="kpi-card"><div class="kpi-label">OEE</div><div class="kpi-value" style="color:' . $oeeFarg . ';">' . $oeeStr . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">Effektivitet</div><div class="kpi-value" style="color:' . $effFarg . ';">' . $effStr . '</div></div>';
             $html .= '<div class="kpi-card"><div class="kpi-label">IBC / timme</div><div class="kpi-value" style="color:#996600;">' . $ibcPerHStr . '</div></div>';
             $html .= '</div>';
+
+            // Per-produkt effektivitet
+            if (count($productEfficiency) > 0) {
+                $html .= '<div class="section-title">Effektivitet per produkt</div>';
+                $html .= "<table style='width:100%;border-collapse:collapse;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:right;'>Drifttid</th>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:right;'>IBC/h (faktisk)</th>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:right;'>IBC/h (mål)</th>";
+                $html .= "<th style='padding:5px 10px;border:1px solid #ccc;text-align:right;'>Effektivitet</th>";
+                $html .= "</tr></thead><tbody>";
+                foreach ($productEfficiency as $pName => $pe) {
+                    $pNameEsc = htmlspecialchars($pName, ENT_QUOTES, 'UTF-8');
+                    $dh = floor($pe['drifttid'] / 60); $dm = $pe['drifttid'] % 60;
+                    $dtStr = $dh > 0 ? "{$dh}h {$dm}min" : "{$dm}min";
+                    $pEffColor = '#333';
+                    if ($pe['eff_pct'] !== null) {
+                        if ($pe['eff_pct'] >= 90) $pEffColor = '#006600';
+                        elseif ($pe['eff_pct'] >= 70) $pEffColor = '#996600';
+                        else $pEffColor = '#cc0000';
+                    }
+                    $pEffStr = $pe['eff_pct'] !== null ? "{$pe['eff_pct']}%" : '-';
+                    $html .= "<tr>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;'>{$pNameEsc}</td>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;'>{$pe['ibc_ok']}</td>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;'>{$dtStr}</td>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$pe['actual_per_h']}</td>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;color:#666;'>{$pe['target_per_h']}</td>";
+                    $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;font-weight:600;color:{$pEffColor};'>{$pEffStr}</td>";
+                    $html .= "</tr>";
+                }
+                // Summeringsrad
+                $targetPerHTotal = round($targetPerH, 1);
+                $html .= "<tr style='background:#f8f8f8;font-weight:600;'>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;'>Totalt</td>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;'>{$totalIbcOk}</td>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;'>{$drifttidStr}</td>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;'>{$ibcPerHStr}</td>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;color:#666;'>{$targetPerHTotal}</td>";
+                $html .= "<td style='padding:4px 10px;border:1px solid #ddd;text-align:right;color:{$effFarg};'>{$effStr}</td>";
+                $html .= "</tr></tbody></table>";
+            }
+
             $html .= '<div class="section-title">Operatorer &amp; produkter</div><div class="ops-box">' . $operatorHtml . $productHtml . '</div>';
             $html .= $kommentarHtml;
             $html .= '<div class="section-title">Skiftrapporter (' . $antalRap . ' st)</div>' . $opTableHtml;
