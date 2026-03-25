@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #320):
-- [ ] **PHP date/time handling audit** — timezone-problem, date()-format, strale comparisons (Worker A)
-- [ ] **PHP numeric overflow/precision audit** — integer overflow, float-jamforelser (Worker A)
-- [ ] **PHP array/null safety audit** — isset-check, null returns, json_decode (Worker A)
-- [ ] **Angular routing guard audit** — canActivate, redirect-loopar, auth-kontroller (Worker B)
-- [ ] **Angular form validation audit** — required-fallt, custom validators, error messages (Worker B)
-- [ ] **Angular HTTP error handling edge cases** — catchError, loading states, race conditions (Worker B)
+### Pagaende (session #321):
+- [ ] **PHP session/cookie security audit** — session fixation, cookie flags, expiry (Worker A)
+- [ ] **PHP file I/O audit** — fopen/fwrite utan error check, temp-filer, path traversal (Worker A)
+- [ ] **PHP error handling consistency audit** — response format, try/catch, felkoder (Worker A)
+- [ ] **Angular lazy loading performance audit** — chunk sizes, preloading, cirkulara imports (Worker B)
+- [ ] **Angular accessibility audit** — aria-labels, keyboard navigation, screen reader (Worker B)
+- [ ] **Angular change detection audit** — OnPush, trackBy, async pipe, template-logik (Worker B)
 
-### Nasta buggjakt-items (session #321+):
-- [ ] **PHP session/cookie security audit** — session fixation, cookie flags, expiry
-- [ ] **Angular lazy loading performance audit** — chunk sizes, preloading strategies
-- [ ] **PHP file I/O audit** — fopen/fwrite utan error check, temp-filer som inte rensas
-- [ ] **Angular accessibility audit** — aria-labels, keyboard navigation, screen reader
+### Nasta buggjakt-items (session #322+):
+- [ ] **PHP SQL query builder audit** — prepared statements, parameter binding, query concatenation
+- [ ] **Angular state management audit** — BehaviorSubject race conditions, stale state
+- [ ] **PHP CORS/header security audit** — Access-Control headers, content-type validation
+- [ ] **Angular environment config audit** — hardcoded URLs, missing env variables
 
 ## Parkerade features (ta inte dessa nu)
 
