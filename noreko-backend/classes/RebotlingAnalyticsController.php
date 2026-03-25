@@ -4298,7 +4298,8 @@ class RebotlingAnalyticsController {
 
         try {
             // Hämta skiftrapporter för detta datum OCH specifikt skift
-            // Skiftnummer bestäms via rebotling_ibc: HOUR(MIN(datum)) → skift 1/2/3
+            // Skiftnummer: rebotling_ibc först, fallback rebotling_onoff
+            // Datum: rapport.datum ELLER onoff-data samma dag (rapport kan skapas dagen efter)
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -4316,19 +4317,31 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                  AND s.skiftraknare IS NOT NULL
+                WHERE s.skiftraknare IS NOT NULL
                   AND (
-                    SELECT CASE
+                    s.datum = :date
+                    OR s.skiftraknare IN (
+                      SELECT DISTINCT oo.skiftraknare FROM rebotling_onoff oo
+                      WHERE DATE(oo.datum) = :date_onoff AND oo.skiftraknare IS NOT NULL
+                    )
+                  )
+                  AND COALESCE(
+                    (SELECT IF(MIN(i.datum) IS NULL, NULL, CASE
                         WHEN HOUR(MIN(i.datum)) BETWEEN 6 AND 13 THEN 1
                         WHEN HOUR(MIN(i.datum)) BETWEEN 14 AND 21 THEN 2
                         ELSE 3
-                    END
-                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
+                    END)
+                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare),
+                    (SELECT IF(MIN(oo2.datum) IS NULL, NULL, CASE
+                        WHEN HOUR(MIN(oo2.datum)) BETWEEN 6 AND 13 THEN 1
+                        WHEN HOUR(MIN(oo2.datum)) BETWEEN 14 AND 21 THEN 2
+                        ELSE 3
+                    END)
+                    FROM rebotling_onoff oo2 WHERE oo2.skiftraknare = s.skiftraknare)
                   ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date, 'dateb' => $date, 'shift' => $shift]);
+            $stmt->execute(['date' => $date, 'date_onoff' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera KPI:er
@@ -5352,7 +5365,8 @@ HTML;
 
         try {
             // Hämta skiftrapporter för detta datum OCH specifikt skift
-            // Skiftnummer bestäms via rebotling_ibc: HOUR(MIN(datum)) → skift 1/2/3
+            // Skiftnummer bestäms via: 1) rebotling_ibc, 2) rebotling_onoff som fallback
+            // Datum-matchning: rapport.datum ELLER onoff/ibc-data samma dag (rapport kan skapas dagen efter)
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -5370,19 +5384,31 @@ HTML;
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                  AND s.skiftraknare IS NOT NULL
+                WHERE s.skiftraknare IS NOT NULL
                   AND (
-                    SELECT CASE
+                    s.datum = :date
+                    OR s.skiftraknare IN (
+                      SELECT DISTINCT oo.skiftraknare FROM rebotling_onoff oo
+                      WHERE DATE(oo.datum) = :date_onoff AND oo.skiftraknare IS NOT NULL
+                    )
+                  )
+                  AND COALESCE(
+                    (SELECT IF(MIN(i.datum) IS NULL, NULL, CASE
                         WHEN HOUR(MIN(i.datum)) BETWEEN 6 AND 13 THEN 1
                         WHEN HOUR(MIN(i.datum)) BETWEEN 14 AND 21 THEN 2
                         ELSE 3
-                    END
-                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
+                    END)
+                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare),
+                    (SELECT IF(MIN(oo2.datum) IS NULL, NULL, CASE
+                        WHEN HOUR(MIN(oo2.datum)) BETWEEN 6 AND 13 THEN 1
+                        WHEN HOUR(MIN(oo2.datum)) BETWEEN 14 AND 21 THEN 2
+                        ELSE 3
+                    END)
+                    FROM rebotling_onoff oo2 WHERE oo2.skiftraknare = s.skiftraknare)
                   ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date, 'dateb' => $date, 'shift' => $shift]);
+            $stmt->execute(['date' => $date, 'date_onoff' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Samla skifträknare för start/stopp-tid

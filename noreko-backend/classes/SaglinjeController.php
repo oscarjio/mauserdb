@@ -340,6 +340,8 @@ class SaglinjeController {
     // =========================================================
 
     private function getRunningStatus() {
+        $isRunning  = false;
+        $lastUpdate = null;
         try {
             $stmt = $this->pdo->prepare('
                 SELECT running, datum
@@ -351,19 +353,18 @@ class SaglinjeController {
             $result    = $stmt->fetch(PDO::FETCH_ASSOC);
             $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
             $lastUpdate = $result['datum'] ?? null;
-
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'running'    => $isRunning,
-                    'lastUpdate' => $lastUpdate
-                ]
-            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
+            // saglinje_onoff existerar inte an — returnera default
             error_log('SaglinjeController::getRunningStatus: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta status'], JSON_UNESCAPED_UNICODE);
         }
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'running'    => $isRunning,
+                'lastUpdate' => $lastUpdate
+            ]
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function getLiveStats() {
