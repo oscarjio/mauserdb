@@ -61,6 +61,10 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
   private chartTimerId: ReturnType<typeof setTimeout> | null = null;
   private messageTimerId: ReturnType<typeof setTimeout> | null = null;
 
+  // Cachade beraknader (undvik tunga funktionsanrop i template)
+  cachedMaxOrsaker = 1;
+  cachedOrsakBredd: Record<number, number> = {};
+
   // Skiftnamn
   readonly skiftNamn: Record<string, string> = {
     dag: 'Dag (06-14)',
@@ -188,6 +192,8 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
         this.loadingOrsaker = false;
         if (res?.success) {
           this.orsakerData = res.data;
+          this.cachedMaxOrsaker = this.computeMaxOrsaker();
+          this.cachedOrsakBredd = this.computeOrsakBreddMap();
         } else {
           this.errorOrsaker = true;
         }
@@ -353,14 +359,24 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     return '#9f7aea';
   }
 
-  maxOrsaker(): number {
+  private computeMaxOrsaker(): number {
     if (!this.orsakerData?.orsaker?.length) return 1;
     return Math.max(...this.orsakerData.orsaker.map(o => o.antal));
   }
 
+  private computeOrsakBreddMap(): Record<number, number> {
+    const map: Record<number, number> = {};
+    const max = this.cachedMaxOrsaker;
+    if (this.orsakerData?.orsaker) {
+      for (const o of this.orsakerData.orsaker) {
+        map[o.antal] = max > 0 ? Math.round((o.antal / max) * 100) : 0;
+      }
+    }
+    return map;
+  }
+
   orsakBredd(antal: number): number {
-    const max = this.maxOrsaker();
-    return max > 0 ? Math.round((antal / max) * 100) : 0;
+    return this.cachedOrsakBredd[antal] ?? 0;
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }

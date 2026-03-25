@@ -21628,3 +21628,26 @@ Rad 138, 156, 170. Dessa pollas var 5:e sekund av alla linje-statusvyer. Andrat 
 Totalt 31 DATE()-i-WHERE ersatta med index-vanliga range queries i 8 filer. Resterande ~70+ DATE()-i-WHERE finns i mer sallananropade rapportcontrollers och kan fixas i framtida sessioner.
 
 Inga frontend-andringar — inget bygge kravs.
+
+## Worker B — Session #307 (2026-03-25) — 2 buggar
+
+### Audit 1: Angular FormGroup reset (0 buggar)
+Granskade alla 42 komponenter i noreko-frontend/src/app/. Inga komponenter anvander Angular FormGroup, FormControl eller FormBuilder. Alla formular anvander template-driven (ngModel) eller manuella properties. Inget .reset()-anrop pa FormGroup hittades. RENT.
+
+### Audit 2: Angular template function calls — fortsattning (2 buggar)
+Granskade alla 37 .html-templatefiler for funktionsanrop som inte ar event handlers ({{ metod() }}, *ngIf="metod()", [ngClass]="metod()", [style.x]="metod()").
+
+Majoriteten av funktionsanrop ar latta switch/if-else-labelfunktioner (O(1)) som inte kraver cachning: formatKr, formatDate, statusLabel, skiftLabel, fargKlass, poangColor, etc. Dessa kor inga iterationer (filter, map, find, sort, reduce).
+
+**Bugg 1: orsakBredd() -> maxOrsaker() i kassationskvot-alarm — .map() + Math.max() i template**
+Filen: noreko-frontend/src/app/pages/rebotling/kassationskvot-alarm/kassationskvot-alarm.component.ts
+`orsakBredd(o.antal)` anropades i [style.width.%] i en *ngFor over orsaker. orsakBredd() anropade maxOrsaker() som korde `Math.max(...this.orsakerData.orsaker.map(o => o.antal))` — en .map() + spread pa hela arrayen vid varje change detection-cykel for varje rad. Losning: lade till `cachedMaxOrsaker` och `cachedOrsakBredd` (Record<number, number>) som beraknas en gang i laddaOrsaker() nar data anlands. orsakBredd() gor nu enbart en map-lookup.
+
+**Bugg 2: getConfigLabel()/getConfigEnhet() i produktionskostnad — .find() i template *ngFor**
+Filen: noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskostnad.component.ts
+`getConfigLabel(item.faktor)` och `getConfigEnhet(item.faktor)` anropades 3 ganger per rad i configForm *ngFor (label, enhet, aria-label). Varje anrop korde `.find()` over configItems-arrayen. Losning: lade till `configLabelMap` och `configEnhetMap` (Record<string, string>) som byggs en gang i loadConfig() via buildConfigMaps(). getConfigLabel/getConfigEnhet gor nu enbart en hashmap-lookup.
+
+### Audit 3: Angular service HTTP URL consistency (0 buggar)
+Granskade alla 92 service-filer i noreko-frontend/src/app/services/. Alla services anvander `environment.apiUrl` konsekvent. Inga hardkodade URL:er (http://, https://, localhost) hittades. Alla HTTP-anrop inkluderar `{ withCredentials: true }` (utom pdf-export.service.ts och toast.service.ts som inte gor nagra HTTP-anrop). URL-monstret ar konsekvent: `${environment.apiUrl}?action=XXX&run=YYY`. RENT.
+
+Bygget genomfordes och kompilerade utan fel.

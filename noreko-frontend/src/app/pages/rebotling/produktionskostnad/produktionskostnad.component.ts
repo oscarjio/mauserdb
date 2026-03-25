@@ -196,6 +196,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.configItems = res.config;
           this.configForm = res.config.map(c => ({ faktor: c.faktor, varde: c.varde }));
+          this.buildConfigMaps();
         }
     });
   }
@@ -226,14 +227,25 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     });
   }
 
+  // Cachade config-uppslag (undvik .find() i template vid varje change detection)
+  private configLabelMap: Record<string, string> = {};
+  private configEnhetMap: Record<string, string> = {};
+
+  private buildConfigMaps(): void {
+    this.configLabelMap = {};
+    this.configEnhetMap = {};
+    for (const c of this.configItems) {
+      this.configLabelMap[c.faktor] = c.label;
+      this.configEnhetMap[c.faktor] = c.enhet;
+    }
+  }
+
   getConfigLabel(faktor: string): string {
-    const found = this.configItems.find(c => c.faktor === faktor);
-    return found?.label ?? faktor;
+    return this.configLabelMap[faktor] ?? faktor;
   }
 
   getConfigEnhet(faktor: string): string {
-    const found = this.configItems.find(c => c.faktor === faktor);
-    return found?.enhet ?? '';
+    return this.configEnhetMap[faktor] ?? '';
   }
 
   // ---- Charts ----
