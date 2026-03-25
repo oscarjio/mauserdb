@@ -454,7 +454,6 @@ class MaintenanceController {
                 FROM maintenance_equipment e
                 LEFT JOIN maintenance_log m
                     ON m.equipment = e.namn
-                    AND m.deleted_at IS NULL
                     AND m.status != 'avbokat'
                     AND m.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
                 WHERE e.aktiv = 1

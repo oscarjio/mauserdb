@@ -186,7 +186,7 @@ class AndonController {
                     sr.reason_id,
                     sr.duration_minutes,
                     sr.created_at,
-                    sr.notes,
+                    sr.comment,
                     COALESCE(r.name, 'Okänd orsak') AS reason_name,
                     r.category
                 FROM stoppage_log sr
@@ -206,7 +206,7 @@ class AndonController {
                     'category'         => $row['category'],
                     'duration_minutes' => (int)$row['duration_minutes'],
                     'created_at'       => $row['created_at'],
-                    'notes'            => $row['notes'] ?? '',
+                    'notes'            => $row['comment'] ?? '',
                 ];
             }
 

@@ -190,7 +190,7 @@ class DrifttidsTimelineController {
                         sr.end_time,
                         sk.namn AS orsak,
                         sr.kommentar,
-                        sr.operator_id
+                        sr.user_id
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
                     WHERE sr.start_time >= :date AND sr.start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
@@ -214,7 +214,7 @@ class DrifttidsTimelineController {
                             'start_ts' => $startTs,
                             'end_ts'   => $endTs,
                             'reason'   => $reason,
-                            'operator' => $row['operator_id'] ? 'Op #' . $row['operator_id'] : null,
+                            'operator' => $row['user_id'] ? 'Op #' . $row['user_id'] : null,
                             'source'   => 'stopporsak_registreringar',
                         ];
                     }
