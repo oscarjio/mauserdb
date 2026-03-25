@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #317)*
+*Senast uppdaterad: 2026-03-25 (session #318)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,25 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#317: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#318: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #318+):
-- [ ] PHP file upload/path traversal audit
-- [ ] Angular lazy loading audit
-- [ ] PHP session/cookie security audit
-- [ ] Angular change detection audit
-- [ ] Angular template binding audit A-M
+### Nasta (session #319+):
+- [ ] PHP raw SQL string concatenation audit N-Z
+- [ ] Angular pipe/directive audit
+- [ ] PHP error logging audit
+- [ ] Angular memory leak audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #316 (klar)
-Worker A: 0 buggar — Exception handling N-Z: rent (66 controllers, 714 catch). SQL kolumnnamn N-Z: rent. Date/time N-Z: rent.
-Worker B: 0 buggar — Subscription/timer cleanup N-Z: rent (24 komponenter). Content-Type: rent (api.php globalt). HTTP error handling N-Z: rent (54 services).
 
 ### 2026-03-25 — Session #317 (klar)
 Worker A: 1 bugg — Numeric precision: 1 fix (RebotlingController div-by-zero). SQL transaction N-Z: rent (19 controllers). Array bounds/null N-Z: rent.
 Worker B: 0 buggar — Route guard: rent (~80 routes). Form validation: rent. Template binding A-M: rent (55+ templates).
+
+### 2026-03-25 — Session #318 (klar)
+Worker A: 0 buggar — File upload/path traversal: rent (inga controllers hanterar filuppladdning). Session/cookie security: rent (korrekt session_regenerate_id, httponly/secure). SQL string concat A-M: rent (alla PDO prepared statements).
+Worker B: 0 buggar — Lazy loading: rent (~80 routes, alla loadComponent korrekt). Change detection N-Z: rent (alla subscribe har takeUntil). HTTP interceptor/error handling: rent (retry, 401, CSRF korrekt).

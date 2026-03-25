@@ -7,20 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #317):
-- [x] **PHP numeric precision audit** — 1 bugg fixad (RebotlingController div-by-zero)
-- [x] **Angular route guard audit** — rent (~80 routes)
-- [x] **PHP SQL transaction audit N-Z** — rent (19 controllers)
-- [x] **Angular form validation audit** — rent
-- [x] **PHP array bounds/null audit N-Z** — rent
-- [x] **Angular template binding audit A-M** — rent (55+ templates)
+### Pagaende (session #318):
+- [ ] **PHP file upload/path traversal audit** — move_uploaded_file, basename, saknad validering (Worker A)
+- [ ] **PHP session/cookie security audit** — session_regenerate_id, httponly, secure-flaggor (Worker A)
+- [ ] **PHP raw SQL string concatenation audit A-M** — prepared statements, SQL-injektion (Worker A)
+- [ ] **Angular lazy loading audit** — loadChildren, saknade modules (Worker B)
+- [ ] **Angular change detection audit N-Z** — subscription-lackor, trackBy (Worker B)
+- [ ] **Angular HTTP interceptor/error handling audit** — catchError, 401-hantering (Worker B)
 
-### Nasta buggjakt-items (session #318+):
-- [ ] **Angular template binding audit A-M** — null-checkar, trackBy, pipe-fel
-- [ ] **PHP file upload/path traversal audit** — move_uploaded_file, basename, saknad validering
-- [ ] **Angular lazy loading audit** — felaktiga loadChildren, saknade modules
-- [ ] **PHP session/cookie security audit** — session_regenerate_id, httponly, secure-flaggor
-- [ ] **Angular change detection audit** — onPush-strategi, async pipe vs subscribe
+### Nasta buggjakt-items (session #319+):
+- [ ] **PHP raw SQL string concatenation audit N-Z** — fortsattning fran A-M
+- [ ] **Angular pipe/directive audit** — pure pipes, saknade imports, felaktiga transformeringar
+- [ ] **PHP error logging audit** — saknade error_log, tysta catch-block
+- [ ] **Angular memory leak audit** — DOM-references, event listeners, ResizeObserver
 
 ## Parkerade features (ta inte dessa nu)
 
