@@ -1,3 +1,41 @@
+## Worker A — Session #321 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP session/cookie security audit (0 buggar)
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (117 filer) samt api.php efter session fixation, cookie-flaggor, session expiry/timeout-problem och oskyddad session data.
+
+**Resultat:**
+- **Session cookie-parametrar (api.php rad 78-93):** `session_set_cookie_params` satts korrekt med `httponly => true`, `secure => $isHttps` (dynamiskt baserat pa HTTPS-status), `samesite => 'Lax'`, `lifetime => 28800` (8h). Alla flaggor ar korrekta.
+- **Session fixation-skydd:** `session_regenerate_id(true)` anropas i LoginController rad 108 efter lyckad autentisering. `ini_set('session.use_strict_mode', '1')` avvisar oinitierade session-ID:n. `ini_set('session.use_only_cookies', '1')` och `ini_set('session.use_trans_sid', '0')` forhindrar session-ID i URL.
+- **Session timeout:** `AuthHelper::SESSION_TIMEOUT = 28800` (8h) kontrolleras via `checkSessionTimeout()` i 8 controllers med POST-operationer (AdminController, ProfileController, FeedbackController, FeatureFlagController, NewsController, StoppageController, ShiftHandoverController, KvalitetscertifikatController). StatusController hanterar timeout separat via direkt jamforelse (rad 35). GET-endpoints anvander `read_and_close => true` for att minimera session-lasning.
+- **Logout-cookieradering (LoginController rad 169-185):** Korrekt med `httponly => true`, `secure => $isHttps`, `samesite => 'Lax'`, `expires => time() - 42000`.
+- **Session-regenerering vid rollbyte:** ProfileController rad 180-183 regenererar session-ID vid rollbyte eller losenordsbyte.
+- **CSRF-skydd:** `AuthHelper::generateCsrfToken()` skapar 32-byte random token vid login. `validateCsrfToken()` anvander `hash_equals()` for timing-safe jamforelse.
+
+### Audit 2: PHP file I/O audit (0 buggar)
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (117 filer) efter fopen/fwrite/file_put_contents utan felkontroll, temporara filer, path traversal-risker och saknad file_exists-check.
+
+**Resultat:**
+- **Migrationsfilslasning (10 controllers):** BatchSparningController, SkiftoverlamningController, SkiftplaneringController, OperatorsbonusController, UnderhallsloggController, MaskinunderhallController, KapacitetsplaneringController, KvalitetscertifikatController, ProduktionskostnadController, ProduktionsSlaController — alla anvander hardkodade sokvagar med `__DIR__ . '/../migrations/...'`. Ingen user input i filsokvagar. Alla kontrollerar `$sql === false` och loggar fel vid misslyckat lasning.
+- **CSV-export (2 controllers):** BonusAdminController::exportCSV (rad 1831) och TidrapportController::getExportCsv (rad 566) anvander `fopen('php://output', 'w')` med `=== false`-check. BonusAdminController saniterar filnamn med `basename()` och `preg_replace('/[^a-zA-Z0-9._-]/', '_', ...)`. TidrapportController saniterar datumdelar med `preg_replace('/[^0-9-]/', '', ...)`.
+- **VPN-sockethantering (VpnController):** `fsockopen()` med felkontroll (rad 94-102, 148-160). `fwrite()` med `=== false`-check (rad 109-117, 172-182). `fclose()` anropas i alla kodstigar. `stream_set_timeout()` satts for att forhindra hangning.
+- **php://input:** Anvands genomgaende via `file_get_contents('php://input')` for JSON-body — saker anvandning, ingen filsystemrisk.
+- **Temporara filer:** Inga `tmpfile()`, `tempnam()` eller temporara filer skapas.
+- **Path traversal:** Ingen user input anvands i filsokvagar. Alla file_get_contents pa filsystemet anvander hardkodade sokvagar.
+
+### Audit 3: PHP error handling consistency audit (0 buggar)
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (117 filer) efter inkonsekvent error response format, saknade try/catch, felkoder som inte matchar och silent failures.
+
+**Resultat:**
+- **Konsekvent JSON-format:** Alla controllers anvander `json_encode(['success' => false, 'error' => '...'], JSON_UNESCAPED_UNICODE)` for felmeddelanden. Enda undantaget ar RebotlingAnalyticsController::getShiftPdfSummary() som avsiktligt returnerar HTML (Content-Type: text/html) for utskriftsvanlig PDF-sammanfattning — detta ar korrekt designval, inte en bugg.
+- **CSV-export:** BonusAdminController och TidrapportController andrar Content-Type till text/csv for export — korrekt beteende.
+- **RebotlingAnalyticsController CSV-export (rad 312-321):** Anvander text/csv for CSV-export av statistik — korrekt.
+- **HTTP-statuskoder:** Konsekvent anvandning: 400 (bad request), 401 (ej inloggad), 403 (ej behorig), 404 (ej hittad), 405 (fel metod), 409 (konflikt/duplicate), 429 (rate limit), 500 (serverfel), 502 (upstream VPN-fel). Inga felkoder som inte matchar (t.ex. 200 for error eller 500 for success) hittades.
+- **Try/catch-tackning:** 2353 forekomster av try/catch/PDOException/Exception over 117 filer. Alla DB-operationer ar inslagna i try/catch. Inga tomma catch-block hittades — alla har `error_log()` och returnerar korrekta felmeddelanden.
+- **Silent failures:** Inga catch-block som svaljer fel utan loggning hittades. Alla catch-block anropar `error_log()` med controller-namn och felmeddelande.
+- **Transaktion-sakerhet:** Controllers som anvander transaktioner (RegisterController, AdminController, ProfileController, FeedbackController, FeatureFlagController) kontrollerar `$pdo->inTransaction()` i catch-block innan rollBack().
+
+---
+
 ## Worker A — Session #320 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP date/time handling audit (0 buggar)
