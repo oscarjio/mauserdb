@@ -1,3 +1,33 @@
+## Worker A — Session #312 (2026-03-25) — 0 buggar (isset vs array_key_exists + UNION type mismatch + PDO transaction nesting)
+
+### Audit 1: PHP array_key_exists vs isset deep audit (0 buggar)
+Granskade ALLA 90+ PHP-controllers i noreko-backend/classes/ for isset() pa PDO fetchAssoc-resultat dar kolumnen kan vara NULL.
+- Hittade 399 isset()-anvandningar totalt over alla controllers.
+- Kategoriserade varje anvandning:
+  1. isset() pa $_GET/$_SESSION/$_SERVER (superglobs) — inte DB-resultat. Korrekt anvandning.
+  2. isset() pa $data[] fran JSON-input (json_decode) — inte DB-resultat. Korrekt anvandning.
+  3. isset() pa lokalt byggda ackumulator-arrayer ($result[$key], $dagMap[$d], etc.) — kontrollerar array-nyckel, inte DB-kolumn. Korrekt anvandning.
+  4. isset() pa PDO fetch-resultat: monstret "$row && isset($row['col'])" — alla fall dar kolumnen kan vara NULL har korrekt fallback-varde som matchar NULL-semantiken (t.ex. isset($row['priority']) ? (int)$row['priority'] : 3 dar NULL-priority ska bli default 3).
+- Granskade specifikt: NewsController (priority), WeeklyReportController (rebotling_target), MyStatsController (name), RebotlingController (skiftraknare, lopnummer, running, datum), ShiftPlanController (min_operators), RebotlingAnalyticsController (rebotling_target), StopporsakController (orsak), CertificationController (certIndex), TvattlinjeController (running, datum), SaglinjeController (running).
+- Alla fallback-varden ar korrekta for NULL-scenariot i varje fall.
+Resultat: RENT — inga buggar. isset() anvandningen ar antingen pa icke-DB-data eller har korrekt NULL-fallback.
+
+### Audit 2: PHP SQL UNION type mismatch (0 buggar)
+Granskade ALLA PHP-controllers som anvander UNION eller UNION ALL — totalt 30+ filer med UNION-queries.
+- Dominant monster: op1/op2/op3 UNION fran SAMMA tabell (rebotling_ibc eller rebotling_skiftrapport) — samma kolumner, samma typer. Typ-safe per definition.
+- Granskade specifikt: OperatorsPrestandaController, DagligSammanfattningController, BonusAdminController, RebotlingAnalyticsController, VdDashboardController, CykeltidHeatmapController, OperatorsportalController, KvalitetstrendanalysController, MorgonrapportController, OperatorsbonusController, OperatorJamforelseController, WeeklyReportController, ProduktionskalenderController, MyStatsController, BonusController, RebotlingController, OperatorDashboardController, KvalitetstrendController, SkiftrapportController, OperatorController, DagligBriefingController, OperatorRankingController, SkiftrapportExportController, VDVeckorapportController, ShiftPlanController, OperatorOnboardingController, GamificationController, RankingHistorikController.
+- Alla UNION-queries valjer identiska kolumnuppsattningar fran samma tabell. Inga typ-missmatchningar.
+Resultat: RENT — inga buggar. Alla UNION-queries har matchande kolumntyper och antal.
+
+### Audit 3: PHP PDO transaction nesting (0 buggar)
+Granskade ALLA 31 PHP-controllers som anvander beginTransaction() — totalt 55 beginTransaction()-anrop.
+- Filer med multipla beginTransaction(): AdminController (4), LineSkiftrapportController (6), SkiftrapportController (6), RebotlingAdminController (4), StoppageController (3), RebotlingProductController (3), BonusAdminController (2), MaintenanceController (2), FavoriterController (2), OperatorController (2).
+- Alla multipla anrop ar i SEPARATA metoder som kallas fran en router/dispatch — omsesidigt exklusiva kodvagar. Ingen metod anropar en annan metod som ocksa anvander transaktioner.
+- Verifierade att AuditLogger::log() (anropas inifran aktiva transaktioner) INTE startar egen transaktion — gor bara INSERT.
+- Verifierade att BonusAdminController::logAudit() INTE startar egen transaktion — gor bara INSERT.
+- Alla catch-block anvander korrekt "if ($pdo->inTransaction()) $pdo->rollBack()" monster for sakker felhantering.
+Resultat: RENT — inga buggar. Ingen risk for transaction nesting i kodbasen.
+
 ## Worker B — Session #311 (2026-03-25) — 0 buggar (form validation consistency + chart.js destroy)
 
 ### Audit 1: Angular form validation consistency (0 buggar)
