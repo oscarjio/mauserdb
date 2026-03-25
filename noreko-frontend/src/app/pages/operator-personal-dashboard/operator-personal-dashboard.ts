@@ -134,6 +134,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   }
 
   loadProduktion(): void {
+    if (this.loadingProduktion) return;
     this.loadingProduktion = true;
     this.svc.getMinProduktion(this.selectedOp)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
@@ -146,6 +147,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   }
 
   loadTempo(): void {
+    if (this.loadingTempo) return;
     this.loadingTempo = true;
     this.svc.getMittTempo(this.selectedOp)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
@@ -156,6 +158,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   }
 
   loadBonus(): void {
+    if (this.loadingBonus) return;
     this.loadingBonus = true;
     this.svc.getMinBonus(this.selectedOp)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
@@ -166,6 +169,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   }
 
   loadStopp(): void {
+    if (this.loadingStopp) return;
     this.loadingStopp = true;
     this.svc.getMinaStopp(this.selectedOp)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
@@ -176,6 +180,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   }
 
   loadVeckotrend(): void {
+    if (this.loadingTrend) return;
     this.loadingTrend = true;
     this.svc.getMinVeckotrend(this.selectedOp)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))

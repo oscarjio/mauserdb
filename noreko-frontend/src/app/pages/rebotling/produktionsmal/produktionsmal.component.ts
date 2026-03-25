@@ -92,6 +92,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   // ================================================================
 
   laddaSammanfattning(): void {
+    if (this.sammanfattningLoading) return;
     this.sammanfattningLoading = true;
     this.sammanfattningError = false;
     this.service.getSammanfattning()
@@ -107,6 +108,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   }
 
   laddaSkift(): void {
+    if (this.skiftLoading) return;
     this.skiftLoading = true;
     this.skiftError = false;
     this.service.getPerSkift()
@@ -122,6 +124,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   }
 
   laddaVeckodata(): void {
+    if (this.veckoLoading) return;
     this.veckoLoading = true;
     this.veckoError = false;
     this.service.getVeckodata(4)
@@ -141,6 +144,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   }
 
   laddaHistorik(): void {
+    if (this.historikLoading) return;
     this.historikLoading = true;
     this.historikError = false;
     this.service.getHistorik(30)
@@ -156,6 +160,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   }
 
   laddaStationer(): void {
+    if (this.stationLoading) return;
     this.stationLoading = true;
     this.stationError = false;
     this.service.getPerStation()

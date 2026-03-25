@@ -87,6 +87,7 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
   }
 
   load(): void {
+    if (this.loading) return;
     this.loading = true;
     this.error = null;
 

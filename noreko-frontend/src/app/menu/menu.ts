@@ -59,6 +59,11 @@ export class Menu implements OnInit, OnDestroy {
   private notifTimer: ReturnType<typeof setInterval> | null = null;
   private certExpiryInterval: ReturnType<typeof setInterval> | null = null;
   private alertsInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetchingLineStatus = false;
+  private isFetchingUrgent = false;
+  private isFetchingCertExpiry = false;
+  private isFetchingVpn = false;
+  private isFetchingAlerts = false;
 
   constructor(
     private router: Router,
@@ -174,9 +179,12 @@ export class Menu implements OnInit, OnDestroy {
 
   private loadAlertsCount(): void {
     if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
+    if (this.isFetchingAlerts) return;
+    this.isFetchingAlerts = true;
     this.http.get<any>(`${environment.apiUrl}?action=alerts&run=active`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
+        this.isFetchingAlerts = false;
         if (res?.success) {
           this.activeAlertsCount = res.data?.count ?? 0;
         }
@@ -184,10 +192,13 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadLineStatus() {
+    if (this.isFetchingLineStatus) return;
+    this.isFetchingLineStatus = true;
     forkJoin({
       rebotling: this.http.get<LineStatusApiResponse>(`${environment.apiUrl}?action=rebotling&run=status`, { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
       tvattlinje: this.http.get<LineStatusApiResponse>(`${environment.apiUrl}?action=tvattlinje&run=status`, { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
     }).pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.isFetchingLineStatus = false;
       this.rebotlingRunning = res.rebotling?.data?.running ?? false;
       this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
     });
@@ -198,20 +209,26 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadUrgentCount(): void {
+    if (this.isFetchingUrgent) return;
+    this.isFetchingUrgent = true;
     this.http.get<{ antal?: number }>(`${environment.apiUrl}?action=shift-handover&run=unread-count`, { withCredentials: true }).pipe(
       timeout(4000),
       catchError(() => of({ antal: 0 })),
       takeUntil(this.destroy$)
     ).subscribe(r => {
+      this.isFetchingUrgent = false;
       this.urgentNoteCount = r.antal || 0;
     });
   }
 
   loadCertExpiryCount(): void {
     if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
+    if (this.isFetchingCertExpiry) return;
+    this.isFetchingCertExpiry = true;
     this.http.get<{ success?: boolean; count?: number }>(`${environment.apiUrl}?action=certification&run=expiry-count`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
+        this.isFetchingCertExpiry = false;
         if (res?.success) this.certExpiryCount = res.count ?? 0;
       });
 
@@ -224,12 +241,15 @@ export class Menu implements OnInit, OnDestroy {
     if (!this.loggedIn || this.user?.role !== 'admin') {
       return;
     }
+    if (this.isFetchingVpn) return;
+    this.isFetchingVpn = true;
 
     // Ladda i bakgrunden utan att visa loading
     this.http.get<VpnApiResponse>(`${environment.apiUrl}?action=vpn`, { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          this.isFetchingVpn = false;
           if (response?.success) {
             this.vpnConnectedCount = response.total_connected || 0;
 

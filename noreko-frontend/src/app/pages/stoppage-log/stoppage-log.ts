@@ -233,6 +233,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   successMessage = '';
   errorMessage = '';
+  private isFetchingStoppages = false;
   private destroy$ = new Subject<void>();
   private refreshInterval: any;
   private successTimerId: any = null;
@@ -326,13 +327,16 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadStoppages() {
+    if (this.isFetchingStoppages) return;
+    this.isFetchingStoppages = true;
     this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        this.isFetchingStoppages = false;
         if (res?.success) this.stoppages = res.data;
         this.loading = false;
         this.updateCachedComputations();
       },
-      error: () => this.loading = false
+      error: () => { this.isFetchingStoppages = false; this.loading = false; }
     });
   }
 

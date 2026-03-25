@@ -94,6 +94,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
   }
 
   loadAktivaStopp() {
+    if (this.loadingAktiva) return;
     this.loadingAktiva = true;
     this.service.getActiveStops()
       .pipe(timeout(10000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))

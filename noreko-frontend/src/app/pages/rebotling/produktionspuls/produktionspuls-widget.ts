@@ -168,6 +168,7 @@ export class ProduktionspulsWidget implements OnInit, OnDestroy {
   items: PulsItem[] = [];
   isLoading = true;
   paused = false;
+  private isFetching = false;
 
   constructor(private pulsService: ProduktionspulsService) {}
 
@@ -185,9 +186,12 @@ export class ProduktionspulsWidget implements OnInit, OnDestroy {
   }
 
   fetchData(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.pulsService.getLatest(30).pipe(
       timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
+      this.isFetching = false;
       this.isLoading = false;
       if (res?.success && Array.isArray(res.data)) {
         this.items = res.data;

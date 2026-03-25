@@ -57,6 +57,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
   }
 
   load(): void {
+    if (this.loading) return;
     this.loading = true;
     this.error = null;
 

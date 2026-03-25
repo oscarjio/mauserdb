@@ -52,6 +52,7 @@ export class AlertsPage implements OnInit, OnDestroy {
   // Acknowledging
   acknowledgingIds = new Set<number>();
 
+  private isFetchingActive = false;
   private destroy$ = new Subject<void>();
   private _timers: ReturnType<typeof setTimeout>[] = [];
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -96,6 +97,8 @@ export class AlertsPage implements OnInit, OnDestroy {
   // ----------------------------------------------------------------
 
   loadActiveAlerts(showLoading = true): void {
+    if (this.isFetchingActive) return;
+    this.isFetchingActive = true;
     if (showLoading) this.activeLoading = true;
     this.activeError = null;
 
@@ -106,6 +109,7 @@ export class AlertsPage implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(res => {
+        this.isFetchingActive = false;
         this.activeLoading = false;
         if (res?.success) {
           this.activeAlerts = res.data?.alerts ?? [];

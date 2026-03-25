@@ -1,3 +1,43 @@
+## Worker B — Session #312 (2026-03-25) — 0 buggar (polling drift + innerHTML XSS + subscription management)
+
+### Audit 1: Angular HTTP polling interval drift (0 buggar, 11 filer hardade)
+Granskade alla 70 Angular-komponenter med setInterval i noreko-frontend/src/app/.
+Exkluderade 4 -live filer (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+Hittade 11 filer dar polling-metoder saknade isFetching-guard, vilket kunde orsaka request-stacking:
+
+1. **menu.ts** — 5 metoder fixade: loadLineStatus, loadUrgentCount, loadCertExpiryCount, loadVpnStatus, loadAlertsCount. La till 5 privata isFetching-flaggor + guard + reset i subscribe.
+2. **rebotling/alerts/alerts.ts** — loadActiveAlerts saknade guard. La till isFetchingActive flagga + guard + reset.
+3. **stoppage-log/stoppage-log.ts** — loadStoppages saknade guard. La till isFetchingStoppages flagga + guard + reset.
+4. **operator-personal-dashboard.ts** — 5 sub-metoder (loadProduktion, loadTempo, loadBonus, loadStopp, loadVeckotrend) satte loadingX=true men kontrollerade aldrig forst. La till `if (this.loadingX) return;` fore varje.
+5. **rebotling/produktionsmal/produktionsmal.component.ts** — 5 sub-metoder (laddaSammanfattning, laddaSkift, laddaVeckodata, laddaHistorik, laddaStationer) saknade guard. La till `if (this.XLoading) return;` fore varje.
+6. **rebotling/rebotling-trendanalys/rebotling-trendanalys.component.ts** — 5 sub-metoder (laddaTrender, laddaHistorik, laddaVecko, laddaAnomalier, laddaPrognos) saknade guard. La till `if (this.loadingX) return;` fore varje.
+7. **rebotling/stationsdetalj/stationsdetalj.component.ts** — 3 sub-metoder (laddaRealtidOee, laddaKpiIdag, laddaSenasteIbc) saknade guard. La till `if (this.loadingX) return;` fore varje.
+8. **rebotling/statistik/statistik-leaderboard/statistik-leaderboard.ts** — load() anvande silent-parameter sa loading-flaggan inte alltid sattes. La till dedikerad isFetching-flagga.
+9. **rebotling/statistik/statistik-uptid-heatmap/statistik-uptid-heatmap.ts** — load() saknade guard. La till `if (this.loading) return;`.
+10. **rebotling/statistik/statistik-veckotrend/statistik-veckotrend.ts** — load() saknade guard. La till `if (this.loading) return;`.
+11. **rebotling/produktionspuls/produktionspuls-widget.ts** — fetchData() saknade guard (isLoading var bara initial-flagga). La till dedikerad isFetching-flagga.
+12. **stopporsak-registrering/stopporsak-registrering.ts** — loadAktivaStopp() saknade guard. La till `if (this.loadingAktiva) return;`.
+
+Filer som redan hade korrekta guards (verifierade fran session #283): rebotling-admin.ts (3 guards), produktionseffektivitet.ts (3 guards), produktions-dashboard.component.ts (5 guards), bonus-dashboard.ts, daglig-sammanfattning.ts, produktionsmal.ts (pages), skiftoverlamning.ts. Skiftrapport-filer anvande fetchSub?.unsubscribe()-monster som alternativ guard.
+
+### Audit 2: Angular template string interpolation XSS (0 buggar)
+Granskade ALLA HTML-templates (*.html) i noreko-frontend/src/app/ — inga [innerHTML]-bindningar hittades i nagon template.
+Granskade ALLA TypeScript-filer (*.ts) for innerHTML — enda anvandningen ar i app.config.ts rad 57 dar overlay.innerHTML satts med hardkodad statisk HTML (chunk-error overlay). Ingen user input involverad.
+Inga bypassSecurityTrustHtml() anvandningar hittades i hela kodbasen.
+Resultat: Rent. Ingen XSS-risk.
+
+### Audit 3: Angular Observable subscription management (0 buggar)
+Spot-checkade 20 komponenter med setInterval + HTTP-polling:
+- Alla 20 har ngOnDestroy med destroy$.next() + destroy$.complete()
+- Alla 20 har clearInterval i ngOnDestroy
+- Alla HTTP-subscriptions anvander takeUntil(this.destroy$)
+- Kontrollerade takeUntil-ordning: alla 31 forekomster dar takeUntil foljs av kommatecken har ).subscribe() direkt efter — takeUntil ar SIST i pipe-kedjan overallt
+- Inga fall av felaktig ordning (t.ex. map/tap efter takeUntil) hittades
+- Session #287 fixar (127 takeUntil-ordningar) ar intakta
+
+Granskade filer (spot-check): menu.ts, rebotling-admin.ts, alerts.ts, produktionseffektivitet.ts, rebotling-skiftrapport.ts, shared-skiftrapport.ts, stoppage-log.ts, bonus-dashboard.ts, daglig-sammanfattning.ts, operator-personal-dashboard.ts, produktionsmal.ts, batch-sparning.component.ts, produktions-dashboard.component.ts, produktionsmal.component.ts, produktionspuls-widget.ts, rebotling-trendanalys.component.ts, stationsdetalj.component.ts, statistik-leaderboard.ts, statistik-uptid-heatmap.ts, statistik-veckotrend.ts
+
 ## Worker A — Session #312 (2026-03-25) — 0 buggar (isset vs array_key_exists + UNION type mismatch + PDO transaction nesting)
 
 ### Audit 1: PHP array_key_exists vs isset deep audit (0 buggar)

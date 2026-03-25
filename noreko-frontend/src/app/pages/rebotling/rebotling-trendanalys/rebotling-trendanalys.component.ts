@@ -116,6 +116,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   laddaTrender(): void {
+    if (this.loadingTrender) return;
     this.loadingTrender = true;
     this.errorTrender   = false;
     this.svc.getTrender()
@@ -133,6 +134,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   laddaHistorik(): void {
+    if (this.loadingHistorik) return;
     this.loadingHistorik = true;
     this.errorHistorik   = false;
     this.historikData    = [];
@@ -151,6 +153,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   laddaVecko(): void {
+    if (this.loadingVecko) return;
     this.loadingVecko = true;
     this.errorVecko   = false;
     this.veckoData    = [];
@@ -167,6 +170,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   laddaAnomalier(): void {
+    if (this.loadingAnomalier) return;
     this.loadingAnomalier = true;
     this.errorAnomalier   = false;
     this.anomalierData    = [];
@@ -183,6 +187,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   laddaPrognos(): void {
+    if (this.loadingPrognos) return;
     this.loadingPrognos = true;
     this.errorPrognos   = false;
     this.prognosData    = null;

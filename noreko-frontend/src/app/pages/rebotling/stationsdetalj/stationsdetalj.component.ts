@@ -137,6 +137,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
   }
 
   laddaKpiIdag(): void {
+    if (this.loadingKpi) return;
     this.loadingKpi = true;
     this.errorKpi   = false;
     this.svc.getKpiIdag(this.valdStation)
@@ -152,6 +153,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
   }
 
   laddaSenasteIbc(): void {
+    if (this.loadingIbc) return;
     this.loadingIbc = true;
     this.errorIbc   = false;
     this.svc.getSenasteIbc(this.valdStation, 25)
@@ -201,6 +203,7 @@ export class RebotlingStationsdetaljPage implements OnInit, OnDestroy {
   }
 
   laddaRealtidOee(): void {
+    if (this.loadingRealtid) return;
     this.loadingRealtid = true;
     this.errorRealtid   = false;
     this.svc.getRealtidOee(this.valdStation)

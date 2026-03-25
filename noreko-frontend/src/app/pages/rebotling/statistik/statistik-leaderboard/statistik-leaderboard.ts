@@ -25,6 +25,7 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
   previousFirstId: number | null = null;
   pulseFirst: boolean = false;
 
+  private isFetching = false;
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private destroy$ = new Subject<void>();
   private _timers: ReturnType<typeof setTimeout>[] = [];
@@ -55,6 +56,8 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
   }
 
   load(silent: boolean = false): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     if (!silent) {
       this.loading = true;
       this.error = null;
@@ -65,6 +68,7 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res: LeaderboardResponse | null) => {
+      this.isFetching = false;
       if (!silent) this.loading = false;
 
       if (res?.success) {
