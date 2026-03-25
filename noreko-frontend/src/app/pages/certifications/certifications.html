@@ -315,7 +315,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Operatör</label>
-          <select aria-label="Valj operatör" class="form-control" [(ngModel)]="addForm.op_number" required>
+          <select aria-label="Välj operatör" class="form-control" [(ngModel)]="addForm.op_number" required>
             <option [ngValue]="null" disabled>Välj operatör...</option>
             <option *ngFor="let op of operatorOptions; trackBy: trackByIndex" [ngValue]="op.number">
               {{ op.name }} (#{{ op.number }})
@@ -325,7 +325,7 @@
 
         <div class="form-group">
           <label class="form-label">Linje</label>
-          <select aria-label="Valj linje" class="form-control" [(ngModel)]="addForm.line" required>
+          <select aria-label="Välj linje" class="form-control" [(ngModel)]="addForm.line" required>
             <option value="" disabled>Välj linje...</option>
             <option value="rebotling">Rebotling</option>
             <option value="tvattlinje">Tvättlinje</option>

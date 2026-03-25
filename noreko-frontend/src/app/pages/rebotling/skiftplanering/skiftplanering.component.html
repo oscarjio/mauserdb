@@ -264,7 +264,7 @@
 
       <div class="mb-3" *ngIf="!loadingOperators">
         <label class="form-label" for="assignOpSelect">Välj operatör</label>
-        <select id="assignOpSelect" class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp" aria-label="Valj operator">
+        <select id="assignOpSelect" class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp" aria-label="Välj operator">
           <option [ngValue]="0" disabled>-- Välj operatör --</option>
           <option *ngFor="let op of availableOperatorsCached; trackBy: trackById" [ngValue]="op.id">
             {{ op.namn }}

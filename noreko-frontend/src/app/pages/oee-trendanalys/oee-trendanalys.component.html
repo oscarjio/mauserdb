@@ -6,7 +6,7 @@
       <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>OEE Trendanalys
     </h1>
     <div class="d-flex gap-2 align-items-center">
-      <select class="station-select" aria-label="Valj station" [(ngModel)]="selectedStation" (change)="onStationChange()">
+      <select class="station-select" aria-label="Välj station" [(ngModel)]="selectedStation" (change)="onStationChange()">
         <option [ngValue]="null">Alla stationer</option>
         <option *ngFor="let s of stationsLista; trackBy: trackById" [ngValue]="s.station_id">{{ s.station_namn }}</option>
       </select>

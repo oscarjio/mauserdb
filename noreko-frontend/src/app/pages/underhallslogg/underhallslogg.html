@@ -89,7 +89,7 @@
             <!-- Station -->
             <div class="col-12 col-md-4">
               <label class="form-label-dark">Station</label>
-              <select aria-label="Valj station" class="form-control-dark" [(ngModel)]="formStationId">
+              <select aria-label="Välj station" class="form-control-dark" [(ngModel)]="formStationId">
                 <option [ngValue]="0">-- Valj station --</option>
                 <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
               </select>
@@ -155,7 +155,7 @@
       <div class="card-dark mb-4" *ngIf="perStation.length > 0">
         <div class="card-dark-header d-flex align-items-center gap-2">
           <span><i class="fas fa-chart-bar me-2 text-info"></i>Underhall per station</span>
-          <select aria-label="Valj per station days" class="filter-select ms-auto" [(ngModel)]="perStationDays" (change)="onPerStationDaysChange()">
+          <select aria-label="Välj per station days" class="filter-select ms-auto" [(ngModel)]="perStationDays" (change)="onPerStationDaysChange()">
             <option [value]="7">7 dagar</option>
             <option [value]="14">14 dagar</option>
             <option [value]="30">30 dagar</option>
@@ -215,12 +215,12 @@
         <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
           <span><i class="fas fa-history me-2"></i>Underhallsposter</span>
 
-          <select aria-label="Valj station" class="filter-select" [(ngModel)]="filterStation" (change)="onFilterChange()">
+          <select aria-label="Välj station" class="filter-select" [(ngModel)]="filterStation" (change)="onFilterChange()">
             <option [ngValue]="0">Alla stationer</option>
             <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
           </select>
 
-          <select aria-label="Valj typ" class="filter-select" [(ngModel)]="filterTyp" (change)="onFilterChange()">
+          <select aria-label="Välj typ" class="filter-select" [(ngModel)]="filterTyp" (change)="onFilterChange()">
             <option value="alla">Alla typer</option>
             <option value="planerat">Planerat</option>
             <option value="oplanerat">Oplanerat</option>
@@ -306,7 +306,7 @@
 
               <div class="form-group mb-3">
                 <label class="form-label-dark">Kategori</label>
-                <select aria-label="Valj kategori" class="form-control-dark" [(ngModel)]="legacyFormKategori">
+                <select aria-label="Välj kategori" class="form-control-dark" [(ngModel)]="legacyFormKategori">
                   <option value="">-- Valj kategori --</option>
                   <option *ngFor="let kat of kategorier; trackBy: trackByIndex" [value]="kat.namn">{{ kat.namn }}</option>
                 </select>
@@ -395,18 +395,18 @@
       <div class="card-dark">
         <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
           <span><i class="fas fa-history me-2"></i>Historik</span>
-          <select aria-label="Valj legacy filter days" class="filter-select" [(ngModel)]="legacyFilterDays" (change)="onLegacyFilterChange()">
+          <select aria-label="Välj legacy filter days" class="filter-select" [(ngModel)]="legacyFilterDays" (change)="onLegacyFilterChange()">
             <option [value]="7">7 dagar</option>
             <option [value]="14">14 dagar</option>
             <option [value]="30">30 dagar</option>
             <option [value]="90">90 dagar</option>
           </select>
-          <select aria-label="Valj legacy filter type" class="filter-select" [(ngModel)]="legacyFilterType" (change)="onLegacyFilterChange()">
+          <select aria-label="Välj legacy filter type" class="filter-select" [(ngModel)]="legacyFilterType" (change)="onLegacyFilterChange()">
             <option value="all">Alla typer</option>
             <option value="planerat">Planerat</option>
             <option value="oplanerat">Oplanerat</option>
           </select>
-          <select aria-label="Valj legacy filter category" class="filter-select" [(ngModel)]="legacyFilterCategory" (change)="onLegacyFilterChange()">
+          <select aria-label="Välj legacy filter category" class="filter-select" [(ngModel)]="legacyFilterCategory" (change)="onLegacyFilterChange()">
             <option value="all">Alla kategorier</option>
             <option *ngFor="let kat of kategorier; trackBy: trackByIndex" [value]="kat.namn">{{ kat.namn }}</option>
           </select>

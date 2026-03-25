@@ -33,27 +33,54 @@
       <button class="btn btn-sm btn-outline-secondary ms-2" (click)="loadKonfig()">Försök igen</button>
     </div>
 
-    <div *ngIf="!loadingKonfig && !errorKonfig && konfigForm.length > 0">
+    <form #konfigFormRef="ngForm" *ngIf="!loadingKonfig && !errorKonfig && konfigForm.length > 0" (ngSubmit)="konfigFormRef.valid && submitKonfig()" novalidate>
       <div class="config-row" *ngFor="let item of konfigForm; let i = index; trackBy: trackByIndex">
         <span class="config-label">{{ faktorLabel(item.faktor) }}</span>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-2 align-items-start">
           <div class="text-center">
             <small class="text-muted d-block">Vikt (%)</small>
-            <input type="number" class="config-input" [(ngModel)]="item.vikt" min="0" max="100" step="5" style="width:80px;" aria-label="Vikt procent" />
+            <input type="number" class="config-input" [(ngModel)]="item.vikt"
+                   [name]="'vikt_' + i" #viktRef="ngModel"
+                   required min="0" max="100" step="5" style="width:80px;"
+                   aria-label="Vikt procent"
+                   [attr.aria-invalid]="viktRef.invalid && viktRef.touched"
+                   [class.is-invalid]="viktRef.invalid && viktRef.touched" />
+            <div *ngIf="viktRef.invalid && viktRef.touched" class="text-danger small mt-1" role="alert">
+              <span *ngIf="viktRef.errors?.['required']">Obligatoriskt</span>
+              <span *ngIf="viktRef.errors?.['min'] || viktRef.errors?.['max']">0–100</span>
+            </div>
           </div>
           <div class="text-center">
-            <small class="text-muted d-block">Malvarde</small>
-            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;"  max="99999" aria-label="Malvarde" />
+            <small class="text-muted d-block">Målvärde</small>
+            <input type="number" class="config-input" [(ngModel)]="item.mal_varde"
+                   [name]="'mal_' + i" #malRef="ngModel"
+                   required min="0" max="99999" step="1" style="width:90px;"
+                   aria-label="Målvärde"
+                   [attr.aria-invalid]="malRef.invalid && malRef.touched"
+                   [class.is-invalid]="malRef.invalid && malRef.touched" />
+            <div *ngIf="malRef.invalid && malRef.touched" class="text-danger small mt-1" role="alert">
+              <span *ngIf="malRef.errors?.['required']">Obligatoriskt</span>
+              <span *ngIf="malRef.errors?.['min'] || malRef.errors?.['max']">0–99999</span>
+            </div>
           </div>
           <div class="text-center">
             <small class="text-muted d-block">Max bonus (kr)</small>
-            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;"  max="99999" aria-label="Max bonus kronor" />
+            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr"
+                   [name]="'maxbonus_' + i" #maxRef="ngModel"
+                   required min="0" max="99999" step="50" style="width:100px;"
+                   aria-label="Max bonus kronor"
+                   [attr.aria-invalid]="maxRef.invalid && maxRef.touched"
+                   [class.is-invalid]="maxRef.invalid && maxRef.touched" />
+            <div *ngIf="maxRef.invalid && maxRef.touched" class="text-danger small mt-1" role="alert">
+              <span *ngIf="maxRef.errors?.['required']">Obligatoriskt</span>
+              <span *ngIf="maxRef.errors?.['min'] || maxRef.errors?.['max']">0–99999</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="mt-3 d-flex gap-2 align-items-center">
-        <button class="btn btn-sm btn-warning" (click)="submitKonfig()" [disabled]="savingKonfig">
+        <button type="submit" class="btn btn-sm btn-warning" [disabled]="savingKonfig || konfigFormRef.invalid">
           <span *ngIf="savingKonfig" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
           <i *ngIf="!savingKonfig" class="fas fa-save me-1"></i>
           Spara konfiguration
@@ -65,7 +92,7 @@
           <i class="fas fa-exclamation-circle me-1"></i>{{ konfigError }}
         </span>
       </div>
-    </div>
+    </form>
 
     <div *ngIf="!loadingKonfig && konfigForm.length === 0" class="text-muted small py-2">
       Ingen konfiguration hittades.
@@ -77,7 +104,7 @@
     <span class="text-muted small me-1">Period:</span>
     <button class="period-btn" [class.active]="period === 'dag'"   (click)="period='dag';   onPeriodChange()">Idag</button>
     <button class="period-btn" [class.active]="period === 'vecka'" (click)="period='vecka'; onPeriodChange()">Vecka</button>
-    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()">Manad</button>
+    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()">Månad</button>
   </div>
 
   <!-- KPI-kort (4 st) -->
@@ -96,10 +123,10 @@
       </div>
     </div>
 
-    <!-- Hogsta bonus -->
+    <!-- Högsta bonus -->
     <div class="col-6 col-md-3">
       <div class="kpi-card">
-        <div class="kpi-label">Hogsta bonus</div>
+        <div class="kpi-label">Högsta bonus</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
           <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
@@ -201,7 +228,7 @@
   <div class="table-card mb-4">
     <div class="section-title">
       <i class="fas fa-users me-2" style="color:#4299e1;"></i>
-      Operatorer — bonusoversikt
+      Operatörer — bonusöversikt
     </div>
 
     <div *ngIf="loadingOperatorer" class="loading-spinner">
@@ -213,7 +240,7 @@
         <thead>
           <tr>
             <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')" tabindex="0" (keydown.enter)="sortBy('operator_namn')">
-              Operator <i [class]="sortIcon('operator_namn')"></i>
+              Operatör <i [class]="sortIcon('operator_namn')"></i>
             </th>
             <th scope="col" class="text-end sortable-th" (click)="sortBy('ibc_per_timme')" tabindex="0" (keydown.enter)="sortBy('ibc_per_timme')">
               IBC/h <i [class]="sortIcon('ibc_per_timme')"></i>
@@ -222,11 +249,11 @@
               Kvalitet% <i [class]="sortIcon('kvalitet')"></i>
             </th>
             <th scope="col" class="text-end sortable-th" (click)="sortBy('narvaro')" tabindex="0" (keydown.enter)="sortBy('narvaro')">
-              Narvaro% <i [class]="sortIcon('narvaro')"></i>
+              Närvaro% <i [class]="sortIcon('narvaro')"></i>
             </th>
             <th scope="col" class="text-end">Bonus IBC</th>
             <th scope="col" class="text-end">Bonus Kval.</th>
-            <th scope="col" class="text-end">Bonus Narv.</th>
+            <th scope="col" class="text-end">Bonus Närv.</th>
             <th scope="col" class="text-end">Bonus Team</th>
             <th scope="col" class="text-end sortable-th" (click)="sortBy('total_bonus')" tabindex="0" (keydown.enter)="sortBy('total_bonus')">
               <strong>Total</strong> <i [class]="sortIcon('total_bonus')"></i>
@@ -299,7 +326,7 @@
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <label class="form-label text-muted small">Narvaro (%)</label>
+        <label class="form-label text-muted small">Närvaro (%)</label>
         <input type="range" class="form-range" [(ngModel)]="simNarvaro" min="0" max="100" step="1" />
         <div class="d-flex justify-content-between">
           <input type="number" class="config-input" [(ngModel)]="simNarvaro" min="0" max="100" step="1" style="width:80px;" />
@@ -307,7 +334,7 @@
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <label class="form-label text-muted small">Team-mal (%)</label>
+        <label class="form-label text-muted small">Team-mål (%)</label>
         <input type="range" class="form-range" [(ngModel)]="simTeamMal" min="0" max="100" step="1" />
         <div class="d-flex justify-content-between">
           <input type="number" class="config-input" [(ngModel)]="simTeamMal" min="0" max="100" step="1" style="width:80px;" />
@@ -350,7 +377,7 @@
           </div>
           <div class="sim-result-item">
             <span class="sim-label" style="color:#ecc94b;">
-              <i class="fas fa-calendar-check me-1"></i>Narvarobonus
+              <i class="fas fa-calendar-check me-1"></i>Närvarobonus
             </span>
             <span class="sim-value">{{ formatKr(simulering.bonus_narvaro) }}</span>
           </div>
@@ -377,7 +404,7 @@
   <div class="text-muted small mb-3">
     <i class="fas fa-info-circle me-1"></i>
     Bonusformel: Bonus per faktor = min(verkligt / mal, 1.0) x max_bonus_kr.
-    Faktorer: IBC/h (40%), Kvalitet (30%), Narvaro (20%), Team-mal (10%).
+    Faktorer: IBC/h (40%), Kvalitet (30%), Närvaro (20%), Team-mål (10%).
     Klicka <strong>Bonuskonfiguration</strong> för att justera parametrar.
     Data uppdateras automatiskt var 60:e sekund.
   </div>

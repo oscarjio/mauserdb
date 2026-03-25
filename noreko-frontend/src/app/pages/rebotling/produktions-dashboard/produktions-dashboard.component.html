@@ -9,7 +9,7 @@
         <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>
         Produktions-dashboard
       </h1>
-      <span class="pd-subtitle">Samlad overblick — uppdateras var 30:e sekund</span>
+      <span class="pd-subtitle">Samlad överblick — uppdateras var 30:e sekund</span>
     </div>
     <div class="pd-header-right">
       <span class="pd-live-badge" [class.pd-live-puls]="livePuls">
@@ -38,10 +38,10 @@
         <div class="pd-kpi-trend"
              [style.color]="trendFarg(oversikt.prod_trend_riktning)">
           {{ trendPil(oversikt.prod_trend_riktning) }}
-          {{ oversikt.prod_trend_pct | number:'1.1-1' }}% vs igar ({{ oversikt.ibc_igar }} IBC)
+          {{ oversikt.prod_trend_pct | number:'1.1-1' }}% vs igår ({{ oversikt.ibc_igar }} IBC)
         </div>
         <div class="pd-kpi-mal" *ngIf="oversikt.dagligt_mal > 0">
-          Mal: {{ oversikt.dagligt_mal }} IBC
+          Mål: {{ oversikt.dagligt_mal }} IBC
           <span *ngIf="oversikt.mal_uppfyllnad_pct !== null">
             ({{ oversikt.mal_uppfyllnad_pct | number:'1.0-0' }}%)
           </span>
@@ -63,7 +63,7 @@
         <div class="pd-kpi-trend"
              [style.color]="trendFarg(oversikt.oee_trend_riktning)">
           {{ trendPil(oversikt.oee_trend_riktning) }}
-          {{ oversikt.oee_trend_pct | number:'1.1-1' }}% vs foreg. vecka ({{ oversikt.oee_forrad_vecka_pct }}%)
+          {{ oversikt.oee_trend_pct | number:'1.1-1' }}% vs föreg. vecka ({{ oversikt.oee_forrad_vecka_pct }}%)
         </div>
       </div>
     </div>
@@ -133,13 +133,13 @@
       </div>
     </div>
 
-    <!-- KPI 6: Pagaende skift -->
+    <!-- KPI 6: Pågående skift -->
     <div class="pd-kpi-card">
       <div class="pd-kpi-icon" style="background:rgba(159,122,234,0.15)">
         <i class="fas fa-user-clock" style="color:#9f7aea"></i>
       </div>
       <div class="pd-kpi-body">
-        <div class="pd-kpi-label">Pagaende skift</div>
+        <div class="pd-kpi-label">Pågående skift</div>
         <div class="pd-kpi-value" style="color:#9f7aea">{{ oversikt.skift_namn }}</div>
         <div class="pd-kpi-sub">{{ oversikt.skift_start }} – {{ oversikt.skift_slut }}</div>
         <div class="pd-kpi-sub" style="color:#e2e8f0">

@@ -19,14 +19,14 @@
     <div class="row mb-4 no-print">
       <div class="col-md-3 col-sm-6 mb-2">
         <label class="form-label small text-muted">Typ</label>
-        <select aria-label="Valj typ" class="form-select form-select-sm bg-dark text-light border-secondary"
+        <select aria-label="Välj typ" class="form-select form-select-sm bg-dark text-light border-secondary"
                 [(ngModel)]="selectedTyp" (ngModelChange)="onTypChange()">
           <option *ngFor="let t of typOptions; trackBy: trackByIndex" [value]="t.value">{{ t.label }}</option>
         </select>
       </div>
       <div class="col-md-3 col-sm-6 mb-2">
         <label class="form-label small text-muted">Period</label>
-        <select aria-label="Valj period" class="form-select form-select-sm bg-dark text-light border-secondary"
+        <select aria-label="Välj period" class="form-select form-select-sm bg-dark text-light border-secondary"
                 [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()">
           <option *ngFor="let p of cachedPeriodOptions; trackBy: trackByIndex" [value]="p.value">{{ p.label }}</option>
         </select>

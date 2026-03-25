@@ -9,7 +9,7 @@
       </div>
       <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
         <label class="text-muted small mb-0">Period (dagar):</label>
-        <select aria-label="Valj period (dagar)" class="form-select form-select-sm bg-dark text-light border-secondary" style="width:90px"
+        <select aria-label="Välj period (dagar)" class="form-select form-select-sm bg-dark text-light border-secondary" style="width:90px"
           [(ngModel)]="days" (change)="onDaysChange()">
           <option [value]="7">7 d</option>
           <option [value]="14">14 d</option>
@@ -139,7 +139,7 @@
         </div>
         <hr class="border-secondary">
         <div class="slider-row">
-          <label>Bonustak (max poang) <strong>{{ maxBonus }}</strong></label>
+          <label>Bonustak (max poäng) <strong>{{ maxBonus }}</strong></label>
           <input type="range" min="100" max="400" step="10" [(ngModel)]="maxBonus" (input)="onSliderChange()" class="form-range">
         </div>
       </div>
@@ -184,7 +184,7 @@
         </div>
         <div class="col-4">
           <div class="summary-card">
-            <div class="summary-label">Fler / Färre poang</div>
+            <div class="summary-label">Fler / Färre poäng</div>
             <div class="summary-value text-success">+{{ totalPositivaDiff }}</div>
             <div class="summary-sub text-danger">-{{ totalNegativaDiff }}</div>
           </div>

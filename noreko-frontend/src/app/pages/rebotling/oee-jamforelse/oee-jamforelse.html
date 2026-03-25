@@ -64,10 +64,10 @@
         </ng-template>
       </div>
     </div>
-    <!-- Forandring -->
+    <!-- Förändring -->
     <div class="col-6 col-md-3">
       <div class="oee-kpi-card">
-        <div class="oee-kpi-label">Forandring</div>
+        <div class="oee-kpi-label">Förändring</div>
         <ng-container *ngIf="!loading && data; else laddaKpi3">
           <div class="oee-kpi-value"
                [style.color]="trendFarg(data!.forandring_pil)">
@@ -154,7 +154,7 @@
                   <th scope="col" class="text-end">Prestanda %</th>
                   <th scope="col" class="text-end">Kvalitet %</th>
                   <th scope="col" class="text-end">Producerade</th>
-                  <th scope="col" class="text-center">Forandring</th>
+                  <th scope="col" class="text-center">Förändring</th>
                 </tr>
               </thead>
               <tbody>

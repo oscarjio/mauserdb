@@ -4,17 +4,17 @@
   <div class="dashboard-header mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
-        <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Bonus Dashboard — Rebotling</h2>
+        <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Bonusöversikt — Rebotling</h2>
         <small class="text-muted">Realtidsöversikt av operatörsbonus</small>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <select class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()" aria-label="Valj tidsperiod">
+        <select class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()" aria-label="Välj tidsperiod">
           <option value="today">Idag</option>
           <option value="week">Senaste 7 dagar</option>
           <option value="month">Senaste 30 dagar</option>
           <option value="year">Senaste året</option>
         </select>
-        <button class="btn btn-sm btn-outline-info" (click)="toggleTeamView()" aria-label="Visa eller dolj skiftdata">
+        <button class="btn btn-sm btn-outline-info" (click)="toggleTeamView()" aria-label="Visa eller dölj skiftdata">
           <i class="fas fa-users me-1"></i>{{ showTeamView ? 'Dölj skift' : 'Visa skift' }}
         </button>
       </div>

@@ -138,11 +138,11 @@
     </div>
     <div class="pte-chart-wrap">
       <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
-        <select aria-label="Valj comp a" class="pte-comp-select" [(ngModel)]="compA" (ngModelChange)="loadComparison()">
+        <select aria-label="Välj comp a" class="pte-comp-select" [(ngModel)]="compA" (ngModelChange)="loadComparison()">
           <option *ngFor="let p of produkter; trackBy: trackByIndex" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
         </select>
         <span class="pte-comp-vs">vs</span>
-        <select aria-label="Valj comp b" class="pte-comp-select" [(ngModel)]="compB" (ngModelChange)="loadComparison()">
+        <select aria-label="Välj comp b" class="pte-comp-select" [(ngModel)]="compB" (ngModelChange)="loadComparison()">
           <option *ngFor="let p of produkter; trackBy: trackByIndex" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
         </select>
       </div>

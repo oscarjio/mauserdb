@@ -75,7 +75,7 @@
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-user me-1"></i>Användare</label>
             <input type="text" class="form-control form-control-sm filter-input"
-                   placeholder="Filtrera användare..." aria-label="Filtrera pa anvandare"
+                   placeholder="Filtrera användare..." aria-label="Filtrera på användare"
                    [(ngModel)]="filterUser" (keyup.enter)="onFilterChange()" (blur)="onFilterChange()">
           </div>
 
@@ -83,7 +83,7 @@
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-calendar me-1"></i>Period</label>
             <div class="d-flex gap-1 align-items-center">
-              <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()" [disabled]="showDateRange" aria-label="Valj tidsperiod">
+              <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()" [disabled]="showDateRange" aria-label="Välj tidsperiod">
                 <option value="today">Idag</option>
                 <option value="week">Senaste 7 dagar</option>
                 <option value="month">Senaste 30 dagar</option>

@@ -9,12 +9,12 @@
 <div class="mb-4"><h6 style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px;">Ny handelse</h6>
 <div class="row g-2">
 <div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Datum</label><input type="date" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_date"></div>
-<div class="col-md-3"><label style="color:#a0aec0; font-size:0.8rem;">Titel</label><input type="text" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" placeholder="T.ex. Ny operator anstalld" [(ngModel)]="newEvent.title" maxlength="200"></div>
-<div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Typ</label><select aria-label="Valj typ" class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_type">
-<option value="underhall">Underhall</option><option value="ny_operator">Ny operator</option><option value="mal_andring">Malandring</option><option value="rekord">Rekord</option><option value="ovrigt">Ovrigt</option></select></div>
+<div class="col-md-3"><label style="color:#a0aec0; font-size:0.8rem;">Titel</label><input type="text" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" placeholder="T.ex. Ny operatör anställd" [(ngModel)]="newEvent.title" maxlength="200"></div>
+<div class="col-md-2"><label style="color:#a0aec0; font-size:0.8rem;">Typ</label><select aria-label="Välj typ" class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="newEvent.event_type">
+<option value="underhall">Underhåll</option><option value="ny_operator">Ny operatör</option><option value="mal_andring">Måländring</option><option value="rekord">Rekord</option><option value="ovrigt">Övrigt</option></select></div>
 <div class="col-md-3"><label style="color:#a0aec0; font-size:0.8rem;">Beskrivning (valfri)</label><input type="text" class="form-control form-control-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;" placeholder="Kort beskrivning..." [(ngModel)]="newEvent.description" maxlength="500"></div>
 <div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm w-100" style="background:#a855f7; color:#fff; border:none;" (click)="saveNewEvent()" [disabled]="eventsAdminSaving">
-<span *ngIf="!eventsAdminSaving"><i class="fas fa-plus me-1"></i>Lagg till</span>
+<span *ngIf="!eventsAdminSaving"><i class="fas fa-plus me-1"></i>Lägg till</span>
 <span *ngIf="eventsAdminSaving"><i class="fas fa-spinner fa-spin me-1"></i>Sparar...</span></button></div></div>
 <div *ngIf="eventsAdminMessage" class="mt-2" style="color:#48bb78; font-size:0.85rem;"><i class="fas fa-check-circle me-1"></i>{{ eventsAdminMessage }}</div>
 <div *ngIf="eventsAdminError" class="mt-2" style="color:#fc8181; font-size:0.85rem;"><i class="fas fa-exclamation-circle me-1"></i>{{ eventsAdminError }}</div></div>

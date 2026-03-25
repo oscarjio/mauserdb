@@ -13,7 +13,7 @@
       <button class="btn btn-sm btn-outline-secondary" (click)="prevYear()" [disabled]="selectedYear <= 2023">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <select aria-label="Valj alternativ" class="form-select form-select-sm year-select" (change)="onYearChange($event)">
+      <select aria-label="Välj alternativ" class="form-select form-select-sm year-select" (change)="onYearChange($event)">
         <option *ngFor="let y of availableYears; trackBy: trackByIndex" [value]="y" [selected]="y === selectedYear">{{ y }}</option>
       </select>
       <button class="btn btn-sm btn-outline-secondary" (click)="nextYear()" [disabled]="selectedYear >= 2026">

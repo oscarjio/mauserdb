@@ -9,7 +9,7 @@
       <!-- Stationsfilter -->
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Station:</label>
-        <select aria-label="Valj station" class="form-select form-select-sm kps-select"
+        <select aria-label="Välj station" class="form-select form-select-sm kps-select"
                 [(ngModel)]="valdStation"
                 (change)="byttStation()">
           <option value="">Alla stationer</option>
@@ -81,10 +81,10 @@
         </ng-template>
       </div>
     </div>
-    <!-- Trend vs igar -->
+    <!-- Trend vs igår -->
     <div class="col-6 col-md-3">
       <div class="kps-kpi-card">
-        <div class="kps-kpi-label">Trend vs igar</div>
+        <div class="kps-kpi-label">Trend vs igår</div>
         <ng-container *ngIf="!loadingOverview && overview; else laddaKpi4">
           <div class="kps-kpi-value"
                [style.color]="trendFarg(overview.trend)">

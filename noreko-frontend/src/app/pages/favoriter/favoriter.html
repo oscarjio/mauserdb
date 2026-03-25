@@ -3,7 +3,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="page-title"><i class="fas fa-star me-2" style="color:#ecc94b"></i>Mina favoriter</h1>
       <button class="btn btn-primary btn-sm" (click)="openAddDialog()" aria-label="Lagg till ny favoritsida">
-        <i class="fas fa-plus me-1"></i>Lagg till sida
+        <i class="fas fa-plus me-1"></i>Lägg till sida
       </button>
     </div>
 
@@ -27,7 +27,7 @@
     <div class="empty-state text-center py-5" *ngIf="!loading && favoriter.length === 0 && !error">
       <i class="fas fa-star fa-3x mb-3" style="color:#4a5568"></i>
       <h4 class="text-muted">Inga favoriter sparade</h4>
-      <p class="text-muted">Klicka "Lagg till sida" for att borja bygga dina snabbliankar.</p>
+      <p class="text-muted">Klicka "Lägg till sida" för att börja bygga dina snabblänkar.</p>
     </div>
 
     <!-- Favoritlista med kort -->
@@ -56,14 +56,14 @@
     </div>
 
     <!-- Lagg-till dialog (overlay) -->
-    <div class="add-dialog-overlay" *ngIf="showAddDialog" (click)="closeAddDialog()" (keydown.escape)="closeAddDialog()" role="dialog" aria-modal="true" aria-label="Lagg till favorit">
+    <div class="add-dialog-overlay" *ngIf="showAddDialog" (click)="closeAddDialog()" (keydown.escape)="closeAddDialog()" role="dialog" aria-modal="true" aria-label="Lägg till favorit">
       <div class="add-dialog" (click)="$event.stopPropagation()">
         <div class="add-dialog-header">
-          <h5><i class="fas fa-plus-circle me-2"></i>Lagg till favorit</h5>
+          <h5><i class="fas fa-plus-circle me-2"></i>Lägg till favorit</h5>
           <button class="btn-close btn-close-white" (click)="closeAddDialog()" aria-label="Stäng dialog"></button>
         </div>
         <div class="add-dialog-search">
-          <input type="text" class="form-control form-control-sm" placeholder="Sok bland sidor..." [(ngModel)]="searchQuery" aria-label="Sok bland sidor">
+          <input type="text" class="form-control form-control-sm" placeholder="Sök bland sidor..." [(ngModel)]="searchQuery" aria-label="Sök bland sidor">
         </div>
         <div class="add-dialog-list">
           <div class="add-page-item" *ngFor="let page of filteredPages; trackBy: trackByIndex" role="button" tabindex="0" (click)="addFavorit(page)" (keydown.enter)="addFavorit(page)" (keydown.space)="addFavorit(page); $event.preventDefault()">

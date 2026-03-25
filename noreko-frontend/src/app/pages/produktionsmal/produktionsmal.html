@@ -28,7 +28,7 @@
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
           <label class="form-label text-muted small">Typ</label>
-          <select aria-label="Valj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
+          <select aria-label="Välj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
             <option value="vecka">Vecka</option>
             <option value="manad">Manad</option>
           </select>
@@ -72,7 +72,7 @@
   <!-- ===== INGET MAL ===== -->
   <div class="alert alert-info" *ngIf="!progressLoading && progress && !progress.har_mal">
     <i class="fas fa-info-circle me-2"></i>
-    Inget aktivt produktionsmal hittat. Anvand formularet ovan for att satta ett nytt mal.
+    Inget aktivt produktionsmål hittat. Använd formuläret ovan för att sätta ett nytt mål.
   </div>
 
   <!-- ===== FEL ===== -->

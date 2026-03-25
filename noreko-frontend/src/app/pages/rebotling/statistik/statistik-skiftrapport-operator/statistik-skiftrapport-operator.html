@@ -22,7 +22,7 @@
 
           <!-- Period -->
           <label class="text-muted small mb-0 ms-2">Period:</label>
-          <select aria-label="Valj period" class="form-select form-select-sm filter-select" style="width:110px;"
+          <select aria-label="Välj period" class="form-select form-select-sm filter-select" style="width:110px;"
                   [(ngModel)]="periodDays"
                   (change)="onPeriodChange()">
             <option [value]="7">7 dagar</option>
@@ -59,7 +59,7 @@
       <!-- Ingen operator vald -->
       <div class="text-center py-4" *ngIf="!operatorsLoading && selectedOperatorId <= 0 && !loading">
         <i class="fas fa-user-circle fa-2x text-muted mb-2"></i>
-        <p class="text-muted mb-0">Valj en operator ovan for att visa skiftrapport.</p>
+        <p class="text-muted mb-0">Välj en operatör ovan för att visa skiftrapport.</p>
       </div>
 
       <!-- Laddar data -->

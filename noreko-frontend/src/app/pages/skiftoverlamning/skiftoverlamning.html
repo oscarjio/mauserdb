@@ -6,16 +6,16 @@
   <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
       <h1 class="page-title mb-1">
-        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamning
+        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftöverlämning
       </h1>
-      <p class="text-muted mb-0 small">Digital checklista vid skiftbyte: vad hande, pagaende problem, mal nasta skift</p>
+      <p class="text-muted mb-0 small">Digital checklista vid skiftbyte: vad hände, pågående problem, mål nästa skift</p>
     </div>
     <div class="d-flex gap-2">
       <button *ngIf="viewMode !== 'dashboard'" class="btn btn-outline-secondary btn-sm" (click)="backToDashboard()">
         <i class="fas fa-arrow-left me-1"></i>Tillbaka
       </button>
       <button *ngIf="viewMode === 'dashboard' && loggedIn" class="btn btn-primary btn-sm" (click)="showForm()">
-        <i class="fas fa-plus me-1"></i>Ny overlamning
+        <i class="fas fa-plus me-1"></i>Ny överlämning
       </button>
       <button *ngIf="viewMode === 'dashboard'" class="btn btn-outline-secondary btn-sm" (click)="loadDashboard()">
         <i class="fas fa-sync-alt me-1"></i>Uppdatera
@@ -157,7 +157,7 @@
           </div>
         </div>
 
-        <!-- Forra skiftets overlamningsnoteringar -->
+        <!-- Förra skiftets överlämningsnoteringar -->
         <div *ngIf="skiftSammanfattning.overlamning" class="mt-3 p-3 forra-noteringar">
           <h6 class="text-muted mb-2"><i class="fas fa-sticky-note me-1"></i>Noteringar fran forra skiftet</h6>
           <div class="row g-2">
@@ -165,10 +165,10 @@
               <div class="small"><strong class="text-danger">Problem:</strong> {{ truncate(skiftSammanfattning.overlamning.problem_text, 200) }}</div>
             </div>
             <div class="col-12" *ngIf="skiftSammanfattning.overlamning.pagaende_arbete">
-              <div class="small"><strong class="text-warning">Pagaende:</strong> {{ truncate(skiftSammanfattning.overlamning.pagaende_arbete, 200) }}</div>
+              <div class="small"><strong class="text-warning">Pågående:</strong> {{ truncate(skiftSammanfattning.overlamning.pagaende_arbete, 200) }}</div>
             </div>
             <div class="col-12" *ngIf="skiftSammanfattning.overlamning.mal_nasta_skift">
-              <div class="small"><strong class="text-info">Mal for detta skift:</strong> {{ skiftSammanfattning.overlamning.mal_nasta_skift }}</div>
+              <div class="small"><strong class="text-info">Mål för detta skift:</strong> {{ skiftSammanfattning.overlamning.mal_nasta_skift }}</div>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-label">Senaste overlamning</div>
+          <div class="kpi-label">Senaste överlämning</div>
           <div class="kpi-value text-info" style="font-size:1.1rem">
             {{ senaste ? formatDateTime(senaste.skapad) : '--' }}
           </div>
@@ -224,7 +224,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Denna vecka</div>
           <div class="kpi-value text-success">{{ antalVecka }}</div>
-          <div class="kpi-sub">overlamningar</div>
+          <div class="kpi-sub">överlämningar</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
@@ -236,7 +236,7 @@
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card" [class.kpi-alert]="pagaendeAntal > 0">
-          <div class="kpi-label">Pagaende problem</div>
+          <div class="kpi-label">Pågående problem</div>
           <div class="kpi-value" [class.text-danger]="pagaendeAntal > 0" [class.text-success]="pagaendeAntal === 0">
             {{ pagaendeAntal }}
           </div>
@@ -250,7 +250,7 @@
       <div class="card-header clickable-header d-flex justify-content-between align-items-center"
            (click)="toggleHistorik()" role="button" tabindex="0" (keydown.enter)="toggleHistorik()">
         <h5 class="mb-0">
-          <i class="fas fa-history me-2 text-secondary"></i>Senaste overlamningar
+          <i class="fas fa-history me-2 text-secondary"></i>Senaste överlämningar
           <span class="badge bg-secondary ms-2">{{ historikItems.length }}</span>
         </h5>
         <i class="fas" [class.fa-chevron-down]="!historikExpanded" [class.fa-chevron-up]="historikExpanded"></i>
@@ -304,7 +304,7 @@
       </div>
       <div *ngIf="historikExpanded && historikItems.length === 0" class="text-center text-muted py-4">
         <i class="fas fa-clipboard fa-2x mb-2 d-block" style="opacity:0.3"></i>
-        Inga overlamningar annu.
+        Inga överlämningar ännu.
       </div>
     </div>
 
@@ -390,9 +390,9 @@
         </div>
       </div>
 
-      <!-- Mal nasta skift -->
+      <!-- Mål nästa skift -->
       <div *ngIf="selectedItem.mal_nasta_skift" class="card detail-card mb-4">
-        <div class="card-header"><i class="fas fa-bullseye me-2 text-success"></i>Mal nasta skift</div>
+        <div class="card-header"><i class="fas fa-bullseye me-2 text-success"></i>Mål nästa skift</div>
         <div class="card-body">
           <p class="mb-0 preformatted">{{ selectedItem.mal_nasta_skift }}</p>
         </div>
@@ -410,7 +410,7 @@
         </div>
         <div class="col-12 col-md-6" *ngIf="selectedItem.pagaende_arbete">
           <div class="card detail-card">
-            <div class="card-header"><i class="fas fa-wrench me-2 text-warning"></i>Pagaende arbete</div>
+            <div class="card-header"><i class="fas fa-wrench me-2 text-warning"></i>Pågående arbete</div>
             <div class="card-body">
               <p class="mb-0 preformatted">{{ selectedItem.pagaende_arbete }}</p>
             </div>
@@ -436,34 +436,34 @@
 
       <div *ngIf="!selectedItem.problem_text && !selectedItem.pagaende_arbete && !selectedItem.instruktioner && !selectedItem.kommentar && !selectedItem.mal_nasta_skift"
            class="text-muted text-center py-4 mt-3">
-        <i class="fas fa-info-circle me-2"></i>Inga fritextnoteringar for detta skift.
+        <i class="fas fa-info-circle me-2"></i>Inga fritextnoteringar för detta skift.
       </div>
     </div>
   </div>
 
   <!-- ================================================================== -->
-  <!-- FORMULAR (ny overlamning)                                           -->
+  <!-- FORMULÄR (ny överlämning)                                           -->
   <!-- ================================================================== -->
   <div *ngIf="viewMode === 'form'">
 
     <div class="card form-card mb-4">
       <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-edit me-2 text-info"></i>Ny skiftoverlamning</h5>
+        <h5 class="mb-0"><i class="fas fa-edit me-2 text-info"></i>Ny skiftöverlämning</h5>
       </div>
       <div class="card-body">
 
         <!-- Automatisk data -->
         <div class="mb-4">
           <h6 class="text-muted mb-3">
-            <i class="fas fa-robot me-2"></i>Automatisk data (fran PLC)
+            <i class="fas fa-robot me-2"></i>Automatisk data (från PLC)
             <span *ngIf="isLoadingKpis" role="status" class="spinner-border spinner-border-sm ms-2"></span>
           </h6>
           <div class="row g-3">
             <div class="col-6 col-md-3">
               <label class="form-label small text-muted">Skifttyp</label>
-              <select aria-label="Valj skifttyp" class="form-select form-select-sm dark-select" [(ngModel)]="form.skift_typ">
+              <select aria-label="Välj skifttyp" class="form-select form-select-sm dark-select" [(ngModel)]="form.skift_typ">
                 <option value="dag">Dag (06-14)</option>
-                <option value="kvall">Kvall (14-22)</option>
+                <option value="kvall">Kväll (14-22)</option>
                 <option value="natt">Natt (22-06)</option>
               </select>
             </div>
@@ -520,11 +520,11 @@
 
         <hr class="border-secondary">
 
-        <!-- Mal nasta skift -->
+        <!-- Mål nästa skift -->
         <div class="mb-4">
-          <h6 class="text-muted mb-3"><i class="fas fa-bullseye me-2"></i>Mal nasta skift</h6>
+          <h6 class="text-muted mb-3"><i class="fas fa-bullseye me-2"></i>Mål nästa skift</h6>
           <textarea class="form-control dark-input" rows="3"
-                    placeholder="Produktionsmal, fokusomraden, prioriteringar for nasta skift..."
+                    placeholder="Produktionsmål, fokusområden, prioriteringar för nästa skift..."
                     [(ngModel)]="form.mal_nasta_skift" maxlength="5000"></textarea>
           <div class="small text-muted mt-1">{{ form.mal_nasta_skift.length }}/5000</div>
         </div>
@@ -532,7 +532,7 @@
         <hr class="border-secondary">
 
         <!-- Fritextfalt -->
-        <h6 class="text-muted mb-3"><i class="fas fa-pen me-2"></i>Overlamningsnoteringar</h6>
+        <h6 class="text-muted mb-3"><i class="fas fa-pen me-2"></i>Överlämningsnoteringar</h6>
 
         <div class="mb-3">
           <label class="form-label">
@@ -546,20 +546,20 @@
 
         <div class="mb-3">
           <label class="form-label">
-            <i class="fas fa-wrench text-warning me-1"></i>Pagaende arbete
+            <i class="fas fa-wrench text-warning me-1"></i>Pågående arbete
           </label>
           <textarea class="form-control dark-input" rows="3"
-                    placeholder="Vad bor nasta skift ta vid med? Pagaende reparationer, installningar..."
+                    placeholder="Vad bör nästa skift ta vid med? Pågående reparationer, inställningar..."
                     [(ngModel)]="form.pagaende_arbete" maxlength="5000"></textarea>
           <div class="small text-muted mt-1">{{ form.pagaende_arbete.length }}/5000</div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">
-            <i class="fas fa-tasks text-info me-1"></i>Specialinstruktioner till nasta skift
+            <i class="fas fa-tasks text-info me-1"></i>Specialinstruktioner till nästa skift
           </label>
           <textarea class="form-control dark-input" rows="3"
-                    placeholder="Speciella saker att tanka pa, andrade rutiner, materialbyten..."
+                    placeholder="Speciella saker att tänka på, ändrade rutiner, materialbyten..."
                     [(ngModel)]="form.instruktioner" maxlength="5000"></textarea>
           <div class="small text-muted mt-1">{{ form.instruktioner.length }}/5000</div>
         </div>
@@ -569,7 +569,7 @@
             <i class="fas fa-comment text-secondary me-1"></i>Generell kommentar
           </label>
           <textarea class="form-control dark-input" rows="2"
-                    placeholder="Ovrigt att notera..."
+                    placeholder="Övrigt att notera..."
                     [(ngModel)]="form.kommentar" maxlength="5000"></textarea>
           <div class="small text-muted mt-1">{{ form.kommentar.length }}/5000</div>
         </div>
@@ -588,7 +588,7 @@
 
           <div *ngIf="form.har_pagaende_problem" class="ms-4">
             <label class="form-label small text-muted">Allvarlighetsgrad</label>
-            <select aria-label="Valj allvarlighetsgrad" class="form-select form-select-sm dark-select" style="max-width: 200px;"
+            <select aria-label="Välj allvarlighetsgrad" class="form-select form-select-sm dark-select" style="max-width: 200px;"
                     [(ngModel)]="form.allvarlighetsgrad">
               <option value="lag">Lag</option>
               <option value="medel">Medel</option>
@@ -603,7 +603,7 @@
           <button class="btn btn-primary" (click)="submitForm()" [disabled]="isSubmitting">
             <span *ngIf="isSubmitting" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i *ngIf="!isSubmitting" class="fas fa-save me-1"></i>
-            Spara overlamning
+            Spara överlämning
           </button>
           <button class="btn btn-outline-secondary" (click)="backToDashboard()" [disabled]="isSubmitting">
             Avbryt

@@ -5,7 +5,7 @@
     </h2>
     <div class="d-flex align-items-center gap-2">
       <label class="text-light me-1 mb-0">Period:</label>
-      <select aria-label="Valj period" class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
+      <select aria-label="Välj period" class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
         <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p">{{ p }} dagar</option>
       </select>
     </div>
@@ -68,9 +68,9 @@
   <!-- Chart -->
   <div class="chart-card mb-4" *ngIf="overview && !loadingOverview && overview.daily.length > 0">
     <h5 class="card-title mb-3">
-      <i class="fas fa-chart-area me-2" style="color:#63b3ed"></i>Daglig kassationsgrad med trendgranser
+      <i class="fas fa-chart-area me-2" style="color:#63b3ed"></i>Daglig kassationsgrad med trendgränser
     </h5>
-    <p class="text-muted small mb-2">Klicka pa en punkt for att se detaljer for den dagen</p>
+    <p class="text-muted small mb-2">Klicka på en punkt för att se detaljer för den dagen</p>
     <div class="chart-wrapper">
       <canvas id="trendbrottChart"></canvas>
     </div>

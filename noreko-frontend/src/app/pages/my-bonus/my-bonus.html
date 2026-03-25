@@ -186,7 +186,7 @@
     <div class="bonus-kr-card mb-4" *ngIf="stats">
       <div *ngIf="!bonusAmountsLoading && !bonusAmountsConfigured" class="bonus-kr-not-configured">
         <i class="fas fa-info-circle me-2 text-muted"></i>
-        <span class="text-muted">Kontakta admin for att konfigurera bonusbelopp.</span>
+        <span class="text-muted">Kontakta admin för att konfigurera bonusbelopp.</span>
       </div>
       <div *ngIf="bonusAmountsLoading" class="d-flex align-items-center gap-2 py-2">
         <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
@@ -228,12 +228,12 @@
               </div>
             </div>
             <div class="bonus-kr-top text-success" *ngIf="!getNextLevelKey(currentKey)">
-              <i class="fas fa-gem me-2"></i>Du ar pa hogsta nivan! Fantastisk prestation.
+              <i class="fas fa-gem me-2"></i>Du är på högsta nivån! Fantastisk prestation.
             </div>
           </ng-container>
           <div *ngIf="!getBonusLevelKey(stats.kpis?.bonus_avg || 0)" class="bonus-kr-below">
             <i class="fas fa-info-circle me-2 text-muted"></i>
-            <span class="text-muted">Na minst 70 poang for att kvalificera dig for bonus.</span>
+            <span class="text-muted">Nå minst 70 poäng för att kvalificera dig för bonus.</span>
             <div class="mt-1 small text-muted">
               Lagsta bonusniva (Brons): <span class="text-warning fw-semibold">{{ bonusAmounts.brons | number }} kr</span>
             </div>

@@ -980,7 +980,7 @@
                               </div>
                               <div class="col-md-3">
                                 <label class="form-label small">Produkt</label>
-                                <select aria-label="Valj produkt" class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
+                                <select aria-label="Välj produkt" class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
                                   <option [value]="null">Välj produkt...</option>
                                   <option *ngFor="let product of products; trackBy: trackByProductId" [value]="product.id">{{ product.name }}</option>
                                 </select>

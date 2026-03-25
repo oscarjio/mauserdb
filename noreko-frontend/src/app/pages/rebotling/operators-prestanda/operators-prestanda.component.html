@@ -32,7 +32,7 @@
 
     <div class="filter-grupp">
       <label class="filter-label">Skift</label>
-      <select aria-label="Valj skift" class="form-select form-select-sm skift-select"
+      <select aria-label="Välj skift" class="form-select form-select-sm skift-select"
               [(ngModel)]="valtSkift"
               (ngModelChange)="onSkiftChange($event)">
         @for (alt of skiftAlternativ; track alt.val) {

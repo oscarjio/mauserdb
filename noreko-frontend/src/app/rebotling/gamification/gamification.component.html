@@ -46,7 +46,7 @@
             </div>
             <div class="podium-name">{{ leaderboardData?.leaderboard?.[1]?.operator_namn }}</div>
             <div class="podium-poang">{{ leaderboardData?.leaderboard?.[1]?.total_poang }}</div>
-            <div class="podium-label">poang</div>
+            <div class="podium-label">poäng</div>
             <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[1]?.total_ibc }} IBC</div>
           </div>
         </div>
@@ -60,7 +60,7 @@
             </div>
             <div class="podium-name">{{ leaderboardData?.leaderboard?.[0]?.operator_namn }}</div>
             <div class="podium-poang podium-poang-gold">{{ leaderboardData?.leaderboard?.[0]?.total_poang }}</div>
-            <div class="podium-label">poang</div>
+            <div class="podium-label">poäng</div>
             <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[0]?.total_ibc }} IBC</div>
           </div>
         </div>
@@ -74,7 +74,7 @@
             </div>
             <div class="podium-name">{{ leaderboardData?.leaderboard?.[2]?.operator_namn }}</div>
             <div class="podium-poang">{{ leaderboardData?.leaderboard?.[2]?.total_poang }}</div>
-            <div class="podium-label">poang</div>
+            <div class="podium-label">poäng</div>
             <div class="podium-ibc">{{ leaderboardData?.leaderboard?.[2]?.total_ibc }} IBC</div>
           </div>
         </div>
@@ -279,7 +279,7 @@
           <div class="chart-card">
             <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Engagemangsstatistik</h6>
             <div class="overview-stat-row">
-              <span class="overview-stat-label">Snitt-poang per operator</span>
+              <span class="overview-stat-label">Snitt-poäng per operatör</span>
               <span class="overview-stat-value">{{ overviewData.avg_poang }}</span>
             </div>
             <div class="overview-stat-row">
@@ -287,7 +287,7 @@
               <span class="overview-stat-value">{{ overviewData.avg_streak }}d</span>
             </div>
             <div class="overview-stat-row">
-              <span class="overview-stat-label">Total poang (alla)</span>
+              <span class="overview-stat-label">Total poäng (alla)</span>
               <span class="overview-stat-value">{{ overviewData.total_poang }}</span>
             </div>
           </div>
@@ -305,7 +305,7 @@
                 </span>
                 <div class="flex-grow-1">
                   <div class="top3-name">{{ op.operator_namn }}</div>
-                  <div class="top3-details">{{ op.total_ibc }} IBC &middot; {{ op.total_poang }} poang</div>
+                  <div class="top3-details">{{ op.total_ibc }} IBC &middot; {{ op.total_poang }} poäng</div>
                 </div>
                 <span *ngIf="op.streak > 0" [style.color]="getStreakColor(op.streak)" class="top3-streak">
                   <i [class]="getStreakIcon(op.streak)" class="me-1"></i>{{ op.streak }}d

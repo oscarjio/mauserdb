@@ -8,7 +8,7 @@
         <small class="text-muted">Visualisering av effektivitet per operatör, dag och tid</small>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <select aria-label="Valj period" class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+        <select aria-label="Välj period" class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
           <option value="week">Senaste 7 dagar</option>
           <option value="month">Senaste 30 dagar</option>
         </select>
@@ -444,7 +444,7 @@
     <!-- Limit selector -->
     <div class="d-flex align-items-center gap-2 mb-3">
       <span class="text-muted small">Visa topp:</span>
-      <select aria-label="Valj best shifts limit" class="form-select form-select-sm" style="width:auto;background:#1e2535;color:#e2e8f0;border-color:#2d3748"
+      <select aria-label="Välj best shifts limit" class="form-select form-select-sm" style="width:auto;background:#1e2535;color:#e2e8f0;border-color:#2d3748"
               [(ngModel)]="bestShiftsLimit" (change)="loadBestShifts()">
         <option [value]="5">5 skift</option>
         <option [value]="10">10 skift</option>

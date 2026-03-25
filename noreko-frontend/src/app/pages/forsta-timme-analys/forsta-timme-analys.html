@@ -3,12 +3,12 @@
   <!-- Rubrik -->
   <div class="page-header">
     <h1 class="page-title">
-      <i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Forsta timme-analys
+      <i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Första timme-analys
     </h1>
-    <p class="page-subtitle">Uppstartstid och ramp-up-kurva for varje skift — hur snabbt kommer linjen upp i takt?</p>
+    <p class="page-subtitle">Uppstartstid och ramp-up-kurva för varje skift — hur snabbt kommer linjen upp i takt?</p>
   </div>
 
-  <!-- Periodvaljare -->
+  <!-- Periodväljare -->
   <div class="filter-bar">
     <div class="filter-group">
       <label class="filter-label">Period</label>
@@ -43,13 +43,13 @@
     </ng-container>
 
     <ng-container *ngIf="!loadingAnalys && analys">
-      <!-- Snitt tid till forsta IBC -->
+      <!-- Snitt tid till första IBC -->
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-clock" style="color:#63b3ed"></i></div>
         <div class="kpi-value" style="color:#63b3ed">
           {{ analys.snitt_tid_till_forsta !== null ? analys.snitt_tid_till_forsta + ' min' : '--' }}
         </div>
-        <div class="kpi-label">Snitt tid till forsta IBC</div>
+        <div class="kpi-label">Snitt tid till första IBC</div>
       </div>
 
       <!-- Snabbaste start -->
@@ -112,7 +112,7 @@
   <!-- Trend-diagram -->
   <div class="chart-card">
     <div class="chart-card-header">
-      <span class="chart-title"><i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Tid till forsta IBC per dag (senaste {{ period }} dagar)</span>
+      <span class="chart-title"><i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Tid till första IBC per dag (senaste {{ period }} dagar)</span>
     </div>
     <div class="chart-body">
       <div *ngIf="loadingTrend" class="chart-loading">
@@ -154,8 +154,8 @@
           <tr>
             <th scope="col">Datum</th>
             <th scope="col">Skift</th>
-            <th scope="col">Tid till forsta IBC</th>
-            <th scope="col">IBC forsta timmen</th>
+            <th scope="col">Tid till första IBC</th>
+            <th scope="col">IBC första timmen</th>
             <th scope="col">Bedomning</th>
           </tr>
         </thead>

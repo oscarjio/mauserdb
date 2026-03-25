@@ -36,7 +36,7 @@
 
     <!-- Stationsdropdown för mobil -->
     <div class="mt-2 d-md-none" *ngIf="stationer.length > 0">
-      <select aria-label="Valj station" class="form-select form-select-sm bg-dark text-light border-secondary"
+      <select aria-label="Välj station" class="form-select form-select-sm bg-dark text-light border-secondary"
               [(ngModel)]="valdStation"
               (change)="laddaAlltForStation()">
         <option *ngFor="let s of stationer; trackBy: trackByIndex" [value]="s">{{ s }}</option>
