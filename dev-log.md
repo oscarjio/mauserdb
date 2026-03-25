@@ -1,3 +1,46 @@
+## Worker B — Session #325 (2026-03-25) — 7 buggar (alla 3 audits)
+
+### Audit 1: Angular accessibility audit (7 buggar)
+Granskade samtliga 37+ komponent-templates i noreko-frontend/src/app/ for tillganglighetsproblem. Kontrollerade (click)-handlers pa icke-interaktiva element, aria-attribut pa modaler/overlays, bilder utan alt-text, formular utan labels, tabindex, och keyboard-navigation.
+
+**Hittade och fixade:**
+1. **stoppage-log.html:287** — Duplicerat `role="button"` attribut pa pattern-header div. Tog bort duplikatet.
+2. **kvalitetscertifikat.component.html:203** — Certifikat-modal saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+3. **kvalitetscertifikat.component.html:384** — Generera-certifikat-modal saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+4. **skiftoverlamning.component.html:215** — Bekraftelsedialog-overlay saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+5. **statistik-dashboard.component.html:229** — Trend-detail-overlay saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+6. **shift-plan.html:375** — Tilldela-operator-modal saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+7. **statistik-pareto-stopp.html:119** — Drilldown-overlay saknade `role="dialog"`, `aria-modal="true"` och `aria-label`. Lade till alla tre.
+
+**Ovrigt granskat utan anmarkning:**
+- Alla bilder har alt-text (header, stoppage-log QR).
+- Formularelement har labels (register, tidrapport, operatorsbonus simulator, kvalitetscertifikat, maskinunderhall m.fl.).
+- Klickbara tr/div-element har generellt role="button", tabindex="0" och keydown-handlers (skiftoverlamning checklista, batch-sparning, historisk-produktion, stopporsaker m.fl.).
+- Knappar anvander beskrivande text eller aria-label (pdf-export, daglig-briefing, rebotling-admin m.fl.).
+
+### Audit 2: Angular build/bundle audit (0 buggar)
+Granskade angular.json och tsconfig.json for optimeringsmojligheter. Korde `npx ng build` (production).
+
+**Resultat:**
+- **Build lyckades** utan fel pa 90 sekunder.
+- **Initial bundle:** 710.82 kB (under 750 kB warning-grans). Estimated transfer: 150.85 kB.
+- **Lazy loading:** 179+ lazy chunks — applikationen anvander lazy loading korrekt.
+- **angular.json:** Production-konfiguration har budgets, outputHashing. Development har sourceMap.
+- **tsconfig.json:** strict=true, strictTemplates=true, isolatedModules=true, importHelpers=true (tree-shaking-vanligt). Target ES2022.
+- **CommonJS-varningar:** pdfmake, qrcode, bootstrap (redan i allowedCommonJsDependencies), plus html2canvas och canvg (transitive, ej kritiskt). Dessa ar forvantat beteende for dessa bibliotek.
+- Inga oanvanda imports som orsakar build-varningar. Tree-shaking fungerar korrekt.
+
+### Audit 3: Angular template security audit (0 buggar)
+Granskade ALLA .html-templates i noreko-frontend/src/app/ for sakerhetsproblem.
+
+**Resultat:**
+- **[innerHTML]:** Inga forekomster i nagon template. Ingen risk for XSS via innerHTML-bindning.
+- **bypassSecurityTrust*:** Inga forekomster i nagon komponent. Ingen risk for felaktig trust-bypass.
+- **[src]-bindning:** Enda forekomsten ar `[src]="qrDataUrls[maskin]"` i stoppage-log.html — binds till internt genererade data-URIs fran QR-kodgenerering, ingen anvandardata. Sakert.
+- **[href]-bindning:** Tva forekomster: `[href]="'mailto:' + c.email"` (contact.html) och `[href]="config.liveUrl"` (shared-skiftrapport.html) — bada anvander server-konfigurerad data, inte ratt anvandardata. Angular saniterar URLs automatiskt.
+- **Template injection:** Inga dynamiska template-stranginterpolationer som kan missbrukas. Alla `{{ }}` anvander enkel property-bindning.
+- **strictTemplates: true** ar aktiverat i tsconfig.json — ger kompileringstids-typkontroll.
+
 ## Worker A — Session #325 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP dependency/composer audit (0 buggar)
