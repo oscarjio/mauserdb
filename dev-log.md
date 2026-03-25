@@ -21584,3 +21584,47 @@ Filen: noreko-frontend/src/app/pages/tvattlinje-statistik/tvattlinje-statistik.h
 Filen: noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html rad 242. Exakt samma monster som bugg 2. Samma losning applicerades: `visiblePeriodCells` cachad property, `updateVisiblePeriodCells()` privat metod anropad i generatePeriodCells() och updatePeriodCellsData(), `toggleShowOnlyDaysWithCycles()` metod. Template uppdaterades.
 
 Bygget genomfordes och kompilerade utan fel.
+
+## Worker A — Session #307 (2026-03-25) — 3 buggar
+
+### Audit 1: SQL GROUP_CONCAT overflow (0 buggar)
+Granskade alla GROUP_CONCAT-anvandningar i samtliga controllers (NewsController, OperatorsportalController, SkiftrapportController, BonusController, BonusAdminController, ProduktTypEffektivitetController, MinDagController, RebotlingAnalyticsController). Totalt 30+ forekomster.
+
+Tva monster identifierade:
+1. `SUBSTRING_INDEX(GROUP_CONCAT(kolumn ORDER BY datum DESC SEPARATOR '|'),'|',1)` — anvands for att hamta senaste vardet per skiftraknare-grupp. Varje grupp innehaller ett fataltal numeriska varden (bonus_poang, effektivitet, etc). Ingen overflow-risk.
+2. `GROUP_CONCAT(DISTINCT DATE(...))` — begransade till 14 dagars intervall (max ~154 bytes). Ingen overflow-risk.
+3. `GROUP_CONCAT(DISTINCT op1/op2/op3)` — numeriska operator-ID:n, sma grupper. Ingen overflow-risk.
+
+Resultat: Rent. Alla GROUP_CONCAT-anvandningar ar sakra inom default 1024-bytesgrans.
+
+### Audit 2: error_log format consistency (0 buggar)
+Granskade samtliga ~993 error_log()-anrop i alla controllers. Format ar konsekvent:
+- `error_log('ControllerName::methodName: ' . $e->getMessage())`
+- `error_log('ControllerName::methodName (kontext): ' . $e->getMessage())`
+- Sakerhetshandelser har extra kontext: `user_id=, role=, IP=` (korrekt)
+- Ingen error_log saknar controller- eller metodnamn.
+
+Resultat: Rent. Alla error_log-anrop foljer enhetligt format.
+
+### Audit 3: DATE() i WHERE-klausuler (3 buggar fixade)
+Granskade alla DATE()/DATE_FORMAT() i WHERE-klausuler. 100+ forekomster hittades som forhindrar index-anvandning pa `datum`-kolumnen.
+
+Fixade de mest kritiska fallen (hog-frekvens-endpoints som pollas ofta):
+
+**Bugg 1: StatusController.php — 3 st DATE(datum) = CURDATE() ersatta med range queries**
+Rad 138, 156, 170. Dessa pollas var 5:e sekund av alla linje-statusvyer. Andrat fran `DATE(datum) = CURDATE()` till `datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY`.
+
+**Bugg 2: Hog-frekvens live-controllers — DATE() ersatt med range queries**
+- RebotlingController.php: 5 st DATE()-anrop fixade (getLiveStats rad 352, getRastStatus rad 634, getDriftstoppStatus rad 721, checkAndCreateRecordNews rad 2496)
+- RebotlingAnalyticsController.php: 2 st DATE()-anrop fixade (getExecDashboard rad 716, 761)
+- RebotlingAdminController.php: 6 st DATE()-anrop fixade (getTodaySnapshot, getSystemStatus, getAllLinesStatus)
+- ProduktionspulsController.php: 1 st DATE()-anrop fixat (getLiveKpi rad 258)
+
+**Bugg 3: Dashboard/rapport-controllers — DATE() ersatt med range queries**
+- ProduktionsDashboardController.php: 6 st DATE()-anrop fixade (oversikt idag/igar, totalStationer, vecko-produktion, stationer-status)
+- BonusController.php: 5 st DATE()-anrop fixade (getDailySummary rad 730/746, getLoneprognos/HallOfFame rad 1076/1082/1088, buildDateFilter rad 1839/1843)
+- RuntimeController.php: 3 st DATE()-anrop fixade (calculateBreakTime today/week/month)
+
+Totalt 31 DATE()-i-WHERE ersatta med index-vanliga range queries i 8 filer. Resterande ~70+ DATE()-i-WHERE finns i mer sallananropade rapportcontrollers och kan fixas i framtida sessioner.
+
+Inga frontend-andringar — inget bygge kravs.

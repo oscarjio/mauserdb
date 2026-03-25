@@ -347,9 +347,9 @@ class RebotlingController {
 
             // Hämta totalt antal IBCer rebotlat idag (alla rader i rebotling_ibc för idag)
             $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) 
-                FROM rebotling_ibc 
-                WHERE DATE(datum) = CURDATE()
+                SELECT COUNT(*)
+                FROM rebotling_ibc
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
@@ -631,10 +631,10 @@ class RebotlingController {
             $stmt = $this->pdo->prepare("
                 SELECT id, datum, rast_status
                 FROM rebotling_runtime
-                WHERE DATE(datum) = :today
+                WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ");
-            $stmt->execute(['today' => $todayStr]);
+            $stmt->execute(['today' => $todayStr, 'today2' => $todayStr]);
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $totalRastMinutes = 0;
             $rastStart = null;
@@ -718,10 +718,10 @@ class RebotlingController {
             $stmt = $this->pdo->prepare("
                 SELECT id, datum, driftstopp_status, skiftraknare
                 FROM rebotling_driftstopp
-                WHERE DATE(datum) = :today
+                WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ");
-            $stmt->execute(['today' => $todayStr]);
+            $stmt->execute(['today' => $todayStr, 'today2' => $todayStr]);
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $totalMinutes = 0;
@@ -2493,7 +2493,7 @@ class RebotlingController {
                 FROM (
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = CURDATE()
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift

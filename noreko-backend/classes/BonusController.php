@@ -727,7 +727,7 @@ class BonusController {
                         MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = CURDATE()
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -743,7 +743,7 @@ class BonusController {
                     COUNT(DISTINCT op2) AS unique_op2,
                     COUNT(DISTINCT op3) AS unique_op3
                 FROM rebotling_ibc
-                WHERE DATE(datum) = CURDATE()
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ");
             $stmt->execute();
             $rawSummary = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1073,19 +1073,19 @@ class BonusController {
                            MAX(ibc_ok) AS shift_ibc_ok,
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :ms1 AND :td1 AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
+                    WHERE datum >= :ms1 AND datum < DATE_ADD(:td1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op1, skiftraknare
                     UNION ALL
                     SELECT op2, skiftraknare, MAX(ibc_ok),
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :ms2 AND :td2 AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
+                    WHERE datum >= :ms2 AND datum < DATE_ADD(:td2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op2, skiftraknare
                     UNION ALL
                     SELECT op3, skiftraknare, MAX(ibc_ok),
                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :ms3 AND :td3 AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
+                    WHERE datum >= :ms3 AND datum < DATE_ADD(:td3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
                     GROUP BY op3, skiftraknare
                 ) AS per_shift
                 GROUP BY op_id
@@ -1836,11 +1836,11 @@ class BonusController {
                 $start = (clone $endDt)->modify('-365 days')->format('Y-m-d');
             }
             // $start/$end validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
-            return "DATE(datum) BETWEEN '" . $start . "' AND '" . $end . "'";
+            return "datum >= '" . $start . "' AND datum < DATE_ADD('" . $end . "', INTERVAL 1 DAY)";
         }
 
         switch ($period) {
-            case 'today': return "DATE(datum) = CURDATE()";
+            case 'today': return "datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY";
             case 'week':  return "datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
             case 'month': return "datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
             case 'year':  // fall through

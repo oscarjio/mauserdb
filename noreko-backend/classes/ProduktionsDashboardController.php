@@ -261,12 +261,12 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :idag
+                    WHERE datum >= :idag AND datum < DATE_ADD(:idag2, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) sub
             ");
-            $stmt->execute([':idag' => $idag]);
+            $stmt->execute([':idag' => $idag, ':idag2' => $idag]);
             $radIdag   = $stmt->fetch(\PDO::FETCH_ASSOC);
             $ibcOkIdag = (int)($radIdag['ok_antal'] ?? 0);
             $ibcIdag   = $ibcOkIdag + (int)($radIdag['ej_ok_antal'] ?? 0);
@@ -285,12 +285,12 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :igar
+                    WHERE datum >= :igar AND datum < DATE_ADD(:igar2, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) sub
             ");
-            $stmt->execute([':igar' => $igar]);
+            $stmt->execute([':igar' => $igar, ':igar2' => $igar]);
             $radIgar = $stmt->fetch(\PDO::FETCH_ASSOC);
             $ibcIgar = (int)($radIgar['ok_antal'] ?? 0) + (int)($radIgar['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
@@ -352,7 +352,7 @@ class ProduktionsDashboardController {
                 SELECT COUNT(DISTINCT station) AS tot
                 FROM rebotling_ibc
                 WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             ");
             $totalStationer = (int)($stmtTot->fetchColumn() ?? 0);
         } catch (\PDOException $e) {
@@ -424,7 +424,7 @@ class ProduktionsDashboardController {
                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :dag
+                WHERE datum >= :dag AND datum < DATE_ADD(:dag2, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ) sub
@@ -434,7 +434,7 @@ class ProduktionsDashboardController {
             $dagStr = date('Y-m-d', strtotime("-{$i} days"));
 
             try {
-                $stmt->execute([':dag' => $dagStr]);
+                $stmt->execute([':dag' => $dagStr, ':dag2' => $dagStr]);
                 $radDag = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $total = (int)($radDag['ok_antal'] ?? 0) + (int)($radDag['ej_ok_antal'] ?? 0);
             } catch (\PDOException $e) {
@@ -507,7 +507,7 @@ class ProduktionsDashboardController {
                 SELECT DISTINCT station
                 FROM rebotling_ibc
                 WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                 ORDER BY station
             ");
             $stationer = $stmt->fetchAll(\PDO::FETCH_COLUMN);
@@ -537,13 +537,13 @@ class ProduktionsDashboardController {
                            MAX(datum) AS senaste
                     FROM rebotling_ibc
                     WHERE station IS NOT NULL AND station != ''
-                      AND DATE(datum) = :idag
+                      AND datum >= :idag AND datum < DATE_ADD(:idag2, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY station, skiftraknare
                 ) sub
                 GROUP BY station
             ");
-            $stmt->execute([':idag' => $idag]);
+            $stmt->execute([':idag' => $idag, ':idag2' => $idag]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $stationData[$row['station']] = $row;
             }

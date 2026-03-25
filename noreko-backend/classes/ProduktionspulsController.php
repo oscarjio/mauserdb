@@ -255,9 +255,9 @@ class ProduktionspulsController {
         $ibcIdag = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = :today
+                SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
             ");
-            $stmt->execute([':today' => $today]);
+            $stmt->execute([':today' => $today, ':today2' => $today]);
             $ibcIdag = (int)($stmt->fetchColumn() ?: 0);
         } catch (\PDOException $e) {
             error_log('ProduktionspulsController::getLiveKpi (ibc_idag): ' . $e->getMessage());

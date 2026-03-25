@@ -323,7 +323,7 @@ class RebotlingAdminController {
 
             // IBC idag
             $ibcToday = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
             )->fetchColumn();
 
             // Dagsmål — försök veckodagsmål annars settings
@@ -546,7 +546,7 @@ class RebotlingAdminController {
             // Totalt IBC idag från PLC
             $ibcToday = 0;
             try {
-                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
+                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
                 $ibcToday = (int)$row;
             } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus ibcToday: ' . $e->getMessage()); }
 
@@ -605,7 +605,7 @@ class RebotlingAdminController {
 
             // IBC idag
             $ibcIdag = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
             )->fetchColumn();
 
             // OEE idag (om tabellen stödjer det) — hämta via befintlig logik
@@ -637,7 +637,7 @@ class RebotlingAdminController {
                             MAX(runtime_plc) AS max_runtime_plc,
                             MAX(rasttime)    AS max_rasttime
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = CURDATE()
+                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                         GROUP BY skiftraknare
                      ) agg"
                 )->fetch(PDO::FETCH_ASSOC);
@@ -652,7 +652,7 @@ class RebotlingAdminController {
                         $snittCykel = 60;
                         try {
                             $cRow = $this->pdo->query(
-                                "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
+                                "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY AND cykel_tid > 0"
                             )->fetchColumn();
                             if ($cRow > 0) $snittCykel = (float)$cRow;
                         } catch (Exception $e) { error_log('RebotlingAdminController::getAllLinesStatus snittCykel: ' . $e->getMessage()); }
@@ -1115,7 +1115,7 @@ class RebotlingAdminController {
                 FROM (
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = CURDATE()
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift

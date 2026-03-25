@@ -301,14 +301,14 @@ class RuntimeController {
         $dateFilter = '';
         switch ($period) {
             case 'week':
-                $dateFilter = 'DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
+                $dateFilter = 'datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)';
                 break;
             case 'month':
-                $dateFilter = 'DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+                $dateFilter = 'datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
                 break;
             case 'today':
             default:
-                $dateFilter = 'DATE(datum) = CURDATE()';
+                $dateFilter = 'datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY';
                 break;
         }
 

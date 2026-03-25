@@ -713,7 +713,7 @@ class RebotlingAnalyticsController {
             } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard undantag: ' . $e->getMessage()); }
 
             // ---- IBC idag ----
-            $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
+            $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
 
             // ---- Skiftstart (används för prognos). Standard 06:00 ----
             $shiftStart = '06:00:00';
@@ -758,7 +758,7 @@ class RebotlingAnalyticsController {
                             MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
                             MAX(COALESCE(rasttime,   0)) AS shift_rast
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = CURDATE()
+                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                           AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
                         GROUP BY skiftraknare
                     ) AS ps

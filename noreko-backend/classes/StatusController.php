@@ -135,7 +135,7 @@ class StatusController {
 
                 // IBC idag
                 $ibcIdag = (int)$pdo->query(
-                    "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+                    "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
 
                 // OEE idag
@@ -153,7 +153,7 @@ class StatusController {
                                 MAX(runtime_plc) AS max_runtime_plc,
                                 MAX(rasttime)    AS max_rasttime
                             FROM rebotling_ibc
-                            WHERE DATE(datum) = CURDATE()
+                            WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                             GROUP BY skiftraknare
                          ) agg"
                     )->fetch(PDO::FETCH_ASSOC);
@@ -167,7 +167,7 @@ class StatusController {
                             $snittCykel = 60;
                             try {
                                 $cRow = $pdo->query(
-                                    "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
+                                    "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY AND cykel_tid > 0"
                                 )->fetchColumn();
                                 if ($cRow > 0) $snittCykel = (float)$cRow;
                             } catch (Exception $e) { error_log('StatusController::getAllLinesStatus snittCykel: ' . $e->getMessage()); }
