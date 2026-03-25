@@ -873,8 +873,28 @@ class RebotlingController {
             $target_cycle_time = 0;
             
             if ($total_cycles > 0) {
-                $sum_percent = array_sum(array_column($cycles, 'produktion_procent'));
-                $avg_production_percent = $sum_percent / $total_cycles;
+                // produktion_procent ar kumulativ fran PLC — berakna delta per cykel
+                // inom varje skiftraknare for att fa momentant varde.
+                $prevPctBySkift = [];
+                $deltaPercents  = [];
+                foreach ($cycles as $c) {
+                    $sk  = $c['skiftraknare'] ?? 0;
+                    $pct = (int)($c['produktion_procent'] ?? 0);
+                    if (isset($prevPctBySkift[$sk]) && $pct > $prevPctBySkift[$sk]) {
+                        $delta = $pct - $prevPctBySkift[$sk];
+                        // Rimlighetskontroll: delta > 100 ar anomali, hoppa over
+                        if ($delta <= 100) {
+                            $deltaPercents[] = $delta;
+                        }
+                    } elseif ($pct > 0 && $pct <= 100) {
+                        // Forsta cykeln i skiftet eller PLC-reset — anvand ratt som momentant
+                        $deltaPercents[] = $pct;
+                    }
+                    $prevPctBySkift[$sk] = $pct;
+                }
+                $avg_production_percent = count($deltaPercents) > 0
+                    ? array_sum($deltaPercents) / count($deltaPercents)
+                    : 0;
                 
                 // Beräkna genomsnittlig cykeltid
                 $cycle_times = array_filter(array_column($cycles, 'cycle_time'), function($val) {
@@ -989,7 +1009,25 @@ class RebotlingController {
                 ORDER BY datum ASC
             ');
             $stmt->execute(['date' => $date, 'dateb' => $date]);
-            $hourly_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $hourly_data_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // produktion_procent ar kumulativ fran PLC — berakna delta per cykel
+            $prevPctBySkift = [];
+            $hourly_data = [];
+            foreach ($hourly_data_raw as $row) {
+                $sk  = $row['skiftraknare'] ?? 0;
+                $pct = (int)($row['produktion_procent'] ?? 0);
+                if (isset($prevPctBySkift[$sk]) && $pct > $prevPctBySkift[$sk]) {
+                    $delta = $pct - $prevPctBySkift[$sk];
+                    $row['produktion_procent'] = ($delta <= 100) ? $delta : 0;
+                } elseif ($pct > 100) {
+                    // Kumulativt varde utan foregaende referens — satt till 0
+                    $row['produktion_procent'] = 0;
+                }
+                // Varden 0-100 som ar forsta i skiftet/efter reset behalles som de ar
+                $prevPctBySkift[$sk] = $pct;
+                $hourly_data[] = $row;
+            }
 
             // Hämta on/off events för dagen
             $stmt = $this->pdo->prepare('

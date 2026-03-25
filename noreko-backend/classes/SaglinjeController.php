@@ -368,11 +368,17 @@ class SaglinjeController {
 
     private function getLiveStats() {
         try {
-            $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) FROM saglinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-            ');
-            $stmt->execute();
-            $ibcToday = (int)$stmt->fetchColumn();
+            // saglinje_ibc existerar inte i produktionsschemat an — returnera 0 gracefully
+            $ibcToday = 0;
+            try {
+                $stmt = $this->pdo->prepare('
+                    SELECT COUNT(*) FROM saglinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                ');
+                $stmt->execute();
+                $ibcToday = (int)$stmt->fetchColumn();
+            } catch (\Exception $tableErr) {
+                // Tabellen saknas, returnera 0
+            }
 
             // Hämta dagsmål från settings
             $this->ensureSettingsTable();
@@ -401,14 +407,20 @@ class SaglinjeController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
 
-            $stmt = $this->pdo->prepare('
-                SELECT datum, ibc_count
-                FROM saglinje_ibc
-                WHERE DATE(datum) BETWEEN :start AND :end
-                ORDER BY datum ASC
-            ');
-            $stmt->execute(['start' => $start, 'end' => $end]);
-            $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // saglinje_ibc existerar inte i produktionsschemat an
+            $cycles = [];
+            try {
+                $stmt = $this->pdo->prepare('
+                    SELECT datum, ibc_count
+                    FROM saglinje_ibc
+                    WHERE DATE(datum) BETWEEN :start AND :end
+                    ORDER BY datum ASC
+                ');
+                $stmt->execute(['start' => $start, 'end' => $end]);
+                $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Exception $tableErr) {
+                // Tabellen saknas — returnera tom lista
+            }
 
             echo json_encode([
                 'success' => true,

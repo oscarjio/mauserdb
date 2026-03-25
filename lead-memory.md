@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #326)*
+*Senast uppdaterad: 2026-03-25 (session #327)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#326: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#327: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -73,16 +73,13 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 
 ### Nasta:
-- [ ] Statistik-graf: produktion_procent ar kumulativ — behover delta/momentan berakning
-- [ ] Skiftrapport alla flikar — testa och fixa
-- [ ] Frontend UX-genomgang — alla sidor
-- [ ] Backend endpoint fulltest mot dev
+- [~] Statistik-graf: produktion_procent kumulativ — Worker A fixar (session #327)
+- [~] Skiftrapport + Frontend UX — Worker B granskar (session #327)
+- [~] Backend endpoint fulltest — Worker A curlar alla (session #327)
+- [ ] PHP date/timezone audit
+- [ ] PHP authorization audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #325 (klar)
-Worker A: 0 buggar — Dependency/composer: inga beroenden. SQL performance: rent. Input sanitization: rent.
-Worker B: 7 buggar — Accessibility: 7 fixade (saknade aria-attribut pa modaler). Build/bundle: rent. Template security: rent.
 
 ### 2026-03-25 — Session #326 (klar)
 Worker A: 4 buggar — N+1-fixes, API format. Worker B: 0 buggar — rent.
@@ -92,4 +89,7 @@ Fixat: getShiftTrend subquery-alias, getSPC skift_nr->skiftraknare, mb_string po
 statistik-graf bytt fran cykeltid till produktion_procent, koortid-kolumn borttagen.
 Deploy-pipeline uppsatt: rsync backend+dist till dev.mauserdb.com.
 Prod DB-schema dumpat till prod_db_schema.sql och committat.
-has_lopnummer migration koord pa prod.
+
+### 2026-03-25 — Session #327 (pagaende)
+Worker A: Backend — statistik produktion%-berakning (kumulativ->delta), endpoint fulltest, SQL audit.
+Worker B: Frontend — skiftrapport alla flikar, UX-genomgang alla sidor, Chart.js dark theme.

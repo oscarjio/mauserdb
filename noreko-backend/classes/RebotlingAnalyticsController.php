@@ -249,7 +249,7 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
                         MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        AVG(produktion_procent)  AS avg_prod_pct,
+                        AVG(CASE WHEN produktion_procent BETWEEN 1 AND 100 THEN produktion_procent END) AS avg_prod_pct,
                         AVG(runtime_plc)         AS avg_runtime_plc
                     FROM rebotling_ibc
                     WHERE datum >= ?
@@ -643,7 +643,7 @@ class RebotlingAnalyticsController {
                     MAX(COALESCE(ibc_ok,   0)) AS ibc_ok,
                     MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
                     MAX(COALESCE(runtime_plc,0)) AS runtime_min,
-                    ROUND(AVG(NULLIF(produktion_procent,0)), 1) AS avg_kvalitet
+                    ROUND(AVG(CASE WHEN produktion_procent BETWEEN 1 AND 100 THEN produktion_procent END), 1) AS avg_kvalitet
                 FROM rebotling_ibc
                 WHERE skiftraknare IS NOT NULL
                   AND ibc_ok IS NOT NULL
@@ -5548,6 +5548,198 @@ HTML;
             $html .= '<div class="section-title">Operatorer &amp; produkter</div><div class="ops-box">' . $operatorHtml . $productHtml . '</div>';
             $html .= $kommentarHtml;
             $html .= '<div class="section-title">Skiftrapporter (' . $antalRap . ' st)</div>' . $opTableHtml;
+
+            // --- LÖPNUMMERFÖLJDER ---
+            $lopnummerHtml = '';
+            try {
+                foreach ($skiftraknareList as $sk => $_) {
+                    $lopStmt = $this->pdo->prepare("
+                        SELECT lopnummer FROM rebotling_ibc
+                        WHERE skiftraknare = ? AND lopnummer IS NOT NULL AND lopnummer > 0
+                          AND lopnummer < 900 AND ibc_ok = 1
+                        ORDER BY lopnummer ASC
+                    ");
+                    $lopStmt->execute([$sk]);
+                    $lopRows = $lopStmt->fetchAll(PDO::FETCH_COLUMN);
+                    if (!empty($lopRows)) {
+                        $ranges = [];
+                        $start = $lopRows[0]; $prev = $lopRows[0];
+                        for ($li = 1; $li < count($lopRows); $li++) {
+                            if ((int)$lopRows[$li] === (int)$prev + 1) {
+                                $prev = $lopRows[$li];
+                            } else {
+                                $ranges[] = ($start === $prev) ? (string)$start : "{$start}–{$prev}";
+                                $start = $lopRows[$li]; $prev = $lopRows[$li];
+                            }
+                        }
+                        $ranges[] = ($start === $prev) ? (string)$start : "{$start}–{$prev}";
+                        $lopnummerHtml .= '<div style="margin-top:6px;font-size:0.85rem;">';
+                        $lopnummerHtml .= '<span style="color:#666;">Löpnummer: </span>';
+                        $lopnummerHtml .= '<strong>' . htmlspecialchars(implode(', ', $ranges), ENT_QUOTES, 'UTF-8') . '</strong>';
+                        $lopnummerHtml .= ' <span style="color:#999;">(' . count($lopRows) . ' st)</span></div>';
+                    }
+                }
+            } catch (Exception $e) { error_log('ShiftPdfSummary löpnummer: ' . $e->getMessage()); }
+            if (!empty($lopnummerHtml)) {
+                $html .= '<div class="section-title">Löpnummer</div>' . $lopnummerHtml;
+            }
+
+            // --- PRODUKTIONSGRAF (SVG) + STOPPTABELL ---
+            try {
+                $allSk = array_keys($skiftraknareList);
+                if (!empty($allSk)) {
+                    $placeholders = implode(',', array_fill(0, count($allSk), '?'));
+                    $cykelStmt = $this->pdo->prepare("
+                        SELECT datum, ibc_count FROM rebotling_ibc
+                        WHERE skiftraknare IN ({$placeholders}) ORDER BY datum ASC
+                    ");
+                    $cykelStmt->execute($allSk);
+                    $cykelData = $cykelStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $onoffStmt = $this->pdo->prepare("
+                        SELECT datum, running FROM rebotling_onoff
+                        WHERE DATE(datum) = ? ORDER BY datum ASC
+                    ");
+                    $onoffStmt->execute([$date]);
+                    $onoffData = $onoffStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    if (!empty($cykelData)) {
+                        $shiftStartTs = strtotime($cykelData[0]['datum']);
+                        $shiftEndTs = strtotime($cykelData[count($cykelData) - 1]['datum']);
+
+                        // 30-min intervall
+                        $intervalStart = floor($shiftStartTs / 1800) * 1800;
+                        $intervalEnd = ceil($shiftEndTs / 1800) * 1800;
+                        if ($intervalEnd <= $intervalStart) $intervalEnd = $intervalStart + 1800;
+                        $intervals = [];
+                        for ($t = $intervalStart; $t < $intervalEnd; $t += 1800) {
+                            $intervals[] = ['start' => $t, 'end' => $t + 1800, 'label' => date('H:i', $t), 'count' => 0];
+                        }
+
+                        foreach ($cykelData as $c) {
+                            $ts = strtotime($c['datum']);
+                            foreach ($intervals as &$iv) {
+                                if ($ts >= $iv['start'] && $ts < $iv['end']) { $iv['count']++; break; }
+                            }
+                            unset($iv);
+                        }
+
+                        // Stopp-perioder (>30s)
+                        $stopPeriods = [];
+                        $lastOff = null;
+                        foreach ($onoffData as $ev) {
+                            $evTs = strtotime($ev['datum']);
+                            if ($evTs < $shiftStartTs - 3600 || $evTs > $shiftEndTs + 3600) continue;
+                            if ((int)$ev['running'] === 0) {
+                                $lastOff = $evTs;
+                            } elseif ($lastOff !== null) {
+                                $dur = $evTs - $lastOff;
+                                if ($dur > 30) {
+                                    $stopPeriods[] = [
+                                        'start' => $lastOff, 'end' => $evTs,
+                                        'dur_min' => round($dur / 60, 1),
+                                        'start_str' => date('H:i', $lastOff),
+                                        'end_str' => date('H:i', $evTs),
+                                    ];
+                                }
+                                $lastOff = null;
+                            }
+                        }
+
+                        // Netto IBC/h per intervall
+                        $ibcPerHArr = [];
+                        foreach ($intervals as &$iv) {
+                            $stoppSek = 0;
+                            foreach ($stopPeriods as $sp) {
+                                $os = max($iv['start'], $sp['start']);
+                                $oe = min($iv['end'], $sp['end']);
+                                if ($oe > $os) $stoppSek += ($oe - $os);
+                            }
+                            $netMin = max(1, (1800 - $stoppSek) / 60);
+                            $iv['ibc_per_h'] = round(($iv['count'] / $netMin) * 60, 1);
+                            $ibcPerHArr[] = $iv['ibc_per_h'];
+                        }
+                        unset($iv);
+                        $maxIbcH = !empty($ibcPerHArr) ? max(1, max($ibcPerHArr)) : 1;
+
+                        // SVG-graf
+                        $svgW = 680; $svgH = 180; $padL = 45; $padR = 10; $padT = 20; $padB = 30;
+                        $chartW = $svgW - $padL - $padR;
+                        $chartH = $svgH - $padT - $padB;
+                        $nBars = max(1, count($intervals));
+                        $barW = max(8, ($chartW / $nBars) - 2);
+                        $avgIbcH = $totalDrift > 0 ? round(($totalIbcOk / ($totalDrift / 60)), 1) : 0;
+
+                        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $svgW . ' ' . $svgH . '" style="width:100%;max-width:700px;height:auto;margin:8px 0;">';
+                        $svg .= '<rect x="' . $padL . '" y="' . $padT . '" width="' . $chartW . '" height="' . $chartH . '" fill="#fafafa" stroke="#e0e0e0"/>';
+                        for ($g = 0; $g <= 4; $g++) {
+                            $gy = $padT + $chartH - ($g / 4 * $chartH);
+                            $gv = round($maxIbcH * $g / 4);
+                            $svg .= '<line x1="' . $padL . '" y1="' . round($gy,1) . '" x2="' . ($svgW - $padR) . '" y2="' . round($gy,1) . '" stroke="#e8e8e8" stroke-dasharray="3,3"/>';
+                            $svg .= '<text x="' . ($padL - 4) . '" y="' . round($gy + 4,1) . '" text-anchor="end" font-size="9" fill="#888">' . $gv . '</text>';
+                        }
+                        // Stopp-bakgrunder (röd)
+                        foreach ($stopPeriods as $sp) {
+                            $rel0 = max(0, ($sp['start'] - $intervalStart) / max(1, $intervalEnd - $intervalStart));
+                            $rel1 = min(1, ($sp['end'] - $intervalStart) / max(1, $intervalEnd - $intervalStart));
+                            $sx = $padL + $rel0 * $chartW;
+                            $sw = max(2, ($rel1 - $rel0) * $chartW);
+                            $svg .= '<rect x="' . round($sx,1) . '" y="' . $padT . '" width="' . round($sw,1) . '" height="' . $chartH . '" fill="rgba(220,53,69,0.15)"/>';
+                        }
+                        // Staplar
+                        foreach ($intervals as $idx => $iv) {
+                            $bx = $padL + ($idx / $nBars) * $chartW + 1;
+                            $bh = ($iv['ibc_per_h'] / $maxIbcH) * $chartH;
+                            $by = $padT + $chartH - $bh;
+                            $color = '#48bb78';
+                            if ($avgIbcH > 0 && $iv['ibc_per_h'] < $avgIbcH * 0.6) $color = '#fc8181';
+                            elseif ($avgIbcH > 0 && $iv['ibc_per_h'] < $avgIbcH * 0.8) $color = '#ecc94b';
+                            $svg .= '<rect x="' . round($bx,1) . '" y="' . round($by,1) . '" width="' . round($barW,1) . '" height="' . round(max(0,$bh),1) . '" fill="' . $color . '" rx="2"/>';
+                            if ($idx % 2 === 0) {
+                                $svg .= '<text x="' . round($bx + $barW/2,1) . '" y="' . ($svgH - 5) . '" text-anchor="middle" font-size="8" fill="#888">' . $iv['label'] . '</text>';
+                            }
+                        }
+                        // Snitt-linje
+                        if ($avgIbcH > 0 && $avgIbcH <= $maxIbcH) {
+                            $avgY = $padT + $chartH - ($avgIbcH / $maxIbcH * $chartH);
+                            $svg .= '<line x1="' . $padL . '" y1="' . round($avgY,1) . '" x2="' . ($svgW - $padR) . '" y2="' . round($avgY,1) . '" stroke="#4299e1" stroke-width="1.5" stroke-dasharray="5,3"/>';
+                            $svg .= '<text x="' . ($svgW - $padR - 2) . '" y="' . round($avgY - 3,1) . '" text-anchor="end" font-size="9" fill="#4299e1">' . $avgIbcH . ' IBC/h snitt</text>';
+                        }
+                        $svg .= '<text x="12" y="' . ($padT + $chartH/2) . '" text-anchor="middle" font-size="9" fill="#666" transform="rotate(-90,12,' . ($padT + $chartH/2) . ')">IBC/h (netto)</text>';
+                        $svg .= '</svg>';
+
+                        $html .= '<div class="section-title">Produktionsöversikt</div>';
+                        $html .= '<div style="font-size:0.8rem;color:#666;margin-bottom:4px;">Effektivitet per 30 min (IBC/timme mot netto körtid). <span style="color:#dc3545;">■</span> stopp</div>';
+                        $html .= $svg;
+
+                        // Effektivitets-KPIer
+                        $totalStoppMin = array_sum(array_column($stopPeriods, 'dur_min'));
+                        $bruttoMin = ($shiftEndTs - $shiftStartTs) / 60;
+                        $nettoMinCalc = max(1, $bruttoMin - $totalRast - $totalStoppMin);
+                        $nettoIbcH = round(($totalIbcOk / ($nettoMinCalc / 60)), 1);
+
+                        $html .= '<div style="display:flex;gap:12px;margin:8px 0 16px;flex-wrap:wrap;">';
+                        $html .= '<div style="background:#f0fff0;border:1px solid #b2dfb2;border-radius:6px;padding:8px 14px;text-align:center;flex:1;min-width:110px;"><div style="font-size:0.7rem;color:#555;text-transform:uppercase;">Effektivitet (netto)</div><div style="font-size:1.3rem;font-weight:700;color:#006600;">' . $nettoIbcH . ' IBC/h</div></div>';
+                        $nettoH = floor($nettoMinCalc / 60); $nettoM = round($nettoMinCalc) % 60;
+                        $html .= '<div style="background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:8px 14px;text-align:center;flex:1;min-width:110px;"><div style="font-size:0.7rem;color:#555;text-transform:uppercase;">Netto körtid</div><div style="font-size:1.3rem;font-weight:700;color:#1a202c;">' . $nettoH . 'h ' . $nettoM . 'min</div></div>';
+                        $html .= '<div style="background:#fff8f8;border:1px solid #f5c6cb;border-radius:6px;padding:8px 14px;text-align:center;flex:1;min-width:110px;"><div style="font-size:0.7rem;color:#555;text-transform:uppercase;">Stopp</div><div style="font-size:1.3rem;font-weight:700;color:#cc0000;">' . count($stopPeriods) . ' st / ' . round($totalStoppMin) . ' min</div></div>';
+                        $html .= '</div>';
+
+                        // Stopptabell
+                        if (!empty($stopPeriods)) {
+                            $html .= '<div class="section-title">Stopp under skiftet</div>';
+                            $html .= '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;"><thead><tr style="background:#f0f0f0;"><th style="padding:5px 10px;border:1px solid #ccc;text-align:left;">Start</th><th style="padding:5px 10px;border:1px solid #ccc;text-align:left;">Slut</th><th style="padding:5px 10px;border:1px solid #ccc;text-align:right;">Längd</th></tr></thead><tbody>';
+                            foreach ($stopPeriods as $sp) {
+                                $durStr = $sp['dur_min'] >= 60 ? floor($sp['dur_min']/60) . 'h ' . round($sp['dur_min']%60) . 'min' : round($sp['dur_min']) . ' min';
+                                $trBg = $sp['dur_min'] > 15 ? ' style="background:#fff5f5;"' : '';
+                                $html .= '<tr' . $trBg . '><td style="padding:4px 10px;border:1px solid #ddd;">' . $sp['start_str'] . '</td><td style="padding:4px 10px;border:1px solid #ddd;">' . $sp['end_str'] . '</td><td style="padding:4px 10px;border:1px solid #ddd;text-align:right;font-weight:600;">' . $durStr . '</td></tr>';
+                            }
+                            $html .= '</tbody></table>';
+                        }
+                    }
+                }
+            } catch (Exception $e) { error_log('ShiftPdfSummary graf/stopp: ' . $e->getMessage()); }
+
             $html .= '<div class="footer"><span>Genererad: ' . $genererad . ' | Noreko Rebotling</span><span>Antal rapporter: ' . $antalRap . '</span></div>';
             $html .= '</body></html>';
 
