@@ -33,6 +33,55 @@ Granskade ALLA PHP-controllers A-M i noreko-backend/classes/ for SQL-injektionsr
 **Granskade filer (alla rena):**
 AdminController.php, AlertsController.php, AlarmHistorikController.php, AndonController.php, AuditController.php, AvvikelselarmController.php, AuthHelper.php, BatchSparningController.php, BonusAdminController.php, BonusController.php, CertificationController.php, CykeltidHeatmapController.php, DagligBriefingController.php, DagligSammanfattningController.php, DashboardLayoutController.php, DrifttidsTimelineController.php, EffektivitetController.php, FavoriterController.php, FeedbackAnalysController.php, FeedbackController.php, FeatureFlagController.php, ForstaTimmeAnalysController.php, HeatmapController.php, HistorikController.php, HistoriskProduktionController.php, HistoriskSammanfattningController.php, KapacitetsplaneringController.php, KassationsanalysController.php, KassationsDrilldownController.php, KassationskvotAlarmController.php, KassationsorsakController.php, KassationsorsakPerStationController.php, KlassificeringslinjeController.php, KvalitetscertifikatController.php, KvalitetstrendanalysController.php, KvalitetstrendController.php, KvalitetsTrendbrottController.php, LeveransplaneringController.php, LineSkiftrapportController.php, LoginController.php, MaintenanceController.php, MalhistorikController.php, MaskinDrifttidController.php, MaskinhistorikController.php, MaskinOeeController.php, MaskinunderhallController.php, MinDagController.php, MorgonrapportController.php, MyStatsController.php
 
+## Worker B — Session #318 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: Angular lazy loading audit (0 buggar)
+Granskade lazy loading-konfigurationen i noreko-frontend/src/app/:
+- app.routes.ts (165 rader, ~80 routes): alla anvander loadComponent med dynamisk import()
+- Verifierade att ALLA loadComponent-sokvagar pekar pa existerande .ts-filer (automatisk verifiering av samtliga ~80 importsokvagar — alla filer finns)
+- Inga loadChildren anvands (standalone components genomgaende, inga NgModules)
+- Inga orphan-komponenter hittade — alla lazy-loadade routes matchar existerande filer
+- app.config.ts: provideRouter med withPreloading(PreloadAllModules) — korrekt konfigurerat
+- GlobalErrorHandler fangar ChunkLoadError (bade webpack och esbuild) med reload-loop-skydd — korrekt implementerat
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: Angular change detection audit N-Z (0 buggar)
+Granskade alla Angular-komponenter i N-Z mappar (news, pages/n*-w*, rebotling, shared, submenu, utils) for subscription-lackor och change detection-problem:
+
+**Subscription-hantering (subscribe utan cleanup):**
+- Samtliga 169 filer med .subscribe() granskade automatiskt
+- Alla komponenter med subscribe() har korrekt destroy$/takeUntil-monster (varje subscribe() matchas av takeUntil(this.destroy$))
+- Alla komponenter implementerar OnDestroy med destroy$.next() och destroy$.complete()
+- setInterval/setTimeout rensas korrekt i ngOnDestroy (verifierat i news.ts, oee-benchmark.ts, ranking-historik.ts m.fl.)
+- De enda filerna utan cleanup-monster ar rebotling-live.ts, saglinje-live.ts, tvattlinje-live.ts — dessa ror live-vyer som INTE far andras (regel #1)
+
+**ngFor utan trackBy (ej bugg, noterat):**
+Foljande filer har nagra *ngFor utan trackBy — ej kritiska buggar da listorna ar relativt sma:
+operator-ranking.component.html (1), operators.html (2), produktionsprognos.html (3), maskinunderhall.component.html (1), stopptidsanalys.component.html (3), rebotling-skiftrapport.html (1), saglinje-skiftrapport.html (1), shared-skiftrapport.html (1), stoppage-log.html (1), tvattlinje-skiftrapport.html (1), users.html (1)
+
+Resultat: rent — inga subscription-lackor hittade.
+
+### Audit 3: Angular HTTP interceptor/error handling audit (0 buggar)
+Granskade HTTP-interceptors och global felhantering i noreko-frontend/src/app/:
+
+**interceptors/error.interceptor.ts (73 rader):**
+- Functional interceptor (HttpInterceptorFn) — korrekt for standalone Angular
+- Retry-logik: retry count=1, ENBART for idempotenta metoder (GET/HEAD/OPTIONS), enbart vid natverksfel (status 0) eller 502/503/504, med 1s delay — korrekt, ingen risk for loopar
+- 401-hantering: anropar auth.clearSession(), navigerar till /login med queryParams.returnUrl, skippar toast pa login-sidan — korrekt
+- catchError: hanterar status 0, 401, 403, 404, 408, 429, 500+, och ovriga med server-felmeddelande — komplett
+- Skip-logik: hoppar over toast for status-polling (action=status) och requests med X-Skip-Error-Toast header — korrekt
+- Alla felmeddelanden pa svenska
+
+**interceptors/csrf.interceptor.ts (20 rader):**
+- Bifogar X-CSRF-Token fran sessionStorage till alla mutating requests (POST/PUT/DELETE/PATCH) — korrekt
+- try/catch runt sessionStorage.getItem for att hantera otillganglig storage — korrekt
+
+**app.config.ts registrering:**
+- provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]), withFetch()) — korrekt ordning (CSRF forst, sedan error)
+- GlobalErrorHandler registrerad som ErrorHandler — fangar ChunkLoadError med reload-loop-skydd
+
+Resultat: rent — inga buggar hittade.
+
 ## Worker A — Session #317 (2026-03-25) — 1 bugg (alla 3 audits)
 
 ### Audit 1: PHP numeric precision audit (1 bugg)
