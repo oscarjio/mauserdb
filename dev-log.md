@@ -21651,3 +21651,60 @@ Filen: noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskos
 Granskade alla 92 service-filer i noreko-frontend/src/app/services/. Alla services anvander `environment.apiUrl` konsekvent. Inga hardkodade URL:er (http://, https://, localhost) hittades. Alla HTTP-anrop inkluderar `{ withCredentials: true }` (utom pdf-export.service.ts och toast.service.ts som inte gor nagra HTTP-anrop). URL-monstret ar konsekvent: `${environment.apiUrl}?action=XXX&run=YYY`. RENT.
 
 Bygget genomfordes och kompilerade utan fel.
+
+## Worker B — Session #308 (2026-03-25) — 21 buggar
+
+### Audit 1: Chart.js update vs destroy (0 buggar)
+Granskade alla 109+ Angular-komponenter som anvander Chart.js (new Chart()-instanser). Kontrollerade att:
+- Varje createChart-metod destroyar befintlig instans fore ny (med ?. eller if-check)
+- ngOnDestroy() anropar destroy() pa alla chart-instanser
+- setInterval/setTimeout for chart-bygge rensas i ngOnDestroy()
+
+Samtliga komponenter foljer korrekt monster: destroyChart() fore new Chart(), och chart?.destroy() i ngOnDestroy(). Inkluderade djupgranskning av:
+- Alla rebotling-statistik subfolder-komponenter (statistik-*)
+- maintenance-log-komponenter
+- daglig-briefing, prediktivt-underhall, gamification
+- Stora komponenter: stoppage-log (6 charts), production-analysis (9 charts), my-bonus (4 charts)
+
+RENT — inga Chart.js destroy-buggar hittades.
+
+### Audit 2: OnDestroy cleanup djupgranskning (0 buggar)
+Granskade alla Angular-komponenter for:
+- setInterval/setTimeout utan clearInterval/clearTimeout i ngOnDestroy: RENT (alla har cleanup)
+- Subject/BehaviorSubject utan .complete() i ngOnDestroy: RENT (alla destroy$-Subject har bade .next() och .complete())
+- addEventListener utan removeEventListener: RENT (5 filer med visibilitychange-lyssnare har alla matchande removeEventListener i ngOnDestroy)
+- chart?.destroy() saknas i ngOnDestroy: RENT (alla chart-komponenter har destroy-anrop)
+
+RENT — inga OnDestroy-buggar hittades.
+
+### Audit 3: HTTP error handling i komponenter (21 buggar)
+Hittade 21 Angular-komponenter i pages/ med .subscribe(res => {...}) dar pipe() SAKNADE catchError(). Vid HTTP-fel (4xx, 5xx, natverk) kastades ett Observable-error som aldrig fangas — loading-flaggor fastnade pa true for alltid (evig spinner).
+
+Monstret: `.pipe(takeUntil(this.destroy$)).subscribe(res => {...})` utan catchError.
+
+Alla 21 filer atgardades: importerade `of` fran rxjs och `catchError` fran rxjs/operators, lade till `.pipe(catchError(() => of(null)), takeUntil(this.destroy$))` pa varje HTTP-anrop.
+
+Atgardade filer:
+1. alarm-historik/alarm-historik.ts (3 subscribes)
+2. kassations-drilldown/kassations-drilldown.ts (3 subscribes)
+3. stopporsak-operator/stopporsak-operator.ts (3 subscribes)
+4. effektivitet/effektivitet.ts (3 subscribes)
+5. cykeltid-heatmap/cykeltid-heatmap.ts (3 subscribes)
+6. oee-benchmark/oee-benchmark.ts (4 subscribes)
+7. ranking-historik/ranking-historik.ts (3 subscribes)
+8. stopporsak-trend/stopporsak-trend.ts (3 subscribes)
+9. utnyttjandegrad/utnyttjandegrad.ts (3 subscribes)
+10. underhallsprognos/underhallsprognos.ts (3 subscribes)
+11. favoriter/favoriter.ts (4 subscribes, +null-guards pa res?.success)
+12. forsta-timme-analys/forsta-timme-analys.ts (2 subscribes)
+13. heatmap/heatmap.ts (2 subscribes)
+14. oee-waterfall/oee-waterfall.ts (2 subscribes)
+15. operator-onboarding/operator-onboarding.ts (2 subscribes)
+16. operator-personal-dashboard/operator-personal-dashboard.ts (7 subscribes)
+17. pareto/pareto.ts (2 subscribes)
+18. malhistorik/malhistorik.ts (2 subscribes)
+19. produktionskalender/produktionskalender.ts (2 subscribes)
+20. skiftrapport-export/skiftrapport-export.ts (2 subscribes)
+21. feedback-analys/feedback-analys.ts (4 subscribes)
+
+Bygget genomfordes utan fel efter alla andringar.
