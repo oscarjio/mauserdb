@@ -1,3 +1,36 @@
+## Worker A — Session #325 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP dependency/composer audit (0 buggar)
+Sokte efter composer.json och composer.lock i noreko-backend/ — filerna existerar inte. Projektet anvander INTE Composer for beroendehantering. Alla PHP-klasser ligger i noreko-backend/classes/ och laddas via en enkel PSR-4-liknande autoloader i api.php:118-121 (`spl_autoload_register`). Inga tredjepartsbibliotek anvands — all kod ar egenutvecklad. Det finns ingen vendor/-katalog.
+
+**Resultat:** Inga beroenden att granska. Ingen risk for outdated packages eller kanda CVE:er. Autoload-konfigurationen matchar den faktiska filstrukturen korrekt (classes/ + klassnamn + .php).
+
+### Audit 2: PHP SQL query performance audit (0 buggar)
+Granskade ALLA 112+ PHP-controllers i noreko-backend/classes/ for SQL-fragor. Sokte efter SELECT *, N+1-fragor (loopar med queries inuti), saknad LIMIT, JOINs utan index, och query-patterns.
+
+**Granskade omraden:**
+- **SELECT *:** Endast 4 forekomster hittade — alla mot konfigurationstabeller med en enda rad (bonus_config WHERE id = 1, rebotling_settings WHERE id = 1, tvattlinje_settings LIMIT 1). Acceptabelt for smala, en-rads konfigurationstabeller.
+- **N+1-fragor:** En forekomst i RebotlingController::getHallOfFameDays() (rad ~2027) dar operatorsnamn hamtas i en loop for topp 5 dagar. Dock ar prepared statement ateranvant och loopen ar max 5 iterationer (LIMIT 5) — minimal prestandapaverkan, inte en bugg.
+- **LIMIT:** Alla listnings-endpoints anvander LIMIT (typiskt 100-500). Inga obegransade queries mot stora tabeller.
+- **$pdo->query() utan parametrar:** Anvands for statiska queries utan anvandardata (CREATE TABLE IF NOT EXISTS, SHOW COLUMNS, aggregeringsfragor med fasta WHERE-villkor). Korrekt anvandning.
+- **$pdo->exec():** Anvands uteslutande for DDL-satser (CREATE TABLE, ALTER TABLE) och migrationer — inga anvandardata involverade.
+- **String-interpolation i SQL:** Alla forekomster anvander antingen (a) vitlistade varden fran hardkodade arrayer (t.ex. LineSkiftrapportController::$allowedLines, RuntimeController::$validLines) eller (b) prepared statement-placeholders for anvandardata. Inga SQL-injection-risker.
+
+### Audit 3: PHP input sanitization audit (0 buggar)
+Granskade ALLA controllers for anvandardata-hantering: $_GET/$_POST-anvandning, prepared statements, XSS-risker, CSRF-skydd, och input-validering.
+
+**Granskade filer:** LoginController, RegisterController, AdminController, ProfileController, FeedbackController, NewsController, VpnController, LineSkiftrapportController, RuntimeController, StoppageController, ShiftHandoverController, MaintenanceController, och 100+ ytterligare controllers.
+
+**Resultat:**
+- **Prepared statements:** PDO prepared statements med parameteriserade fragor anvands konsekvent i ALLA controllers. Emulate_prepares=false ar satt i api.php:108 (riktig server-side preparation). Inga forekomster av direkt konkatenering av $_GET/$_POST i SQL-fragor.
+- **Input-validering:** Anvandardata valideras grundligt — strip_tags(), trim(), htmlspecialchars(ENT_QUOTES, UTF-8), filter_var(FILTER_VALIDATE_EMAIL), langdbegransningar (strlen/mb_strlen), typkonvertering ((int), intval()), regex-validering for losenord, whitelist-validering for enum-varden (in_array strict).
+- **XSS-skydd:** Output ar JSON (Content-Type: application/json) sa traditionell XSS ar ej relevant. Anvandardata som lagras (kommentarer, titlar, etc.) saniteras med htmlspecialchars() innan lagring. Inga forekomster av echo med direkt $_GET/$_POST.
+- **CSRF-skydd:** Implementerat via AuthHelper::validateCsrfToken() som jamfor X-CSRF-Token-header mot session med hash_equals(). Valideras centraliserat i api.php:267 for ALLA state-andrande requests (POST/PUT/DELETE). Token genereras med random_bytes(32).
+- **Losenord:** Uteslutande bcrypt via password_hash(PASSWORD_BCRYPT) och password_verify(). Inga sha1/md5-forekomster (enbart i en kommentar i AuthHelper.php:5).
+- **Rate limiting:** Implementerat for login, registrering och losenordsbyte via AuthHelper med databas-backed forsokraknare per IP och per anvandarnamn.
+- **Session-sakerhet:** Session fixation-skydd, timeout, HttpOnly/Secure/SameSite cookies, strict mode.
+- **CORS:** Vitlistad origin med CRLF-stripping for header injection-skydd.
+
 ## Worker B — Session #324 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: Angular SSR/hydration audit (0 buggar)
