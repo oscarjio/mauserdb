@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-24 (session #306)*
+*Senast uppdaterad: 2026-03-25 (session #307)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -111,28 +111,29 @@ Session #303: BUGGJAKT — 2 buggar (0 Worker A + 2 Worker B). GROUP_CONCAT trun
 Session #304: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). SQL implicit type conversion: rent (alla TINYINT/INT). array_splice: rent (inga finns). HAVING without GROUP BY: rent (alla har GROUP BY). ViewChild static timing: rent (alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil).
 Session #305: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). IFNULL/COALESCE: rent (COALESCE konsekvent, inga IFNULL). date/DateTime: rent (timezone korrekt via api.php). LEFT/INNER JOIN: rent (alla LEFT JOINs motiverade). ChangeDetectorRef: rent (inga OnPush, default CD). i18n: 1 fixad (26 "Operator"->"Operatör" i 19 filer).
 Session #306: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). SQL subquery correlation: rent. $_GET/$_POST defaults: rent. COUNT/SUM: rent. router param unsubscribe: rent. HTTP error display: rent. template function calls: 3 fixade (news getCategoryCountFor, tvattlinje-statistik getVisiblePeriodCells, rebotling-statistik getVisiblePeriodCells).
+Session #307: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). GROUP_CONCAT overflow: rent. error_log format: rent. SQL DATE() i WHERE: 3 fixade (31 DATE()-anrop ersatta med range queries i 8 controllers). FormGroup reset: rent (inga FormGroup finns). template function calls: 2 fixade (kassationskvot-alarm orsakBredd, produktionskostnad getConfigLabel/getConfigEnhet). HTTP URL consistency: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #307+):
-- [ ] Angular template function calls — tunga funktionsanrop i templates som kors vid varje CD
-- [ ] PHP SQL GROUP_CONCAT overflow — GROUP_CONCAT som kan overskrida max_length vid stora dataset
-- [ ] PHP error_log format consistency — inkonsekvent loggformat forsvagar felsokbarhet
-- [ ] Angular FormGroup reset — formularvarden som inte aterst alls korrekt efter reset
-- [ ] PHP SQL DATE() in WHERE — DATE() pa kolumner forhindrar index-anvandning
+### Nasta (session #308+):
+- [ ] PHP array_map/array_filter callbacks — felaktiga callbacks som tyst returnerar null
+- [ ] PHP PDO fetch mode consistency — blandning av FETCH_ASSOC/FETCH_OBJ i controllers
+- [ ] Angular Chart.js update vs destroy — grafer som uppdateras utan att forst destroya gammal instans
+- [ ] Angular HTTP retry pa POST/PUT/DELETE — retry bor bara ske pa GET (idempotent)
+- [ ] PHP SQL DATE() i WHERE (forts) — ~70+ kvarvarande DATE()-anrop i sallananropade controllers
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-24 — Session #304 (klar)
-Worker A: 0 buggar — SQL implicit type conversion: rent (alla TINYINT/INT, ENUM jamfors med strangar). array_splice: rent (inga forekomster). HAVING without GROUP BY: rent (60+ HAVING, alla har matchande GROUP BY).
-Worker B: 1 bugg — ViewChild static timing: rent (33 dekorationer, alla default static:false, null-guards). httpClient memory: 1 fixad (rebotling-skiftrapport loadOperators saknade takeUntil(destroy$)).
-
 ### 2026-03-24 — Session #305 (klar)
-Worker A: 0 buggar — IFNULL/COALESCE: rent (COALESCE konsekvent, inga IFNULL). date/DateTime: rent (timezone korrekt via api.php entrypoint). LEFT/INNER JOIN: rent (alla LEFT JOINs motiverade, WHERE filtrerar inte pa LEFT JOIN-tabeller).
-Worker B: 1 bugg — ChangeDetectorRef: rent (inga OnPush-komponenter, default CD). i18n hardcoded strings: 1 fixad (26 "Operator"->"Operatör" i 19 filer + 1 felstavning i my-bonus).
+Worker A: 0 buggar — IFNULL/COALESCE: rent (COALESCE konsekvent, inga IFNULL). date/DateTime: rent (timezone korrekt via api.php entrypoint). LEFT/INNER JOIN: rent (alla LEFT JOINs motiverade).
+Worker B: 1 bugg — i18n hardcoded strings: 1 fixad (26 "Operator"->"Operatör" i 19 filer).
 
 ### 2026-03-24 — Session #306 (klar)
-Worker A: 0 buggar — SQL subquery correlation: rent (3 korrelerade subqueries i RebotlingAnalyticsController, alla korrekt). $_GET/$_POST defaults: rent (alla A-M controllers anvander ?? eller isset). COUNT/SUM confusion: rent (49 filer, korrekt aggregering).
-Worker B: 3 buggar — router param unsubscribe: rent (5 komponenter, alla korrekt). HTTP error display: rent. template function calls: 3 fixade (news getCategoryCountFor cachad, tvattlinje-statistik getVisiblePeriodCells cachad, rebotling-statistik getVisiblePeriodCells cachad).
+Worker A: 0 buggar — SQL subquery correlation: rent. $_GET/$_POST defaults: rent. COUNT/SUM confusion: rent.
+Worker B: 3 buggar — template function calls: 3 fixade (news, tvattlinje-statistik, rebotling-statistik cachade).
+
+### 2026-03-25 — Session #307 (klar)
+Worker A: 3 buggar — GROUP_CONCAT overflow: rent. error_log format: rent. SQL DATE() i WHERE: 31 DATE()-anrop ersatta med sargable range queries i 8 controllers (StatusController, RebotlingController, RebotlingAnalyticsController, RebotlingAdminController, ProduktionspulsController, ProduktionsDashboardController, BonusController, RuntimeController).
+Worker B: 2 buggar — FormGroup reset: rent (inga FormGroup finns). template function calls: 2 fixade (kassationskvot-alarm orsakBredd cachad, produktionskostnad getConfigLabel/getConfigEnhet cachade). HTTP URL consistency: rent (alla 92 services anvander environment.apiUrl).
