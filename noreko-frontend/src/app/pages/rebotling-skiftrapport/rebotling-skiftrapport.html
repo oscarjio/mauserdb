@@ -564,6 +564,173 @@
                             <span class="text-muted">Genomsnittsprofil (senaste 4 v, samma veckodag)</span>
                           </div>
                         </div>
+
+                        <!-- ======== EFFEKTIVITETSSEKTION ======== -->
+                        <div *ngIf="trendData?.efficiency && !trendLoading" class="eff-section mt-4">
+                          <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-tachometer-alt text-success me-2"></i>
+                            <span class="text-success fw-semibold fs-6">Effektivitet</span>
+                          </div>
+
+                          <!-- KPI-kort -->
+                          <div class="row g-2 mb-3">
+                            <div class="col-6 col-md">
+                              <div class="eff-kpi-card text-center">
+                                <div class="eff-kpi-label">Godkända IBCer</div>
+                                <div class="eff-kpi-value text-info">
+                                  {{ trendData.efficiency.ibc_ok ?? 0 }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md">
+                              <div class="eff-kpi-card text-center">
+                                <div class="eff-kpi-label">Netto körtid</div>
+                                <div class="eff-kpi-value text-success">
+                                  {{ formatMinToHHMM(trendData.efficiency.netto_min) }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md">
+                              <div class="eff-kpi-card text-center">
+                                <div class="eff-kpi-label">Effektivitet</div>
+                                <div class="eff-kpi-value"
+                                  [style.color]="trendData.efficiency.ibc_per_h >= 10 ? '#48bb78' : trendData.efficiency.ibc_per_h >= 5 ? '#ecc94b' : '#fc8181'">
+                                  {{ trendData.efficiency.ibc_per_h ?? 0 }} <small>IBC/h</small>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md">
+                              <div class="eff-kpi-card text-center">
+                                <div class="eff-kpi-label">Stopp</div>
+                                <div class="eff-kpi-value text-danger">
+                                  {{ trendData.efficiency.stopp_count ?? 0 }}
+                                  <small class="text-muted" *ngIf="trendData.efficiency.stopp_min > 0">
+                                    ({{ trendData.efficiency.stopp_min }} min)
+                                  </small>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md">
+                              <div class="eff-kpi-card text-center">
+                                <div class="eff-kpi-label">Skifttid</div>
+                                <div class="eff-kpi-value text-muted" style="font-size: 1rem;">
+                                  <span *ngIf="trendData.efficiency.start_tid">
+                                    {{ trendData.efficiency.start_tid.substring(11, 16) }}
+                                  </span>
+                                  <span *ngIf="!trendData.efficiency.start_tid">–</span>
+                                  <i class="fas fa-arrow-right mx-1" style="font-size:0.7rem;"></i>
+                                  <span *ngIf="trendData.efficiency.slut_tid">
+                                    {{ trendData.efficiency.slut_tid.substring(11, 16) }}
+                                  </span>
+                                  <span *ngIf="!trendData.efficiency.slut_tid">–</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Tidsfördelning -->
+                          <div class="row g-2 mb-3">
+                            <div class="col-12">
+                              <div class="eff-time-bar d-flex" style="height:24px; border-radius:6px; overflow:hidden;">
+                                <div *ngIf="trendData.efficiency.netto_min > 0"
+                                  [style.width.%]="(trendData.efficiency.netto_min / trendData.efficiency.brutto_min) * 100"
+                                  style="background:#48bb78;" class="d-flex align-items-center justify-content-center">
+                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
+                                    *ngIf="(trendData.efficiency.netto_min / trendData.efficiency.brutto_min) > 0.15">
+                                    Körtid {{ Math.round(trendData.efficiency.netto_min) }}m
+                                  </small>
+                                </div>
+                                <div *ngIf="trendData.efficiency.rast_min > 0"
+                                  [style.width.%]="(trendData.efficiency.rast_min / trendData.efficiency.brutto_min) * 100"
+                                  style="background:#ecc94b;" class="d-flex align-items-center justify-content-center">
+                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
+                                    *ngIf="(trendData.efficiency.rast_min / trendData.efficiency.brutto_min) > 0.1">
+                                    Rast {{ trendData.efficiency.rast_min }}m
+                                  </small>
+                                </div>
+                                <div *ngIf="trendData.efficiency.stopp_min > 0"
+                                  [style.width.%]="(trendData.efficiency.stopp_min / trendData.efficiency.brutto_min) * 100"
+                                  style="background:#fc8181;" class="d-flex align-items-center justify-content-center">
+                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
+                                    *ngIf="(trendData.efficiency.stopp_min / trendData.efficiency.brutto_min) > 0.1">
+                                    Stopp {{ trendData.efficiency.stopp_min }}m
+                                  </small>
+                                </div>
+                              </div>
+                              <div class="d-flex gap-3 mt-1 justify-content-center">
+                                <span class="d-flex align-items-center gap-1 small text-muted">
+                                  <span style="width:10px;height:10px;background:#48bb78;border-radius:2px;display:inline-block;"></span> Körtid
+                                </span>
+                                <span class="d-flex align-items-center gap-1 small text-muted">
+                                  <span style="width:10px;height:10px;background:#ecc94b;border-radius:2px;display:inline-block;"></span> Rast
+                                </span>
+                                <span class="d-flex align-items-center gap-1 small text-muted">
+                                  <span style="width:10px;height:10px;background:#fc8181;border-radius:2px;display:inline-block;"></span> Stopp
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Effektivitetstidslinje-graf -->
+                          <div *ngIf="trendData.efficiency_timeline?.length > 0"
+                            class="eff-chart-wrapper mb-3">
+                            <canvas [id]="'effCanvas-' + report.id"></canvas>
+                          </div>
+
+                          <!-- Legend för grafen -->
+                          <div *ngIf="trendData.efficiency_timeline?.length > 0"
+                            class="d-flex gap-4 mt-1 mb-3 justify-content-center flex-wrap">
+                            <div class="d-flex align-items-center gap-2 small">
+                              <div style="width:16px;height:12px;background:rgba(72,187,120,0.7);border:1px solid #48bb78;border-radius:2px;"></div>
+                              <span class="text-muted">Körning</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 small">
+                              <div style="width:16px;height:12px;background:rgba(236,201,75,0.7);border:1px solid #ecc94b;border-radius:2px;"></div>
+                              <span class="text-muted">Rast</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 small">
+                              <div style="width:16px;height:12px;background:rgba(252,129,129,0.7);border:1px solid #fc8181;border-radius:2px;"></div>
+                              <span class="text-muted">Stopp</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 small">
+                              <div style="width:24px;height:0;border-top:2px dashed #e2e8f0;"></div>
+                              <span class="text-muted">Skiftsnitt</span>
+                            </div>
+                          </div>
+
+                          <!-- Stopp-logg -->
+                          <div *ngIf="trendData.stopp_logg?.length > 0">
+                            <div class="d-flex align-items-center mb-2">
+                              <i class="fas fa-list-ul text-warning me-2"></i>
+                              <span class="text-warning fw-semibold small">Stopp- och rastlogg</span>
+                            </div>
+                            <div class="table-responsive">
+                              <table class="table table-sm table-dark mb-0" style="font-size:0.82rem;">
+                                <thead>
+                                  <tr>
+                                    <th scope="col" style="color:#a0aec0;">Starttid</th>
+                                    <th scope="col" style="color:#a0aec0;">Varaktighet</th>
+                                    <th scope="col" style="color:#a0aec0;">Typ</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr *ngFor="let s of trendData.stopp_logg">
+                                    <td>{{ s.start.substring(11, 16) }}</td>
+                                    <td>{{ s.min }} min</td>
+                                    <td>
+                                      <span class="badge" [class.bg-danger]="s.typ === 'stopp'" [class.bg-warning]="s.typ === 'rast'" [class.text-dark]="s.typ === 'rast'">
+                                        {{ s.typ === 'rast' ? 'Rast' : 'Stopp' }}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                        </div>
+                        <!-- END EFFEKTIVITETSSEKTION -->
+
                       </div>
                     </td>
                   </tr>

@@ -94,6 +94,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   trendLoading = false;
   trendError = '';
   private trendChart: Chart | null = null;
+  private efficiencyChart: Chart | null = null;
+  private effBuildTimer: any = null;
 
   // ---- Skift-navigation ----
   // skifts = filteredReports (computed getter), selectedSkift = skiftraknare
@@ -157,10 +159,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     clearTimeout(this.successTimerId);
     clearTimeout(this.searchTimer);
     clearTimeout(this.trendBuildTimer);
+    clearTimeout(this.effBuildTimer);
     clearTimeout(this.scrollRestoreTimer);
     this.fetchSub?.unsubscribe();
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
+    try { this.efficiencyChart?.destroy(); } catch (e) {}
+    this.efficiencyChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1506,6 +1511,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       this.trendData = null;
       try { this.trendChart?.destroy(); } catch (e) {}
       this.trendChart = null;
+      try { this.efficiencyChart?.destroy(); } catch (e) {}
+      this.efficiencyChart = null;
       return;
     }
 
@@ -1514,6 +1521,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.trendError = '';
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
+    try { this.efficiencyChart?.destroy(); } catch (e) {}
+    this.efficiencyChart = null;
 
     if (!report.skiftraknare) {
       this.trendError = 'Ingen skifträknare kopplad till rapporten — trenddata kan inte hämtas.';
@@ -1539,11 +1548,15 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         return;
       }
       this.trendData = res;
-      // Bygg grafen efter att Angular renderat canvas-elementet
+      // Bygg graferna efter att Angular renderat canvas-elementen
       clearTimeout(this.trendBuildTimer);
       this.trendBuildTimer = setTimeout(() => {
         if (!this.destroy$.closed) this.buildTrendChart();
       }, 100);
+      clearTimeout(this.effBuildTimer);
+      this.effBuildTimer = setTimeout(() => {
+        if (!this.destroy$.closed) this.buildEfficiencyChart();
+      }, 150);
     });
   }
 
@@ -1651,6 +1664,137 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         },
       },
     });
+  }
+
+  // ========== Effektivitetsgraf ==========
+
+  private buildEfficiencyChart() {
+    const canvasEl = document.getElementById('effCanvas-' + this.selectedTrendReportId) as HTMLCanvasElement | null;
+    if (!canvasEl || !this.trendData?.efficiency_timeline?.length) return;
+
+    try { this.efficiencyChart?.destroy(); } catch (e) {}
+    this.efficiencyChart = null;
+
+    const timeline: any[] = this.trendData.efficiency_timeline;
+    const eff = this.trendData.efficiency;
+
+    const labels = timeline.map((t: any) => t.tid);
+    const ibcPerHValues = timeline.map((t: any) => t.ibc_per_h);
+
+    // Genomsnittslinje
+    const avgIbcPerH = eff?.ibc_per_h ?? 0;
+
+    // Bestäm barfärger
+    const bgColors = timeline.map((t: any) => {
+      if (t.is_rast) return 'rgba(236, 201, 75, 0.7)';
+      if (t.is_stopp) return 'rgba(252, 129, 129, 0.7)';
+      return 'rgba(72, 187, 120, 0.7)';
+    });
+    const borderColors = timeline.map((t: any) => {
+      if (t.is_rast) return '#ecc94b';
+      if (t.is_stopp) return '#fc8181';
+      return '#48bb78';
+    });
+
+    this.efficiencyChart = new Chart(canvasEl, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBCer/h (30 min)',
+            data: ibcPerHValues,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1,
+            borderRadius: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx >= 0 && idx < timeline.length) {
+                  const t = timeline[idx];
+                  const lines = [`Körtid: ${t.running_min} min`, `IBCer: ${t.ibc_count}`];
+                  if (t.is_rast) lines.push('(Rastperiod)');
+                  if (t.is_stopp) lines.push('(Stoppperiod)');
+                  return lines;
+                }
+                return [];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: '30-min intervall', color: '#718096' },
+          },
+          y: {
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'IBCer / timme', color: '#718096' },
+            beginAtZero: true,
+          },
+        },
+      },
+      plugins: [{
+        id: 'avgLine',
+        afterDraw: (chart: any) => {
+          if (avgIbcPerH <= 0) return;
+          const ctx = chart.ctx;
+          const yScale = chart.scales['y'];
+          const xScale = chart.scales['x'];
+          const yPixel = yScale.getPixelForValue(avgIbcPerH);
+          ctx.save();
+          ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(xScale.left, yPixel);
+          ctx.lineTo(xScale.right, yPixel);
+          ctx.stroke();
+          ctx.fillStyle = '#e2e8f0';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(`Snitt: ${avgIbcPerH} IBC/h`, xScale.right - 5, yPixel - 5);
+          ctx.restore();
+        },
+      }],
+    });
+  }
+
+  /** Format minuter till HH:MM */
+  formatMinToHHMM(min: number | null): string {
+    if (min == null || min <= 0) return '0:00';
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return `${h}:${String(m).padStart(2, '0')}`;
+  }
+
+  /** Effektivitetsfärg baserad på mål */
+  getEfficiencyColor(ibcPerH: number, targetPerH: number): string {
+    if (targetPerH <= 0) return '#e2e8f0';
+    const ratio = ibcPerH / targetPerH;
+    if (ratio >= 0.8) return '#48bb78';
+    if (ratio >= 0.6) return '#ecc94b';
+    return '#fc8181';
   }
 
   // ========== Operatörsrankning per skift ==========

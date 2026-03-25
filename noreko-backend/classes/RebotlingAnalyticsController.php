@@ -3623,16 +3623,263 @@ class RebotlingAnalyticsController {
                 ? round((($snitttakt - $snitttaktAvg) / $snitttaktAvg) * 100, 1)
                 : null;
 
+            // ======== Effektivitetsdata ========
+
+            // 1. Hämta skiftrapportrad för aggregerade värden
+            $stmtSr = $this->pdo->prepare('
+                SELECT ibc_ok, drifttid, rasttime, driftstopptime
+                FROM rebotling_skiftrapport
+                WHERE skiftraknare = ?
+                LIMIT 1
+            ');
+            $stmtSr->execute([$skift]);
+            $srRow = $stmtSr->fetch(PDO::FETCH_ASSOC);
+
+            // 2. Hämta on/off-händelser för skiftet
+            $stmtOnoff = $this->pdo->prepare('
+                SELECT datum, running
+                FROM rebotling_onoff
+                WHERE skiftraknare = ?
+                ORDER BY datum ASC
+            ');
+            $stmtOnoff->execute([$skift]);
+            $onoffRows = $stmtOnoff->fetchAll(PDO::FETCH_ASSOC);
+
+            // 3. Hämta rast-händelser (break events)
+            $stmtRast = $this->pdo->prepare('
+                SELECT datum, rast_status
+                FROM rebotling_runtime
+                WHERE DATE(datum) = ?
+                ORDER BY datum ASC
+            ');
+            $stmtRast->execute([$datum]);
+            $rastRows = $stmtRast->fetchAll(PDO::FETCH_ASSOC);
+
+            // 4. Hämta skifttider (första och sista IBC-cykel)
+            $stmtTider = $this->pdo->prepare('
+                SELECT MIN(datum) AS start_tid, MAX(datum) AS slut_tid
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND skiftraknare = ?
+            ');
+            $stmtTider->execute([$datum, $datum, $skift]);
+            $tiderRow = $stmtTider->fetch(PDO::FETCH_ASSOC);
+
+            $startTid = $tiderRow['start_tid'] ?? null;
+            $slutTid  = $tiderRow['slut_tid']  ?? null;
+
+            // Beräkna bruttotid i minuter
+            $bruttoMin = 0;
+            if ($startTid && $slutTid) {
+                $bruttoMin = round((strtotime($slutTid) - strtotime($startTid)) / 60, 1);
+            }
+
+            // Rasttid från skiftrapportraden (PLC-aggregerat)
+            $rastMin = ($srRow && $srRow['rasttime'] !== null) ? (int)$srRow['rasttime'] : 0;
+
+            // Beräkna stoppperioder från on/off-händelser
+            $stops = [];
+            $stoppMin = 0;
+            $stoppCount = 0;
+            $longestStoppMin = 0;
+            $lastOffTime = null;
+
+            foreach ($onoffRows as $ev) {
+                $running = (int)$ev['running'];
+                $evTime  = strtotime($ev['datum']);
+
+                if ($running === 0) {
+                    // Maskin stoppade
+                    $lastOffTime = $evTime;
+                } elseif ($running === 1 && $lastOffTime !== null) {
+                    // Maskin startade igen — beräkna stopptid
+                    $dur = ($evTime - $lastOffTime) / 60; // minuter
+                    if ($dur >= 0.5) { // filtrera bort < 30 sekunder
+                        $stops[] = [
+                            'start' => date('Y-m-d H:i:s', $lastOffTime),
+                            'slut'  => $ev['datum'],
+                            'min'   => round($dur, 1),
+                            'typ'   => 'stopp'
+                        ];
+                        $stoppMin += $dur;
+                        $stoppCount++;
+                        if ($dur > $longestStoppMin) $longestStoppMin = $dur;
+                    }
+                    $lastOffTime = null;
+                }
+            }
+            $stoppMin = round($stoppMin, 1);
+            $longestStoppMin = round($longestStoppMin, 1);
+
+            // Beräkna rastperioder från runtime-händelser
+            $rastPeriods = [];
+            $lastRastStart = null;
+            foreach ($rastRows as $rev) {
+                if ((int)$rev['rast_status'] === 1) {
+                    $lastRastStart = strtotime($rev['datum']);
+                } elseif ((int)$rev['rast_status'] === 0 && $lastRastStart !== null) {
+                    $rastPeriods[] = [
+                        'start' => date('Y-m-d H:i:s', $lastRastStart),
+                        'slut'  => $rev['datum'],
+                        'min'   => round((strtotime($rev['datum']) - $lastRastStart) / 60, 1),
+                        'typ'   => 'rast'
+                    ];
+                    $lastRastStart = null;
+                }
+            }
+
+            // Netto körtid
+            $nettoMin = max(0, $bruttoMin - $rastMin - $stoppMin);
+
+            // IBC OK från skiftrapportraden
+            $ibcOkEff = ($srRow && $srRow['ibc_ok'] !== null) ? (int)$srRow['ibc_ok'] : $totalIbc;
+
+            // Effektivitet: IBCer per netto timme
+            $ibcPerH = ($nettoMin > 0) ? round(($ibcOkEff / ($nettoMin / 60)), 1) : 0;
+
+            $efficiency = [
+                'ibc_ok'           => $ibcOkEff,
+                'brutto_min'       => round($bruttoMin, 1),
+                'rast_min'         => $rastMin,
+                'stopp_min'        => $stoppMin,
+                'netto_min'        => round($nettoMin, 1),
+                'ibc_per_h'        => $ibcPerH,
+                'start_tid'        => $startTid,
+                'slut_tid'         => $slutTid,
+                'stopp_count'      => $stoppCount,
+                'longest_stopp_min'=> $longestStoppMin,
+            ];
+
+            // 5. Bygg 30-minuters tidslinjedata
+            $effTimeline = [];
+            if ($startTid && $slutTid) {
+                $startTs  = strtotime($startTid);
+                $slutTs   = strtotime($slutTid);
+                // Avrunda starttid nedåt till närmaste 30-minuters intervall
+                $intervalStart = $startTs - ($startTs % 1800);
+
+                // Hämta alla IBC-cykler med exakt datum
+                $stmtCycles = $this->pdo->prepare('
+                    SELECT datum, ibc_count
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                      AND skiftraknare = ?
+                    ORDER BY datum ASC
+                ');
+                $stmtCycles->execute([$datum, $datum, $skift]);
+                $cycles = $stmtCycles->fetchAll(PDO::FETCH_ASSOC);
+
+                // Räkna IBCer per 30-min intervall via ibc_count delta
+                // ibc_count stiger kumulativt, behöver delta mellan first och last per intervall
+                $intervallBuckets = [];
+                foreach ($cycles as $c) {
+                    $ts = strtotime($c['datum']);
+                    $bucket = $ts - ($ts % 1800);
+                    $key = (string)$bucket;
+                    if (!isset($intervallBuckets[$key])) {
+                        $intervallBuckets[$key] = ['min_count' => (int)$c['ibc_count'], 'max_count' => (int)$c['ibc_count'], 'rows' => 0];
+                    }
+                    $intervallBuckets[$key]['min_count'] = min($intervallBuckets[$key]['min_count'], (int)$c['ibc_count']);
+                    $intervallBuckets[$key]['max_count'] = max($intervallBuckets[$key]['max_count'], (int)$c['ibc_count']);
+                    $intervallBuckets[$key]['rows']++;
+                }
+
+                // Bygg on/off-perioder som lookup
+                $onoffPeriods = $stops; // redan beräknade
+
+                for ($t = $intervalStart; $t <= $slutTs; $t += 1800) {
+                    $key = (string)$t;
+                    $intervalEnd = $t + 1800;
+                    $tid = date('H:i', $t);
+
+                    // IBCer i detta intervall
+                    $ibcCount = 0;
+                    if (isset($intervallBuckets[$key])) {
+                        $ibcCount = max(0, $intervallBuckets[$key]['max_count'] - $intervallBuckets[$key]['min_count']);
+                    }
+
+                    // Beräkna körtid i detta intervall
+                    // Startperiod: intervall kan vara delvist utanför skiftet
+                    $effStart = max($t, $startTs);
+                    $effEnd   = min($intervalEnd, $slutTs);
+                    $totalIntervalMin = max(0, ($effEnd - $effStart) / 60);
+
+                    // Kolla om rast överlappar
+                    $isRast = false;
+                    foreach ($rastPeriods as $rp) {
+                        $rpStart = strtotime($rp['start']);
+                        $rpEnd   = strtotime($rp['slut']);
+                        if ($rpStart < $intervalEnd && $rpEnd > $t) {
+                            $isRast = true;
+                            break;
+                        }
+                    }
+
+                    // Kolla om stopp överlappar
+                    $isStopp = false;
+                    foreach ($onoffPeriods as $sp) {
+                        $spStart = strtotime($sp['start']);
+                        $spEnd   = strtotime($sp['slut']);
+                        if ($spStart < $intervalEnd && $spEnd > $t) {
+                            $isStopp = true;
+                            break;
+                        }
+                    }
+
+                    // Körtid = intervalltid minus stopp-/rasttid i intervallet
+                    $lostMin = 0;
+                    foreach ($onoffPeriods as $sp) {
+                        $spStart = strtotime($sp['start']);
+                        $spEnd   = strtotime($sp['slut']);
+                        $overlapStart = max($spStart, $t);
+                        $overlapEnd   = min($spEnd, $intervalEnd);
+                        if ($overlapEnd > $overlapStart) {
+                            $lostMin += ($overlapEnd - $overlapStart) / 60;
+                        }
+                    }
+                    foreach ($rastPeriods as $rp) {
+                        $rpStart = strtotime($rp['start']);
+                        $rpEnd   = strtotime($rp['slut']);
+                        $overlapStart = max($rpStart, $t);
+                        $overlapEnd   = min($rpEnd, $intervalEnd);
+                        if ($overlapEnd > $overlapStart) {
+                            $lostMin += ($overlapEnd - $overlapStart) / 60;
+                        }
+                    }
+
+                    $runningMin = max(0, round($totalIntervalMin - $lostMin, 1));
+                    $intervalIbcPerH = ($runningMin > 0) ? round(($ibcCount / $runningMin) * 60, 1) : 0;
+
+                    $effTimeline[] = [
+                        'tid'         => $tid,
+                        'ibc_count'   => $ibcCount,
+                        'running_min' => $runningMin,
+                        'ibc_per_h'   => $intervalIbcPerH,
+                        'is_rast'     => $isRast,
+                        'is_stopp'    => $isStopp,
+                    ];
+                }
+            }
+
+            // Sammanslå alla stopp-/rastperioder till en logg
+            $stoppLogg = array_merge($stops, $rastPeriods);
+            usort($stoppLogg, function ($a, $b) {
+                return strcmp($a['start'], $b['start']);
+            });
+
             echo json_encode([
-                'success'      => true,
-                'trend'        => $trend,
-                'avg_profile'  => $avgProfile,
+                'success'             => true,
+                'trend'               => $trend,
+                'avg_profile'         => $avgProfile,
                 'kpi' => [
                     'snitt_ibc_per_h'     => $snitttakt,
                     'snitt_ibc_per_h_avg' => $snitttaktAvg,
                     'diff_pct'            => $diffPct,
                     'total_ibc'           => $totalIbc,
                 ],
+                'efficiency'          => $efficiency,
+                'efficiency_timeline' => $effTimeline,
+                'stopp_logg'          => $stoppLogg,
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAnalyticsController::getShiftTrend: ' . $e->getMessage());

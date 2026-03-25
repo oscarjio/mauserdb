@@ -403,6 +403,62 @@
   color: #e2e8f0;
 }
 
+/* ---- Effektivitetssektion ---- */
+.eff-section {
+  border-top: 1px solid #2d3748;
+  padding-top: 1rem;
+}
+
+.eff-kpi-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: border-color 0.15s ease;
+}
+
+.eff-kpi-card:hover {
+  border-color: #48bb78;
+}
+
+.eff-kpi-label {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.eff-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.eff-kpi-value small {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.eff-time-bar {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+}
+
+.eff-chart-wrapper {
+  position: relative;
+  height: 240px;
+  width: 100%;
+}
+
+.eff-chart-wrapper canvas {
+  max-height: 240px;
+}
+
+.eff-green { color: #48bb78 !important; }
+.eff-yellow { color: #ecc94b !important; }
+.eff-red { color: #fc8181 !important; }
+
 /* ---- Produktionstrendgraf ---- */
 .trend-panel {
   background: #1a202c;
