@@ -22552,3 +22552,67 @@ Atgardade filer:
 21. feedback-analys/feedback-analys.ts (4 subscribes)
 
 Bygget genomfordes utan fel efter alla andringar.
+
+---
+
+## Worker B — Session #320 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular routing guard audit (0 buggar)
+Granskade ALLA routing-relaterade filer i noreko-frontend/src/:
+- **app.routes.ts** (164 rader, 120+ routes)
+- **guards/auth.guard.ts** (authGuard + adminGuard)
+- **guards/pending-changes.guard.ts** (pendingChangesGuard)
+- **app.config.ts** (APP_INITIALIZER, GlobalErrorHandler)
+
+**Resultat:**
+- **Wildcard/404-route**: Finns — `{ path: '**', loadComponent: ... NotFoundPage }` sist i children-arrayen. Korrekt placerad.
+- **Guard-redirect utan loop**: authGuard redirectar till `/login` med returnUrl, adminGuard redirectar till `/login` (ej inloggad) eller `/` (inloggad men ej admin/developer). Login-sidan har INTE authGuard, sa ingen redirect-loop uppstar.
+- **Auth-kontroll med role/permission**: adminGuard kontrollerar `user?.role === 'admin' || user?.role === 'developer'` — korrekt. Alla admin-routes anvander adminGuard (30+ routes), alla auth-routes anvander authGuard (60+ routes).
+- **Lazy-loaded routes utan guards**: 11 publika routes saknar guards (login, register, about, contact, live-vyer, skiftrapporter, statistik, historik) — detta ar avsiktligt, de ar publika.
+- **canDeactivate-guards**: pendingChangesGuard anvands pa alla formularsidor (bonus-admin, rebotling-admin, create-user, underhallslogg, produktionsmal, shift-handover, skiftoverlamning, news-admin, certifications, feature-flag-admin, leveransplanering, tvattlinje/saglinje/klassificeringslinje-admin). Alla dessa komponenter implementerar ComponentCanDeactivate-interfacet korrekt.
+- **Route params**: Enda route med params ar `admin/operator/:id` — adminGuard skyddar den. Param-validering sker i OperatorDetailPage-komponenten.
+- **Initialized$-guard**: Bade authGuard och adminGuard vantar pa `initialized$.pipe(filter(init => init === true))` innan beslut, vilket forhindrar falska redirects vid sidladdning.
+- **returnUrl-validering**: LoginPage validerar returnUrl (`raw.startsWith('/') && !raw.startsWith('//')`) for att forhindra open redirect-attacker.
+- Rent — inga buggar hittade.
+
+### Audit 2: Angular form validation audit (0 buggar)
+Granskade ALLA komponenter med formular i noreko-frontend/src/app/:
+- **login.ts**: Template-driven med ngModel, required+minlength+maxlength, submit-knapp disabled vid `!username || !password`, error-meddelande visas.
+- **register.ts**: Manuell validering i onSubmit() — username (min 3 tecken), password-styrka (8+ tecken, bokstav+siffra), password-matchning, email-regex, telefon, kod. isLoading satts false i bade success och error.
+- **create-user.ts**: canSubmit-getter validerar username+password+email. Manuell validering i onSubmit(). isLoading hanteras korrekt.
+- **shift-handover.ts**: submitNote() validerar text (ej tom, max 500 tecken). isSubmitting hanteras korrekt (satts false i subscribe).
+- **underhallslogg.ts**: spara() validerar station, datum, varaktighet. submitting hanteras korrekt. sparaLegacy() validerar kategori och varaktighet.
+- **produktionsmal.ts**: sparaMal() validerar formAntal och formStartdatum. sparLoading hanteras i subscribe.
+- **bonus-admin.ts**: Omfattande validering i saveWeights() (summa=1.0), saveAmounts() (ej negativa, max 100000, stigande ordning), recordPayout() (operatorkontroll, periodvalidering, belopp>0). Alla loading-states hanteras korrekt.
+- **news-admin.ts**: saveNews() validerar att title ej ar tom. saving-state hanteras i subscribe.
+- **certifications.ts**: submitAdd() validerar op_number, line, certified_date. addLoading satts false i subscribe.
+- **feature-flag-admin.ts**: save() korrekt — saving satts false i subscribe. canDeactivate() baseras pa hasChanges() (JSON-jamforelse).
+- **stopporsak-registrering.ts**: bekraftaRegistrering() kontrollerar valdKategori och submitting. Alla loading-states hanteras korrekt.
+- **rebotling-admin.ts**: Alla sparfunktioner (saveSettings, saveWeekdayGoals, saveShiftTimes, saveAlertThresholds, saveNotificationSettings, etc.) har manuell validering och korrekt loading/error-hantering.
+- **leveransplanering.ts**: submitNewOrder() validerar kundnamn och onskat_leveransdatum. savingOrder hanteras korrekt.
+- **skiftoverlamning.ts**: submitForm() kontrollerar isSubmitting och skiftdata. isSubmitting satts false i bade next och error.
+- **Alla komponenter anvander FormsModule (template-driven) med ngModel** — inget fall av saknad import.
+- **Inga formular skickar ovaliderad data till API** — alla har frontend-validering fore HTTP-anrop.
+- Rent — inga buggar hittade.
+
+### Audit 3: Angular HTTP error handling edge cases (0 buggar)
+Granskade ALLA services (92 filer) och komponenter i noreko-frontend/src/app/ efter HTTP-felhanteringsbrister.
+
+**Global felhantering:**
+- **error.interceptor.ts**: Fangar ALLA HTTP-fel globalt — visar toast med svenskt felmeddelande, retry for GET/HEAD/OPTIONS (max 1 gang, enbart vid status 0/502/503/504), 401-hantering med session-rensning och redirect till login, skip for status-polling. Alla errors re-throwar (ej tyst svalj).
+- **csrf.interceptor.ts**: Bifogar CSRF-token pa POST/PUT/DELETE/PATCH. Korrekt.
+- **GlobalErrorHandler**: Fangar ChunkLoadError med reload-loop-skydd (sessionStorage-timestamp) och visar overlay pa svenska.
+
+**Komponent-niva:**
+- **catchError anvands konsekvent**: Alla HTTP-anrop i komponenter har antingen catchError i pipe (med `of(null)` eller fallback-varde) ELLER error-callback i subscribe. Det globala error-interceptorn fangar alla fel som nar subscribe.
+- **Loading-states vid error**: Samtliga granskade komponenter sattar loading=false i bade success och error-vagar. Specifika exempel:
+  - register.ts: isLoading=false i catchError OCH i success-else
+  - bonus-admin.ts: loading=false i bade next och error for saveWeights, saveTargets, etc.
+  - rebotling-admin.ts: loading=false i bade next och error for alla 20+ HTTP-anrop
+  - underhallslogg.ts: loadingItems/loadingHistorik/loadingStats=false i bade next och error
+- **Retry-logik**: Anvands enbart i error-interceptorn (max 1 retry, enbart idempotenta metoder) och i auth.service.ts fetchStatus (retry(1)). Inga obegransade retries.
+- **Race conditions**: Auth-polling anvander switchMap (korrekt — avbryter tidigare request). Inga mergeMap-risker identifierade.
+- **Timeout-hantering**: timeout(8000) eller timeout(10000/15000) anvands konsekvent pa de flesta HTTP-anrop. Auth-service har timeout(8000) pa bade fetchStatus och logout.
+- **Tyst svalj av fel**: Inga fall hittade. Alla catchError antingen returnerar fallback-varde som hanteras i subscribe (null-check) eller visar felmeddelande. Interceptorn visar toast for alla icke-polling-fel.
+- **Observation (ej bugg)**: Nagra services i services/-mappen har catchError som returnerar of(null) utan felmeddelande, men detta ar korrekt da komponenterna kontrollerar `res?.success` och visar egna felmeddelanden vid null/false.
+- Rent — inga buggar hittade.
