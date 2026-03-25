@@ -222,7 +222,7 @@
                       [(ngModel)]="h2hOp1Id"
                       (change)="onH2HChange()">
                 <option [value]="null">Välj operatör...</option>
-                <option *ngFor="let op of getAllaOperatorer(); trackBy: trackByIndex" [value]="op.operator_id">
+                <option *ngFor="let op of cachedAllaOperatorer; trackBy: trackByIndex" [value]="op.operator_id">
                   {{ op.operator_namn }}
                 </option>
               </select>
@@ -236,7 +236,7 @@
                       [(ngModel)]="h2hOp2Id"
                       (change)="onH2HChange()">
                 <option [value]="null">Välj operatör...</option>
-                <option *ngFor="let op of getAllaOperatorer(); trackBy: trackByIndex" [value]="op.operator_id">
+                <option *ngFor="let op of cachedAllaOperatorer; trackBy: trackByIndex" [value]="op.operator_id">
                   {{ op.operator_namn }}
                 </option>
               </select>

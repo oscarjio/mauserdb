@@ -29,6 +29,12 @@ export class AuditLogPage implements OnInit, OnDestroy {
   exportingAll = false;
   errorMessage = '';
 
+  // Cachade audit-statistik (undviker .filter() per change-detection)
+  cachedAuditStats: { total: number; today: number; lastUser: string } = { total: 0, today: 0, lastUser: '—' };
+
+  // Cache för parsade JSON-värden (undviker JSON.parse per change-detection)
+  private parsedJsonCache = new Map<string, any>();
+
   // Filters
   selectedPeriod = 'month';
   filterAction = '';
@@ -122,6 +128,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
           this.hasMore = res.hasMore ?? false;
         }
         this.loading = false;
+        this.rebuildAuditStatsCache();
       },
       error: () => { this.errorMessage = 'Kunde inte hämta loggar. Försök igen.'; this.loading = false; }
     });
@@ -140,6 +147,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
           this.hasMore = res.hasMore ?? false;
         }
         this.loadingMore = false;
+        this.rebuildAuditStatsCache();
       },
       error: () => this.loadingMore = false
     });
@@ -334,7 +342,12 @@ export class AuditLogPage implements OnInit, OnDestroy {
 
   parseJson(value: string | null): any {
     if (!value) return null;
-    try { return JSON.parse(value); } catch { return value; }
+    const cached = this.parsedJsonCache.get(value);
+    if (cached !== undefined) return cached;
+    let result: any;
+    try { result = JSON.parse(value); } catch { result = value; }
+    this.parsedJsonCache.set(value, result);
+    return result;
   }
 
   formatJsonKeys(obj: any): string[] {
@@ -342,11 +355,17 @@ export class AuditLogPage implements OnInit, OnDestroy {
     return Object.keys(obj);
   }
 
+  /** @deprecated Använd cachedAuditStats direkt i templaten */
   get auditStats(): { total: number; today: number; lastUser: string } {
+    return this.cachedAuditStats;
+  }
+
+  private rebuildAuditStatsCache(): void {
     const today = localToday();
     const todayLogs = (this.logs || []).filter((l: any) => (l.created_at || '').startsWith(today));
     const lastUser = this.logs?.[0]?.user || '—';
-    return { total: this.logs?.length || 0, today: todayLogs.length, lastUser };
+    this.cachedAuditStats = { total: this.logs?.length || 0, today: todayLogs.length, lastUser };
+    this.parsedJsonCache.clear();
   }
 
   get pageNumbers(): number[] {

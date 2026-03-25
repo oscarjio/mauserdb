@@ -50,6 +50,9 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
   sentimentData: OperatorSentimentItem[] | null = null;
   listData:      FeedbackListData        | null = null;
 
+  // Cachad sidnumrering (undviker array-allokering per change-detection)
+  cachedPagesArray: number[] = [];
+
   // Chart
   private trendChart: Chart | null = null;
 
@@ -156,6 +159,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
         this.listLoading = false;
         this.listData    = res?.success ? res.data : null;
         this.listLoaded  = true;
+        this.rebuildPagesCache();
       });
   }
 
@@ -321,15 +325,20 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   }
 
+  /** @deprecated Använd cachedPagesArray direkt i templaten */
   getPagesArray(): number[] {
-    if (!this.listData) return [];
+    return this.cachedPagesArray;
+  }
+
+  private rebuildPagesCache(): void {
+    if (!this.listData) { this.cachedPagesArray = []; return; }
     const total = this.listData.pages;
     const curr  = this.listData.page;
     const result: number[] = [];
     const start = Math.max(1, curr - 2);
     const end   = Math.min(total, curr + 2);
     for (let i = start; i <= end; i++) result.push(i);
-    return result;
+    this.cachedPagesArray = result;
   }
 
   getFordelningPct(key: string): number {

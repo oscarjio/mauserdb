@@ -63,6 +63,9 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   cachedStorstKlattareAndring = 0;
   cachedLangstaPosStreakOp = '—';
 
+  // Cachad operatörslista för H2H-dropdown (undviker metod-anrop i template)
+  cachedAllaOperatorer: OperatorTrend[] = [];
+
   // Head-to-head
   h2hOp1Id: number | null = null;
   h2hOp2Id: number | null = null;
@@ -129,6 +132,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
         this.rankingsLoading = false;
         this.rankingsData = res?.success ? res.data : null;
         this.rankingsLoaded = true;
+        this.cachedAllaOperatorer = this.rankingsData?.op_trender ?? [];
         if (this.viewReady && this.rankingsData) {
           if (this.chartTimer) clearTimeout(this.chartTimer);
           this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);

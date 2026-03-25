@@ -60,6 +60,9 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
   private chartTimer: ReturnType<typeof setTimeout> | null       = null;
   private detailChartTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Cachad sparkdata per orsak (undviker beräkning per change-detection)
+  cachedSparkdata = new Map<string, (number | null)[]>();
+
   // Palettkonstant — konsekvent färg per orsak
   private readonly COLORS = [
     '#4299e1', '#48bb78', '#ecc94b', '#ed8936', '#e53e3e',
@@ -100,6 +103,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.summaryData   = null;
     this.detailData    = null;
     this.selectedReason = null;
+    this.cachedSparkdata.clear();
     this.loadAll();
   }
 
@@ -121,6 +125,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
         if (res?.success) {
           this.weeklyData  = res.data;
           this.weeklyError = false;
+          this.cachedSparkdata.clear();
           if (this.chartTimer) clearTimeout(this.chartTimer);
           this.chartTimer = setTimeout(() => {
             if (!this.destroy$.closed) this.renderTrendChart();
@@ -412,13 +417,17 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
   }
 
   getSparkdata(summary: SummaryRow): (number | null)[] {
+    const cached = this.cachedSparkdata.get(summary.reason);
+    if (cached) return cached;
     if (!this.weeklyData) return [];
     const { veckor } = this.weeklyData;
     const sista6 = veckor.slice(-6);
-    return sista6.map(v => {
+    const result = sista6.map(v => {
       const r = v.reasons.find(r => r.reason === summary.reason);
       return r ? r.count : 0;
     });
+    this.cachedSparkdata.set(summary.reason, result);
+    return result;
   }
 
   getSparkDotKlass(val: number | null, avgVal: number): string {

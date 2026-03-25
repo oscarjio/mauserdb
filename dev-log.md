@@ -1,3 +1,31 @@
+## Worker B — Session #309 (2026-03-25) — 7 buggar (Angular template perf + CD-overhead)
+
+### Audit 1: ngIf/ngSwitch exhaustiveness (0 buggar)
+Granskade alla HTML-templates i noreko-frontend/src/app/ efter ngSwitch utan default-case och komplexa ngIf-kedjor.
+- produktionsprognos.html: ngSwitch med *ngSwitchDefault — OK
+- live-ranking.html: ngSwitch med *ngSwitchDefault — OK
+Resultat: RENT — alla ngSwitch har *ngSwitchDefault, inga ofullstandiga ngIf-kedjor.
+
+### Audit 2: Input sanitization / innerHTML (0 buggar)
+Granskade alla HTML- och TS-filer efter [innerHTML], bypassSecurityTrustHtml, och direkt string-interpolation i innerHTML.
+- Enda innerHTML-anvandning ar i app.config.ts med hardkodad HTML (ingen user-input) — OK
+- Inga [innerHTML]-bindningar i templates
+- Inga bypassSecurityTrustHtml-anrop
+Resultat: RENT — 0 XSS-risker.
+
+### Audit 3: Template expression complexity (7 buggar)
+Granskade alla HTML-templates efter funktionsanrop i *ngFor, icke-cachade getters, och komplexa uttryck.
+
+Fixade filer:
+1. **audit-log.ts** — `get auditStats` (getter) korde .filter() pa hela logglistan varje CD-cykel. Ersatt med cachedAuditStats + rebuildAuditStatsCache(). Lade aven till parsedJsonCache (Map) for parseJson() som anropades 4+ ganger per expanderad rad.
+2. **ranking-historik.ts/.html** — `getAllaOperatorer()` anropades i *ngFor for 2 dropdowns. Ersatt med cachedAllaOperatorer (sätts vid dataladdning).
+3. **stopporsak-trend.ts** — `getSparkdata(row)` allokerade ny array per anrop i *ngFor. Ersatt med cachedSparkdata Map som byggs vid dataladdning.
+4. **heatmap.ts/.html** — `getLegendSteps()` skapade ny array med fargberakningar per CD-cykel. Ersatt med cachedLegendSteps (byggs vid dataladdning).
+5. **feedback-analys.ts/.html** — `getPagesArray()` skapade ny array per CD-cykel. Ersatt med cachedPagesArray (byggs vid listladdning).
+6. **narvarotracker.ts/.html** — `getExpandedDays(opId)` med .find() anropades 3 ganger per CD-cykel for samma opId. Ersatt med cachedExpandedDays (sätts vid toggleExpand).
+
+Alla fixes verifierade med `npx ng build` — inga kompileringsfel.
+
 ## Worker A — Session #309 (2026-03-25) — 0 buggar (3 audits, alla rena)
 
 ### Audit 1: SQL implicit type conversion (0 buggar)

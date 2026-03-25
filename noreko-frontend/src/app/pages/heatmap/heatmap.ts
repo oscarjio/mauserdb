@@ -42,6 +42,9 @@ export class HeatmapPage implements OnInit, OnDestroy {
   // cellMap[date][hour] = count (undefined = ingen data)
   cellMap: Record<string, Record<number, number>> = {};
 
+  // Cachad legend (undviker array-allokering per change-detection)
+  cachedLegendSteps: { color: string; label: string }[] = [];
+
   // -- Tooltip --
   tooltip: { visible: boolean; x: number; y: number; text: string } = {
     visible: false, x: 0, y: 0, text: '',
@@ -88,6 +91,7 @@ export class HeatmapPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.scale = res.data.scale;
           this.buildMatrix(res.data.matrix, res.data.from_date, res.data.to_date);
+          this.rebuildLegendCache();
         } else {
           this.errorHeatmap = true;
           this.dates   = [];
@@ -198,9 +202,14 @@ export class HeatmapPage implements OnInit, OnDestroy {
   // Legend-steg
   // =================================================================
 
+  /** @deprecated Använd cachedLegendSteps direkt i templaten */
   getLegendSteps(): { color: string; label: string }[] {
+    return this.cachedLegendSteps;
+  }
+
+  private rebuildLegendCache(): void {
     const steps = [0, 0.25, 0.5, 0.75, 1];
-    return steps.map(ratio => {
+    this.cachedLegendSteps = steps.map(ratio => {
       const fakeCount = this.scale.min + ratio * (this.scale.max - this.scale.min);
       return {
         color: this.getCellColor(fakeCount),

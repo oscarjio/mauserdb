@@ -95,7 +95,7 @@
         <span class="legend-label">Lag</span>
         <div class="legend-steps">
           <div
-            *ngFor="let step of getLegendSteps(); trackBy: trackByIndex"
+            *ngFor="let step of cachedLegendSteps; trackBy: trackByIndex"
             class="legend-step"
             [style.background]="step.color"
             [title]="step.label">

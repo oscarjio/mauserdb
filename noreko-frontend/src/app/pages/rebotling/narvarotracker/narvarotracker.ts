@@ -29,6 +29,8 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
   loaded = false;
 
   expandedOp: number | null = null;
+  // Cachad expanderad dags-data (undviker .find() x3 per change-detection)
+  cachedExpandedDays: NarvaroDayEntry[] = [];
 
   tooltipVisible = false;
   tooltipX = 0;
@@ -154,6 +156,12 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
 
   toggleExpand(opId: number): void {
     this.expandedOp = this.expandedOp === opId ? null : opId;
+    if (this.expandedOp !== null) {
+      const op = this.operators.find(o => o.operator_id === this.expandedOp);
+      this.cachedExpandedDays = op?.days ?? [];
+    } else {
+      this.cachedExpandedDays = [];
+    }
   }
 
   isExpanded(opId: number): boolean {

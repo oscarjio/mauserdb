@@ -363,7 +363,7 @@
                     <i class="fas fa-chevron-left"></i>
                   </button>
                 </li>
-                <li class="page-item" *ngFor="let p of getPagesArray(); trackBy: trackByIndex"
+                <li class="page-item" *ngFor="let p of cachedPagesArray; trackBy: trackByIndex"
                     [class.active]="p === listData.page">
                   <button class="page-link" (click)="onPageChange(p)">{{ p }}</button>
                 </li>

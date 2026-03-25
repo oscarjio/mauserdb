@@ -96,8 +96,8 @@
               <td [attr.colspan]="dayNumbers.length + 3">
                 <div class="detail-content">
                   <h6 class="mb-2">Detaljer for {{ op.operator_name }}</h6>
-                  <div class="detail-grid" *ngIf="getExpandedDays(op.operator_id).length > 0">
-                    <div class="detail-item" *ngFor="let entry of getExpandedDays(op.operator_id); trackBy: trackByIndex">
+                  <div class="detail-grid" *ngIf="cachedExpandedDays.length > 0">
+                    <div class="detail-item" *ngFor="let entry of cachedExpandedDays; trackBy: trackByIndex">
                       <div class="detail-date">{{ entry.dag }}</div>
                       <div class="detail-info">
                         <span class="detail-badge badge-ibc">{{ entry.ibc }} IBC</span>
@@ -106,7 +106,7 @@
                       </div>
                     </div>
                   </div>
-                  <p *ngIf="getExpandedDays(op.operator_id).length === 0" class="text-muted mb-0">Ingen data.</p>
+                  <p *ngIf="cachedExpandedDays.length === 0" class="text-muted mb-0">Ingen data.</p>
                 </div>
               </td>
             </tr>
