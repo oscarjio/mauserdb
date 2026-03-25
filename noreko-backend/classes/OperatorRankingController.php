@@ -383,17 +383,17 @@ class OperatorRankingController {
                 FROM (
                     SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE op1 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op1, DATE(datum)
                     UNION ALL
                     SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE op2 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op2, DATE(datum)
                     UNION ALL
                     SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE op3 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op3, DATE(datum)
                 ) AS combined
                 GROUP BY op_id, dag

@@ -984,11 +984,11 @@ class RebotlingController {
                     ibc_count,
                     produktion_procent,
                     skiftraknare
-                FROM rebotling_ibc 
-                WHERE DATE(datum) = :date
+                FROM rebotling_ibc
+                WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ');
-            $stmt->execute(['date' => $date]);
+            $stmt->execute(['date' => $date, 'dateb' => $date]);
             $hourly_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta on/off events för dagen
@@ -997,10 +997,10 @@ class RebotlingController {
                     DATE_FORMAT(datum, "%H:%i") as time,
                     running
                 FROM rebotling_onoff
-                WHERE DATE(datum) = :date
+                WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ');
-            $stmt->execute(['date' => $date]);
+            $stmt->execute(['date' => $date, 'dateb' => $date]);
             $status_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta rast-events för dagen (från Shelly-puck / PLC)
@@ -1013,10 +1013,10 @@ class RebotlingController {
                         datum as datum_full,
                         rast_status
                     FROM rebotling_runtime
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                     ORDER BY datum ASC
                 ');
-                $rastStmt->execute(['date' => $date]);
+                $rastStmt->execute(['date' => $date, 'dateb' => $date]);
                 $rast_events = $rastStmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Beräkna total rasttid för dagen
@@ -1043,9 +1043,9 @@ class RebotlingController {
                     SELECT MAX(COALESCE(rasttime, 0)) as total_rast_plc,
                            MAX(COALESCE(runtime_plc, 0)) as total_runtime_plc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                 ');
-                $plcRastStmt->execute(['date' => $date]);
+                $plcRastStmt->execute(['date' => $date, 'dateb' => $date]);
                 $plcRast = $plcRastStmt->fetch(PDO::FETCH_ASSOC);
                 $plc_rast_min = round($plcRast['total_rast_plc'] ?? 0, 1);
                 $plc_runtime_min = round($plcRast['total_runtime_plc'] ?? 0, 1);
@@ -1100,10 +1100,10 @@ class RebotlingController {
 
         // Notera: alias "r" används i dateFilter och måste matcha yttre queryn
         $dateFilter = match($period) {
-            'today' => "DATE(r.datum) = CURDATE()",
+            'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
             'week'  => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
             'month' => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
-            default => "DATE(r.datum) = CURDATE()"
+            default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
         };
 
         try {
@@ -1555,7 +1555,7 @@ class RebotlingController {
                         SELECT DATE(datum) AS datum_rekord, SUM(ibc_ok) AS dag_total
                         FROM rebotling_skiftrapport
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
-                          AND DATE(datum) < CURDATE()
+                          AND datum < CURDATE()
                         GROUP BY DATE(datum)
                     ) y
                 ");
@@ -2020,14 +2020,14 @@ class RebotlingController {
                 SELECT DISTINCT o.name
                 FROM rebotling_ibc r
                 JOIN operators o ON o.number IN (r.op1, r.op2, r.op3)
-                WHERE DATE(r.datum) = ?
+                WHERE r.datum >= ? AND r.datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND r.ibc_ok IS NOT NULL
                 ORDER BY o.name
             ");
             foreach ($topDays as $i => $day) {
                 $date = $day['datum'];
                 // Hämta unika operatörer den dagen
-                $opStmt->execute([$date]);
+                $opStmt->execute([$date, $date]);
                 $operators = $opStmt->fetchAll(\PDO::FETCH_COLUMN);
 
                 $result[] = [
@@ -2475,7 +2475,7 @@ class RebotlingController {
             $stmtCheck = $this->pdo->prepare("
                 SELECT COUNT(*) AS cnt
                 FROM news
-                WHERE DATE(created_at) = CURDATE()
+                WHERE created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY
                   AND category = 'rekord'
                 FOR UPDATE
             ");
@@ -2515,7 +2515,7 @@ class RebotlingController {
                         SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) < CURDATE()
+                        WHERE datum < CURDATE()
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_shift

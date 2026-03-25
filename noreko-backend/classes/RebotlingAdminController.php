@@ -539,7 +539,7 @@ class RebotlingAdminController {
             // Räkna skiftrapporter idag
             $reportsToday = 0;
             try {
-                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_skiftrapport WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_skiftrapport WHERE created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
                 $reportsToday = (int)$row;
             } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus reportsToday: ' . $e->getMessage()); }
 
@@ -1138,7 +1138,7 @@ class RebotlingAdminController {
                         SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) < CURDATE()
+                        WHERE datum < CURDATE()
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_shift

@@ -151,13 +151,13 @@ class VdDashboardController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) sub
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':date' => $date]);
+            $stmt->execute([':date' => $date, ':dateb' => $date]);
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
@@ -195,15 +195,15 @@ class VdDashboardController {
                 // rebotling_ibc has op1/op2/op3 (operator numbers), not user_id
                 $sql = "
                     SELECT COUNT(DISTINCT op_id) AS cnt FROM (
-                        SELECT op1 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        SELECT op1 AS op_id FROM rebotling_ibc WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         UNION
-                        SELECT op2 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        SELECT op2 AS op_id FROM rebotling_ibc WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         UNION
-                        SELECT op3 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        SELECT op3 AS op_id FROM rebotling_ibc WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                     ) AS sub
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
+                $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
                 $aktivaOperatorer = (int)$stmt->fetchColumn();
             } catch (\Exception $e) {
                 error_log('VdDashboardController::oversikt (aktiva op ibc): ' . $e->getMessage());
@@ -215,11 +215,11 @@ class VdDashboardController {
                     $sql = "
                         SELECT COUNT(DISTINCT user_id) AS cnt
                         FROM rebotling_data
-                        WHERE DATE(datum) = :today
+                        WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                           AND user_id IS NOT NULL AND user_id > 0
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today]);
+                    $stmt->execute([':today' => $today, ':todayb' => $today]);
                     $aktivaOperatorer = (int)$stmt->fetchColumn();
                 } catch (\Exception $e) {
                     error_log('VdDashboardController::oversikt (aktiva op rebotling_data): ' . $e->getMessage());
@@ -363,15 +363,15 @@ class VdDashboardController {
                         SUM(cnt) AS total_ibc
                     FROM (
                         SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1
                         UNION ALL
                         SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2
                         UNION ALL
                         SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op_id
@@ -380,7 +380,7 @@ class VdDashboardController {
                     LIMIT 3
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
+                $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
                 $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());
@@ -396,14 +396,14 @@ class VdDashboardController {
                             SUM(COALESCE(r.antal, 1)) AS total_ibc
                         FROM rebotling_data r
                         LEFT JOIN users u ON r.user_id = u.id
-                        WHERE DATE(r.datum) = :today
+                        WHERE r.datum >= :today AND r.datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                           AND r.user_id IS NOT NULL AND r.user_id > 0
                         GROUP BY r.user_id, u.username
                         ORDER BY total_ibc DESC
                         LIMIT 3
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today]);
+                    $stmt->execute([':today' => $today, ':todayb' => $today]);
                     $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Exception $e) {
                     error_log('VdDashboardController::topOperatorer (rebotling_data): ' . $e->getMessage());
@@ -450,13 +450,13 @@ class VdDashboardController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                                MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = :today
+                        WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                           AND skiftraknare IS NOT NULL
                         GROUP BY skiftraknare
                     ) sub
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today' => $today]);
+                $stmt->execute([':today' => $today, ':todayb' => $today]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $totalOkIbc = (int)($row['ok_ibc'] ?? 0);
                 $totalEjOkIbc = (int)($row['ej_ok_ibc'] ?? 0);

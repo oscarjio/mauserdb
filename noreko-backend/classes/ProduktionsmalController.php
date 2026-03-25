@@ -540,11 +540,11 @@ class ProduktionsmalController {
             $stmt = $this->pdo->prepare("
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :today
+                WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ");
-            $stmt->execute([':today' => $today]);
+            $stmt->execute([':today' => $today, ':todayb' => $today]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $skift = [];
@@ -699,13 +699,13 @@ class ProduktionsmalController {
                        COUNT(*) AS antal_rader,
                        COUNT(DISTINCT skiftraknare) AS antal_skift
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :today
+                WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND lopnummer IS NOT NULL
                   AND lopnummer BETWEEN 1 AND 8
                 GROUP BY lopnummer
                 ORDER BY lopnummer ASC
             ");
-            $stmt->execute([':today' => $today]);
+            $stmt->execute([':today' => $today, ':todayb' => $today]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $weekdayGoals = $this->getWeekdayGoals();

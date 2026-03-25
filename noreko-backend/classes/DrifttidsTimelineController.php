@@ -154,11 +154,11 @@ class DrifttidsTimelineController {
                         reason,
                         operator_name
                     FROM stoppage_log
-                    WHERE DATE(start_time) = :date
+                    WHERE start_time >= :date AND start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
                       AND duration_minutes > 0
                     ORDER BY start_time ASC
                 ");
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateb' => $date]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
@@ -193,12 +193,12 @@ class DrifttidsTimelineController {
                         sr.operator_id
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
-                    WHERE DATE(sr.start_time) = :date
+                    WHERE sr.start_time >= :date AND sr.start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
                       AND sr.end_time IS NOT NULL
                       AND TIMESTAMPDIFF(MINUTE, sr.start_time, sr.end_time) > 0
                     ORDER BY sr.start_time ASC
                 ");
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateb' => $date]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {

@@ -111,10 +111,10 @@ class ProduktionskalenderController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT datum, running FROM rebotling_onoff
-                 WHERE DATE(datum) = ?
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  ORDER BY datum ASC"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $prevTime    = null;
@@ -415,12 +415,12 @@ class ProduktionskalenderController {
                            MIN(datum) AS forsta,
                            MAX(datum) AS sista
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY skiftraknare
                 ) AS per_skift
             ");
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $base = $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             error_log('ProduktionskalenderController::getDayDetail: ' . $e->getMessage());
@@ -482,7 +482,7 @@ class ProduktionskalenderController {
                 FROM (
                     SELECT op1 AS op, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY op1
 
@@ -490,7 +490,7 @@ class ProduktionskalenderController {
 
                     SELECT op2 AS op, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY op2
 
@@ -498,7 +498,7 @@ class ProduktionskalenderController {
 
                     SELECT op3 AS op, COUNT(*) AS cnt
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY op3
                 ) AS sub
@@ -506,7 +506,7 @@ class ProduktionskalenderController {
                 ORDER BY ibc_ok DESC
                 LIMIT 5
             ");
-            $stmt->execute([$date, $date, $date]);
+            $stmt->execute([$date, $date, $date, $date, $date, $date]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $result = [];
@@ -531,12 +531,12 @@ class ProduktionskalenderController {
             $stmt = $this->pdo->prepare("
                 SELECT orsak, SUM(sekunder) AS total_sek, COUNT(*) AS antal
                 FROM rebotling_stopp
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY orsak
                 ORDER BY total_sek DESC
                 LIMIT 10
             ");
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $result = [];

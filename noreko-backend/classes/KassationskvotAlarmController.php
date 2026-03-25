@@ -219,8 +219,8 @@ class KassationskvotAlarmController {
 
         // --- Idag (00:00 – nu) ---
         $dag = $this->beraknaKvot(
-            "DATE(datum) = :today",
-            [':today' => $today]
+            "datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)",
+            [':today' => $today, ':todayb' => $today]
         );
 
         // Statusfarg
@@ -269,7 +269,7 @@ class KassationskvotAlarmController {
                     MIN(datum)       AS skift_start,
                     MAX(datum)       AS skift_slut
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag DESC, skiftraknare DESC
@@ -444,7 +444,7 @@ class KassationskvotAlarmController {
                     MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
                     MIN(datum)       AS skift_start
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag ASC, skiftraknare ASC
@@ -512,7 +512,7 @@ class KassationskvotAlarmController {
                         MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -540,7 +540,7 @@ class KassationskvotAlarmController {
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kot ON kot.id = kr.orsak_id
                 WHERE kr.skiftraknare IN ($placeholders)
-                  AND DATE(kr.datum) >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
+                  AND kr.datum >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
                 GROUP BY kr.orsak_id, kot.namn
                 ORDER BY antal DESC
                 LIMIT 5

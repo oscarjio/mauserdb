@@ -270,7 +270,7 @@ class SaglinjeController {
                     FROM (
                         SELECT MAX(ibc_count) - MIN(ibc_count) AS delta_ok
                         FROM saglinje_ibc
-                        WHERE DATE(datum) = CURDATE()
+                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                         GROUP BY skiftraknare
                     ) x
                 ");
@@ -369,7 +369,7 @@ class SaglinjeController {
     private function getLiveStats() {
         try {
             $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) FROM saglinje_ibc WHERE DATE(datum) = CURDATE()
+                SELECT COUNT(*) FROM saglinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
@@ -445,10 +445,10 @@ class SaglinjeController {
                     SELECT ls.*, u.name as user_name
                     FROM line_skiftrapporter ls
                     LEFT JOIN users u ON ls.user_id = u.id
-                    WHERE ls.line = 'saglinje' AND DATE(ls.datum) = :datum
+                    WHERE ls.line = 'saglinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     ORDER BY ls.datum ASC
                 ");
-                $stmt->execute(['datum' => $datum]);
+                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) { error_log('SaglinjeController::getReport rows: ' . $e->getMessage()); }
 
@@ -458,10 +458,10 @@ class SaglinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT ls.*
                     FROM line_skiftrapporter ls
-                    WHERE ls.line = 'saglinje' AND DATE(ls.datum) = :datum
+                    WHERE ls.line = 'saglinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     ORDER BY ls.datum ASC
                 ");
-                $stmt->execute(['datum' => $prevDatum]);
+                $stmt->execute(['datum' => $prevDatum, 'datumb' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('SaglinjeController::getReport prevRows: ' . $e->getMessage());
@@ -490,9 +490,9 @@ class SaglinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
                     FROM saglinje_ibc
-                    WHERE DATE(datum) = :datum
+                    WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                 ");
-                $stmt->execute(['datum' => $datum]);
+                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
                 $ibcRange = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($ibcRange && $ibcRange['cnt'] > 0 && $ibcRange['first_ts']) {
                     $first = new \DateTime($ibcRange['first_ts']);

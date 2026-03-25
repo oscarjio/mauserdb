@@ -252,7 +252,7 @@ class RebotlingAnalyticsController {
                         AVG(produktion_procent)  AS avg_prod_pct,
                         AVG(runtime_plc)         AS avg_runtime_plc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= ?
+                    WHERE datum >= ?
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -269,7 +269,7 @@ class RebotlingAnalyticsController {
                     COUNT(CASE WHEN running = 1 THEN 1 END) as starter,
                     COUNT(CASE WHEN running = 0 THEN 1 END) as stopp
                 FROM rebotling_onoff
-                WHERE DATE(datum) >= ?
+                WHERE datum >= ?
                 GROUP BY DATE(datum)
                 ORDER BY dag
             ");
@@ -793,7 +793,8 @@ class RebotlingAnalyticsController {
                             MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
                             MAX(COALESCE(rasttime,   0)) AS shift_rast
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                          AND datum < CURDATE()
                           AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
                         GROUP BY skiftraknare
                     ) AS ps
@@ -1238,11 +1239,11 @@ class RebotlingAnalyticsController {
                             datum
                         ) / 60.0 AS cycle_time_min
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     ORDER BY skiftraknare, datum ASC
                 ");
-                $stmt2->execute(['date' => $date]);
+                $stmt2->execute(['date' => $date, 'dateb' => $date]);
                 $rows2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows2 as $r) {
                     $ct = (float)($r['cycle_time_min'] ?? 0);
@@ -1700,12 +1701,12 @@ class RebotlingAnalyticsController {
                     MAX(ibc_ej_ok)   AS acc_ej_ok,
                     MAX(runtime_plc) AS runtime_min
                 FROM rebotling_ibc
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare, HOUR(datum)
                 ORDER BY skiftraknare, timme
             ");
-            $rawStmt->execute([$date]);
+            $rawStmt->execute([$date, $date]);
             $rawRows = $rawStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg delta-beräkning per skift
@@ -1797,18 +1798,18 @@ class RebotlingAnalyticsController {
                 SELECT DISTINCT op_id, o.name AS op_name
                 FROM (
                     SELECT op1 AS op_id FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                     UNION ALL
                     SELECT op2 FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                     UNION ALL
                     SELECT op3 FROM rebotling_ibc
-                    WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                 ) AS ops
                 LEFT JOIN operators o ON o.number = op_id
                 WHERE op_id IS NOT NULL
             ");
-            $opStmt->execute([$date, $date, $date]);
+            $opStmt->execute([$date, $date, $date, $date, $date, $date]);
             $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Formatera operatörer — initials + namn
@@ -2504,13 +2505,13 @@ class RebotlingAnalyticsController {
                 if ($bestDayData) {
                     $bdStmt = $this->pdo->prepare("
                         SELECT COUNT(DISTINCT op_id) AS op_count FROM (
-                            SELECT DISTINCT op1 AS op_id FROM rebotling_ibc WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
-                            UNION SELECT DISTINCT op2 FROM rebotling_ibc WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
-                            UNION SELECT DISTINCT op3 FROM rebotling_ibc WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                            SELECT DISTINCT op1 AS op_id FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
+                            UNION SELECT DISTINCT op2 FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
+                            UNION SELECT DISTINCT op3 FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                         ) ops
                     ");
                     $bdDate = $bestDayData['datum'];
-                    $bdStmt->execute([$bdDate, $bdDate, $bdDate]);
+                    $bdStmt->execute([$bdDate, $bdDate, $bdDate, $bdDate, $bdDate, $bdDate]);
                     $bdRow = $bdStmt->fetch(PDO::FETCH_ASSOC);
                     $bestDayData['operator_count'] = (int)($bdRow['op_count'] ?? 0);
                 }
@@ -3554,12 +3555,12 @@ class RebotlingAnalyticsController {
                     MIN(ibc_ok)  AS ibc_min,
                     MAX(runtime_plc) AS runtime_cumulative
                 FROM rebotling_ibc
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND skiftraknare = ?
                 GROUP BY HOUR(datum)
                 ORDER BY timme
             ');
-            $stmt->execute([$datum, $skift]);
+            $stmt->execute([$datum, $datum, $skift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Beräkna delta per timme (kumulativa fält)
@@ -3592,13 +3593,13 @@ class RebotlingAnalyticsController {
                     WHERE DAYOFWEEK(datum) = DAYOFWEEK(?)
                       AND skiftraknare = ?
                       AND datum >= DATE_SUB(?, INTERVAL 28 DAY)
-                      AND DATE(datum) != ?
+                      AND (datum < ? OR datum >= DATE_ADD(?, INTERVAL 1 DAY))
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                 ) x
                 GROUP BY timme
                 ORDER BY timme
             ');
-            $stmt2->execute([$datum, $skift, $datum, $datum]);
+            $stmt2->execute([$datum, $skift, $datum, $datum, $datum]);
             $avgRows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
             $avgProfile = [];
@@ -4071,7 +4072,7 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE DATE(s.datum) = :date
+                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                   AND s.skiftraknare IS NOT NULL
                   AND (
                     SELECT CASE
@@ -4083,7 +4084,7 @@ class RebotlingAnalyticsController {
                   ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date, 'shift' => $shift]);
+            $stmt->execute(['date' => $date, 'dateb' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera KPI:er
@@ -4144,7 +4145,7 @@ class RebotlingAnalyticsController {
             $prevStmt = $this->pdo->prepare("
                 SELECT SUM(s.totalt) AS prev_totalt
                 FROM rebotling_skiftrapport s
-                WHERE DATE(s.datum) = :date
+                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                   AND s.skiftraknare IS NOT NULL
                   AND (
                     SELECT CASE
@@ -4155,7 +4156,7 @@ class RebotlingAnalyticsController {
                     FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
                   ) = :shift
             ");
-            $prevStmt->execute(['date' => $prevDate, 'shift' => $prevShift]);
+            $prevStmt->execute(['date' => $prevDate, 'dateb' => $prevDate, 'shift' => $prevShift]);
             $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
 
             $prevTotalt = (int)($prevRow['prev_totalt'] ?? 0);
@@ -4443,10 +4444,10 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE DATE(s.datum) = :date
+                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date]);
+            $stmt->execute(['date' => $date, 'dateb' => $date]);
             $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Filtrera rader per skift
@@ -5125,7 +5126,7 @@ HTML;
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE DATE(s.datum) = :date
+                WHERE s.datum >= :date AND s.datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                   AND s.skiftraknare IS NOT NULL
                   AND (
                     SELECT CASE
@@ -5137,7 +5138,7 @@ HTML;
                   ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date, 'shift' => $shift]);
+            $stmt->execute(['date' => $date, 'dateb' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Samla skifträknare för start/stopp-tid
@@ -6038,10 +6039,10 @@ HTML;
         try {
             // Bestäm datumfilter
             $dateFilter = match($period) {
-                'today' => "DATE(r.datum) = CURDATE()",
+                'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
                 '7d'    => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
                 '30d'   => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
-                default => "DATE(r.datum) = CURDATE()"
+                default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
             };
 
             $periodLabel = match($period) {
@@ -6263,9 +6264,9 @@ HTML;
                 $today = $now->format('Y-m-d');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ? AND produktion_procent > 0"
+                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0"
                 );
-                $stmt->execute([$today]);
+                $stmt->execute([$today, $today]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
 
                 // Tid kvar av "skiftet" — vi räknar till midnatt
@@ -6478,7 +6479,7 @@ HTML;
                     AVG(COALESCE(runtime_plc, 0)) AS avg_cykeltid,
                     HOUR(MIN(datum))              AS start_hour
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= ?
+                WHERE datum >= ?
                   AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag ASC, skiftraknare ASC
@@ -6800,8 +6801,8 @@ HTML;
                     HOUR(datum)        AS timme,
                     COUNT(*)           AS ibc_count
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= ?
-                  AND DATE(datum) <= ?
+                WHERE datum >= ?
+                  AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), HOUR(datum)
                 ORDER BY dag, timme
             ");
@@ -6816,8 +6817,8 @@ HTML;
                     COUNT(*)           AS stopp_count
                 FROM rebotling_onoff
                 WHERE running = 0
-                  AND DATE(datum) >= ?
-                  AND DATE(datum) <= ?
+                  AND datum >= ?
+                  AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), HOUR(datum)
                 ORDER BY dag, timme
             ");

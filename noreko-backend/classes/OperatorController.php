@@ -269,7 +269,7 @@ class OperatorController {
                 FROM operators o
                 LEFT JOIN rebotling_skiftrapport s
                     ON (s.op1 = o.number OR s.op2 = o.number OR s.op3 = o.number)
-                    AND DATE(s.datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    AND s.datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                 GROUP BY o.id, o.name, o.number, o.active
                 ORDER BY ibc_per_hour DESC
             ');

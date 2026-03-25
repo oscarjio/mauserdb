@@ -194,11 +194,11 @@ class ProduktionsSlaController {
                 HOUR(datum) AS timme,
                 COUNT(*) AS antal_ibc
             FROM rebotling_ibc
-            WHERE DATE(datum) = :date
+            WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
             GROUP BY HOUR(datum)
             ORDER BY timme ASC
         ");
-        $stmt->execute([':date' => $date]);
+        $stmt->execute([':date' => $date, ':dateb' => $date]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

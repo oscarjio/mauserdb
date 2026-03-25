@@ -577,9 +577,9 @@ class StatistikDashboardController {
                 $stmtS = $this->pdo->prepare("
                     SELECT COALESCE(SUM(duration_minutes), 0) AS total_min
                     FROM stoppage_log
-                    WHERE DATE(start_time) = :datum
+                    WHERE start_time >= :datum AND start_time < DATE_ADD(:datumb, INTERVAL 1 DAY)
                 ");
-                $stmtS->execute([':datum' => $today]);
+                $stmtS->execute([':datum' => $today, ':datumb' => $today]);
                 $sRow = $stmtS->fetch(\PDO::FETCH_ASSOC);
                 $stoppMinuter = (int)($sRow['total_min'] ?? 0);
             } catch (\PDOException $e) {

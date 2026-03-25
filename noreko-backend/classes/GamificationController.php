@@ -327,15 +327,15 @@ class GamificationController {
             $sql = "
                 SELECT op_id, dag, SUM(cnt) AS ibc_count FROM (
                     SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op1 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op1, DATE(datum)
                     UNION ALL
                     SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op2 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op2, DATE(datum)
                     UNION ALL
                     SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op3 IN ({$placeholders}) AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY op3, DATE(datum)
                 ) AS sub
                 GROUP BY op_id, dag
@@ -401,13 +401,13 @@ class GamificationController {
             $sql = "
                 SELECT dag, SUM(cnt) AS total_cnt FROM (
                     SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    WHERE op1 = :uid1 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
                     UNION ALL
                     SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    WHERE op2 = :uid2 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
                     UNION ALL
                     SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    WHERE op3 = :uid3 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
                 ) AS sub
                 GROUP BY dag HAVING total_cnt >= 100
                 ORDER BY dag DESC LIMIT 1
@@ -441,7 +441,7 @@ class GamificationController {
                         SELECT DATE(datum) AS d, skiftraknare,
                                MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND (op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3)
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_skift
@@ -474,7 +474,7 @@ class GamificationController {
                 SELECT dag FROM (
                     SELECT DATE(datum) AS dag FROM rebotling_ibc
                     WHERE (op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3)
-                      AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                     GROUP BY DATE(datum)
                 ) AS sub
                 ORDER BY dag DESC

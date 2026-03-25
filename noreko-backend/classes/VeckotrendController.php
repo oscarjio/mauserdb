@@ -56,8 +56,8 @@ class VeckotrendController {
                         MAX(COALESCE(ibc_ej_ok, 0))         AS shift_ibc_ej_ok,
                         AVG(runtime_plc)                    AS avg_cykeltid
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= ?
-                      AND DATE(datum) <= ?
+                    WHERE datum >= ?
+                      AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -78,8 +78,8 @@ class VeckotrendController {
                         DATE(skapad_datum) AS dag,
                         AVG(COALESCE(drifttid_pct, 0)) AS snitt_drifttid_pct
                     FROM rebotling_skiftrapport
-                    WHERE DATE(skapad_datum) >= ?
-                      AND DATE(skapad_datum) <= ?
+                    WHERE skapad_datum >= ?
+                      AND skapad_datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(skapad_datum)
                     ORDER BY dag ASC
                 ");
@@ -102,8 +102,8 @@ class VeckotrendController {
                                 END
                             ) AS snitt_drifttid_pct
                         FROM rebotling_skiftrapport
-                        WHERE DATE(skapad_datum) >= ?
-                          AND DATE(skapad_datum) <= ?
+                        WHERE skapad_datum >= ?
+                          AND skapad_datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(skapad_datum)
                         ORDER BY dag ASC
                     ");

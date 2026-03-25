@@ -383,11 +383,11 @@ class KapacitetsplaneringController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :datum
+                    WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_skift
             ");
-            $stmt->execute([':datum' => $datum]);
+            $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             $totalOk = (int)($row['total_ok'] ?? 0);
@@ -1106,7 +1106,7 @@ class KapacitetsplaneringController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -1178,7 +1178,7 @@ class KapacitetsplaneringController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");

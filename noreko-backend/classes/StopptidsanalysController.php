@@ -169,10 +169,10 @@ class StopptidsanalysController {
                     COALESCE(SUM(duration_min), 0) AS total_min,
                     COUNT(*) AS antal
                 FROM maskin_stopptid
-                WHERE DATE(startad_at) = :idag
+                WHERE startad_at >= :idag AND startad_at < DATE_ADD(:idagb, INTERVAL 1 DAY)
                   AND duration_min IS NOT NULL
             ");
-            $stmt->execute([':idag' => $idag]);
+            $stmt->execute([':idag' => $idag, ':idagb' => $idag]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $totalIdagMin   = round((float)($row['total_min'] ?? 0), 1);
             $antalStoppIdag = (int)($row['antal'] ?? 0);

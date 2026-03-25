@@ -2090,8 +2090,8 @@ class BonusController {
             $stmt = $this->pdo->query("
                 SELECT DISTINCT DATE(datum) AS dag
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-                  AND DATE(datum) <= CURDATE()
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                  AND datum < CURDATE() + INTERVAL 1 DAY
                 ORDER BY dag ASC
             ");
             $dayRows = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -2117,8 +2117,8 @@ class BonusController {
                         MAX(ibc_ok) AS shift_ibc,
                         MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-                      AND DATE(datum) <= CURDATE()
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op1 IS NOT NULL AND op1 > 0
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op1
@@ -2130,8 +2130,8 @@ class BonusController {
                         MAX(ibc_ok) AS shift_ibc,
                         MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-                      AND DATE(datum) <= CURDATE()
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op2 IS NOT NULL AND op2 > 0
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op2
@@ -2143,8 +2143,8 @@ class BonusController {
                         MAX(ibc_ok) AS shift_ibc,
                         MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-                      AND DATE(datum) <= CURDATE()
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op3 IS NOT NULL AND op3 > 0
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3

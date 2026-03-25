@@ -88,9 +88,9 @@ class AndonController {
                     MAX(datum)                                            AS senaste_ibc_tid,
                     TIMESTAMPDIFF(MINUTE, MIN(datum), NOW())              AS total_min
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :datum
+                WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
             ");
-            $stmt->execute([':datum' => $datum]);
+            $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
             $rad = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcIdag        = (int)($rad['ibc_idag']             ?? 0);
@@ -285,12 +285,12 @@ class AndonController {
                     HOUR(datum) AS timme,
                     MAX(ibc_ok) AS ibc_max_timme
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :datum
+                WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                   AND HOUR(datum) BETWEEN 6 AND 22
                 GROUP BY HOUR(datum)
                 ORDER BY timme
             ");
-            $stmt->execute([':datum' => $datum]);
+            $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta dagsmål
@@ -386,9 +386,9 @@ class AndonController {
             $stmt = $this->pdo->prepare("
                 SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_idag
                 FROM rebotling_ibc
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
             ");
-            $stmt->execute([$datum]);
+            $stmt->execute([$datum, $datum]);
             $ibcIdag = intval($stmt->fetchColumn());
 
             // Hämta igårs IBC
@@ -397,13 +397,13 @@ class AndonController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = DATE_SUB(?, INTERVAL 1 DAY)
+                    WHERE datum >= DATE_SUB(?, INTERVAL 1 DAY) AND datum < ?
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
             ");
-            $stmt2->execute([$datum]);
+            $stmt2->execute([$datum, $datum]);
             $ibcIgar = intval($stmt2->fetchColumn());
 
             // Hämta snitt IBC/h senaste 7 dagarna
@@ -535,9 +535,9 @@ class AndonController {
                 $stmtToday = $this->pdo->prepare("
                     SELECT COALESCE(MAX(runtime_plc), 0) / 60.0 AS runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 ");
-                $stmtToday->execute([$datum]);
+                $stmtToday->execute([$datum, $datum]);
                 $todayRuntimeH = floatval($stmtToday->fetchColumn());
                 $current = $todayRuntimeH > 0 ? round($ibcIdag / $todayRuntimeH, 1) : 0;
                 $completed = $current >= $chosen['target'];
@@ -552,13 +552,13 @@ class AndonController {
                                MAX(ibc_ok) - MIN(ibc_ok) AS ok,
                                MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS ej
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND skiftraknare IS NOT NULL
                         GROUP BY skiftraknare
                         HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                     ) x
                 ");
-                $stmtQ->execute([$datum]);
+                $stmtQ->execute([$datum, $datum]);
                 $qr = $stmtQ->fetch(PDO::FETCH_ASSOC);
                 $todayAll = intval($qr['total'] ?? 0);
                 $todayOk = intval($qr['ok'] ?? 0);
@@ -626,9 +626,9 @@ class AndonController {
                     MAX(datum)                                       AS senaste_ibc_tid,
                     TIMESTAMPDIFF(MINUTE, MIN(datum), NOW())         AS total_min
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :datum
+                WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
             ");
-            $stmt->execute([':datum' => $datum]);
+            $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
             $rad = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcIdag    = (int)($rad['ibc_idag']         ?? 0);
@@ -761,10 +761,10 @@ class AndonController {
             try {
                 $stmtOp = $this->pdo->prepare("
                     SELECT op_name FROM shift_plan
-                    WHERE DATE(shift_date) = :datum
+                    WHERE shift_date >= :datum AND shift_date < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     ORDER BY id DESC LIMIT 1
                 ");
-                $stmtOp->execute([':datum' => $datum]);
+                $stmtOp->execute([':datum' => $datum, ':datumb' => $datum]);
                 $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
                 if ($opRow && !empty($opRow['op_name'])) {
                     $operator = $opRow['op_name'];

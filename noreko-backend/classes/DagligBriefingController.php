@@ -140,11 +140,11 @@ class DagligBriefingController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_skift
             ");
-            $stmt->execute([':date' => $date]);
+            $stmt->execute([':date' => $date, ':dateb' => $date]);
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
@@ -186,9 +186,9 @@ class DagligBriefingController {
                 $stmt = $this->pdo->prepare("
                     SELECT SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                 ");
-                $stmt->execute([':date' => $datum]);
+                $stmt->execute([':date' => $datum, ':dateb' => $datum]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $kasserade = (int)($row['kasserade'] ?? 0);
             } catch (\Exception $e) {
@@ -206,10 +206,10 @@ class DagligBriefingController {
                             TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, LEAST(NOW(), :to1)))
                         ) AS stopp_min
                         FROM stopporsak_registreringar
-                        WHERE DATE(start_time) = :date
+                        WHERE start_time >= :date AND start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
                           AND linje = 'rebotling'
                     ");
-                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
+                    $stmt->execute([':date' => $datum, ':dateb' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $stoppMinuter = max(0, (int)($row['stopp_min'] ?? 0));
                 } catch (\Exception $e) {
@@ -260,15 +260,15 @@ class DagligBriefingController {
                     SELECT op, SUM(cnt) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
                     FROM (
                         SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :date1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= :date1 AND datum < DATE_ADD(:date1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1
                         UNION ALL
                         SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :date2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= :date2 AND datum < DATE_ADD(:date2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2
                         UNION ALL
                         SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :date3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= :date3 AND datum < DATE_ADD(:date3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
@@ -277,7 +277,7 @@ class DagligBriefingController {
                     LIMIT 1
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':date1' => $datum, ':date2' => $datum, ':date3' => $datum]);
+                $stmt->execute([':date1' => $datum, ':date1b' => $datum, ':date2' => $datum, ':date2b' => $datum, ':date3' => $datum, ':date3b' => $datum]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
                     $bastaOperator = [
@@ -298,14 +298,14 @@ class DagligBriefingController {
                                SUM(TIMESTAMPDIFF(MINUTE, sr.start_time, COALESCE(sr.end_time, LEAST(NOW(), :to1)))) AS minuter
                         FROM stopporsak_registreringar sr
                         LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
-                        WHERE DATE(sr.start_time) = :date
+                        WHERE sr.start_time >= :date AND sr.start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
                           AND sr.linje = 'rebotling'
                         GROUP BY COALESCE(sk.namn, sr.kommentar, 'Okand')
                         ORDER BY minuter DESC
                         LIMIT 1
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
+                    $stmt->execute([':date' => $datum, ':dateb' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row && (int)$row['minuter'] > 0) {
                         $framstaOrsak = $row['orsak'];
@@ -373,14 +373,14 @@ class DagligBriefingController {
                             COUNT(*) AS antal
                         FROM stopporsak_registreringar sr
                         LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
-                        WHERE DATE(sr.start_time) = :date
+                        WHERE sr.start_time >= :date AND sr.start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
                           AND sr.linje = 'rebotling'
                         GROUP BY COALESCE(sk.namn, sr.kommentar, 'Okand')
                         ORDER BY minuter DESC
                         LIMIT 5
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':date' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
+                    $stmt->execute([':date' => $datum, ':dateb' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Exception $e) {
                     error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());
@@ -478,7 +478,7 @@ class DagligBriefingController {
                            MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -488,7 +488,7 @@ class DagligBriefingController {
                 $dag = date('Y-m-d', strtotime($datum . " -{$i} days"));
                 $totalIbc = 0;
                 try {
-                    $stmt->execute([':date' => $dag]);
+                    $stmt->execute([':date' => $dag, ':dateb' => $dag]);
                     $totalIbc = (int)$stmt->fetchColumn();
                 } catch (\Exception $e) {
                     error_log('DagligBriefingController::veckotrend: ' . $e->getMessage());
@@ -529,15 +529,15 @@ class DagligBriefingController {
                     SELECT op, SUM(cnt) AS ibc_idag, COALESCE(o.name, CONCAT('Operator ', op)) AS namn
                     FROM (
                         SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1
                         UNION ALL
                         SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2
                         UNION ALL
                         SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
@@ -545,7 +545,7 @@ class DagligBriefingController {
                     ORDER BY ibc_idag DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
+                $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($operatorer as &$op) {

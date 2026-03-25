@@ -105,12 +105,12 @@ class DagligSammanfattningController {
                 MIN(TIME(datum)) AS skift_start,
                 MAX(TIME(datum)) AS skift_slut
              FROM rebotling_ibc
-             WHERE DATE(datum) = ?
+             WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
              GROUP BY skiftraknare
              HAVING COUNT(*) > 1
              ORDER BY skiftraknare ASC"
         );
-        $stmt->execute([$date]);
+        $stmt->execute([$date, $date]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($rows)) {
@@ -232,12 +232,12 @@ class DagligSammanfattningController {
                         MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                  FROM rebotling_ibc
-                 WHERE DATE(datum) = ?
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                    AND skiftraknare IS NOT NULL
                  GROUP BY skiftraknare
              ) sub"
         );
-        $ibcStmt->execute([$date]);
+        $ibcStmt->execute([$date, $date]);
         $ibcRow   = $ibcStmt->fetch(PDO::FETCH_ASSOC);
         $okIbc    = (int)($ibcRow['ok_antal']    ?? 0);
         $ejOkIbc  = (int)($ibcRow['ej_ok_antal'] ?? 0);
@@ -298,7 +298,7 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :d1 AND op1 IS NOT NULL AND op1 > 0
+                WHERE datum >= :d1 AND datum < DATE_ADD(:d1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                 UNION ALL
                 SELECT op2 AS op_num,
                     TIMESTAMPDIFF(SECOND,
@@ -307,7 +307,7 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :d2 AND op2 IS NOT NULL AND op2 > 0
+                WHERE datum >= :d2 AND datum < DATE_ADD(:d2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                 UNION ALL
                 SELECT op3 AS op_num,
                     TIMESTAMPDIFF(SECOND,
@@ -316,14 +316,14 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :d3 AND op3 IS NOT NULL AND op3 > 0
+                WHERE datum >= :d3 AND datum < DATE_ADD(:d3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
              ) lagd
              WHERE cycle_sek >= 30 AND cycle_sek <= 1800
              GROUP BY op_num
              ORDER BY antal_ibc DESC
              LIMIT 3"
         );
-        $stmt->execute([':d1' => $date, ':d2' => $date, ':d3' => $date]);
+        $stmt->execute([':d1' => $date, ':d1b' => $date, ':d2' => $date, ':d2b' => $date, ':d3' => $date, ':d3b' => $date]);
         $opRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($opRows)) return [];
@@ -393,9 +393,9 @@ class DagligSammanfattningController {
                 ), 0), 0) AS total_min
              FROM stopporsak_registreringar
              WHERE linje = 'rebotling'
-               AND DATE(start_time) = ?"
+               AND start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)"
         );
-        $totStmt->execute([$date]);
+        $totStmt->execute([$date, $date]);
         $totRow = $totStmt->fetch(PDO::FETCH_ASSOC);
 
         // Top 3 orsaker
@@ -408,12 +408,12 @@ class DagligSammanfattningController {
              FROM stopporsak_registreringar r
              LEFT JOIN stopporsak_kategorier k ON k.id = r.kategori_id
              WHERE r.linje = 'rebotling'
-               AND DATE(r.start_time) = ?
+               AND r.start_time >= ? AND r.start_time < DATE_ADD(?, INTERVAL 1 DAY)
              GROUP BY k.id, k.namn, k.ikon
              ORDER BY total_min DESC
              LIMIT 3"
         );
-        $topStmt->execute([$date]);
+        $topStmt->execute([$date, $date]);
         $topRows = $topStmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [
@@ -441,12 +441,12 @@ class DagligSammanfattningController {
             "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok FROM (
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
              ) skiften"
         );
-        $foStmt->execute([$foregDatum]);
+        $foStmt->execute([$foregDatum, $foregDatum]);
         $foRow  = $foStmt->fetch(PDO::FETCH_ASSOC);
         $ibcForeg = (int)($foRow['ibc_ok'] ?? 0);
 

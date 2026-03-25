@@ -123,7 +123,7 @@ class MinDagController {
                                MAX(runtime_plc) * 60  AS shift_runtime_sek,
                                MAX(ibc_ok)             AS shift_ibc_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) >= :since
+                        WHERE datum >= :since
                           AND skiftraknare IS NOT NULL
                           AND runtime_plc IS NOT NULL
                         GROUP BY skiftraknare
@@ -192,11 +192,11 @@ class MinDagController {
                     SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
                 FROM rebotling_ibc
                 WHERE $opFilter
-                  AND DATE(datum) = :today
+                  AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today]);
+            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
             $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($shifts)) {
@@ -257,8 +257,8 @@ class MinDagController {
                         SELECT DATE(datum) AS datum, skiftraknare, MAX(ibc_ok) AS shift_ibc_ok
                         FROM rebotling_ibc
                         WHERE $opFilter
-                          AND DATE(datum) >= :since30
-                          AND DATE(datum) < :today
+                          AND datum >= :since30
+                          AND datum < :today
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps
@@ -318,12 +318,12 @@ class MinDagController {
                     MAX(runtime_plc) - MIN(runtime_plc) AS runtime_denna_timme_min
                 FROM rebotling_ibc
                 WHERE $opFilter
-                  AND DATE(datum) = :today
+                  AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY HOUR(datum)
                 ORDER BY timme ASC
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today]);
+            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $trend = [];
@@ -391,12 +391,12 @@ class MinDagController {
                         SUBSTRING_INDEX(GROUP_CONCAT(kvalitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
                     FROM rebotling_ibc
                     WHERE $opFilter
-                      AND DATE(datum) = :today
+                      AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS ps
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today]);
+            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcOk    = (int)($row['total_ibc_ok']    ?? 0);

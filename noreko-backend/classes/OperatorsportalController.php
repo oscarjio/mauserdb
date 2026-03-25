@@ -206,13 +206,13 @@ class OperatorsportalController {
                     MAX(datum)                    AS senaste_aktivitet
                 FROM rebotling_ibc
                 WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
-                  AND DATE(datum) = :today
+                  AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
                 ORDER BY MAX(datum) DESC
                 LIMIT 1
             ");
-            $stmt->execute([':op_id' => $opId, ':today' => $today]);
+            $stmt->execute([':op_id' => $opId, ':today' => $today, ':todayb' => $today]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$row) {

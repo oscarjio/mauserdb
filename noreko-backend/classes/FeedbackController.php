@@ -180,7 +180,7 @@ class FeedbackController {
             $stmtSkift = $this->pdo->prepare(
                 "SELECT skiftraknare
                  FROM rebotling_ibc
-                 WHERE DATE(datum) = CURDATE()
+                 WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                  ORDER BY datum DESC
                  LIMIT 1"
             );

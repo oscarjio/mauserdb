@@ -287,14 +287,25 @@ class NewsController {
                        MAX(ibc_ok) AS value,
                        CONCAT('Rekordag! ', DATE_FORMAT(DATE(datum),'%d %b'), ': ', MAX(ibc_ok), ' IBC — nytt dagrekord!') AS text
                 FROM rebotling_ibc
-                WHERE DATE(datum) = (
-                    SELECT DATE(datum)
-                    FROM rebotling_ibc
-                    GROUP BY DATE(datum)
-                    ORDER BY MAX(ibc_ok) DESC
-                    LIMIT 1
+                WHERE datum >= (
+                    SELECT best_day FROM (
+                        SELECT DATE(datum) AS best_day
+                        FROM rebotling_ibc
+                        GROUP BY DATE(datum)
+                        ORDER BY MAX(ibc_ok) DESC
+                        LIMIT 1
+                    ) AS bd
                 )
-                  AND DATE(datum) >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                  AND datum < (
+                    SELECT DATE_ADD(best_day, INTERVAL 1 DAY) FROM (
+                        SELECT DATE(datum) AS best_day
+                        FROM rebotling_ibc
+                        GROUP BY DATE(datum)
+                        ORDER BY MAX(ibc_ok) DESC
+                        LIMIT 1
+                    ) AS bd2
+                )
+                  AND datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                 LIMIT 1
             ";
             $stmt = $this->pdo->query($sql);
@@ -330,7 +341,7 @@ class NewsController {
                                     THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
                                     ELSE 0 END, 1) AS oee_val
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                       AND ibc_ok > 0
                     GROUP BY DATE(datum)
                 ) AS dagdata
@@ -435,7 +446,7 @@ class NewsController {
                        MAX(ibc_ok) AS value,
                        CONCAT('📊 ', DATE_FORMAT(DATE(datum),'%d %b %Y'), ': ', MAX(ibc_ok), ' IBC producerade') AS text
                 FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                 GROUP BY DATE(datum)
                 ORDER BY event_datum DESC
                 LIMIT 5
@@ -467,14 +478,14 @@ class NewsController {
                     SELECT DATE(t.datum) AS event_datum,
                            MAX(t.ibc_ok) AS today_ibc
                     FROM rebotling_ibc t
-                    WHERE DATE(t.datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                    WHERE t.datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                     GROUP BY DATE(t.datum)
                 ) sub
                 LEFT JOIN (
                     SELECT DATE(datum) AS dag, MAX(ibc_ok) AS prev_best
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
-                      AND DATE(datum) < CURDATE()
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
+                      AND datum < CURDATE()
                     GROUP BY DATE(datum)
                 ) prev ON prev.dag >= DATE_SUB(sub.event_datum, INTERVAL 30 DAY)
                       AND prev.dag < sub.event_datum
@@ -515,7 +526,7 @@ class NewsController {
                                     THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
                                     ELSE 0 END, 1) AS oee_val
                     FROM rebotling_ibc
-                    WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                       AND ibc_ok > 0
                     GROUP BY DATE(datum)
                 ) AS dagdata

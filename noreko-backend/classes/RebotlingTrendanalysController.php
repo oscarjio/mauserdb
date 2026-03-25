@@ -63,8 +63,8 @@ class RebotlingTrendanalysController {
                 MIN(i.datum) AS forsta_cykel,
                 MAX(i.datum) AS sista_cykel
             FROM rebotling_ibc i
-            WHERE DATE(i.datum) >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-              AND DATE(i.datum) <= CURDATE()
+            WHERE i.datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+              AND i.datum < CURDATE() + INTERVAL 1 DAY
             GROUP BY DATE(i.datum)
             ORDER BY datum ASC
         ";
@@ -348,7 +348,7 @@ class RebotlingTrendanalysController {
                 MIN(datum)        AS forsta_cykel,
                 MAX(datum)        AS sista_cykel
             FROM rebotling_ibc
-            WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
+            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
             GROUP BY YEAR(datum), WEEK(datum, 1)
             ORDER BY ar DESC, vecka DESC
             LIMIT 12

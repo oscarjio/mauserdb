@@ -415,11 +415,11 @@ class StatistikOverblickController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_skift
             ");
-            $stmt->execute([':date' => $date]);
+            $stmt->execute([':date' => $date, ':dateb' => $date]);
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);

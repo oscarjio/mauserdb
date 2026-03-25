@@ -401,13 +401,13 @@ class SkiftjamforelseController {
                     MAX(ibc_ej_ok)   AS max_ej_ok,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(datum) = ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND {$timeCond}
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
              ) s"
         );
-        $stmt->execute([$date]);
+        $stmt->execute([$date, $date]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $ibcOk    = (int)($row['ibc_ok']    ?? 0);

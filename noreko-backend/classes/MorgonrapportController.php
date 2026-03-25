@@ -134,12 +134,12 @@ class MorgonrapportController {
                  FROM (
                      SELECT skiftraknare, MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
-                     WHERE DATE(datum) = ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                      GROUP BY skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $val = $stmt->fetchColumn();
             return round((float)($val ?: 0) / 60.0, 2);
         } catch (\Exception $e) {
@@ -225,13 +225,13 @@ class MorgonrapportController {
                  FROM (
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
-                     WHERE DATE(datum) = ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                        AND skiftraknare IS NOT NULL
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $totalIbc = (int)($stmt->fetchColumn() ?: 0);
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getProduktionData (ibc): ' . $e->getMessage());
@@ -249,13 +249,13 @@ class MorgonrapportController {
                  FROM (
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
-                     WHERE DATE(datum) = ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                        AND skiftraknare IS NOT NULL
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
-            $stmt->execute([$prevWeekDate]);
+            $stmt->execute([$prevWeekDate, $prevWeekDate]);
             $prevWeekIbc = (int)($stmt->fetchColumn() ?: 0);
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getProduktionData (prevWeek): ' . $e->getMessage());
@@ -322,15 +322,15 @@ class MorgonrapportController {
                  FROM (
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
-                     WHERE DATE(datum) = ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                        AND skiftraknare IS NOT NULL
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
-            $stmtIbc->execute([$date]);
+            $stmtIbc->execute([$date, $date]);
             $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
-            $stmtIbc->execute([$prevWeekDate]);
+            $stmtIbc->execute([$prevWeekDate, $prevWeekDate]);
             $prevIbc = (int)($stmtIbc->fetchColumn() ?: 0);
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getEffektivitetData: ' . $e->getMessage());
@@ -373,15 +373,15 @@ class MorgonrapportController {
             $stmt = $this->pdo->prepare(
                 "SELECT COUNT(*) AS cnt, COALESCE(SUM(duration_minutes), 0) AS total_min
                  FROM stoppage_log
-                 WHERE DATE(start_time) = ?
+                 WHERE start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
                    AND line = 'rebotling'"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             $totalAntal += (int)($row['cnt'] ?? 0);
             $totalTim   += (float)($row['total_min'] ?? 0) / 60.0;
 
-            $stmt->execute([$prevWeekDate]);
+            $stmt->execute([$prevWeekDate, $prevWeekDate]);
             $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $prevAntal += (int)($prevRow['cnt'] ?? 0);
 
@@ -391,13 +391,13 @@ class MorgonrapportController {
                         COALESCE(SUM(s.duration_minutes), 0) AS total_min
                  FROM stoppage_log s
                  LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
-                 WHERE DATE(s.start_time) = ?
+                 WHERE s.start_time >= ? AND s.start_time < DATE_ADD(?, INTERVAL 1 DAY)
                    AND s.line = 'rebotling'
                  GROUP BY r.id, r.name
                  ORDER BY total_min DESC
                  LIMIT 10"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $topOrsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getStoppData (stoppage_log): ' . $e->getMessage());
@@ -411,15 +411,15 @@ class MorgonrapportController {
                     "SELECT COUNT(*) AS cnt,
                             COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))), 0) AS total_min
                      FROM stopporsak_registreringar
-                     WHERE DATE(start_time) = ?
+                     WHERE start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
                        AND linje = 'rebotling'"
                 );
-                $stmt->execute([$date]);
+                $stmt->execute([$date, $date]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $totalAntal += (int)($row['cnt'] ?? 0);
                 $totalTim   += (float)($row['total_min'] ?? 0) / 60.0;
 
-                $stmt->execute([$prevWeekDate]);
+                $stmt->execute([$prevWeekDate, $prevWeekDate]);
                 $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $prevAntal += (int)($prevRow['cnt'] ?? 0);
 
@@ -429,13 +429,13 @@ class MorgonrapportController {
                             COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
                      FROM stopporsak_registreringar r
                      LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
-                     WHERE DATE(r.start_time) = ?
+                     WHERE r.start_time >= ? AND r.start_time < DATE_ADD(?, INTERVAL 1 DAY)
                        AND r.linje = 'rebotling'
                      GROUP BY k.id, k.namn
                      ORDER BY total_min DESC
                      LIMIT 10"
                 );
-                $stmt->execute([$date]);
+                $stmt->execute([$date, $date]);
                 $extraOrsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 // Sla ihop med befintliga orsaker
@@ -507,18 +507,18 @@ class MorgonrapportController {
                             MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok,
                             MAX(COALESCE(ibc_ok, 0))    AS max_ok
                      FROM rebotling_ibc
-                     WHERE DATE(datum) = ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                        AND skiftraknare IS NOT NULL
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
-            $stmtKval->execute([$date]);
+            $stmtKval->execute([$date, $date]);
             $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $kasserade         += (int)($row['kasserade'] ?? 0);
             $totaltProducerade  = (int)($row['total'] ?? 0);
 
-            $stmtKval->execute([$prevWeekDate]);
+            $stmtKval->execute([$prevWeekDate, $prevWeekDate]);
             $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $prevKasserade += (int)($prevRow['kasserade'] ?? 0);
             $prevTotalt     = (int)($prevRow['total'] ?? 0);
@@ -533,12 +533,12 @@ class MorgonrapportController {
                 $stmt = $this->pdo->prepare(
                     "SELECT COALESCE(SUM(antal), 0) AS kasserade
                      FROM kassationsregistrering
-                     WHERE DATE(datum) = ?"
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
                 );
-                $stmt->execute([$date]);
+                $stmt->execute([$date, $date]);
                 $kasserade += (int)($stmt->fetchColumn() ?: 0);
 
-                $stmt->execute([$prevWeekDate]);
+                $stmt->execute([$prevWeekDate, $prevWeekDate]);
                 $prevKasserade += (int)($stmt->fetchColumn() ?: 0);
 
                 // Topp-orsak
@@ -546,12 +546,12 @@ class MorgonrapportController {
                     "SELECT COALESCE(t.namn, 'Okänd') AS namn, COALESCE(SUM(r.antal), 0) AS total_antal
                      FROM kassationsregistrering r
                      LEFT JOIN kassationsorsak_typer t ON r.orsak_id = t.id
-                     WHERE DATE(r.datum) = ?
+                     WHERE r.datum >= ? AND r.datum < DATE_ADD(?, INTERVAL 1 DAY)
                      GROUP BY t.id, t.namn
                      ORDER BY total_antal DESC
                      LIMIT 1"
                 );
-                $stmt->execute([$date]);
+                $stmt->execute([$date, $date]);
                 $topRow = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($topRow && !empty($topRow['namn'])) {
                     $toppOrsak = $topRow['namn'];
@@ -652,7 +652,7 @@ class MorgonrapportController {
                     SELECT HOUR(datum) AS timme, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0)) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                     HAVING COUNT(*) > 1
@@ -661,7 +661,7 @@ class MorgonrapportController {
                 ORDER BY cnt DESC
                 LIMIT 1
             ");
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if ($row) {
                 $bastaTimme      = (int)$row['timme'];
@@ -682,21 +682,21 @@ class MorgonrapportController {
                     FROM (
                         SELECT op1 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare, op1
                         HAVING COUNT(*) > 1
                         UNION ALL
                         SELECT op2 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare, op2
                         HAVING COUNT(*) > 1
                         UNION ALL
                         SELECT op3 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
-                        WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare, op3
                         HAVING COUNT(*) > 1
@@ -706,7 +706,7 @@ class MorgonrapportController {
                     ORDER BY total_ibc DESC
                     LIMIT 1
                 ");
-                $stmt->execute([$date, $date, $date]);
+                $stmt->execute([$date, $date, $date, $date, $date, $date]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
                     $snabbastOperator = $row['operator_namn'];

@@ -194,7 +194,7 @@ class TvattlinjeController {
             $posterIdag = 0;
             try {
                 $posterIdag = (int)$this->pdo->query(
-                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
+                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
             } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus posterIdag: ' . $e->getMessage()); }
 
@@ -246,7 +246,7 @@ class TvattlinjeController {
             $ibcIdag = 0;
             try {
                 $ibcIdag = (int)$this->pdo->query(
-                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
+                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
             } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
@@ -494,9 +494,9 @@ class TvattlinjeController {
         try {
             // Hämta antal IBCer producerade idag
             $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) 
-                FROM tvattlinje_ibc 
-                WHERE DATE(datum) = CURDATE()
+                SELECT COUNT(*)
+                FROM tvattlinje_ibc
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
@@ -516,7 +516,7 @@ class TvattlinjeController {
             $stmt = $this->pdo->prepare('
                 SELECT datum, running
                 FROM tvattlinje_onoff
-                WHERE DATE(datum) = CURDATE()
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                 ORDER BY datum ASC
             ');
             $stmt->execute();
@@ -554,7 +554,7 @@ class TvattlinjeController {
 
             if ((float)$totalRuntimeMinutes < 0.001 && $ibcToday > 0) {
                 $stmt = $this->pdo->prepare(
-                    'SELECT MIN(datum) as first_ibc, MAX(datum) as last_ibc FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()'
+                    'SELECT MIN(datum) as first_ibc, MAX(datum) as last_ibc FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY'
                 );
                 $stmt->execute();
                 $ibcRange = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -931,10 +931,10 @@ class TvattlinjeController {
                     SELECT ls.*, u.name as user_name
                     FROM line_skiftrapporter ls
                     LEFT JOIN users u ON ls.user_id = u.id
-                    WHERE ls.line = 'tvattlinje' AND DATE(ls.datum) = :datum
+                    WHERE ls.line = 'tvattlinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     ORDER BY ls.datum ASC
                 ");
-                $stmt->execute(['datum' => $datum]);
+                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('TvattlinjeController::getReport: ' . $e->getMessage());
@@ -948,10 +948,10 @@ class TvattlinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT ls.*
                     FROM line_skiftrapporter ls
-                    WHERE ls.line = 'tvattlinje' AND DATE(ls.datum) = :datum
+                    WHERE ls.line = 'tvattlinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     ORDER BY ls.datum ASC
                 ");
-                $stmt->execute(['datum' => $prevDatum]);
+                $stmt->execute(['datum' => $prevDatum, 'datumb' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('TvattlinjeController::getReport prevRows: ' . $e->getMessage());
@@ -984,9 +984,9 @@ class TvattlinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
                     FROM tvattlinje_ibc
-                    WHERE DATE(datum) = :datum
+                    WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                 ");
-                $stmt->execute(['datum' => $datum]);
+                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
                 $ibcRange = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($ibcRange && $ibcRange['cnt'] > 0 && $ibcRange['first_ts']) {
                     $first = new \DateTime($ibcRange['first_ts']);

@@ -509,11 +509,11 @@ class KvalitetsTrendbrottController {
                        COUNT(*) AS antal
                 FROM stoppage_log sl
                 LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
-                WHERE DATE(sl.start_time) = :datum
+                WHERE sl.start_time >= :datum AND sl.start_time < DATE_ADD(:datumb, INTERVAL 1 DAY)
                 GROUP BY sr.name
                 ORDER BY total_min DESC
             ");
-            $stmt->execute([':datum' => $date]);
+            $stmt->execute([':datum' => $date, ':datumb' => $date]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $reasons[] = [
                     'orsak'     => $row['orsak'] ?? 'Okänd',
@@ -539,11 +539,11 @@ class KvalitetsTrendbrottController {
                         ), 0) AS total_min
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
-                    WHERE DATE(sr.start_time) = :datum
+                    WHERE sr.start_time >= :datum AND sr.start_time < DATE_ADD(:datumb, INTERVAL 1 DAY)
                     GROUP BY sk.namn
                     ORDER BY total_min DESC
                 ");
-                $stmt->execute([':datum' => $date]);
+                $stmt->execute([':datum' => $date, ':datumb' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $reasons[] = [
                         'orsak'     => $row['orsak'],

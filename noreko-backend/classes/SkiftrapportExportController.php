@@ -100,12 +100,12 @@ class SkiftrapportExportController {
                     MAX(TIME(datum))   AS skift_slut,
                     DATE(MIN(created_at)) AS skift_datum
                  FROM rebotling_ibc
-                 WHERE DATE(datum) = ?
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  GROUP BY skiftraknare
                  HAVING COUNT(*) > 1
                  ORDER BY skiftraknare ASC"
             );
-            $stmt->execute([$date]);
+            $stmt->execute([$date, $date]);
             $skiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($skiftRows)) {
@@ -202,11 +202,11 @@ class SkiftrapportExportController {
                             datum
                         ) AS cycle_sek
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  ) raw
                  WHERE cycle_sek >= 30 AND cycle_sek <= 1800"
             );
-            $cykelStmt->execute([$date]);
+            $cykelStmt->execute([$date, $date]);
             $cykelRow = $cykelStmt->fetch(PDO::FETCH_ASSOC);
 
             $cykeltider = [
@@ -243,13 +243,13 @@ class SkiftrapportExportController {
                         ) AS cycle_sek
                     FROM (
                         SELECT op1 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(datum) = :d1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= :d1 AND datum < DATE_ADD(:d1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(datum) = :d2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= :d2 AND datum < DATE_ADD(:d2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(datum) = :d3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= :d3 AND datum < DATE_ADD(:d3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                     ) ops_raw
                  ) with_lag
                  WHERE cycle_sek >= 30 AND cycle_sek <= 1800
@@ -257,7 +257,7 @@ class SkiftrapportExportController {
                  ORDER BY antal_ibc DESC
                  LIMIT 10"
             );
-            $opStmt->execute([':d1' => $date, ':d2' => $date, ':d3' => $date]);
+            $opStmt->execute([':d1' => $date, ':d1b' => $date, ':d2' => $date, ':d2b' => $date, ':d3' => $date, ':d3b' => $date]);
             $opRows = $opStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta operatörsnamn
@@ -300,12 +300,12 @@ class SkiftrapportExportController {
                         MAX(ibc_ej_ok)   AS max_ibc_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s"
             );
-            $prevStmt->execute([$prevDate]);
+            $prevStmt->execute([$prevDate, $prevDate]);
             $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
 
             $trender = null;

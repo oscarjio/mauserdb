@@ -213,7 +213,7 @@ class ProduktionsPrognosController {
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) AS cnt
                 FROM rebotling_ibc
-                WHERE DATE({$ibcCol}) = CURDATE()
+                WHERE {$ibcCol} >= CURDATE() AND {$ibcCol} < CURDATE() + INTERVAL 1 DAY
             ");
             $stmt->execute();
             $ibcIdag = (int)($stmt->fetchColumn() ?: 0);

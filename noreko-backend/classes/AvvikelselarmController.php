@@ -192,9 +192,9 @@ class AvvikelselarmController {
             // Larm idag
             $idag = date('Y-m-d');
             $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) FROM avvikelselarm WHERE DATE(tidsstampel) = :idag"
+                "SELECT COUNT(*) FROM avvikelselarm WHERE tidsstampel >= :idag AND tidsstampel < DATE_ADD(:idagb, INTERVAL 1 DAY)"
             );
-            $stmt->execute([':idag' => $idag]);
+            $stmt->execute([':idag' => $idag, ':idagb' => $idag]);
             $larmIdag = (int)$stmt->fetchColumn();
 
             // Snitt losningstid (minuter) for kvitterade larm

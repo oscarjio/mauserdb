@@ -268,7 +268,7 @@ class VDVeckorapportController {
                 COUNT(*) AS total_ibc,
                 SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
             FROM rebotling_ibc
-            WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
+            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
             GROUP BY DATE(datum)
             ORDER BY dag ASC
         ";
