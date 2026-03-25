@@ -23198,3 +23198,36 @@ Granskade ALLA services (92 filer) och komponenter i noreko-frontend/src/app/ ef
 - **Tyst svalj av fel**: Inga fall hittade. Alla catchError antingen returnerar fallback-varde som hanteras i subscribe (null-check) eller visar felmeddelande. Interceptorn visar toast for alla icke-polling-fel.
 - **Observation (ej bugg)**: Nagra services i services/-mappen har catchError som returnerar of(null) utan felmeddelande, men detta ar korrekt da komponenterna kontrollerar `res?.success` och visar egna felmeddelanden vid null/false.
 - Rent — inga buggar hittade.
+
+## Worker B — Session #327 (2026-03-25) — 3 buggar + backend effektivitetsdata
+
+### Uppgift 1+4: Skiftrapport grundlig test + uncommittade andringar
+- Granskade ALLA flikar och komponenter i rebotling-skiftrapport (TS, HTML, CSS — totalt ~4000 rader)
+- Validerade att ALLA backend-queries i RebotlingAnalyticsController matchar prod_db_schema.sql (rebotling_skiftrapport, rebotling_onoff, rebotling_runtime, rebotling_ibc — samtliga kolumner verifierade)
+- Inkluderade Worker A:s uncommittade andringar (effektivitetsgraf + backend effektivitetsdata) — andringarna ser korrekta ut: korrekt Chart.js lifecycle, korrekt OnDestroy cleanup, korrekt dark theme
+
+### Fixade buggar i rebotling-skiftrapport.html:
+1. **Trippelduplicerad operatorsfilter-dropdown** (rad 200-221): Tre identiska select for operatorsfiltrering renderades, vilket orsakade forvirrande UI och potentiella ngModel-konflikter. Tog bort 2 av 3.
+2. **Felaktig aria-label** (rad 89): Produktvaljarens aria-label stod "Valj datum" istallet for "Valj produkt". Rattat till korrekt tillganglighetsetikett.
+3. **Inkonsekvent dark theme pa toast-body** (rad 10): Inline-klasser bg-dark text-white overskrev CSS:ens important-regler. Tog bort overflodiga Bootstrap-klasser; CSS-filen hanterar redan dark theme med korrekta farger (#2d3748 bg, #e2e8f0 text).
+
+### Uppgift 2: Frontend UX-genomgang
+- Granskat sidstruktur: alla sidor har korrekt OnInit/OnDestroy-livscykelhantering dar det behovs
+- Sidor utan subscriptions (about, contact, not-found, funktionshub, klassificeringslinje/saglinje/tvattlinje-skiftrapport) har korrekt inga OnDestroy — de har inga subscriptions eller timers
+- Dark theme: konsekvent over hela skiftrapporten (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- All text pa svenska (formularlabels, knappar, felmeddelanden, tooltips)
+- Loading-states korrekt implementerade
+- Null/undefined-hantering korrekt i templates (null-coalescing, conditional rendering)
+- Ingen sha1/md5 — enbart bcrypt
+
+### Uppgift 3: Statistik-graf UX
+- Granskade Chart.js-implementationer i rebotling-skiftrapport (trendChart + efficiencyChart)
+- Dark theme korrekt: mork bakgrund (#1a202c), ljus text (#e2e8f0/#a0aec0), subtila gridlinjer
+- Tooltips pa svenska med korrekt styling
+- Tomma dataset hanteras gracefully (meddelande visas)
+- Chart.destroy() korrekt i OnDestroy + vid toggling
+- Stickprov pa effektivitet, pareto, oee-waterfall — samtliga har korrekt lifecycle
+
+### Deploy:
+- Build: OK (inga fel)
+- Deploy: misslyckades pga SSH-timeout mot dev.mauserdb.com — extern anslutningsproblem
