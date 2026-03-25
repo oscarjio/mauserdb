@@ -1,3 +1,46 @@
+## Worker B — Session #317 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: Angular route guard audit (0 buggar)
+Granskade alla route guards och routing-konfiguration i noreko-frontend/src/app/:
+- app.routes.ts (165 rader, ~80 routes): granskade samtliga routes
+- guards/auth.guard.ts: authGuard och adminGuard — bada anvander initialized$.pipe(filter, take(1), switchMap) for att vanta pa auth-status fore beslut. Returnerar UrlTree (Angular best practice), ej router.navigate(). authGuard sparar returnUrl for redirect efter login. adminGuard kontrollerar role === 'admin' || 'developer'. Inga buggar.
+- guards/pending-changes.guard.ts: generisk canDeactivate-guard med confirm()-dialog. Alla 15 routes med canDeactivate har motsvarande canDeactivate()-implementation i sina komponenter (verifierat: shift-handover, skiftoverlamning, underhallslogg, produktionsmal, leveransplanering, rebotling-admin, bonus-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, create-user, news-admin, certifications, feature-flag-admin).
+- services/auth.service.ts: korrekt initialized$/loggedIn$/user$ BehaviorSubjects, sessionStorage-cache for snabb aterstart, polling med interval(60000), stopPolling()/startPolling() lifecycle, logout rensar state och stoppar polling FORE HTTP-anrop.
+- app.config.ts: APP_INITIALIZER vantar pa auth.fetchStatus() och ff.loadFlags() fore routing startar — forhindrar race conditions.
+- Public routes (login, register, about, contact, live-vyer, skiftrapporter, statistik): korrekt UTAN guards.
+- Authenticated routes: alla har canActivate: [authGuard].
+- Admin routes: alla har canActivate: [adminGuard] (oversikt, admin/*, bonus-admin, rebotling/admin, prognos, analys, kalender, vd-dashboard, vd-veckorapport, alerts).
+- Wildcard route ('**' -> NotFoundPage) finns sist — korrekt.
+- Inga oandliga redirect-loopar (login-sidan ar public, guards redirectar till /login med returnUrl).
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: Angular form validation audit (0 buggar)
+Granskade alla Angular-komponenter med formular i noreko-frontend/src/app/:
+- pages/login/login.ts: template-driven med FormsModule. ngModel + required + minlength/maxlength pa bade username och password. Submit-knapp disabled nar loading || !username || !password. Felmeddelande visas pa svenska. Korrekt.
+- pages/register/register.ts + register.html: template-driven. Alla 6 falt (username, password, password2, email, phone, code) har required + minlength/maxlength. Losenordsstyrka kontrolleras i checkPasswordStrength() (minst 8 tecken, bokstav, siffra). E-postvalidering i checkEmail(). Alla felmeddelanden pa svenska. Submit-knapp disabled med korrekt villkor. onSubmit() validerar ALLA falt programmatiskt fore HTTP-anrop. Korrekt.
+- pages/create-user/create-user.ts + create-user.html: template-driven. username (required, minlength=3, maxlength=50), password (required, minlength=8, maxlength=128), email (required, maxlength=255), phone (valfritt, maxlength=20). isPasswordValid och isEmailValid getters. canSubmit getter. onSubmit() validerar programmatiskt. Alla meddelanden pa svenska. Implementerar ComponentCanDeactivate. Korrekt.
+- pages/shift-handover/shift-handover.ts + .html: textarea med ngModel, maxlength=500, teckengransviserare. Skift-/prioritet-/audience-valjare med ngModel. submitNote() validerar text.trim() och text.length > 500. Korrekt.
+- pages/stoppage-log/stoppage-log.html: formular med ngModel for reason_id (required, select), start_time (required, datetime-local), end_time (valfritt), comment (maxlength=500). Submit disabled med korrekt villkor. Inline-redigering med number-input (min=0, max=14400). Korrekt.
+- pages/certifications/certifications.html: formular med select (op_number, line — required), date-inputs (certified_date required, expires_date valfritt), textarea (notes, maxlength=2000). Submit disabled med korrekt villkor. Korrekt.
+- pages/feature-flag-admin/feature-flag-admin.html: checkbox + select per flagga med ngModel. Spara-knapp disabled nar !hasChanges(). Korrekt.
+- pages/bonus-admin/bonus-admin.html, rebotling-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin: alla admin-formular granskade — korrekta ngModel-bindings och validering.
+- Alla felmeddelanden ar pa svenska.
+Resultat: rent — inga buggar hittade.
+
+### Audit 3: Angular template binding audit A-M (0 buggar)
+Granskade alla Angular-mallar for komponenter A-M i noreko-frontend/src/app/:
+Filer granskade: app.html, header.html, layout.html, menu.html, about.html, alarm-historik.html, andon.html, andon-board.html, audit-log.html, benchmarking.html, bonus-admin.html, bonus-dashboard.html, certifications.html, contact.html, create-user.html, cykeltid-heatmap.html, daglig-sammanfattning.html, drifttids-timeline.component.html, effektivitet.html, executive-dashboard.html, favoriter.html, feature-flag-admin.html, feedback-analys.html, forsta-timme-analys.html, funktionshub.html, heatmap.html, historisk-sammanfattning.component.html, kassations-drilldown.html, klassificeringslinje-admin.html, klassificeringslinje-live.html, klassificeringslinje-skiftrapport.html, klassificeringslinje-statistik.html, kvalitetstrend.html, live-ranking.html, malhistorik.html, monthly-report.html, morgonrapport.html, my-bonus.html, alerts.html, avvikelselarm.component.html, batch-sparning.component.html, historisk-produktion.component.html, kapacitetsplanering.component.html, kassationsanalys.html, kassationskvot-alarm.component.html, kassationsorsak.html, kassationsorsak-statistik.html, kvalitetscertifikat.component.html, kvalitetstrendanalys.html, kvalitets-trendbrott.html, leveransplanering.component.html, maskin-drifttid.html, maskinhistorik.component.html, maskin-oee.component.html, maskinunderhall.component.html, min-dag.html, daglig-briefing.component.html, gamification.component.html
+
+Kontrollerade for varje template:
+- *ngFor med trackBy: ALLA har trackBy (verifierat med Grep-sokning pa *ngFor utan trackBy — inga traffar i hela src/app/)
+- Null-checkar i templates: anvander korrekt *ngIf, optional chaining (?.) eller ?? for null-safe access dar det behovs
+- [ngClass] syntax: korrekta objektlitteraler, ternary-uttryck och stranguittryck genomgaende
+- Pipe-anvandningar: date, number (1.0-0, 1.1-1), slice, keyvalue — alla med korrekt syntax
+- Event bindings: alla (click), (change), (ngSubmit), (ngModelChange), (keyup.enter), (keydown.enter) matchar existerande metoder i komponenternas TypeScript-filer
+- Property bindings: [class.X], [ngClass], [style.X], [disabled], [routerLink], [attr.X] — alla med korrekt syntax
+- Inga felaktiga property bindings hittade
+Resultat: rent — inga buggar hittade.
+
 ## Worker B — Session #316 (2026-03-25) — 0 buggar (alla 3 audits rena)
 
 ### Audit 1: Angular subscription/timer cleanup N-Z (0 buggar)
