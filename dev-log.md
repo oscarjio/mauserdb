@@ -1,3 +1,62 @@
+## Worker A — Session #323 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP logging/audit trail audit (0 buggar)
+Granskade ALLA PHP-controllers i noreko-backend/classes/ for saknad loggning av viktiga handelser (login, CRUD-operationer, fel), inkonsekvent loggniva och loggning av kanslig data (losenord, tokens).
+
+**Granskade filer (kritiska controllers med CRUD-operationer):**
+- `LoginController.php` — Fullstandig loggning: error_log() vid rate limiting, misslyckade inloggningar, databasfel. AuditLogger::log() vid login, login_failed, login_blocked_inactive, logout. Log injection-skydd via preg_replace pa username. Inga losenord/tokens loggas.
+- `RegisterController.php` — AuditLogger::log() vid lyckad registrering. error_log() vid duplicate key-fel. Losenord loggas aldrig.
+- `AdminController.php` — AuditLogger::log() for create_user, delete_user, toggle_admin, toggle_active, update_user. error_log() vid databasfel och obehorigad atkomst. Losenord maskeras som '***' i audit-logg.
+- `ProfileController.php` — AuditLogger::log() vid update_profile. error_log() vid rate limiting, felaktigt losenord, databasfel. Losenord loggas aldrig.
+- `AuthHelper.php` — error_log() vid alla PDOException i rate limiting-metoder. Inga kansliga data i loggar.
+- `StoppageController.php` — AuditLogger::log() for create/update/delete. error_log() vid obehorigad atkomst.
+- `ShiftHandoverController.php` — AuditLogger::log() vid delete. error_log() vid obehorigad borttagning.
+- `NewsController.php` — AuditLogger::log() for create/update/delete nyheter.
+- `FeatureFlagController.php` — AuditLogger::log() vid update/bulk-update. error_log() vid obehorigad atkomst.
+- `AlertsController.php` — AuditLogger::log() vid update_alert_settings.
+- `CertificationController.php`, `OperatorController.php`, `MaintenanceController.php` — Alla har AuditLogger::log() for CRUD.
+
+**Notering (ej bugg):** BonusAdminController, ShiftPlanController, FeedbackController, DashboardLayoutController, StopporsakRegistreringController, LeveransplaneringController, SkiftplaneringController, UnderhallsloggController, ProduktionsmalController saknar AuditLogger — anvander dock error_log() for fel. Dessa ar lagre-risk operationer (ej autentisering/authorization). BonusAdminController har egen bonus_audit_log-tabell.
+
+**Resultat:** Inga buggar. Alla sakerhetskritiska operationer (login/logout/register, useradmin, profil) har fullstandig audit trail. Inga losenord, tokens eller kanslig data loggas. Log injection-skydd finns.
+
+### Audit 2: PHP race condition audit (0 buggar)
+Granskade controllers for concurrent request-problem, saknad DB-lasning (SELECT FOR UPDATE), optimistic locking och TOCTOU-buggar.
+
+**Granskade filer:**
+- `AdminController.php` — create_user: beginTransaction + SELECT FOR UPDATE pa username + INSERT (forhindrar duplicate username race). delete_user: beginTransaction + SELECT FOR UPDATE fore DELETE. toggleAdmin/toggleActive: beginTransaction + SELECT FOR UPDATE fore UPDATE. Korrekt.
+- `RegisterController.php` — beginTransaction + SELECT FOR UPDATE pa username + INSERT. Korrekt.
+- `ProfileController.php` — beginTransaction for UPDATE users. Session data lases efter commit. Korrekt.
+- `StoppageController.php` — createStoppage: beginTransaction for INSERT + AuditLogger. updateStoppage: beginTransaction for UPDATE. deleteStoppage: beginTransaction for DELETE. Korrekt.
+- `ShiftHandoverController.php` — deleteNote: beginTransaction + SELECT FOR UPDATE fore agarkontroll + DELETE. Forhindrar TOCTOU. Korrekt.
+- `FeedbackController.php` — submit: beginTransaction + SELECT FOR UPDATE for dublett-check + INSERT. Forhindrar double-submit. Korrekt.
+- `RuntimeController.php` — registerBreakFromShelly: beginTransaction + SELECT FOR UPDATE for dublett-deduplicering. Korrekt.
+- `FavoriterController.php` — addFavorit: beginTransaction + SELECT MAX FOR UPDATE for sort_order. reorderFavoriter: beginTransaction. Korrekt.
+- `AlertsController.php` — saveSettings: beginTransaction for batch-update. acknowledgeAlert: atomisk UPDATE med WHERE acknowledged=0 (idempotent). Korrekt.
+- `FeatureFlagController.php` — bulkUpdate: beginTransaction for batch-update. Korrekt.
+- `DashboardLayoutController.php` — saveLayout: INSERT ON DUPLICATE KEY UPDATE (atomisk upsert). Korrekt.
+- `RebotlingProductController.php` — create/update/delete: beginTransaction. Korrekt.
+- `CertificationController.php`, `SkiftplaneringController.php`, `BatchSparningController.php`, `MaskinunderhallController.php`, `SkiftoverlamningController.php`, `StopporsakRegistreringController.php` — Alla anvander beginTransaction + FOR UPDATE dar det behovs. Korrekt.
+
+**Resultat:** Inga buggar. Alla kritiska write-operationer anvander transaktioner. Race condition-skydd med SELECT FOR UPDATE finns for duplicate-check (username, certifieringar, skiftschema), TOCTOU-skydd (delete/update med agarkontroll), och concurrent webhook-deduplicering.
+
+### Audit 3: PHP date/timezone audit (0 buggar)
+Granskade datum-/tidshantering i alla controllers for saknad timezone-setting, inkonsekvent datumformat och felanvandning av strtotime/date.
+
+**Granskade filer:**
+- `noreko-backend/api.php` (rad 6) — `date_default_timezone_set('Europe/Stockholm')` satt som forsta raden efter <?php. Alla controllers gar via api.php som entry point, sa timezone ar konsekvent satt.
+- `noreko-backend/update-weather.php` (rad 9) — Egen `date_default_timezone_set('Europe/Stockholm')`. Korrekt for standalone cron-script.
+- `noreko-backend/login.php`, `admin.php` — Legacy stubs, anvander inga date()-anrop. Inget problem.
+- `AuthHelper.php` — date('Y-m-d H:i:s', time() - ...) for rate limiting cutoff. Anvander PHP:s default timezone (satt av api.php). Korrekt.
+- `StoppageController.php` — createStoppage/updateStoppage: explicit `new DateTimeZone('Europe/Stockholm')` for DateTime-objekt. getWeeklySummary: Bugfix #285 tillampat (date('N') istallet for strtotime('monday this week')). Korrekt.
+- `ShiftHandoverController.php` — timeAgo(): explicit `new DateTimeZone('Europe/Stockholm')`. addNote: date('Y-m-d') forlitar sig pa api.php timezone. Korrekt.
+- `RuntimeController.php` — calculateBreakTime: explicit `new DateTimeZone('Europe/Stockholm')`. Korrekt.
+- `NewsController.php` — date('d M', strtotime(...)) med ?: time() fallback for ogiltigt datum. Korrekt.
+- Alla controllers som anvander date()/strtotime() — Genomgaende Y-m-d H:i:s format. Inga blandade format (t.ex. d/m/Y vs m/d/Y). Konsekvent.
+- Bugfix #285 (strtotime('monday this week')) — Fixad i alla 13 forekommer: StoppageController, ProduktionsTaktController, OperatorsportalController, GamificationController, SkiftoverlamningController, MaskinDrifttidController, RankingHistorikController, OperatorDashboardController, TidrapportController (2 st), OperatorRankingController (2 st), ProduktionsmalController (2 st). Alla anvander date('N')-baserad aritmetik istallet.
+
+**Resultat:** Inga buggar. Timezone ar konsekvent satt via api.php (Europe/Stockholm). Alla DateTime-skapanden anvander explicit timezone. Datumformat ar genomgaende Y-m-d H:i:s. strtotime('monday this week')-buggen (fixad i #285) ar tillampad overallt.
+
 ## Worker A — Session #322 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP SQL query builder audit (0 buggar)
