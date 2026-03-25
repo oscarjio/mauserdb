@@ -1,3 +1,37 @@
+## Worker A -- Session #330 (2026-03-25) -- SQL-granskning, endpoint-test, produktion_procent-fix
+
+### Uppgift 1: SQL-granskning mot prod_db_schema.sql
+Granskade samtliga PHP-filer i noreko-backend/classes/ mot prod_db_schema.sql.
+
+**Hittade och fixade:**
+1. **AndonController.php** (5 stallen): Anvande `SELECT value FROM rebotling_settings WHERE setting = 'dagmal'` — men rebotling_settings har INGA kolumner `setting`/`value`. Fixade till `SELECT rebotling_target FROM rebotling_settings WHERE id = 1`. Samma fix for `takt_mal` -> `hourly_target`.
+2. **RebotlingAnalyticsController.php** (2 stallen): Anvande `AVG(produktion_procent)` direkt i SQL — men produktion_procent ar kumulativ fran PLC (se Uppgift 3). Ersatte med kvalitetsberakning fran `ibc_ok / (ibc_ok + ibc_ej_ok) * 100`.
+
+### Uppgift 2: Endpoint-testning med curl mot dev
+Loggade in via curl (POST action=login) och testade 70+ endpoints.
+
+**Hittade och fixade 500-fel:**
+1. **OperatorDashboardController.php** — `run=summary`, `run=weekly`, `run=history`: Alla hade `UNION ALL`-subqueries dar samma named parameter (`:from_date`, `:to_date`) forekom 3 ganger — kraschade med `ATTR_EMULATE_PREPARES=false`. Fixade genom att ge varje UNION ALL-gren unika parameternamn (`:from_1`, `:to_1`, `:from_2`, etc.).
+
+**Resultat efter fix:** Alla testade endpoints returnerar 200 (eller forvantade 400/403 vid felaktig input). Noll 500-fel.
+
+### Uppgift 3: produktion_procent-berakning
+**Analys:** Verifierade mot prod DB-data att `produktion_procent` i rebotling_ibc ar kumulativ fran PLC. Vardena okar monotont: 8, 17, 30, 43, 61, 77, 99, 125, 156, 193, 282... och atergar vid PLC-reset.
+
+**Status i koden:**
+- RebotlingController (getDayStats, getAnalytics): REDAN FIXAT — beraknar delta per cykel inom varje skiftraknare (prevPctBySkift-logik). Returnerar korrekta momentana varden.
+- RebotlingAnalyticsController (getDailyProduction, getBestShifts): VAR FELAKTIGT — anvande `AVG(CASE WHEN produktion_procent BETWEEN 1 AND 100 ...)` direkt pa kumulativa varden. Fixat till kvalitetsberakning baserad pa ibc_ok/(ibc_ok+ibc_ej_ok).
+
+### Uppgift 4: Deploy till dev
+Deployade backend via rsync (3 omgangar under fixning). Alla endpoints verifierade med curl efter varje deploy-runda.
+
+### Fixade filer:
+- noreko-backend/classes/AndonController.php
+- noreko-backend/classes/RebotlingAnalyticsController.php
+- noreko-backend/classes/OperatorDashboardController.php
+
+---
+
 ## Worker B -- Session #328 (2026-03-25) -- Frontend deploy + UX audit
 
 ### Uppgift 1: Frontend deploy

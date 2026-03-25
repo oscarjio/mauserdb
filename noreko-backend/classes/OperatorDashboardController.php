@@ -293,11 +293,11 @@ class OperatorDashboardController {
                     , 1)                                        AS snitt_ibc_per_h,
                     COUNT(DISTINCT dag)                         AS aktiva_dagar,
                     MAX(dag_ibc)                                AS bast_dag_ibc,
-                    -- Trend: senaste 3 dagar vs föregående 4 dagar
-                    SUM(CASE WHEN dag >= :tre_dagar_sen THEN dag_ibc ELSE 0 END)    AS senaste_3_ibc,
-                    SUM(CASE WHEN dag <  :tre_dagar_sen THEN dag_ibc ELSE 0 END)    AS forega_4_ibc
+                    -- Trend: senaste 3 dagar vs foregende 4 dagar
+                    SUM(CASE WHEN dag >= :tre_dagar_sen_a THEN dag_ibc ELSE 0 END)    AS senaste_3_ibc,
+                    SUM(CASE WHEN dag <  :tre_dagar_sen_b THEN dag_ibc ELSE 0 END)    AS forega_4_ibc
                 FROM (
-                    -- Per operatör, dag: summera MAX-värdena per skiftraknare
+                    -- Per operator, dag: summera MAX-vardena per skiftraknare
                     SELECT op_num, dag,
                            SUM(shift_ibc)     AS dag_ibc,
                            SUM(shift_runtime) AS dag_runtime_s
@@ -310,19 +310,19 @@ class OperatorDashboardController {
                             SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op1 IS NOT NULL AND op1 > 0
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND DATE(datum) BETWEEN :from_1 AND :to_1
                               AND skiftraknare IS NOT NULL
                             UNION ALL
                             SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op2 IS NOT NULL AND op2 > 0
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND DATE(datum) BETWEEN :from_2 AND :to_2
                               AND skiftraknare IS NOT NULL
                             UNION ALL
                             SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op3 IS NOT NULL AND op3 > 0
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND DATE(datum) BETWEEN :from_3 AND :to_3
                               AND skiftraknare IS NOT NULL
                         ) AS union_rows
                         GROUP BY op_num, DATE(datum), skiftraknare
@@ -337,9 +337,14 @@ class OperatorDashboardController {
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
-                ':from_date'     => $sjuDagarSen,
-                ':to_date'       => $today,
-                ':tre_dagar_sen' => $treDagarSen,
+                ':from_1'          => $sjuDagarSen,
+                ':to_1'            => $today,
+                ':from_2'          => $sjuDagarSen,
+                ':to_2'            => $today,
+                ':from_3'          => $sjuDagarSen,
+                ':to_3'            => $today,
+                ':tre_dagar_sen_a' => $treDagarSen,
+                ':tre_dagar_sen_b' => $treDagarSen,
             ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -423,7 +428,8 @@ class OperatorDashboardController {
                 $cur = strtotime('+1 day', $cur);
             }
 
-            // Hämta per-dag per-operatör (kumulativt korrekt)
+            // Hamta per-dag per-operator (kumulativt korrekt)
+            // Unika paramnamn per UNION ALL-gren (ATTR_EMULATE_PREPARES=false)
             $sql = "
                 SELECT op_num, dag, SUM(shift_ibc) AS dag_ibc
                 FROM (
@@ -433,19 +439,19 @@ class OperatorDashboardController {
                         SELECT op1 AS op_num, datum, skiftraknare, ibc_ok
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND op1 > 0
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND DATE(datum) BETWEEN :from_1 AND :to_1
                           AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare, ibc_ok
                         FROM rebotling_ibc
                         WHERE op2 IS NOT NULL AND op2 > 0
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND DATE(datum) BETWEEN :from_2 AND :to_2
                           AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare, ibc_ok
                         FROM rebotling_ibc
                         WHERE op3 IS NOT NULL AND op3 > 0
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND DATE(datum) BETWEEN :from_3 AND :to_3
                           AND skiftraknare IS NOT NULL
                     ) AS union_rows
                     GROUP BY op_num, DATE(datum), skiftraknare
@@ -455,7 +461,11 @@ class OperatorDashboardController {
             ";
 
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmt->execute([
+                ':from_1' => $fromDate, ':to_1' => $today,
+                ':from_2' => $fromDate, ':to_2' => $today,
+                ':from_3' => $fromDate, ':to_3' => $today,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg lookup: op_num → [dag => ibc]
@@ -521,8 +531,13 @@ class OperatorDashboardController {
             $monthStart   = date('Y-m-01');
 
             // Hjälpfunktion: bygg UNION ALL-subquery med datumfilter för kumulativ IBC
-            $buildUnion = function(string $fromParam, string $toParam): string {
-                return "
+            // Varje named param far bara forekomma EN gang med ATTR_EMULATE_PREPARES=false.
+            // Darfor skapar vi unika paramnamn per UNION ALL-gren.
+            $buildUnion = function(string $prefix): array {
+                $p1a = ":{$prefix}_1a"; $p1b = ":{$prefix}_1b";
+                $p2a = ":{$prefix}_2a"; $p2b = ":{$prefix}_2b";
+                $p3a = ":{$prefix}_3a"; $p3b = ":{$prefix}_3b";
+                $sql = "
                     SELECT op_num, skiftraknare, datum,
                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
@@ -530,49 +545,60 @@ class OperatorDashboardController {
                         SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND op1 > 0
-                          AND DATE(datum) BETWEEN $fromParam AND $toParam
+                          AND DATE(datum) BETWEEN $p1a AND $p1b
                           AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                         FROM rebotling_ibc
                         WHERE op2 IS NOT NULL AND op2 > 0
-                          AND DATE(datum) BETWEEN $fromParam AND $toParam
+                          AND DATE(datum) BETWEEN $p2a AND $p2b
                           AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                         FROM rebotling_ibc
                         WHERE op3 IS NOT NULL AND op3 > 0
-                          AND DATE(datum) BETWEEN $fromParam AND $toParam
+                          AND DATE(datum) BETWEEN $p3a AND $p3b
                           AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY op_num, skiftraknare
                 ";
+                $paramKeys = [$p1a, $p1b, $p2a, $p2b, $p3a, $p3b];
+                return ['sql' => $sql, 'keys' => $paramKeys];
             };
 
             // --- Idag ---
+            $todayUnion = $buildUnion('today');
             $sqlIdag = "
                 SELECT
                     SUM(shift_ibc)  AS total_ibc,
                     ROUND(SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0), 1) AS snitt_ibc_per_h,
                     COUNT(DISTINCT op_num) AS aktiva_operatorer
-                FROM ({$buildUnion(':today_a', ':today_b')}) AS s
+                FROM ({$todayUnion['sql']}) AS s
             ";
             $stmtIdag = $this->pdo->prepare($sqlIdag);
-            $stmtIdag->execute([':today_a' => $today, ':today_b' => $today]);
+            $idagParams = [];
+            foreach ($todayUnion['keys'] as $k) $idagParams[$k] = $today; // both from and to = today
+            $stmtIdag->execute($idagParams);
             $rowIdag = $stmtIdag->fetch(PDO::FETCH_ASSOC) ?: [];
 
             // --- Vecka ---
+            $weekUnion = $buildUnion('week');
             $sqlVecka = "
                 SELECT
                     op_num,
                     SUM(shift_ibc)     AS op_total,
                     SUM(shift_runtime) AS op_runtime
-                FROM ({$buildUnion(':week_a', ':week_b')}) AS s
+                FROM ({$weekUnion['sql']}) AS s
                 GROUP BY op_num
                 ORDER BY op_total DESC
             ";
             $stmtVecka = $this->pdo->prepare($sqlVecka);
-            $stmtVecka->execute([':week_a' => $mondayThisWeek, ':week_b' => $today]);
+            $veckaParams = [];
+            foreach ($weekUnion['keys'] as $k) {
+                // keys ending in 'a' = from-datum, 'b' = to-datum
+                $veckaParams[$k] = str_ends_with($k, 'a') ? $mondayThisWeek : $today;
+            }
+            $stmtVecka->execute($veckaParams);
             $veckaRows = $stmtVecka->fetchAll(PDO::FETCH_ASSOC);
 
             $veckaTotalIbc = 0;
@@ -596,12 +622,17 @@ class OperatorDashboardController {
             }
 
             // --- Månad ---
+            $monthUnion = $buildUnion('month');
             $sqlManad = "
                 SELECT SUM(shift_ibc) AS total_ibc
-                FROM ({$buildUnion(':month_a', ':month_b')}) AS s
+                FROM ({$monthUnion['sql']}) AS s
             ";
             $stmtManad = $this->pdo->prepare($sqlManad);
-            $stmtManad->execute([':month_a' => $monthStart, ':month_b' => $today]);
+            $manadParams = [];
+            foreach ($monthUnion['keys'] as $k) {
+                $manadParams[$k] = str_ends_with($k, 'a') ? $monthStart : $today;
+            }
+            $stmtManad->execute($manadParams);
             $rowManad = $stmtManad->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $this->sendSuccess([

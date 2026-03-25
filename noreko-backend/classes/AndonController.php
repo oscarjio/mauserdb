@@ -65,13 +65,12 @@ class AndonController {
             // ---- Dagsmål från rebotling_settings ----
             $malIdag = 100; // fallback
             try {
-                $stmt = $this->pdo->prepare(
-                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                $stmt = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
-                $stmt->execute();
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && is_numeric($row['value']) && (int)$row['value'] > 0) {
-                    $malIdag = (int)$row['value'];
+                if ($row && is_numeric($row['rebotling_target']) && (int)$row['rebotling_target'] > 0) {
+                    $malIdag = (int)$row['rebotling_target'];
                 }
             } catch (\Exception $e) {
                 error_log('AndonController::dagmal: ' . $e->getMessage());
@@ -111,13 +110,12 @@ class AndonController {
             // Taktmål hämtas från rebotling_settings 'takt_mal', fallback 25
             $taktMal = 25;
             try {
-                $stmtTakt = $this->pdo->prepare(
-                    "SELECT value FROM rebotling_settings WHERE setting = 'takt_mal' LIMIT 1"
+                $stmtTakt = $this->pdo->query(
+                    "SELECT hourly_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
-                $stmtTakt->execute();
                 $taktRad = $stmtTakt->fetch(PDO::FETCH_ASSOC);
-                if ($taktRad && is_numeric($taktRad['value']) && (float)$taktRad['value'] > 0) {
-                    $taktMal = (float)$taktRad['value'];
+                if ($taktRad && is_numeric($taktRad['hourly_target']) && (float)$taktRad['hourly_target'] > 0) {
+                    $taktMal = (float)$taktRad['hourly_target'];
                 }
             } catch (\Exception $e) {
                 error_log('AndonController::takt_mal: ' . $e->getMessage());
@@ -296,13 +294,12 @@ class AndonController {
             // Hämta dagsmål
             $malIdag = 100;
             try {
-                $stmtMal = $this->pdo->prepare(
-                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                $stmtMal = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
-                $stmtMal->execute();
                 $malRad = $stmtMal->fetch(PDO::FETCH_ASSOC);
-                if ($malRad && is_numeric($malRad['value']) && (int)$malRad['value'] > 0) {
-                    $malIdag = (int)$malRad['value'];
+                if ($malRad && is_numeric($malRad['rebotling_target']) && (int)$malRad['rebotling_target'] > 0) {
+                    $malIdag = (int)$malRad['rebotling_target'];
                 }
             } catch (\Exception $e) {
                 error_log('AndonController::hourly-today dagmal: ' . $e->getMessage());
@@ -372,12 +369,11 @@ class AndonController {
             // Hämta dagsmål
             $malIdag = 100;
             try {
-                $stmt = $this->pdo->prepare(
-                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                $stmt = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
-                $stmt->execute();
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row) $malIdag = intval($row['value']);
+                if ($row) $malIdag = intval($row['rebotling_target']);
             } catch (\Exception $e) {
                 error_log('AndonController::getDailyChallenge dagmal: ' . $e->getMessage());
             }
@@ -604,13 +600,12 @@ class AndonController {
             // ---- 1. Dagsmål ----
             $malIdag = 100;
             try {
-                $stmt = $this->pdo->prepare(
-                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                $stmt = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
-                $stmt->execute();
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && is_numeric($row['value']) && (int)$row['value'] > 0) {
-                    $malIdag = (int)$row['value'];
+                if ($row && is_numeric($row['rebotling_target']) && (int)$row['rebotling_target'] > 0) {
+                    $malIdag = (int)$row['rebotling_target'];
                 }
             } catch (\Exception $e) {
                 error_log('AndonController::dagmal: ' . $e->getMessage());

@@ -207,7 +207,11 @@ class RebotlingAnalyticsController {
                     SUM(shift_ibc_ok)    AS ibc_ok,
                     SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
                     SUM(shift_bur_ej_ok) AS bur_ej_ok,
-                    ROUND(AVG(avg_prod_pct), 1)  AS snitt_produktion_pct,
+                    ROUND(
+                        CASE WHEN SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok) > 0
+                             THEN SUM(shift_ibc_ok) * 100.0 / (SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok))
+                             ELSE 0 END
+                    , 1) AS snitt_produktion_pct,
                     ROUND(AVG(avg_runtime_plc), 1) AS snitt_cykeltid,
                     SUM(shift_runtime)   AS kortid_minuter
                 FROM (
@@ -219,7 +223,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
                         MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        AVG(CASE WHEN produktion_procent BETWEEN 1 AND 100 THEN produktion_procent END) AS avg_prod_pct,
                         AVG(runtime_plc)         AS avg_runtime_plc
                     FROM rebotling_ibc
                     WHERE datum >= ?
@@ -613,7 +616,11 @@ class RebotlingAnalyticsController {
                     MAX(COALESCE(ibc_ok,   0)) AS ibc_ok,
                     MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
                     MAX(COALESCE(runtime_plc,0)) AS runtime_min,
-                    ROUND(AVG(CASE WHEN produktion_procent BETWEEN 1 AND 100 THEN produktion_procent END), 1) AS avg_kvalitet
+                    ROUND(
+                        CASE WHEN MAX(COALESCE(ibc_ok,0)) + MAX(COALESCE(ibc_ej_ok,0)) > 0
+                             THEN MAX(COALESCE(ibc_ok,0)) * 100.0 / (MAX(COALESCE(ibc_ok,0)) + MAX(COALESCE(ibc_ej_ok,0)))
+                             ELSE 0 END
+                    , 1) AS avg_kvalitet
                 FROM rebotling_ibc
                 WHERE skiftraknare IS NOT NULL
                   AND ibc_ok IS NOT NULL
