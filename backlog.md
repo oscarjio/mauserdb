@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #307):
-- [ ] **PHP SQL GROUP_CONCAT overflow** — GROUP_CONCAT som kan overskrida max_length vid stora dataset (Worker A)
-- [ ] **PHP error_log format consistency** — inkonsekvent loggformat forsvagar felsokbarhet (Worker A)
-- [ ] **PHP SQL DATE() in WHERE** — DATE() pa kolumner forhindrar index-anvandning (Worker A)
-- [ ] **Angular FormGroup reset** — formularvarden som inte aterstalls korrekt efter reset (Worker B)
-- [ ] **Angular template function calls (forts)** — fler tunga funktionsanrop i templates (Worker B)
-- [ ] **Angular service HTTP URL consistency** — inkonsistenta URL:er i services (Worker B)
+### Pagaende (session #308):
+- [ ] **PHP array_map/array_filter callbacks** — felaktiga callbacks som tyst returnerar null (Worker A)
+- [ ] **PHP PDO fetch mode consistency** — blandning av FETCH_ASSOC/FETCH_OBJ i controllers (Worker A)
+- [ ] **PHP SQL DATE() i WHERE (forts)** — ~70+ kvarvarande DATE()-anrop i sallananropade controllers (Worker A)
+- [ ] **Angular Chart.js update vs destroy** — grafer som uppdateras utan att forst destroya gammal instans (Worker B)
+- [ ] **Angular OnDestroy cleanup djupgranskning** — setInterval/Subject/addEventListener cleanup (Worker B)
+- [ ] **Angular HTTP error handling i komponenter** — subscribe utan error callback, saknad loading-state reset (Worker B)
 
-### Nasta buggjakt-items (session #308+):
-- [ ] **PHP array_map/array_filter callbacks** — felaktiga callbacks som tyst returnerar null
-- [ ] **PHP PDO fetch mode consistency** — blandning av FETCH_ASSOC/FETCH_OBJ i controllers
-- [ ] **Angular Chart.js update vs destroy** — grafer som uppdateras utan att forst destroya gammal instans
-- [ ] **Angular HTTP retry pa POST/PUT/DELETE** — retry bor bara ske pa GET (idempotent)
+### Nasta buggjakt-items (session #309+):
+- [ ] **PHP SQL implicit type conversion** — WHERE string-kolumn = integer (saknar quotes)
+- [ ] **PHP exception handling granularity** — breda catch(Exception) som doljer specifika fel
+- [ ] **Angular ngIf/ngSwitch exhaustiveness** — switch-satser utan default/else-fall
+- [ ] **Angular input sanitization** — DomSanitizer anvandning, innerHTML utan sanitering
 
 ## Parkerade features (ta inte dessa nu)
 
