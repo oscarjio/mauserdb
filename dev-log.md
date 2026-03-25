@@ -1,3 +1,67 @@
+## Worker A — Session #322 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP SQL query builder audit (0 buggar)
+Granskade ALLA PHP-controllers i noreko-backend/classes/ (90+ filer) samt api.php, admin.php, login.php och update-weather.php for SQL-strangkonkatenering, saknad parameter binding, oescape:ad input och dynamiska tabell-/kolumnnamn utan validering.
+
+**Granskade filer (urval av kritiska kontroller):**
+- `noreko-backend/api.php` — PDO med ATTR_EMULATE_PREPARES=false, korrekt prepared statements.
+- `noreko-backend/classes/LoginController.php` — Prepared statement med ? for username-lookup.
+- `noreko-backend/classes/RegisterController.php` — Prepared statements genomgaende, filter_var for email.
+- `noreko-backend/classes/BonusController.php` — getDateFilter() bygger SQL-fragment med $start/$end men dessa valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/') fore anvandning; ogiltigt format returnerar "1=0". Saker.
+- `noreko-backend/classes/KassationsanalysController.php` — $orderExpr/$groupExpr bygger SQL men hardas fran vitlistad $group-variabel (in_array(['week','month'])), aldrig fran user input direkt. Saker.
+- `noreko-backend/classes/ForstaTimmeAnalysController.php` — $ibcCol byggs fran getIbcTimestampColumn() som returnerar 'timestamp' eller 'datum' fran DB-schema, aldrig user input.
+- `noreko-backend/classes/OperatorsPrestandaController.php` — $skiftCond byggs fran skiftWhere() som anvander getValidSkift() med whitelist (['dag','kvall','natt']). Saker.
+- `noreko-backend/classes/HistoriskProduktionController.php` — $sort valideras med in_array, $order begransas till ASC/DESC. Sortering sker i PHP-minnet (usort), inte i SQL.
+- `noreko-backend/classes/StoppageController.php` — $line valideras mot VALID_LINES whitelist, used with prepared statements.
+- `noreko-backend/classes/RebotlingController.php` — $granularity valideras med in_array(['day','shift']).
+- `noreko-backend/classes/RebotlingAnalyticsController.php` — Alla datum valideras med preg_match, alla numeriska parametrar cast:as med (int)/(float).
+- `noreko-backend/classes/RebotlingAdminController.php` — pdo->quote() for tabell-namn i information_schema, anropas med hardkodade varden.
+- `noreko-backend/classes/StopporsakRegistreringController.php` — validatedLinje() whitelist for linje-parametern.
+- Samtliga ovriga controllers (NewsController, AdminController, ProfileController, ShiftHandoverController, UnderhallsloggController, etc.) — alla anvander prepared statements ($pdo->prepare() + execute()) med parameter binding.
+
+**Resultat:** Inga buggar. Alla SQL-fragor anvander prepared statements. De fall dar SQL byggs med strankkonkatenering (datumfilter, ORDER BY, kolumnnamn) anvander konsekvent vitlistor, regex-validering eller DB-schema-lookups — aldrig ratt user input.
+
+### Audit 2: PHP CORS/header security audit (0 buggar)
+Granskade api.php, admin.php, login.php och update-weather.php for CORS-konfiguration, security headers och preflight-hantering.
+
+**Granskade filer:**
+- `noreko-backend/api.php` — Fullstandig header-suite:
+  - Access-Control-Allow-Origin: dynamisk fran vitlista + subdomaner, ALDRIG wildcard (*). CRLF-stripping pa origin (header injection prevention). Vary: Origin satt korrekt.
+  - X-Content-Type-Options: nosniff
+  - X-Frame-Options: SAMEORIGIN
+  - X-XSS-Protection: 1; mode=block
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: camera=(), microphone=(), geolocation=()
+  - Content-Security-Policy: frame-ancestors 'none'
+  - HSTS: max-age=31536000 (vid HTTPS)
+  - Cache-Control: no-store, no-cache
+  - X-Powered-By bortplockad
+  - OPTIONS preflight returnerar 204 korrekt
+- `noreko-backend/admin.php` — Legacy stub (returnerar 410). Samma CORS-logik men saknar Vary: Origin. Minimal risk da filen returnerar statiskt felmeddelande.
+- `noreko-backend/login.php` — Legacy stub (returnerar 410). Samma situation som admin.php.
+- `noreko-backend/update-weather.php` — Cron-script, ingen CORS (korrekt). Fullstandiga security headers. Ingen user-facing endpoint.
+- Controllers i classes/ — Satter Content-Type: application/json, men forlitar sig pa api.php for security headers (korrekt arkitektur da api.php ar entry point).
+
+**Resultat:** Inga buggar. CORS-konfigurationen ar robust: vitlistad origin, dynamisk subdomankontroll med regex, CRLF-stripping, Vary: Origin (pa api.php). Alla security headers ar korrekta. admin.php/login.php saknar Vary: Origin men ar legacy stubs utan funktionalitet (returnerar 410).
+
+### Audit 3: PHP input sanitization audit (0 buggar)
+Granskade ALLA controllers for $_GET/$_POST/$_REQUEST utan validering, saknad filter_input/filter_var, typ-casting och JSON-validering.
+
+**Granskade filer (samtliga 90+ controllers i classes/):**
+- **$_GET-parametrar:** Alla numeriska parametrar (days, period, page, limit, id, operator_id, etc.) typ-cast:as med (int) eller intval() och begransas med min()/max(). Exempel: `max(1, min(365, intval($_GET['days'] ?? 30)))`.
+- **Strang-parametrar:** Alla strangvarden anvander trim() och begransas med mb_substr() for langd. Vitlistor anvands for varden som 'line', 'period', 'skift', 'group', 'granularity', 'sort', 'order'.
+- **JSON POST-input:** Alla controllers anvander `json_decode(file_get_contents('php://input'), true)` med validering av returvardet (`!is_array($data)`). Inga controllers anvander ratt $_POST for JSON-data.
+- **Email-validering:** filter_var($email, FILTER_VALIDATE_EMAIL) anvands i LoginController, RegisterController, ProfileController, AdminController, ShiftHandoverController och RebotlingAdminController.
+- **XSS-skydd pa output:** htmlspecialchars(ENT_QUOTES, 'UTF-8') anvands konsekvent for strangvarden som aterspeglas i JSON-output (t.ex. $_GET['station'], kommentarer).
+- **Rate limiting:** LoginController och RegisterController har IP-baserad rate limiting via AuthHelper.
+- **Langdbegransningar:** strlen/mb_strlen-kontroller pa username (max 100), password (max 255), email (max 255), kommentarer (mb_substr max 500).
+- **$_REQUEST:** Anvands ALDRIG i hela kodbasen.
+- **Content-Type-validering:** api.php satter Content-Type: application/json pa response. Inkommande requests valideras implicit genom json_decode (ogiltigt JSON ger felmeddelande).
+
+**Resultat:** Inga buggar. Input-sanitering ar konsekvent och grundlig over hela kodbasen.
+
+---
+
 ## Worker B — Session #322 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: Angular state management audit (0 buggar)
