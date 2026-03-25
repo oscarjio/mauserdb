@@ -116,7 +116,7 @@
 </div>
 
 <!-- Drill-down Modal Overlay -->
-<div *ngIf="drilldownOpen" class="drilldown-overlay" (click)="closeDrilldown()">
+<div *ngIf="drilldownOpen" class="drilldown-overlay" (click)="closeDrilldown()" role="dialog" aria-modal="true" aria-label="Stopporsak detaljer">
   <div class="drilldown-modal" (click)="$event.stopPropagation()">
 
     <!-- Header -->

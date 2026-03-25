@@ -212,7 +212,7 @@
   </div>
 
   <!-- BEKRAFTELSEDIALOG -->
-  <div *ngIf="showConfirm" class="confirm-overlay" (click)="cancelSubmit()">
+  <div *ngIf="showConfirm" class="confirm-overlay" (click)="cancelSubmit()" role="dialog" aria-modal="true" aria-label="Bekrafta skiftoverlamning">
     <div class="confirm-dialog" (click)="$event.stopPropagation()">
       <h5 class="mb-3"><i class="fas fa-question-circle me-2 text-warning"></i>Bekrafta</h5>
       <p class="mb-3">Ar du saker pa att du vill spara skiftoverlamningsprotokollet?</p>

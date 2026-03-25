@@ -200,7 +200,7 @@
   </div>
 
   <!-- Certifikat-modal -->
-  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()" role="dialog" aria-modal="true" aria-label="Kvalitetscertifikat">
     <div class="cert-modal" (click)="$event.stopPropagation()">
       <div class="cert-modal-header">
         <h2 class="mb-0">
@@ -381,7 +381,7 @@
   </div>
 
   <!-- Generera-modal -->
-  <div class="modal-overlay" *ngIf="showGenereraModal" (click)="closeGenerera()">
+  <div class="modal-overlay" *ngIf="showGenereraModal" (click)="closeGenerera()" role="dialog" aria-modal="true" aria-label="Skapa nytt certifikat">
     <div class="gen-modal" (click)="$event.stopPropagation()">
       <div class="cert-modal-header">
         <h2 class="mb-0" style="font-size:1.2rem;">

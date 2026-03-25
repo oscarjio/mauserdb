@@ -372,7 +372,7 @@
 <!-- ====================================================== -->
 <!-- Modal: Tilldela operatör (från veckoöversikt) -->
 <!-- ====================================================== -->
-<div class="wv-modal-backdrop" *ngIf="showAssignModal" (click)="closeAssignModal()">
+<div class="wv-modal-backdrop" *ngIf="showAssignModal" (click)="closeAssignModal()" role="dialog" aria-modal="true" aria-label="Tilldela operator">
   <div class="wv-modal" (click)="$event.stopPropagation()">
     <div class="wv-modal-header">
       <div>

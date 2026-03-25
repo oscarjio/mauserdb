@@ -226,7 +226,7 @@
   </div>
 
   <!-- Trend tooltip/modal -->
-  <div *ngIf="tooltipItem" class="trend-detail-overlay" (click)="closeTrendTooltip()">
+  <div *ngIf="tooltipItem" class="trend-detail-overlay" (click)="closeTrendTooltip()" role="dialog" aria-modal="true" aria-label="Trenddetalj">
     <div class="trend-detail-card" (click)="$event.stopPropagation()">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="mb-0">
