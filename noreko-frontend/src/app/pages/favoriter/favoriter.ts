@@ -74,13 +74,13 @@ export class FavoriterPage implements OnInit, OnDestroy {
     this.favService.add(page.route, page.label, page.icon, page.color)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
-        if (res?.success && res.data) {
+        if (res && res.success && res.data) {
           this.favoriter.push(res.data as Favorit);
           this.successMsg = `"${page.label}" tillagd`;
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
-          this.error = res?.error || 'Kunde inte lägga till';
+          this.error = (res && res.error) || 'Kunde inte lägga till';
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
@@ -91,13 +91,13 @@ export class FavoriterPage implements OnInit, OnDestroy {
     this.favService.remove(fav.id)
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
-        if (res?.success) {
+        if (res && res.success) {
           this.favoriter = this.favoriter.filter(f => f.id !== fav.id);
           this.successMsg = `"${fav.label}" borttagen`;
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
-          this.error = res?.error || 'Kunde inte ta bort';
+          this.error = (res && res.error) || 'Kunde inte ta bort';
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
