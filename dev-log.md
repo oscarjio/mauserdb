@@ -1,3 +1,25 @@
+## Worker B — Session #310 (2026-03-25) — 0 buggar (route param type safety + HTTP retry logic)
+
+### Audit 1: Route param type safety (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ som laser route-parametrar.
+- Sokte efter paramMap.get(), paramMap.subscribe(), params['id'] och queryParams.
+- Hittade 4 komponenter som laser route/query-parametrar:
+  1. operator-detail.ts: paramMap.get('id') med !id || isNaN(+id) check — OK
+  2. tvattlinje-statistik.ts: queryParams (year, month, view, dates) med parseInt+isNaN+rangecheck — OK
+  3. rebotling-statistik.ts: queryParams (year, month, view, dates) med parseInt+isNaN+rangecheck — OK
+  4. stoppage-log.ts: queryParams (maskin, linje) som strangvarden med validLines.includes() — OK
+Resultat: RENT — alla route/query-params har korrekt validering (parseInt+isNaN eller strangvalidering).
+
+### Audit 2: HTTP retry logic (0 buggar)
+Granskade alla Angular services och komponenter i noreko-frontend/src/app/ efter HTTP-anrop.
+- Sokte efter retry() i kombination med POST/PUT/DELETE i 132 filer med HTTP-anrop.
+- Global interceptor (error.interceptor.ts) har retry med safeToRetry-check — enbart GET/HEAD/OPTIONS retry:as, POST/PUT/DELETE kastar direkt. Korrekt.
+- Alla POST/PUT/DELETE i services har timeout+catchError UTAN retry — OK.
+- Alla GET i services har timeout+retry(1)+catchError — OK.
+- Alla HTTP-anrop i komponenter som gor direkt HTTP (ej via service) har timeout+catchError+takeUntil — OK.
+- 96 service-filer och 36 komponent-filer med direkt HTTP granskade.
+Resultat: RENT — inga POST/PUT/DELETE med retry, alla anrop har catchError+timeout.
+
 ## Worker A — Session #310 (2026-03-25) — 0 buggar (SQL LIKE escaping + Content-Type header)
 
 ### Audit 1: SQL LIKE escaping (0 buggar)
