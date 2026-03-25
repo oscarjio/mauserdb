@@ -1,3 +1,44 @@
+## Worker B — Session #322 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular state management audit (0 buggar)
+Granskade ALLA services och components i noreko-frontend/src/app/ for BehaviorSubject race conditions, stale state, shared state synchronization, ReplaySubject/AsyncSubject-problem och state-lackor mellan routes.
+
+**Granskade filer:**
+- `noreko-frontend/src/app/services/auth.service.ts` — 3 BehaviorSubjects (loggedIn$, user$, initialized$). Korrekt: initialized$ satt via APP_INITIALIZER innan routing startar, eliminerar race conditions. Polling via switchMap med takeUntil-monster. clearSession() och logout() rensar state korrekt.
+- `noreko-frontend/src/app/services/alerts.service.ts` — 2 BehaviorSubjects (activeAlerts$, activeCount$). Korrekt: implements OnDestroy med complete() pa subjects. Polling via timer + switchMap + takeUntil(destroy$). pollStarted guard forhindrar dubbel-polling.
+- `noreko-frontend/src/app/services/toast.service.ts` — 1 BehaviorSubject (toasts$). Korrekt: implements OnDestroy, clearTimeout pa alla timers, complete() pa subject. Immutable state-uppdateringar med spridningsoperator.
+- `noreko-frontend/src/app/services/feature-flag.service.ts` — Ingen Subject, anvander Map. Korrekt: laddat via APP_INITIALIZER, ingen race condition.
+- Alla 41 component.ts-filer — samtliga implementerar OnInit + OnDestroy med destroy$ Subject + takeUntil-monster. Alla setInterval rensas med clearInterval i ngOnDestroy. Alla setTimeout rensas med clearTimeout i ngOnDestroy. Chart-instanser (Chart.js) destroyas i ngOnDestroy.
+- Alla 92 services i services/ — samtliga ar providedIn: 'root' (singleton). Korrekt for denna applikation: inga route-specifika services som borde vara component-scoped.
+
+**Resultat:** Inga buggar. State management foljer best practices konsekvent.
+
+### Audit 2: Angular environment config audit (0 buggar)
+Granskade environment-filer och alla services for hardcoded URLs, saknade environment variables och konfigurationsskillnader.
+
+**Granskade filer:**
+- `noreko-frontend/src/environments/environment.ts` — production: false, apiUrl: '/noreko-backend/api.php'
+- `noreko-frontend/src/environments/environment.prod.ts` — production: true, apiUrl: '/noreko-backend/api.php'
+- Alla 92 services i services/ — samtliga importerar environment och anvander environment.apiUrl for API-anrop. Inga hardcoded localhost eller IP-adresser i services.
+- `noreko-frontend/src/app/header/header.ts` + `header.html` — https-URLer till mauserpackaging.com for logotyp. Acceptabelt: externa CDN-bilder, inte API-anrop.
+- `noreko-frontend/src/app/pages/vpn-admin/vpn-admin.html` — 127.0.0.1:7505 som informationstext (OpenVPN management interface). Acceptabelt: detta ar dokumentation/UI-text, inte en hardcoded API-URL.
+- `noreko-frontend/src/app/pages/operator-trend/operator-trend.css` — data:image/svg+xml inline SVG for dropdown-pil. Acceptabelt.
+- `noreko-frontend/src/assets/fontawesome-subset.css` — https://fontawesome.com licensinfo. Acceptabelt.
+
+**Resultat:** Inga buggar. Alla API-anrop anvander environment.apiUrl. environment.ts och environment.prod.ts ar identiska forutom production-flaggan, vilket ar korrekt for relativ URL-konfiguration.
+
+### Audit 3: Angular HTTP interceptor audit (0 buggar)
+Granskade interceptors, HTTP-anrop, error-hantering, timeout och retry-logik.
+
+**Granskade filer:**
+- `noreko-frontend/src/app/interceptors/error.interceptor.ts` — Fullstandig error interceptor med: retry for idempotenta metoder (GET/HEAD/OPTIONS) med 1s delay vid natverksfel/502/503/504. CatchError med svenska felmeddelanden. 401-hantering: clearSession() + redirect till /login med returnUrl. 403/404/408/429/500+ hantering. Skip-logik for status-polling (action=status) och X-Skip-Error-Toast header.
+- `noreko-frontend/src/app/interceptors/csrf.interceptor.ts` — Bifogar X-CSRF-Token fran sessionStorage till POST/PUT/DELETE/PATCH. Korrekt felhantering for otillganglig storage.
+- `noreko-frontend/src/app/app.config.ts` rad 84 — Bada interceptors registrerade via provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor])). Korrekt ordning: CSRF forst (bifoga token), sedan error (hantera svar).
+- Alla 92 services — samtliga anvander timeout() operator (8000-15000ms) och catchError() pa varje HTTP-anrop. retry(1) pa GET-anrop. withCredentials: true pa alla API-anrop som behover auth.
+- `noreko-frontend/src/app/services/auth.service.ts` — fetchStatus() har timeout(8000) + retry(1) + catchError som returnerar null (transienta fel loggar inte ut). logout() har timeout(8000) + catchError.
+
+**Resultat:** Inga buggar. Interceptor-arkitekturen ar robust med korrekt retry-logik (enbart idempotenta metoder), CSRF-skydd, timeout-hantering och anvandarvanlga felmeddelanden pa svenska.
+
 ## Worker B — Session #321 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: Angular lazy loading performance audit (0 buggar)
