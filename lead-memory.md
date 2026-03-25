@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #319)*
+*Senast uppdaterad: 2026-03-25 (session #320)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,24 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#319: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#320: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #320+):
-- [ ] PHP date/time handling audit
-- [ ] Angular routing guard audit
-- [ ] PHP numeric overflow/precision audit
-- [ ] Angular form validation audit
+### Nasta (session #321+):
+- [ ] PHP session/cookie security audit
+- [ ] Angular lazy loading performance audit
+- [ ] PHP file I/O audit
+- [ ] Angular accessibility audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #318 (klar)
-Worker A: 0 buggar — File upload/path traversal: rent. Session/cookie security: rent. SQL string concat A-M: rent.
-Worker B: 0 buggar — Lazy loading: rent. Change detection N-Z: rent. HTTP interceptor/error handling: rent.
 
 ### 2026-03-25 — Session #319 (klar)
 Worker A: 0 buggar — SQL concat N-Z: rent (67 controllers). Error logging: rent (117 filer). Response consistency: rent (117 filer).
 Worker B: 0 buggar — Pipe/directive: rent (inga custom pipes/directives). Memory leak: rent (141 filer). Template type safety: rent (~120 templates).
+
+### 2026-03-25 — Session #320 (klar)
+Worker A: 0 buggar — Date/time handling: rent (117 filer). Numeric overflow/precision: rent (739 divisioner). Array/null safety: rent (117 filer).
+Worker B: 0 buggar — Routing guard: rent (120+ routes). Form validation: rent (~15 formularsidor). HTTP error handling: rent (92 services).
