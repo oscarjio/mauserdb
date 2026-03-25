@@ -85,6 +85,6 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 Worker A: 6 buggar — produktion_procent kumulativ->delta (4), saglinje 500-fel (1), migration koord (1). 107 endpoints testade, 0 kvarstaende 500.
 Worker B: 3 buggar — duplicerad operator-dropdown (1), fel aria-label (1), redundant CSS (1). Deploy SSH timeout.
 
-### 2026-03-25 — Session #328 (pagaende)
-Worker A: Backend — verifiera produktion%-fix, PHP date/timezone audit, PHP authorization audit, full endpoint-test.
-Worker B: Frontend — deploy retry, Angular form validation audit, UX-genomgang alla sidor.
+### 2026-03-25 — Session #328 (klar)
+Worker A: 3 buggar — PHP authorization (3 controllers saknade admin-krav). Produktion%-fix verifierad (59%). Date/timezone rent. 107 endpoints, 0 st 500.
+Worker B: 21 buggar — 19 svenska diakritiker + 2 engelska rubriker i 9 templates. Frontend deployad. Form validation rent (operatorsbonus minor).
