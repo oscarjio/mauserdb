@@ -1,3 +1,48 @@
+## Worker A — Session #308 (2026-03-25) — 0 buggar (audit 1+2) + ~150 sargable fixes (audit 3)
+
+### Audit 1: array_map/array_filter callbacks (0 buggar)
+Granskade alla PHP-filer i noreko-backend/classes/ efter array_map/array_filter-callbacks som tyst returnerar null (saknad `return`), felaktiga signaturer, array_map(null,...) transponering eller array_filter utan callback som raderar falsy-varden.
+
+Alla arrow functions (fn() =>) har implicit retur. Alla traditionella callbacks har explicit `return`. Inga fel hittades.
+
+Resultat: RENT — 0 buggar.
+
+### Audit 2: FETCH_OBJ vs FETCH_ASSOC (0 buggar)
+Granskade alla ~80 klasser i noreko-backend/classes/ efter FETCH_OBJ. Projektet anvander konsekvent FETCH_ASSOC ($row['col']-notation). Inga FETCH_OBJ-anvandningar hittades.
+
+Resultat: RENT — 0 buggar.
+
+### Audit 3: DATE() i WHERE ersatt med sargable range queries (~150 instanser, 38 filer)
+Alla DATE(kolumn) = ?, DATE(kolumn) >= ?, DATE(kolumn) <= ?, DATE(kolumn) < ?, DATE(kolumn) != ? i WHERE-klausuler ersatta med index-anvandliga range-queries.
+
+Monster for likhet: `DATE(col) = :param` → `col >= :param AND col < DATE_ADD(:paramb, INTERVAL 1 DAY)`
+Monster for range-grans: `DATE(col) >= expr` → `col >= expr`
+Monster for range-grans: `DATE(col) <= expr` → `col < expr + INTERVAL 1 DAY`
+Monster for strikt menor: `DATE(col) < CURDATE()` → `col < CURDATE()`
+
+Session #307 fixade 31 instanser i 8 hogfrekventa filer.
+Session #308 fixade ~150 instanser i ytterligare 38 filer — slutfor nu hela kodbasen.
+
+Berorda filer: AndonController, AvvikelselarmController, BonusController,
+DagligBriefingController, DagligSammanfattningController, DrifttidsTimelineController,
+FeedbackController, GamificationController, KapacitetsplaneringController,
+KassationskvotAlarmController, KlassificeringslinjeController,
+KvalitetsTrendbrottController, MinDagController, MorgonrapportController,
+NewsController, OperatorController, OperatorDashboardController,
+OperatorRankingController, OperatorsportalController, ProduktionsPrognosController,
+ProduktionsSlaController, ProduktionskalenderController, ProduktionsmalController,
+RebotlingAdminController, RebotlingAnalyticsController, RebotlingController,
+RebotlingSammanfattningController, RebotlingTrendanalysController, SaglinjeController,
+SkiftjamforelseController, SkiftrapportExportController, StatistikDashboardController,
+StatistikOverblickController, StopptidsanalysController, TvattlinjeController,
+VDVeckorapportController, VdDashboardController, VeckotrendController.
+
+Alla filer php -l verifierade: No syntax errors detected.
+
+Resultat: Hela kodbasen nu fri fran DATE()-inpackning pa kolonner i WHERE. MySQL kan nu anvanda index pa alla datumsokningar.
+
+---
+
 ## Worker A — Session #306 (2026-03-24) — 0 buggar
 
 ### Uppgift 1: SQL subquery correlation (0 buggar)
