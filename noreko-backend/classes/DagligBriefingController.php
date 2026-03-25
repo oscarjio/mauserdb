@@ -418,19 +418,11 @@ class DagligBriefingController {
     private function stationsstatus(): void {
         try {
             $datum = $this->getDatum();
-            $schemaSek = self::SCHEMA_SEK_PER_DAG;
 
-            // rebotling_ibc has no station column — show single line
+            // Anvand calcOeeForDay direkt — undvik redundant omberakning
             $oee = $this->calcOeeForDay($datum);
             $totalIbc = $oee['total_ibc'];
-            $okIbc = $oee['ok_ibc'];
-            $drifttidSek = $oee['drifttid_sek'];
-
-            $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
-            $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
-            $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
-            $oeeVal = $tillganglighet * $prestanda * $kvalitet;
-            $oeePct = round($oeeVal * 100, 1);
+            $oeePct = round($oee['oee'] * 100, 1);
 
             if ($totalIbc === 0) {
                 $status = 'Ingen data';
