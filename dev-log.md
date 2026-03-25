@@ -1,3 +1,38 @@
+## Worker A — Session #318 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP file upload/path traversal audit (0 buggar)
+Sokte igenom ALLA PHP-controllers i noreko-backend/classes/ efter: move_uploaded_file, $_FILES, file_put_contents, unlink, fopen (filskrivning).
+
+**Resultat:** Inga controllers hanterar filuppladdning. Alla forekomster av file_get_contents() laser antingen php://input (JSON-body) eller migrationsfiler med hardkodade sokvagar. Tva controllers (BonusAdminController, TidrapportController) anvander fopen('php://output') for CSV-export. Inga path traversal-risker existerar.
+
+**Granskade filer (alla rena):**
+AdminController.php, AlertsController.php, AlarmHistorikController.php, AuditController.php, AvvikelselarmController.php, BatchSparningController.php, BonusAdminController.php, BonusController.php, CertificationController.php, CykeltidHeatmapController.php, DagligBriefingController.php, DashboardLayoutController.php, EffektivitetController.php, FavoriterController.php, FeedbackController.php, FeatureFlagController.php, HistoriskSammanfattningController.php, KapacitetsplaneringController.php, KassationskvotAlarmController.php, KlassificeringslinjeController.php, KvalitetscertifikatController.php, LeveransplaneringController.php, LineSkiftrapportController.php, LoginController.php, MaintenanceController.php, MaskinunderhallController.php, NewsController.php, OperatorController.php, OperatorsbonusController.php, ProfileController.php, ProduktionskostnadController.php, ProduktionsmalController.php, ProduktionsSlaController.php, ProduktionsTaktController.php, RebotlingAdminController.php, RebotlingAnalyticsController.php, RebotlingController.php, RebotlingProductController.php, RegisterController.php, RuntimeController.php, SaglinjeController.php, ShiftHandoverController.php, ShiftPlanController.php, SkiftoverlamningController.php, SkiftplaneringController.php, SkiftrapportController.php, StoppageController.php, StopporsakRegistreringController.php, TidrapportController.php, TvattlinjeController.php, UnderhallsloggController.php, VpnController.php
+
+### Audit 2: PHP session/cookie security audit (0 buggar)
+Granskade session- och cookie-hantering i ALLA controllers, med fokus pa LoginController.php, AuthHelper.php, ProfileController.php och RegisterController.php.
+
+**Resultat:**
+- **LoginController.php**: session_start() anropas EFTER lyckad verifiering (rad 103-104). session_regenerate_id(true) anropas omedelbart efter (rad 108) for att forhindra session fixation. Logout raderar session-cookie med httponly=true, samesite=Lax, secure (dynamiskt baserat pa HTTPS). Korrekt.
+- **AuthHelper.php**: Anvander bcrypt (password_hash/password_verify). CSRF-token genereras med random_bytes(32). Session timeout (8h) med checkSessionTimeout(). Korrekt.
+- **ProfileController.php**: session_regenerate_id(true) vid rollbyte eller losenordsbyte (rad 182). Rate limiting for losenordsbyte. Korrekt.
+- **RegisterController.php**: Startar ingen session vid registrering (korrekt — anvandaren dirigeras till login). Korrekt.
+- Alla andra controllers anvander antingen session_start(['read_and_close' => true]) for GET-requests eller session_start() for skrivande operationer, med korrekt PHP_SESSION_NONE-kontroll.
+
+### Audit 3: PHP raw SQL string concatenation audit A-M (0 buggar)
+Granskade ALLA PHP-controllers A-M i noreko-backend/classes/ for SQL-injektionsrisker via direkt strangkonkatenering.
+
+**Resultat:** Alla controllers anvander PDO prepared statements med parametrar. De fall dar strangkonkatenering foreommer i SQL ar sakra:
+- **BonusController.php** (rad 1839): $start/$end valideras med preg_match('/^\d{4}-\d{2}-\d{2}$/') — enbart siffror och bindestreck.
+- **LineSkiftrapportController.php**: $table byggs fran en allowlist (self::$allowedLines med in_array strict).
+- **MaintenanceController.php**: $where byggs fran hardkodade stringar med prepared statement-parametrar.
+- **AuditController.php**: $whereClause byggs fran hardkodade stringar med prepared statement-parametrar.
+- **AvvikelselarmController.php**: $setStr byggs fran hardkodade kolumnnamn (grans_varde, aktiv).
+- **BonusAdminController.php**: $updateClause byggs fran hardkodade kolumnnamn via whitelisted maps.
+- Inga $_GET/$_POST/$_REQUEST-varden anvands direkt i SQL utan prepared statements.
+
+**Granskade filer (alla rena):**
+AdminController.php, AlertsController.php, AlarmHistorikController.php, AndonController.php, AuditController.php, AvvikelselarmController.php, AuthHelper.php, BatchSparningController.php, BonusAdminController.php, BonusController.php, CertificationController.php, CykeltidHeatmapController.php, DagligBriefingController.php, DagligSammanfattningController.php, DashboardLayoutController.php, DrifttidsTimelineController.php, EffektivitetController.php, FavoriterController.php, FeedbackAnalysController.php, FeedbackController.php, FeatureFlagController.php, ForstaTimmeAnalysController.php, HeatmapController.php, HistorikController.php, HistoriskProduktionController.php, HistoriskSammanfattningController.php, KapacitetsplaneringController.php, KassationsanalysController.php, KassationsDrilldownController.php, KassationskvotAlarmController.php, KassationsorsakController.php, KassationsorsakPerStationController.php, KlassificeringslinjeController.php, KvalitetscertifikatController.php, KvalitetstrendanalysController.php, KvalitetstrendController.php, KvalitetsTrendbrottController.php, LeveransplaneringController.php, LineSkiftrapportController.php, LoginController.php, MaintenanceController.php, MalhistorikController.php, MaskinDrifttidController.php, MaskinhistorikController.php, MaskinOeeController.php, MaskinunderhallController.php, MinDagController.php, MorgonrapportController.php, MyStatsController.php
+
 ## Worker A — Session #317 (2026-03-25) — 1 bugg (alla 3 audits)
 
 ### Audit 1: PHP numeric precision audit (1 bugg)
