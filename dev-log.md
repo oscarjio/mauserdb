@@ -1,3 +1,40 @@
+## Worker A — Session #316 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: PHP exception handling consistency N-Z (0 buggar)
+Granskade alla 66 PHP-controllers N-Z i noreko-backend/classes/ (NarvaroController, NewsController, OeeBenchmarkController, OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController, OperatorCompareController, OperatorController, OperatorDashboardController, OperatorJamforelseController, OperatorOnboardingController, OperatorRankingController, OperatorsbonusController, OperatorsportalController, OperatorsPrestandaController, ParetoController, PrediktivtUnderhallController, ProduktionsDashboardController, ProduktionseffektivitetController, ProduktionsflodeController, ProduktionskalenderController, ProduktionskostnadController, ProduktionsmalController, ProduktionsPrognosController, ProduktionspulsController, ProduktionsSlaController, ProduktionsTaktController, ProduktTypEffektivitetController, ProfileController, RankingHistorikController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingController, RebotlingProductController, RebotlingSammanfattningController, RebotlingStationsdetaljController, RebotlingTrendanalysController, RegisterController, RuntimeController, SaglinjeController, ShiftHandoverController, ShiftPlanController, SkiftjamforelseController, SkiftoverlamningController, SkiftplaneringController, SkiftrapportController, SkiftrapportExportController, StatistikDashboardController, StatistikOverblickController, StatusController, StoppageController, StopporsakController, StopporsakOperatorController, StopporsakRegistreringController, StopporsakTrendController, StopptidsanalysController, TidrapportController, TvattlinjeController, UnderhallsloggController, UnderhallsprognosController, UtnyttjandegradController, VdDashboardController, VDVeckorapportController, VeckorapportController, VeckotrendController, VpnController, WeeklyReportController). Kontrollerade:
+- Alla catch-block loggar med error_log() — 714 catch-satser granskade (via ripgrep count), alla loggar korrekt
+- Alla catch-block returnerar ratt HTTP-statuskod (500 for serverfel, 400/401/403/404/405 for klientfel)
+- sendError() anvands konsekvent — inga direkta echo json_encode i catch-block utan HTTP-statuskod
+- try-catch finns runt alla PDO-operationer — alla korrekt wrappade
+- Inga tomma catch-block hittades (sokt med multiline regex)
+- Alla transaktioner har rollBack() i catch-block
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: PHP SQL kolumnnamn-verifiering N-Z (0 buggar)
+Granskade alla SQL-queries i 66 PHP-controllers N-Z. Kontrollerade SELECT, WHERE, JOIN, GROUP BY, ORDER BY mot tabellscheman. Specifikt granskade:
+- rebotling_ibc: kolumner datum, ibc_ok, ibc_ej_ok, runtime_plc, skiftraknare, op1/op2/op3, produkt, bonus_poang — alla korrekt refererade genom alla controllers
+- rebotling_onoff: kolumner datum, running — korrekt i OeeBenchmark/OeeJamforelse/OeeTrendanalys/OeeWaterfall
+- rebotling_skiftrapport: kolumner id, datum, skiftraknare, ibc_ok, ibc_ej_ok, totalt, drifttid, stopp_min, op1/op2/op3, updated_at — korrekt i OperatorDashboard/OperatorJamforelse/OperatorsPrestandaController m.fl.
+- operators: kolumner id, number, name, active, created_at — korrekt i alla operator-controllers
+- news: kolumner id, title, body, category, pinned, published, priority, created_at, updated_at — korrekt i NewsController
+- operator_certifications: kolumner op_number, line, certified_date, expires_date, notes, active — korrekt
+- stopporsak_registreringar/stopporsak_kategorier: JOIN pa kategori_id/id — korrekt
+- stoppage_log/stoppage_reasons: JOIN pa reason_id/id — korrekt
+- rebotling_underhallslogg: kolumner station_id, typ, stopporsak, varaktighet_min, datum — korrekt
+- bonus_konfiguration, bonus_utbetalning, operator_narvaro, rebotling_settings, rebotling_stationer, rebotling_products, shift_handover — alla korrekt
+- Aliasnamn ar konsekventa (per_shift, sub, union_rows, all_shifts, alla_skift, etc.)
+Resultat: rent — inga buggar hittade.
+
+### Audit 3: PHP date/time edge cases N-Z (0 buggar)
+Granskade alla date(), strtotime(), DateTime-anrop i 66 PHP-controllers N-Z. Specifikt kontrollerat:
+- strtotime('monday this week'): Alla 12 forekomster i N-Z ar redan fixade med bugfix #285 (anvander korrekt `strtotime('-' . ((int)date('N') - 1) . ' days')`) — verifierat i OperatorRankingController, OperatorsportalController, OperatorDashboardController, TidrapportController, RankingHistorikController, ProduktionsmalController, ProduktionsTaktController, SkiftoverlamningController, StoppageController, OperatorsPrestandaController
+- Manadsoverganger: Ingen anvandning av strtotime('+1 month') fran godtyckligt datum. date('Y-m-t', strtotime($startDate)) anvands i NarvaroController, ProduktionskalenderController, ProduktionsmalController, RebotlingAnalyticsController — alla sakra da $startDate alltid ar forsta i manaden. OperatorOnboardingController anvander DateTime::modify("-N months") fran 'first day of this month' — korrekt
+- strtotime('-N months'): Ej forekommande i N-Z
+- mktime(): Ej forekommande i N-Z
+- Skottarshantering: Alla datumintervall anvander strtotime("-N days") eller SQL DATE_SUB — inga manuella berakningar
+- Tidszonskonsekvens: Alla controllers anvander PHP date()/strtotime() med serverns standardtidszon. OperatorController::getProfile anvander DateTimeZone('Europe/Stockholm') explicit for streak-berakning — konsekvent
+Resultat: rent — inga buggar hittade.
+
 ## Worker A — Session #315 (2026-03-25) — 0 buggar (alla 3 audits rena)
 
 ### Audit 1: PHP exception handling consistency A-M (0 buggar)
