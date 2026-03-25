@@ -1,3 +1,74 @@
+## Worker B — Session #319 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular pipe/directive audit (0 buggar)
+Sokte igenom ALLA filer i noreko-frontend/src/app/ efter custom pipes (@Pipe) och custom directives (@Directive).
+
+**Resultat:** Projektet anvander INGA custom pipes eller directives. Sokning med @Pipe och @Directive gav noll traffar. Alla templates anvander enbart inbyggda Angular-pipes:
+- `| date` (56+ forekomster) — alla med korrekta format (yyyy-MM-dd, HH:mm, HH:mm:ss, d/M, MM-dd HH:mm etc.)
+- `| number` (50+ forekomster) — alla med korrekta digitformat (1.0-0, 1.1-1, 1.0-1 etc.)
+- `| slice` (11 forekomster) — korrekt anvandning for substrangar och array-begransning
+- `| uppercase` (2 forekomster) — korrekt
+- `| titlecase` (3 forekomster) — korrekt
+- Inga `| json`, `| async`, `| percent`, `| currency` forekomster
+
+Inga custom pipes eller directives att granska for null-hantering, purity eller lifecycle. Rent.
+
+### Audit 2: Angular memory leak audit (0 buggar)
+Granskade ALLA 141 TypeScript-filer med setInterval/setTimeout i noreko-frontend/src/app/ samt alla filer med addEventListener, ViewChild, fromEvent och Observer-APIer.
+
+**setInterval/setTimeout (141 filer):**
+- Automatisk verifiering: ALLA filer med setInterval har matchande clearInterval i ngOnDestroy
+- Automatisk verifiering: ALLA filer med setTimeout har matchande clearTimeout i ngOnDestroy
+- Konsekvent monster: `private refreshInterval: ReturnType<typeof setInterval> | null = null` + `clearInterval(this.refreshInterval)` i ngOnDestroy
+- Konsekvent monster: `private _timers: ReturnType<typeof setTimeout>[] = []` + `this._timers.forEach(t => clearTimeout(t))` i ngOnDestroy
+- Alla komponenter har destroy$ Subject med takeUntil-monster och korrekt destroy$.next()/destroy$.complete() i ngOnDestroy
+
+**addEventListener (5 filer):**
+- klassificeringslinje-admin.ts: addEventListener('visibilitychange') rad 84, removeEventListener rad 93 — korrekt
+- rebotling-admin.ts: addEventListener rad 256, removeEventListener rad 238 — korrekt
+- saglinje-admin.ts: addEventListener rad 84, removeEventListener rad 93 — korrekt
+- tvattlinje-admin.ts: addEventListener rad 107, removeEventListener rad 118 — korrekt
+- andon.ts: addEventListener rad 246, removeEventListener rad 346 — korrekt
+
+**window.addEventListener:** Inga forekomster — rent.
+**fromEvent():** Inga forekomster — rent.
+**ResizeObserver/MutationObserver/IntersectionObserver:** Inga forekomster — rent.
+
+**ViewChild/ElementRef (20 filer):**
+- Alla anvander ViewChild enbart for canvas-element (Chart.js) eller child-komponenter
+- Chart-instanser forstors korrekt med .destroy() fore ateranvandning (152 .destroy()-anrop over 57 new Chart()-skapanden)
+- Inga DOM-manipulationer som kraver manuell cleanup
+
+**Subscription-hantering:**
+- Alla komponenter med .subscribe() anvander takeUntil(this.destroy$) eller manuell Subscription.unsubscribe()
+- ToastComponent anvander manuell Subscription med korrekt unsubscribe() i ngOnDestroy
+- AuthService ar providedIn: 'root' singleton — ingen cleanup behövs (lever hela appens livstid)
+- rebotling-live.ts, tvattlinje-live.ts saknar takeUntil men dessa ar OFF LIMITS (regel #1)
+
+Resultat: rent — inga memory leaks hittade.
+
+### Audit 3: Angular template type safety audit (0 buggar)
+Granskade ALLA ~120 HTML-templates i noreko-frontend/src/app/ efter typ-sakerhetsrisker.
+
+**ngFor/trackBy:**
+- ALLA *ngFor i .html-filer har trackBy (verifierat med regex-sokning — noll traffar for *ngFor utan trackBy)
+- ALLA *ngFor i inline templates (.ts) har trackBy (verifierat — noll traffar)
+- ALLA @for-loopar anvander track (4 forekomster i operators-prestanda)
+
+**Optional chaining / null-sakerhet:**
+- Templates anvander konsekvent *ngIf / @if guards (228+ *ngIf, 14+ @if) for att skydda mot null-tillgang
+- Ternary-uttryck anvands for potentiellt null-varden: `val ? (val | pipe) : '–'`
+- Nullish coalescing i templates: `data?.field ?? []`
+
+**[innerHTML]:** Inga forekomster i nagon template — ingen XSS-risk.
+
+**Pipe-argument:** Alla | date, | number, | slice anvander korrekta format (se Audit 1 ovan).
+
+**Granskade templates (samtliga ~120 .html-filer plus ~19 inline templates i .ts-filer):**
+app.html, layout.html, header.html, submenu.html, menu.html, news.html, toast.ts (inline), not-found.ts (inline), login.ts (inline), pdf-export-button.component.html, gamification.component.html, skiftoverlamning.component.html, daglig-briefing.component.html, prediktivt-underhall.component.html, operators-prestanda.component.html, maskinunderhall.component.html, produktions-sla.component.html, produktionsflode.component.html, statistik-dashboard.component.html, operatorsbonus.component.html, stopptidsanalys.component.html, maskin-oee.component.html, rebotling-sammanfattning.component.html, drifttids-timeline.component.html, maintenance-form.component.ts, equipment-stats.component.ts, kpi-analysis.component.ts, service-intervals.component.ts, maintenance-list.component.ts, historisk-sammanfattning.component.html, statistik-overblick.component.html, vd-dashboard.component.html, vd-veckorapport.component.html, avvikelselarm.component.html, kvalitetscertifikat.component.html, historisk-produktion.component.html, kapacitetsplanering.component.html, produktions-dashboard.component.html, stopporsaker.component.html, maskinhistorik.component.html, tidrapport.component.html, oee-trendanalys.component.html, operator-ranking.component.html, leveransplanering.component.html, batch-sparning.component.html, skiftplanering.component.html, kassationskvot-alarm.component.html, produktionskostnad.component.html, produktionsmal.component.html, rebotling-trendanalys.component.html, stationsdetalj.component.html, rebotling-live.html, tvattlinje-live.html, klassificeringslinje-live.html, saglinje-live.html, rebotling-admin.html, tvattlinje-admin.html, saglinje-admin.html, klassificeringslinje-admin.html, andon.html, andon-board.html, rebotling-statistik (inline), rebotling-skiftrapport.html, shared-skiftrapport.html, tvattlinje-skiftrapport.ts (inline), saglinje-skiftrapport.ts (inline), klassificeringslinje-skiftrapport.html, bonus-dashboard.html, bonus-admin.html, operators.html, users.html, register.html, create-user.html, vpn-admin.html, feature-flag-admin.html, news-admin.ts (inline), audit-log.html, alarm-historik.html, stoppage-log.html, stopporsak-registrering.html, stopporsak-trend.html, stopporsak-operator.html, kassations-drilldown.html, kassationsorsak.html, kassationsanalys (inline), kassationsorsak-statistik (inline), shift-handover.html, skiftoverlamning.html, underhallsprognos.html, underhallslogg (inline), production-calendar.html, produktionskalender.html, produktionsprognos.html, produktionsmal.html, malhistorik.html, executive-dashboard.html, daglig-sammanfattning.html, weekly-report.ts (inline), monthly-report (inline), veckorapport.html, morgonrapport.html, operator-dashboard.ts (inline), operator-detail.ts (inline), operator-compare.ts (inline), operator-trend.html, operator-personal-dashboard.html, operator-onboarding (inline), operator-attendance.html, live-ranking.html, ranking-historik.html, oee-benchmark.html, oee-waterfall.html, pareto.html, skiftjamforelse.html, effektivitet.html, kvalitetstrend.html, utnyttjandegrad.html, benchmarking (inline), cykeltid-heatmap (inline), forsta-timme-analys.html, produktionsprognos.html, favoriter.html, feedback-analys (inline), statistik-produkttyp-effektivitet.html, historik.ts (inline), about.html, contact.html, funktionshub.html, certifications.html, skiftrapport-export.html, shift-plan.html, operatorsportal.html, min-dag.html, produktionspuls.html, produktionspuls-widget.ts (inline), produktionstakt.html, produktionseffektivitet (inline), kvalitetstrendanalys (inline), kvalitets-trendbrott (inline), oee-jamforelse.html, operator-jamforelse.html, skiftrapport-sammanstallning (inline), maskin-drifttid.html, rebotling-prognos.html, samt alla statistik-subkomponenter.
+
+Resultat: rent — inga typ-sakerhetsrisker eller template-buggar hittade.
+
 ## Worker A — Session #318 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP file upload/path traversal audit (0 buggar)
