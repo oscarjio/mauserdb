@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #321):
-- [ ] **PHP session/cookie security audit** — session fixation, cookie flags, expiry (Worker A)
-- [ ] **PHP file I/O audit** — fopen/fwrite utan error check, temp-filer, path traversal (Worker A)
-- [ ] **PHP error handling consistency audit** — response format, try/catch, felkoder (Worker A)
-- [ ] **Angular lazy loading performance audit** — chunk sizes, preloading, cirkulara imports (Worker B)
-- [ ] **Angular accessibility audit** — aria-labels, keyboard navigation, screen reader (Worker B)
-- [ ] **Angular change detection audit** — OnPush, trackBy, async pipe, template-logik (Worker B)
+### Pagaende (session #322):
+- [ ] **PHP SQL query builder audit** — prepared statements, parameter binding, query concatenation (Worker A)
+- [ ] **PHP CORS/header security audit** — Access-Control headers, content-type validation (Worker A)
+- [ ] **PHP input sanitization audit** — $_GET/$_POST validering, filter_input, typ-casting (Worker A)
+- [ ] **Angular state management audit** — BehaviorSubject race conditions, stale state (Worker B)
+- [ ] **Angular environment config audit** — hardcoded URLs, missing env variables (Worker B)
+- [ ] **Angular HTTP interceptor audit** — error interceptors, token refresh, timeout (Worker B)
 
-### Nasta buggjakt-items (session #322+):
-- [ ] **PHP SQL query builder audit** — prepared statements, parameter binding, query concatenation
-- [ ] **Angular state management audit** — BehaviorSubject race conditions, stale state
-- [ ] **PHP CORS/header security audit** — Access-Control headers, content-type validation
-- [ ] **Angular environment config audit** — hardcoded URLs, missing env variables
+### Nasta buggjakt-items (session #323+):
+- [ ] **PHP logging/audit trail audit** — saknad loggning av viktiga handelser, loggniva-konsistens
+- [ ] **Angular memory profiling audit** — DOM-lackor, detached elements, stora arrayer i minnet
+- [ ] **PHP race condition audit** — concurrent requests, DB-lasning, optimistic locking
+- [ ] **Angular router guard audit** — auth guards, canActivate/canDeactivate, redirect-logik
 
 ## Parkerade features (ta inte dessa nu)
 

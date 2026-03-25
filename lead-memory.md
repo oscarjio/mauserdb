@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #321)*
+*Senast uppdaterad: 2026-03-25 (session #322)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,24 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#321: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#322: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #322+):
-- [ ] PHP SQL query builder audit
-- [ ] Angular state management audit
-- [ ] PHP CORS/header security audit
-- [ ] Angular environment config audit
+### Nasta (session #323+):
+- [ ] PHP logging/audit trail audit
+- [ ] Angular memory profiling audit
+- [ ] PHP race condition audit
+- [ ] Angular router guard audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #320 (klar)
-Worker A: 0 buggar — Date/time handling: rent (117 filer). Numeric overflow/precision: rent (739 divisioner). Array/null safety: rent (117 filer).
-Worker B: 0 buggar — Routing guard: rent (120+ routes). Form validation: rent (~15 formularsidor). HTTP error handling: rent (92 services).
-
 ### 2026-03-25 — Session #321 (klar)
-Worker A: 0 buggar — Session/cookie security: rent (117 controllers, session_regenerate_id, httponly/secure/samesite). File I/O: rent (hardkodade sokvagar, felkontroll). Error handling consistency: rent (2353 try/catch, JSON-format, korrekta statuskoder).
-Worker B: 0 buggar — Lazy loading: rent (~100 routes, PreloadAllModules, ChunkLoadError-hantering). Accessibility: rent (37 templates, aria-labels, role-attribut). Change detection: rent (42 components, trackBy overallt, cachedValues, korrekt cleanup).
+Worker A: 0 buggar — Session/cookie security: rent. File I/O: rent. Error handling consistency: rent.
+Worker B: 0 buggar — Lazy loading: rent. Accessibility: rent. Change detection: rent.
+
+### 2026-03-25 — Session #322 (klar)
+Worker A: 0 buggar — SQL query builder: rent (90+ controllers, prepared statements, vitlistor). CORS/header security: rent (vitlistad origin, alla security headers). Input sanitization: rent (typ-casting, filter_var, JSON-validering).
+Worker B: 0 buggar — State management: rent (3 services, 41 components, korrekt livscykel). Environment config: rent (environment.apiUrl konsekvent, inga hardcoded URLs). HTTP interceptor: rent (retry-logik, CSRF, timeout, catchError).
