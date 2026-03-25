@@ -1,3 +1,52 @@
+## Worker A — Session #320 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP date/time handling audit (0 buggar)
+Granskade ALLA 117 PHP-controllers i noreko-backend/classes/ efter timezone-problem, felaktiga date()-format, strangjamforelser av datum, strtotime() med tvetydiga format, DateTime vs date() inkonsistens och saknad validering av datum-input fran anvandare.
+
+**Resultat:**
+- **Timezone**: `date_default_timezone_set('Europe/Stockholm')` satts i api.php rad 6 fore alla controllers laddas. Alla date()/strtotime()-anrop anvander korrekt CET/CEST.
+- **Datumformat**: Genomgaende ISO 8601 format (Y-m-d, Y-m-d H:i:s). Inga locale-beroende format.
+- **Datum-validering fran anvandare**: Konsekvent `preg_match('/^\d{4}-\d{2}-\d{2}$/')` validering pa alla $_GET date/datum-parametrar. Tva controllers (DagligSammanfattningController, SkiftrapportExportController) anvander extra DateTime::createFromFormat-validering.
+- **strtotime()**: Anvands enbart med entydiga format: "-N days", "+1 day", "+N weeks", ISO-datum. Inga DD/MM vs MM/DD-risker.
+- **DateTime-konsistens**: RuntimeController anvander konsekvent DateTimeZone('Europe/Stockholm') explicit. Ovriga forlitar sig pa api.php timezone — korrekt.
+- **Bugfix #285 noterad**: OperatorsPrestandaController rad 643-645 har redan fixat ett strtotime("monday -N weeks")-problem pa sondagar.
+
+### Audit 2: PHP numeric overflow/precision audit (0 buggar)
+Granskade ALLA 117 PHP-controllers efter division by zero, float-jamforelser med ==, round()/floor()/ceil() precision-problem, intval() vs (int) cast-inkonsistens, och procentberakningar som kan ge NaN/INF.
+
+**Resultat:**
+- **Division by zero**: Samtliga ~739 divisionsoperationer ar skyddade. Metoder inkluderar:
+  - Ternary med `> 0`-check: `$total > 0 ? round($x / $total * 100, 2) : 0` (vanligast)
+  - `max(1, ...)` for divisor: `max(1, $op['antal_skift'])` (BonusAdminController:1656)
+  - Early return: `if ($drifttidMin <= 0) return 0.0;` (OperatorsPrestandaController:218)
+  - `continue` vid 0: `if ($total <= 0) continue;` (AlarmHistorikController:276)
+  - Hardkodade konstanter: `$skiftDuration = 16` (AndonController:320), `8 * 3600` (SkiftoverlamningController:297)
+  - `$limit = min(200, max(10, ...))` for pagination (AuditController:50)
+  - `count()` skyddas av `empty()`-check eller `>= N`-check fore division
+- **Float-jamforelser**: Inga `== 0.0` eller `=== 0.0`-jamforelser hittades. Korrekt anvandning av `> 0`/`<= 0`.
+- **intval() vs (int)**: Bada anvands, men konsekvent inom varje controller. intval() for $_GET, (int) for interna casts. Ingen risk.
+- **NaN/INF**: Inga risker hittade — alla divisioner ar skyddade.
+
+### Audit 3: PHP array/null safety audit (0 buggar)
+Granskade ALLA 117 PHP-controllers efter array access utan isset/array_key_exists check, json_decode() utan null-check, fetchAll()/fetch() resultat som antas vara non-null, count() pa potentiellt null-varde.
+
+**Resultat:**
+- **json_decode fran user input** (file_get_contents('php://input')): ~80 forekomster. Tva monster:
+  - `json_decode(..., true) ?? []` — garanterar array (vanligast)
+  - `json_decode(..., true)` + `if (!is_array($data)) { sendError(); return; }` — explicit validering (NewsController, StoppageController, SkiftrapportController, LoginController, AdminController, FeatureFlagController m.fl.)
+- **json_decode fran DB-kolumner**: Alla kontrolleras med `is_array($decoded)`:
+  - BonusAdminController:179-185: `is_array($wfgDec) ? $wfgDec : []`
+  - DashboardLayoutController:116: `is_array($layout) ? $layout : $this->defaultLayout()`
+  - RebotlingAdminController:268: `if (is_array($saved)) { ... }`
+  - SkiftoverlamningController:541: `is_array($decoded) ? $decoded : null`
+  - TvattlinjeController:381: `if (is_array($saved)) { ... }`
+- **fetch()-resultat**: Konsekvent null-sakra:
+  - `$row ? $row['field'] : default` (OperatorCompareController)
+  - `(int)($row['field'] ?? 0)` med null-coalescing (ProduktionsDashboardController)
+  - `if (!$row) { return []; }` early return (OperatorCompareController:394)
+- **count()**: Inga anrop pa potentiellt null — fetchAll() returnerar alltid array, och egna arrays ar initierade.
+- **Array access**: Genomgaende `$array['key'] ?? default` med null-coalescing operator.
+
 ## Worker A — Session #319 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP raw SQL string concatenation audit N-Z (0 buggar)
