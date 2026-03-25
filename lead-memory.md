@@ -78,6 +78,6 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 Worker A: 0 buggar — Dependency/composer: inga beroenden. SQL performance: rent. Input sanitization: rent.
 Worker B: 7 buggar — Accessibility: 7 fixade (saknade aria-attribut pa modaler). Build/bundle: rent. Template security: rent.
 
-### 2026-03-25 — Session #326 (pagaende)
-Worker A: PHP caching/performance + API response format + error handling depth
-Worker B: Angular change detection + state management + routing/navigation
+### 2026-03-25 — Session #326 (klar)
+Worker A: 4 buggar — Caching/perf: 3 N+1-fixes (OeeTrendanalys, Kapacitetsplanering, DagligBriefing). API format: 1 fix (Operatorsbonus JSON-nesting). Error handling: rent.
+Worker B: 0 buggar — Change detection: rent (trackBy overallt). State management: rent (destroy$+takeUntil). Routing: rent (lazy loading, guards).
