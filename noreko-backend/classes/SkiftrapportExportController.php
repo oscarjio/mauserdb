@@ -98,7 +98,7 @@ class SkiftrapportExportController {
                     MAX(rasttime)      AS rasttime,
                     MIN(TIME(datum))   AS skift_start,
                     MAX(TIME(datum))   AS skift_slut,
-                    DATE(MIN(created_at)) AS skift_datum
+                    DATE(MIN(datum)) AS skift_datum
                  FROM rebotling_ibc
                  WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  GROUP BY skiftraknare

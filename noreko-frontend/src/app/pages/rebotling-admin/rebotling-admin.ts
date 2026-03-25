@@ -49,7 +49,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
 
   // ---- Produkthantering ----
   products: any[] = [];
-  newProduct: any = { name: '', cycle_time_minutes: null };
+  newProduct: any = { name: '', cycle_time_minutes: null, has_lopnummer: true };
   loading = false;
   showSuccessMessage = false;
   successMessage = '';
@@ -597,9 +597,11 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           if (response?.success) {
             this.products = response.data.map((product: any) => ({
               ...product,
+              has_lopnummer: product.has_lopnummer == 1 || product.has_lopnummer === true,
               editing: false,
               originalName: product.name,
-              originalCycleTime: product.cycle_time_minutes
+              originalCycleTime: product.cycle_time_minutes,
+              originalHasLopnummer: product.has_lopnummer == 1 || product.has_lopnummer === true
             }));
           }
           this.loading = false;
@@ -619,7 +621,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
         next: (response) => {
           if (response?.success) {
             this.loadProducts();
-            this.newProduct = { name: '', cycle_time_minutes: null };
+            this.newProduct = { name: '', cycle_time_minutes: null, has_lopnummer: true };
             this.showAddProductForm = false;
             this.showSuccess('Produkt tillagd!');
           }
@@ -647,7 +649,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   saveProduct(product: any) {
     if (!product.name || !product.cycle_time_minutes) return;
     this.loading = true;
-    const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes };
+    const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes, has_lopnummer: product.has_lopnummer ? 1 : 0 };
     this.http.put<any>(`${environment.apiUrl}?action=rebotlingproduct`, updateData, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
@@ -670,6 +672,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     product.editing              = false;
     product.name                 = product.originalName;
     product.cycle_time_minutes   = product.originalCycleTime;
+    product.has_lopnummer        = product.originalHasLopnummer;
   }
 
   deleteProduct(product: any) {

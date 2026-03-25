@@ -697,14 +697,21 @@
                           [(ngModel)]="newProduct.name" placeholder="Ange produktnamn" required maxlength="100">
                       </div>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                       <div class="mb-3">
                         <label for="newProductCycleTime" class="form-label">Cykeltid (minuter)</label>
                         <input type="number" class="form-control" id="newProductCycleTime"
                           [(ngModel)]="newProduct.cycle_time_minutes" min="1" max="1440" step="1" placeholder="0" required>
                       </div>
                     </div>
-                    <div class="col-12 col-md-2">
+                    <div class="col-12 col-md-2 d-flex align-items-center">
+                      <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="newProductLopnummer"
+                          [(ngModel)]="newProduct.has_lopnummer">
+                        <label class="form-check-label" for="newProductLopnummer">Löpnummer</label>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-1">
                       <div class="mb-3">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100" (click)="addProduct()"
@@ -727,6 +734,7 @@
                   <th scope="col">ID</th>
                   <th scope="col">Produktnamn</th>
                   <th scope="col">Cykeltid (min)</th>
+                  <th scope="col">Löpnr</th>
                   <th scope="col">Skapad</th>
                   <th scope="col">Åtgärder</th>
                 </tr>
@@ -748,6 +756,13 @@
                       (keyup.enter)="saveProduct(product)"
                       (keyup.escape)="cancelEdit(product)">
                   </td>
+                  <td class="text-center">
+                    <span *ngIf="!product.editing">
+                      <i class="fas" [class.fa-check-circle]="product.has_lopnummer" [class.text-success]="product.has_lopnummer"
+                         [class.fa-times-circle]="!product.has_lopnummer" [class.text-muted]="!product.has_lopnummer"></i>
+                    </span>
+                    <input *ngIf="product.editing" class="form-check-input" type="checkbox" [(ngModel)]="product.has_lopnummer">
+                  </td>
                   <td>{{ product.created_at | date:'yyyy-MM-dd HH:mm' }}</td>
                   <td>
                     <div class="btn-group btn-group-sm" role="group">
@@ -767,7 +782,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="products.length === 0">
-                  <td colspan="5" class="text-center text-muted">
+                  <td colspan="6" class="text-center text-muted">
                     <i class="fas fa-info-circle me-2"></i>
                     Inga produkter hittades. Lägg till en produkt ovan.
                   </td>

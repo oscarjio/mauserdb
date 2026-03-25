@@ -61,7 +61,7 @@ class RebotlingProductController {
 
     private function getProducts() {
         try {
-            $stmt = $this->pdo->prepare("SELECT id, name, cycle_time_minutes FROM rebotling_products ORDER BY id");
+            $stmt = $this->pdo->prepare("SELECT id, name, cycle_time_minutes, COALESCE(has_lopnummer, 1) AS has_lopnummer FROM rebotling_products ORDER BY id");
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -120,8 +120,9 @@ class RebotlingProductController {
 
         try {
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("INSERT INTO rebotling_products (name, cycle_time_minutes) VALUES (?, ?)");
-            $stmt->execute([$name, $cycleTime]);
+            $hasLopnummer = isset($data['has_lopnummer']) ? (int)(bool)$data['has_lopnummer'] : 1;
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_products (name, cycle_time_minutes, has_lopnummer) VALUES (?, ?, ?)");
+            $stmt->execute([$name, $cycleTime, $hasLopnummer]);
 
             $productId = $this->pdo->lastInsertId();
             $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
@@ -188,8 +189,9 @@ class RebotlingProductController {
 
         try {
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("UPDATE rebotling_products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
-            $stmt->execute([$name, $cycleTime, $id]);
+            $hasLopnummer = isset($data['has_lopnummer']) ? (int)(bool)$data['has_lopnummer'] : 1;
+            $stmt = $this->pdo->prepare("UPDATE rebotling_products SET name = ?, cycle_time_minutes = ?, has_lopnummer = ? WHERE id = ?");
+            $stmt->execute([$name, $cycleTime, $hasLopnummer, $id]);
 
             if ($stmt->rowCount() > 0) {
                 $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
