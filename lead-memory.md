@@ -81,13 +81,13 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #329 (avbruten)
-Workers startades aldrig — inga commits. Backlog-items forflytas till #330.
+### 2026-03-25 — Session #330 (klar)
+Worker A: 8 buggar — AndonController 5 SQL-fixar (felaktiga kolumnnamn, dagmal visade 100 ist for 1000), OperatorDashboard 3 PDO-param-fixar (500-fel i UNION ALL), RebotlingAnalytics 2 fixar (produktion_procent ar kumulativ fran PLC, AVG() meningslos, ersatt med kvalitetsprocent). 70+ endpoints testade, 0 st 500.
+Worker B: 85+ UX-fixar — 59 filer aria-label diakritiker, 12 skiftoverlamning-fixar, engelska titlar oversatta (Bonus Dashboard, VD Dashboard, Live Ranking), 20+ ytterligare diakritik-fixar. Lifecycle rent (41/41 komponenter). Byggd och deployad.
 
 ### 2026-03-25 — Session #328 (klar)
-Worker A: 3 buggar — PHP authorization (3 controllers saknade admin-krav). Produktion%-fix verifierad (59%). Date/timezone rent. 107 endpoints, 0 st 500.
-Worker B: 21 buggar — 19 svenska diakritiker + 2 engelska rubriker i 9 templates. Frontend deployad. Form validation rent (operatorsbonus minor).
+Worker A: 3 buggar — PHP authorization. 107 endpoints, 0 st 500.
+Worker B: 21 buggar — svenska diakritiker + engelska rubriker.
 
-### 2026-03-25 — Session #330 (pagaende)
-Worker A: Grundlig SQL-granskning mot prod_db_schema.sql, endpoint-test, produktion_procent kumulativ-utredning.
-Worker B: Fullstandig template-granskning (svenska/dark theme/UX), operatorsbonus config validering, lifecycle-buggar i alla komponenter.
+### 2026-03-25 — Session #329 (avbruten)
+Workers startades aldrig.
