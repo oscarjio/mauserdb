@@ -5627,34 +5627,114 @@ HTML;
             $html .= $kommentarHtml;
             $html .= '<div class="section-title">Skiftrapporter (' . $antalRap . ' st)</div>' . $opTableHtml;
 
-            // --- LÖPNUMMERFÖLJDER ---
+            // --- LÖPNUMMERSAMMANFATTNING (per produkt + per operatör) ---
             $lopnummerHtml = '';
             try {
-                foreach ($skiftraknareList as $sk => $_) {
-                    $lopStmt = $this->pdo->prepare("
-                        SELECT lopnummer FROM rebotling_ibc
-                        WHERE skiftraknare = ? AND lopnummer IS NOT NULL AND lopnummer > 0
-                          AND lopnummer < 900 AND ibc_ok = 1
-                        ORDER BY lopnummer ASC
-                    ");
-                    $lopStmt->execute([$sk]);
-                    $lopRows = $lopStmt->fetchAll(PDO::FETCH_COLUMN);
-                    if (!empty($lopRows)) {
+                $allSkIds = array_map('intval', array_keys($skiftraknareList));
+                $phLop = implode(',', array_fill(0, count($allSkIds), '?'));
+
+                // Hämta alla löpnummer med produkt och operatör
+                $lopStmt = $this->pdo->prepare("
+                    SELECT DISTINCT i.lopnummer, i.op1, i.produkt,
+                           o.name AS op_name, p.name AS prod_name
+                    FROM rebotling_ibc i
+                    LEFT JOIN operators o ON o.number = i.op1
+                    LEFT JOIN rebotling_products p ON p.id = i.produkt
+                    WHERE i.skiftraknare IN ($phLop)
+                      AND i.lopnummer IS NOT NULL AND i.lopnummer > 0 AND i.lopnummer < 900
+                    ORDER BY i.lopnummer ASC
+                ");
+                $lopStmt->execute($allSkIds);
+                $lopData = $lopStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (!empty($lopData)) {
+                    // Gruppera per produkt och per operatör
+                    $byProduct  = [];  // prod_name => [löpnummer, ...]
+                    $byOperator = [];  // op_name => [löpnummer, ...]
+                    $allLopnummer = [];
+
+                    foreach ($lopData as $ld) {
+                        $lop  = (int)$ld['lopnummer'];
+                        $prod = $ld['prod_name'] ?: 'Okänd';
+                        $op   = $ld['op_name'] ?: 'Op ' . ($ld['op1'] ?? '?');
+
+                        $allLopnummer[$lop] = true;
+                        $byProduct[$prod][$lop]  = true;
+                        $byOperator[$op][$lop]   = true;
+                    }
+
+                    // Hjälpfunktion: bygg ranges från sorterad lista
+                    $buildRanges = function(array $nums): string {
+                        sort($nums);
+                        $nums = array_values(array_unique($nums));
+                        if (empty($nums)) return '-';
                         $ranges = [];
-                        $start = $lopRows[0]; $prev = $lopRows[0];
-                        for ($li = 1; $li < count($lopRows); $li++) {
-                            if ((int)$lopRows[$li] === (int)$prev + 1) {
-                                $prev = $lopRows[$li];
+                        $start = $nums[0]; $prev = $nums[0];
+                        for ($i = 1; $i < count($nums); $i++) {
+                            if ($nums[$i] === $prev + 1) {
+                                $prev = $nums[$i];
                             } else {
                                 $ranges[] = ($start === $prev) ? (string)$start : "{$start}–{$prev}";
-                                $start = $lopRows[$li]; $prev = $lopRows[$li];
+                                $start = $nums[$i]; $prev = $nums[$i];
                             }
                         }
                         $ranges[] = ($start === $prev) ? (string)$start : "{$start}–{$prev}";
-                        $lopnummerHtml .= '<div style="margin-top:6px;font-size:0.85rem;">';
-                        $lopnummerHtml .= '<span style="color:#666;">Löpnummer: </span>';
-                        $lopnummerHtml .= '<strong>' . htmlspecialchars(implode(', ', $ranges), ENT_QUOTES, 'UTF-8') . '</strong>';
-                        $lopnummerHtml .= ' <span style="color:#999;">(' . count($lopRows) . ' st)</span></div>';
+                        return implode(', ', $ranges);
+                    };
+
+                    // Totalt
+                    $allNums = array_keys($allLopnummer);
+                    sort($allNums);
+                    $totalCount = count($allNums);
+                    $totalRanges = $buildRanges($allNums);
+
+                    $lopnummerHtml .= "<div style='margin-bottom:10px;font-size:0.85rem;'>";
+                    $lopnummerHtml .= "<strong>Totalt:</strong> {$totalRanges} <span style='color:#999;'>({$totalCount} st)</span>";
+                    $lopnummerHtml .= "</div>";
+
+                    // Per produkt
+                    if (count($byProduct) > 0) {
+                        $lopnummerHtml .= "<table style='width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:6px;'>";
+                        $lopnummerHtml .= "<thead><tr style='background:#f0f0f0;'>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:right;'>Antal</th>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:left;'>Löpnummer</th>";
+                        $lopnummerHtml .= "</tr></thead><tbody>";
+                        foreach ($byProduct as $prod => $nums) {
+                            $numList = array_keys($nums);
+                            $cnt = count(array_unique($numList));
+                            $rangeStr = htmlspecialchars($buildRanges($numList), ENT_QUOTES, 'UTF-8');
+                            $prodEsc = htmlspecialchars($prod, ENT_QUOTES, 'UTF-8');
+                            $lopnummerHtml .= "<tr>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;'><span style='display:inline-block;background:#d4edfc;border-radius:3px;padding:1px 6px;font-size:0.8rem;'>{$prodEsc}</span></td>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$cnt}</td>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;'>{$rangeStr}</td>";
+                            $lopnummerHtml .= "</tr>";
+                        }
+                        $lopnummerHtml .= "</tbody></table>";
+                    }
+
+                    // Per operatör
+                    if (count($byOperator) > 0) {
+                        $lopnummerHtml .= "<div style='margin-top:10px;font-size:0.8rem;font-weight:600;color:#555;'>Per operatör:</div>";
+                        $lopnummerHtml .= "<table style='width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:4px;'>";
+                        $lopnummerHtml .= "<thead><tr style='background:#f0f0f0;'>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:left;'>Operatör</th>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:right;'>Antal</th>";
+                        $lopnummerHtml .= "<th style='padding:4px 10px;border:1px solid #ccc;text-align:left;'>Löpnummer</th>";
+                        $lopnummerHtml .= "</tr></thead><tbody>";
+                        foreach ($byOperator as $op => $nums) {
+                            $numList = array_keys($nums);
+                            $cnt = count(array_unique($numList));
+                            $rangeStr = htmlspecialchars($buildRanges($numList), ENT_QUOTES, 'UTF-8');
+                            $opEsc = htmlspecialchars($op, ENT_QUOTES, 'UTF-8');
+                            $lopnummerHtml .= "<tr>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;'><span style='display:inline-block;background:#e8e8e8;border-radius:3px;padding:1px 6px;font-size:0.8rem;'>{$opEsc}</span></td>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$cnt}</td>";
+                            $lopnummerHtml .= "<td style='padding:3px 10px;border:1px solid #ddd;'>{$rangeStr}</td>";
+                            $lopnummerHtml .= "</tr>";
+                        }
+                        $lopnummerHtml .= "</tbody></table>";
                     }
                 }
             } catch (Exception $e) { error_log('ShiftPdfSummary löpnummer: ' . $e->getMessage()); }
