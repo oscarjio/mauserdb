@@ -1,3 +1,75 @@
+## Worker B -- Session #330 (2026-03-25) -- Grundlig template-granskning, svenska diakritiker, lifecycle-check
+
+### Uppgift 1: Grundlig genomgang av ALLA HTML-templates
+Granskade alla ~90 HTML-filer i noreko-frontend/src/app/. Hittade och fixade:
+
+**Svenska diakritiker (saknade a/o/a):**
+- 59 filer: aria-label "Valj" -> "Valj" (tillganglighet)
+- skiftoverlamning.html: 12 fixar (Mal->Mal, nasta->nasta, Pagaende->Pagaende, Overlamnings->Overlamnings, fokusomraden->fokusomraden, etc.)
+- produktions-dashboard: overblick->overblick, igar->igar, foreg.->foreg., Mal->Mal, Pagaende->Pagaende
+- gamification + operator-ranking: poang->poang (6 synliga texter)
+- forsta-timme-analys: forsta->forsta (5 stallen)
+- oee-jamforelse: Forandring->Forandring (3 stallen)
+- prediktivt-underhall: atgardsforslag->atgardsforslag
+- favoriter: Lagg till->Lagg till, snabbliankar->snabblankar, Sok->Sok
+- produktionsmal: produktionsmal, formular, satta, mal
+- my-bonus: hogsta nivan, kvalificera, poang
+- operator-onboarding: nar, operatorer, behover
+- rebotling-statistik: oppna, markera, zooma
+
+**Engelska texter oversatta till svenska:**
+- "Bonus Dashboard" -> "Bonusoversikt" (bonus-dashboard + news)
+- "VD Dashboard" -> "VD-oversikt" (vd-dashboard)
+- "Live Ranking" -> "Topplista (live)" (menu)
+- "Anpassa Dashboard" -> "Anpassa instrumentpanel" (rebotling-statistik)
+- "Operator" -> "Operator" (kolumnrubrik i operatorsbonus + kvalitetscertifikat)
+- "Filter" -> "Filtrera" (kolumnrubrik i feedback-analys)
+
+### Uppgift 2: Operatorsbonus config validering
+Granskade operatorsbonus.component.html och .ts. Valideringen var REDAN IMPLEMENTERAD i session #328:
+- required + min/max pa alla config-inputs (vikt, malvarde, max_bonus_kr)
+- Inline felmeddelanden pa svenska ("Obligatoriskt", "0-100", "0-99999")
+- Submit-knapp disabled vid ogiltigt formular (konfigFormRef.invalid)
+- aria-labels och is-invalid-klasser
+Ingen ytterligare fix kravdes.
+
+### Uppgift 3: Lifecycle-granskning av alla Angular-komponenter
+Granskade alla 41 komponenter med subscribe(). Resultat:
+- 41/41 har OnDestroy + destroy$ + takeUntil (100% korrekt)
+- 34/34 med setInterval/setTimeout rensar i ngOnDestroy
+- 32/32 med new Chart() har chart.destroy() i ngOnDestroy
+- 0 minneslackor hittade
+
+### Uppgift 4: Datakvalitet i grafer och tabeller
+Granskade rebotling-sammanfattning, operatorsbonus, och relaterade sidor:
+- Alla KPI-kort hanterar null korrekt (visar "Ingen data" eller "-")
+- Grafer renderas med correct guards (!loadingX && !errorX && data.length > 0)
+- Operatorsnamn visas (operator_namn), inte bara ID
+- Siffror formateras korrekt (toFixed, toLocaleString, number pipe)
+- Inga NaN/undefined-risker i templates
+
+### Uppgift 5: Bygg och deploy
+- `npx ng build` lyckades (inga kompileringsfel, bara CommonJS-varningar)
+- Deployade till dev.mauserdb.com via rsync
+- Verifierade HTTP 200 pa https://dev.mauserdb.com/
+
+### Fixade filer (85 st):
+- 59 HTML-filer: aria-label "Valj" -> "Valj"
+- skiftoverlamning.html: 12 diakritik-fixar
+- produktions-dashboard.component.html: 5 fixar
+- operatorsbonus.component.html: "Operator" -> "Operator"
+- kvalitetscertifikat.component.html: "Operator" -> "Operator"
+- bonus-dashboard.html: "Bonus Dashboard" -> "Bonusoversikt"
+- vd-dashboard.component.html: "VD Dashboard" -> "VD-oversikt"
+- menu.html: "Live Ranking" -> "Topplista (live)"
+- news.html: "Bonus Dashboard" -> "Bonusoversikt"
+- rebotling-statistik.html: "Anpassa Dashboard", diakritiker
+- gamification.component.html: poang -> poang
+- operator-ranking.component.html: Poang, Poangfordelning
+- + 20 ytterligare filer med enskilda diakritik-fixar
+
+---
+
 ## Worker A -- Session #330 (2026-03-25) -- SQL-granskning, endpoint-test, produktion_procent-fix
 
 ### Uppgift 1: SQL-granskning mot prod_db_schema.sql
