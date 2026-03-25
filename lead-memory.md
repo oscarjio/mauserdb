@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #316)*
+*Senast uppdaterad: 2026-03-25 (session #317)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,25 +60,25 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#316: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#317: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #317+):
-- [ ] PHP numeric precision audit
-- [ ] Angular route guard audit
-- [ ] PHP SQL transaction audit N-Z
-- [ ] Angular form validation audit
-- [ ] PHP array bounds/null audit N-Z
+### Nasta (session #318+):
+- [ ] PHP file upload/path traversal audit
+- [ ] Angular lazy loading audit
+- [ ] PHP session/cookie security audit
+- [ ] Angular change detection audit
+- [ ] Angular template binding audit A-M
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #315 (klar)
-Worker A: 0 buggar — Exception handling A-M: rent (407 catch, 556 PDO). SQL kolumnnamn A-M: rent (50 controllers). Date/time A-M: rent.
-Worker B: 0 buggar — HTTP timeout: rent (92 services). @Input validation: rent. Subscription/timer cleanup A-M: rent (~60 komponenter).
 
 ### 2026-03-25 — Session #316 (klar)
 Worker A: 0 buggar — Exception handling N-Z: rent (66 controllers, 714 catch). SQL kolumnnamn N-Z: rent. Date/time N-Z: rent.
 Worker B: 0 buggar — Subscription/timer cleanup N-Z: rent (24 komponenter). Content-Type: rent (api.php globalt). HTTP error handling N-Z: rent (54 services).
+
+### 2026-03-25 — Session #317 (klar)
+Worker A: 1 bugg — Numeric precision: 1 fix (RebotlingController div-by-zero). SQL transaction N-Z: rent (19 controllers). Array bounds/null N-Z: rent.
+Worker B: 0 buggar — Route guard: rent (~80 routes). Form validation: rent. Template binding A-M: rent (55+ templates).

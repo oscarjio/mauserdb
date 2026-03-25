@@ -7,20 +7,20 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Klart (session #316):
-- [x] **PHP exception handling consistency N-Z** — rent (66 controllers, 714 catch)
-- [x] **PHP SQL kolumnnamn-verifiering N-Z** — rent
-- [x] **PHP date/time edge cases N-Z** — rent
-- [x] **Angular subscription/timer cleanup N-Z** — rent (24 komponenter)
-- [x] **PHP response Content-Type audit** — rent (api.php globalt)
-- [x] **Angular HTTP error handling N-Z** — rent (54 services)
+### Klart (session #317):
+- [x] **PHP numeric precision audit** — 1 bugg fixad (RebotlingController div-by-zero)
+- [x] **Angular route guard audit** — rent (~80 routes)
+- [x] **PHP SQL transaction audit N-Z** — rent (19 controllers)
+- [x] **Angular form validation audit** — rent
+- [x] **PHP array bounds/null audit N-Z** — rent
+- [x] **Angular template binding audit A-M** — rent (55+ templates)
 
-### Nasta buggjakt-items (session #317+):
-- [ ] **PHP numeric precision audit** — division-med-noll, floatval-precision, intval-overflow
-- [ ] **Angular route guard audit** — auth guards, canActivate, redirect-logik
-- [ ] **PHP SQL transaction audit N-Z** — beginTransaction/commit/rollBack-konsistens
-- [ ] **Angular form validation audit** — required-falt, min/max, felmeddelanden
-- [ ] **PHP array bounds/null audit N-Z** — array_key_exists, null-checkar, tomma arrayer
+### Nasta buggjakt-items (session #318+):
+- [ ] **Angular template binding audit A-M** — null-checkar, trackBy, pipe-fel
+- [ ] **PHP file upload/path traversal audit** — move_uploaded_file, basename, saknad validering
+- [ ] **Angular lazy loading audit** — felaktiga loadChildren, saknade modules
+- [ ] **PHP session/cookie security audit** — session_regenerate_id, httponly, secure-flaggor
+- [ ] **Angular change detection audit** — onPush-strategi, async pipe vs subscribe
 
 ## Parkerade features (ta inte dessa nu)
 
