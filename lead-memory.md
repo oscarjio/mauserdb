@@ -113,17 +113,17 @@ Session #305: BUGGJAKT — 1 bugg (0 Worker A + 1 Worker B). IFNULL/COALESCE: re
 Session #306: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). SQL subquery correlation: rent. $_GET/$_POST defaults: rent. COUNT/SUM: rent. router param unsubscribe: rent. HTTP error display: rent. template function calls: 3 fixade (news getCategoryCountFor, tvattlinje-statistik getVisiblePeriodCells, rebotling-statistik getVisiblePeriodCells).
 Session #307: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). GROUP_CONCAT overflow: rent. error_log format: rent. SQL DATE() i WHERE: 31 DATE()-anrop ersatta med range queries i 8 controllers. FormGroup reset: rent. template function calls: 2 fixade. HTTP URL consistency: rent.
 Session #308: BUGGJAKT — ~171 buggar (~150 Worker A + 21 Worker B). SQL DATE() i WHERE: ~150 fixade i 38 controllers (ALLA kvarvarande). HTTP error handling: 21 saknade catchError fixade.
-Session #309: BUGGJAKT — pagaende. Worker A: SQL implicit type conversion + exception handling + array bounds. Worker B: ngIf/ngSwitch exhaustiveness + input sanitization + template expression complexity.
+Session #309: BUGGJAKT — 7 buggar (0 Worker A + 7 Worker B). SQL implicit type conversion: rent. Exception handling: rent (563 catch-block). Array bounds: rent. ngIf/ngSwitch: rent. innerHTML: rent. Template expression complexity: 7 fixade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #309+):
-- [ ] PHP SQL implicit type conversion — WHERE string-kolumn = integer (saknar quotes)
-- [ ] PHP exception handling granularity — breda catch(Exception) som doljer specifika fel
-- [ ] Angular ngIf/ngSwitch exhaustiveness — switch-satser utan default/else-fall
-- [ ] Angular input sanitization — DomSanitizer anvandning, innerHTML utan sanitering
+### Nasta (session #310+):
+- [ ] PHP SQL LIKE without escaping — LIKE '%{$var}%' utan addcslashes
+- [ ] PHP header/Content-Type consistency — endpoints som saknar Content-Type: application/json
+- [ ] Angular route param type safety — parseInt utan isNaN-check
+- [ ] Angular HTTP retry logic audit — GET med retry vs POST utan retry
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -135,6 +135,6 @@ Worker B: 2 buggar — template function calls: 2 fixade (kassationskvot-alarm, 
 Worker A: ~150 buggar — SQL DATE() i WHERE: ~150 kvarvarande ersatta med sargable range queries i 38 controllers (ALLA kvarvarande).
 Worker B: 21 buggar — HTTP error handling: 21 saknade catchError fixade i 21 komponenter.
 
-### 2026-03-25 — Session #309 (pagaende)
-Worker A: SQL implicit type conversion + exception handling granularity + array bounds.
-Worker B: ngIf/ngSwitch exhaustiveness + input sanitization + template expression complexity.
+### 2026-03-25 — Session #309 (klar)
+Worker A: 0 buggar — SQL implicit type conversion: rent. Exception handling: rent (563 catch-block, alla med error_log). Array bounds: rent.
+Worker B: 7 buggar — template expression complexity: 7 funktionsanrop cachade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker). ngIf/ngSwitch: rent. innerHTML: rent.
