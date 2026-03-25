@@ -1,3 +1,36 @@
+## Worker B — Session #311 (2026-03-25) — 0 buggar (form validation consistency + chart.js destroy)
+
+### Audit 1: Angular form validation consistency (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ med formular (template-driven forms).
+- Sokte efter alla HTML-filer med required, ngModel, formControl, formGroup — hittade 96 HTML-filer med formular-element.
+- Hittade 14 filer med ngSubmit — alla granskade for validering:
+  - register.ts: onSubmit() validerar username.trim().length >= 3, passwordsMatch, etc. HTML har required+minlength+maxlength. Submit-knapp har korrekt disabled-logik. OK.
+  - create-user.ts: onSubmit() validerar username.trim(), password, email. HTML har required. Submit-knapp har [disabled]="!canSubmit". OK.
+  - operators.ts: createOperator() validerar name.trim() och number > 0 i TS. saveOperator() har submit-knapp med [disabled]="!op.name?.trim() || !op.number || op.number <= 0". OK.
+  - stoppage-log.ts: addStoppage() validerar reason_id och start_time i TS. HTML har required pa bada falt. OK.
+  - users.ts: saveUser() validerar user.username?.trim() i TS. HTML har required+minlength+maxlength. OK.
+  - menu.ts: updateProfile() validerar trimmedEmail i TS. HTML har required pa email. OK.
+  - rebotling-skiftrapport.ts: saveReport() med [disabled]="formRef.invalid" pa submit-knapp. OK.
+  - shared-skiftrapport.ts: saveReport() med [disabled]="formRef.invalid". OK.
+  - batch-sparning: submitCreateBatch() validerar batch_nummer.trim() och planerat_antal i TS. HTML har required. OK.
+  - maskinunderhall: submitAddService() och submitAddMachine() validerar i TS. HTML har required+#ngModel refs. OK.
+  - kassationskvot-alarm: sparaTroskel() validerar range och ordning i TS. HTML har required+min+max. OK.
+  - kapacitetsplanering: HTML har required+min+max+#ngModel refs pa alla falt. OK.
+  - leveransplanering: HTML har required+#ngModel refs+maxlength. OK.
+- Inga FormGroup/FormBuilder/Validators anvands — hela kodbasen anvander template-driven forms med ngModel.
+- Alla formulär har antingen TS-validering, submit-knapp [disabled]-logik, eller bada.
+Resultat: RENT — alla formular har konsekvent validering (TS-guard och/eller disable-logik pa submit-knappar).
+
+### Audit 2: Angular chart.js destroy (0 buggar)
+Granskade alla 109 Angular-komponenter i noreko-frontend/src/app/ som anvander Chart.js (new Chart()).
+- Verifierade att VARJE fil med new Chart() ocksa har ngOnDestroy — alla 109 filer har ngOnDestroy. OK.
+- Kontrollerade att ngOnDestroy kallar destroy() pa charts — antingen direkt (this.chart?.destroy()) eller via hjalpmetod (destroyChart(), destroyCharts(), destroyAll()). Alla 109 filer har korrekt destroy-logik i ngOnDestroy. OK.
+- Kontrollerade att chart destroyas INNAN ny skapas vid omrendering — alla build/render-metoder kallar destroy forst. OK.
+- Kontrollerade att chart-referensen satts till null efter destroy — alla filer satter chart = null efter destroy. OK.
+- Spot-checkade filer med lagre destroy:new ratio (produktionstakt 1:1, produktionseffektivitet 1:1, maskinunderhall 1:1) — dessa ateranvander chart via chart.update() istallet for att skapa ny, med korrekt destroy i ngOnDestroy. OK.
+- Verifierade production-calendar.ts (flaggad av automationsscript) — ngOnDestroy rad 134-143 kallar dayDetailChart?.destroy() korrekt. Falskt alarm fran script.
+Resultat: RENT — alla 109 chart-komponenter har korrekt destroy-logik i ngOnDestroy, destroy fore ny instans, och null-sattning.
+
 ## Worker A — Session #311 (2026-03-25) — 0 buggar (ORDER BY whitelist + cookie attributes + error_log format)
 
 ### Audit 1: PHP SQL ORDER BY dynamic (0 buggar)
