@@ -1,3 +1,73 @@
+## Worker A — Session #317 (2026-03-25) — 1 bugg (alla 3 audits)
+
+### Audit 1: PHP numeric precision audit (1 bugg)
+Granskade ALLA PHP-controllers (A-Z) i noreko-backend/classes/ for division med noll, floatval/intval precision, procentberakningar och avrundningsfel.
+
+**Bugg fixad: RebotlingController.php rad 1361 — division med noll**
+I `getCycleTimeData()` byggs ett `$alert`-objekt med `'change_pct' => round((($recent - $older) / $older) * 100, 1)`. Variabeln `$older` ar ett moving average-varde som kan vara 0.0 (om alla cykeltider i fonstret var noll). Det inkonsistenta ar att samma berakning 24 rader tidigare (rad 1337) korrekt kontrollerar `$older > 0`, men alert-blocket gor det inte. Fixat med guard: `$older > 0 ? round(...) : 0.0`.
+
+**Granskade filer (alla rena utom ovan):**
+- AdminController.php, AlertsController.php, AlarmHistorikController.php, AndonController.php, AuditController.php, AvvikelselarmController.php
+- BatchSparningController.php, BonusAdminController.php, BonusController.php
+- CertificationController.php, CykeltidHeatmapController.php
+- DagligBriefingController.php, DagligSammanfattningController.php, DashboardLayoutController.php, DrifttidsTimelineController.php
+- EffektivitetController.php
+- FavoriterController.php, FeedbackAnalysController.php, FeedbackController.php, FeatureFlagController.php, ForstaTimmeAnalysController.php
+- GamificationController.php
+- HeatmapController.php, HistorikController.php, HistoriskProduktionController.php, HistoriskSammanfattningController.php
+- KapacitetsplaneringController.php, KassationsanalysController.php, KassationsDrilldownController.php, KassationskvotAlarmController.php, KassationsorsakController.php, KassationsorsakPerStationController.php, KlassificeringslinjeController.php, KvalitetscertifikatController.php, KvalitetstrendanalysController.php, KvalitetstrendController.php, KvalitetsTrendbrottController.php
+- LeveransplaneringController.php, LineSkiftrapportController.php, LoginController.php
+- MaintenanceController.php, MalhistorikController.php, MaskinDrifttidController.php, MaskinhistorikController.php, MaskinOeeController.php, MaskinunderhallController.php, MinDagController.php, MorgonrapportController.php, MyStatsController.php
+- NarvaroController.php, NewsController.php
+- OeeBenchmarkController.php, OeeJamforelseController.php, OeeTrendanalysController.php, OeeWaterfallController.php, OperatorCompareController.php, OperatorController.php, OperatorDashboardController.php, OperatorJamforelseController.php, OperatorOnboardingController.php, OperatorRankingController.php, OperatorsbonusController.php, OperatorsportalController.php, OperatorsPrestandaController.php
+- ParetoController.php, PrediktivtUnderhallController.php, ProduktionsDashboardController.php, ProduktionseffektivitetController.php, ProduktionsflodeController.php, ProduktionskalenderController.php, ProduktionskostnadController.php, ProduktionsmalController.php, ProduktionsPrognosController.php, ProduktionspulsController.php, ProduktionsSlaController.php, ProduktionsTaktController.php, ProduktTypEffektivitetController.php, ProfileController.php
+- RankingHistorikController.php, RebotlingAdminController.php, RebotlingAnalyticsController.php, RebotlingController.php (BUGG), RebotlingProductController.php, RebotlingSammanfattningController.php, RebotlingStationsdetaljController.php, RebotlingTrendanalysController.php, RegisterController.php, RuntimeController.php
+- SaglinjeController.php, ShiftHandoverController.php, ShiftPlanController.php, SkiftjamforelseController.php, SkiftoverlamningController.php, SkiftplaneringController.php, SkiftrapportController.php, SkiftrapportExportController.php, StatistikDashboardController.php, StatistikOverblickController.php, StatusController.php, StoppageController.php, StopporsakController.php, StopporsakOperatorController.php, StopporsakRegistreringController.php, StopporsakTrendController.php, StopptidsanalysController.php
+- TidrapportController.php, TvattlinjeController.php
+- UnderhallsloggController.php, UnderhallsprognosController.php, UtnyttjandegradController.php
+- VdDashboardController.php, VDVeckorapportController.php, VeckorapportController.php, VeckotrendController.php, VpnController.php
+- WeeklyReportController.php
+
+Manga controllers anvander korrekt `$var > 0 ? (... / $var ...) : 0` monstret. Sarskilt val implementerat i KassationsDrilldownController, VdDashboardController, DagligBriefingController, HistoriskProduktionController med flera.
+
+### Audit 2: PHP SQL transaction audit N-Z (0 buggar)
+Granskade alla N-Z controllers som anvander transaktioner:
+- **OperatorController.php** (rad 126, 159): beginTransaction/commit/rollBack i try/catch — korrekt
+- **OperatorsbonusController.php** (rad 614): beginTransaction/commit med inTransaction()-check — korrekt
+- **ProfileController.php** (rad 149): beginTransaction/commit med inTransaction()-check fore rollBack — korrekt
+- **ProduktionsmalController.php** (rad 830): beginTransaction/commit/rollBack i try/catch — korrekt
+- **ProduktionsSlaController.php** (rad 574): beginTransaction/commit/rollBack i try/catch — korrekt
+- **RebotlingAdminController.php** (rad 187, 475, 1005, 1092): 4 separata transaktioner, alla med korrekt beginTransaction/commit/rollBack — korrekt
+- **RebotlingAnalyticsController.php** (rad 6412): beginTransaction/commit/rollBack i try/catch — korrekt
+- **RebotlingController.php** (rad 2472): beginTransaction med multipla villkorliga rollBack + commit/rollBack i catch — korrekt
+- **RebotlingProductController.php** (rad 122, 190, 245): 3 transaktioner, alla med korrekt begin/commit/rollBack — korrekt
+- **RegisterController.php** (rad 107): beginTransaction/commit/rollBack i try/catch — korrekt
+- **RuntimeController.php** (rad 84): beginTransaction med villkorlig commit/rollBack — korrekt
+- **ShiftHandoverController.php** (rad 409): beginTransaction med multipla villkorliga rollBack + commit — korrekt
+- **ShiftPlanController.php** (rad 608): beginTransaction/commit/rollBack — korrekt
+- **SkiftoverlamningController.php** (rad 1198): beginTransaction/commit/rollBack — korrekt
+- **SkiftplaneringController.php** (rad 532): beginTransaction med villkorlig rollBack + commit — korrekt
+- **SkiftrapportController.php** (rad 254, 291, 332, 368, 412, 510): 6 transaktioner, alla korrekt — korrekt
+- **StoppageController.php** (rad 316, 414, 442): 3 transaktioner, alla korrekt — korrekt
+- **StopporsakRegistreringController.php** (rad 265): beginTransaction med multipla villkorliga rollBack + commit — korrekt
+- **UnderhallsloggController.php**: Inga transaktioner (enbart SELECT-operationer) — OK
+
+Controllers utan transaktioner (N-Z) med INSERT/UPDATE: RebotlingAdminController (enstaka INSERT/UPDATE utanfor transaktioner ar for separata, oavhangiga operationer — OK), SaglinjeController (enstaka INSERT ON DUPLICATE KEY — OK), TvattlinjeController (enstaka INSERT/UPDATE — OK), NewsController (enstaka INSERT — OK), VeckorapportController (enbart SELECT — OK).
+
+### Audit 3: PHP array bounds/null audit N-Z (0 buggar)
+Granskade alla N-Z controllers for arraytillgang utan kontroll, saknade null-checkar efter fetch(), och osaker array-anvandning.
+
+**Sammanfattning:** Alla N-Z controllers foljer konsekvent sakra monster:
+- `$row['col'] ?? 0` anvands genomgaende efter `->fetch()` for att hantera potential null/false
+- `!empty($arr)` kontrolleras fore `$arr[0]`-tillgang (t.ex. OperatorsPrestandaController rad 405, OperatorRankingController rad 455/706)
+- `count($arr) >= N` kontrolleras fore slice/index-tillgang (t.ex. VeckotrendController rad 264)
+- `if ($row)` eller `if (!$row)` anvands konsekvent efter `->fetch()` fore radtillgang (t.ex. OperatorsportalController rad 218, OperatorCompareController rad 242/361)
+- `max(1, ...)` anvands genomgaende som divisor-guard (t.ex. OperatorsportalController rad 343-345, OperatorRankingController rad 263)
+- `empty($all)` kontrolleras fore looping/berakning (t.ex. BonusController rad 2313)
+- fetchAll-resultat loopas med foreach som naturligt hanterar tomma arrayer
+
+Specifikt granskade (N-Z): NarvaroController, NewsController, OeeBenchmarkController, OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController, OperatorCompareController, OperatorController, OperatorDashboardController, OperatorJamforelseController, OperatorOnboardingController, OperatorRankingController, OperatorsbonusController, OperatorsportalController, OperatorsPrestandaController, ParetoController, PrediktivtUnderhallController, ProduktionsDashboardController, ProduktionseffektivitetController, ProduktionsflodeController, ProduktionskalenderController, ProduktionskostnadController, ProduktionsmalController, ProduktionsPrognosController, ProduktionspulsController, ProduktionsSlaController, ProduktionsTaktController, ProduktTypEffektivitetController, ProfileController, RankingHistorikController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingController, RebotlingProductController, RebotlingSammanfattningController, RebotlingStationsdetaljController, RebotlingTrendanalysController, RegisterController, RuntimeController, SaglinjeController, ShiftHandoverController, ShiftPlanController, SkiftjamforelseController, SkiftoverlamningController, SkiftplaneringController, SkiftrapportController, SkiftrapportExportController, StatistikDashboardController, StatistikOverblickController, StatusController, StoppageController, StopporsakController, StopporsakOperatorController, StopporsakRegistreringController, StopporsakTrendController, StopptidsanalysController, TidrapportController, TvattlinjeController, UnderhallsloggController, UnderhallsprognosController, UtnyttjandegradController, VdDashboardController, VDVeckorapportController, VeckorapportController, VeckotrendController, VpnController, WeeklyReportController.
+
 ## Worker B — Session #317 (2026-03-25) — 0 buggar (alla 3 audits rena)
 
 ### Audit 1: Angular route guard audit (0 buggar)

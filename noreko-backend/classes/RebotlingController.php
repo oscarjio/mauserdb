@@ -1358,7 +1358,7 @@ class RebotlingController {
                 $alert = [
                     'type' => 'cycle_time_increase',
                     'message' => 'Cykeltiden ökar - kontrollera utrustningen',
-                    'change_pct' => round((($recent - $older) / $older) * 100, 1),
+                    'change_pct' => $older > 0 ? round((($recent - $older) / $older) * 100, 1) : 0.0,
                     'current_avg' => $recent,
                     'previous_avg' => $older
                 ];
