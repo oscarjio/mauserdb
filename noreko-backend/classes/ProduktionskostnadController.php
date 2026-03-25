@@ -75,8 +75,7 @@ class ProduktionskostnadController {
             session_start();
         }
         if (empty($_SESSION['user_id'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Sessionen har gått ut. Logga in igen.', 401);
             exit;
         }
     }

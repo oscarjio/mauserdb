@@ -1,3 +1,36 @@
+## Worker A — Session #314 (2026-03-25) — 13 buggar (sendError inkonsistens + N+1 queries + input sanitization)
+
+### Audit 1: PHP sendError() vs echo inkonsistens (13 buggar)
+Granskade alla ~100 PHP-controllers i noreko-backend/classes/. Hittade 10 controllers som definierar sin egen sendError()-metod men kringgår den med direkt `echo json_encode(...)` i requireLogin()/requireAdmin()/auth-kontroller. Fixade 13 direkta echo-anrop i:
+- BatchSparningController.php (1 direkt echo -> sendError)
+- MaintenanceController.php (1 direkt echo -> sendError)
+- OperatorCompareController.php (1 direkt echo -> sendError)
+- OperatorsbonusController.php (2 direkt echo -> sendError)
+- SkiftoverlamningController.php (1 direkt echo -> sendError)
+- SkiftplaneringController.php (1 direkt echo -> sendError)
+- WeeklyReportController.php (2 direkt echo -> sendError)
+- KvalitetscertifikatController.php (3 direkt echo -> sendError, fixade aven felstavningar i felmeddelanden)
+- MaskinunderhallController.php (1 direkt echo -> sendError)
+- ProduktionskostnadController.php (1 direkt echo -> sendError)
+- ProduktionsSlaController.php (1 direkt echo -> sendError)
+
+### Audit 2: PHP SQL N+1 queries (0 buggar)
+Granskade alla PHP-controllers for loopar med SQL-queries inuti. Hittade ~40 fall med prepare/execute inuti loopar men samtliga ar antingen:
+- Fasta sma loopar (3 skift, 7 dagar, 12 veckor) — bounded iterations
+- Seed/setup-data (INSERT IGNORE for initiering)
+- Batch-upserts (ON DUPLICATE KEY UPDATE med unika parametrar per rad)
+- Anvandardrivna sma sets (t.ex. jamfor 2-5 operatorer)
+Inga verkliga N+1-buggar att fixa.
+
+### Audit 3: PHP input sanitization audit (0 buggar)
+Granskade alla $_GET/$_POST-anvandningar i noreko-backend/classes/:
+- Alla numeriska varden anvander intval()/(int)/(float) konsekvent med bounds-checking
+- Alla strangvarden ar antingen whitelistade (in_array), regex-validerade (preg_match), eller langdbegransade (mb_substr)
+- Alla SQL-queries anvander prepared statements med parametrar
+- Dynamiska tabellnamn anvander whitelistade varden
+- Utdata till JSON anvander htmlspecialchars dar user-input reflekteras
+Inga injektionsrisker (SQL, XSS, command injection) hittades.
+
 ## Worker B — Session #313 (2026-03-25) — 0 buggar (unused imports + ngOnDestroy + template type safety)
 
 ### Audit 1: Angular unused imports/variables — TypeScript-diagnostik (0 buggar)

@@ -22,14 +22,12 @@ class WeeklyReportController {
         }
 
         if (empty($_SESSION['user_id'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Ej inloggad', 401);
             return;
         }
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
+            $this->sendError('Endast GET tillåtet', 405);
             return;
         }
 
