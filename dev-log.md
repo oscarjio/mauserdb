@@ -1,3 +1,50 @@
+## Worker A — Session #319 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: PHP raw SQL string concatenation audit N-Z (0 buggar)
+Granskade ALLA 67 PHP-controllers N-Z i noreko-backend/classes/ efter SQL-injektionsrisker (direkt strangkonkatenering med user input, avsaknad av prepared statements, dynamiska tabell-/kolumnnamn utan allowlist).
+
+**Granskade filer (N-Z):**
+NarvaroController.php, NewsController.php, OeeBenchmarkController.php, OeeJamforelseController.php, OeeTrendanalysController.php, OeeWaterfallController.php, OperatorCompareController.php, OperatorController.php, OperatorDashboardController.php, OperatorJamforelseController.php, OperatorOnboardingController.php, OperatorRankingController.php, OperatorsbonusController.php, OperatorsportalController.php, OperatorsPrestandaController.php, ParetoController.php, PrediktivtUnderhallController.php, ProduktionsDashboardController.php, ProduktionseffektivitetController.php, ProduktionsflodeController.php, ProduktionskalenderController.php, ProduktionskostnadController.php, ProduktionsmalController.php, ProduktionsPrognosController.php, ProduktionspulsController.php, ProduktionsSlaController.php, ProduktionsTaktController.php, ProduktTypEffektivitetController.php, ProfileController.php, RankingHistorikController.php, RebotlingAdminController.php, RebotlingAnalyticsController.php, RebotlingController.php, RebotlingProductController.php, RebotlingSammanfattningController.php, RebotlingStationsdetaljController.php, RebotlingTrendanalysController.php, RegisterController.php, RuntimeController.php, SaglinjeController.php, ShiftHandoverController.php, ShiftPlanController.php, SkiftjamforelseController.php, SkiftoverlamningController.php, SkiftplaneringController.php, SkiftrapportController.php, SkiftrapportExportController.php, StatistikDashboardController.php, StatistikOverblickController.php, StatusController.php, StoppageController.php, StopporsakController.php, StopporsakOperatorController.php, StopporsakRegistreringController.php, StopporsakTrendController.php, StopptidsanalysController.php, TidrapportController.php, TvattlinjeController.php, UnderhallsloggController.php, UnderhallsprognosController.php, UtnyttjandegradController.php, VdDashboardController.php, VDVeckorapportController.php, VeckorapportController.php, VeckotrendController.php, VpnController.php, WeeklyReportController.php
+
+**Resultat:**
+- ALLA user input ($\_GET, $\_POST) gar genom prepared statements med parametriserade queries
+- Dynamiska tabellnamn anvander konsekvent allowlist-validering:
+  - RuntimeController: `in_array($line, ['tvattlinje', 'rebotling'], true)` fore `$tableName = $line . '_runtime'`
+  - LineSkiftrapportController: `in_array($line, ['tvattlinje', 'saglinje', 'klassificeringslinje'], true)` fore `$table = $line . '_skiftrapport'`
+  - StopporsakRegistreringController: `validatedLinje()` med allowlist
+- Dynamiska kolumnnamn anvander mapping-arrayer (BonusAdminController::$column\_map, HistoriskProduktionController::$sort med in\_array)
+- Strangkonkatenering i SQL finns, men enbart for:
+  - Interna variabler fran hardkodade konstanter (OperatorsPrestandaController::SKIFT, BonusController::perShiftByPosition $pos=1/2/3)
+  - Regex-validerade datumvarden (BonusController::getDateFilter, TvattlinjeController)
+  - PDO::quote() for systemtabellnamn (RebotlingAdminController::getOtherLineStatus)
+- Inga SQL-injektionsrisker hittade. Rent.
+
+### Audit 2: PHP error logging audit (0 buggar)
+Granskade ALLA 117 PHP-filer i noreko-backend/classes/ efter felhanteringsbrister.
+
+**Granskade filer (samtliga):**
+Alla 117 filer listade ovan plus A-M: AdminController.php, AlarmHistorikController.php, AlertsController.php, AndonController.php, AuditController.php, AuthHelper.php, AvvikelselarmController.php, BatchSparningController.php, BonusAdminController.php, BonusController.php, CertificationController.php, CykeltidHeatmapController.php, DagligBriefingController.php, DagligSammanfattningController.php, DashboardLayoutController.php, DrifttidsTimelineController.php, EffektivitetController.php, FavoriterController.php, FeatureFlagController.php, FeedbackAnalysController.php, FeedbackController.php, ForstaTimmeAnalysController.php, GamificationController.php, HeatmapController.php, HistorikController.php, HistoriskProduktionController.php, HistoriskSammanfattningController.php, KapacitetsplaneringController.php, KassationsanalysController.php, KassationsDrilldownController.php, KassationskvotAlarmController.php, KassationsorsakController.php, KassationsorsakPerStationController.php, KlassificeringslinjeController.php, KvalitetscertifikatController.php, KvalitetstrendanalysController.php, KvalitetsTrendbrottController.php, KvalitetstrendController.php, LeveransplaneringController.php, LineSkiftrapportController.php, LoginController.php, MaintenanceController.php, MalhistorikController.php, MaskinDrifttidController.php, MaskinhistorikController.php, MaskinOeeController.php, MaskinunderhallController.php, MinDagController.php, MorgonrapportController.php, MyStatsController.php
+
+**Resultat:**
+- **Inga tysta catch-block**: Alla catch-block innehaller error\_log() med beskrivande prefix (Controller::method format)
+- **Inga kaensliga data i loggar**: ProfileController loggar user\_id och username vid misslyckade losenordsbytes — detta ar standard for sakerhetsgranskning/audit trail. Faktiska losenord loggas ALDRIG.
+- **Konsekvent felhantering**: Alla catch-block foljer monstret: error\_log() + http\_response\_code(500) + JSON-felsvar, ELLER error\_log() + fallback-varde (for interna hjalp-metoder)
+- **Korrekt rollback-hantering**: RuntimeController och MaintenanceController anvander inre catch-block for att rulla tillbaka transaktioner innan yttre catch loggar/rapporterar
+- Rent — inga buggar hittade.
+
+### Audit 3: PHP response consistency audit (0 buggar)
+Granskade ALLA 117 PHP-filer i noreko-backend/classes/ efter inkonsekvent JSON-respons-format, saknade Content-Type headers, felaktiga HTTP-statuskoder och exit/die-inkonsistenser.
+
+**Resultat:**
+- **Content-Type**: Satts globalt i api.php (rad 57): `header('Content-Type: application/json; charset=utf-8')` — enskilda controllers behover inte satta detta. De som overrider gor det korrekt (CSV-export med text/csv, HTML-rapporter med text/html).
+- **JSON-format**: 83 av 117 filer anvander sendSuccess/sendError-hjalparmetoder med konsekvent format `{success: true/false, data/error: ...}`. De ovriga 34 filerna anvander samma format manuellt (verifierat via grep).
+- **HTTP-statuskoder**: Alla felmeddelanden paras korrekt med ratt HTTP-statuskod (400 for valideringsfel, 401 for autentisering, 403 for behoorighet, 404 for hittades ej, 429 for rate limit, 500 for serverfel). Inga fall av HTTP 200 med success:false.
+- **exit() anvandning**: 27 exit-anrop i 15 filer — alla anvands korrekt i guard-metoder (checkAdmin, checkOwnerOrAdmin) for att stoppa exekvering efter felsvar. Inga die()-anrop.
+- **Observation (ej bugg)**: Det finns tva moenster for hjalparmetoder — sendSuccess/sendError i 83 filer och manuell echo json\_encode i 34 filer. Bada producerar identiskt output-format. En framtida refactoring kunde konsolidera detta, men det ar ingen bugg.
+- Rent — inga buggar hittade.
+
+---
+
 ## Worker B — Session #319 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: Angular pipe/directive audit (0 buggar)
