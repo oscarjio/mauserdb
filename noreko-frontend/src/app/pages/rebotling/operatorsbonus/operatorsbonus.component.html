@@ -240,19 +240,19 @@
               <strong>{{ op.operator_namn }}</strong>
             </td>
             <td class="text-end">
-              <span>{{ (op.ibc_per_timme ?? 0).toFixed(1) }}</span>
+              <span>{{ op.ibc_per_timme.toFixed(1) }}</span>
               <div class="mini-progress">
                 <div class="mini-progress-bar" [style.width.%]="op.pct_ibc" [style.background]="progressBarColor(op.pct_ibc)"></div>
               </div>
             </td>
             <td class="text-end">
-              <span>{{ (op.kvalitet ?? 0).toFixed(1) }}%</span>
+              <span>{{ op.kvalitet.toFixed(1) }}%</span>
               <div class="mini-progress">
                 <div class="mini-progress-bar" [style.width.%]="op.pct_kvalitet" [style.background]="progressBarColor(op.pct_kvalitet)"></div>
               </div>
             </td>
             <td class="text-end">
-              <span>{{ (op.narvaro ?? 0).toFixed(1) }}%</span>
+              <span>{{ op.narvaro.toFixed(1) }}%</span>
               <div class="mini-progress">
                 <div class="mini-progress-bar" [style.width.%]="op.pct_narvaro" [style.background]="progressBarColor(op.pct_narvaro)"></div>
               </div>

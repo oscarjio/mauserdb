@@ -182,17 +182,17 @@
                     <strong>{{ dag.veckodag }}</strong>
                     <span class="text-muted small ms-1">{{ dag.datum }}</span>
                   </td>
-                  <td class="text-end">{{ dag.dag?.producerade ?? 0 }}</td>
+                  <td class="text-end">{{ dag.dag.producerade }}</td>
                   <td class="text-end">
-                    <span [style.color]="oeeFarg(dag.dag?.oee_pct ?? 0)">{{ dag.dag?.oee_pct ?? 0 }}%</span>
+                    <span [style.color]="oeeFarg(dag.dag.oee_pct)">{{ dag.dag.oee_pct }}%</span>
                   </td>
-                  <td class="text-end">{{ dag.kvall?.producerade ?? 0 }}</td>
+                  <td class="text-end">{{ dag.kvall.producerade }}</td>
                   <td class="text-end">
-                    <span [style.color]="oeeFarg(dag.kvall?.oee_pct ?? 0)">{{ dag.kvall?.oee_pct ?? 0 }}%</span>
+                    <span [style.color]="oeeFarg(dag.kvall.oee_pct)">{{ dag.kvall.oee_pct }}%</span>
                   </td>
-                  <td class="text-end">{{ dag.natt?.producerade ?? 0 }}</td>
+                  <td class="text-end">{{ dag.natt.producerade }}</td>
                   <td class="text-end">
-                    <span [style.color]="oeeFarg(dag.natt?.oee_pct ?? 0)">{{ dag.natt?.oee_pct ?? 0 }}%</span>
+                    <span [style.color]="oeeFarg(dag.natt.oee_pct)">{{ dag.natt.oee_pct }}%</span>
                   </td>
                   <td class="text-end"><strong>{{ dag.totalt_producerade }}</strong></td>
                   <td class="text-end">

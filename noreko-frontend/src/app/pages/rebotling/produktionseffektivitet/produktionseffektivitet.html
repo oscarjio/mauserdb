@@ -160,7 +160,7 @@
           <span class="text-muted small">Låg</span>
           <div style="width:150px; height:12px; border-radius:4px; background:linear-gradient(to right, rgb(220,50,50), rgb(220,226,50), rgb(74,212,50));"></div>
           <span class="text-muted small">Hög</span>
-          <span class="text-muted small ms-3">Max: {{ (heatmapMaxVal ?? 0).toFixed(1) }} IBC/h</span>
+          <span class="text-muted small ms-3">Max: {{ heatmapMaxVal.toFixed(1) }} IBC/h</span>
         </div>
       </div>
 
@@ -192,7 +192,7 @@
                   <span class="badge me-2" [style.background]="i === 0 ? '#d69e2e' : i === 1 ? '#a0aec0' : '#c05621'">#{{ i + 1 }}</span>
                   <span style="color:#e2e8f0; font-weight:600;">{{ t.timme_label }}</span>
                 </div>
-                <span style="color:#68d391; font-weight:700;">{{ (t.snitt_ibc ?? 0).toFixed(1) }} IBC/h</span>
+                <span style="color:#68d391; font-weight:700;">{{ t.snitt_ibc.toFixed(1) }} IBC/h</span>
               </div>
               <div class="progress" style="height:8px; background:#1a202c;">
                 <div
@@ -232,7 +232,7 @@
                   <span class="badge bg-danger me-2">#{{ i + 1 }}</span>
                   <span style="color:#e2e8f0; font-weight:600;">{{ t.timme_label }}</span>
                 </div>
-                <span style="color:#fc8181; font-weight:700;">{{ (t.snitt_ibc ?? 0).toFixed(1) }} IBC/h</span>
+                <span style="color:#fc8181; font-weight:700;">{{ t.snitt_ibc.toFixed(1) }} IBC/h</span>
               </div>
               <div class="progress" style="height:8px; background:#1a202c;">
                 <div

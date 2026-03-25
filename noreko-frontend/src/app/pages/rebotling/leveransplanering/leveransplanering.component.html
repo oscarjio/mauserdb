@@ -265,7 +265,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="showNewOrderModal = false">Avbryt</button>
-          <button class="btn btn-info" (click)="submitNewOrder()" [disabled]="savingOrder || !newOrder.kundnamn?.trim() || !newOrder.antal_ibc || newOrder.antal_ibc < 1 || !newOrder.onskat_leveransdatum">
+          <button class="btn btn-info" (click)="submitNewOrder()" [disabled]="savingOrder || !newOrder.kundnamn.trim() || !newOrder.antal_ibc || newOrder.antal_ibc < 1 || !newOrder.onskat_leveransdatum">
             <i class="fas fa-save me-1"></i>{{ savingOrder ? 'Sparar...' : 'Skapa order' }}
           </button>
         </div>

@@ -65,67 +65,67 @@
 
       <!-- KPI-jamforelse -->
       <h5 class="section-title mb-3">
-        <i class="bi bi-bar-chart me-2"></i>KPI-jamforelse: {{ rapport.period?.label }} vs {{ rapport.period?.prev_label }}
+        <i class="bi bi-bar-chart me-2"></i>KPI-jamforelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
       </h5>
       <div class="row g-3 mb-4">
         <!-- OEE -->
         <div class="col-lg col-md-4 col-sm-6">
           <div class="kpi-card">
             <div class="kpi-label">OEE</div>
-            <div class="kpi-value">{{ rapport.current?.oee_pct }}%</div>
-            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse?.oee_delta)">
-              <i [class]="deltaIcon(rapport.jamforelse?.oee_delta)"></i>
-              {{ abs(rapport.jamforelse?.oee_delta) }}%
+            <div class="kpi-value">{{ rapport.current.oee_pct }}%</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.oee_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.oee_delta)"></i>
+              {{ abs(rapport.jamforelse.oee_delta) }}%
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous?.oee_pct }}%</div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.oee_pct }}%</div>
           </div>
         </div>
         <!-- Total IBC -->
         <div class="col-lg col-md-4 col-sm-6">
           <div class="kpi-card">
             <div class="kpi-label">Total IBC</div>
-            <div class="kpi-value">{{ formatNum(rapport.current?.ibc_ok) }}</div>
-            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse?.ibc_delta)">
-              <i [class]="deltaIcon(rapport.jamforelse?.ibc_delta)"></i>
-              {{ abs(rapport.jamforelse?.ibc_delta) }}
+            <div class="kpi-value">{{ formatNum(rapport.current.ibc_ok) }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.ibc_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.ibc_delta)"></i>
+              {{ abs(rapport.jamforelse.ibc_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous?.ibc_ok) }}</div>
+            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.ibc_ok) }}</div>
           </div>
         </div>
         <!-- Snitt IBC/dag -->
         <div class="col-lg col-md-4 col-sm-6">
           <div class="kpi-card">
             <div class="kpi-label">Snitt IBC/dag</div>
-            <div class="kpi-value">{{ rapport.current?.snitt_ibc_per_dag }}</div>
-            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse?.snitt_delta)">
-              <i [class]="deltaIcon(rapport.jamforelse?.snitt_delta)"></i>
-              {{ abs(rapport.jamforelse?.snitt_delta) }}
+            <div class="kpi-value">{{ rapport.current.snitt_ibc_per_dag }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.snitt_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.snitt_delta)"></i>
+              {{ abs(rapport.jamforelse.snitt_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous?.snitt_ibc_per_dag }}</div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.snitt_ibc_per_dag }}</div>
           </div>
         </div>
         <!-- Stopptid -->
         <div class="col-lg col-md-4 col-sm-6">
           <div class="kpi-card">
             <div class="kpi-label">Stopptid (min)</div>
-            <div class="kpi-value">{{ formatNum(rapport.current?.stopptid_min) }}</div>
-            <div class="kpi-delta" [ngClass]="deltaClass(-(rapport.jamforelse?.stopptid_delta ?? 0))">
-              <i [class]="deltaIcon(-(rapport.jamforelse?.stopptid_delta ?? 0))"></i>
-              {{ abs(rapport.jamforelse?.stopptid_delta) }}
+            <div class="kpi-value">{{ formatNum(rapport.current.stopptid_min) }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(-rapport.jamforelse.stopptid_delta)">
+              <i [class]="deltaIcon(-rapport.jamforelse.stopptid_delta)"></i>
+              {{ abs(rapport.jamforelse.stopptid_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous?.stopptid_min) }}</div>
+            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.stopptid_min) }}</div>
           </div>
         </div>
         <!-- Kvalitet -->
         <div class="col-lg col-md-4 col-sm-6">
           <div class="kpi-card">
             <div class="kpi-label">Kvalitet</div>
-            <div class="kpi-value">{{ rapport.current?.kvalitet_pct }}%</div>
-            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse?.kvalitet_delta)">
-              <i [class]="deltaIcon(rapport.jamforelse?.kvalitet_delta)"></i>
-              {{ abs(rapport.jamforelse?.kvalitet_delta) }}%
+            <div class="kpi-value">{{ rapport.current.kvalitet_pct }}%</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.kvalitet_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.kvalitet_delta)"></i>
+              {{ abs(rapport.jamforelse.kvalitet_delta) }}%
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous?.kvalitet_pct }}%</div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.kvalitet_pct }}%</div>
           </div>
         </div>
       </div>

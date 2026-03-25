@@ -72,10 +72,10 @@
           <div class="kpi-value">{{ weeklySummary.this_week.count }}</div>
           <div class="kpi-label">stopp</div>
           <div class="kpi-diff" *ngIf="cachedWeekDiffCount !== null"
-               [class.diff-up]="(cachedWeekDiffCount ?? 0) > 0"
-               [class.diff-down]="(cachedWeekDiffCount ?? 0) < 0">
-            <i class="fas" [ngClass]="(cachedWeekDiffCount ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
-            {{ (cachedWeekDiffCount ?? 0) | number:'1.0-0' }}% vs förra veckan
+               [class.diff-up]="cachedWeekDiffCount > 0"
+               [class.diff-down]="cachedWeekDiffCount < 0">
+            <i class="fas" [ngClass]="cachedWeekDiffCount > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ cachedWeekDiffCount | number:'1.0-0' }}% vs förra veckan
           </div>
         </div>
       </div>
@@ -85,10 +85,10 @@
           <div class="kpi-value">{{ formatDuration(weeklySummary.this_week.total_minutes) }}</div>
           <div class="kpi-label">total stopptid</div>
           <div class="kpi-diff" *ngIf="cachedWeekDiffMinutes !== null"
-               [class.diff-up]="(cachedWeekDiffMinutes ?? 0) > 0"
-               [class.diff-down]="(cachedWeekDiffMinutes ?? 0) < 0">
-            <i class="fas" [ngClass]="(cachedWeekDiffMinutes ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
-            {{ (cachedWeekDiffMinutes ?? 0) | number:'1.0-0' }}% vs förra veckan
+               [class.diff-up]="cachedWeekDiffMinutes > 0"
+               [class.diff-down]="cachedWeekDiffMinutes < 0">
+            <i class="fas" [ngClass]="cachedWeekDiffMinutes > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ cachedWeekDiffMinutes | number:'1.0-0' }}% vs förra veckan
           </div>
         </div>
       </div>

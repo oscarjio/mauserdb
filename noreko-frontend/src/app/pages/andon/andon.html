@@ -233,7 +233,7 @@
       <!-- OEE-kort -->
       <div class="kpi-kort">
         <div class="kpi-rubrik">OEE</div>
-        <div class="kpi-varde" [style.color]="statusFarg">{{ (status.oee_pct ?? 0).toFixed(1) }}<span class="kpi-enhet">%</span></div>
+        <div class="kpi-varde" [style.color]="statusFarg">{{ status.oee_pct.toFixed(1) }}<span class="kpi-enhet">%</span></div>
         <div class="oee-etikett" [style.color]="statusFarg">{{ oeeEtikett }}</div>
         <div class="kpi-sub">Effektivitet idag</div>
       </div>
@@ -242,7 +242,7 @@
       <div class="kpi-kort">
         <div class="kpi-rubrik">IBC / TIMME</div>
         <div class="kpi-varde-med-badge">
-          <div class="kpi-varde" [style.color]="statusFarg">{{ (status.ibc_per_h ?? 0).toFixed(1) }}</div>
+          <div class="kpi-varde" [style.color]="statusFarg">{{ status.ibc_per_h.toFixed(1) }}</div>
           <div class="ibc-rate-badge" [class]="ibcPerHour >= targetRate && targetRate > 0 ? 'on-target' : 'below-target'"
                *ngIf="targetRate > 0">
             <span class="rate-label">Mål</span>

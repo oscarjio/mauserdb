@@ -23,60 +23,60 @@
 
       <!-- Senaste timmen -->
       <div class="col-12 col-md-4">
-        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.senaste_timme?.farg)">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.senaste_timme.farg)">
           <div class="kpi-icon">
             <i class="fas fa-clock"></i>
           </div>
           <div class="kpi-label">Senaste timmen</div>
-          <div class="kpi-value">{{ aktuellData.senaste_timme ? (aktuellData.senaste_timme.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
+          <div class="kpi-value">{{ (aktuellData.senaste_timme.kvot_pct | number:'1.1-2') + '%' }}</div>
           <div class="kpi-sub">
-            {{ aktuellData.senaste_timme?.kasserade }} kasserade / {{ aktuellData.senaste_timme?.totalt }} totalt
+            {{ aktuellData.senaste_timme.kasserade }} kasserade / {{ aktuellData.senaste_timme.totalt }} totalt
           </div>
-          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.senaste_timme?.farg)">
-            <span *ngIf="aktuellData.senaste_timme?.farg === 'rod'" class="pulse-rod">ALARM</span>
-            <span *ngIf="aktuellData.senaste_timme?.farg === 'gul'" class="pulse-gul">VARNING</span>
-            <span *ngIf="aktuellData.senaste_timme?.farg === 'gron'">OK</span>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.senaste_timme.farg)">
+            <span *ngIf="aktuellData.senaste_timme.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.senaste_timme.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.senaste_timme.farg === 'gron'">OK</span>
           </div>
         </div>
       </div>
 
       <!-- Aktuellt skift -->
       <div class="col-12 col-md-4">
-        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.aktuellt_skift?.farg)">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.aktuellt_skift.farg)">
           <div class="kpi-icon">
             <i class="fas fa-user-clock"></i>
           </div>
           <div class="kpi-label">Aktuellt skift</div>
-          <div class="kpi-value">{{ aktuellData.aktuellt_skift ? (aktuellData.aktuellt_skift.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
+          <div class="kpi-value">{{ (aktuellData.aktuellt_skift.kvot_pct | number:'1.1-2') + '%' }}</div>
           <div class="kpi-sub">
-            {{ (aktuellData.aktuellt_skift?.skift_namn ? skiftNamn[aktuellData.aktuellt_skift.skift_namn] : '') || aktuellData.aktuellt_skift?.skift_namn }}
+            {{ (aktuellData.aktuellt_skift.skift_namn ? skiftNamn[aktuellData.aktuellt_skift.skift_namn] : '') || aktuellData.aktuellt_skift.skift_namn }}
           </div>
           <div class="kpi-sub text-muted small">
-            {{ aktuellData.aktuellt_skift?.kasserade }} kasserade / {{ aktuellData.aktuellt_skift?.totalt }} totalt
+            {{ aktuellData.aktuellt_skift.kasserade }} kasserade / {{ aktuellData.aktuellt_skift.totalt }} totalt
           </div>
-          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.aktuellt_skift?.farg)">
-            <span *ngIf="aktuellData.aktuellt_skift?.farg === 'rod'" class="pulse-rod">ALARM</span>
-            <span *ngIf="aktuellData.aktuellt_skift?.farg === 'gul'" class="pulse-gul">VARNING</span>
-            <span *ngIf="aktuellData.aktuellt_skift?.farg === 'gron'">OK</span>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.aktuellt_skift.farg)">
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'gron'">OK</span>
           </div>
         </div>
       </div>
 
       <!-- Idag -->
       <div class="col-12 col-md-4">
-        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.idag?.farg)">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.idag.farg)">
           <div class="kpi-icon">
             <i class="fas fa-calendar-day"></i>
           </div>
           <div class="kpi-label">Idag</div>
-          <div class="kpi-value">{{ aktuellData.idag ? (aktuellData.idag.kvot_pct | number:'1.1-2') + '%' : '—' }}</div>
+          <div class="kpi-value">{{ (aktuellData.idag.kvot_pct | number:'1.1-2') + '%' }}</div>
           <div class="kpi-sub">
-            {{ aktuellData.idag?.kasserade }} kasserade / {{ aktuellData.idag?.totalt }} totalt
+            {{ aktuellData.idag.kasserade }} kasserade / {{ aktuellData.idag.totalt }} totalt
           </div>
-          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.idag?.farg)">
-            <span *ngIf="aktuellData.idag?.farg === 'rod'" class="pulse-rod">ALARM</span>
-            <span *ngIf="aktuellData.idag?.farg === 'gul'" class="pulse-gul">VARNING</span>
-            <span *ngIf="aktuellData.idag?.farg === 'gron'">OK</span>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.idag.farg)">
+            <span *ngIf="aktuellData.idag.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.idag.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.idag.farg === 'gron'">OK</span>
           </div>
         </div>
       </div>

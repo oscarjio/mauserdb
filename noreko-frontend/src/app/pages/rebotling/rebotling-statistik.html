@@ -470,7 +470,7 @@
                 <button class="hm-kpi-btn" [class.active]="heatmapKpi === 'oee'" (click)="heatmapKpi = 'oee'">OEE%</button>
               </div>
               <small class="text-muted">Visar: <strong class="text-light">{{ getHeatmapKpiLabel() }}</strong></small>
-              <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="exportHeatmapCSV()" [disabled]="!heatmapRows?.length">
+              <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="exportHeatmapCSV()" [disabled]="!heatmapRows.length">
                 <i class="fas fa-download me-1"></i>CSV
               </button>
             </div>

@@ -156,7 +156,7 @@
                   <span class="emoji-icon">😄</span> Utmärkt
                 </span>
                 <span class="text-muted small">
-                  {{ statsData.fordelning['4'] ?? 0 }} ({{ getFordelningPct('4') }}%)
+                  {{ statsData.fordelning['4'] }} ({{ getFordelningPct('4') }}%)
                 </span>
               </div>
               <div class="progress progress-sm">
@@ -171,7 +171,7 @@
                   <span class="emoji-icon">😊</span> Bra
                 </span>
                 <span class="text-muted small">
-                  {{ statsData.fordelning['3'] ?? 0 }} ({{ getFordelningPct('3') }}%)
+                  {{ statsData.fordelning['3'] }} ({{ getFordelningPct('3') }}%)
                 </span>
               </div>
               <div class="progress progress-sm">
@@ -186,7 +186,7 @@
                   <span class="emoji-icon">😐</span> Ok
                 </span>
                 <span class="text-muted small">
-                  {{ statsData.fordelning['2'] ?? 0 }} ({{ getFordelningPct('2') }}%)
+                  {{ statsData.fordelning['2'] }} ({{ getFordelningPct('2') }}%)
                 </span>
               </div>
               <div class="progress progress-sm">
@@ -201,7 +201,7 @@
                   <span class="emoji-icon">😔</span> Dålig
                 </span>
                 <span class="text-muted small">
-                  {{ statsData.fordelning['1'] ?? 0 }} ({{ getFordelningPct('1') }}%)
+                  {{ statsData.fordelning['1'] }} ({{ getFordelningPct('1') }}%)
                 </span>
               </div>
               <div class="progress progress-sm">
@@ -261,7 +261,7 @@
                     <span class="snitt-display" [class.snitt-green]="op.snitt_stamning >= 3.0"
                           [class.snitt-yellow]="op.snitt_stamning >= 2.0 && op.snitt_stamning < 3.0"
                           [class.snitt-red]="op.snitt_stamning < 2.0">
-                      {{ (op.snitt_stamning ?? 0).toFixed(2) }}
+                      {{ op.snitt_stamning.toFixed(2) }}
                     </span>
                   </td>
                   <td class="text-center text-muted">{{ op.antal }}</td>

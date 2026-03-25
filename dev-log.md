@@ -1,3 +1,23 @@
+## Worker B — Session #314 (2026-03-25) — 125 buggar (template warnings + strict templates + URL consistency)
+
+### Audit 1: Angular NG8107/NG8102 template warnings (125 buggar)
+Fixade alla 125 kosmetiska varningar (93 NG8107 + 32 NG8102) i 23 template-filer:
+- NG8107: Ersatte onodvandig `?.` med `.` pa non-nullable typer inuti *ngIf-guards
+- NG8102: Tog bort onodvandig `?? 0` pa varden som redan ar typade som `number`
+- Paveraade filer (23 st): andon, bonus-dashboard, feedback-analys, historisk-sammanfattning, avvikelselarm, kapacitetsplanering, kassationskvot-alarm, kvalitetscertifikat, leveransplanering, maskinunderhall, operatorsbonus, operators-prestanda, produktionseffektivitet, produktionsflode, rebotling-statistik, rebotling-trendanalys, skiftrapport-sammanstallning, statistik-dashboard, stopptidsanalys, skiftjamforelse, stoppage-log, utnyttjandegrad, prediktivt-underhall
+- Byggde efter varje fil-batch — 0 NG8107/NG8102-varningar kvar, 0 errors
+
+### Audit 2: Angular strict template type checking (0 buggar)
+`strictTemplates: true` redan aktiverat i tsconfig.json/angularCompilerOptions.
+Verifierade att bygget gar igenom rent med 0 errors och 0 NG-template-varningar.
+
+### Audit 3: Angular service URL consistency (0 buggar)
+Granskade alla Angular-services i noreko-frontend/src/app/services/:
+- Alla HTTP-URL:er anvander `environment.apiUrl` konsekvent via `private api = \`${environment.apiUrl}?action=...\``
+- Inga hardkodade URL:er (http://, localhost, 127.0.0.1) hittades
+- Alla HTTP-anrop gar via `this.api` eller `this.baseUrl` — ingen direkt strang-URL i get/post/put/delete
+- environment.ts och environment.prod.ts anvander samma apiUrl: `/noreko-backend/api.php`
+
 ## Worker A — Session #314 (2026-03-25) — 13 buggar (sendError inkonsistens + N+1 queries + input sanitization)
 
 ### Audit 1: PHP sendError() vs echo inkonsistens (13 buggar)

@@ -422,7 +422,7 @@
         </div>
 
         <div class="mt-3">
-          <button class="btn btn-sm btn-success" (click)="submitGenerera()" [disabled]="genLoading || !genBatchNummer?.trim() || !genAntalIbc || genAntalIbc < 1">
+          <button class="btn btn-sm btn-success" (click)="submitGenerera()" [disabled]="genLoading || !genBatchNummer.trim() || !genAntalIbc || genAntalIbc < 1">
             <span *ngIf="genLoading" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
             <i *ngIf="!genLoading" class="fas fa-plus me-1"></i>
             Skapa certifikat
