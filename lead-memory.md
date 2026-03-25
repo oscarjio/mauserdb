@@ -73,11 +73,11 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 
 ### Nasta:
-- [~] Statistik-graf: produktion_procent kumulativ — Worker A fixar (session #327)
-- [~] Skiftrapport + Frontend UX — Worker B granskar (session #327)
-- [~] Backend endpoint fulltest — Worker A curlar alla (session #327)
+- [ ] Verifiera produktion%-fix pa dev (graferna visar ratt 0-100%?)
+- [ ] Frontend deploy retry (Worker B SSH timeout)
 - [ ] PHP date/timezone audit
 - [ ] PHP authorization audit
+- [ ] Angular form validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -90,6 +90,6 @@ statistik-graf bytt fran cykeltid till produktion_procent, koortid-kolumn bortta
 Deploy-pipeline uppsatt: rsync backend+dist till dev.mauserdb.com.
 Prod DB-schema dumpat till prod_db_schema.sql och committat.
 
-### 2026-03-25 — Session #327 (pagaende)
-Worker A: Backend — statistik produktion%-berakning (kumulativ->delta), endpoint fulltest, SQL audit.
-Worker B: Frontend — skiftrapport alla flikar, UX-genomgang alla sidor, Chart.js dark theme.
+### 2026-03-25 — Session #327 (klar)
+Worker A: 6 buggar — produktion_procent kumulativ->delta (4), saglinje 500-fel (1), migration koord (1). 107 endpoints testade, 0 kvarstaende 500.
+Worker B: 3 buggar — duplicerad operator-dropdown (1), fel aria-label (1), redundant CSS (1). Deploy SSH timeout.
