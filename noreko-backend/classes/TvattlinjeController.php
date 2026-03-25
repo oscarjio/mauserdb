@@ -924,17 +924,17 @@ class TvattlinjeController {
         }
 
         try {
-            // Hämta skiftrapporter för datumet via line_skiftrapporter tabellen
+            // Hämta skiftrapporter för datumet via tvattlinje_skiftrapport
             $rows = [];
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT ls.*, u.name as user_name
-                    FROM line_skiftrapporter ls
+                    SELECT ls.*, u.username as user_name
+                    FROM tvattlinje_skiftrapport ls
                     LEFT JOIN users u ON ls.user_id = u.id
-                    WHERE ls.line = 'tvattlinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
-                    ORDER BY ls.datum ASC
+                    WHERE ls.datum = :datum
+                    ORDER BY ls.id ASC
                 ");
-                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
+                $stmt->execute(['datum' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('TvattlinjeController::getReport: ' . $e->getMessage());
@@ -947,11 +947,11 @@ class TvattlinjeController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT ls.*
-                    FROM line_skiftrapporter ls
-                    WHERE ls.line = 'tvattlinje' AND ls.datum >= :datum AND ls.datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
-                    ORDER BY ls.datum ASC
+                    FROM tvattlinje_skiftrapport ls
+                    WHERE ls.datum = :datum
+                    ORDER BY ls.id ASC
                 ");
-                $stmt->execute(['datum' => $prevDatum, 'datumb' => $prevDatum]);
+                $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('TvattlinjeController::getReport prevRows: ' . $e->getMessage());
@@ -1054,26 +1054,24 @@ class TvattlinjeController {
         try {
             $rows = [];
 
-            // Försök hämta daglig data från line_skiftrapporter
+            // Hämta daglig data från tvattlinje_skiftrapport
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        DATE(datum)               AS dag,
+                        datum                     AS dag,
                         SUM(antal_ok)             AS total_ok,
                         SUM(antal_ej_ok)          AS total_ej_ok,
                         SUM(antal_ok + antal_ej_ok) AS total_ibc,
                         COUNT(*)                  AS skift_count
-                    FROM line_skiftrapporter
-                    WHERE line = 'tvattlinje'
-                      AND datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                    GROUP BY DATE(datum)
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    GROUP BY datum
                     ORDER BY dag ASC
                 ");
                 $stmt->execute(['dagar' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
-                // Tabell finns inte — returnera empty
             }
 
             if (empty($rows)) {

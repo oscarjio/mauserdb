@@ -529,10 +529,14 @@ class ProduktionskalenderController {
     private function getStopporsaker(string $date): array {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT orsak, SUM(sekunder) AS total_sek, COUNT(*) AS antal
-                FROM rebotling_stopp
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                GROUP BY orsak
+                SELECT sk.namn AS orsak,
+                       COALESCE(SUM(TIMESTAMPDIFF(SECOND, sr.start_time, sr.end_time)), 0) AS total_sek,
+                       COUNT(*) AS antal
+                FROM stopporsak_registreringar sr
+                JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
+                WHERE sr.start_time >= ? AND sr.start_time < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND sr.end_time IS NOT NULL
+                GROUP BY sk.namn
                 ORDER BY total_sek DESC
                 LIMIT 10
             ");

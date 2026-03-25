@@ -2213,7 +2213,7 @@ class RebotlingController {
         try {
             $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
-            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_kv_settings WHERE `key` IN ($placeholders)");
             $stmt->execute($keys);
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
             echo json_encode(['success' => true, 'data' => [

@@ -1,6 +1,31 @@
 <?php
 // api.php - Tar emot API-anrop och routar till rätt hantering
 
+// Polyfill mb_substr / mb_strlen om php-mbstring saknas
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $s, int $start, ?int $length = null, ?string $enc = null): string {
+        return $length === null ? substr($s, $start) : substr($s, $start, $length);
+    }
+}
+if (!function_exists('mb_strlen')) {
+    function mb_strlen(string $s, ?string $enc = null): int { return strlen($s); }
+}
+if (!function_exists('mb_strtolower')) {
+    function mb_strtolower(string $s, ?string $enc = null): string { return strtolower($s); }
+}
+if (!function_exists('mb_strtoupper')) {
+    function mb_strtoupper(string $s, ?string $enc = null): string { return strtoupper($s); }
+}
+if (!function_exists('mb_detect_encoding')) {
+    function mb_detect_encoding(string $s, $enc = null, bool $strict = false): string|false { return 'UTF-8'; }
+}
+if (!function_exists('mb_convert_encoding')) {
+    function mb_convert_encoding(string $s, string $to, string|array|null $from = null): string { return $s; }
+}
+if (!function_exists('mb_internal_encoding')) {
+    function mb_internal_encoding(?string $enc = null): string|bool { return $enc === null ? 'UTF-8' : true; }
+}
+
 // Säkerställ konsekvent timezone för alla date()/strtotime()-anrop.
 // Servern ligger i Sverige — all datum-hantering ska använda CET/CEST.
 date_default_timezone_set('Europe/Stockholm');

@@ -219,14 +219,14 @@ class DagligBriefingController {
 
             // Dagsmal
             $dagsmal = 0;
-            if ($this->tableExists('produktionsmal')) {
+            if ($this->tableExists('produktions_mal')) {
                 try {
-                    $stmt = $this->pdo->prepare("SELECT mal_antal FROM produktionsmal WHERE datum = :date LIMIT 1");
-                    $stmt->execute([':date' => $datum]);
+                    $stmt = $this->pdo->prepare("SELECT target_ibc FROM produktions_mal WHERE giltig_from <= :date AND (giltig_tom IS NULL OR giltig_tom >= :date2) ORDER BY giltig_from DESC LIMIT 1");
+                    $stmt->execute([':date' => $datum, ':date2' => $datum]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                    if ($row) $dagsmal = (int)$row['mal_antal'];
+                    if ($row) $dagsmal = (int)$row['target_ibc'];
                 } catch (\Exception $e) {
-                    error_log('DagligBriefingController::sammanfattning (produktionsmal): ' . $e->getMessage());
+                    error_log('DagligBriefingController::sammanfattning (produktions_mal): ' . $e->getMessage());
                 }
             }
 

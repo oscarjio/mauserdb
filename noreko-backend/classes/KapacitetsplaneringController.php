@@ -175,7 +175,7 @@ class KapacitetsplaneringController {
                 SELECT mal_antal FROM rebotling_produktionsmal
                 WHERE start_datum <= :datum
                   AND (slut_datum IS NULL OR slut_datum >= :datum2)
-                  AND typ = 'daglig'
+                  AND typ = 'vecka'
                 ORDER BY skapad_av DESC, id DESC
                 LIMIT 1
             ");

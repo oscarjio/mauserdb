@@ -698,8 +698,8 @@ class OperatorsbonusController {
 
             $stmt = $this->pdo->prepare("
                 SELECT id, operator_id, operator_namn, period_start, period_slut,
-                       ibc_per_timme, kvalitet_procent, narvaro_procent, team_mal_uppnadd,
-                       bonus_belopp, status, skapad_datum
+                       ibc_per_timme_snitt, kvalitet_procent, narvaro_procent, team_mal_procent,
+                       total_bonus, skapad_at
                 FROM bonus_utbetalning
                 WHERE {$where}
                 ORDER BY period_start DESC, operator_namn ASC

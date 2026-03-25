@@ -85,7 +85,7 @@ class VdDashboardController {
 
     private function getStationer(): array {
         try {
-            $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
+            $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
         } catch (\Exception $e) {
@@ -209,40 +209,43 @@ class VdDashboardController {
                 error_log('VdDashboardController::oversikt (aktiva op ibc): ' . $e->getMessage());
             }
 
-            // Fallback: rebotling_data
-            if ($aktivaOperatorer === 0 && $this->tableExists('rebotling_data')) {
+            // Fallback: rebotling_skiftrapport
+            if ($aktivaOperatorer === 0 && $this->tableExists('rebotling_skiftrapport')) {
                 try {
                     $sql = "
-                        SELECT COUNT(DISTINCT user_id) AS cnt
-                        FROM rebotling_data
-                        WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                          AND user_id IS NOT NULL AND user_id > 0
+                        SELECT COUNT(DISTINCT sub.op_id) AS cnt FROM (
+                            SELECT op1 AS op_id FROM rebotling_skiftrapport WHERE datum = :today1 AND op1 IS NOT NULL AND op1 > 0
+                            UNION
+                            SELECT op2 AS op_id FROM rebotling_skiftrapport WHERE datum = :today2 AND op2 IS NOT NULL AND op2 > 0
+                            UNION
+                            SELECT op3 AS op_id FROM rebotling_skiftrapport WHERE datum = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        ) AS sub
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today, ':todayb' => $today]);
+                    $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                     $aktivaOperatorer = (int)$stmt->fetchColumn();
                 } catch (\Exception $e) {
-                    error_log('VdDashboardController::oversikt (aktiva op rebotling_data): ' . $e->getMessage());
+                    error_log('VdDashboardController::oversikt (aktiva op rebotling_skiftrapport): ' . $e->getMessage());
                 }
             }
 
             // Dagsmal
             $dagsmal = 0;
-            if ($this->tableExists('produktionsmal')) {
+            if ($this->tableExists('produktions_mal')) {
                 try {
-                    $sql = "SELECT COALESCE(mal_antal, target_ibc) AS mal_antal
-                            FROM produktionsmal
-                            WHERE (datum = :today OR (giltig_from <= :today2 AND (giltig_tom IS NULL OR giltig_tom >= :today3)))
-                            ORDER BY datum DESC, giltig_from DESC
+                    $sql = "SELECT target_ibc
+                            FROM produktions_mal
+                            WHERE giltig_from <= :today AND (giltig_tom IS NULL OR giltig_tom >= :today2)
+                            ORDER BY giltig_from DESC
                             LIMIT 1";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today, ':today2' => $today, ':today3' => $today]);
+                    $stmt->execute([':today' => $today, ':today2' => $today]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row) {
-                        $dagsmal = (int)$row['mal_antal'];
+                        $dagsmal = (int)$row['target_ibc'];
                     }
                 } catch (\Exception $e) {
-                    error_log('VdDashboardController::oversikt (produktionsmal): ' . $e->getMessage());
+                    error_log('VdDashboardController::oversikt (produktions_mal): ' . $e->getMessage());
                 }
             }
 
@@ -386,27 +389,30 @@ class VdDashboardController {
                 error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());
             }
 
-            // Fallback: rebotling_data
-            if (empty($operators) && $this->tableExists('rebotling_data')) {
+            // Fallback: rebotling_skiftrapport
+            if (empty($operators) && $this->tableExists('rebotling_skiftrapport')) {
                 try {
                     $sql = "
-                        SELECT
-                            r.user_id,
-                            COALESCE(u.username, CONCAT('Operator ', r.user_id)) AS operator_namn,
-                            SUM(COALESCE(r.antal, 1)) AS total_ibc
-                        FROM rebotling_data r
-                        LEFT JOIN users u ON r.user_id = u.id
-                        WHERE r.datum >= :today AND r.datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                          AND r.user_id IS NOT NULL AND r.user_id > 0
-                        GROUP BY r.user_id, u.username
+                        SELECT sub.op_number AS user_id,
+                               COALESCE(o.name, CONCAT('Operator ', sub.op_number)) AS operator_namn,
+                               SUM(sub.ibc_ok) AS total_ibc
+                        FROM (
+                            SELECT op1 AS op_number, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today1 AND op1 IS NOT NULL AND op1 > 0
+                            UNION ALL
+                            SELECT op2, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today2 AND op2 IS NOT NULL AND op2 > 0
+                            UNION ALL
+                            SELECT op3, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        ) AS sub
+                        LEFT JOIN operators o ON o.number = sub.op_number
+                        GROUP BY sub.op_number, o.name
                         ORDER BY total_ibc DESC
                         LIMIT 3
                     ";
                     $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([':today' => $today, ':todayb' => $today]);
+                    $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                     $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Exception $e) {
-                    error_log('VdDashboardController::topOperatorer (rebotling_data): ' . $e->getMessage());
+                    error_log('VdDashboardController::topOperatorer (rebotling_skiftrapport): ' . $e->getMessage());
                 }
             }
 

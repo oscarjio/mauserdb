@@ -139,7 +139,7 @@ class HistoriskSammanfattningController {
 
     private function getStationer(): array {
         try {
-            $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
+            $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
         } catch (\Exception $e) {

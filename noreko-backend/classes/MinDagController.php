@@ -93,7 +93,7 @@ class MinDagController {
     private function getDailyGoal(): int {
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT target_value FROM rebotling_production_goals
+                "SELECT target_count FROM rebotling_production_goals
                  WHERE period_type = 'daily'
                  ORDER BY created_at DESC LIMIT 1"
             );

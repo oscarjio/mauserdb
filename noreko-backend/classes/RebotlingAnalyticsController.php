@@ -1319,14 +1319,14 @@ class RebotlingAnalyticsController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     datum,
-                    skift_nr,
+                    skiftraknare,
                     ibc_ok,
                     drifttid
                 FROM rebotling_skiftrapport
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
                   AND ibc_ok > 0
                   AND drifttid > 0
-                ORDER BY datum ASC, skift_nr ASC
+                ORDER BY datum ASC, skiftraknare ASC
             ");
             $stmt->execute(['days' => $days]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1338,7 +1338,7 @@ class RebotlingAnalyticsController {
                 if ($driftMin > 0) {
                     $ibcPerH = round($ibcOk * 60.0 / $driftMin, 2);
                     $points[] = [
-                        'label'        => $r['datum'] . ' S' . $r['skift_nr'],
+                        'label'        => $r['datum'] . ' S' . $r['skiftraknare'],
                         'ibc_per_hour' => $ibcPerH,
                     ];
                 }
@@ -3582,7 +3582,7 @@ class RebotlingAnalyticsController {
 
             // Genomsnittsprofil: samma veckodag de senaste 28 dagarna, samma skift-nummer
             $stmt2 = $this->pdo->prepare('
-                SELECT HOUR(datum) AS timme, AVG(delta_ok) AS snitt_ibc_timma
+                SELECT h AS timme, AVG(delta_ok) AS snitt_ibc_timma
                 FROM (
                     SELECT
                         DATE(datum) AS dag,

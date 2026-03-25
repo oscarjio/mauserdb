@@ -1672,7 +1672,7 @@ class BonusController {
 
         try {
             // Hämta operatörsnamn för lookup
-            $opRows = $this->pdo->query("SELECT id, name FROM operators")
+            $opRows = $this->pdo->query("SELECT number, name FROM operators")
                                 ->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // Hämta per-skift-data för varje position och slå ihop

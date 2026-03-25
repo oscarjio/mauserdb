@@ -185,17 +185,17 @@ class OperatorJamforelseController {
             $stmtStopp2 = $this->pdo->prepare(
                 "SELECT COUNT(*) AS antal, COALESCE(SUM(sub.stopp_min), 0) AS total_min
                  FROM (
-                    SELECT COALESCE(stopp_min, 0) AS stopp_min
+                    SELECT COALESCE(driftstopptime, 0) AS stopp_min
                     FROM rebotling_skiftrapport
-                    WHERE op1 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                    WHERE op1 = ? AND datum >= ? AND COALESCE(driftstopptime, 0) > 0
                     UNION ALL
-                    SELECT COALESCE(stopp_min, 0)
+                    SELECT COALESCE(driftstopptime, 0)
                     FROM rebotling_skiftrapport
-                    WHERE op2 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                    WHERE op2 = ? AND datum >= ? AND COALESCE(driftstopptime, 0) > 0
                     UNION ALL
-                    SELECT COALESCE(stopp_min, 0)
+                    SELECT COALESCE(driftstopptime, 0)
                     FROM rebotling_skiftrapport
-                    WHERE op3 = ? AND datum >= ? AND COALESCE(stopp_min, 0) > 0
+                    WHERE op3 = ? AND datum >= ? AND COALESCE(driftstopptime, 0) > 0
                  ) AS sub"
             );
 

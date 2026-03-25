@@ -965,7 +965,7 @@ class RebotlingAdminController {
         try {
             $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
-            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_kv_settings WHERE `key` IN ($placeholders)");
             $stmt->execute($keys);
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
             echo json_encode(['success' => true, 'data' => [
@@ -1003,7 +1003,7 @@ class RebotlingAdminController {
                 'lr_title'         => mb_substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
             ];
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_kv_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
             }
@@ -1033,7 +1033,7 @@ class RebotlingAdminController {
         try {
             $keys = ['lrc_columns', 'lrc_sort_by', 'lrc_refresh_interval'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
-            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_kv_settings WHERE `key` IN ($placeholders)");
             $stmt->execute($keys);
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
 
@@ -1090,7 +1090,7 @@ class RebotlingAdminController {
                 'lrc_refresh_interval' => strval($refreshInterval),
             ];
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_kv_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
             }
@@ -1332,10 +1332,10 @@ class RebotlingAdminController {
 
     public function getServiceStatus(): void {
         try {
-            // Hämta inställningar från rebotling_settings (key-value)
+            // Hämta inställningar från rebotling_kv_settings (key-value)
             $keys = ['service_interval_ibc', 'last_service_ibc_total', 'last_service_at', 'last_service_note'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
-            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_kv_settings WHERE `key` IN ($placeholders)");
             $stmt->execute($keys);
             $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
 
@@ -1414,7 +1414,7 @@ class RebotlingAdminController {
                 'last_service_note'      => $note,
             ];
             $stmt = $this->pdo->prepare(
-                "INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+                "INSERT INTO rebotling_kv_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
             );
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
@@ -1446,7 +1446,7 @@ class RebotlingAdminController {
                 return;
             }
             $stmt = $this->pdo->prepare(
-                "INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+                "INSERT INTO rebotling_kv_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
             );
             $stmt->execute(['service_interval_ibc', strval($interval)]);
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);

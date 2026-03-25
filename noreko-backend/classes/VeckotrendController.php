@@ -68,55 +68,34 @@ class VeckotrendController {
             $ibcRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // --- Drifttid från skiftrapport ---
-            // Kolumner: drifttid_pct eller korrekt körtid / planerad tid
-            // Försöker hämta drifttid_pct direkt om kolumnen finns,
-            // annars beräknar vi från korttid_min / planerad_tid_min.
+            // Beräkna drifttid_pct från rebotling_skiftrapport.drifttid (minuter)
             $drifttidByDay = [];
             try {
+                // rebotling_skiftrapport: datum (DATE), drifttid (INT minuter)
+                // Beräkna drifttid_pct som drifttid / 480 (8h skift) * 100
                 $stmtDrift = $this->pdo->prepare("
                     SELECT
-                        DATE(skapad_datum) AS dag,
-                        AVG(COALESCE(drifttid_pct, 0)) AS snitt_drifttid_pct
+                        datum AS dag,
+                        AVG(
+                            CASE WHEN drifttid > 0
+                                 THEN LEAST(100, ROUND((drifttid / 480.0) * 100, 1))
+                                 ELSE NULL
+                            END
+                        ) AS snitt_drifttid_pct
                     FROM rebotling_skiftrapport
-                    WHERE skapad_datum >= ?
-                      AND skapad_datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(skapad_datum)
+                    WHERE datum >= ?
+                      AND datum <= ?
+                    GROUP BY datum
                     ORDER BY dag ASC
                 ");
                 $stmtDrift->execute([$startDate, $endDate]);
                 foreach ($stmtDrift->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $drifttidByDay[$row['dag']] = (float)$row['snitt_drifttid_pct'];
+                    $drifttidByDay[$row['dag']] = $row['snitt_drifttid_pct'] !== null
+                        ? (float)$row['snitt_drifttid_pct']
+                        : null;
                 }
             } catch (Exception $e) {
-                // Kolumnen kanske inte finns — försök med alternativ beräkning
-                error_log('VeckotrendController::getWeeklyKpis — drifttid primär query misslyckades, försöker fallback: ' . $e->getMessage());
-                try {
-                    $stmtDrift2 = $this->pdo->prepare("
-                        SELECT
-                            DATE(skapad_datum) AS dag,
-                            AVG(
-                                CASE
-                                    WHEN planerad_tid_min > 0
-                                    THEN LEAST(100, ROUND((korttid_min / planerad_tid_min) * 100, 1))
-                                    ELSE NULL
-                                END
-                            ) AS snitt_drifttid_pct
-                        FROM rebotling_skiftrapport
-                        WHERE skapad_datum >= ?
-                          AND skapad_datum < DATE_ADD(?, INTERVAL 1 DAY)
-                        GROUP BY DATE(skapad_datum)
-                        ORDER BY dag ASC
-                    ");
-                    $stmtDrift2->execute([$startDate, $endDate]);
-                    foreach ($stmtDrift2->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                        $drifttidByDay[$row['dag']] = $row['snitt_drifttid_pct'] !== null
-                            ? (float)$row['snitt_drifttid_pct']
-                            : null;
-                    }
-                } catch (Exception $e2) {
-                    // Tabellen saknas eller annan struktur — lämna tomt
-                    error_log('VeckotrendController::getWeeklyKpis — drifttid fallback misslyckades: ' . $e2->getMessage());
-                }
+                error_log('VeckotrendController::getWeeklyKpis — drifttid query misslyckades: ' . $e->getMessage());
             }
 
             // Fyll i alla 7 dagar (även dagar utan data → null)
