@@ -1,3 +1,46 @@
+## Worker B — Session #321 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular lazy loading performance audit (0 buggar)
+Granskade app.routes.ts (164 rader, ~100 lazy-loaded routes) och app.config.ts.
+
+**Granskade filer:**
+- `noreko-frontend/src/app/app.routes.ts` — alla ~100 routes
+- `noreko-frontend/src/app/app.config.ts` — provider-konfiguration
+
+**Resultat:**
+- **Lazy loading**: Samtliga routes anvander korrekt `loadComponent: () => import(...)` med dynamic import. Inga eager-loaded page components (Layout ar korrekt eager-loaded som wrapper). Alla standalone components — inga NgModule-baserade lazy routes.
+- **Preloading strategy**: `PreloadAllModules` konfigurerad i app.config.ts rad 83. Lampligt for intranat-applikation med snabb uppkoppling.
+- **Chunk-storlek**: Varje route laddar en enskild standalone component. Inga onodigt stora bundles.
+- **Cirkulara beroenden**: Inga cirkulara importkedjer hittade. Services importeras fran services/-katalogen.
+- **ChunkLoadError-hantering**: GlobalErrorHandler (rad 25-68) fangar ChunkLoadError med reload-loop-skydd via sessionStorage. Korrekt.
+- **Scroll restoration**: `withInMemoryScrolling` konfigurerat.
+
+### Audit 2: Angular accessibility audit (0 buggar)
+Granskade ALLA 37 HTML-templates i noreko-frontend/src/app/.
+
+**Granskade filer (37 st):**
+produktions-dashboard, statistik-dashboard, maskinhistorik, stationsdetalj, drifttids-timeline, produktionskostnad, stopptidsanalys, maskin-oee, rebotling-sammanfattning, vd-dashboard, pdf-export-button, gamification, daglig-briefing, prediktivt-underhall, skiftoverlamning, operators-prestanda, oee-trendanalys, operator-ranking, statistik-overblick, historisk-sammanfattning, tidrapport, maskinunderhall, produktions-sla, batch-sparning, skiftplanering, produktionsmal, produktionsflode, stopporsaker, avvikelselarm, kapacitetsplanering, kassationskvot-alarm, kvalitetscertifikat, historisk-produktion, leveransplanering, operatorsbonus, vd-veckorapport, rebotling-trendanalys
+
+**Resultat:**
+- **aria-labels**: Select-dropdowns, ikoner-knappar och retry-knappar har korrekta aria-labels.
+- **Bilder**: Inga img-taggar. Ikoner via Font Awesome/Bootstrap Icons (dekorativa, inget alt behovs).
+- **tabindex**: Korrekt tabindex="0" pa interaktiva icke-knapp-element med keydown.enter/space-handlers.
+- **Formular-tillganglighet**: Alla input/select har label eller aria-label.
+- **Kontrast**: Genomgaende #1a202c bg, #2d3748 cards, #e2e8f0 text — korrekt dark theme.
+- **role/aria-live**: Progressbars har role="progressbar" + aria-attribut. Spinners har role="status" + visually-hidden text.
+- **Checkboxar**: Skiftoverlamning anvander role="checkbox" med aria-checked + keyboard-handlers.
+
+### Audit 3: Angular change detection audit (0 buggar)
+Granskade ALLA 42 component.ts-filer.
+
+**Resultat:**
+- **OnPush**: Inga komponenter anvander OnPush. Alla anvander manuella subscriptions + direkt property-uppdatering — OnPush utan refaktorering till async pipe/markForCheck() skulle bryta rendering. Inte en bugg, utan framtida optimering.
+- **trackBy pa ngFor**: ALLA *ngFor-loopar har trackBy-funktioner. Aven @for-syntax anvander track. Mycket val implementerat.
+- **Tung logik i templates**: Inga tunga berakningar. Enkla switch/if-metoder. Komponenter pre-cachar varden: cachedVisibleSegments, cachedSortedStopp, cachedTotalAntalStopp, configLabelMap/configEnhetMap etc.
+- **Lifecycle**: Alla komponenter implementerar OnInit/OnDestroy med destroy$ + takeUntil. Alla setInterval/setTimeout rensas. Chart-instanser destroyas.
+- **HostListener**: Borttagen fran drifttids-timeline (global mousemove triggade onodiga change detections — redan fixat).
+- **Polling**: Alla polling-interval kontrollerar destroy$.closed/isFetching-flaggor.
+
 ## Worker A — Session #321 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP session/cookie security audit (0 buggar)
