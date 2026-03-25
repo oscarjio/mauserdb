@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #328)*
+*Senast uppdaterad: 2026-03-25 (session #330)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#327: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#328: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -71,20 +71,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - Deploy: rsync till dev.mauserdb.com (se feedback_deploy_workflow.md i memory/)
 - Prod DB: ssh -p 32546 user@mauserdb.com + mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb
 - mb_string polyfill i api.php (servern saknar php-mbstring)
+- VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Verifiera produktion%-fix pa dev (graferna visar ratt 0-100%?)
-- [ ] Frontend deploy retry (Worker B SSH timeout)
-- [ ] PHP date/timezone audit
-- [ ] PHP authorization audit
-- [ ] Angular form validation audit
+- [ ] Forbattra rebotling-grafer (adaptiv granularitet)
+- [ ] Granska error handling i Angular services
+- [ ] Optimera polling-intervall
+- [ ] Verifiera operatorsbonus-berakningar mot prod DB
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #327 (klar)
-Worker A: 6 buggar — produktion_procent kumulativ->delta (4), saglinje 500-fel (1), migration koord (1). 107 endpoints testade, 0 kvarstaende 500.
-Worker B: 3 buggar — duplicerad operator-dropdown (1), fel aria-label (1), redundant CSS (1). Deploy SSH timeout.
+### 2026-03-25 — Session #329 (avbruten)
+Workers startades aldrig — inga commits. Backlog-items forflytas till #330.
 
 ### 2026-03-25 — Session #328 (klar)
 Worker A: 3 buggar — PHP authorization (3 controllers saknade admin-krav). Produktion%-fix verifierad (59%). Date/timezone rent. 107 endpoints, 0 st 500.
 Worker B: 21 buggar — 19 svenska diakritiker + 2 engelska rubriker i 9 templates. Frontend deployad. Form validation rent (operatorsbonus minor).
+
+### 2026-03-25 — Session #330 (pagaende)
+Worker A: Grundlig SQL-granskning mot prod_db_schema.sql, endpoint-test, produktion_procent kumulativ-utredning.
+Worker B: Fullstandig template-granskning (svenska/dark theme/UX), operatorsbonus config validering, lifecycle-buggar i alla komponenter.
