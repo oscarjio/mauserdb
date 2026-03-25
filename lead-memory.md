@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #327)*
+*Senast uppdaterad: 2026-03-25 (session #328)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -81,15 +81,10 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #326 (klar)
-Worker A: 4 buggar — N+1-fixes, API format. Worker B: 0 buggar — rent.
-
-### 2026-03-25 — Manuell session (agaren)
-Fixat: getShiftTrend subquery-alias, getSPC skift_nr->skiftraknare, mb_string polyfill,
-statistik-graf bytt fran cykeltid till produktion_procent, koortid-kolumn borttagen.
-Deploy-pipeline uppsatt: rsync backend+dist till dev.mauserdb.com.
-Prod DB-schema dumpat till prod_db_schema.sql och committat.
-
 ### 2026-03-25 — Session #327 (klar)
 Worker A: 6 buggar — produktion_procent kumulativ->delta (4), saglinje 500-fel (1), migration koord (1). 107 endpoints testade, 0 kvarstaende 500.
 Worker B: 3 buggar — duplicerad operator-dropdown (1), fel aria-label (1), redundant CSS (1). Deploy SSH timeout.
+
+### 2026-03-25 — Session #328 (pagaende)
+Worker A: Backend — verifiera produktion%-fix, PHP date/timezone audit, PHP authorization audit, full endpoint-test.
+Worker B: Frontend — deploy retry, Angular form validation audit, UX-genomgang alla sidor.

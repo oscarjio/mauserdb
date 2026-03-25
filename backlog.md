@@ -11,19 +11,14 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Hogsta prioritet (session #328):
-- [ ] **Verifiera produktion%-fix pa dev** — Worker A fixade kumulativ->delta, kontrollera att graferna nu visar ratt varden (0-100%)
-- [ ] **Frontend deploy retry** — Worker B:s deploy failade pga SSH timeout, deploy manuellt
-- [ ] **PHP date/timezone audit** — inkonsekvent datumhantering i controllers
-- [ ] **PHP authorization audit** — saknade behoorighetskontroller
-- [ ] **Angular form validation audit** — saknad validering
-
-### Klart (session #327):
-- [x] Statistik produktion%-berakning — kumulativ->delta fix i RebotlingController + RebotlingAnalyticsController
-- [x] Backend endpoint fulltest — 107 endpoints testade, 0 kvarstaende 500-fel
-- [x] SQL vs schema audit — 31 refs till saknade tabeller (alla guardade), migration koord
-- [x] Skiftrapport grundlig test — 3 UI-buggar fixade (duplicerad dropdown, aria-label, CSS)
-- [x] Frontend UX-genomgang — dark theme, lifecycle, data bindings granskade
+### Pagaende (session #328 — Worker A + Worker B):
+- [ ] **Verifiera produktion%-fix pa dev** — deploy + curl, kontrollera 0-100% (Worker A)
+- [ ] **Frontend deploy retry** — bygg + rsync dist (Worker B)
+- [ ] **PHP date/timezone audit** — inkonsekvent datumhantering i controllers (Worker A)
+- [ ] **PHP authorization audit** — saknade behoorighetskontroller (Worker A)
+- [ ] **Angular form validation audit** — saknad validering i formularsidor (Worker B)
+- [ ] **Frontend UX-genomgang** — dark theme, svenska, tomma tillstand, responsivitet (Worker B)
+- [ ] **Full endpoint-test med curl** — testa ALLA endpoints, fixa 500-fel (Worker A)
 
 ## Parkerade features (ta inte dessa nu)
 
