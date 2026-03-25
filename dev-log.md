@@ -1,3 +1,22 @@
+## Worker A — Session #310 (2026-03-25) — 0 buggar (SQL LIKE escaping + Content-Type header)
+
+### Audit 1: SQL LIKE escaping (0 buggar)
+Granskade alla 116 PHP-controllers i noreko-backend/classes/ efter LIKE-klausuler med user input utan proper escaping.
+- AuditController.php: LIKE med user filter och search text — redan korrekt med addcslashes($var, '%_\\') + prepared statements. OK.
+- BatchSparningController.php: LIKE med search parameter — redan korrekt med addcslashes($search, '%_\\') + prepared statements. OK.
+- LineSkiftrapportController.php: SHOW TABLES LIKE ? med prepared statement — intern tabell-check, ej user input. OK.
+- KassationsorsakPerStationController.php: SHOW TABLES LIKE :tbl med prepared statement — intern tabell-check. OK.
+- RebotlingSammanfattningController.php: SHOW TABLES LIKE :tbl med prepared statement — intern tabell-check. OK.
+- Alla ovriga LIKE-anvandningar (30+ forekomster) ar SHOW TABLES LIKE 'hardkodad_tabell' eller SHOW COLUMNS FROM ... LIKE 'hardkodad_kolumn' — inga user-input-variabler.
+- Inga forekomster av LIKE '%{$var}%', LIKE '%$var%', LIKE . $var, eller LIKE CONCAT.
+Resultat: RENT — alla LIKE med user input escapar korrekt med addcslashes() och prepared statements.
+
+### Audit 2: Content-Type header consistency (0 buggar)
+Granskade alla 116 PHP-controllers som anvander json_encode() mot api.php:s globala headers.
+- api.php rad 57 satter `header('Content-Type: application/json; charset=utf-8')` globalt for ALLA requests innan nagon controller anropas.
+- Alla controllers routas via api.php (classNameMap pa rad 126-242), sa alla far Content-Type automatiskt.
+Resultat: RENT — global Content-Type header i api.php taecker alla endpoints.
+
 ## Worker B — Session #309 (2026-03-25) — 7 buggar (Angular template perf + CD-overhead)
 
 ### Audit 1: ngIf/ngSwitch exhaustiveness (0 buggar)
