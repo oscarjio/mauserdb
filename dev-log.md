@@ -1,3 +1,34 @@
+## Worker B — Session #324 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular SSR/hydration audit (0 buggar)
+Granskade ALLA Angular-komponenter och services i noreko-frontend/src/app/ for direkt DOM-manipulation utan isPlatformBrowser-check, window/localStorage/sessionStorage-anrop utan SSR-guard, kod som antar browser-miljo utan kontroll, och hydration-mismatch risker.
+
+**Resultat:**
+- **SSR ar INTE aktivt:** Projektet anvander `@angular/build:application` som browser-only builder. Ingen `provideServerRendering()` eller `provideClientHydration()` i app.config.ts. `@angular/ssr` och `@angular/platform-server` finns bara som transitiva beroenden i package-lock.json men ar inte deklarerade i package.json och anvands inte.
+- **document-anrop:** 30+ anvandningar av `document.getElementById`, `document.createElement`, `document.querySelector` i komponenter och services. Eftersom SSR inte ar aktivt ar dessa salfara. Anvands huvudsakligen for Chart.js canvas-element och PDF-export.
+- **window/localStorage/sessionStorage:** 40+ anvandningar spridda over auth.service.ts (sessionStorage for auth_user, csrf_token), menu.ts (localStorage for selectedMenu), funktionshub.ts (localStorage for favoriter), my-bonus.ts (localStorage for operatorId), news.ts (localStorage for reaktioner), csrf.interceptor.ts (sessionStorage for csrf_token), app.config.ts (sessionStorage for chunk_reload_ts). Alla ar korrekta i en browser-only-kontext.
+- **window.print/window.open/window.scrollTo:** 15+ anvandningar for utskrift, ny flik och scroll — alla korrekta i browser-only.
+- **Hydration:** Ej relevant da SSR inte ar aktivt. Ingen risk for mismatch.
+
+### Audit 2: Angular pipe/transform audit (0 buggar)
+Sokte efter ALLA custom pipes i noreko-frontend/src/app/ — bade som separata .pipe.ts-filer och inline @Pipe-dekoratorer.
+
+**Resultat:** Inga custom pipes existerar i kodbasen. Sokte med `@Pipe`, `PipeTransform`, och glob for `*.pipe.ts` — inga traffar. Projektet anvander enbart Angulars inbyggda pipes (DatePipe, DecimalPipe, PercentPipe, CurrencyPipe, etc.) direkt i templates. Ingen risk for orena pipes, null-hanteringsbuggar eller saknade module declarations.
+
+### Audit 3: Angular HTTP/API integration audit (0 buggar)
+Granskade ALLA 96 services i noreko-frontend/src/app/services/ och noreko-frontend/src/app/rebotling/ for saknade error handlers, hardkodade API-URLs, timeout-hantering, race conditions och retry-logik.
+
+**Granskade filer:** Samtliga 92 services i services/ plus 4 services i rebotling/ (gamification, daglig-briefing, prediktivt-underhall, skiftoverlamning). Sartskild granskning av rebotling.service.ts (70+ endpoints), auth.service.ts, feature-flag.service.ts, och alla 8 services med POST/mutation-anrop.
+
+**Resultat:**
+- **Error handlers:** Alla HTTP-anrop har `catchError()` — antingen per-anrop (`catchError(() => of(null))` for GET, `catchError(err => of({ success: false, error: ... }))` for POST) eller via global `errorInterceptor` som fangar alla obehandlade fel, visar toast-meddelanden pa svenska, och hanterar 401/403/404/408/429/5xx specifikt.
+- **API-URLs:** Alla services anvander `environment.apiUrl` — inga hardkodade URLs. Konsekvent monster med `${environment.apiUrl}?action=X&run=Y`.
+- **Timeout:** Alla anrop har explicit `timeout()` — 8000ms for auth/feature-flags, 10000ms for standard, 15000ms for tyngre anrop. Ingen saknad timeout.
+- **Retry-logik:** Alla GET-anrop har `retry(1)`. POST/mutation-anrop har medvetet INGEN retry (forhindrar dubbletter). Global interceptor har smart retry med 1s delay for natverksfel (status 0) och 502/503/504, enbart for idempotenta metoder (GET/HEAD/OPTIONS).
+- **Race conditions:** Inga observerade race conditions. Services ar stateless (ingen intern cache som kan bli inkonsekvent). Komponenter anvander `destroy$` + `takeUntil` for att avbryta pagaende requests vid navigering.
+- **Content-Type:** POST-anrop anvander korrekt Content-Type — antingen default `application/json` (Angular HttpClient satter detta automatiskt for objekt-bodies) eller explicit `application/x-www-form-urlencoded` dar URLSearchParams anvands (rebotling.service.ts annotations/events). CSRF-interceptor bifogar `X-CSRF-Token` for alla mutating requests (POST/PUT/DELETE/PATCH).
+- **withCredentials:** Alla anrop har `{ withCredentials: true }` for cookie-baserad autentisering.
+
 ## Worker A — Session #324 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP session management audit (0 buggar)
