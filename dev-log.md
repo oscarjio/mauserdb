@@ -1,3 +1,60 @@
+## Worker B — Session #323 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular memory profiling audit (0 buggar)
+Granskade ALLA components i noreko-frontend/src/app/ for DOM-lackor, detached elements, stora arrayer som aldrig rensas, EventListeners som inte tas bort, charts som inte destroy:as, setInterval/setTimeout utan cleanup.
+
+**Granskade omraden:**
+- **Charts (109 filer med `new Chart`):** Alla komponenter som skapar Chart.js-instanser har korrekt `destroy()` i ngOnDestroy samt fore ombyggnad. Totalt 191 `new Chart`-anrop och 510 `.destroy()`-anrop — varje chart destroy:as bade vid rebuild och vid komponentens livscykelslut.
+- **setInterval/setTimeout:** Alla intervall (polling, refresh) sparas i typade variabler och rensas med clearInterval/clearTimeout i ngOnDestroy. Komponenter som anvander `_timers[]` eller `chartTimers[]` arrayer rensar dem bade i `loadAll()` (for att undvika obegransad tillvaxt) och i ngOnDestroy.
+- **addEventListener (5 st):** Alla 5 `addEventListener('visibilitychange')` i rebotling-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin och andon har matchande `removeEventListener` i ngOnDestroy.
+- **destroy$ + takeUntil:** Alla 170 komponenter med subscriptions anvander `destroy$` Subject med `takeUntil(this.destroy$)` och `destroy$.next()/complete()` i ngOnDestroy.
+- **Layout-komponent:** Anvander `@HostListener` (Angular hanterar cleanup automatiskt) plus manuell `clearTimers()` i ngOnDestroy for mousemove-timers.
+- **AuthService:** Singleton med korrekt polling-hantering (startPolling/stopPolling med Subscription.unsubscribe).
+- **ToastService:** Timers sparas i Map och rensas korrekt.
+
+**Resultat:** Inga buggar. Kodbasen foljer konsekvent lifecycle-monster med OnInit/OnDestroy, destroy$ + takeUntil, clearInterval/clearTimeout, och chart.destroy().
+
+### Audit 2: Angular router guard audit (0 buggar)
+Granskade auth guards (canActivate/canDeactivate), redirect-logik, lazy-loaded routes, missing guards pa skyddade sidor.
+
+**Granskade filer:**
+- `noreko-frontend/src/app/guards/auth.guard.ts` — authGuard och adminGuard anvander `initialized$.pipe(filter, take, switchMap)` for att vanta pa forsta status-anropet. Returnerar UrlTree (Angular best practice) istallet for `router.navigate() + false`. adminGuard validerar `role === 'admin' || role === 'developer'`.
+- `noreko-frontend/src/app/guards/pending-changes.guard.ts` — Generisk CanDeactivateFn med ComponentCanDeactivate interface. Anvands korrekt pa alla formularsidor (shift-handover, skiftoverlamning, leveransplanering, produktionsmal, rebotling-admin, bonus-admin, news-admin, feature-flag-admin, create-user, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, certifications).
+- `noreko-frontend/src/app/app.routes.ts` — 164 rader med routes:
+  - **Publika sidor (utan guard):** login, register, about, contact, live-vyer, skiftrapporter, statistik, historik — korrekt publika.
+  - **Autentiserade sidor (authGuard):** Alla skyddade sidor har `canActivate: [authGuard]` — 60+ routes.
+  - **Admin-sidor (adminGuard):** Alla admin-sidor har `canActivate: [adminGuard]` — oversikt, admin/*, rebotling/admin, bonus-admin, prognos, kalender, vd-dashboard, vd-veckorapport, etc.
+  - **canDeactivate (pendingChangesGuard):** Alla formularsidor med osparade andringar har korrekt `canDeactivate: [pendingChangesGuard]`.
+  - **Lazy loading:** Alla routes anvander `loadComponent` for lazy loading.
+  - **Wildcard:** `path: '**'` fanger felaktiga routes och visar NotFoundPage.
+- `noreko-frontend/src/app/services/auth.service.ts` — Korrekt initialized$, loggedIn$, user$ BehaviorSubjects. sessionStorage-caching for att undvika flash-redirect vid page reload. APP_INITIALIZER vantar pa forsta fetchStatus.
+
+**Resultat:** Inga buggar. Alla skyddade sidor har korrekta guards. Redirect-logiken ar robust med returnUrl-stod och open-redirect-prevention i LoginPage.
+
+### Audit 3: Angular form validation audit (0 buggar)
+Granskade alla reactive forms och template-driven forms for saknad validering, felaktig error-display, inkonsekvent UX vid valideringsfel.
+
+**Granskade formuler (39 filer med FormGroup/FormControl/ngModel):**
+- **LoginPage:** Template-driven form med `required`, `minlength`, `maxlength` pa bada falt. Submit-knapp disabled vid tomma falt eller laddning. Felmeddelande visas i alert.
+- **RegisterPage:** Fullstandig validering: username >= 3 tecken, losenord >= 8 tecken + bokstav + siffra, losenordsmatchning, email-regex, telefon required, kontrollkod required. Live-feedback for losenordsstyrka och matchning. Submit-knapp disabled tills alla valideringar ar godkanda.
+- **CreateUserPage:** Computed getters (isPasswordValid, isEmailValid, canSubmit) for att styra submit-knapp. Validering i onSubmit() for username, losenord, email.
+- **ShiftHandoverPage:** Validering i submitNote() for tom text och maxlangd (500 tecken). canDeactivate varnar vid osparad text.
+- **SkiftoverlamningProtokollPage:** canDeactivate kontrollerar bade checklista och kommentarer. submitForm validerar att skiftdata finns.
+- **MaintenanceFormComponent:** Template-driven form med `required`, `maxlength`, `min`, `max` pa relevanta falt. Error-display med `*ngIf="titleCtrl.invalid && titleCtrl.touched"`. Server-side validering i saveEntry() for titel, starttid, varaktighet, driftstopp, kostnad.
+- **NewsAdminPage:** Validering i saveNews() for tom rubrik. canDeactivate kontrollerar om formularet har ifylld data.
+- **BonusAdminPage:** Omfattande validering: viktningssumma === 1.0, bonusbelopp inte negativa, max 100000 SEK, stigande ordning brons < silver < guld < platina, veckobonusmal 1-200, utbetalningsvalidering (operator vald, period korrekt, belopp > 0).
+- **LeveransplaneringPage:** Validering i submitNewOrder() for kundnamn och leveransdatum. canDeactivate kontrollerar om ordermodalen ar oppen med ifylld data.
+- **ProduktionsmalComponent:** canDeactivate kontrollerar formAntal. Validering i sparaMal() for antal och startdatum.
+- **FeatureFlagAdminPage:** canDeactivate jamfor originalData med nuvarande state.
+- **MaskinunderhallPage:** Validering i submitAddService() och submitAddMachine() for obligatoriska falt.
+- **SkiftplaneringPage:** Validering i assignOperator() for operator-ID.
+- **StopporsakRegistreringPage:** Validering i bekraftaRegistrering() for vald kategori.
+- **Alla ovriga formuler (production-analysis, certifications, operators, underhallslogg, etc.):** Konsekvent monster med submit-validering, felmeddelanden i svenska, disabled submit-knapp under laddning.
+
+**Resultat:** Inga buggar. Alla formuler har korrekt validering med konsekvent UX (felmeddelanden pa svenska, disabled submit vid ogiltig data eller laddning, canDeactivate pa formularsidor).
+
+---
+
 ## Worker A — Session #323 (2026-03-25) — 0 buggar (alla 3 audits)
 
 ### Audit 1: PHP logging/audit trail audit (0 buggar)
