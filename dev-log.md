@@ -23269,3 +23269,68 @@ Genomforde automatiserad audit av alla PHP-controllers mot prod_db_schema.sql:
 - Backend rsync till dev.mauserdb.com: OK (port 32546, exclude db_config.php)
 - db_config.php aterstaalld med ratt port (33061) efter rsync --delete
 - Alla 107 endpoints verifierade: 0 st 500-fel
+
+---
+
+## Session #328 — Worker A — 2026-03-25
+
+### Uppgift 1: Verifiera produktion%-fix pa dev — KLAR
+Deployade backend till dev via rsync. Fixade db_config.php pa dev (port 33061, user aiab).
+Testade endpoints:
+- `rebotling&sub=statistik` — productionPercentage: 59 (rimligt, 0-100%)
+- `rebotling&sub=analys` — samma korrekt svar
+- `skiftrapport` — returnerar korrekt data med alla falt
+Produktion%-fixen fran session #327 fungerar korrekt.
+
+### Uppgift 2: PHP date/timezone audit — KLAR
+Granskade alla 114 PHP-controllers i noreko-backend/classes/:
+- **api.php** har `date_default_timezone_set('Europe/Stockholm')` — alla controllers arver detta
+- Inga controllers overrider timezone med egen `date_default_timezone_set()`
+- Controllers som anvander `new DateTime()` anger explicit `new DateTimeZone('Europe/Stockholm')` (RuntimeController, StatusController, StoppageController, WeeklyReportController, TvattlinjeController, ShiftHandoverController)
+- `date()` och `strtotime()` anvands konsekvent — fungerar korrekt tack vare global timezone-setting
+- **Inga buggar hittade** — timezone-hanteringen ar konsekvent och korrekt
+
+### Uppgift 3: PHP authorization audit — KLAR
+Granskade alla controllers for behorighetsbrister:
+
+**Intentionellt publika endpoints (ingen auth kravs):**
+- AndonController — fabrikstavla, dokumenterat som publik
+- HistorikController — historisk data, dokumenterat som publik
+- RegisterController — anvander registreringskod som skydd
+- LoginController — publik av naturen
+- StatusController — session-check (publik)
+
+**Buggar hittade och fixade:**
+- **Bugg 1:** `ProduktionskostnadController::update-config` — kostnadskonfiguration kunde andras av vilken inloggad anvandare som helst. Fixat: kraver nu admin-behorighet.
+- **Bugg 2:** `ProduktionsSlaController::set-goal` — produktionsmal kunde sattas av vilken inloggad anvandare som helst (ska bara vara VD/admin). Fixat: kraver nu admin-behorighet.
+- **Bugg 3:** `MaskinunderhallController::add-machine` — nya maskiner kunde registreras av vilken inloggad anvandare som helst. Fixat: kraver nu admin-behorighet (add-service ar kvar som user-level — operatorer ska kunna registrera genomford service).
+
+**Ovriga observationer:**
+- Alla controllers som hanterar POST/PUT/DELETE kraver session + user_id
+- api.php har centraliserad CSRF-validering for state-andrande requests
+- api.php har centraliserad session-timeout-kontroll
+
+### Uppgift 4: Testa ALLA endpoints med curl — KLAR
+Testade samtliga 107 endpoints tva ganger (fore och efter fixes).
+- **0 st 500-fel** — alla endpoints returnerar korrekta statuskoder
+- 200: publika GET-endpoints med data
+- 401: autentisering kravs (forvantad for inloggade endpoints)
+- 403: admin-behorighet kravs (forvantad)
+- 400: saknade parametrar (forvantad)
+- 404: controller returnerar 404 nar run-parameter saknas (forvantad)
+- 405: fel HTTP-metod (login/register kraver POST)
+
+### Uppgift 5: Deploy — KLAR
+- rsync backend till dev: OK
+- db_config.php aterstaalld pa dev (port 33061, user aiab)
+- Alla endpoints verifierade efter deploy
+
+### Sammanfattning:
+- **3 buggar hittade och fixade** (authorization-brister)
+- **0 timezone-buggar** — allt konsekvent
+- **0 st 500-fel** pa nagon endpoint
+
+### Andrade filer:
+- `noreko-backend/classes/ProduktionskostnadController.php` — requireAdmin() for update-config
+- `noreko-backend/classes/ProduktionsSlaController.php` — requireAdmin() for set-goal
+- `noreko-backend/classes/MaskinunderhallController.php` — requireAdmin() for add-machine

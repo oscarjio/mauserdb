@@ -43,7 +43,7 @@ class ProduktionsSlaController {
         if ($method === 'POST') {
             switch ($run) {
                 case 'set-goal':
-                    $this->requireLogin();
+                    $this->requireAdmin();
                     $this->setGoal();
                     break;
                 default:
@@ -65,6 +65,14 @@ class ProduktionsSlaController {
         }
         if (empty($_SESSION['user_id'])) {
             $this->sendError('Sessionen har gått ut. Logga in igen.', 401);
+            exit;
+        }
+    }
+
+    private function requireAdmin(): void {
+        $this->requireLogin();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            $this->sendError('Kräver admin-behörighet', 403);
             exit;
         }
     }

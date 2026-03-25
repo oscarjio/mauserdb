@@ -45,7 +45,7 @@ class MaskinunderhallController {
                     $this->addService();
                     break;
                 case 'add-machine':
-                    $this->requireLogin();
+                    $this->requireAdmin();
                     $this->addMachine();
                     break;
                 default:
@@ -67,6 +67,14 @@ class MaskinunderhallController {
         }
         if (empty($_SESSION['user_id'])) {
             $this->sendError('Sessionen har gått ut. Logga in igen.', 401);
+            exit;
+        }
+    }
+
+    private function requireAdmin(): void {
+        $this->requireLogin();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            $this->sendError('Kräver admin-behörighet', 403);
             exit;
         }
     }

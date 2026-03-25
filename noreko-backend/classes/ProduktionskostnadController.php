@@ -54,7 +54,7 @@ class ProduktionskostnadController {
         if ($method === 'POST') {
             switch ($run) {
                 case 'update-config':
-                    $this->requireLogin();
+                    $this->requireAdmin();
                     $this->updateConfig();
                     break;
                 default:
@@ -76,6 +76,14 @@ class ProduktionskostnadController {
         }
         if (empty($_SESSION['user_id'])) {
             $this->sendError('Sessionen har gått ut. Logga in igen.', 401);
+            exit;
+        }
+    }
+
+    private function requireAdmin(): void {
+        $this->requireLogin();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            $this->sendError('Kräver admin-behörighet', 403);
             exit;
         }
     }
