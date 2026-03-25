@@ -27,6 +27,34 @@ Granskade alla date(), strtotime(), mktime() anrop i 50 PHP-controllers A-M. Spe
 - Tidszonskonsekvens: Alla controllers anvander PHP:s date()/strtotime() med serverns standardtidszon — konsekvent genom hela kodbasen. Inga blandade tidszoner hittades.
 Resultat: rent — inga buggar hittade.
 
+## Worker B — Session #315 (2026-03-25) — 0 buggar (alla 3 audits rena)
+
+### Audit 1: Angular HTTP timeout audit (0 buggar)
+Granskade alla 92 Angular services i noreko-frontend/src/app/services/ som gor HTTP-anrop. Kontrollerade:
+- Alla 92 services har timeout() operator pa varje HTTP-anrop (8000-15000ms, rimliga varden)
+- Alla 92 services har catchError() som hanterar fel korrekt (returnerar of(null) eller fallback-objekt)
+- Timeout-varden ar rimliga: 8000ms for snabba anrop, 10000ms for standardanrop, 15000ms for tyngre operationer (leveransplanering, operators)
+- Felhanteringen anvander svenska meddelanden dar relevant (t.ex. 'Kunde inte spara', 'Natverksfel', 'Anslutningsfel')
+- 2 services (pdf-export.service.ts, toast.service.ts) gor inga HTTP-anrop — utility-services
+Resultat: rent — inga buggar hittade.
+
+### Audit 2: Angular component @Input validation (0 buggar)
+Granskade alla 4 komponenter med @Input() i noreko-frontend/src/app/:
+- shared-skiftrapport.ts: @Input() config! med definite assignment assertion (!) — korrekt, alltid tillhandahallen av wrapper-komponenter. Template anvander config.themeColor etc. inom kontext dar config alltid finns.
+- maintenance-form.component.ts: @Input() equipmentList: EquipmentItem[] = [] — har default-varde []. Korrekt.
+- pdf-export-button.component.ts: @Input() targetElementId = '', filename = 'rapport', title = '' — alla har defaultvarden. exportPdf() kontrollerar !this.targetElementId. Korrekt.
+- header.ts: @Input() logoUrl: string = '...' — har default-URL. Korrekt.
+Resultat: rent — inga buggar hittade.
+
+### Audit 3: Angular subscription/timer cleanup A-M (0 buggar)
+Granskade alla Angular-komponenter A-M (ca 60 filer) i noreko-frontend/src/app/pages/ och noreko-frontend/src/app/rebotling/. Kontrollerade:
+- Alla subscribe() har matchande takeUntil(this.destroy$) i pipe-kedjan FORE subscribe() — korrekt overallt
+- Alla setInterval/setTimeout sparar sina ID:n och rensas i ngOnDestroy (verifierat: varje setInterval har matchande clearInterval, varje setTimeout har matchande clearTimeout)
+- Alla Chart.js-instanser forstors i ngOnDestroy med try/catch wrapping (alarm-historik, benchmarking, bonus-dashboard, cykeltid-heatmap, daglig-briefing, effektivitet, forsta-timme-analys, heatmap, historik, kassations-drilldown, klassificeringslinje-statistik, live-ranking, malhistorik, morgonrapport, my-bonus m.fl.)
+- Alla komponenter har destroy$ = new Subject<void>() och ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+- 1 komponent (klassificeringslinje-live) saknar destroy$ men ar en live-sida som inte far roras enligt reglerna
+Resultat: rent — inga buggar hittade.
+
 ## Worker B — Session #314 (2026-03-25) — 125 buggar (template warnings + strict templates + URL consistency)
 
 ### Audit 1: Angular NG8107/NG8102 template warnings (125 buggar)
