@@ -7,19 +7,18 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #309):
-- [ ] **PHP SQL implicit type conversion** — WHERE string-kolumn = integer utan quotes (Worker A)
-- [ ] **PHP exception handling granularity** — breda catch(Exception) som doljer specifika fel (Worker A)
-- [ ] **PHP array bounds / off-by-one** — array-access utan isset/key-check (Worker A)
-- [ ] **Angular ngIf/ngSwitch exhaustiveness** — switch utan default, saknade else-fall (Worker B)
-- [ ] **Angular input sanitization** — innerHTML utan DomSanitizer, XSS-risk (Worker B)
-- [ ] **Angular template expression complexity** — ej cachade funktionsanrop i templates (Worker B)
+### Pagaende (session #310):
+- [ ] **PHP SQL LIKE without escaping** — LIKE '%{$var}%' utan addcslashes (Worker A)
+- [ ] **PHP header/Content-Type consistency** — endpoints som saknar Content-Type: application/json (Worker A)
+- [ ] **Angular route param type safety** — parseInt utan isNaN-check (Worker B)
+- [ ] **Angular HTTP retry logic audit** — GET med retry vs POST utan retry (Worker B)
 
-### Nasta buggjakt-items (session #310+):
-- [ ] **PHP SQL LIKE without escaping** — LIKE '%{$var}%' utan addcslashes
-- [ ] **PHP header/Content-Type consistency** — endpoints som saknar Content-Type: application/json
-- [ ] **Angular route param type safety** — parseInt utan isNaN-check
-- [ ] **Angular HTTP retry logic audit** — GET med retry vs POST utan retry
+### Nasta buggjakt-items (session #311+):
+- [ ] **PHP SQL ORDER BY dynamic** — ORDER BY med ovaliderade kolumnnamn fran user input
+- [ ] **PHP session/cookie attribute audit** — SameSite, Secure, HttpOnly pa alla cookies
+- [ ] **Angular form validation consistency** — required-attribut i HTML vs validators i TS
+- [ ] **Angular chart.js destroy audit** — chart-instanser som inte destroyas vid omredering
+- [ ] **PHP error_log format consistency** — inkonsekvent loggformat mellan controllers
 
 ## Parkerade features (ta inte dessa nu)
 

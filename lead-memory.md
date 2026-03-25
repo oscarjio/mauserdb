@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #309)*
+*Senast uppdaterad: 2026-03-25 (session #310)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -114,6 +114,7 @@ Session #306: BUGGJAKT — 3 buggar (0 Worker A + 3 Worker B). SQL subquery corr
 Session #307: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). GROUP_CONCAT overflow: rent. error_log format: rent. SQL DATE() i WHERE: 31 DATE()-anrop ersatta med range queries i 8 controllers. FormGroup reset: rent. template function calls: 2 fixade. HTTP URL consistency: rent.
 Session #308: BUGGJAKT — ~171 buggar (~150 Worker A + 21 Worker B). SQL DATE() i WHERE: ~150 fixade i 38 controllers (ALLA kvarvarande). HTTP error handling: 21 saknade catchError fixade.
 Session #309: BUGGJAKT — 7 buggar (0 Worker A + 7 Worker B). SQL implicit type conversion: rent. Exception handling: rent (563 catch-block). Array bounds: rent. ngIf/ngSwitch: rent. innerHTML: rent. Template expression complexity: 7 fixade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker).
+Session #310: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL LIKE escaping: rent (addcslashes korrekt). Content-Type: rent (api.php globalt). Route param type safety: rent (4 komponenter, alla isNaN). HTTP retry logic: rent (interceptor korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -127,14 +128,14 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #307 (klar)
-Worker A: 3 buggar — SQL DATE() i WHERE: 31 DATE()-anrop ersatta med sargable range queries i 8 controllers.
-Worker B: 2 buggar — template function calls: 2 fixade (kassationskvot-alarm, produktionskostnad cachade).
-
 ### 2026-03-25 — Session #308 (klar)
 Worker A: ~150 buggar — SQL DATE() i WHERE: ~150 kvarvarande ersatta med sargable range queries i 38 controllers (ALLA kvarvarande).
 Worker B: 21 buggar — HTTP error handling: 21 saknade catchError fixade i 21 komponenter.
 
 ### 2026-03-25 — Session #309 (klar)
 Worker A: 0 buggar — SQL implicit type conversion: rent. Exception handling: rent (563 catch-block, alla med error_log). Array bounds: rent.
-Worker B: 7 buggar — template expression complexity: 7 funktionsanrop cachade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker). ngIf/ngSwitch: rent. innerHTML: rent.
+Worker B: 7 buggar — template expression complexity: 7 funktionsanrop cachade. ngIf/ngSwitch: rent. innerHTML: rent.
+
+### 2026-03-25 — Session #310 (klar)
+Worker A: 0 buggar — SQL LIKE escaping: rent (2 controllers med LIKE+user input, alla har addcslashes). Content-Type: rent (api.php sattar globalt).
+Worker B: 0 buggar — Route param type safety: rent (4 komponenter, alla med isNaN-guard). HTTP retry logic: rent (interceptor retryar bara GET/HEAD/OPTIONS).
