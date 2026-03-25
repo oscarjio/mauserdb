@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -81,7 +81,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
     this.overviewLoading = true;
 
     this.service.getOverview()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.overviewLoading = false;
         this.overviewLoaded = true;
@@ -101,7 +101,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
     this.scheduleLoading = true;
 
     this.service.getSchedule()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.scheduleLoading = false;
         this.scheduleLoaded = true;
@@ -123,7 +123,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
     this.historyLoading = true;
 
     this.service.getHistory(this.historyDays, 50)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.historyLoading = false;
         this.historyLoaded = true;

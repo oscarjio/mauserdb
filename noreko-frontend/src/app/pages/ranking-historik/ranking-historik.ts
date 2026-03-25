@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -124,7 +124,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
     if (this.rankingsLoading) return;
     this.rankingsLoading = true;
     this.service.getWeeklyRankings(this.weeks)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.rankingsLoading = false;
         this.rankingsData = res?.success ? res.data : null;
@@ -140,7 +140,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
     if (this.changesLoading) return;
     this.changesLoading = true;
     this.service.getRankingChanges()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.changesLoading = false;
         this.changesData = res?.success ? res.data : null;
@@ -153,7 +153,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
     if (this.streakLoading) return;
     this.streakLoading = true;
     this.service.getStreakData(this.weeks)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.streakLoading = false;
         this.streakData = res?.success ? res.data : null;

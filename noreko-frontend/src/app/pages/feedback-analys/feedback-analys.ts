@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -106,7 +106,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     if (this.statsLoading) return;
     this.statsLoading = true;
     this.service.getFeedbackStats(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.statsLoading = false;
         this.statsData    = res?.success ? res.data : null;
@@ -118,7 +118,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     if (this.trendLoading) return;
     this.trendLoading = true;
     this.service.getFeedbackTrend(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.trendLoading = false;
         this.trendData    = res?.success ? res.data : null;
@@ -134,7 +134,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     if (this.sentimentLoading) return;
     this.sentimentLoading = true;
     this.service.getOperatorSentiment(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sentimentLoading = false;
         this.sentimentData    = res?.success ? res.data.operatorer : null;
@@ -151,7 +151,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
       page:        this.currentPage,
       per_page:    this.perPage,
       operator_id: this.filterOperatorId,
-    }).pipe(takeUntil(this.destroy$))
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.listLoading = false;
         this.listData    = res?.success ? res.data : null;

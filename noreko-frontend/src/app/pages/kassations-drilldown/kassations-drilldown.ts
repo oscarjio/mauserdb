@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationsDrilldownService,
@@ -102,7 +102,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
     this.loadingOverview = true;
     this.errorOverview   = false;
     this.svc.getOverview(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         if (res?.success) {
@@ -123,7 +123,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
     this.errorTrend   = false;
     this.destroyTrendChart();
     this.svc.getTrend(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -155,7 +155,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
     this.detailEvents       = [];
 
     this.svc.getReasonDetail(reason.reason_id, this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDetail = false;
         if (res?.success) {

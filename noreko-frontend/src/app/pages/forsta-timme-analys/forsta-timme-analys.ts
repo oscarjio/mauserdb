@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ForstaTimmeAnalysService,
@@ -102,7 +102,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
     this.destroyRampupChart();
 
     this.svc.getAnalysis(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingAnalys = false;
         if (res?.success) {
@@ -123,7 +123,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
     this.destroyTrendChart();
 
     this.svc.getTrend(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {

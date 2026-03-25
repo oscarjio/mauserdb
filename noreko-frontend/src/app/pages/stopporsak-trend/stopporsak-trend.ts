@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -114,7 +114,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.weeklyError   = false;
 
     this.service.getWeekly(this.selectedWeeks)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.weeklyLoading = false;
         this.weeklyLoaded  = true;
@@ -139,7 +139,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.summaryError   = false;
 
     this.service.getSummary(this.selectedWeeks)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.summaryLoading = false;
         this.summaryLoaded  = true;
@@ -164,7 +164,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
     this.detailChart = null;
 
     this.service.getDetail(reason, this.selectedWeeks)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detailLoading = false;
         if (res?.success) {

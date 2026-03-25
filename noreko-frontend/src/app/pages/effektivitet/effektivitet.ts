@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -100,7 +100,7 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
     this.summaryError   = false;
 
     this.service.getSummary()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.summaryLoading = false;
         this.summaryLoaded  = true;
@@ -121,7 +121,7 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
     this.trendError   = false;
 
     this.service.getTrend(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.trendLoading = false;
         this.trendLoaded  = true;
@@ -144,7 +144,7 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
     this.skiftLoading = true;
 
     this.service.getByShift(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.skiftLoading = false;
         this.skiftLoaded  = true;

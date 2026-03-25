@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   OperatorPersonalDashboardService,
@@ -64,7 +64,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
     this.loadOperatorer();
 
     // Försök sätta operator från inloggad användare
-    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+    this.auth.user$.pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(user => {
       if (user?.operator_id && this.selectedOp === 0) {
         this.selectedOp = user.operator_id;
         if (this.operatorer.length > 0) {
@@ -102,7 +102,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadOperatorer(): void {
     this.loadingOps = true;
     this.svc.getOperatorer()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOps = false;
         if (res?.success) {
@@ -136,7 +136,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadProduktion(): void {
     this.loadingProduktion = true;
     this.svc.getMinProduktion(this.selectedOp)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingProduktion = false;
         this.produktion = res?.success ? res : null;
@@ -148,7 +148,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadTempo(): void {
     this.loadingTempo = true;
     this.svc.getMittTempo(this.selectedOp)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTempo = false;
         this.tempo = res?.success ? res : null;
@@ -158,7 +158,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadBonus(): void {
     this.loadingBonus = true;
     this.svc.getMinBonus(this.selectedOp)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingBonus = false;
         this.bonus = res?.success ? res : null;
@@ -168,7 +168,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadStopp(): void {
     this.loadingStopp = true;
     this.svc.getMinaStopp(this.selectedOp)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStopp = false;
         this.stopp = res?.success ? res : null;
@@ -178,7 +178,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   loadVeckotrend(): void {
     this.loadingTrend = true;
     this.svc.getMinVeckotrend(this.selectedOp)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         this.veckotrend = res?.success ? res : null;

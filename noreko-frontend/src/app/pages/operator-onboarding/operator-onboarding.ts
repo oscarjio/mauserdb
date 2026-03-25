@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -87,7 +87,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
     this.errorOverview   = false;
 
     this.svc.getOverview(this.months)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         if (res?.success) {
@@ -116,7 +116,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
     this.destroyCurveChart();
 
     this.svc.getOperatorCurve(op.operator_number)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingCurve = false;
         if (res?.success) {

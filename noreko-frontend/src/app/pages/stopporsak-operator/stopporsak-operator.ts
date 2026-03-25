@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -112,7 +112,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
     this.destroyBarChart();
 
     this.svc.getOverview(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         if (res?.success) {
@@ -136,7 +136,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
     this.destroyDonutChart();
 
     this.svc.getReasonsSummary(this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingReasons = false;
         if (res?.success) {
@@ -168,7 +168,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
     this.destroyDetailChart();
 
     this.svc.getOperatorDetail(op.user_id, this.period)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDetail = false;
         if (res?.success) {

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -106,7 +106,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     this.heatmapLoading = true;
 
     this.service.getHeatmapData(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.heatmapLoading = false;
         if (res?.success && res.data) {
@@ -134,7 +134,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     this.patternLoading = true;
 
     this.service.getDayPattern(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.patternLoading = false;
         if (res?.success && res.data) {
@@ -267,7 +267,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     this.detailHourAvg = [];
 
     this.service.getOperatorDetail(op.id, this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detailLoading = false;
         if (res?.success && res.data) {

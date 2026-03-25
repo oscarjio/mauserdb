@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ParetoService,
@@ -87,7 +87,7 @@ export class ParetoPage implements OnInit, OnDestroy {
     this.loadingSummary = true;
     this.errorSummary   = false;
     this.svc.getSummary(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success) {
@@ -104,7 +104,7 @@ export class ParetoPage implements OnInit, OnDestroy {
     this.errorPareto   = false;
     this.destroyChart();
     this.svc.getParetoData(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingPareto = false;
         if (res?.success) {

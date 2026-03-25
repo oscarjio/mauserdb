@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 
 import {
   FavoriterService,
@@ -59,10 +59,10 @@ export class FavoriterPage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     this.favService.list()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;
-        if (res.success) {
+        if (res?.success) {
           this.favoriter = res.data;
         } else {
           this.error = 'Kunde inte ladda favoriter';
@@ -72,15 +72,15 @@ export class FavoriterPage implements OnInit, OnDestroy {
 
   addFavorit(page: AvailablePage): void {
     this.favService.add(page.route, page.label, page.icon, page.color)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.favoriter.push(res.data as Favorit);
           this.successMsg = `"${page.label}" tillagd`;
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
-          this.error = res.error || 'Kunde inte lägga till';
+          this.error = res?.error || 'Kunde inte lägga till';
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
@@ -89,15 +89,15 @@ export class FavoriterPage implements OnInit, OnDestroy {
 
   removeFavorit(fav: Favorit): void {
     this.favService.remove(fav.id)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
-        if (res.success) {
+        if (res?.success) {
           this.favoriter = this.favoriter.filter(f => f.id !== fav.id);
           this.successMsg = `"${fav.label}" borttagen`;
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
-          this.error = res.error || 'Kunde inte ta bort';
+          this.error = res?.error || 'Kunde inte ta bort';
           if (this.msgTimer) clearTimeout(this.msgTimer);
           this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
@@ -119,7 +119,7 @@ export class FavoriterPage implements OnInit, OnDestroy {
   private saveOrder(): void {
     const ids = this.favoriter.map(f => f.id);
     this.favService.reorder(ids)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe();
   }
 

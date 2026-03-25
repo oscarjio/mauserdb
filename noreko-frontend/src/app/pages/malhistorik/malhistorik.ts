@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -73,7 +73,7 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
     this.historyLoading = true;
     this.historyError   = null;
     this.service.getGoalHistory()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.historyLoading = false;
         if (res?.success && res.data) {
@@ -93,7 +93,7 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
     this.impactLoading = true;
     this.impactError   = null;
     this.service.getGoalImpact()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.impactLoading = false;
         if (res?.success && res.data) {

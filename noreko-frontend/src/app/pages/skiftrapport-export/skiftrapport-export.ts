@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 
 import {
   SkiftrapportExportService,
@@ -101,7 +101,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
     this.rapport = null;
 
     this.service.getReportData(this.valtDatum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.laddar = false;
         if (!res) {
@@ -124,7 +124,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
     this.veckoSumma = null;
 
     this.service.getMultiDayData(this.valtStartDatum, this.valtSlutDatum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.laddarVecka = false;
         if (!res) {

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -111,7 +111,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.oeeLoading) return;
     this.oeeLoading = true;
     this.service.getCurrentOee(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.oeeLoading = false;
         this.oeeData = res?.success ? res.data : null;
@@ -127,7 +127,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.benchLoading) return;
     this.benchLoading = true;
     this.service.getBenchmark(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.benchLoading = false;
         this.benchData = res?.success ? res.data : null;
@@ -139,7 +139,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.trendLoading) return;
     this.trendLoading = true;
     this.service.getTrend(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.trendLoading = false;
         this.trendData = res?.success ? res.data : null;
@@ -155,7 +155,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.breakLoading) return;
     this.breakLoading = true;
     this.service.getBreakdown(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.breakLoading = false;
         this.breakData = res?.success ? res.data : null;

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import {
   HeatmapService,
   HeatmapCell,
@@ -82,7 +82,7 @@ export class HeatmapPage implements OnInit, OnDestroy {
     this.loadingHeatmap = true;
     this.errorHeatmap   = false;
     this.svc.getHeatmapData(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingHeatmap = false;
         if (res?.success) {
@@ -100,7 +100,7 @@ export class HeatmapPage implements OnInit, OnDestroy {
     this.loadingSummary = true;
     this.errorSummary   = false;
     this.svc.getSummary(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success) {

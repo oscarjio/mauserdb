@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   OeeWaterfallService,
@@ -88,7 +88,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
     this.loadingSummary = true;
     this.errorSummary   = false;
     this.svc.getSummary(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success) {
@@ -105,7 +105,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
     this.errorWaterfall   = false;
     this.destroyChart();
     this.svc.getWaterfallData(this.days)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingWaterfall = false;
         if (res?.success) {

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
@@ -107,7 +107,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     this.summaryError   = false;
 
     this.service.getSummary()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.summaryLoading = false;
         this.summaryLoaded  = true;
@@ -128,7 +128,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     this.dailyError   = false;
 
     this.service.getDaily(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.dailyLoading = false;
         this.dailyLoaded  = true;
@@ -152,7 +152,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     this.lossesError   = false;
 
     this.service.getLosses(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.lossesLoading = false;
         this.lossesLoaded  = true;

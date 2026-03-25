@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 
 import {
   ProduktionskalenderService,
@@ -129,7 +129,7 @@ export class ProduktionskalenderComponent implements OnInit, OnDestroy {
 
     this.service
       .getMonthData(this.selectedYear, this.selectedMonth)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(resp => {
         this.manadLoading = false;
         if (resp?.success && resp.data) {
@@ -158,7 +158,7 @@ export class ProduktionskalenderComponent implements OnInit, OnDestroy {
 
     this.service
       .getDayDetail(dag.datum)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(resp => {
         this.detaljLoading = false;
         if (resp?.success && resp.data) {
