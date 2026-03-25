@@ -1,3 +1,46 @@
+## Worker B — Session #326 (2026-03-25) — 0 buggar (alla 3 audits)
+
+### Audit 1: Angular change detection audit (0 buggar)
+Granskade samtliga 42 komponent-filer i noreko-frontend/src/app/ (pages/rebotling/*, pages/*, rebotling/*, components/*) samt app.ts och app.config.ts.
+
+**Kontrollerade:**
+- OnPush change detection strategy — Ej tillampat, men lampligt givet att alla komponenter anvander Default strategy med `provideZoneChangeDetection({ eventCoalescing: true })` i app.config.ts som redan optimerar change detection. OnPush skulle vara en optimering men inte en bugg.
+- markForCheck()-anrop — Inte nodvandigt da alla subscribe-callbacks kor innanfor Angular zone (HttpClient-anrop). setTimeout/setInterval-callbacks kor ocksa innanfor zone.
+- Tunga berakningar i templates — Alla komponenter cachar berakningar i properties (t.ex. cachedSankeyNodes, cachedSortedStopp, cachedVisibleSegments, cachedPeriodOptions, sortedRanking, etc.) och rebuildar vid data-andringar istallet for att rakna ut i template.
+- *ngFor utan trackBy — Samtliga 518 ngFor-forekomster i 133 template-filer har trackBy-funktioner.
+- Onodiga change detection-cykler — Inga HostListener('document:mousemove') eller liknande globala listeners. Mouse-tracking ar lokalt till segment-hover i drifttids-timeline.
+
+**Resultat:** Rent. Inga buggar hittade.
+
+### Audit 2: Angular state management audit (0 buggar)
+Granskade samtliga 42 komponenter och AuthService for minneslaackor, subscription-hantering och state-konsistens.
+
+**Kontrollerade:**
+- BehaviorSubject/ReplaySubject completion — AuthService ar providedIn: 'root' (singleton, lever hela appens livstid), sa completion ar inte nodvandigt. Inga komponenter skapar egna BehaviorSubjects som lacker.
+- Subscriptions/unsubscribe — Samtliga komponenter anvander destroy$ Subject med takeUntil(this.destroy$) pattern konsekvent. ngOnDestroy anropar destroy$.next() och destroy$.complete() i alla fall.
+- setInterval/setTimeout — Samtliga intervals sparas i typad variabel och rensas i ngOnDestroy. Samtliga timeouts sparas och rensas. Flera komponenter anvander chartTimers-array som ocksa rensas. Kontroll med !this.destroy$.closed gors i setTimeout-callbacks.
+- Race conditions — Flera komponenter anvander isFetching-guard for att forhindra dubbla anrop. VdDashboardPage anvander forkJoin for att samla alla anrop. Produktionsflode anvander separata isFetching-guards per endpoint.
+- async pipe vs manuell subscription — Kodbasen anvander konsekvent manuell subscription med takeUntil, vilket ar korrekt for komponenter som behover mellanlagra och transformera data.
+- Charts — Alla Chart.js-instanser destroyas korrekt i ngOnDestroy och fore ombyggnad.
+
+**Resultat:** Rent. Inga buggar hittade.
+
+### Audit 3: Angular routing/navigation audit (0 buggar)
+Granskade app.routes.ts (164 rader, ~80 routes), auth.guard.ts, pending-changes.guard.ts och app.config.ts.
+
+**Kontrollerade:**
+- Duplicerade paths — Inga duplicerade route-paths hittade. Alla paths ar unika.
+- Lazy-loading — Samtliga routes anvander loadComponent() med dynamisk import (lazy loading). Inga eagerly loaded komponenter utom Layout.
+- canActivate guards — authGuard anvands pa alla autentiserade routes, adminGuard pa alla admin-routes. Guards anvander initialized$-pipe for att vanta pa APP_INITIALIZER, returnerar UrlTree (Angular best practice).
+- canDeactivate guards — pendingChangesGuard anvands korrekt pa formularsidor (rebotling-admin, bonus-admin, tvattlinje-admin, saglinje-admin, klassificeringslinje-admin, overlamning, skiftoverlamning, underhallslogg, produktionsmal, leveransplanering, feature-flags, create-user, news-admin). Komponenter implementerar ComponentCanDeactivate-interfacet.
+- Wildcard route — '**' route finns sist och laddar NotFoundPage.
+- PreloadAllModules — Aktiverat i app.config.ts for battre UX.
+- Scroll restoration — withInMemoryScrolling med scrollPositionRestoration: 'enabled' och anchorScrolling: 'enabled'.
+- ChunkLoadError-hantering — GlobalErrorHandler fangar chunk-laddningsfel och laddar om sidan med loop-skydd.
+- Query params — authGuard sparar returnUrl i queryParams for redirect efter login.
+
+**Resultat:** Rent. Inga buggar hittade.
+
 ## Worker B — Session #325 (2026-03-25) — 7 buggar (alla 3 audits)
 
 ### Audit 1: Angular accessibility audit (7 buggar)
