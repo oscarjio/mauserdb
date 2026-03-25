@@ -1,3 +1,27 @@
+## Worker B — Session #313 (2026-03-25) — 0 buggar (unused imports + ngOnDestroy + template type safety)
+
+### Audit 1: Angular unused imports/variables — TypeScript-diagnostik (0 buggar)
+Byggde projektet med `npx ng build` — inga TS6133/TS6196-varningar (unused imports/variables).
+Korde aven `npx tsc --noEmit --noUnusedLocals --noUnusedParameters` — rent resultat.
+Alla 169 komponent-filer med subscribe()-anrop granskade. Inga oanvanda importer hittades.
+
+### Audit 2: Angular ngOnDestroy completeness (0 buggar)
+Granskade alla Angular-komponenter i noreko-frontend/src/app/ (exkl. -live filer):
+- Alla 169 komponenter med `.subscribe()` implementerar `OnDestroy`.
+- Alla komponenter med `destroy$` Subject har `destroy$.next()` och `destroy$.complete()` i ngOnDestroy.
+- Alla 64 komponenter med `setInterval` har matchande `clearInterval` i ngOnDestroy.
+- Alla komponenter med `setTimeout` har matchande `clearTimeout` i ngOnDestroy.
+- Inga lakor i subscription- eller timer-hantering hittades.
+
+### Audit 3: Angular template type safety och felaktiga bindings (0 buggar)
+Granskade alla Angular-templates via `npx ng build`:
+- Inga NG-errors (felaktiga bindings, saknade properties/metoder). Bygget lyckas utan errors.
+- 125 NG8107/NG8102-varningar hittades (onodvandiga `?.` och `??` operatorer pa non-nullable typer) fordelade over 23 template-filer. Dessa ar kosmetiska type-narrowing varningar, inte runtime-buggar:
+  - NG8107 (93 st): `?.` pa varden som redan ar non-nullable (t.ex. inuti *ngIf-guards)
+  - NG8102 (32 st): `?? 0` pa varden som redan ar typade som `number` (inte `number | null`)
+  - Paveraade filer: andon, bonus-dashboard, feedback-analys, historisk-sammanfattning, avvikelselarm, kapacitetsplanering, kassationskvot-alarm, kvalitetscertifikat, leveransplanering, maskinunderhall, operatorsbonus, operators-prestanda, produktionseffektivitet, produktionsflode, rebotling-statistik, rebotling-trendanalys, skiftrapport-sammanstallning, statistik-dashboard, stopptidsanalys, skiftjamforelse, stoppage-log, utnyttjandegrad, prediktivt-underhall
+- Spot-checkade 20+ templates manuellt — inga bindings till icke-existerande properties eller metoder hittades.
+
 ## Worker A — Session #313 (2026-03-25) — 0 buggar (dead code + SQL params + error consistency)
 
 ### Audit 1: PHP dead code audit — oanvanda metoder/routes i controllers (0 buggar)
