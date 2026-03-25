@@ -7,12 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Nasta buggjakt-items (session #313+):
-- [ ] **PHP dead code audit** — oanvanda metoder/routes i controllers som kan tas bort
-- [ ] **Angular unused imports/variables** — TypeScript-diagnostik visar oanvanda deklarationer i flera filer
-- [ ] **PHP SQL prepared statement parameter count** — antal ? i query vs antal bind-parametrar
-- [ ] **Angular ngOnDestroy completeness** — komponenter med subscriptions men utan OnDestroy
-- [ ] **PHP error response consistency** — alla endpoints ska returnera JSON med samma felformat
+### Nasta buggjakt-items (session #314+):
+- [ ] **PHP sendError() vs echo inkonsistens** — ~33 controllers blandar sendError() och direkt echo for error responses
+- [ ] **Angular NG8107/NG8102 template warnings** — 125 kosmetiska varningar (onodvandiga ?. och ?? pa non-nullable typer i 23 filer)
+- [ ] **PHP SQL query performance** — hitta N+1 queries (loopar med SQL inuti) i controllers
+- [ ] **Angular strict template type checking** — aktivera strictTemplates och fixa eventuella fel
+- [ ] **PHP input sanitization audit** — granska att alla $_GET/$_POST valideras korrekt (range, format, whitelist)
 
 ## Parkerade features (ta inte dessa nu)
 

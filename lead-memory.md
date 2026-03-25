@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #312)*
+*Senast uppdaterad: 2026-03-25 (session #313)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -116,29 +116,30 @@ Session #308: BUGGJAKT — ~171 buggar (~150 Worker A + 21 Worker B). SQL DATE()
 Session #309: BUGGJAKT — 7 buggar (0 Worker A + 7 Worker B). SQL implicit type conversion: rent. Exception handling: rent (563 catch-block). Array bounds: rent. ngIf/ngSwitch: rent. innerHTML: rent. Template expression complexity: 7 fixade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker).
 Session #310: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL LIKE escaping: rent (addcslashes korrekt). Content-Type: rent (api.php globalt). Route param type safety: rent (4 komponenter, alla isNaN). HTTP retry logic: rent (interceptor korrekt).
 Session #311: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL ORDER BY dynamic: rent (alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (alla har context). Form validation: rent (template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla korrekt).
-Session #312: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). array_key_exists vs isset: rent (399 isset, alla korrekt). SQL UNION: rent (30+ filer, alla typer matchar). PDO transaction nesting: rent (55 beginTransaction, inga nestade). HTTP polling: 12 saknade isFetching-guards fixade i 11 filer. innerHTML XSS: rent (inga [innerHTML] i templates). Observable subscriptions: rent (alla takeUntil sist i pipe).
+Session #312: BUGGJAKT — 12 buggar (0 Worker A + 12 Worker B). array_key_exists vs isset: rent. SQL UNION: rent. PDO transaction nesting: rent. HTTP polling: 12 saknade isFetching-guards fixade. innerHTML XSS: rent. Observable subscriptions: rent.
+Session #313: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). PHP dead code: rent (116 controllers, alla routes matchar). SQL prepared statement params: rent (850+ execute). PHP error response: rent. Angular unused imports: rent (tsc rent). ngOnDestroy: rent (169 komponenter). Template type safety: rent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #313+):
-- [ ] PHP dead code audit — oanvanda metoder/routes
-- [ ] Angular unused imports/variables — TS-diagnostik visar oanvanda deklarationer
-- [ ] PHP SQL prepared statement parameter count — antal ? vs bind-parametrar
-- [ ] Angular ngOnDestroy completeness — komponenter med subscriptions utan OnDestroy
-- [ ] PHP error response consistency — alla endpoints JSON med samma felformat
+### Nasta (session #314+):
+- [ ] PHP sendError() vs echo inkonsistens — ~33 controllers blandar
+- [ ] Angular NG8107/NG8102 template warnings — 125 varningar i 23 filer
+- [ ] PHP SQL N+1 queries — loopar med SQL inuti
+- [ ] Angular strict template type checking
+- [ ] PHP input sanitization audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #310 (klar)
-Worker A: 0 buggar — SQL LIKE escaping: rent (2 controllers med LIKE+user input, alla har addcslashes). Content-Type: rent (api.php sattar globalt).
-Worker B: 0 buggar — Route param type safety: rent (4 komponenter, alla med isNaN-guard). HTTP retry logic: rent (interceptor retryar bara GET/HEAD/OPTIONS).
-
 ### 2026-03-25 — Session #311 (klar)
-Worker A: 0 buggar — SQL ORDER BY dynamic: rent (5 fall, alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (100+ anrop, alla har context).
-Worker B: 0 buggar — Form validation: rent (96 filer, template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla destroy+null).
+Worker A: 0 buggar — SQL ORDER BY dynamic: rent. Session/cookie: rent. error_log format: rent.
+Worker B: 0 buggar — Form validation: rent. Chart.js destroy: rent.
 
 ### 2026-03-25 — Session #312 (klar)
-Worker A: 0 buggar — array_key_exists vs isset: rent (399 isset, alla sakra). SQL UNION: rent (30+ filer). PDO transaction nesting: rent (55 beginTransaction).
-Worker B: 12 buggar — HTTP polling isFetching: 12 saknade guards fixade i 11 filer (menu 5, alerts 1, stoppage-log 1, operator-dashboard 5, produktionsmal 5, trendanalys 5, stationsdetalj 3, leaderboard 1, uptid-heatmap 1, veckotrend 1, produktionspuls 1, stopporsak-registrering 1). innerHTML XSS: rent. Observable subscriptions: rent.
+Worker A: 0 buggar — array_key_exists vs isset: rent. SQL UNION: rent. PDO transaction nesting: rent.
+Worker B: 12 buggar — HTTP polling isFetching: 12 saknade guards fixade i 11 filer.
+
+### 2026-03-25 — Session #313 (klar)
+Worker A: 0 buggar — PHP dead code audit: rent (116 controllers, alla routes matchar). SQL prepared statement parameter count: rent (850+ execute). PHP error response consistency: rent.
+Worker B: 0 buggar — Angular unused imports/variables: rent (tsc rent). ngOnDestroy completeness: rent (169 komponenter). Template type safety: rent (125 kosmetiska NG8107/NG8102 varningar, inga runtime-buggar).
