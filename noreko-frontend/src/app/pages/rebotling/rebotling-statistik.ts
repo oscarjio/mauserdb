@@ -107,6 +107,7 @@ interface TableRow {
   cycles: number;
   avgCycleTime: number;
   efficiency: number;
+  avgProdPct: number;
   runtime: number;
   clickable: boolean;
 }
@@ -149,6 +150,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   totalCycles: number = 0;
   avgCycleTime: number = 0;
   avgEfficiency: number = 0;
+  avgProdPct: number = 0;
   totalRuntimeHours: number = 0;
   targetCycleTime: number = 0;
 
@@ -738,6 +740,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
     this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
+    this.avgProdPct = Math.round(data.summary.avg_production_percent || 0);
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
     this.totalRastMinutes = data.summary.total_rast_minutes || 0;
@@ -1097,11 +1100,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const labels: string[] = [];
     const cycleTime: number[] = [];
+    const prodPct: number[] = [];
     const avgCycleTimeArr: number[] = [];
     const targetCycleTimeArr: number[] = [];
     const produktNamn: string[] = [];
 
     let totalCycleTime = 0;
+    let totalProdPct = 0;
 
     // Spåra produktbyten för annotations
     let lastProduktId: any = null;
@@ -1115,6 +1120,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const ct = parseFloat(cycle.cycle_time);
       cycleTime.push(Math.round(ct * 10) / 10);
       totalCycleTime += ct;
+
+      const pp = parseFloat(cycle.produktion_procent) || 0;
+      prodPct.push(Math.round(pp));
+      totalProdPct += pp;
 
       // Per-cykel mål baserat på produktens cykeltid (stegar vid produktbyte)
       const target = parseFloat(cycle.target_cycle_time);
@@ -1146,8 +1155,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const rast: any[] = data.rast_events || [];
     const rastPeriods = this.buildRastPeriodsForCycles(displayCycles, rast);
 
+    const avgProdPctVal = displayCycles.length > 0
+      ? Math.round(totalProdPct / displayCycles.length)
+      : 0;
+    const avgProdPctArr = labels.map(() => avgProdPctVal);
+
     return {
-      labels, cycleTime, avgCycleTime: avgCycleTimeArr,
+      labels, cycleTime, prodPct, avgProdPct: avgProdPctArr,
+      avgCycleTime: avgCycleTimeArr,
       targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods,
       produktByten, produktNamn
     };
@@ -1241,7 +1256,33 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
     try {
-      const datasets: any[] = [
+      // Day view: show produktion_procent per cycle. Other views: show cycle time.
+      const isDayView = this.viewMode === 'day' && chartData.prodPct;
+      const datasets: any[] = isDayView ? [
+        {
+          label: 'Produktion %',
+          data: chartData.prodPct,
+          borderColor: '#00d4ff',
+          backgroundColor: 'rgba(0, 212, 255, 0.1)',
+          tension: 0.4,
+          fill: true,
+          yAxisID: 'y',
+          pointRadius: 2,
+          pointHoverRadius: 6,
+          borderWidth: 2
+        },
+        {
+          label: 'Snitt Prod%',
+          data: chartData.avgProdPct,
+          borderColor: '#ffc107',
+          borderDash: [8, 4],
+          tension: 0,
+          fill: false,
+          yAxisID: 'y',
+          pointRadius: 0,
+          borderWidth: 2
+        }
+      ] : [
         {
           label: 'Cykeltid (min)',
           data: chartData.cycleTime,
@@ -1250,7 +1291,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           tension: 0.4,
           fill: true,
           yAxisID: 'y',
-          pointRadius: this.viewMode === 'day' ? 2 : 3,
+          pointRadius: 3,
           pointHoverRadius: 6,
           borderWidth: 2
         },
@@ -1267,21 +1308,23 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       ];
 
-      // Add target line if any target values exist
-      const hasTarget = chartData.targetCycleTime?.some((v: number) => v > 0);
-      if (hasTarget || this.targetCycleTime > 0) {
-        datasets.push({
-          label: 'Mål Cykeltid',
-          data: chartData.targetCycleTime,
-          borderColor: '#ff8800',
-          borderDash: [4, 4],
-          tension: 0,
-          stepped: this.viewMode === 'day' ? 'before' as const : false,
-          fill: false,
-          yAxisID: 'y',
-          pointRadius: 0,
-          borderWidth: 2.5
-        });
+      // Add target line for non-day views
+      if (!isDayView) {
+        const hasTarget = chartData.targetCycleTime?.some((v: number) => v > 0);
+        if (hasTarget || this.targetCycleTime > 0) {
+          datasets.push({
+            label: 'Mål Cykeltid',
+            data: chartData.targetCycleTime,
+            borderColor: '#ff8800',
+            borderDash: [4, 4],
+            tension: 0,
+            stepped: false,
+            fill: false,
+            yAxisID: 'y',
+            pointRadius: 0,
+            borderWidth: 2.5
+          });
+        }
       }
 
       this.productionChart = new Chart(ctx, {
@@ -1321,7 +1364,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           scales: {
             y: {
               beginAtZero: true,
-              title: { display: true, text: 'Cykeltid (minuter)', color: '#e0e0e0', font: { size: 13 } },
+              title: { display: true, text: isDayView ? 'Produktion %' : 'Cykeltid (minuter)', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
@@ -1727,6 +1770,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         cycles: cycles.length,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
         efficiency: Math.round(avgEff),
+        avgProdPct: Math.round(avgEff),
         runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,
         clickable: this.viewMode !== 'day'
       });

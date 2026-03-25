@@ -207,9 +207,9 @@
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
           <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
-            <div class="kpi-value">{{ totalRuntimeHours }}h</div>
-            <div class="kpi-label">Total Kortid</div>
+            <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+            <div class="kpi-value" [ngClass]="getEfficiencyClass(avgProdPct)">{{ avgProdPct }}%</div>
+            <div class="kpi-label">Snitt Prod%</div>
           </div>
         </div>
       </div>
@@ -381,7 +381,7 @@
                       <th class="text-end" scope="col">Cykler</th>
                       <th class="text-end" scope="col">Snitt Cykeltid</th>
                       <th class="text-end" scope="col">Effektivitet</th>
-                      <th class="text-end" scope="col">Kortid (min)</th>
+                      <th class="text-end" scope="col">Prod %</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -392,7 +392,7 @@
                       <td class="text-end"><strong>{{ row.cycles }}</strong></td>
                       <td class="text-end">{{ row.avgCycleTime }} min</td>
                       <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)"><strong>{{ row.efficiency }}%</strong></td>
-                      <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(row.avgProdPct)">{{ row.avgProdPct }}%</td>
                     </tr>
                   </tbody>
                   <tfoot *ngIf="tableData.length > 1">
@@ -401,7 +401,7 @@
                       <td class="text-end"><strong>{{ totalCycles }}</strong></td>
                       <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
                       <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)"><strong>{{ avgEfficiency }}%</strong></td>
-                      <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(avgProdPct)"><strong>{{ avgProdPct }}%</strong></td>
                     </tr>
                   </tfoot>
                 </table>
