@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #318):
-- [ ] **PHP file upload/path traversal audit** — move_uploaded_file, basename, saknad validering (Worker A)
-- [ ] **PHP session/cookie security audit** — session_regenerate_id, httponly, secure-flaggor (Worker A)
-- [ ] **PHP raw SQL string concatenation audit A-M** — prepared statements, SQL-injektion (Worker A)
-- [ ] **Angular lazy loading audit** — loadChildren, saknade modules (Worker B)
-- [ ] **Angular change detection audit N-Z** — subscription-lackor, trackBy (Worker B)
-- [ ] **Angular HTTP interceptor/error handling audit** — catchError, 401-hantering (Worker B)
+### Pagaende (session #319):
+- [ ] **PHP raw SQL string concatenation audit N-Z** — fortsattning fran A-M (Worker A)
+- [ ] **PHP error logging audit** — tysta catch-block, saknad loggning (Worker A)
+- [ ] **PHP response consistency audit** — JSON-format, HTTP-koder, headers (Worker A)
+- [ ] **Angular pipe/directive audit** — pure pipes, null-hantering, imports (Worker B)
+- [ ] **Angular memory leak audit** — DOM-refs, observers, event listeners (Worker B)
+- [ ] **Angular template type safety audit** — optional chaining, trackBy, innerHTML (Worker B)
 
-### Nasta buggjakt-items (session #319+):
-- [ ] **PHP raw SQL string concatenation audit N-Z** — fortsattning fran A-M
-- [ ] **Angular pipe/directive audit** — pure pipes, saknade imports, felaktiga transformeringar
-- [ ] **PHP error logging audit** — saknade error_log, tysta catch-block
-- [ ] **Angular memory leak audit** — DOM-references, event listeners, ResizeObserver
+### Nasta buggjakt-items (session #320+):
+- [ ] **PHP date/time handling audit** — timezone-problem, date()-format, strale comparisons
+- [ ] **Angular routing guard audit** — canActivate, redirect-loopar, auth-kontroller
+- [ ] **PHP numeric overflow/precision audit** — integer overflow, float-jamforelser
+- [ ] **Angular form validation audit** — required-fallt, custom validators, error messages
 
 ## Parkerade features (ta inte dessa nu)
 

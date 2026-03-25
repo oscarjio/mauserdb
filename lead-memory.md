@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #318)*
+*Senast uppdaterad: 2026-03-25 (session #319)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,24 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#318: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#319: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #319+):
-- [ ] PHP raw SQL string concatenation audit N-Z
-- [ ] Angular pipe/directive audit
-- [ ] PHP error logging audit
-- [ ] Angular memory leak audit
+### Nasta (session #320+):
+- [ ] PHP date/time handling audit
+- [ ] Angular routing guard audit
+- [ ] PHP numeric overflow/precision audit
+- [ ] Angular form validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-25 — Session #317 (klar)
-Worker A: 1 bugg — Numeric precision: 1 fix (RebotlingController div-by-zero). SQL transaction N-Z: rent (19 controllers). Array bounds/null N-Z: rent.
-Worker B: 0 buggar — Route guard: rent (~80 routes). Form validation: rent. Template binding A-M: rent (55+ templates).
-
 ### 2026-03-25 — Session #318 (klar)
-Worker A: 0 buggar — File upload/path traversal: rent (inga controllers hanterar filuppladdning). Session/cookie security: rent (korrekt session_regenerate_id, httponly/secure). SQL string concat A-M: rent (alla PDO prepared statements).
-Worker B: 0 buggar — Lazy loading: rent (~80 routes, alla loadComponent korrekt). Change detection N-Z: rent (alla subscribe har takeUntil). HTTP interceptor/error handling: rent (retry, 401, CSRF korrekt).
+Worker A: 0 buggar — File upload/path traversal: rent. Session/cookie security: rent. SQL string concat A-M: rent.
+Worker B: 0 buggar — Lazy loading: rent. Change detection N-Z: rent. HTTP interceptor/error handling: rent.
+
+### 2026-03-25 — Session #319 (klar)
+Worker A: 0 buggar — SQL concat N-Z: rent (67 controllers). Error logging: rent (117 filer). Response consistency: rent (117 filer).
+Worker B: 0 buggar — Pipe/directive: rent (inga custom pipes/directives). Memory leak: rent (141 filer). Template type safety: rent (~120 templates).
