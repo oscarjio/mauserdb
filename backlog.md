@@ -7,18 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #310):
-- [ ] **PHP SQL LIKE without escaping** — LIKE '%{$var}%' utan addcslashes (Worker A)
-- [ ] **PHP header/Content-Type consistency** — endpoints som saknar Content-Type: application/json (Worker A)
-- [ ] **Angular route param type safety** — parseInt utan isNaN-check (Worker B)
-- [ ] **Angular HTTP retry logic audit** — GET med retry vs POST utan retry (Worker B)
-
-### Nasta buggjakt-items (session #311+):
-- [ ] **PHP SQL ORDER BY dynamic** — ORDER BY med ovaliderade kolumnnamn fran user input
-- [ ] **PHP session/cookie attribute audit** — SameSite, Secure, HttpOnly pa alla cookies
-- [ ] **Angular form validation consistency** — required-attribut i HTML vs validators i TS
-- [ ] **Angular chart.js destroy audit** — chart-instanser som inte destroyas vid omredering
-- [ ] **PHP error_log format consistency** — inkonsekvent loggformat mellan controllers
+### Nasta buggjakt-items (session #312+):
+- [ ] **PHP array_key_exists vs isset deep audit** — isset returnerar false for null-varden, kan missa data
+- [ ] **PHP SQL UNION type mismatch** — kolumntyper i UNION-delar som inte matchar
+- [ ] **Angular HTTP polling interval drift** — setInterval+HTTP kan orsaka request-stacking vid lang responstid
+- [ ] **Angular template string interpolation XSS** — innerHTML med dynamisk data utan sanitering
+- [ ] **PHP PDO transaction nesting** — beginTransaction inuti annan transaktion kastar exception
 
 ## Parkerade features (ta inte dessa nu)
 

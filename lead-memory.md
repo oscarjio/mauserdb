@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #310)*
+*Senast uppdaterad: 2026-03-25 (session #311)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -115,22 +115,20 @@ Session #307: BUGGJAKT — 5 buggar (3 Worker A + 2 Worker B). GROUP_CONCAT over
 Session #308: BUGGJAKT — ~171 buggar (~150 Worker A + 21 Worker B). SQL DATE() i WHERE: ~150 fixade i 38 controllers (ALLA kvarvarande). HTTP error handling: 21 saknade catchError fixade.
 Session #309: BUGGJAKT — 7 buggar (0 Worker A + 7 Worker B). SQL implicit type conversion: rent. Exception handling: rent (563 catch-block). Array bounds: rent. ngIf/ngSwitch: rent. innerHTML: rent. Template expression complexity: 7 fixade (audit-log, ranking-historik, stopporsak-trend, heatmap, feedback-analys, narvarotracker).
 Session #310: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL LIKE escaping: rent (addcslashes korrekt). Content-Type: rent (api.php globalt). Route param type safety: rent (4 komponenter, alla isNaN). HTTP retry logic: rent (interceptor korrekt).
+Session #311: BUGGJAKT — 0 buggar (0 Worker A + 0 Worker B). SQL ORDER BY dynamic: rent (alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (alla har context). Form validation: rent (template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla korrekt).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #310+):
-- [ ] PHP SQL LIKE without escaping — LIKE '%{$var}%' utan addcslashes
-- [ ] PHP header/Content-Type consistency — endpoints som saknar Content-Type: application/json
-- [ ] Angular route param type safety — parseInt utan isNaN-check
-- [ ] Angular HTTP retry logic audit — GET med retry vs POST utan retry
+### Nasta (session #312+):
+- [ ] PHP array_key_exists vs isset deep audit — isset returnerar false for null-varden
+- [ ] PHP SQL UNION type mismatch — kolumntyper i UNION-delar som inte matchar
+- [ ] Angular HTTP polling interval drift — setInterval+HTTP kan orsaka request-stacking
+- [ ] Angular template string interpolation XSS — innerHTML med dynamisk data
+- [ ] PHP PDO transaction nesting — beginTransaction inuti annan transaktion
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #308 (klar)
-Worker A: ~150 buggar — SQL DATE() i WHERE: ~150 kvarvarande ersatta med sargable range queries i 38 controllers (ALLA kvarvarande).
-Worker B: 21 buggar — HTTP error handling: 21 saknade catchError fixade i 21 komponenter.
 
 ### 2026-03-25 — Session #309 (klar)
 Worker A: 0 buggar — SQL implicit type conversion: rent. Exception handling: rent (563 catch-block, alla med error_log). Array bounds: rent.
@@ -139,3 +137,7 @@ Worker B: 7 buggar — template expression complexity: 7 funktionsanrop cachade.
 ### 2026-03-25 — Session #310 (klar)
 Worker A: 0 buggar — SQL LIKE escaping: rent (2 controllers med LIKE+user input, alla har addcslashes). Content-Type: rent (api.php sattar globalt).
 Worker B: 0 buggar — Route param type safety: rent (4 komponenter, alla med isNaN-guard). HTTP retry logic: rent (interceptor retryar bara GET/HEAD/OPTIONS).
+
+### 2026-03-25 — Session #311 (klar)
+Worker A: 0 buggar — SQL ORDER BY dynamic: rent (5 fall, alla whitelistade). Session/cookie: rent (secure+httponly+samesite). error_log format: rent (100+ anrop, alla har context).
+Worker B: 0 buggar — Form validation: rent (96 filer, template-driven, konsekvent). Chart.js destroy: rent (109 instanser, alla destroy+null).
