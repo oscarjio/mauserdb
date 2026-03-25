@@ -94,7 +94,10 @@ class OperatorsbonusController {
     // =========================================================================
 
     private function sendSuccess(array $data): void {
-        echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'success' => true,
+            'data'    => $data,
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -512,17 +515,15 @@ class OperatorsbonusController {
             }
 
             $this->sendSuccess([
-                'data' => [
-                    'period'              => $period,
-                    'snitt_bonus'         => $snittBonus,
-                    'hogsta_bonus'        => round($hogstaBonus, 2),
-                    'hogsta_namn'         => $hogstaNamn,
-                    'lagsta_bonus'        => round($lagstaBonus, 2),
-                    'lagsta_namn'         => $lagstaNamn,
-                    'total_utbetald'      => round($totalBonus, 2),
-                    'antal_kvalificerade' => $antalKvalificerade,
-                    'antal_operatorer'    => $antalOp,
-                ],
+                'period'              => $period,
+                'snitt_bonus'         => $snittBonus,
+                'hogsta_bonus'        => round($hogstaBonus, 2),
+                'hogsta_namn'         => $hogstaNamn,
+                'lagsta_bonus'        => round($lagstaBonus, 2),
+                'lagsta_namn'         => $lagstaNamn,
+                'total_utbetald'      => round($totalBonus, 2),
+                'antal_kvalificerade' => $antalKvalificerade,
+                'antal_operatorer'    => $antalOp,
             ]);
         } catch (\Exception $e) {
             error_log('OperatorsbonusController::getOverview: ' . $e->getMessage());
@@ -542,13 +543,11 @@ class OperatorsbonusController {
             $bounds     = $this->getPeriodBounds($period);
 
             $this->sendSuccess([
-                'data' => [
-                    'period'     => $period,
-                    'from'       => $bounds['from'],
-                    'to'         => $bounds['to'],
-                    'konfig'     => $konfig,
-                    'operatorer' => $operatorer,
-                ],
+                'period'     => $period,
+                'from'       => $bounds['from'],
+                'to'         => $bounds['to'],
+                'konfig'     => $konfig,
+                'operatorer' => $operatorer,
             ]);
         } catch (\Exception $e) {
             error_log('OperatorsbonusController::getPerOperator: ' . $e->getMessage());
@@ -709,10 +708,8 @@ class OperatorsbonusController {
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $this->sendSuccess([
-                'data' => [
-                    'utbetalningar' => $rows,
-                    'total'         => count($rows),
-                ],
+                'utbetalningar' => $rows,
+                'total'         => count($rows),
             ]);
         } catch (\PDOException $e) {
             error_log('OperatorsbonusController::getHistorik: ' . $e->getMessage());
@@ -742,22 +739,20 @@ class OperatorsbonusController {
             $maxTotal = $konfig['ibc_per_timme']['max_bonus_kr'] + $konfig['kvalitet']['max_bonus_kr'] + $konfig['narvaro']['max_bonus_kr'] + $konfig['team_bonus']['max_bonus_kr'];
 
             $this->sendSuccess([
-                'data' => [
-                    'input' => [
-                        'ibc_per_timme' => $ibcPerTimme,
-                        'kvalitet'      => $kvalitet,
-                        'narvaro'       => $narvaro,
-                        'team_mal'      => $teamMal,
-                    ],
-                    'bonus_ibc'       => $bonusIbc,
-                    'bonus_kvalitet'  => $bonusKvalitet,
-                    'bonus_narvaro'   => $bonusNarvaro,
-                    'bonus_team'      => $bonusTeam,
-                    'total_bonus'     => round($total, 2),
-                    'max_total'       => $maxTotal,
-                    'pct_av_max'      => $maxTotal > 0 ? round(($total / $maxTotal) * 100, 1) : 0,
-                    'konfig'          => $konfig,
+                'input' => [
+                    'ibc_per_timme' => $ibcPerTimme,
+                    'kvalitet'      => $kvalitet,
+                    'narvaro'       => $narvaro,
+                    'team_mal'      => $teamMal,
                 ],
+                'bonus_ibc'       => $bonusIbc,
+                'bonus_kvalitet'  => $bonusKvalitet,
+                'bonus_narvaro'   => $bonusNarvaro,
+                'bonus_team'      => $bonusTeam,
+                'total_bonus'     => round($total, 2),
+                'max_total'       => $maxTotal,
+                'pct_av_max'      => $maxTotal > 0 ? round(($total / $maxTotal) * 100, 1) : 0,
+                'konfig'          => $konfig,
             ]);
         } catch (\Exception $e) {
             error_log('OperatorsbonusController::getSimulering: ' . $e->getMessage());

@@ -439,6 +439,89 @@ class OeeTrendanalysController {
         }
     }
 
+    /**
+     * Batch-berakna daglig drifttid fran rebotling_onoff for en period.
+     * Returnerar [datum => drifttid_sek].
+     * Minskar N+1: en enda query istallet for en per dag.
+     */
+    private function batchDrifttidPerDag(string $fromDate, string $toDate): array {
+        $fromDt = $fromDate . ' 00:00:00';
+        $toDt   = date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00';
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('OeeTrendanalysController::batchDrifttidPerDag: ' . $e->getMessage());
+            return [];
+        }
+
+        $result = [];
+        $lastOn = null;
+        $lastDate = null;
+        foreach ($rows as $r) {
+            $ts = strtotime($r['datum']);
+            $dag = substr($r['datum'], 0, 10);
+            if (!isset($result[$dag])) $result[$dag] = 0;
+
+            if ((int)$r['running'] === 1) {
+                if ($lastOn === null) $lastOn = $ts;
+            } else {
+                if ($lastOn !== null) {
+                    // Fordela drifttid till respektive dag
+                    $result[$dag] += max(0, $ts - $lastOn);
+                    $lastOn = null;
+                }
+            }
+            $lastDate = $dag;
+        }
+        // Stang oppet intervall
+        if ($lastOn !== null && $lastDate !== null) {
+            $result[$lastDate] += max(0, min(time(), strtotime($toDt)) - $lastOn);
+        }
+        return $result;
+    }
+
+    /**
+     * Batch-berakna daglig IBC-data for en period.
+     * Returnerar [datum => [ok_ibc, ej_ok_ibc, total_ibc]].
+     */
+    private function batchIbcPerDag(string $fromDate, string $toDate): array {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) sub
+                GROUP BY dag
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $result = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $ok = (int)$row['ok_ibc'];
+                $ej = (int)$row['ej_ok_ibc'];
+                $result[$row['dag']] = ['ok_ibc' => $ok, 'ej_ok_ibc' => $ej, 'total_ibc' => $ok + $ej];
+            }
+            return $result;
+        } catch (\PDOException $e) {
+            error_log('OeeTrendanalysController::batchIbcPerDag: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // ================================================================
     // run=trend
     // ================================================================
@@ -448,36 +531,37 @@ class OeeTrendanalysController {
             $days    = $this->getDays();
             $station = $this->getStation();
 
+            $fromDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+            $toDate   = date('Y-m-d');
+
+            // Batch-hamta data (2 queries istallet for 2*N)
+            $driftPerDag = $this->batchDrifttidPerDag($fromDate, $toDate);
+            $ibcPerDag   = $this->batchIbcPerDag($fromDate, $toDate);
+
+            $schemaSekPerDag = 8 * 3600;
+
             $trendPoints = [];
             for ($i = $days - 1; $i >= 0; $i--) {
                 $dag = date('Y-m-d', strtotime("-{$i} days"));
 
-                if ($station !== null) {
-                    $perStation = $this->calcOeePerStation($dag, $dag);
-                    $s = $perStation[$station] ?? null;
-                    if ($s) {
-                        $trendPoints[] = [
-                            'datum'              => $dag,
-                            'oee_pct'            => round($s['oee'] * 100, 1),
-                            'tillganglighet_pct' => round($s['tillganglighet'] * 100, 1),
-                            'prestanda_pct'      => round($s['prestanda'] * 100, 1),
-                            'kvalitet_pct'       => round($s['kvalitet'] * 100, 1),
-                            'total_ibc'          => $s['total_ibc'],
-                        ];
-                    } else {
-                        $trendPoints[] = ['datum' => $dag, 'oee_pct' => 0, 'tillganglighet_pct' => 0, 'prestanda_pct' => 0, 'kvalitet_pct' => 0, 'total_ibc' => 0];
-                    }
-                } else {
-                    $calc = $this->calcOeeForPeriod($dag, $dag);
-                    $trendPoints[] = [
-                        'datum'              => $dag,
-                        'oee_pct'            => round($calc['oee'] * 100, 1),
-                        'tillganglighet_pct' => round($calc['tillganglighet'] * 100, 1),
-                        'prestanda_pct'      => round($calc['prestanda'] * 100, 1),
-                        'kvalitet_pct'       => round($calc['kvalitet'] * 100, 1),
-                        'total_ibc'          => $calc['total_ibc'],
-                    ];
-                }
+                $drifttidSek = $driftPerDag[$dag] ?? 0;
+                $ibcData     = $ibcPerDag[$dag] ?? null;
+                $okIbc       = $ibcData ? $ibcData['ok_ibc'] : 0;
+                $totalIbc    = $ibcData ? $ibcData['total_ibc'] : 0;
+
+                $tillganglighet = $schemaSekPerDag > 0 ? ($drifttidSek / $schemaSekPerDag) : 0.0;
+                $prestanda      = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+                $kvalitet       = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+                $oee            = $tillganglighet * $prestanda * $kvalitet;
+
+                $trendPoints[] = [
+                    'datum'              => $dag,
+                    'oee_pct'            => round($oee * 100, 1),
+                    'tillganglighet_pct' => round($tillganglighet * 100, 1),
+                    'prestanda_pct'      => round($prestanda * 100, 1),
+                    'kvalitet_pct'       => round($kvalitet * 100, 1),
+                    'total_ibc'          => $totalIbc,
+                ];
             }
 
             // Rullande 7d-snitt for OEE
@@ -709,11 +793,30 @@ class OeeTrendanalysController {
         try {
             $days = 30;
 
+            $fromDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+            $toDate   = date('Y-m-d');
+
+            // Batch-hamta data (2 queries istallet for 60)
+            $driftPerDag = $this->batchDrifttidPerDag($fromDate, $toDate);
+            $ibcPerDag   = $this->batchIbcPerDag($fromDate, $toDate);
+
+            $schemaSekPerDag = 8 * 3600;
+
             $oeeValues = [];
             for ($i = $days - 1; $i >= 0; $i--) {
                 $dag = date('Y-m-d', strtotime("-{$i} days"));
-                $calc = $this->calcOeeForPeriod($dag, $dag);
-                $oeeValues[] = round($calc['oee'] * 100, 1);
+
+                $drifttidSek = $driftPerDag[$dag] ?? 0;
+                $ibcData     = $ibcPerDag[$dag] ?? null;
+                $okIbc       = $ibcData ? $ibcData['ok_ibc'] : 0;
+                $totalIbc    = $ibcData ? $ibcData['total_ibc'] : 0;
+
+                $tillganglighet = $schemaSekPerDag > 0 ? ($drifttidSek / $schemaSekPerDag) : 0.0;
+                $prestanda      = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+                $kvalitet       = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+                $oee            = $tillganglighet * $prestanda * $kvalitet;
+
+                $oeeValues[] = round($oee * 100, 1);
             }
 
             $reg = $this->linjarRegression($oeeValues);

@@ -25,6 +25,7 @@
  */
 class KapacitetsplaneringController {
     private $pdo;
+    private ?array $cachedConfig = null;
 
     private const OPTIMAL_CYKELTID_SEK = 120;   // 2 minuter per IBC
     private const PLANERAD_DRIFTTID_SEK = 8 * 3600; // 8 timmar per dag
@@ -109,15 +110,20 @@ class KapacitetsplaneringController {
     }
 
     private function loadKapacitetConfig(): array {
+        if ($this->cachedConfig !== null) {
+            return $this->cachedConfig;
+        }
         try {
             $stmt = $this->pdo->query(
                 "SELECT station_id, station_namn, teoretisk_kapacitet_per_timme,
                         mal_utnyttjandegrad_pct, ibc_per_operator_timme
                  FROM kapacitet_config WHERE aktiv = 1 ORDER BY station_id"
             );
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $this->cachedConfig = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return $this->cachedConfig;
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::loadKapacitetConfig: ' . $e->getMessage());
+            $this->cachedConfig = [];
             return [];
         }
     }
@@ -127,6 +133,45 @@ class KapacitetsplaneringController {
      */
     private function getAntalStationer(string $fromDate, string $toDate): int {
         return 1;
+    }
+
+    /**
+     * Batch-berakna daglig drifttid fran rebotling_onoff for en period.
+     * Returnerar [datum => drifttid_sek]. En enda query istallet for N.
+     */
+    private function batchDrifttidPerDag(string $fromDt, string $toDt): array {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum < :to_dt
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $result = [];
+            $prevTime = null;
+            $prevRunning = null;
+
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+                $dag = substr($row['datum'], 0, 10);
+                if (!isset($result[$dag])) $result[$dag] = 0;
+
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $result[$dag] += max(0, $ts - $prevTime);
+                }
+
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+
+            return $result;
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::batchDrifttidPerDag: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -470,6 +515,12 @@ class KapacitetsplaneringController {
             error_log('KapacitetsplaneringController::getDagligKapacitet (batch): ' . $e->getMessage());
         }
 
+        // Batch-hamta drifttid per dag (1 query istallet for N)
+        $driftPerDag = $this->batchDrifttidPerDag(
+            $fromDateStr . ' 00:00:00',
+            date('Y-m-d', strtotime($toDateStr . ' +1 day')) . ' 00:00:00'
+        );
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
@@ -479,9 +530,7 @@ class KapacitetsplaneringController {
             $faktisk = $rad ? (int)($rad['ok_antal']) + (int)($rad['ej_ok_antal']) : 0;
             $antalStationer = 1;
 
-            $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = date('Y-m-d', strtotime($dagStr . ' +1 day')) . ' 00:00:00';
-            $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
+            $drifttidSek = $driftPerDag[$dagStr] ?? 0;
             $teorMax     = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
             $mal         = $this->getProduktionsmal($dagStr);
             $outnyttjad  = max(0, (int)$teorMax - $faktisk);
@@ -729,14 +778,18 @@ class KapacitetsplaneringController {
             error_log('KapacitetsplaneringController::getTidFordelning (batch): ' . $e->getMessage());
         }
 
+        // Batch-hamta drifttid per dag (1 query istallet for N)
+        $driftPerDag = $this->batchDrifttidPerDag(
+            $fromDateStr . ' 00:00:00',
+            date('Y-m-d', strtotime($toDateStr . ' +1 day')) . ' 00:00:00'
+        );
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
-            $fromDt = $dagStr . ' 00:00:00';
-            $toDt   = date('Y-m-d', strtotime($dagStr . ' +1 day')) . ' 00:00:00';
 
-            $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
+            $drifttidSek = $driftPerDag[$dagStr] ?? 0;
             $planeradSek = self::PLANERAD_DRIFTTID_SEK;
 
             $antalIbc = $ibcPerDag[$dagStr] ?? 0;
