@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #325)*
+*Senast uppdaterad: 2026-03-25 (session #326)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,24 +60,24 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#325: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#326: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### Nasta (session #326+):
-- [ ] PHP caching/performance audit
-- [ ] Angular change detection audit
-- [ ] PHP API response format audit
-- [ ] Angular state management audit
+### Nasta (session #327+):
+- [ ] PHP date/timezone audit
+- [ ] Angular HTTP error handling audit
+- [ ] PHP authorization audit
+- [ ] Angular form validation audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-25 — Session #324 (klar)
-Worker A: 0 buggar — Session management: rent. File upload: ej tillampl. Error handling: rent.
-Worker B: 0 buggar — SSR/hydration: ej tillampl. Pipes: inga custom pipes. HTTP/API integration: rent.
 
 ### 2026-03-25 — Session #325 (klar)
 Worker A: 0 buggar — Dependency/composer: inga beroenden. SQL performance: rent. Input sanitization: rent.
 Worker B: 7 buggar — Accessibility: 7 fixade (saknade aria-attribut pa modaler). Build/bundle: rent. Template security: rent.
+
+### 2026-03-25 — Session #326 (pagaende)
+Worker A: PHP caching/performance + API response format + error handling depth
+Worker B: Angular change detection + state management + routing/navigation

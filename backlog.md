@@ -7,19 +7,19 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-### Pagaende (session #325):
-- [ ] **PHP dependency/composer audit** — outdated packages, kanda CVE:er, autoload-problem (Worker A)
-- [ ] **PHP SQL query performance audit** — saknade index, N+1-fragor, slow queries (Worker A)
-- [ ] **PHP input sanitization audit** — prepared statements, XSS, CSRF, input-validering (Worker A)
-- [ ] **Angular accessibility audit** — aria-attribut, keyboard-navigation, skarmlasar-kompatibilitet (Worker B)
-- [ ] **Angular build/bundle audit** — tree-shaking, dead code, bundle-storlek (Worker B)
-- [ ] **Angular template security audit** — innerHTML, sanitering, dynamiska URLs (Worker B)
+### Pagaende (session #326):
+- [ ] **PHP caching/performance audit** — redundanta DB-anrop, saknad caching, N+1-fragor (Worker A)
+- [ ] **PHP API response format audit** — inkonsekvent JSON, felaktiga statuskoder, lacker info (Worker A)
+- [ ] **PHP error handling depth audit** — tomma catch, saknad validering, null-risker (Worker A)
+- [ ] **Angular change detection audit** — saknad OnPush, trackBy, tunga template-berakningar (Worker B)
+- [ ] **Angular state management audit** — BehaviorSubject-lackor, saknade unsubscribe, race conditions (Worker B)
+- [ ] **Angular routing/navigation audit** — felaktiga routes, saknade guards, lazy-loading (Worker B)
 
-### Nasta buggjakt-items (session #326+):
-- [ ] **PHP caching/performance audit** — saknad caching, redundanta DB-anrop, ineffektiv logik
-- [ ] **Angular change detection audit** — onPush-strategi, markForCheck, zonfri kod
-- [ ] **PHP API response format audit** — inkonsekvent JSON-struktur, saknade statuskoder, felmeddelanden
-- [ ] **Angular state management audit** — BehaviorSubject-lackor, delat tillstand, minnesanvandning
+### Nasta buggjakt-items (session #327+):
+- [ ] **PHP date/timezone audit** — inkonsekvent datumhantering, tidszonsfel, felaktig formatering
+- [ ] **Angular HTTP error handling audit** — saknade catchError, felaktig retry-logik, timeout-hantering
+- [ ] **PHP authorization audit** — saknade behorighetskontroller, privilege escalation, rollkontroll
+- [ ] **Angular form validation audit** — saknad validering, felaktiga felmeddelanden, edge cases
 
 ## Parkerade features (ta inte dessa nu)
 
