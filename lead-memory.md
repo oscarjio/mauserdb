@@ -64,13 +64,19 @@ Session #256-#326: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
-BUGGJAKT-FOKUS — inga nya features tills vidare.
+GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pipeline.
 
-### Nasta (session #327+):
-- [ ] PHP date/timezone audit
-- [ ] Angular HTTP error handling audit
-- [ ] PHP authorization audit
-- [ ] Angular form validation audit
+### Session #327+ (NYA VERKTYG):
+- prod_db_schema.sql i projektroten = facit for SQL
+- Deploy: rsync till dev.mauserdb.com (se feedback_deploy_workflow.md i memory/)
+- Prod DB: ssh -p 32546 user@mauserdb.com + mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb
+- mb_string polyfill i api.php (servern saknar php-mbstring)
+
+### Nasta:
+- [ ] Statistik-graf: produktion_procent ar kumulativ — behover delta/momentan berakning
+- [ ] Skiftrapport alla flikar — testa och fixa
+- [ ] Frontend UX-genomgang — alla sidor
+- [ ] Backend endpoint fulltest mot dev
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -79,5 +85,11 @@ Worker A: 0 buggar — Dependency/composer: inga beroenden. SQL performance: ren
 Worker B: 7 buggar — Accessibility: 7 fixade (saknade aria-attribut pa modaler). Build/bundle: rent. Template security: rent.
 
 ### 2026-03-25 — Session #326 (klar)
-Worker A: 4 buggar — Caching/perf: 3 N+1-fixes (OeeTrendanalys, Kapacitetsplanering, DagligBriefing). API format: 1 fix (Operatorsbonus JSON-nesting). Error handling: rent.
-Worker B: 0 buggar — Change detection: rent (trackBy overallt). State management: rent (destroy$+takeUntil). Routing: rent (lazy loading, guards).
+Worker A: 4 buggar — N+1-fixes, API format. Worker B: 0 buggar — rent.
+
+### 2026-03-25 — Manuell session (agaren)
+Fixat: getShiftTrend subquery-alias, getSPC skift_nr->skiftraknare, mb_string polyfill,
+statistik-graf bytt fran cykeltid till produktion_procent, koortid-kolumn borttagen.
+Deploy-pipeline uppsatt: rsync backend+dist till dev.mauserdb.com.
+Prod DB-schema dumpat till prod_db_schema.sql och committat.
+has_lopnummer migration koord pa prod.

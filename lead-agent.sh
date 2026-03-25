@@ -85,11 +85,13 @@ Läs dessa filer med Read:
 
 ## STEG 2 — Starta 2 worker-agenter (via Agent-verktyget)
 Starta dem PARALLELLT. Ge STORA, meningsfulla uppgifter — sessions körs bara var 2:e timme.
-- BÅDA workers ska fokusera på BUGGJAKT — hitta och fixa buggar
-- Tydliga instruktioner om EXAKT vilka filer/controllers de granskar (ingen överlapp)
-- Worker A: Granska backend-controllers (PHP) — leta SQL-fel, edge cases, saknad validering
-- Worker B: Granska frontend-components (TS/HTML) — leta template-fel, subscription-läckor, felaktig data
+- BÅDA workers ska göra GRUNDLIG GENOMGÅNG — hitta fel, förbättra, testa på dev
+- Tydliga instruktioner om EXAKT vilka filer/sidor de granskar (ingen överlapp)
+- Worker A: Backend + deploy — granska SQL mot prod_db_schema.sql, testa endpoints med curl mot dev.mauserdb.com, fixa och deploya
+- Worker B: Frontend UX + data — surfa genom alla sidor, granska templates/grafer, fixa darlig data/UI
 - Varje worker ska ha max_turns=100
+- VIKTIGT: Workers har tillgång till deploy-pipeline (se memory/feedback_deploy_workflow.md)
+  och prod DB-schema (prod_db_schema.sql i projektroten)
 
 Varje worker-prompt MÅSTE innehålla dessa regler:
 1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/
@@ -104,14 +106,15 @@ Varje worker-prompt MÅSTE innehålla dessa regler:
 10. Uppdatera dev-log.md med vad som gjorts
 
 ## STEG 3 — Underhåll backlog.md
-BARA BUGGJAKT — INGA NYA FEATURES! Ägaren har explicit sagt att ni BARA ska leta buggar.
+GRUNDLIG GENOMGÅNG — hitta och fixa fel, förbättra befintliga sidor.
 - Markera pågående items i backlog.md
 - Ta bort [x]-markerade items (de är klara)
-- Om färre än 5 öppna items → fyll på med FLER BUGGJAKT-uppgifter:
-  1. Granska PHP-controllers — SQL-fel, felaktiga kolumnnamn, saknad felhantering
-  2. Granska Angular services — saknade imports, felaktiga URLs, subscription-läckor
-  3. Testa endpoints mot dev-servern med curl — leta 500-fel
-  4. SKAPA ALDRIG NYA FEATURES, SIDOR ELLER CONTROLLERS
+- Om färre än 5 öppna items → fyll på med uppgifter:
+  1. Testa ALLA endpoints mot dev-servern (curl) — leta 500-fel och felaktig data
+  2. Granska PHP SQL-queries mot prod_db_schema.sql — fixa alla mismatches
+  3. Granska frontend-sidor — UX, dark theme, data visas korrekt
+  4. Förbättra statistik/grafer med korrekt beräkning
+  5. SKAPA INTE NYA SIDOR/CONTROLLERS — förbättra befintliga
 - Håll backlog.md UNDER 40 rader — kort och konkret
 
 ## STEG 4 — Uppdatera lead-memory.md (kort)
@@ -123,12 +126,14 @@ git add backlog.md lead-memory.md dev-log.md
 git commit -m "Lead: \$(date '+%Y-%m-%d') session-update"
 git push
 
-## ÄGARENS PRIORITERING (2026-03-15):
-1. BUGGJAKT — fokusera på att hitta och fixa buggar i befintlig kod
+## ÄGARENS PRIORITERING (2026-03-25):
+1. GRUNDLIG GENOMGÅNG — surfa igenom hela sidan, testa allt, fixa alla fel
 2. FOKUS REBOTLING — enda linjen med bra data
-3. INGA NYA FEATURES just nu — koncentrera er på kvalitet och stabilitet
-4. Granska controllers, services, templates — leta efter fel, edge cases, saknade felhanteringar
-5. Testa endpoints manuellt (curl/http) — verifiera att de returnerar korrekt data
+3. Förbättra statistik/grafer — produktion_procent verkar kumulativ, undersök och fixa
+4. Testa ALLA endpoints med curl mot dev.mauserdb.com — leta 500-fel
+5. Deploy alla fixes till dev-servern efter varje fix-runda (rsync)
+6. Använd prod_db_schema.sql som FACIT för alla SQL-queries
+7. Prod DB tillgänglig: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
 ## Projektsökväg: /home/clawd/clawd/mauserdb/
 ENDPROMPT
