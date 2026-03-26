@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #349)*
+*Senast uppdaterad: 2026-03-26 (session #350)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#349: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#350: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,27 +74,26 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [x] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
-- [x] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
-- [x] Analytics-controllers (7st) + admin-sidor UI (session #348)
-- [x] 15 resterande controllers djupgranskning (session #349 — 1 bugg fixad: MinDag PDO-params)
-- [x] End-to-end rebotling-flodet (session #349 — verifierat OK, 4908 rader)
-- [x] 20+ ogranskade frontend-sidor (session #349 — 18 trasiga ikoner fixade, bi→fa)
-- [x] produktion_procent undersokts — EJ kumulativt, momentant PLC-tal (session #349)
-- [ ] station_id-referens fix (2 controllers, COALESCE pa icke-existerande kolumn)
-- [ ] Responsiv design-sweep
-- [ ] Prestandaoptimering (langa queries, N+1)
+- [x] station_id-referens fix (session #350 — COALESCE borttagen, hardkodad fallback)
+- [x] Responsiv design-sweep (session #350 — 31 tabeller fixade i 16 filer)
+- [x] Prestandaoptimering (session #350 — 11 queries optimerade, composite index, 77% snabbare)
+- [x] Felhantering UI (session #350 — redan komplett, inget att fixa)
+- [x] Chart.js enhetlig styling (session #350 — redan konsekvent, inget att fixa)
+- [x] Endpoint-svarstider (session #350 — alla under 1s, 3 optimerade)
+- [ ] Oanvanda variabler/funktioner (HistoriskSammanfattning + Skiftjamforelse)
+- [ ] Rebotling E2E regressionstest
+- [ ] Operatorsbonus-berakning verifiering
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #350 (klar)
+Worker A: station_id-bugg fixad i 2 controllers (COALESCE borttagen). 11 queries optimerade (DATE()→range). Batch-queries: 12→4 for sammanfattning. Composite index tillagd (datum,skiftraknare). Svarstider: 77% snabbare (1.42s→0.33s), 65% snabbare (1.07s→0.38s).
+Worker B: 31 tabeller responsiv-fixade i 16 filer (table-responsive wrappers). Felhantering+Chart.js redan komplett. 2 diakritikfixar. Build+deploy OK.
+
 ### 2026-03-26 — Session #349 (klar)
-Worker A: 15 controllers djupgranskade. 1 bugg fixad: MinDagController duplicerade PDO-params (3 endpoints 500-fel). 60+ endpoints curl-testade. Rebotling E2E verifierat (4908 rader matchar). Notering: station_id-referens i 2 controllers (COALESCE workaround).
-Worker B: 30+ frontend-sidor granskade. 18 trasiga ikoner fixade (Bootstrap Icons ej installerat — alla bi→fa). 1 diakritikfix. produktion_procent bekraftat EJ kumulativt. Build+deploy OK.
+Worker A: 15 controllers djupgranskade. 1 bugg fixad: MinDagController duplicerade PDO-params. 60+ endpoints curl-testade. Rebotling E2E verifierat (4908 rader).
+Worker B: 30+ frontend-sidor granskade. 18 trasiga ikoner fixade (bi→fa). produktion_procent bekraftat EJ kumulativt. Build+deploy OK.
 
 ### 2026-03-26 — Session #348 (klar)
-Worker A: 18 controllers djupgranskade (7 operator + 4 kvalitet + 7 analytics). 3 buggar fixade: OperatorCompareController YEARWEEK-alias fel (500-fel), KvalitetstrendanalysController station_id existerade ej i prod (SQL-fel), DrifttidsTimelineController reason/operator_name existerade ej i stoppage_log (SQL-fel). 70+ endpoints curl-testade. Auth OK. Deploy OK.
-Worker B: 23+ frontend-sidor granskade (10 operator + 4 admin + 3 kvalitet/analytics + 6 rebotling). 7 diakritikfixar i 6 filer. Dark theme/lifecycle/svenska OK. Build+deploy OK.
-
-### 2026-03-26 — Session #347 (klar)
-Worker A: Alert-system 4 controllers (22 ep). 5 auth-buggar fixade. 2 prestandaopt (-27%, -30%). RebotlingAdmin 27 ep OK. 100+ ep sweep.
-Worker B: Alert/alarm UI 4 komp OK. Rebotling-admin OK. 10 statistik-sidor OK. 17 diakritikfixar.
+Worker A: 18 controllers djupgranskade. 3 buggar fixade (YEARWEEK-alias, station_id, reason/operator_name). 70+ endpoints curl-testade.
+Worker B: 23+ frontend-sidor granskade. 7 diakritikfixar. Dark theme/lifecycle/svenska OK.

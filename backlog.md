@@ -11,13 +11,13 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #350):
-- [ ] **station_id-referens fix** — A: HistoriskSammanfattningController + SkiftjamforelseController anvander COALESCE(station_id,1) men kolumnen finns ej i rebotling_ibc — ta bort/hardkoda
-- [ ] **Responsiv design-sweep** — B: alla sidor pa mobil/tablet
-- [ ] **Prestandaoptimering** — A: identifiera langa queries, N+1-problem, indexering
-- [ ] **Felhantering UI** — B: tomma tillstand, laddningsindikatorer, felmeddelanden
-- [ ] **Chart.js enhetlig styling** — B: alla grafer med samma fargpalett och dark theme
-- [ ] **Endpoint-svarstider** — A: logga och optimera endpoints over 1s
+### Nasta (session #351):
+- [ ] **Oanvanda variabler/funktioner** — A: rensa $prev, $stationId i HistoriskSammanfattning + getProduktionPerSkiftSingleDay i Skiftjamforelse
+- [ ] **Rebotling E2E regressionstest** — A: automatiserat curl-testskript for alla kritiska endpoints
+- [ ] **Operatorsbonus-berakning verifiering** — A: granska att bonuslogiken matchar prod-data korrekt
+- [ ] **Mobil UX-test** — B: testa alla sidor pa riktig mobilupploesning (375px), verifiera responsiv design
+- [ ] **Laddningstider frontend** — B: lazy loading, bundle size, initial load time
+- [ ] **Navigationsmenyn** — B: granska att alla sidor ar atkomliga, inga trasiga lankar
 
 ## Parkerade features (ta inte dessa nu)
 
