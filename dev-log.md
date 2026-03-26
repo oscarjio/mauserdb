@@ -1,3 +1,73 @@
+## Worker A -- Session #343 (2026-03-26) -- Backend-granskning: personal/roster + lager + rapporter + endpoint-stress (1 buggfix)
+
+### UPPGIFT 1: PERSONAL/ROSTER — ENDPOINTS + SQL — KLAR
+Granskade 24 endpoints i 8 controllers:
+- OperatorController: list, stats, pairs, profile, trend, machine-compatibility (6 endpoints)
+- ShiftPlanController: week, operators, week-view, operators-list, staffing-warning, assign, copy-week, remove (8 endpoints)
+- SkiftplaneringController: overview, schedule, shift-detail, capacity, operators, assign, unassign (7 endpoints)
+- NarvaroController: monthly-overview (1 endpoint)
+- SkiftoverlamningController: list, detail, shift-kpis, summary, operators, aktuellt-skift, skift-sammanfattning, oppna-problem, checklista, historik, skiftdata, protokoll-historik, protokoll-detalj, create, skapa-overlamning, spara (16 endpoints)
+- OperatorOnboardingController: overview, operator-curve, team-stats (3 endpoints)
+
+**SQL-granskning:** Alla queries matchar prod_db_schema.sql (operators, rebotling_ibc, rebotling_skiftrapport, shift_plan, skift_schema, skift_konfiguration, skiftoverlamning_logg, rebotling_skiftoverlamning, rebotling_onoff, operator_certifications, users).
+
+**BUGGFIX:** OperatorController::getOperatorTrend() anvande `:num` named parameter 3 ganger i samma prepared statement. Med `ATTR_EMULATE_PREPARES => false` (nativt) stodjer PDO INTE ateranvandning av named params — orsakade 500-fel. Fixat: byttt till positional `?` params.
+
+**Resultat:** 41 personal/roster endpoints, 40 OK, 1 fixad (operator trend).
+
+### UPPGIFT 2: LAGER/INVENTARIE — ENDPOINTS + SQL — KLAR
+Granskade 12 endpoints i 5 controllers:
+- LeveransplaneringController: overview, ordrar, kapacitet, prognos, konfiguration, skapa-order, uppdatera-order (7 endpoints)
+- KvalitetscertifikatController: overview, lista, detalj, kriterier, statistik, generera, bedom, uppdatera-kriterier (8 endpoints)
+- BatchSparningController: overview (1 endpoint)
+- KapacitetsplaneringController: kpi, daglig-kapacitet, station-utnyttjande, stopporsaker, tid-fordelning, vecko-oversikt, utnyttjandegrad-trend, kapacitetstabell, bemanning, prognos, config (11 endpoints)
+- ProduktionskostnadController: overview (1 endpoint)
+
+**SQL-granskning:** Alla queries matchar prod_db_schema.sql (kundordrar, produktionskapacitet_config, kvalitetscertifikat, kvalitetskriterier, kapacitet_config, produktionskostnad_config, rebotling_ibc).
+
+**Resultat:** 28 lager/inventarie-endpoints, alla OK.
+
+### UPPGIFT 3: RAPPORTER — ENDPOINTS + SQL — KLAR
+Granskade 20 endpoints i 10 controllers:
+- VeckorapportController: report (1 endpoint)
+- WeeklyReportController: summary, week-compare (2 endpoints)
+- SkiftrapportExportController: report-data, multi-day (2 endpoints)
+- VDVeckorapportController: kpi-jamforelse, trender-anomalier, top-bottom-operatorer, stopporsaker, vecka-sammanfattning (5 endpoints)
+- VdDashboardController: oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus (6 endpoints)
+- MorgonrapportController: rapport (1 endpoint)
+- DagligBriefingController: sammanfattning, stopporsaker, stationsstatus, veckotrend, bemanning (5 endpoints)
+- HistoriskSammanfattningController: perioder, rapport, trend, operatorer, stationer, stopporsaker (6 endpoints)
+- StatistikOverblickController: kpi, produktion, oee, kassation (4 endpoints)
+- StatistikDashboardController: summary, production-trend, daily-table, status-indicator (4 endpoints)
+
+**SQL-granskning:** Queries matchar schema (rebotling_ibc, rebotling_weekday_goals, stoppage_log, stoppage_reasons, stopporsak_registreringar, stopporsak_kategorier, kassationsregistrering, kassationsorsak_typer, rebotling_settings, operators).
+
+**Resultat:** 36 rapport-endpoints, alla OK.
+
+### UPPGIFT 4: ENDPOINT-STRESS — OGILTIGA PARAMS — KLAR
+Testade 36 scenarier mot dev.mauserdb.com:
+- **Tomma parametrar (10 tester):** Alla returnerar korrekta 400/200 (defaults). Inga 500-fel.
+- **Ogiltiga varden (10 tester):** intval() sanerar numeriska input, preg_match validerar datum, in_array validerar enums. Inga 500.
+- **SQL-injection (6 tester):** Alla parameteriserade queries. intval() sanerar numerisk input. Enum-validering blockerar textuella SQL-injections. Inga 500 efter operatortrendfixen.
+- **Extrema datum (7 tester):** 1970-W01, 2099-W01, 1970-01-01, 2099-12-31. Alla returnerar tom data (200 OK), inga kraschar.
+- **Okand/tom action + XSS (3 tester):** Returnerar 404.
+
+**Resultat:** 36/36 stress-tester OK (0 kraschar efter deploy).
+
+### UPPGIFT 5: DEPLOY + TESTA — KLAR
+- Backend-fix deployad till dev.mauserdb.com via rsync
+- Verifierat: operator trend returnerar data (3 rader)
+- Verifierat: SQL-injection forsok pa trend returnerar giltig data (intval sanerar)
+
+### UPPGIFT 6: COMMIT + PUSH — se nedan
+
+### SUMMERING
+- **Totalt granskade endpoints:** 105 (41 personal + 28 lager + 36 rapporter)
+- **Totalt stresstester:** 36
+- **Buggar hittade och fixade:** 1 (OperatorController::getOperatorTrend PDO named param)
+- **SQL-mismatches:** 0
+- **500-fel:** 0 (efter fix)
+
 ## Worker B -- Session #342 (2026-03-26) -- Kvalitetskontroll/Underhåll UI-granskning + 70+ diakritikfixar + build + deploy
 
 ### UPPGIFT 1: KVALITETSKONTROLL-UI GRANSKNING -- KLAR

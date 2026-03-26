@@ -793,12 +793,12 @@ class OperatorController {
                         NULLIF(SUM(COALESCE(drifttid, 0)) / 60.0, 0),
                     1) AS ibc_per_hour
                 FROM rebotling_skiftrapport
-                WHERE (op1 = :num OR op2 = :num OR op3 = :num)
+                WHERE (op1 = ? OR op2 = ? OR op3 = ?)
                   AND datum >= DATE_SUB(CURDATE(), INTERVAL 56 DAY)
                 GROUP BY YEAR(datum), WEEK(datum, 1)
                 ORDER BY year ASC, week_num ASC
             ');
-            $stmt->execute([':num' => $opNumber]);
+            $stmt->execute([$opNumber, $opNumber, $opNumber]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($rows as &$r) {
