@@ -68,11 +68,11 @@
       </div>
     </div>
 
-    <!-- Aktiva operatorer -->
+    <!-- Aktiva operatörer -->
     <div class="col-md-4">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body text-center py-4">
-          <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Aktiva operatorer</div>
+          <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Aktiva operatörer</div>
           <div style="font-size:3.5rem; font-weight:800; color:#63b3ed; line-height:1.1;" class="mt-2">
             {{ oversikt.aktiva_operatorer }}
           </div>
@@ -89,7 +89,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">
-          <i class="bi bi-bullseye me-1"></i>Mal vs Faktiskt
+          <i class="bi bi-bullseye me-1"></i>Mål vs Faktiskt
         </span>
         <span style="color:#e2e8f0; font-weight:600;">
           {{ oversikt.total_ibc }} / {{ oversikt.dagsmal }} IBC
@@ -102,7 +102,7 @@
         <div [style.width]="getMalBarWidth()" [style.background]="getMalBarColor()"
              style="height:100%; border-radius:8px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:center;"
              role="progressbar" [attr.aria-valuenow]="oversikt.mal_procent" aria-valuemin="0" aria-valuemax="100"
-             [attr.aria-label]="'Maluppfyllnad ' + oversikt.mal_procent + '%'">
+             [attr.aria-label]="'Måluppfyllnad ' + oversikt.mal_procent + '%'">
           <span style="color:#1a202c; font-weight:700; font-size:0.8rem;" *ngIf="oversikt.mal_procent >= 15">
             {{ oversikt.mal_procent }}%
           </span>
@@ -124,12 +124,12 @@
             <i class="bi bi-exclamation-triangle me-1"></i>Stoppstatus
           </h6>
 
-          <!-- Allt kor -->
+          <!-- Allt kör -->
           <div *ngIf="stoppNu?.allt_kor" class="text-center py-4">
             <div style="font-size:3rem; color:#48bb78;">
               <i class="bi bi-check-circle-fill"></i>
             </div>
-            <div style="color:#48bb78; font-size:1.2rem; font-weight:600;">Allt kor!</div>
+            <div style="color:#48bb78; font-size:1.2rem; font-weight:600;">Allt kör!</div>
             <small style="color:#a0aec0;">Inga aktiva stopp just nu</small>
           </div>
 
@@ -188,7 +188,7 @@
           </div>
           <ng-template #noOperators>
             <div class="text-center py-4" *ngIf="topOperatorer">
-              <small style="color:#a0aec0;">Inga operatorer har producerat idag annu</small>
+              <small style="color:#a0aec0;">Inga operatörer har producerat idag ännu</small>
             </div>
             <div *ngIf="!topOperatorer" class="text-center py-4">
               <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status">
@@ -213,8 +213,12 @@
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="bi bi-bar-chart-fill me-1"></i>OEE per station
           </h6>
-          <div style="height:220px; position:relative;">
+          <div *ngIf="stationOee?.stationer?.length" style="height:220px; position:relative;">
             <canvas id="vdStationChart"></canvas>
+          </div>
+          <div *ngIf="!stationOee?.stationer?.length && !loading" class="text-center py-4">
+            <i class="bi bi-bar-chart" style="font-size:2rem; color:#4a5568;"></i>
+            <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen stationsdata tillgänglig</p>
           </div>
         </div>
       </div>
@@ -227,8 +231,12 @@
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="bi bi-graph-up me-1"></i>Senaste 7 dagar
           </h6>
-          <div style="height:220px; position:relative;">
+          <div *ngIf="veckotrend?.trend?.length" style="height:220px; position:relative;">
             <canvas id="vdTrendChart"></canvas>
+          </div>
+          <div *ngIf="!veckotrend?.trend?.length && !loading" class="text-center py-4">
+            <i class="bi bi-graph-up" style="font-size:2rem; color:#4a5568;"></i>
+            <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen trenddata tillgänglig</p>
           </div>
         </div>
       </div>
@@ -261,11 +269,11 @@
           </div>
         </div>
         <div class="col-md-3 text-center">
-          <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">vs forra skiftet</div>
+          <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">vs förra skiftet</div>
           <div style="font-size:1.8rem; font-weight:700;" [style.color]="getJamforelseColor()">
             {{ getJamforelseText() }}
           </div>
-          <small style="color:#a0aec0;">{{ skiftstatus.ibc_forra }} IBC forra</small>
+          <small style="color:#a0aec0;">{{ skiftstatus.ibc_forra }} IBC förra</small>
         </div>
       </div>
     </div>

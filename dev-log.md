@@ -1,3 +1,42 @@
+## Worker B -- Session #337 (2026-03-26) -- Operatorsbonus UI-granskning + VD-dashboard UI-granskning + diakritikfixar + modal/dialog audit + frontend felhantering
+
+### Uppgift 1: Operatorsbonus UI-granskning -- KLAR
+- Granskat alla bonus-komponenter: bonus-dashboard, my-bonus, operatorsbonus, bonus-admin
+- **bonus-dashboard**: Korrekt dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text), responsiv med @media breakpoints, tom-tillstand korrekt for ranking/hall-of-fame/loneprognos/veckotrend, loading spinners, svenska felmeddelanden, progress bars med fargkodning, CSV-export, trendpilar
+- **my-bonus**: Komplett operatorsvy med achievements, streak, peer-ranking, feedback, navarkalender, PDF/CSV-export, bonusprognos i kr
+- **operatorsbonus**: Admin-bonuskonfiguration, simulator, per-operator radar/bar charts, sorterbar tabell med mini-progress bars
+- FIXAT: 15+ diakritikfel i my-bonus (HTML + TS): "Utmarkelser"->"Utmarkelser", "Uppnadd"->"Uppnadd", "upplasta"->"upplasta", "Bonusprognos denna manad"->"manad", "Om du nar"->"nar", "Lagsta bonusniva"->"Lagsta bonusniva", "operatoerer"->"operatorer", "fran ledaren"->"fran", "Bast denna vecka"->"Bast", "Du leder! Fortsatt sa!"->"Fortsatt sa!", motivationstext (7 stycken), statusbadge-text (6 stycken)
+
+### Uppgift 2: VD-dashboard UI-granskning -- KLAR
+- Granskat vd-dashboard.component.ts + .html + vd-dashboard.service.ts
+- Snabb laddning med forkJoin (alla 6 API-anrop parallellt), 30s auto-refresh, loading/error states
+- KPI-kort: Total IBC, OEE%, Aktiva operatorer -- stora tydliga siffror, fargkodning
+- Mal vs Faktiskt: Progress bar med procentvisning
+- Stoppstatus + Top 3 operatorer + OEE per station + Veckotrend + Skiftstatus -- komplett
+- FIXAT: 6 diakritikfel -- "Mal vs Faktiskt"->"Mal", "Maluppfyllnad"->"Maluppfyllnad", "Allt kor!"->"kor!", "vs forra skiftet"->"forra", "IBC forra"->"forra", "Aktiva operatorer"->"operatorer", "producerat idag annu"->"annu"
+- FIXAT: Tomtillstand for OEE-per-station-graf och veckotrend-graf (visade tom canvas om ingen data, nu visar informativ text + ikon)
+
+### Uppgift 3: Modal/dialog-audit -- KLAR
+- Identifierat 6 komponenter med modaler: leveransplanering, maskinunderhall, batch-sparning, kvalitetscertifikat, skiftplanering, shift-plan
+- Alla anvander Bootstrap CSS-modal-pattern (showModal boolean + *ngIf)
+- Alla har @HostListener('document:keydown.escape') for Escape-tangent
+- Alla har Stang-knapp med btn-close-white
+- favoriter.html har escape-tangent i sin template
+- Inga problem hittade
+
+### Uppgift 4: Frontend felhantering -- KLAR
+- Granskat alla 92 services i noreko-frontend/src/app/services/
+- Alla services anvander: catchError + pipe + timeout (8-15s)
+- De flesta anvander aven retry(1) for idempotenta GET-anrop
+- Alla returnerar svenskt felmeddelande eller null vid fel
+- bonus.service.ts: 12 catchError, vd-dashboard.service.ts: 7 catchError, operatorsbonus.service.ts: 7 catchError
+- Loading states finns i alla komponenter med spinners
+- Totalt 601 catchError-forekomster over 92 services
+
+### Uppgift 5: Deploy -- KLAR
+- Frontend byggt: `npx ng build` -- framgangsrikt (enbart CommonJS-varningar)
+- Frontend deployat till dev.mauserdb.com
+
 ## Worker A -- Session #337 (2026-03-26) -- Sakerhets-audit (XSS/SQLi/CSRF) + 135 endpoints OK + bonus-backend granskning
 
 ### Uppgift 1: Sakerhetsaudit -- KLAR (inga sakerhetsproblem hittade)

@@ -490,10 +490,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (!this.myRanking || this.myRanking.no_data) return '';
     const rank = this.myRanking.rank;
     const diff = this.myRanking.diff_from_leader_pct;
-    if (rank === 1) return 'Du leder! Hall trycket!';
-    if (Math.abs(diff) < 5) return 'Extremt tight! Allt avgors idag.';
-    if (rank === 2) return 'Nastan! Du ar tatt bakom ledaren.';
-    return 'Kampa pa! Du kan na toppen.';
+    if (rank === 1) return 'Du leder! Håll trycket!';
+    if (Math.abs(diff) < 5) return 'Extremt tight! Allt avgörs idag.';
+    if (rank === 2) return 'Nästan! Du är tätt bakom ledaren.';
+    return 'Kämpa på! Du kan nå toppen.';
   }
 
   getRankingMotivationClass(): string {
@@ -636,12 +636,12 @@ export class MyBonusPage implements OnInit, OnDestroy {
   private _computeStatusBadge(): { text: string; cssClass: string } {
     const bonus = this.stats?.kpis?.bonus_avg ?? 0;
     const trend = this.cachedTrendDirection;
-    if (bonus >= 95) return { text: 'Rekordniva!', cssClass: 'badge-outstanding' };
-    if (bonus >= 90 && trend === 'up') return { text: 'Uppat mot toppen!', cssClass: 'badge-excellent-up' };
-    if (bonus >= 90) return { text: 'Utmarkt prestanda!', cssClass: 'badge-excellent' };
-    if (bonus >= 80 && trend === 'up') return { text: 'Over genomsnitt!', cssClass: 'badge-good-up' };
-    if (bonus >= 80) return { text: 'Over genomsnitt', cssClass: 'badge-good' };
-    if (bonus >= 70) return { text: 'Pa ratt spår', cssClass: 'badge-base' };
+    if (bonus >= 95) return { text: 'Rekordnivå!', cssClass: 'badge-outstanding' };
+    if (bonus >= 90 && trend === 'up') return { text: 'Uppåt mot toppen!', cssClass: 'badge-excellent-up' };
+    if (bonus >= 90) return { text: 'Utmärkt prestanda!', cssClass: 'badge-excellent' };
+    if (bonus >= 80 && trend === 'up') return { text: 'Över genomsnitt!', cssClass: 'badge-good-up' };
+    if (bonus >= 80) return { text: 'Över genomsnitt', cssClass: 'badge-good' };
+    if (bonus >= 70) return { text: 'På rätt spår', cssClass: 'badge-base' };
     return { text: 'Fortsätt kämpa!', cssClass: 'badge-below' };
   }
 

@@ -69,8 +69,8 @@ export class VdDashboardPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.errorMessage = '';
 
-    // Anvand forkJoin sa att isFetching aterstalls nar ALLA anrop ar klara
-    // (undviker race condition dar isFetching nollstalldes efter forsta svaret)
+    // Använd forkJoin så att isFetching återställs när ALLA anrop är klara
+    // (undviker race condition där isFetching nollställdes efter första svaret)
     forkJoin([
       this.svc.getOversikt().pipe(timeout(15000), catchError(() => of(null))),
       this.svc.getStoppNu().pipe(timeout(15000), catchError(() => of(null))),
