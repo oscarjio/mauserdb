@@ -11,22 +11,21 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #335):
-- [x] **Rebotling PHP audit** — alla 7 controllers matchar prod DB schema. hourly-rhythm 500-bugg FIXAD (LAG MariaDB-kompat)
-- [x] **Operatorsbonus veriferad** — bonusformler korrekt (4 faktorer, rimliga prod DB-resultat)
-- [x] **VD-dashboard KPI OK** — OEE, IBC-aggregering, dagsmal korrekt beraknade
-- [x] **116 endpoints testade** — 1 bugg (hourly-rhythm) fixad, 0 kvar
-- [x] **Rebotling Angular-grafer** — 69 komponenter OK, lifecycle korrekt, statistik-veckojamforelse felhantering fixad
-- [x] **Svenska diakritiker** — 20+ filer: Hamtar→Hämtar, Aterstall→Återställ, Forbattring→Förbättring m.fl.
-- [x] **Formularvalidering** — 7 formular OK, svenska felmeddelanden
-- [x] **Caching-strategi** — 94 services OK, rimliga polling-intervall
+### Klart (session #336):
+- [x] **Admin-panel audit** — 3 controllers OK, bcrypt, prepared statements, rollkontroll
+- [x] **Prestanda-audit** — 4 N+1-fixar, skiftjamforelse 270 queries -> 2 queries (15s -> 0.7s)
+- [x] **Skiftrapporter verifierade** — aggregeringar korrekta mot prod DB
+- [x] **150 endpoints testade** — 0 st 500, 0 timeouts
+- [x] **Tvattlinje/saglinje/klassificering tom-tillstand** — alla 12 komponenter OK, banner tillagd
+- [x] **PDF-export audit** — 3 system OK, svenska tecken, tom data hanteras
+- [x] **Diakritikfix** — 4 admin-sidor fixade (Atkomst->Atkomst etc)
 
-### Nasta (session #336):
-- [ ] **Granska tvattlinje/saglinje/klassificering-sidor** — fungerar UI aven utan data? Vettiga tom-tillstand?
-- [ ] **Granska PDF-export pa djupet** — testa alla rapporter, korrekt data/layout?
-- [ ] **Granska admin-panelen** — alla CRUD-operationer, validering, felhantering
-- [ ] **Prestanda-audit** — stora queries, N+1-problem, onodiga JOINs?
-- [ ] **Testa skiftrapporter** — data korrekt? berakningar stammer?
+### Nasta (session #337):
+- [ ] **Granska operatorsbonus-UI** — visas korrekt data? motiverande for operator?
+- [ ] **Granska VD-dashboard UI** — laddar snabbt? 10-sek overblick? korrekt data?
+- [ ] **Testa alla modaler/dialoger** — oppnas/stangs korrekt? Escape fungerar?
+- [ ] **Granska felhantering i frontend** — alla API-anrop har catchError + svenskt felmeddelande?
+- [ ] **Sakerhet-audit** — XSS, SQL injection, CSRF i PHP controllers
 
 ## Parkerade features (ta inte dessa nu)
 

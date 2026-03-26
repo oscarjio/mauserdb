@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #335)*
+*Senast uppdaterad: 2026-03-26 (session #336)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#335: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#336: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,22 +74,22 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska tvattlinje/saglinje/klassificering tom-tillstand
-- [ ] Granska PDF-export (alla rapporter)
-- [ ] Granska admin-panelen CRUD
-- [ ] Prestanda-audit (stora queries, N+1)
-- [ ] Testa skiftrapporter
+- [ ] Granska operatorsbonus-UI
+- [ ] Granska VD-dashboard UI
+- [ ] Testa modaler/dialoger
+- [ ] Granska felhantering i frontend
+- [ ] Sakerhet-audit (XSS, SQL injection, CSRF)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #336 (klar)
+Worker A: Admin-panel 3 controllers OK (bcrypt, prepared statements, rollkontroll). PRESTANDA: 4 N+1-fixar — skiftjamforelse 270 queries -> 2 queries (15s -> 0.7s). Skiftrapporter verifierade mot prod DB. 150 endpoints testade, 0 st 500, 0 timeouts.
+Worker B: Tvattlinje/saglinje/klassificering 12 komponenter granskade, tom-tillstand-banner tillagd. PDF-export 3 system OK (svenska tecken, tom data). 4 diakritikfixar i admin-sidor. Byggt och deployat.
+
 ### 2026-03-26 — Session #335 (klar)
-Worker A: Alla 7 rebotling PHP controllers matchar prod DB schema. hourly-rhythm 500-bugg FIXAD (LAG med 3 arg stods ej av MariaDB 10.11 — andrad till COALESCE+LAG). Operatorsbonus korrekt (4 faktorer, prod DB-data rimlig). VD-dashboard KPI:er korrekt (OEE, IBC-agg, dagsmal). 116 endpoints testade, 0 st 500 kvar.
-Worker B: 69 rebotling Angular-komponenter OK (lifecycle, chart cleanup). 20+ filer med svenska diakritikfixar (Hamtar→Hamtar, Aterstall→Aterstall etc). statistik-veckojamforelse fick felhantering+tom-data-meddelande. 7 formular validering OK. 94 services caching OK. Byggt och deployat.
+Worker A: Alla 7 rebotling PHP controllers matchar prod DB schema. hourly-rhythm 500-bugg FIXAD (LAG MariaDB-kompat). Operatorsbonus korrekt. VD-dashboard KPI:er korrekt. 116 endpoints testade, 0 st 500.
+Worker B: 69 rebotling Angular-komponenter OK. 20+ svenska diakritikfixar. Veckojamforelse felhantering. 7 formular validering OK. 94 services caching OK.
 
 ### 2026-03-26 — Session #334 (klar)
-Worker A: produktion_procent FIXAD (delta-logik fran #330 var fel). VD-dashboard + veckorapport fick admin-rollkontroll. PHP error handling OK (~90 controllers). 115 endpoints testade 0 st 500.
-Worker B: Hamburger-meny for mobil. Error handling 96 Angular services OK. Rollbaserad nav OK. Internationalisering OK.
-
-### 2026-03-26 — Session #333 (klar)
-Worker A: Autentisering OK, PDF-export SQL matchar schema, 124 endpoints testade 0 st 500.
-Worker B: 10 fixar — 6 Escape-tangent pa modaler, 4 Chart.js maintainAspectRatio. Byggt och deployat.
+Worker A: produktion_procent FIXAD. VD-dashboard rollkontroll. 115 endpoints testade 0 st 500.
+Worker B: Hamburger-meny mobil. Error handling 96 services OK. Rollbaserad nav OK.
