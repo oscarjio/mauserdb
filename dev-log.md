@@ -1,3 +1,40 @@
+## Worker A -- Session #348 (2026-03-26) -- 18 controllers djupgranskade, 3 buggar fixade, 70+ endpoints testade
+
+### UPPGIFT 1: OPERATOR-CONTROLLERS (7 st) -- KLAR
+Djupgranskade rad-for-rad:
+1. **OperatorController.php** -- CRUD + stats/trend/pairs/profile/machine-compatibility. Auth: admin-only (korrekt). SQL mot operators, rebotling_ibc, rebotling_skiftrapport, rebotling_products, operator_certifications -- alla kolumnnamn stammer mot prod_db_schema.sql. 6 endpoints testade OK.
+2. **OperatorDashboardController.php** -- today/weekly/history/summary + personliga (min-produktion, mitt-tempo, min-bonus, mina-stopp, min-veckotrend, operatorer). Auth: publika GET + session for personliga (korrekt). SQL korrekt. 10 endpoints testade OK.
+3. **OperatorRankingController.php** -- sammanfattning/ranking/topplista/poangfordelning/historik/mvp. Auth: session kravs. SQL korrekt. 6 endpoints testade OK.
+4. **OperatorsPrestandaController.php** -- scatter-data/operator-detalj/ranking/teamjamforelse/utveckling. Auth: session kravs. SQL mot rebotling_skiftrapport korrekt. 5 endpoints testade OK.
+5. **OperatorJamforelseController.php** -- operators-list/compare/compare-trend. Auth: session kravs. SQL korrekt, stoppage_log fallback hantering OK. 3 endpoints testade OK.
+6. **OperatorCompareController.php** -- operators-list/compare/radar-data. Auth: admin-only. **BUGG FIXAD: getWeeklyTrend() SQL anvande `YEARWEEK(datum, 1)` i yttre SELECT men `datum` finns inte i subquery-aliaset -- andrade till `vecka` (subquery-alias). Orsakade 500-fel.** 3 endpoints testade OK efter fix.
+7. **OperatorOnboardingController.php** -- overview/operator-curve/team-stats. Auth: session kravs. SQL korrekt. 3 endpoints testade OK.
+
+### UPPGIFT 2: KVALITET-CONTROLLERS (4 st) -- KLAR
+1. **KvalitetstrendanalysController.php** -- overview/per-station-trend/per-operator/alarm/heatmap. Auth: session kravs. **BUGG FIXAD: SQL refererade `station_id`-kolumn pa `rebotling_ibc` som inte existerar i schemat. Andrade till hardkodad `1 AS station_id` och tog bort GROUP BY pa station_id.** 5 endpoints testade OK efter fix.
+2. **KvalitetscertifikatController.php** -- overview/lista/detalj/generera/bedom/kriterier/uppdatera-kriterier/statistik. Auth: session kravs, admin for uppdatera-kriterier. SQL mot kvalitetscertifikat, kvalitetskriterier -- alla korrekt. 5 GET-endpoints testade OK.
+3. **KvalitetstrendController.php** -- overview/operators/operator-detail. Auth: session kravs. SQL mot rebotling_ibc, operators -- korrekt. 3 endpoints testade OK.
+4. **KvalitetsTrendbrottController.php** -- overview/alerts/daily-detail. Auth: session kravs. SQL korrekt. Hantering av stoppage_log/stopporsak_registreringar med fallback OK. 3 endpoints testade OK.
+
+### UPPGIFT 3: ANALYTICS-CONTROLLERS (7 st) -- KLAR
+1. **HeatmapController.php** -- heatmap-data/summary. Auth: session kravs. SQL korrekt. 2 endpoints testade OK.
+2. **ParetoController.php** -- pareto-data/summary. Auth: session kravs. SQL mot stoppage_log/stopporsak_registreringar med existens-kontroll. 2 endpoints testade OK.
+3. **KassationsanalysController.php** -- 14 endpoints (summary/by-cause/daily-stacked/drilldown/overview/by-period/details/trend-rate/sammanfattning/orsaker/orsaker-trend/per-station/per-operator/detaljer). Auth: session kravs. SQL korrekt. Alla testade OK.
+4. **KassationsDrilldownController.php** -- overview/reason-detail/trend. Auth: session kravs. SQL korrekt. 3 endpoints testade OK.
+5. **ForstaTimmeAnalysController.php** -- analysis/trend. Auth: session kravs. SQL korrekt. 2 endpoints testade OK.
+6. **StopptidsanalysController.php** -- overview/per-maskin/trend/fordelning/detaljtabell/maskiner. Auth: session kravs. SQL mot maskin_stopptid/maskin_register korrekt. 6 endpoints testade OK.
+7. **DrifttidsTimelineController.php** -- timeline-data/summary. Auth: session kravs. **BUGG FIXAD: stoppage_log-query anvande kolumner `reason` och `operator_name` som inte finns -- andrade till JOIN mot stoppage_reasons och anvandning av `reason_id`/`user_id`.** 2 endpoints testade OK efter fix.
+
+### SAMMANFATTNING
+- **18 controllers** djupgranskade rad-for-rad
+- **70+ endpoints** testade med curl mot dev.mauserdb.com
+- **3 buggar fixade:**
+  1. OperatorCompareController: SQL-fel i getWeeklyTrend (anvande `datum` istallet for `vecka` i yttre SELECT)
+  2. KvalitetstrendanalysController: SQL refererade icke-existerande `station_id`-kolumn pa rebotling_ibc
+  3. DrifttidsTimelineController: SQL refererade icke-existerande kolumner `reason`/`operator_name` i stoppage_log
+- **0 auth-problem** -- alla controllers kraver session/admin korrekt
+- **0 kolumnfel** (efter fix) -- alla SQL-queries matchar prod_db_schema.sql
+
 ## Worker B -- Session #348 (2026-03-26) -- 20+ sidor granskade, 7 diakritikfixar
 
 ### UPPGIFT 1: OPERATOR-UI SIDOR (10 sidor) -- KLAR

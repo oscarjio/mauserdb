@@ -429,7 +429,7 @@ class OperatorCompareController {
 
         $sql = '
             SELECT
-                YEARWEEK(datum, 1)  AS vecka,
+                vecka,
                 SUM(delta_ok)       AS ibc_vecka
             FROM (
                 SELECT

@@ -112,16 +112,17 @@ class KvalitetstrendanalysController {
     private function fetchStationDailyData(string $fromDate, string $toDate): array {
         $result = [];
         try {
+            // rebotling_ibc has no station_id column — aggregate all as station 1
             $stmt = $this->pdo->prepare("
                 SELECT
                     DATE(datum) AS dag,
-                    COALESCE(station_id, 1) AS station_id,
+                    1 AS station_id,
                     COUNT(*) AS total,
                     SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY DATE(datum), COALESCE(station_id, 1)
-                ORDER BY dag ASC, station_id ASC
+                GROUP BY DATE(datum)
+                ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
@@ -489,17 +490,18 @@ class KvalitetstrendanalysController {
         foreach ($stationer as $s) $stationMap[(int)$s['id']] = $s['namn'];
 
         try {
+            // rebotling_ibc has no station_id column — aggregate all as station 1
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(station_id, 1) AS station_id,
+                    1 AS station_id,
                     YEARWEEK(datum, 1) AS yearweek,
                     MIN(DATE(datum)) AS week_start,
                     COUNT(*) AS total,
                     SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY COALESCE(station_id, 1), YEARWEEK(datum, 1)
-                ORDER BY yearweek ASC, station_id ASC
+                GROUP BY YEARWEEK(datum, 1)
+                ORDER BY yearweek ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);

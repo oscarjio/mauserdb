@@ -148,15 +148,16 @@ class DrifttidsTimelineController {
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        start_time,
-                        end_time,
-                        duration_minutes,
-                        reason,
-                        operator_name
-                    FROM stoppage_log
-                    WHERE start_time >= :date AND start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                      AND duration_minutes > 0
-                    ORDER BY start_time ASC
+                        sl.start_time,
+                        sl.end_time,
+                        sl.duration_minutes,
+                        sr.name AS reason,
+                        sl.user_id AS operator_name
+                    FROM stoppage_log sl
+                    LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
+                    WHERE sl.start_time >= :date AND sl.start_time < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                      AND sl.duration_minutes > 0
+                    ORDER BY sl.start_time ASC
                 ");
                 $stmt->execute([':date' => $date, ':dateb' => $date]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
