@@ -265,6 +265,14 @@ class OperatorOnboardingController {
             // --- Batch-hämta nuvarande IBC/h för ALLA operatörer i EN query ---
             $allCurrentIbcH = $this->getAllCurrentIbcH();
 
+            // --- Batch-hämta veckor-till-snitt för ALLA operatörer i EN query ---
+            $filteredOps = [];
+            foreach ($firstDates as $opNum => $firstDate) {
+                if ($firstDate < $cutoffDate) continue;
+                $filteredOps[$opNum] = $firstDate;
+            }
+            $batchVeckorTillSnitt = $this->getBatchWeeksToTarget($filteredOps, $teamSnitt, 12);
+
             $operatorer = [];
             $nyaCount   = 0;
             $totalVeckorTillSnitt = 0;
@@ -272,10 +280,7 @@ class OperatorOnboardingController {
             $bastaIbcH  = 0.0;
             $bastaNamn  = '';
 
-            foreach ($firstDates as $opNum => $firstDate) {
-                // Filtrera: visa bara operatörer vars firstDate är inom det valda fönstret
-                if ($firstDate < $cutoffDate) continue;
-
+            foreach ($filteredOps as $opNum => $firstDate) {
                 $name = $opNames[$opNum] ?? "Operatör #{$opNum}";
                 $daysSinceFirst = (int)(new \DateTime($firstDate))->diff(new \DateTime('today'))->days;
                 $isNy = $daysSinceFirst < 90;
@@ -289,17 +294,7 @@ class OperatorOnboardingController {
                 if ($pctAvSnitt >= 90) $status = 'gron';
                 elseif ($pctAvSnitt >= 70) $status = 'gul';
 
-                // Beräkna veckor till teamsnitt (vecka där IBC/h >= teamsnitt första gången)
-                $veckorTillSnitt = null;
-                if ($teamSnitt > 0) {
-                    $curve = $this->getWeeklyCurve($opNum, $firstDate, 12);
-                    foreach ($curve as $w) {
-                        if ($w['ibc_h'] >= $teamSnitt) {
-                            $veckorTillSnitt = $w['week'];
-                            break;
-                        }
-                    }
-                }
+                $veckorTillSnitt = $batchVeckorTillSnitt[$opNum] ?? null;
 
                 if ($veckorTillSnitt !== null) {
                     $totalVeckorTillSnitt += $veckorTillSnitt;
@@ -424,5 +419,95 @@ class OperatorOnboardingController {
             error_log('OperatorOnboardingController::getTeamStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta teamstatistik', 500);
         }
+    }
+
+    /**
+     * Batch-hämta "veckor till teamsnitt" för alla operatörer i EN query.
+     * Eliminerar N+1 getWeeklyCurve()-anrop i overview().
+     *
+     * @param array<int, string> $opStartDates  op_number => first_date
+     * @param float $teamSnitt  Team-genomsnitt IBC/h
+     * @param int $maxWeeks  Max veckor att söka
+     * @return array<int, int|null>  op_number => vecka_nr (null om aldrig nått)
+     */
+    private function getBatchWeeksToTarget(array $opStartDates, float $teamSnitt, int $maxWeeks = 12): array {
+        $result = [];
+        if (empty($opStartDates) || $teamSnitt <= 0) return $result;
+
+        try {
+            $opNums = array_keys($opStartDates);
+            if (empty($opNums)) return $result;
+
+            $placeholders = implode(',', array_fill(0, count($opNums), '?'));
+
+            // Hämta rådata: op_id, datum, ibc_ok, drifttid — EN query för alla operatörer
+            // Använder datum >= äldsta startdatum som grov filter
+            $minStart = min($opStartDates);
+
+            $sql = "
+                SELECT op_id, datum, SUM(ibc_ok) AS ibc_ok, SUM(drifttid) AS drifttid
+                FROM (
+                    SELECT op1 AS op_id, datum, ibc_ok, COALESCE(drifttid, 0) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IN ({$placeholders}) AND datum >= ?
+                    UNION ALL
+                    SELECT op2, datum, ibc_ok, COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IN ({$placeholders}) AND datum >= ?
+                    UNION ALL
+                    SELECT op3, datum, ibc_ok, COALESCE(drifttid, 0)
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IN ({$placeholders}) AND datum >= ?
+                ) AS raw_data
+                GROUP BY op_id, datum
+            ";
+
+            $params = array_merge(
+                $opNums, [$minStart],
+                $opNums, [$minStart],
+                $opNums, [$minStart]
+            );
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Gruppera per operatör och beräkna veckonummer relativt startdatum
+            $weeklyData = []; // op_num => [vecka => {ibc_ok, drifttid}]
+            foreach ($rows as $row) {
+                $opId = (int)$row['op_id'];
+                if (!isset($opStartDates[$opId])) continue;
+                $startDate = $opStartDates[$opId];
+                $daysDiff = (int)(new \DateTime($startDate))->diff(new \DateTime($row['datum']))->days;
+                $vecka = (int)floor($daysDiff / 7) + 1;
+                if ($vecka < 1 || $vecka > $maxWeeks) continue;
+
+                if (!isset($weeklyData[$opId][$vecka])) {
+                    $weeklyData[$opId][$vecka] = ['ibc_ok' => 0, 'drifttid' => 0];
+                }
+                $weeklyData[$opId][$vecka]['ibc_ok'] += (int)$row['ibc_ok'];
+                $weeklyData[$opId][$vecka]['drifttid'] += (int)$row['drifttid'];
+            }
+
+            // Hitta första vecka där IBC/h >= teamSnitt
+            foreach ($opStartDates as $opNum => $startDate) {
+                $result[$opNum] = null;
+                if (!isset($weeklyData[$opNum])) continue;
+                ksort($weeklyData[$opNum]);
+                foreach ($weeklyData[$opNum] as $vecka => $data) {
+                    if ($data['drifttid'] > 0) {
+                        $ibcH = $data['ibc_ok'] / ($data['drifttid'] / 60.0);
+                        if ($ibcH >= $teamSnitt) {
+                            $result[$opNum] = $vecka;
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (\PDOException $e) {
+            error_log('OperatorOnboardingController::getBatchWeeksToTarget: ' . $e->getMessage());
+        }
+
+        return $result;
     }
 }

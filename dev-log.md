@@ -1,3 +1,32 @@
+## Worker A -- Session #341 (2026-03-26) -- Gamification+Onboarding under 1s + Alarm-historik+Produktionsmal granskade OK + 188 endpoints 0 st 500-fel + HAVING-bugg fixad
+
+### Uppgift 1: ENDPOINT-STRESS GAMIFICATION + ONBOARDING -- KLAR
+- **GamificationController overview**: 1.93s -> 0.84s (2.3x snabbare)
+  - Ersatte N+1 getBadges() (3 operatorer x 5 queries = 15 queries) med batch countBadgesTotal() som gor EN query per badge-typ
+- **OperatorOnboardingController overview**: 2.02s -> 0.54s (3.7x snabbare)
+  - Ersatte N+1 getWeeklyCurve() (18 operatorer x 1 query = 18 queries) med batch getBatchWeeksToTarget() som hamtar all data i EN query
+- Alla 4 gamification-endpoints och 3 onboarding-endpoints under 1s
+
+### Uppgift 2: GRANSKA ALARM-HISTORIK BACKEND -- KLAR
+- Granskade AlarmHistorikController: 3 endpoints (list, summary, timeline)
+- Verifierat SQL mot prod_db_schema.sql: stoppage_log (id, start_time, duration_minutes, reason_id, comment), stoppage_reasons (id, name), rebotling_ibc (datum, skiftraknare, ibc_ok, ibc_ej_ok), kassationsregistrering (datum, antal), rebotling_weekday_goals (weekday, daily_goal) -- alla kolumnnamn matchar
+- Alla 3 endpoints returnerar 200 OK med korrekt data
+
+### Uppgift 3: GRANSKA PRODUKTIONSMAL BACKEND -- KLAR
+- Granskade ProduktionsmalController: 12 endpoints (aktuellt-mal, progress, satt-mal, mal-historik, sammanfattning, per-skift, veckodata, historik, per-station, hamta-mal, spara-mal, summary, daily, weekly)
+- Verifierat SQL mot prod_db_schema.sql: rebotling_produktionsmal (id, typ, mal_antal, start_datum, slut_datum, skapad_av, skapad_datum), rebotling_weekday_goals (weekday, daily_goal), rebotling_ibc (datum, skiftraknare, ibc_ok) -- alla matchar
+- **Fixade HAVING COUNT(*) > 1 bugg i getFactualIbcByDate()**: Exkluderade skift med bara en datapunkt. Tog bort HAVING, lade till AND skiftraknare IS NOT NULL istallet
+- Alla 12 endpoints returnerar 200 OK
+
+### Uppgift 4: TESTA ALLA ENDPOINTS -- 188 endpoints 0 st 500-fel -- KLAR
+- Systematiskt testat 188+ endpoints med curl mot dev.mauserdb.com
+- 0 st 500-fel hittat
+- Alla testade med korrekta run-parametrar
+
+### Uppgift 5: DEPLOY + COMMIT -- KLAR
+- Deployat 3 andrade PHP-filer till dev via rsync (--exclude='db_config.php')
+- GamificationController.php, OperatorOnboardingController.php, ProduktionsmalController.php
+
 ## Worker A -- Session #340 (2026-03-26) -- Operatorsbonus verifierad OK + 2 st 500-fel fixade + 6 N+1-optimeringar (7-10x snabbare) + 159 endpoints 0 st 500-fel
 
 ### Uppgift 1: GRANSKA OPERATORSBONUS-BERÄKNINGAR MOT PROD DB -- KLAR

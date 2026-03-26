@@ -846,19 +846,9 @@ class GamificationController {
             $totalIbc = array_sum(array_column($leaderboard, 'total_ibc'));
             $avgPoang = $totalOperatorer > 0 ? round($totalPoang / $totalOperatorer, 1) : 0;
 
-            // Badge-statistik — estimera baserat pa top 3 for att undvika N+1
-            // (getBadges gor flera DB-queries per operator, alltfor dyrt for alla)
-            $badgeCount = 0;
-            $badgeSample = array_slice($leaderboard, 0, 3);
-            foreach ($badgeSample as $op) {
-                $badges = $this->getBadges($op['user_id']);
-                $badgeCount += count($badges);
-            }
-            // Extrapolera for resten
-            if (count($badgeSample) > 0 && $totalOperatorer > count($badgeSample)) {
-                $avgBadges = $badgeCount / count($badgeSample);
-                $badgeCount = (int)round($avgBadges * $totalOperatorer);
-            }
+            // Badge-statistik — batch-rakning utan N+1
+            // Rakna antal operatorer som uppfyller varje badge-krav i EN query per badge
+            $badgeCount = $this->countBadgesTotal($from, $to, $leaderboard);
 
             // Streak-statistik
             $streaks = array_column($leaderboard, 'streak');
@@ -882,5 +872,118 @@ class GamificationController {
             error_log('GamificationController::overview: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta oversikt', 500);
         }
+    }
+
+    /**
+     * Batch-rakna totalt antal badges utan N+1.
+     * Gor EN query per badge-typ istallet for 5 queries per operator.
+     */
+    private function countBadgesTotal(string $from, string $to, array $leaderboard): int {
+        if (empty($leaderboard)) return 0;
+
+        $userIds = array_column($leaderboard, 'user_id');
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $total = 0;
+
+        // 1. Centurion: operatorer med >= 100 IBC pa en dag (senaste 90 dagar)
+        try {
+            $sql = "
+                SELECT COUNT(DISTINCT op_id) FROM (
+                    SELECT op_id, dag, SUM(cnt) AS total_cnt FROM (
+                        SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op1, DATE(datum)
+                        UNION ALL
+                        SELECT op2, DATE(datum), COUNT(*) FROM rebotling_ibc
+                        WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op2, DATE(datum)
+                        UNION ALL
+                        SELECT op3, DATE(datum), COUNT(*) FROM rebotling_ibc
+                        WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op3, DATE(datum)
+                    ) AS sub GROUP BY op_id, dag HAVING total_cnt >= 100
+                ) AS centurions
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(array_merge($userIds, $userIds, $userIds));
+            $total += (int)$stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log('GamificationController::countBadgesTotal(centurion): ' . $e->getMessage());
+        }
+
+        // 2. Perfektionist: operatorer med en dag dar total_ej_ok = 0 och total_ok >= 10
+        try {
+            $sql = "
+                SELECT COUNT(DISTINCT op_id) FROM (
+                    SELECT sub2.op_id FROM (
+                        SELECT d AS dag, op_id,
+                               SUM(max_ok) AS total_ok, SUM(max_ej_ok) AS total_ej_ok
+                        FROM (
+                            SELECT DATE(datum) AS d, op1 AS op_id, skiftraknare,
+                                   MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                              AND op1 IN ({$placeholders})
+                            GROUP BY DATE(datum), op1, skiftraknare
+                            UNION ALL
+                            SELECT DATE(datum), op2, skiftraknare,
+                                   MAX(ibc_ok), MAX(ibc_ej_ok)
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                              AND op2 IN ({$placeholders})
+                            GROUP BY DATE(datum), op2, skiftraknare
+                            UNION ALL
+                            SELECT DATE(datum), op3, skiftraknare,
+                                   MAX(ibc_ok), MAX(ibc_ej_ok)
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                              AND op3 IN ({$placeholders})
+                            GROUP BY DATE(datum), op3, skiftraknare
+                        ) AS per_skift
+                        GROUP BY d, op_id
+                        HAVING total_ok >= 10 AND total_ej_ok = 0
+                    ) AS sub2
+                ) AS perfektionister
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(array_merge($userIds, $userIds, $userIds));
+            $total += (int)$stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log('GamificationController::countBadgesTotal(perfektionist): ' . $e->getMessage());
+        }
+
+        // 3. Maratonlopare: operatorer med >= 5 dagars streak (senaste 60 dagar)
+        // Approximation: rakna operatorer med >= 5 distinkta dagar — exakt streak-berakning
+        // ar for dyr i SQL. Anvander leaderboard-streaks som redan beraknats.
+        foreach ($leaderboard as $op) {
+            if ($op['streak'] >= 5) $total++;
+        }
+
+        // 4. Stoppjagare: den med minst stopp (1 operator max)
+        if ($this->tableExists('stopporsak_registreringar')) {
+            try {
+                $mondayThisWeek = $this->getMondayThisWeek();
+                $today = date('Y-m-d');
+                $sql = "
+                    SELECT sr.user_id
+                    FROM stopporsak_registreringar sr
+                    WHERE DATE(sr.start_time) BETWEEN ? AND ?
+                      AND sr.user_id IS NOT NULL AND sr.user_id > 0
+                    GROUP BY sr.user_id
+                    ORDER BY COUNT(*) ASC
+                    LIMIT 1
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([$mondayThisWeek, $today]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if ($row && in_array((int)$row['user_id'], $userIds, true)) {
+                    $total++;
+                }
+            } catch (\PDOException $e) {
+                error_log('GamificationController::countBadgesTotal(stoppjagare): ' . $e->getMessage());
+            }
+        }
+
+        // 5. Teamspelare: top IBC denna vecka (1 operator max)
+        $total++; // Det finns alltid en toppoperator om leaderboard ar icke-tom
+
+        return $total;
     }
 }
