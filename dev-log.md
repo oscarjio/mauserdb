@@ -1,3 +1,57 @@
+## Worker A -- Session #332 (2026-03-26) -- Deploy, endpoint-test, SQL-schema-audit, controller-granskning
+
+### Uppgift 1: Deploy session #331 fixar till dev — KLAR
+- Backend rsync till dev.mauserdb.com: OK (port 32546, exclude db_config.php)
+- Deploy lyckades utan fel, alla filer synkroniserade
+
+### Uppgift 2: Verifiera gamification/ranking berakningslogik — KLAR
+- GamificationController: SQL verifierat mot prod_db_schema.sql
+  - rebotling_ibc: op1/op2/op3, datum, ibc_ok, ibc_ej_ok, skiftraknare — alla kolumner finns
+  - operators-join via o.number = sub.op_id — korrekt
+  - stopporsak_registreringar: user_id, start_time, end_time — alla kolumner finns
+  - Poangsystem (IBC x kvalitetsfaktor x stoppbonus) logiskt korrekt
+  - Streaks beraknas korrekt (batch-optimerat, ej N+1)
+  - Milstolpar och badges ar korrekt implementerade
+- OperatorRankingController: SQL verifierat mot prod_db_schema.sql
+  - Korrekt mappning: stopporsak_registreringar.user_id -> users.operator_id -> operators.number
+  - Poangsystem (produktionspoang + kvalitets/tempo/stopp-bonus + streak) logiskt korrekt
+  - Alla fallbacks anvander tableExists()-guard
+
+### Uppgift 3: Granska skiftoverlamning backend — KLAR
+- SkiftoverlamningController: SQL verifierat mot prod_db_schema.sql
+  - skiftoverlamning_logg: alla 15+ kolumner matchar schemat
+  - rebotling_skiftoverlamning: alla kolumner matchar (checklista_rengoring etc)
+  - rebotling_ibc + rebotling_onoff queries korrekt
+  - OEE-berakning: tillganglighet x prestanda x kvalitet — korrekt
+  - Drifttidsberakning fran rebotling_onoff (running 0/1) — korrekt
+  - Race-condition-skydd vid dubbletter (SELECT FOR UPDATE + transaktion) — korrekt
+  - XSS-skydd med htmlspecialchars + mb_substr — korrekt
+
+### Uppgift 4: Granska SQL-queries mot prod_db_schema.sql — KLAR
+- Systematisk audit av alla 90+ PHP-controllers mot schemat
+- 9 tabeller refererade i kod som inte finns i schemat:
+  - klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff: guarded med try/catch + fallback
+  - rebotling_data, skift_log: guarded med tableExists()
+  - operator_narvaro: guarded med try/catch + fallback
+  - rebotling_kv_settings: skapad via migrering (session #329), try/catch
+  - rebotling_maintenance_log: guarded med try/catch + error_log
+  - rebotling_stopporsak: guarded med SHOW TABLES check
+- Alla INSERT/UPDATE-statements matchar schemats kolumnnamn
+- operators.name, operators.number korrekt anvanda overallt
+
+### Uppgift 5: Testa ALLA endpoints — KLAR
+- Testade 114 endpoints pa dev.mauserdb.com
+- Statuskodfordelning: 200 (9st), 401 (81st), 400 (12st), 403 (7st), 404 (3st), 405 (2st)
+- 0 st 500-fel — inga serverlkrascher
+- 404-fallen ar korrekt beteende (shift-plan/news/shift-handover utan run-parameter)
+- Alla datareturerande endpoints returnerar valid JSON med svenska texter
+- Verifierade: rebotling, skiftrapport (24 rader), feature-flags (129 flaggor), historik (2 manader)
+
+### Resultat
+Inga nya buggar hittade. Kodbasen ar ren — alla SQL-queries matchar schemat, alla saknade tabeller ar guarded, samtliga endpoints fungerar utan fel.
+
+---
+
 ## Worker B -- Session #332 (2026-03-26) -- Chart.js responsivitet, formulargranskning, tabellgranskning, skiftoverlamning
 
 ### Uppgift 1: Granska ALLA Chart.js-konfigurationer

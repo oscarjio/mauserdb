@@ -25,6 +25,6 @@ npm run build --configuration production
 # Kopiera
 echo -e "${YELLOW}📤 Kopierar...${NC}"
 rsync -a --delete "$(dirname "$0")/../noreko-frontend/dist/noreko-frontend/browser/" "$PROD_FRONTEND/"
-rsync -a --exclude='.git' "$DEV_BACKEND/" "$PROD_BACKEND/"
+rsync -a --exclude='.git' --exclude='db_config.php' "$DEV_BACKEND/" "$PROD_BACKEND/"
 
 echo -e "${GREEN}✅ Klart!${NC}"

@@ -70,7 +70,7 @@ echo ""
 # 4. Kopiera PHP backend till prod
 echo -e "${YELLOW}📤 Kopierar backend till produktion...${NC}"
 mkdir -p "$PROD_BACKEND"
-rsync -av --exclude='.git' --exclude='*.log' --exclude='tmp/' \
+rsync -av --exclude='.git' --exclude='*.log' --exclude='tmp/' --exclude='db_config.php' \
     "$DEV_BACKEND/" "$PROD_BACKEND/"
 echo -e "${GREEN}✓ Backend deployad${NC}"
 echo ""
