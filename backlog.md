@@ -11,21 +11,22 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #334):
-- [x] **Error handling** — PHP: alla ~90 controllers OK, global Throwable-catch. Angular: 96 services OK, catchError+retry+timeout
-- [x] **produktion_procent FIX** — var momentan (ej kumulativ), delta-logik fran #330 felaktig, aterställd till ravaarden med cap 100
-- [x] **Rollbaserad navigation** — menyer + guards + backend rollkontroll matchar. VD-dashboard/veckorapport fick admin-check
-- [x] **Lazy loading/routing** — alla guards korrekta
-- [x] **Internationalisering** — inga engelska strangar i UI
-- [x] **Responsivitet FIX** — hamburger-meny for mobil tillagd i menu-komponenten
-- [x] **115 endpoints testade** — 0 fel (27 publika OK, 88 auth-skyddade returnerar 401/403 korrekt)
+### Klart (session #335):
+- [x] **Rebotling PHP audit** — alla 7 controllers matchar prod DB schema. hourly-rhythm 500-bugg FIXAD (LAG MariaDB-kompat)
+- [x] **Operatorsbonus veriferad** — bonusformler korrekt (4 faktorer, rimliga prod DB-resultat)
+- [x] **VD-dashboard KPI OK** — OEE, IBC-aggregering, dagsmal korrekt beraknade
+- [x] **116 endpoints testade** — 1 bugg (hourly-rhythm) fixad, 0 kvar
+- [x] **Rebotling Angular-grafer** — 69 komponenter OK, lifecycle korrekt, statistik-veckojamforelse felhantering fixad
+- [x] **Svenska diakritiker** — 20+ filer: Hamtar→Hämtar, Aterstall→Återställ, Forbattring→Förbättring m.fl.
+- [x] **Formularvalidering** — 7 formular OK, svenska felmeddelanden
+- [x] **Caching-strategi** — 94 services OK, rimliga polling-intervall
 
-### Nasta (session #335):
-- [ ] **Granska rebotling-sidor pa djupet** — data korrekt? grafer meningsfulla? berakningar stammer med prod DB?
-- [ ] **Testa operatorsbonus-berakningar** — jamfor med prod DB-data, verifiera formler
-- [ ] **Granska VD-dashboard KPI:er** — stammer siffror med verkligheten? 10-sek overblick?
-- [ ] **Testa formulärvalidering** — alla inputfält har ratt validering och felmeddelanden
-- [ ] **Granska caching-strategi** — onodiga HTTP-anrop? data som borde cachas?
+### Nasta (session #336):
+- [ ] **Granska tvattlinje/saglinje/klassificering-sidor** — fungerar UI aven utan data? Vettiga tom-tillstand?
+- [ ] **Granska PDF-export pa djupet** — testa alla rapporter, korrekt data/layout?
+- [ ] **Granska admin-panelen** — alla CRUD-operationer, validering, felhantering
+- [ ] **Prestanda-audit** — stora queries, N+1-problem, onodiga JOINs?
+- [ ] **Testa skiftrapporter** — data korrekt? berakningar stammer?
 
 ## Parkerade features (ta inte dessa nu)
 
