@@ -74,18 +74,18 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [~] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
-- [~] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
-- [~] Analytics-controllers (7st) + admin-sidor UI (session #348)
+- [x] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
+- [x] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
+- [x] Analytics-controllers (7st) + admin-sidor UI (session #348)
 - [ ] End-to-end testning rebotling-flodet
 - [ ] Responsiv design-sweep
 - [ ] Resterande ogranskade controllers (13st)
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-26 — Session #348 (pagaende)
-Worker A: Djupgranskning 18 controllers — 7 operator (OperatorController, OperatorDashboard, OperatorRanking, OperatorsPrestanda, OperatorJamforelse, OperatorCompare, OperatorOnboarding) + 4 kvalitet (KvalitetstrendanalysController, KvalitetscertifikatController, KvalitetstrendController, KvalitetsTrendbrottController) + 7 analytics (HeatmapController, ParetoController, KassationsanalysController, KassationsDrilldownController, ForstaTimmeAnalysController, StopptidsanalysController, DrifttidsTimelineController). SQL+auth+curl-test+deploy.
-Worker B: 19+ frontend-sidor — 10 operator-UI + 4 admin-sidor + 5+ kvalitet/analytics/rebotling-UI. Dark theme, svenska, diakritik, lifecycle, data. Build+deploy.
+### 2026-03-26 — Session #348 (klar)
+Worker A: 18 controllers djupgranskade (7 operator + 4 kvalitet + 7 analytics). 3 buggar fixade: OperatorCompareController YEARWEEK-alias fel (500-fel), KvalitetstrendanalysController station_id existerade ej i prod (SQL-fel), DrifttidsTimelineController reason/operator_name existerade ej i stoppage_log (SQL-fel). 70+ endpoints curl-testade. Auth OK. Deploy OK.
+Worker B: 23+ frontend-sidor granskade (10 operator + 4 admin + 3 kvalitet/analytics + 6 rebotling). 7 diakritikfixar i 6 filer. Dark theme/lifecycle/svenska OK. Build+deploy OK.
 
 ### 2026-03-26 — Session #347 (klar)
 Worker A: Alert-system 4 controllers (22 ep). 5 auth-buggar fixade. 2 prestandaopt (-27%, -30%). RebotlingAdmin 27 ep OK. 100+ ep sweep.
