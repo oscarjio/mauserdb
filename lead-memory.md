@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #347)*
+*Senast uppdaterad: 2026-03-26 (session #348)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#347: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#348: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,22 +74,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska Energi/Kvalitet/Forbrukning-controllers + UI
-- [ ] Granska OperatorController djupare + operator-UI
-- [ ] Granska alla admin-sidor (endpoints + UI UX)
+- [~] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
+- [~] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
+- [~] Analytics-controllers (7st) + admin-sidor UI (session #348)
 - [ ] End-to-end testning rebotling-flodet
 - [ ] Responsiv design-sweep
+- [ ] Resterande ogranskade controllers (13st)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #348 (pagaende)
+Worker A: Djupgranskning 18 controllers — 7 operator (OperatorController, OperatorDashboard, OperatorRanking, OperatorsPrestanda, OperatorJamforelse, OperatorCompare, OperatorOnboarding) + 4 kvalitet (KvalitetstrendanalysController, KvalitetscertifikatController, KvalitetstrendController, KvalitetsTrendbrottController) + 7 analytics (HeatmapController, ParetoController, KassationsanalysController, KassationsDrilldownController, ForstaTimmeAnalysController, StopptidsanalysController, DrifttidsTimelineController). SQL+auth+curl-test+deploy.
+Worker B: 19+ frontend-sidor — 10 operator-UI + 4 admin-sidor + 5+ kvalitet/analytics/rebotling-UI. Dark theme, svenska, diakritik, lifecycle, data. Build+deploy.
+
 ### 2026-03-26 — Session #347 (klar)
-Worker A: Alert-system 4 controllers granskade (22 ep). 5 auth-buggar fixade: KassationskvotAlarmController 6 GET-ep utan auth, RebotlingController service-status utan admin-auth, ProduktionskostnadController/ProduktionsSlaController/BatchSparningController alla ep utan auth. 2 prestandaopt: AvvikelselarmController -27%, AlarmHistorikController -30%. RebotlingAdminController 27 ep OK. 100+ ep sweep-testade.
-Worker B: Alert/alarm UI 4 komp OK. Rebotling-admin UI OK. 10 statistik/graf-sidor granskade — produktion_procent bekraftad korrekt (ej kumulativ). 17 diakritikfixar i 9 filer. Build+deploy OK.
+Worker A: Alert-system 4 controllers (22 ep). 5 auth-buggar fixade. 2 prestandaopt (-27%, -30%). RebotlingAdmin 27 ep OK. 100+ ep sweep.
+Worker B: Alert/alarm UI 4 komp OK. Rebotling-admin OK. 10 statistik-sidor OK. 17 diakritikfixar.
 
 ### 2026-03-26 — Session #346 (klar)
-Worker A: Skiftrapport veckosammanstallning optimerad 63→3 queries (4.83s→0.51s, 9.5x snabbare). Gamification 4 ep OK. NotifikationController finns ej (alerts hanteras via AlertsController etc). Maskin-admin 4 controllers 22 ep — 1 auth-bugg fixad (MaskinunderhallController GET utan auth). 27 ep testade, 0 SQL-buggar.
-Worker B: Gamification/notifikation/maskin-admin/energi UI granskade — alla OK. 8 diakritikfixar. Build+deploy OK.
-
-### 2026-03-26 — Session #345 (klar)
-Worker A: 10 rapport/bonus/skift/stopp-controllers granskade (47 ep). 6 buggar fixade: WeeklyReportController runtime_plc sek/min-fel (OEE 60x for lagt), getOperatorOfWeek dividerade /3600 istf /60 (IBC/h 60x for hogt), VDVeckorapportController+StopporsakTrendController filtrade pa created_at istf start_time, BonusAdminController blockerade developer-roll, SkiftrapportController GET-endpoints saknade auth.
-Worker B: 24 komp granskade (5 rapport + 5 bonus + 7 skiftrapport + 7 stopporsak). Alla OK. 12 diakritikfixar i 7 filer. Build+deploy OK.
+Worker A: Skiftrapport 9.5x snabbare (63→3 queries). Maskin-admin 1 auth-bugg fixad. 27 ep testade.
+Worker B: Gamification/notifikation/maskin-admin/energi UI OK. 8 diakritikfixar.
