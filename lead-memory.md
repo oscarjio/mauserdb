@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #333)*
+*Senast uppdaterad: 2026-03-26 (session #334)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#333: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#334: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,16 +74,17 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [x] Granska Angular pipes/direktiv — session #333 (inga custom pipes)
-- [x] Testa autentisering end-to-end — session #333 (allt OK)
-- [x] Granska PDF-export — session #333 (SQL matchar schema)
-- [x] Stresstesta polling — session #333 (76 filer OK)
-- [x] Granska modaler/dialoger — session #333 (10 fixar)
-- [ ] Granska error handling i services
-- [ ] Testa rollbaserad navigation
-- [ ] Granska lazy loading och routing
+- [ ] Granska rebotling-sidor pa djupet (data, grafer, berakningar)
+- [ ] Testa operatorsbonus-berakningar mot prod DB
+- [ ] Granska VD-dashboard KPI:er
+- [ ] Testa formularvalidering
+- [ ] Granska caching-strategi
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #334 (klar)
+Worker A: produktion_procent FIXAD (delta-logik fran #330 var fel — PLC ger momentan procent, inte kumulativ; aterställd till ravaarden med cap 100, 74.7% snitt verifierat mot prod DB). VD-dashboard + veckorapport fick admin-rollkontroll. PHP error handling OK (~90 controllers). 115 endpoints testade 0 st 500. Deployat.
+Worker B: Hamburger-meny for mobil tillagd (menu.html/ts/css). Error handling i 96 Angular services OK. Rollbaserad nav OK. Internationalisering OK (inga engelska strangar). Deploy SSH nekad — dist redo. Lead: Oanvänd alertsService borttagen fran menu.ts.
 
 ### 2026-03-26 — Session #333 (klar)
 Worker A: Autentisering OK (bcrypt, rate limiting, CSRF, session-timeout), PDF-export SQL matchar schema, 124 endpoints testade 0 st 500. Inga buggar.
@@ -92,7 +93,3 @@ Worker B: 10 fixar — 6 Escape-tangent pa modaler, 4 Chart.js maintainAspectRat
 ### 2026-03-26 — Session #332 (klar)
 Worker A: Deploy #331 fixar till dev (lyckades), gamification/ranking SQL OK, skiftoverlamning backend OK, 114 endpoints testade 0 st 500, deploy-scripts uppdaterade med --exclude db_config.php. Inga nya buggar.
 Worker B: 6 Chart.js-fixar (maintainAspectRatio: false), alla formular/tabeller verifierade OK, skiftoverlamning frontend OK, diakritikfixar i operatorsbonus. Byggt och deployat.
-
-### 2026-03-26 — Session #331 (klar)
-Worker A: 3 buggar — AndonController dagmal fallback 100->1000 (4 stallen), getBoardStatus shift_plan felaktiga kolumner (shift_date->datum), SkiftrapportExport multi-day SQL crash (datum undefined). Operatorsbonus + PDF verifierade OK.
-Worker B: Adaptiv granularitet i statistik-dashboard (veckoaggregering for 90d), 7d/14d perioder i trendanalys, polling optimerat pa 8 sidor (60s->120-300s), 2 engelska termer fixade. Services error handling OK (508 HTTP-anrop alla har catchError).

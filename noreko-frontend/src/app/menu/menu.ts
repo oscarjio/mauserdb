@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, AuthUser } from '../services/auth.service';
-import { AlertsService } from '../services/alerts.service';
 import { FeatureFlagService } from '../services/feature-flag.service';
 import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -69,7 +68,6 @@ export class Menu implements OnInit, OnDestroy {
     private router: Router,
     public auth: AuthService,
     private http: HttpClient,
-    private alertsService: AlertsService,
     public ff: FeatureFlagService
   ) {
     const saved = localStorage.getItem('selectedMenu');

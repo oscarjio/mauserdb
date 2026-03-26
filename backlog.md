@@ -11,19 +11,21 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #333):
-- [x] **Granska Angular pipes/direktiv** — inga custom pipes, enbart inbyggda Angular pipes
-- [x] **Testa autentisering end-to-end** — bcrypt OK, rate limiting, CSRF, session-timeout, 401 korrekt
-- [x] **Granska PDF-export** — SQL matchar schema, OEE-berakningar korrekta
-- [x] **Stresstesta polling** — 76 filer OK, alla har clearInterval+ngOnDestroy, inga lackor
-- [x] **Granska modaler/dialoger** — dark theme OK, 6 Escape-tangent-fixar, 4 Chart.js-fixar
+### Klart (session #334):
+- [x] **Error handling** — PHP: alla ~90 controllers OK, global Throwable-catch. Angular: 96 services OK, catchError+retry+timeout
+- [x] **produktion_procent FIX** — var momentan (ej kumulativ), delta-logik fran #330 felaktig, aterställd till ravaarden med cap 100
+- [x] **Rollbaserad navigation** — menyer + guards + backend rollkontroll matchar. VD-dashboard/veckorapport fick admin-check
+- [x] **Lazy loading/routing** — alla guards korrekta
+- [x] **Internationalisering** — inga engelska strangar i UI
+- [x] **Responsivitet FIX** — hamburger-meny for mobil tillagd i menu-komponenten
+- [x] **115 endpoints testade** — 0 fel (27 publika OK, 88 auth-skyddade returnerar 401/403 korrekt)
 
-### Nasta (session #334):
-- [ ] **Granska error handling i services** — catchError, retry-logik, felmeddelanden till anvandare
-- [ ] **Testa rollbaserad navigation** — admin/operator/vd ser ratt menyer och sidor
-- [ ] **Granska lazy loading och routing** — korrekta guards, preloading-strategi
-- [ ] **Verifiera responsivitet pa mobil** — tabeller, grafer, navigation pa smal skarm
-- [ ] **Granska internationalisering** — alla hardkodade strängar pa svenska, inga kvarvarande engelska
+### Nasta (session #335):
+- [ ] **Granska rebotling-sidor pa djupet** — data korrekt? grafer meningsfulla? berakningar stammer med prod DB?
+- [ ] **Testa operatorsbonus-berakningar** — jamfor med prod DB-data, verifiera formler
+- [ ] **Granska VD-dashboard KPI:er** — stammer siffror med verkligheten? 10-sek overblick?
+- [ ] **Testa formulärvalidering** — alla inputfält har ratt validering och felmeddelanden
+- [ ] **Granska caching-strategi** — onodiga HTTP-anrop? data som borde cachas?
 
 ## Parkerade features (ta inte dessa nu)
 
