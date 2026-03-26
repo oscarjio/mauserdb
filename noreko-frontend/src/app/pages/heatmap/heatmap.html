@@ -6,7 +6,7 @@
       <i class="fas fa-th me-2" style="color:#68d391"></i>Produktions-heatmap
     </h1>
     <p class="page-subtitle">
-      Matrisvy over produktion per timme och dag — identifiera nar produktionen ar hog eller lag.
+      Matrisvy över produktion per timme och dag — identifiera när produktionen är hög eller låg.
     </p>
   </div>
 
@@ -30,7 +30,7 @@
   <!-- KPI-kort -->
   <div class="kpi-row">
 
-    <!-- Laddnings-spinner for KPI -->
+    <!-- Laddnings-spinner för KPI -->
     <ng-container *ngIf="loadingSummary">
       <div class="kpi-card kpi-loading">
         <div class="spinner-border spinner-border-sm text-success" role="status"></div>
@@ -52,7 +52,7 @@
           {{ summary.best_hour !== null ? formatHour(summary.best_hour) : '-' }}
         </div>
         <div class="kpi-label">
-          Basta timme (snitt {{ summary.best_hour_avg }} IBC)
+          Bästa timme (snitt {{ summary.best_hour_avg }} IBC)
         </div>
       </div>
 
@@ -62,7 +62,7 @@
           {{ summary.worst_hour !== null ? formatHour(summary.worst_hour) : '-' }}
         </div>
         <div class="kpi-label">
-          Samsta timme (snitt {{ summary.worst_hour_avg }} IBC)
+          Sämsta timme (snitt {{ summary.worst_hour_avg }} IBC)
         </div>
       </div>
 
@@ -72,7 +72,7 @@
           {{ summary.best_weekday_name ?? '-' }}
         </div>
         <div class="kpi-label">
-          Basta veckodag (snitt {{ summary.best_weekday_avg }} IBC/dag)
+          Bästa veckodag (snitt {{ summary.best_weekday_avg }} IBC/dag)
         </div>
       </div>
     </ng-container>
@@ -92,7 +92,7 @@
       </h2>
       <!-- Legend -->
       <div class="legend" *ngIf="!loadingHeatmap && hasData">
-        <span class="legend-label">Lag</span>
+        <span class="legend-label">Låg</span>
         <div class="legend-steps">
           <div
             *ngFor="let step of cachedLegendSteps; trackBy: trackByIndex"
@@ -101,7 +101,7 @@
             [title]="step.label">
           </div>
         </div>
-        <span class="legend-label">Hog</span>
+        <span class="legend-label">Hög</span>
       </div>
     </div>
 

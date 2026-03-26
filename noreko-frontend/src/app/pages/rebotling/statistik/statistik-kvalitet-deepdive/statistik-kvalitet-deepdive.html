@@ -95,7 +95,7 @@
                     <i class="fas fa-chart-pie me-2" style="color:#f6ad55;"></i>Kasserade IBC per avvisningsorsak
                   </h6>
                   <button class="btn btn-sm btn-outline-secondary" (click)="exportChartDonut()" title="Exportera graf som PNG">
-                    <i class="bi bi-download me-1"></i>{{ exportFeedbackDonut ? 'Exporterad!' : 'PNG' }}
+                    <i class="fas fa-download me-1"></i>{{ exportFeedbackDonut ? 'Exporterad!' : 'PNG' }}
                   </button>
                 </div>
                 <div style="height:300px;position:relative;">
@@ -111,7 +111,7 @@
                     <i class="fas fa-chart-bar me-2" style="color:#ed8936;"></i>Topp avvisningsorsaker (Pareto)
                   </h6>
                   <button class="btn btn-sm btn-outline-secondary" (click)="exportChartBar()" title="Exportera graf som PNG">
-                    <i class="bi bi-download me-1"></i>{{ exportFeedbackBar ? 'Exporterad!' : 'PNG' }}
+                    <i class="fas fa-download me-1"></i>{{ exportFeedbackBar ? 'Exporterad!' : 'PNG' }}
                   </button>
                 </div>
                 <div style="height:300px;position:relative;">
@@ -129,7 +129,7 @@
                   <i class="fas fa-chart-line me-2" style="color:#63b3ed;"></i>Trend per orsak (topp 5)
                 </h6>
                 <button class="btn btn-sm btn-outline-secondary" (click)="exportChartTrend()" title="Exportera graf som PNG">
-                  <i class="bi bi-download me-1"></i>{{ exportFeedbackTrend ? 'Exporterad!' : 'PNG' }}
+                  <i class="fas fa-download me-1"></i>{{ exportFeedbackTrend ? 'Exporterad!' : 'PNG' }}
                 </button>
               </div>
               <div style="height:300px;position:relative;">

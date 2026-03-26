@@ -4,13 +4,13 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h1 class="mb-0" style="font-size:1.8rem; font-weight:700; color:#fff;">
-        <i class="bi bi-speedometer2 me-2" style="color:#4fd1c5"></i>VD-översikt
+        <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>VD-översikt
       </h1>
       <small style="color:#a0aec0;">Realtidsvy av produktionen</small>
     </div>
     <div class="text-end">
       <small style="color:#a0aec0;">
-        <i class="bi bi-arrow-repeat me-1" [class.spin]="loading"></i>
+        <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>
         Uppdateras var 30:e sekund
       </small>
       <br>
@@ -28,10 +28,10 @@
 
   <!-- Felmeddelande -->
   <div *ngIf="errorMessage && !oversikt" class="text-center py-5" aria-live="assertive">
-    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem; color:#fc8181;"></i>
+    <i class="fas fa-exclamation-triangle" style="font-size:2.5rem; color:#fc8181;"></i>
     <p class="mt-3" style="color:#fc8181;">{{ errorMessage }}</p>
     <button class="btn btn-sm" style="background:#2d3748; color:#e2e8f0; border:1px solid #4a5568;" (click)="loadAll()" aria-label="Försök ladda data igen">
-      <i class="bi bi-arrow-repeat me-1"></i>Försök igen
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
     </button>
   </div>
 
@@ -89,7 +89,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">
-          <i class="bi bi-bullseye me-1"></i>Mål vs Faktiskt
+          <i class="fas fa-bullseye me-1"></i>Mål vs Faktiskt
         </span>
         <span style="color:#e2e8f0; font-weight:600;">
           {{ oversikt.total_ibc }} / {{ oversikt.dagsmal }} IBC
@@ -121,13 +121,13 @@
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
-            <i class="bi bi-exclamation-triangle me-1"></i>Stoppstatus
+            <i class="fas fa-exclamation-triangle me-1"></i>Stoppstatus
           </h6>
 
           <!-- Allt kör -->
           <div *ngIf="stoppNu?.allt_kor" class="text-center py-4">
             <div style="font-size:3rem; color:#48bb78;">
-              <i class="bi bi-check-circle-fill"></i>
+              <i class="fas fa-check-circle"></i>
             </div>
             <div style="color:#48bb78; font-size:1.2rem; font-weight:600;">Allt kör!</div>
             <small style="color:#a0aec0;">Inga aktiva stopp just nu</small>
@@ -139,7 +139,7 @@
                  *ngFor="let stopp of stoppNu.aktiva_stopp ?? []; trackBy: trackById">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <i class="bi bi-stop-circle-fill me-1" style="color:#fc8181"></i>
+                  <i class="fas fa-stop-circle me-1" style="color:#fc8181"></i>
                   <strong style="color:#fc8181;">{{ stopp.station_namn }}</strong>
                 </div>
                 <span class="badge" style="background:#fc8181; color:#1a202c; font-weight:700;">
@@ -168,7 +168,7 @@
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
-            <i class="bi bi-trophy me-1"></i>Top 3 operatörer idag
+            <i class="fas fa-trophy me-1"></i>Top 3 operatörer idag
           </h6>
 
           <div *ngIf="topOperatorer?.top_operatorer?.length; else noOperators">
@@ -211,13 +211,13 @@
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
-            <i class="bi bi-bar-chart-fill me-1"></i>OEE per station
+            <i class="fas fa-chart-bar me-1"></i>OEE per station
           </h6>
           <div *ngIf="stationOee?.stationer?.length" style="height:220px; position:relative;">
             <canvas id="vdStationChart"></canvas>
           </div>
           <div *ngIf="!stationOee?.stationer?.length && !loading" class="text-center py-4">
-            <i class="bi bi-bar-chart" style="font-size:2rem; color:#4a5568;"></i>
+            <i class="fas fa-chart-bar" style="font-size:2rem; color:#4a5568;"></i>
             <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen stationsdata tillgänglig</p>
           </div>
         </div>
@@ -229,13 +229,13 @@
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
-            <i class="bi bi-graph-up me-1"></i>Senaste 7 dagar
+            <i class="fas fa-chart-line me-1"></i>Senaste 7 dagar
           </h6>
           <div *ngIf="veckotrend?.trend?.length" style="height:220px; position:relative;">
             <canvas id="vdTrendChart"></canvas>
           </div>
           <div *ngIf="!veckotrend?.trend?.length && !loading" class="text-center py-4">
-            <i class="bi bi-graph-up" style="font-size:2rem; color:#4a5568;"></i>
+            <i class="fas fa-chart-line" style="font-size:2rem; color:#4a5568;"></i>
             <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen trenddata tillgänglig</p>
           </div>
         </div>
@@ -322,12 +322,5 @@
   }
   .vd-dashboard .card:hover {
     transform: translateY(-2px);
-  }
-  .spin {
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 </style>

@@ -5,13 +5,13 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title mb-0">
-          <i class="bi bi-file-earmark-bar-graph me-2" style="color:#4fd1c5"></i>
+          <i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>
           Historisk sammanfattning
         </h2>
         <p class="text-muted small mb-0 mt-1">Auto-genererad rapport för vald period</p>
       </div>
       <button class="btn btn-outline-light btn-sm no-print" (click)="printReport()" aria-label="Skriv ut rapport">
-        <i class="bi bi-printer me-1"></i> Skriv ut rapport
+        <i class="fas fa-print me-1"></i> Skriv ut rapport
       </button>
     </div>
 
@@ -57,7 +57,7 @@
       <!-- Sammanfattningstext -->
       <div class="rapport-text-box mb-4">
         <div class="d-flex align-items-center mb-2">
-          <i class="bi bi-journal-text me-2" style="color:#4fd1c5; font-size:1.3rem"></i>
+          <i class="fas fa-book me-2" style="color:#4fd1c5; font-size:1.3rem"></i>
           <h5 class="mb-0">Sammanfattning</h5>
         </div>
         <p class="rapport-text mb-0">{{ rapport.rapport_text }}</p>
@@ -65,7 +65,7 @@
 
       <!-- KPI-jamforelse -->
       <h5 class="section-title mb-3">
-        <i class="bi bi-bar-chart me-2"></i>KPI-jämförelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
+        <i class="fas fa-chart-bar me-2"></i>KPI-jämförelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
       </h5>
       <div class="row g-3 mb-4">
         <!-- OEE -->
@@ -133,7 +133,7 @@
       <!-- Trenddiagram -->
       <div class="card dark-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>OEE & IBC per dag</h5>
+          <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>OEE & IBC per dag</h5>
         </div>
         <div class="card-body">
           <div *ngIf="loadingTrend" class="text-center py-4">
@@ -157,7 +157,7 @@
         <div class="col-lg-6">
           <div class="card dark-card h-100">
             <div class="card-header">
-              <h5 class="mb-0"><i class="bi bi-people me-2"></i>Top 5 operatörer</h5>
+              <h5 class="mb-0"><i class="fas fa-users me-2"></i>Top 5 operatörer</h5>
             </div>
             <div class="card-body p-0">
               <div *ngIf="loadingOperatorer" class="text-center py-4">
@@ -208,7 +208,7 @@
         <div class="col-lg-6">
           <div class="card dark-card h-100">
             <div class="card-header">
-              <h5 class="mb-0"><i class="bi bi-building me-2"></i>Stationsöversikt</h5>
+              <h5 class="mb-0"><i class="fas fa-building me-2"></i>Stationsöversikt</h5>
             </div>
             <div class="card-body p-0">
               <div *ngIf="loadingStationer" class="text-center py-4">
@@ -259,7 +259,7 @@
       <!-- Stopporsaker Pareto -->
       <div class="card dark-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Stopporsaker (Pareto)</h5>
+          <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker (Pareto)</h5>
           <span class="badge bg-secondary" *ngIf="stopporsakerTotalH > 0">Totalt: {{ stopporsakerTotalH }} h</span>
         </div>
         <div class="card-body">

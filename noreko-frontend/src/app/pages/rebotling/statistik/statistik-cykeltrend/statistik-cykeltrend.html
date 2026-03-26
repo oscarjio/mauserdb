@@ -12,7 +12,7 @@
             <button class="gran-btn" [class.active]="cycleTrendGranularity==='shift'" (click)="setCycleTrendGranularity('shift')">Per skift</button>
           </div>
           <button class="btn btn-sm btn-outline-secondary" (click)="exportChart()" [disabled]="!cycleTrendLoaded || cycleTrendData.length === 0" title="Exportera graf som PNG">
-            <i class="bi bi-download me-1"></i>{{ exportFeedback ? 'Exporterad!' : 'PNG' }}
+            <i class="fas fa-download me-1"></i>{{ exportFeedback ? 'Exporterad!' : 'PNG' }}
           </button>
         </div>
       </div>

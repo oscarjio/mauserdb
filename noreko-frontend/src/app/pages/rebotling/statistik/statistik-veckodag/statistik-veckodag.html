@@ -6,9 +6,9 @@
 <select aria-label="Välj weekday dagar" class="form-select form-select-sm" style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="weekdayDagar" (change)="loadWeekdayStats()">
 <option [value]="30">Senaste 30 dagar</option><option [value]="90">Senaste 90 dagar</option><option [value]="180">Senaste 180 dagar</option><option [value]="365">Senaste 365 dagar</option></select></div></div>
 <div class="card-body">
-<p class="text-muted small mb-3">Visar genomsnittlig IBC-produktion per veckodag baserat pa de senaste {{ weekdayDagar }} dagarna.
-<span style="color:#48bb78;"><i class="fas fa-square me-1"></i>Basta dag</span>
-<span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Samsta dag</span></p>
+<p class="text-muted small mb-3">Visar genomsnittlig IBC-produktion per veckodag baserat på de senaste {{ weekdayDagar }} dagarna.
+<span style="color:#48bb78;"><i class="fas fa-square me-1"></i>Bästa dag</span>
+<span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Sämsta dag</span></p>
 <div *ngIf="weekdayLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="text-muted small mt-2">Hämtar veckodag-statistik...</div></div>
 <div *ngIf="!weekdayLoading && weekdayData.length > 0" style="height:260px; position:relative;"><canvas id="weekdayChart"></canvas></div>
 <div *ngIf="!weekdayLoading && weekdayData.length === 0" class="text-center py-4"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen data tillgänglig för vald period.</p></div>

@@ -61,6 +61,71 @@ Auth kontrollerad (session/admin/public). Alla endpoints testade med curl mot de
 
 ---
 
+## Worker B -- Session #349 (2026-03-26) -- 30+ frontend-sidor djupgranskade, 18 Bootstrap Icons-buggar fixade, 2 diakritikfixar, 1 emoji-fix
+
+### UPPGIFT: DJUPGRANSKA FRONTEND-SIDOR + REBOTLING E2E UI
+
+Systematiskt granskat alla tilldelade sidor: templates (.html), components (.ts), services.
+Kontrollerat dark theme, svenska, diakritik, lifecycle, data-flode, grafer, responsivitet, Bootstrap 5.
+
+#### GRUPP 1: REBOTLING UI (PRIO 1) -- KLAR
+- **rebotling-statistik** -- Huvuddashboard med 5 flikar (Oversikt/Produktion/Kvalitet/Operatorer/Analys). Defer-loading, breadcrumb-navigation, heatmap, kalender. Allt korrekt. Dark theme OK.
+- **rebotling-sammanfattning** -- KPI-kort, produktionsgraf, maskinstatus-tabell, snabblankar. Lifecycle korrekt (destroy$, clearInterval, clearTimeout, chart.destroy). Diakritikfix fran #348 inkluderad.
+- **rebotling-prognos** -- **FIX: Emoji 📦 ersatt med Font Awesome-ikon. FIX: bi bi-inbox ersatt med fas fa-inbox (Bootstrap Icons ej installerat).** Lifecycle OK.
+- **rebotling-skiftrapport** -- Komplett skiftrapport med email, kommentarer, trendgraf, export. Alla timers rensas i ngOnDestroy. OK.
+- **rebotling-admin** -- PLC-varning, produkthantering, systemstatus, underhall, alerttrosklar, notifikationer. Lifecycle korrekt. OK.
+- **shared-skiftrapport** -- Aterbar komponent for alla linjer. Cachade KPI-varden (ej per CD-cykel). OK.
+
+#### GRUPP 2: VD/EXECUTIVE -- KLAR
+- **vd-dashboard** -- **BUGGFIX: ALLA 15+ Bootstrap Icons (bi bi-*) ersatta med Font Awesome-ekvivalenter. Bootstrap Icons ar INTE installerat i projektet, sa alla ikoner var osynliga.** Aven TypeScript-helpers (getSkiftIcon, getPodiumIcon) fixade. Dark theme korrekt.
+- **executive-dashboard** -- Komplett VD-vy med linjestatus, KPI, alerter, veckorapport, bemanningsvarning. Font Awesome anvands korrekt. OK.
+- **daglig-sammanfattning** -- Datumvaljare, auto-refresh med countdown, statusmeddelande. Lifecycle OK.
+- **morgonrapport** -- Garddagens produktion. Varningar, executive summary. OK.
+- **benchmarking** -- **FIX: 3 st bi bi-inbox ersatta med fas fa-inbox.** Rekordjamforelse, hall of fame. OK.
+
+#### GRUPP 3: STATISTIK/ANALYS -- KLAR
+- **historisk-sammanfattning** -- **FIX: 8 st Bootstrap Icons ersatta med Font Awesome.** Periodrapport med trendgraf, top-operatorer, stationsoversikt, pareto. OK.
+- **statistik-overblick** -- 4 KPI-sektioner med auto-refresh. Lifecycle korrekt. OK.
+- **skiftjamforelse** -- Radar-chart, trendgraf. Timers och charts rensas. OK.
+- **live-ranking** -- **FIX: "Nara rekord!" -> "Nara rekord!" diakritikfix. FIX: bi bi-inbox -> fas fa-inbox.** TV-vy med ranking, rekordindikator. OK.
+- **ranking-historik** -- Veckovis operatorsplacering. Chart cleanup korrekt. OK.
+
+#### GRUPP 4: OPERATOR/PERSONAL -- KLAR
+- **my-bonus** -- **FIX: 2 st bi bi-inbox -> fas fa-inbox.** Bonushistorik, CSV/PDF-export, streak. OK.
+- **favoriter** -- Anpassningsbara favoritlankar. Lifecycle OK.
+- **produktionsprognos** -- Skiftprognos med auto-refresh. OK.
+- **shift-plan** -- Bemanningsplanering med veckovy. OK.
+- **shift-handover** -- Skiftoverlamning med prioritetsknappar. form-row ar egendefinierad CSS-klass (ej Bootstrap 4). OK.
+- **underhallslogg** -- Stationsbaserat underhall med KPI, trendgraf. Lifecycle korrekt. OK.
+
+#### REBOTLING STATISTIK SUB-WIDGETS -- KLAR
+- **statistik-cykeltid-operator** -- FIX: bi bi-download -> fas fa-download
+- **statistik-cykeltrend** -- FIX: bi bi-download -> fas fa-download
+- **statistik-kvalitet-deepdive** -- FIX: 3 st bi bi-download -> fas fa-download
+- **statistik-pareto-stopp** -- FIX: bi bi-download -> fas fa-download
+- **statistik-skiftrapport-operator** -- FIX: bi bi-download -> fas fa-download
+
+#### DIAKRITIKFIXAR (fran session #348, inkluderade):
+- heatmap.html: "over" -> "over", "nar" -> "nar", "ar" -> "ar", "hog" -> "hog", "lag" -> "lag", "for" -> "for", "Basta" -> "Basta", "Samsta" -> "Samsta"
+- oee-trendanalys.component.html: diakritikfix
+- kvalitets-trendbrott.html: diakritikfix
+- rebotling-sammanfattning.component.html: diakritikfix
+- statistik-produktionsrytm.html: diakritikfix
+- statistik-veckodag.html: diakritikfix
+
+#### SPECIELL UTREDNING: produktion_procent
+- **Resultat**: `produktion_procent` ar INTE kumulativt. Det ar en momentan takt-procent fran PLC-backend: (faktisk_per_timme / mal_per_timme * 100). Backend (RebotlingController rad 886-900) filtrerar bort orimliga varden (>200%), cappar vid 100%, och beraknar snitt. Frontend visar det korrekt som "Prod%" i KPI-kort och tabell.
+
+### SAMMANFATTNING SESSION #349 (Worker B):
+- **30+ sidor** djupgranskade
+- **18 Bootstrap Icons-buggar fixade** (bi bi-* -> fas fa-*) -- ikoner var OSYNLIGA eftersom bootstrap-icons inte ar installerat
+- **2 diakritikfixar** (live-ranking "Nara" -> "Nara", + 6 sidor fran #348)
+- **1 emoji-fix** (rebotling-prognos)
+- **produktion_procent** utrett -- ej kumulativt, korrekt implementerat
+- Build lyckad
+
+---
+
 ## Worker A -- Session #348 (2026-03-26) -- 18 controllers djupgranskade, 3 buggar fixade, 70+ endpoints testade
 
 ### UPPGIFT 1: OPERATOR-CONTROLLERS (7 st) -- KLAR

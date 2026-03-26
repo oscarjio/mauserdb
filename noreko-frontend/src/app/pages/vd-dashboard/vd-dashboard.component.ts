@@ -136,9 +136,9 @@ export class VdDashboardPage implements OnInit, OnDestroy {
 
   getSkiftIcon(): string {
     const s = this.skiftstatus?.skift;
-    if (s === 'FM') return 'bi-sunrise';
-    if (s === 'EM') return 'bi-sun';
-    return 'bi-moon-stars';
+    if (s === 'FM') return 'fas fa-sun';
+    if (s === 'EM') return 'fas fa-cloud-sun';
+    return 'fas fa-moon';
   }
 
   getJamforelseText(): string {
@@ -156,9 +156,9 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   }
 
   getPodiumIcon(rank: number): string {
-    if (rank === 1) return 'bi-trophy-fill';
-    if (rank === 2) return 'bi-award-fill';
-    return 'bi-star-fill';
+    if (rank === 1) return 'fas fa-trophy';
+    if (rank === 2) return 'fas fa-award';
+    return 'fas fa-star';
   }
 
   getPodiumColor(rank: number): string {

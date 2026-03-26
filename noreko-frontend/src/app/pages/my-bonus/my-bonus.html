@@ -799,7 +799,7 @@
     <!-- ===== MIN BONUSUTVECKLING ===== -->
     <!-- Empty-state: ingen veckodata -->
     <div *ngIf="!weeklyLoading && weeklyData.length === 0 && savedOperatorId" class="text-center py-4">
-      <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+      <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
       <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen veckodata tillgänglig.</p>
     </div>
 
@@ -1171,7 +1171,7 @@
 
         <!-- Empty-state: ingen feedbackhistorik -->
         <div *ngIf="!feedbackHistoryLoading && feedbackHistory.length === 0" class="text-center py-4">
-          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
           <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen feedbackhistorik ännu.</p>
         </div>
 
