@@ -109,19 +109,19 @@ class EffektivitetController {
         // Vi summerar per dag för att få totalt per dag.
         $stmt = $this->pdo->prepare(
             "SELECT
-                DATE(datum) AS dag,
+                dag,
                 SUM(max_ibc)     AS ibc_count,
                 SUM(max_runtime) AS runtime_min
              FROM (
                 SELECT
                     DATE(datum) AS dag,
                     skiftraknare,
-                    MAX(ibc_ok)      AS max_ibc,
-                    MAX(runtime_plc) AS max_runtime
+                    MAX(COALESCE(ibc_ok, 0))      AS max_ibc,
+                    MAX(COALESCE(runtime_plc, 0)) AS max_runtime
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ?
+                  AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
              ) sub
              GROUP BY dag
              ORDER BY dag ASC"
@@ -346,13 +346,13 @@ class EffektivitetController {
                         SELECT
                             DATE(datum) AS dag,
                             skiftraknare,
-                            MAX(ibc_ok)      AS max_ibc,
-                            MAX(runtime_plc) AS max_runtime
+                            MAX(COALESCE(ibc_ok, 0))      AS max_ibc,
+                            MAX(COALESCE(runtime_plc, 0)) AS max_runtime
                         FROM rebotling_ibc
                         WHERE DATE(datum) BETWEEN ? AND ?
+                          AND skiftraknare IS NOT NULL
                           AND {$timeCond}
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                      ) sub"
                 );
                 $stmt->execute([$fromDate, $toDate]);

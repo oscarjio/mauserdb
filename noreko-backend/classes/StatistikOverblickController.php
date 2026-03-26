@@ -96,9 +96,10 @@ class StatistikOverblickController {
                         COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
                     FROM (
                         SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                               MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok, MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
                         FROM rebotling_ibc
                         WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                          AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_skift
                 ");
@@ -113,11 +114,10 @@ class StatistikOverblickController {
 
             $kassationsrate = $totalIbc > 0 ? round(($kasserade / $totalIbc) * 100, 2) : 0;
 
-            // OEE snitt senaste 30 dagar (dagvis, sen medelvarde)
+            // OEE snitt senaste 30 dagar (batch — 2 queries istallet for ~60)
             $oeeValues = [];
-            $dagar = $this->getWorkingDays($from30, $today);
-            foreach ($dagar as $dag) {
-                $oee = $this->calcOeeForDay($dag);
+            $oeeBatch = $this->calcOeeBatch($from30, $today);
+            foreach ($oeeBatch as $dag => $oee) {
                 if ($oee['total_ibc'] > 0) {
                     $oeeValues[] = $oee['oee'];
                 }
@@ -134,9 +134,10 @@ class StatistikOverblickController {
                         COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
                     FROM (
                         SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                               MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok, MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
                         FROM rebotling_ibc
                         WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                          AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_skift
                 ");
@@ -150,11 +151,10 @@ class StatistikOverblickController {
 
             $prevKassationsrate = $prevTotalIbc > 0 ? round(($prevKasserade / $prevTotalIbc) * 100, 2) : 0;
 
-            // OEE foregaende period
+            // OEE foregaende period (batch — 2 queries istallet for ~60)
             $prevOeeValues = [];
-            $prevDagar = $this->getWorkingDays($prevFrom, $prevTo);
-            foreach ($prevDagar as $dag) {
-                $oee = $this->calcOeeForDay($dag);
+            $prevOeeBatch = $this->calcOeeBatch($prevFrom, $prevTo);
+            foreach ($prevOeeBatch as $dag => $oee) {
                 if ($oee['total_ibc'] > 0) {
                     $prevOeeValues[] = $oee['oee'];
                 }
@@ -207,10 +207,11 @@ class StatistikOverblickController {
                         YEARWEEK(datum, 1) AS yearweek,
                         DATE(datum) AS dag,
                         skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
                     GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY yearweek
@@ -253,8 +254,9 @@ class StatistikOverblickController {
         $toDate = date('Y-m-d');
 
         try {
-            // Hamta alla dagar i perioden med OEE
+            // Hamta alla dagar i perioden med OEE (batch — 2 queries totalt)
             $dagar = $this->getWorkingDays($fromDate, $toDate);
+            $oeeBatch = $this->calcOeeBatch($fromDate, $toDate);
             $weeklyOee = [];
 
             foreach ($dagar as $dag) {
@@ -263,7 +265,7 @@ class StatistikOverblickController {
                 if (!isset($weeklyOee[$yw])) {
                     $weeklyOee[$yw] = ['weekNum' => $weekNum, 'oeeValues' => []];
                 }
-                $oee = $this->calcOeeForDay($dag);
+                $oee = $oeeBatch[$dag] ?? ['oee' => 0, 'total_ibc' => 0, 'ok_ibc' => 0];
                 if ($oee['total_ibc'] > 0) {
                     $weeklyOee[$yw]['oeeValues'][] = $oee['oee'];
                 }
@@ -318,10 +320,11 @@ class StatistikOverblickController {
                         YEARWEEK(datum, 1) AS yearweek,
                         DATE(datum) AS dag,
                         skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
                     GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY yearweek
@@ -370,71 +373,110 @@ class StatistikOverblickController {
         return $days;
     }
 
-    private function calcOeeForDay(string $date): array {
-        $from = $date . ' 00:00:00';
-        $to   = date('Y-m-d', strtotime($date . ' +1 day')) . ' 00:00:00';
+    /**
+     * Batch-berakna OEE for alla dagar i en period (2 queries totalt istallet for 2 per dag).
+     * Returnerar [datum => ['oee' => X, 'total_ibc' => Y, 'ok_ibc' => Z]]
+     */
+    private function calcOeeBatch(string $fromDate, string $toDate): array {
+        $schemaSek = self::SCHEMA_SEK_PER_DAG;
+        $result = [];
 
-        // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
-        $drifttidSek = 0;
+        // 1) Hamta ALL onoff-data for perioden i en enda query
+        $drifttidPerDag = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT datum, running FROM rebotling_onoff
-                WHERE datum >= :from_dt AND datum < :to_dt
+                SELECT DATE(datum) AS dag, datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum < DATE_ADD(:to_dt, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ");
-            $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+            $stmt->execute([':from_dt' => $fromDate . ' 00:00:00', ':to_dt' => $toDate]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $prevTime = null;
-            $prevRunning = null;
+            // Gruppera per dag och berakna drifttid
+            $dayRows = [];
             foreach ($rows as $row) {
-                $ts = strtotime($row['datum']);
-                $running = (int)$row['running'];
-                if ($prevTime !== null && $prevRunning === 1) {
-                    $drifttidSek += ($ts - $prevTime);
-                }
-                $prevTime = $ts;
-                $prevRunning = $running;
+                $dayRows[$row['dag']][] = $row;
             }
-            $drifttidSek = max(0, $drifttidSek);
+
+            foreach ($dayRows as $dag => $dagRader) {
+                $driftSek = 0;
+                $prevTime = null;
+                $prevRunning = null;
+                foreach ($dagRader as $row) {
+                    $ts = strtotime($row['datum']);
+                    $running = (int)$row['running'];
+                    if ($prevTime !== null && $prevRunning === 1) {
+                        $driftSek += ($ts - $prevTime);
+                    }
+                    $prevTime = $ts;
+                    $prevRunning = $running;
+                }
+                $drifttidPerDag[$dag] = max(0, $driftSek);
+            }
         } catch (\Exception $e) {
-            error_log('StatistikOverblickController::calcOeeForDay onoff: ' . $e->getMessage());
+            error_log('StatistikOverblickController::calcOeeBatch onoff: ' . $e->getMessage());
         }
 
-        $schemaSek = self::SCHEMA_SEK_PER_DAG;
-        $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
-
-        // rebotling_ibc: MAX per skiftraknare, then SUM
-        $totalIbc = 0;
-        $okIbc = 0;
+        // 2) Hamta IBC per dag i en enda query
+        $ibcPerDag = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
+                SELECT dag,
                     COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
                     COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc
                 FROM (
-                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
+                GROUP BY dag
             ");
-            $stmt->execute([':date' => $date, ':dateb' => $date]);
-            $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
-            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $ibcPerDag[$row['dag']] = [
+                    'ok_ibc'    => (int)$row['ok_ibc'],
+                    'ej_ok_ibc' => (int)$row['ej_ok_ibc'],
+                ];
+            }
         } catch (\Exception $e) {
-            error_log('StatistikOverblickController::calcOeeForDay ibc: ' . $e->getMessage());
+            error_log('StatistikOverblickController::calcOeeBatch ibc: ' . $e->getMessage());
         }
 
-        $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
-        $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
-        $oee = $tillganglighet * $prestanda * $kvalitet;
+        // 3) Berakna OEE per dag
+        $d = new \DateTime($fromDate);
+        $end = new \DateTime($toDate);
+        while ($d <= $end) {
+            $dag = $d->format('Y-m-d');
+            $drifttidSek = $drifttidPerDag[$dag] ?? 0;
+            $okIbc    = $ibcPerDag[$dag]['ok_ibc'] ?? 0;
+            $ejOkIbc  = $ibcPerDag[$dag]['ej_ok_ibc'] ?? 0;
+            $totalIbc = $okIbc + $ejOkIbc;
 
-        return [
-            'oee'       => round($oee, 4),
-            'total_ibc' => $totalIbc,
-            'ok_ibc'    => $okIbc,
-        ];
+            $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
+            $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+            $oee = $tillganglighet * $prestanda * $kvalitet;
+
+            $result[$dag] = [
+                'oee'       => round($oee, 4),
+                'total_ibc' => $totalIbc,
+                'ok_ibc'    => $okIbc,
+            ];
+            $d->modify('+1 day');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Berakna OEE for en enskild dag (wrapper kring calcOeeBatch for bakatkompat).
+     */
+    private function calcOeeForDay(string $date): array {
+        $batch = $this->calcOeeBatch($date, $date);
+        return $batch[$date] ?? ['oee' => 0, 'total_ibc' => 0, 'ok_ibc' => 0];
     }
 }

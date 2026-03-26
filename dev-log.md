@@ -1,3 +1,59 @@
+## Worker A -- Session #338 (2026-03-26) -- Rebotling-statistik djupgranskning + N+1-prestandafix (17s->0.4s) + EffektivitetController 500-fix + 160+ endpoints testade + routing audit
+
+### Uppgift 1: Rebotling-statistik berakningar -- DJUP GRANSKNING -- KLAR
+- Last ALL statistik-controllers: StatistikDashboardController, StatistikOverblickController, OeeWaterfallController, OeeTrendanalysController, EffektivitetController, MorgonrapportController, DagligBriefingController, VdDashboardController, HistoriskSammanfattningController, OperatorRankingController
+- Last prod_db_schema.sql (2003 rader) och verifierade ALLA SQL-queries mot schemat
+- Kolumnnamn, tabellnamn, JOINs -- alla stammer med prod-schemat
+- **produktion_procent**: Verifierat att den ar momentan takt-procent fran PLC (INTE kumulativ). RebotlingController filtrerar korrekt varden >200% och cappar vid 100%. Prod-data visar outliers upp till 6900 som ar PLC-ramp-up-artefakter -- korrekt hanterade.
+- **OEE-berakningar**: Verifierat korrekt formel (Tillganglighet x Prestanda x Kvalitet) i alla controllers:
+  - Tillganglighet = drifttid / total_tillganglig_tid
+  - Prestanda = (antal_ibc x ideal_cykeltid) / drifttid
+  - Kvalitet = ok_ibc / total_ibc
+- Korde prod-DB-queries for att verifiera att data stammer
+- **FIXAT NULL-problem**: Lagt till COALESCE(ibc_ok, 0) och COALESCE(ibc_ej_ok, 0) i StatistikOverblickController (4 queries) och EffektivitetController (2 queries) -- manga rader har NULL ibc_ok (2647 av 3606)
+
+### Uppgift 2: Performance-test -- LANGASAMMA ENDPOINTS -- KLAR
+- Testat ALLA endpoints med curl -w "%{time_total}" mot dev.mauserdb.com
+- **KRITISK FIX: StatistikOverblickController N+1-problem**:
+  - `run=kpi`: 8.77s -> **0.64s** (13x snabbare) -- beraknade OEE dag-for-dag med 2 queries per dag (120+ queries for 60 dagar)
+  - `run=oee`: 16.8s -> **0.39s** (43x snabbare) -- samma N+1-problem for 90 dagar (180+ queries)
+  - **Losning**: Ny `calcOeeBatch()` metod som hamtar ALL onoff-data och IBC-data i 2 queries totalt, grupperar per dag i PHP
+- **FIX: EffektivitetController 500-fel**:
+  - `run=summary` och `run=trend` returnerade 500 pga NULL-varden fran MAX(ibc_ok) utan COALESCE
+  - Lagt till COALESCE och tagit bort felaktig `HAVING COUNT(*) > 1` som filtrerade bort giltiga skift med 1 rad
+  - Nu fungerar korrekt (0.25s)
+- Ovriga tidtagningar:
+  - morgonrapport: 1.4s (acceptabelt -- hamtar data fran 6+ tabeller)
+  - oee-waterfall: 1.3s (acceptabelt -- skannar onoff-data sekventiellt)
+  - Alla ovriga: <1s
+
+### Uppgift 3: Angular Routing + Guards Audit -- KLAR
+- Last app.routes.ts (164 rader, 80+ rutter)
+- **Alla rutter korrekt skyddade**:
+  - Publika: /, /login, /register, /about, /contact, alla /*/live, alla /*/skiftrapport, alla /*/statistik
+  - authGuard: alla anvandardfunktioner (50+ rutter)
+  - adminGuard: alla admin-rutter, VD-dashboard, VD-veckorapport, bonus-admin, alerts
+  - pendingChangesGuard: alla formularsidor (admin, overlamning, leveransplanering, produktionsmal, etc.)
+- **Lazy loading**: ALLA komponenter anvander loadComponent med dynamisk import -- korrekt standalone-komponent-pattern
+- **Guards implementering**: authGuard och adminGuard anvander korrekt initialized$ + filter + switchMap + take(1) pattern -- ingen race condition
+- Inga sakerhetsproblem hittade
+
+### Uppgift 4: Testa ALLA endpoints (systematiskt) -- KLAR
+- Testat 160+ endpoint-kombinationer mot dev.mauserdb.com
+- **500-fel fixade**: EffektivitetController (summary + trend)
+- **Alla ovriga endpoints**: Returnerar korrekt 200/400/401/403 beroende pa auth-status och parametrar
+- Inga dataintegritetsfel hittade
+- Alla controllers laddas korrekt via api.php classNameMap
+
+### Uppgift 5: Deploy -- KLAR
+- Backend deployat till /var/www/mauserdb-dev/noreko-backend/ via rsync
+- Inga frontend-andringar gjorda
+- Fixar verifierade med curl mot dev.mauserdb.com
+
+### Filer andrade:
+- `noreko-backend/classes/StatistikOverblickController.php` -- N+1 prestandafix (calcOeeBatch) + COALESCE-fix
+- `noreko-backend/classes/EffektivitetController.php` -- NULL-fix + borttagen HAVING-filter
+
 ## Worker B -- Session #337 (2026-03-26) -- Operatorsbonus UI-granskning + VD-dashboard UI-granskning + diakritikfixar + modal/dialog audit + frontend felhantering
 
 ### Uppgift 1: Operatorsbonus UI-granskning -- KLAR
