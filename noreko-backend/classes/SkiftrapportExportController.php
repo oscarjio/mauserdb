@@ -435,14 +435,14 @@ class SkiftrapportExportController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    DATE(datum)   AS dag,
+                    s.dag               AS dag,
                     SUM(max_ibc_ok)    AS ibc_ok,
                     SUM(max_ibc_ej_ok) AS ibc_ej_ok,
                     SUM(max_runtime)   AS runtime_min,
                     COUNT(DISTINCT skiftraknare) AS antal_skiften
                  FROM (
                     SELECT
-                        DATE(datum)    AS created_at,
+                        DATE(datum)    AS dag,
                         skiftraknare,
                         MAX(ibc_ok)         AS max_ibc_ok,
                         MAX(ibc_ej_ok)      AS max_ibc_ej_ok,
@@ -452,7 +452,7 @@ class SkiftrapportExportController {
                     GROUP BY DATE(datum), skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
-                 GROUP BY DATE(datum)
+                 GROUP BY s.dag
                  ORDER BY dag ASC"
             );
             $stmt->execute([$start, $end]);

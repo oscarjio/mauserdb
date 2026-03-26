@@ -63,7 +63,7 @@ class AndonController {
             }
 
             // ---- Dagsmål från rebotling_settings ----
-            $malIdag = 100; // fallback
+            $malIdag = 1000; // fallback (DB default är 1000)
             try {
                 $stmt = $this->pdo->query(
                     "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
@@ -292,7 +292,7 @@ class AndonController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta dagsmål
-            $malIdag = 100;
+            $malIdag = 1000;
             try {
                 $stmtMal = $this->pdo->query(
                     "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
@@ -367,13 +367,13 @@ class AndonController {
             $datum = date('Y-m-d');
 
             // Hämta dagsmål
-            $malIdag = 100;
+            $malIdag = 1000;
             try {
                 $stmt = $this->pdo->query(
                     "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
                 );
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row) $malIdag = intval($row['rebotling_target']);
+                if ($row && intval($row['rebotling_target']) > 0) $malIdag = intval($row['rebotling_target']);
             } catch (\Exception $e) {
                 error_log('AndonController::getDailyChallenge dagmal: ' . $e->getMessage());
             }
@@ -598,7 +598,7 @@ class AndonController {
             $timme = (int)$nu->format('H');
 
             // ---- 1. Dagsmål ----
-            $malIdag = 100;
+            $malIdag = 1000;
             try {
                 $stmt = $this->pdo->query(
                     "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
@@ -755,17 +755,19 @@ class AndonController {
             $operator = null;
             try {
                 $stmtOp = $this->pdo->prepare("
-                    SELECT op_name FROM shift_plan
-                    WHERE shift_date >= :datum AND shift_date < DATE_ADD(:datumb, INTERVAL 1 DAY)
-                    ORDER BY id DESC LIMIT 1
+                    SELECT o.name AS op_name
+                    FROM shift_plan sp
+                    LEFT JOIN operators o ON o.number = sp.op_number
+                    WHERE sp.datum = :datum
+                    ORDER BY sp.id DESC LIMIT 1
                 ");
-                $stmtOp->execute([':datum' => $datum, ':datumb' => $datum]);
+                $stmtOp->execute([':datum' => $datum]);
                 $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
                 if ($opRow && !empty($opRow['op_name'])) {
                     $operator = $opRow['op_name'];
                 }
             } catch (\Exception $e) {
-                error_log('AndonController::getAndonDashboard(shift_plan): ' . $e->getMessage());
+                error_log('AndonController::getBoardStatus(shift_plan): ' . $e->getMessage());
             }
 
             // ---- Sammanställ svar ----
