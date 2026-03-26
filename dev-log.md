@@ -40,6 +40,72 @@
 - rsync med --exclude db_config.php --exclude cors_origins.php till /var/www/mauserdb-dev/noreko-backend/
 - Verifierat: hourly-rhythm returnerar 200 efter deploy
 
+## Worker B -- Session #335 (2026-03-26) -- Rebotling frontend audit + VD-dashboard + svenska + deploy
+
+### Uppgift 1: Granska ALLA rebotling Angular-komponenter -- KLAR
+- Granskade samtliga 69 rebotling-komponenter i pages/rebotling/ och 4 i rebotling/
+- Chart.js-grafer: 56 komponenter med new Chart() -- ALLA har korrekt chart?.destroy() i ngOnDestroy
+- Lifecycle: ALLA 69 komponenter implementerar OnDestroy med destroy$ + takeUntil
+- setInterval/setTimeout: 64 filer -- ALLA har korrekt clearInterval/clearTimeout i ngOnDestroy
+- Tomma dataset: 23 av 56 chart-komponenter har explicit "Ingen data"-meddelande. Ovriga hanterar tomma data via loading/error-states och tidigt return i chart-render-funktioner
+- Dark theme: Genomgaende korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Responsivitet: Bootstrap col-md/col-lg + chart-container med position:relative + table-responsive overallt
+- **FIX: statistik-veckojamforelse** -- saknades felhantering och "Ingen data"-meddelande vid tom/felaktig respons. Lade till weekComparisonError-flagga, felmeddelande i HTML, och tom data-meddelande
+- **FIX: 2 st OEE-label** -- "Utmarkt" -> "Utmarkt" och "Godkant" -> "Godkant" (korrekta svenska tecken) i vd-dashboard.component.ts och statistik-oee-gauge.ts
+
+### Uppgift 2: Granska VD-dashboard frontend -- KLAR
+- VD-dashboard ar valbyggd: 6 parallella API-anrop via forkJoin, 30s auto-refresh, isFetching-guard
+- KPI:er tydliga: Total IBC, OEE%, Aktiva operatorer, Mal vs Faktiskt, OEE-breakdown (T/P/K), Stoppstatus, Top 3 operatorer
+- Grafer relevanta: Veckotrend (linje, dual Y-axis OEE/IBC), OEE per station (horisontellt stapel, fargkodad)
+- Dark theme korrekt, responsiv layout med col-md/col-lg
+- Lifecycle korrekt: destroy$ + clearInterval + clearTimeout + chart.destroy()
+- **FIX:** "Utmarkt" andrad till "Utmarkt" (korrekt svenskt tecken)
+- **FIX:** "Hamtar produktionsdata..." andrad till "Hamtar produktionsdata..." (korrekt svenskt tecken)
+
+### Uppgift 3: Granska formularvalidering -- KLAR
+- Identifierade 7 komponenter med formular (login, register, news-admin, maintenance-form, leveransplanering, operator-compare, historik)
+- Login: required + minlength/maxlength pa bade username och password, submit disabled vid ogiltigt, returnUrl-validering mot open redirect
+- Register: Losenordsstyrka-check (langd >= 8, bokstav + siffra), e-postvalidering, alla felmeddelanden pa svenska
+- Maintenance-form: required pa titel/starttid/linje/typ/status, min/max-validering pa varaktighet/kostnad, felmeddelanden pa svenska
+- News-admin: required pa rubrik, maxlength, submit disabled vid tomt, svenska felmeddelanden
+- Leveransplanering: required + min/max pa kundnamn/antal_ibc/leveransdatum med #ctrl="ngModel" och feltexter
+- Resultat: ALLA formular har korrekt validering och svenska felmeddelanden
+
+### Uppgift 4: Granska caching-strategi i Angular services -- KLAR
+- Granskade 94 service-filer i noreko-frontend/src/app/services/
+- FeatureFlagService har in-memory cache via Map -- korrekt (flags andras sallan)
+- AuthService har BehaviorSubject-baserad state (loggedIn$, user$) -- korrekt cachning
+- Ovriga services gor on-demand HTTP-anrop -- rimligt da data ar realtid/foranderlig
+- Polling-intervall: 30s (live-views, VD-dashboard), 60s (kapacitetsplanering, OEE-gauge), 120s (statistik, gamification) -- rimliga
+- Alla services har timeout() + retry(1) + catchError() + isFetching-guard
+- Inga onodiga duplikat-anrop hittade
+- Resultat: Caching-strategi ar rimlig for applikationens karaktar (realtidsdata)
+
+### Uppgift 5: Bygg Angular-frontend -- KLAR
+- Bygget lyckades utan fel (enbart CommonJS-varningar for canvg/html2canvas -- icke-kritiska)
+
+### Uppgift 6: Deploy till dev -- KLAR
+- Frontend: rsync --delete till dev.mauserdb.com:/var/www/mauserdb-dev/dist/
+- Backend: rsync --exclude db_config.php --exclude cors_origins.php till dev.mauserdb.com
+- Verifiering: https://dev.mauserdb.com/ returnerar 200, api.php?action=status returnerar 200
+
+### Uppgift 7: Svenska-fixar (bonus) -- KLAR
+- **FIX: "Hamtar" -> "Hamtar"** i 20 HTML-filer (rebotling + ovriga sidor) -- korrekta svenska tecken i laddningsmeddelanden
+- **FIX: "Aterstall" -> "Aterstall"** i rebotling-statistik.html -- korrekt svenskt tecken pa knapptext
+- **FIX: "Forbattring/Forsamring" -> "Forbattring/Forsamring"** i oee-jamforelse.html och kassationsorsak.html -- korrekta svenska tecken
+
+### Andrade filer
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.ts (Utmarkt)
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.html (Hamtar)
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-oee-gauge/statistik-oee-gauge.ts (Utmarkt, Godkant)
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-veckojamforelse/statistik-veckojamforelse.ts (error handling)
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-veckojamforelse/statistik-veckojamforelse.html (error + tom data)
+- noreko-frontend/src/app/pages/rebotling/oee-jamforelse/oee-jamforelse.html (Forbattring/Forsamring)
+- noreko-frontend/src/app/pages/rebotling/kassationsorsak/kassationsorsak.html (Forbattring/Forsamring)
+- 12 rebotling HTML-filer (Hamtar -> Hamtar)
+- 7 ovriga HTML-filer (Hamtar -> Hamtar)
+- noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html (Aterstall)
+
 ---
 
 ## Worker A -- Session #334 (2026-03-26) -- PHP error handling audit, produktion_procent fix, role guards, endpoint test

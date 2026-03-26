@@ -15,6 +15,7 @@ import { RebotlingService, WeekComparisonDay } from '../../../../services/rebotl
 export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
   weekComparisonLoaded: boolean = false;
   weekComparisonLoading: boolean = false;
+  weekComparisonError: boolean = false;
   weekComparisonThisWeek: WeekComparisonDay[] = [];
   weekComparisonPrevWeek: WeekComparisonDay[] = [];
   weekGranularity: 'day' | 'shift' = 'day';
@@ -43,6 +44,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
   loadWeekComparison() {
     if (this.weekComparisonLoading) return;
     this.weekComparisonLoading = true;
+    this.weekComparisonError = false;
     this.rebotlingService.getWeekComparison(this.weekGranularity).pipe(
       timeout(8000),
       catchError(() => of(null)),
@@ -54,6 +56,9 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         this.weekComparisonPrevWeek = res.data.prev_week;
         this.weekComparisonLoaded = true;
         this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.renderWeekComparisonChart(); }, 100));
+      } else {
+        this.weekComparisonError = true;
+        this.weekComparisonLoaded = true;
       }
     });
   }

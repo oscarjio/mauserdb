@@ -27,7 +27,7 @@
     </div>
     <div class="mh-card-body">
       <div *ngIf="loadingStationer" class="mh-loading">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Hamtar stationer...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Hämtar stationer...
       </div>
       <div *ngIf="!loadingStationer" class="d-flex flex-wrap gap-2">
         <button *ngFor="let s of stationer; trackBy: trackByIndex"

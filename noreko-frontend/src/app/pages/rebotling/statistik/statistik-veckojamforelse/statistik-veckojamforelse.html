@@ -32,8 +32,14 @@
       </div>
       <div class="card-body">
         <div class="text-center py-3" *ngIf="weekComparisonLoading"><div class="spinner-border text-info" role="status"></div></div>
-        <div style="height: 220px; position:relative;" *ngIf="weekComparisonLoaded && !weekComparisonLoading">
+        <div class="text-center py-3 text-muted" *ngIf="weekComparisonError && !weekComparisonLoading">
+          <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda veckojamforelsedata
+        </div>
+        <div style="height: 220px; position:relative;" *ngIf="weekComparisonLoaded && !weekComparisonLoading && !weekComparisonError && (weekComparisonThisWeek.length > 0 || weekComparisonPrevWeek.length > 0)">
           <canvas id="weekComparisonChart"></canvas>
+        </div>
+        <div class="text-center py-3 text-muted" *ngIf="weekComparisonLoaded && !weekComparisonLoading && !weekComparisonError && weekComparisonThisWeek.length === 0 && weekComparisonPrevWeek.length === 0">
+          <i class="fas fa-info-circle me-2"></i>Ingen produktionsdata tillganglig for veckojamforelse
         </div>
       </div>
     </div>

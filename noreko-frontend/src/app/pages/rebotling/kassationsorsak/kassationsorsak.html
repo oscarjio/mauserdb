@@ -89,7 +89,7 @@
           <div class="kps-kpi-value"
                [style.color]="trendFarg(overview.trend)">
             {{ trendIkon(overview.trend) }}
-            {{ overview.trend === 'up' ? 'Forsamring' : overview.trend === 'down' ? 'Forbattring' : 'Stabilt' }}
+            {{ overview.trend === 'up' ? 'Försämring' : overview.trend === 'down' ? 'Förbättring' : 'Stabilt' }}
           </div>
           <div class="kps-kpi-sub"
                [style.color]="trendFarg(overview.trend)">
@@ -222,7 +222,7 @@
                     <span [style.color]="trendFarg(rad.trend)"
                           title="{{ rad.trend_diff > 0 ? '+' : '' }}{{ rad.trend_diff }}%">
                       {{ trendIkon(rad.trend) }}
-                      {{ rad.trend === 'up' ? 'Forsamring' : rad.trend === 'down' ? 'Forbattring' : 'Stabilt' }}
+                      {{ rad.trend === 'up' ? 'Försämring' : rad.trend === 'down' ? 'Förbättring' : 'Stabilt' }}
                     </span>
                   </td>
                 </tr>

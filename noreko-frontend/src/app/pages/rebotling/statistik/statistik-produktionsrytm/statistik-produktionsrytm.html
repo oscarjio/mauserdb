@@ -12,7 +12,7 @@
 <span style="color:#48bb78;"><i class="fas fa-square me-1"></i>Topp</span>
 <span class="ms-2" style="color:#ed8936;"><i class="fas fa-square me-1"></i>Medel</span>
 <span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Lag</span></p>
-<div *ngIf="hourlyRhythmLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="text-muted small mt-2">Hamtar produktionsrytm...</div></div>
+<div *ngIf="hourlyRhythmLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="text-muted small mt-2">Hämtar produktionsrytm...</div></div>
 <div *ngIf="!hourlyRhythmLoading && hourlyRhythm.length > 0" style="height:260px; position:relative;"><canvas id="hourlyRhythmChart"></canvas></div>
 <div *ngIf="!hourlyRhythmLoading && hourlyRhythm.length === 0" class="text-center py-4"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen data tillganglig.</p></div>
 <div class="mt-3" *ngIf="!hourlyRhythmLoading && hourlyRhythm.length > 0"><div class="table-responsive">

@@ -78,9 +78,9 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
   }
 
   getOeeLabel(value: number): string {
-    if (value >= 85) return 'Utmarkt';
+    if (value >= 85) return 'Utmärkt';
     if (value >= 70) return 'Bra';
-    if (value >= 60) return 'Godkant';
+    if (value >= 60) return 'Godkänt';
     return 'Kritiskt';
   }
 

@@ -77,7 +77,7 @@
             <i class="fas fa-save me-1" *ngIf="!layoutSaving"></i>
             <i class="fas fa-spinner fa-spin me-1" *ngIf="layoutSaving"></i>Spara layout
           </button>
-          <button class="btn btn-outline-secondary" (click)="resetDashboardLayout()"><i class="fas fa-undo me-1"></i>Aterstall</button>
+          <button class="btn btn-outline-secondary" (click)="resetDashboardLayout()"><i class="fas fa-undo me-1"></i>Återställ</button>
           <button class="btn btn-outline-secondary ms-auto" (click)="toggleLayoutConfig()">Avbryt</button>
         </div>
       </div>
@@ -219,7 +219,7 @@
     <div class="container-fluid">
       <div class="text-center py-5" *ngIf="loading">
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-3 text-muted">Hamtar statistik...</p>
+        <p class="mt-3 text-muted">Hämtar statistik...</p>
       </div>
       <div class="alert alert-warning" *ngIf="error && !loading">
         <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
@@ -312,7 +312,7 @@
                       [class.badge-bad]="dayLongestStopMinutes >= 30">
                   <i class="fas fa-pause-circle me-1"></i>{{ dayLongestStopMinutes }}min stopp
                 </span>
-                <button *ngIf="chartHasSelection()" class="btn btn-outline-light btn-sm" (click)="resetChartZoom()">Aterstall</button>
+                <button *ngIf="chartHasSelection()" class="btn btn-outline-light btn-sm" (click)="resetChartZoom()">Återställ</button>
                 <button class="btn btn-sm btn-outline-secondary" (click)="exportProductionChart()" [disabled]="!productionChart" title="Exportera graf">
                   <i class="fas fa-download"></i>
                 </button>

@@ -117,7 +117,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   }
 
   getOeeLabel(oee: number): string {
-    if (oee >= 80) return 'Utmarkt';
+    if (oee >= 80) return 'Utmärkt';
     if (oee >= 60) return 'OK';
     return 'Kritiskt';
   }
