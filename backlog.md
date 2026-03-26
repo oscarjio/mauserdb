@@ -11,18 +11,13 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Pagaende (session #349):
-- [~] **15 ogranskade controllers djupgranskning** — A: SQL+ep+auth (Morgonrapport, DagligBriefing, Produktionspuls, ProduktionsPrognos, Favoriter, Skiftplanering, Underhallslogg, Skiftoverlamning, RebotlingStationsdetalj, HistoriskSammanfattning, StatistikOverblick, StatistikDashboard, Skiftjamforelse, MyStats, MinDag)
-- [~] **End-to-end rebotling-flodet** — A: backend-data, B: UI-flode
-- [~] **20+ ogranskade frontend-sidor** — B: VD/executive, rebotling UI, statistik, operator/personal
-- [~] **produktion_procent undersok** — B: ar det kumulativt? Fixa berakning/visning
-
 ### Nasta (session #350):
-- [ ] **Responsiv design-sweep** — alla sidor pa mobil/tablet
-- [ ] **Prestandaoptimering** — identifiera langa queries, N+1-problem
-- [ ] **Felhantering UI** — tomma tillstand, laddningsindikatorer, felmeddelanden
-- [ ] **Chart.js enhetlig styling** — alla grafer med samma fargpalett och dark theme
-- [ ] **Endpoint-svarstider** — logga och optimera endpoints over 1s
+- [ ] **station_id-referens fix** — A: HistoriskSammanfattningController + SkiftjamforelseController anvander COALESCE(station_id,1) men kolumnen finns ej i rebotling_ibc — ta bort/hardkoda
+- [ ] **Responsiv design-sweep** — B: alla sidor pa mobil/tablet
+- [ ] **Prestandaoptimering** — A: identifiera langa queries, N+1-problem, indexering
+- [ ] **Felhantering UI** — B: tomma tillstand, laddningsindikatorer, felmeddelanden
+- [ ] **Chart.js enhetlig styling** — B: alla grafer med samma fargpalett och dark theme
+- [ ] **Endpoint-svarstider** — A: logga och optimera endpoints over 1s
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -77,17 +77,19 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - [x] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
 - [x] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
 - [x] Analytics-controllers (7st) + admin-sidor UI (session #348)
-- [~] 15 resterande controllers djupgranskning (session #349 pagaende)
-- [~] End-to-end rebotling-flodet (session #349 pagaende)
-- [~] 20+ ogranskade frontend-sidor (session #349 pagaende)
+- [x] 15 resterande controllers djupgranskning (session #349 — 1 bugg fixad: MinDag PDO-params)
+- [x] End-to-end rebotling-flodet (session #349 — verifierat OK, 4908 rader)
+- [x] 20+ ogranskade frontend-sidor (session #349 — 18 trasiga ikoner fixade, bi→fa)
+- [x] produktion_procent undersokts — EJ kumulativt, momentant PLC-tal (session #349)
+- [ ] station_id-referens fix (2 controllers, COALESCE pa icke-existerande kolumn)
 - [ ] Responsiv design-sweep
 - [ ] Prestandaoptimering (langa queries, N+1)
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-26 — Session #349 (pagaende)
-Worker A: 15 controllers djupgranskning (Morgonrapport, DagligBriefing, Produktionspuls, ProduktionsPrognos, Favoriter, Skiftplanering, Underhallslogg, Skiftoverlamning, RebotlingStationsdetalj, HistoriskSammanfattning, StatistikOverblick, StatistikDashboard, Skiftjamforelse, MyStats, MinDag) + end-to-end rebotling backend.
-Worker B: 20+ frontend-sidor (VD/executive, rebotling UI, statistik, operator/personal) + produktion_procent-undersökning.
+### 2026-03-26 — Session #349 (klar)
+Worker A: 15 controllers djupgranskade. 1 bugg fixad: MinDagController duplicerade PDO-params (3 endpoints 500-fel). 60+ endpoints curl-testade. Rebotling E2E verifierat (4908 rader matchar). Notering: station_id-referens i 2 controllers (COALESCE workaround).
+Worker B: 30+ frontend-sidor granskade. 18 trasiga ikoner fixade (Bootstrap Icons ej installerat — alla bi→fa). 1 diakritikfix. produktion_procent bekraftat EJ kumulativt. Build+deploy OK.
 
 ### 2026-03-26 — Session #348 (klar)
 Worker A: 18 controllers djupgranskade (7 operator + 4 kvalitet + 7 analytics). 3 buggar fixade: OperatorCompareController YEARWEEK-alias fel (500-fel), KvalitetstrendanalysController station_id existerade ej i prod (SQL-fel), DrifttidsTimelineController reason/operator_name existerade ej i stoppage_log (SQL-fel). 70+ endpoints curl-testade. Auth OK. Deploy OK.
