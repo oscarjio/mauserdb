@@ -1,3 +1,49 @@
+## Worker B -- Session #331 (2026-03-26) -- Frontend UX: adaptiv granularitet, polling-optimering, datakvalitet
+
+### Uppgift 1: Forbattra rebotling-grafer med adaptiv granularitet
+- Statistik-dashboard: lade till adaptiv granularitet
+  - Lade till 1-dags periodalternativ
+  - 90 dagar -> aggregeras per vecka (istallet for 90 enskilda dagpunkter)
+  - <= 30 dagar -> visas per dag (ingen aggregering)
+  - Adaptiva maxTicksLimit och punktradier baserat pa datamangd
+  - Granularitetsetikett visas i UI ("Visar data per vecka")
+- Trendanalys: lade till 7-dagar och 14-dagar periodalternativ
+- Granskade produktion_procent-hantering: backend (RebotlingController) konverterar redan kumulativa PLC-varden till delta per cykel — frontend-AVG ar darfor korrekt
+
+### Uppgift 2: Granska error handling i Angular services
+- Granskade alla 92 service-filer: ALLA har timeout(), retry(1), catchError() i pipe
+- 508 HTTP-anrop, 601 catchError, 508 timeout — konsekvent over hela kodbasen
+- Komponenter har loading/error-states med *ngIf-guards i templates
+- Inget behov av ytterligare fixes — error handling ar valfungerande
+
+### Uppgift 3: Optimera polling-intervall
+Andrade polling fran 60s till smartare intervall for statistik/historik-sidor:
+- Statistik-dashboard: 60s -> 120s (data andras inte sa ofta)
+- Trendanalys: 60s -> 300s (historisk analys, behovs sallan uppdateras)
+- Maskin-OEE: 60s -> 120s
+- Kvalitetstrendanalys: 60s -> 120s
+- Kassationsorsak-statistik: 60s -> 120s
+- Stopptidsanalys: 60s -> 120s
+- Leveransplanering: 60s -> 120s
+- Min dag: 60s -> 120s
+- Live-sidor (rebotling-live, andon-board, produktionspuls-widget) rordes INTE — de behovs i realtid
+
+### Uppgift 4: Granska datakvalitet pa alla sidor
+- Granskade alla rebotling-templates: alla har korrekta *ngIf loading/error guards
+- Alla texter pa svenska — fixade 2 engelska termer i bonus-simulator:
+  - "Outstanding" -> "Enastående"
+  - "Excellent" -> "Utmärkt"
+- Dark theme konsistent (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Inga toFixed()-anrop pa potentiellt null-varden utan guard
+- Inga engelska meddelanden i templates
+
+### Uppgift 5: Bygg och deploy
+- Byggde framgangsrikt: `npx ng build` — 0 errors, enbart CommonJS-varningar
+- Deploy via rsync misslyckades (SSH timeout till dev.mauserdb.com) — dist-filer redo
+- Committade och pushade till main
+
+---
+
 ## Worker A -- Session #331 (2026-03-26) -- Backend bugfixar: Andon dagmal, shift_plan SQL, multi-day export
 
 ### Uppgift 1: Verifiera operatorsbonus-berakningar mot prod DB
