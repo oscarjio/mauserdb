@@ -174,7 +174,7 @@ class HistoriskSammanfattningController {
                     MAX(ibc_ej_ok)   AS max_ej_ok,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
              ) s"
@@ -311,17 +311,16 @@ class HistoriskSammanfattningController {
             $stopptidDelta = $current['stopptid_min'] - $prev['stopptid_min'];
             $kvalitetDelta = round($current['kvalitet_pct'] - $prev['kvalitet_pct'], 1);
 
-            // Hitta flaskhals (lagst OEE station)
+            // rebotling_ibc saknar station_id — alla stationer delar samma data.
+            // Berakna en gang och ateranvand (undviker N+1 queries).
             $stationer = $this->getStationer();
             $flaskhalsStn = null;
             $flaskhalsOee = 999;
-            foreach ($stationer as $st) {
-                $sid = (int)$st['id'];
-                $sData = $this->calcStationData($p['from'], $p['to'], $sid);
-                if ($sData['ibc_ok'] > 0 && $sData['oee_pct'] < $flaskhalsOee) {
-                    $flaskhalsOee = $sData['oee_pct'];
-                    $flaskhalsStn = $st['namn'];
-                }
+            $sharedStationData = $this->calcStationData($p['from'], $p['to'], 1);
+            if ($sharedStationData['ibc_ok'] > 0 && !empty($stationer)) {
+                // Alla stationer har samma OEE — visa forsta
+                $flaskhalsOee = $sharedStationData['oee_pct'];
+                $flaskhalsStn = $stationer[0]['namn'];
             }
 
             // Baste operator
@@ -388,7 +387,7 @@ class HistoriskSammanfattningController {
                         MIN(NULLIF(op1, 0)) AS op1,
                         MAX(ibc_ok) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
@@ -419,6 +418,7 @@ class HistoriskSammanfattningController {
 
     private function calcStationData(string $from, string $to, int $stationId): array {
         try {
+            // rebotling_ibc har ingen station_id-kolumn — returnera all data (enda linjen)
             $stmt = $this->pdo->prepare(
                 "SELECT
                     COALESCE(SUM(max_ok),    0) AS ibc_ok,
@@ -432,13 +432,12 @@ class HistoriskSammanfattningController {
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
-                      AND COALESCE(station_id, 1) = ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s"
             );
-            $stmt->execute([$from, $to, $stationId]);
+            $stmt->execute([$from, $to]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             $ibcOk      = (int)($row['ibc_ok'] ?? 0);
@@ -506,7 +505,7 @@ class HistoriskSammanfattningController {
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare, DATE(datum)
                     HAVING COUNT(*) > 1
                  ) s
@@ -601,7 +600,7 @@ class HistoriskSammanfattningController {
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
@@ -624,7 +623,7 @@ class HistoriskSammanfattningController {
                         MIN(NULLIF(op1, 0)) AS op1,
                         MAX(ibc_ok) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
@@ -706,28 +705,28 @@ class HistoriskSammanfattningController {
             $p = $this->parsePeriod();
             $stationer = $this->getStationer();
 
+            // rebotling_ibc saknar station_id — berakna en gang, ateranvand for alla stationer (N+1 fix)
+            $currentShared = $this->calcStationData($p['from'], $p['to'], 1);
+            $prevShared    = $this->calcStationData($p['prev_from'], $p['prev_to'], 1);
+            $oeeDelta      = round($currentShared['oee_pct'] - $prevShared['oee_pct'], 1);
+
             $result = [];
             foreach ($stationer as $st) {
                 $sid  = (int)$st['id'];
                 $namn = $st['namn'];
 
-                $current = $this->calcStationData($p['from'], $p['to'], $sid);
-                $prev    = $this->calcStationData($p['prev_from'], $p['prev_to'], $sid);
-
-                $oeeDelta = round($current['oee_pct'] - $prev['oee_pct'], 1);
-
                 $result[] = [
                     'station_id'         => $sid,
                     'station_namn'       => $namn,
-                    'oee_pct'            => $current['oee_pct'],
-                    'tillganglighet_pct' => $current['tillganglighet_pct'],
-                    'prestanda_pct'      => $current['prestanda_pct'],
-                    'kvalitet_pct'       => $current['kvalitet_pct'],
-                    'ibc_ok'             => $current['ibc_ok'],
-                    'stopptid_min'       => $current['stopptid_min'],
+                    'oee_pct'            => $currentShared['oee_pct'],
+                    'tillganglighet_pct' => $currentShared['tillganglighet_pct'],
+                    'prestanda_pct'      => $currentShared['prestanda_pct'],
+                    'kvalitet_pct'       => $currentShared['kvalitet_pct'],
+                    'ibc_ok'             => $currentShared['ibc_ok'],
+                    'stopptid_min'       => $currentShared['stopptid_min'],
                     'oee_delta'          => $oeeDelta,
                     'trend'              => $oeeDelta > 0.5 ? 'up' : ($oeeDelta < -0.5 ? 'down' : 'stable'),
-                    'prev_oee_pct'       => $prev['oee_pct'],
+                    'prev_oee_pct'       => $prevShared['oee_pct'],
                 ];
             }
 

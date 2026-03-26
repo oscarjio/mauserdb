@@ -1,3 +1,53 @@
+## Worker A -- Session #350 (2026-03-27) -- 2 station_id-buggar fixade + prestandaoptimering (alla endpoints <1s)
+
+### PRIO 1: station_id-bugg fixad
+
+`rebotling_ibc` har INGEN `station_id`-kolumn (bekraftat mot prod_db_schema.sql).
+
+**HistoriskSammanfattningController.php (classes/)**
+- `calcStationData()`: Tog bort `COALESCE(station_id, 1) = ?` fran WHERE-villkoret. Returnerar all data (enda linjen).
+- `rapport()`: N+1-fix -- beraknar stationsdata EN gang istallet for per station i loop (alla stationer delar samma data).
+- `stationer()`: N+1-fix -- beraknar current+prev EN gang istallet for 2xN queries i loop.
+
+**SkiftjamforelseController.php (classes/)**
+- `bestPractices()`: Tog bort `COALESCE(station_id, 1)` i SELECT/GROUP BY/sub-SELECT. Hardkodar sid=1.
+- `detaljer()`: `COALESCE(MIN(station_id), 1)` ersatt med `1 AS station_id`.
+
+### PRIO 2: Prestandaoptimering
+
+**DATE(datum) BETWEEN -> datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)**
+- HistoriskSammanfattningController: 6 queries fixade -- tillater index-anvandning pa datum-kolumnen
+- SkiftjamforelseController: 5 queries fixade
+
+**N+1 query-fix (loop med SQL -> batch-query)**
+- `getProduktionPerSkift()`: 3 separata queries (en per skift) -> 1 batch-query med CASE WHEN
+- `getStopptidPerSkift()`: 3 separata queries -> 1 batch-query med CASE WHEN
+- Totalt for `sammanfattning()`: 12 queries -> 4 queries
+
+**Composite index tillagd**
+- `CREATE INDEX idx_rebotling_ibc_datum_skift ON rebotling_ibc (datum, skiftraknare)` -- anvands av alla OEE/IBC-queries
+- Migration: `migrations/2026-03-27_session350_composite_index.sql`
+
+### PRIO 3: Svarstider (alla under 1s nu)
+
+| Endpoint | Fore | Efter | Forbattring |
+|---|---|---|---|
+| historisk-sammanfattning/rapport | 0.95s | 0.41s | 57% |
+| historisk-sammanfattning/stationer | **1.42s** | 0.33s | **77%** |
+| skiftjamforelse/sammanfattning | **1.07s** | 0.38s | **65%** |
+| skiftjamforelse/jamforelse | 0.89s | 0.42s | 53% |
+| skiftjamforelse/best-practices | 0.76s | 0.37s | 51% |
+| skiftjamforelse/detaljer | 0.39s | 0.30s | 23% |
+
+Alla testade endpoints returnerar 200 OK. Inga 500-fel hittade.
+
+### Andrade filer
+- `noreko-backend/classes/HistoriskSammanfattningController.php`
+- `noreko-backend/classes/SkiftjamforelseController.php`
+- `noreko-backend/migrations/2026-03-27_session350_composite_index.sql` (ny)
+
+---
+
 ## Worker A -- Session #349 (2026-03-26) -- 15 controllers djupgranskade, 1 SQL-bugg fixad (MinDagController), 60+ endpoints testade
 
 ### UPPGIFT: DJUPGRANSKA 15 BACKEND-CONTROLLERS

@@ -109,32 +109,49 @@ class SkiftjamforelseController {
      * Hamta produktionsdata per skift for en period.
      */
     private function getProduktionPerSkift(string $fromDate, string $toDate): array {
+        // Optimerad: en enda query for alla skift (istallet for 3 separata)
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                skift,
+                COUNT(DISTINCT skiftraknare) AS antal_pass,
+                COALESCE(SUM(max_ok),    0) AS ibc_ok,
+                COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                COALESCE(SUM(max_runtime), 0) AS runtime_min
+             FROM (
+                SELECT
+                    skiftraknare,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                        ELSE 'Natt'
+                    END AS skift,
+                    MAX(ibc_ok)      AS max_ok,
+                    MAX(ibc_ej_ok)   AS max_ej_ok,
+                    MAX(runtime_plc) AS max_runtime
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                GROUP BY skiftraknare,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                        ELSE 'Natt'
+                    END
+                HAVING COUNT(*) > 1
+             ) s
+             GROUP BY skift"
+        );
+        $stmt->execute([$fromDate, $toDate]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Map resultat per skift
+        $dbData = [];
+        foreach ($rows as $row) {
+            $dbData[$row['skift']] = $row;
+        }
+
         $result = [];
-
         foreach (array_keys(self::SKIFT) as $skift) {
-            $timeCond = $this->skiftTimewhere($skift, 'datum');
-
-            $stmt = $this->pdo->prepare(
-                "SELECT
-                    COUNT(DISTINCT skiftraknare) AS antal_pass,
-                    COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
-                    COALESCE(SUM(max_runtime), 0) AS runtime_min
-                 FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(ibc_ok)      AS max_ok,
-                        MAX(ibc_ej_ok)   AS max_ej_ok,
-                        MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
-                      AND {$timeCond}
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) s"
-            );
-            $stmt->execute([$fromDate, $toDate]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $row = $dbData[$skift] ?? null;
 
             $ibcOk    = (int)($row['ibc_ok']    ?? 0);
             $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
@@ -188,23 +205,27 @@ class SkiftjamforelseController {
             return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
         }
 
-        $stoppResult = [];
-        foreach (array_keys(self::SKIFT) as $skift) {
-            $timeCond = $this->skiftTimewhere($skift, 'start_time');
+        // Optimerad: en enda query for alla skift (istallet for 3 separata)
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                CASE
+                    WHEN HOUR(start_time) >= 6 AND HOUR(start_time) < 14 THEN 'FM'
+                    WHEN HOUR(start_time) >= 14 AND HOUR(start_time) < 22 THEN 'EM'
+                    ELSE 'Natt'
+                END AS skift,
+                COALESCE(ROUND(SUM(
+                    TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))
+                ), 0), 0) AS total_min
+             FROM stopporsak_registreringar
+             WHERE linje = 'rebotling'
+               AND start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
+             GROUP BY skift"
+        );
+        $stmt->execute([$fromDate, $toDate]);
 
-            $stmt = $this->pdo->prepare(
-                "SELECT
-                    COALESCE(ROUND(SUM(
-                        TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))
-                    ), 0), 0) AS total_min
-                 FROM stopporsak_registreringar
-                 WHERE linje = 'rebotling'
-                   AND DATE(start_time) BETWEEN ? AND ?
-                   AND {$timeCond}"
-            );
-            $stmt->execute([$fromDate, $toDate]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $stoppResult[$skift] = (int)($row['total_min'] ?? 0);
+        $stoppResult = ['FM' => 0, 'EM' => 0, 'Natt' => 0];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $stoppResult[$row['skift']] = (int)$row['total_min'];
         }
 
         return $stoppResult;
@@ -349,7 +370,7 @@ class SkiftjamforelseController {
                     SELECT datum, skiftraknare,
                         MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok, MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare,
                         CASE
                             WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
@@ -509,7 +530,7 @@ class SkiftjamforelseController {
                         MAX(ibc_ej_ok) AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare,
                         CASE
                             WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
@@ -586,9 +607,10 @@ class SkiftjamforelseController {
 
             // Hamta alla stationer och skift i en enda query (istallet for N+1)
             // Berakna skift via HOUR(datum) i SQL med CASE
+            // rebotling_ibc har ingen station_id-kolumn — hardkoda till 1
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    COALESCE(station_id, 1) AS sid,
+                    1 AS sid,
                     CASE
                         WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
                         WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
@@ -600,18 +622,17 @@ class SkiftjamforelseController {
                     COUNT(DISTINCT skiftraknare) AS antal_pass
                  FROM (
                     SELECT
-                        COALESCE(station_id, 1) AS station_id,
                         datum,
                         skiftraknare,
                         MAX(ibc_ok)      AS max_ok,
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
-                    GROUP BY COALESCE(station_id, 1), skiftraknare, datum
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                    GROUP BY skiftraknare, datum
                     HAVING COUNT(*) > 1
                  ) s
-                 GROUP BY sid, skift"
+                 GROUP BY skift"
             );
             $stmt->execute([$from, $today]);
             $allStationSkift = [];
@@ -720,13 +741,13 @@ class SkiftjamforelseController {
                     skiftraknare,
                     DATE(MIN(datum)) AS datum,
                     MIN(HOUR(datum)) AS forsta_timme,
-                    COALESCE(MIN(station_id), 1) AS station_id,
+                    1 AS station_id,
                     MAX(ibc_ok)      AS ibc_ok,
                     MAX(ibc_ej_ok)   AS ibc_ej_ok,
                     MAX(runtime_plc) AS runtime_min,
                     MIN(NULLIF(op1, 0)) AS op_num
                  FROM rebotling_ibc
-                 WHERE DATE(datum) BETWEEN ? AND ?
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  GROUP BY skiftraknare
                  HAVING COUNT(*) > 1
                  ORDER BY MIN(datum) DESC
