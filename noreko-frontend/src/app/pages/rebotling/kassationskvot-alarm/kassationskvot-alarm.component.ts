@@ -210,7 +210,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
       return;
     }
     if (v >= a) {
-      this.sparaTroskelFel = 'Varningstroskeln maste vara lagre an alarmtroskeln.';
+      this.sparaTroskelFel = 'Varningströskeln måste vara lägre än alarmtröskeln.';
       return;
     }
     this.sparaTroskelLoading = true;
@@ -219,7 +219,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
       .subscribe(res => {
         this.sparaTroskelLoading = false;
         if (res?.success) {
-          this.sparaTroskelMeddelande = 'Troskelvarden sparades!';
+          this.sparaTroskelMeddelande = 'Tröskelvärdena sparades!';
           this.messageTimerId = setTimeout(() => { this.sparaTroskelMeddelande = ''; }, 3000);
           this.laddaAll();
         } else {

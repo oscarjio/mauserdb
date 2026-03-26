@@ -169,9 +169,9 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   getRiskLabel(risk: string): string {
     switch (risk) {
       case 'kritisk': return 'Kritisk';
-      case 'hog': return 'Hog';
+      case 'hog': return 'Hög';
       case 'medel': return 'Medel';
-      default: return 'Lag';
+      default: return 'Låg';
     }
   }
 
@@ -195,7 +195,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   getMtbfTrendLabel(trend: string): string {
     switch (trend) {
       case 'sjunkande': return 'MTBF sjunker (fler stopp)';
-      case 'okande': return 'MTBF okar (farre stopp)';
+      case 'okande': return 'MTBF ökar (färre stopp)';
       default: return 'Stabil';
     }
   }

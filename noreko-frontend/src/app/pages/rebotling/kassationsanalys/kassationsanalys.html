@@ -52,14 +52,14 @@
     <!-- KPI 3: Trend vs forra perioden -->
     <div class="col-6 col-lg-3">
       <div class="kas-card">
-        <div class="kas-card-label">Trend vs foreg. period</div>
+        <div class="kas-card-label">Trend vs föreg. period</div>
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-value"
           [style.color]="trendColor(kpiTrend, true)">
           {{ trendIcon(kpiTrend) }}
           <span *ngIf="kpiTrendDiff !== 0" class="kas-trend-num">{{ kpiTrendDiff > 0 ? '+' : '' }}{{ kpiTrendDiff }}%</span>
         </div>
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-sub">
-          procentenheters forandring
+          procentenheters förändring
         </div>
         <div *ngIf="loadingSammanfattning" class="kas-spin"><div role="status" class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
@@ -68,7 +68,7 @@
     <!-- KPI 4: Varsta station -->
     <div class="col-6 col-lg-3">
       <div class="kas-card">
-        <div class="kas-card-label">Varsta station</div>
+        <div class="kas-card-label">Värsta station</div>
         <div *ngIf="!loadingSammanfattning && sammanfattning" class="kas-card-value kas-card-value-sm text-warning">
           {{ kpiVarstaStation }}
         </div>
@@ -134,12 +134,12 @@
   </div>
 
   <!-- ============================================================
-       TRENDGRAF: Kassationsorsaker over tid
+       TRENDGRAF: Kassationsorsaker över tid
   ============================================================ -->
   <div class="kas-card mb-4">
     <div class="kas-section-title d-flex align-items-center gap-2 mb-3">
       <i class="fas fa-chart-line" style="color:#63b3ed;"></i>
-      <span>Kassationsorsaker over tid</span>
+      <span>Kassationsorsaker över tid</span>
       <div class="btn-group btn-group-sm ms-auto">
         <button class="btn btn-sm" [class.btn-info]="trendGroup==='day'" [class.btn-outline-secondary]="trendGroup!=='day'" (click)="onTrendGroupChange('day')">Dag</button>
         <button class="btn btn-sm" [class.btn-info]="trendGroup==='week'" [class.btn-outline-secondary]="trendGroup!=='week'" (click)="onTrendGroupChange('week')">Vecka</button>

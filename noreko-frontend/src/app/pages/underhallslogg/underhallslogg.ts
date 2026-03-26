@@ -294,7 +294,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
     this.errorMessage = '';
 
     if (!this.formStationId) {
-      this.errorMessage = 'Valj en station';
+      this.errorMessage = 'Välj en station';
       return;
     }
     if (!this.formDatum) {
@@ -328,7 +328,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   taBort(post: RebotlingUnderhallsPost): void {
-    if (!confirm(`Ta bort underhallspost fran ${this.formatDatum(post.datum)}?`)) return;
+    if (!confirm(`Ta bort underhållspost från ${this.formatDatum(post.datum)}?`)) return;
     this.svc.taBort(post.id).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.items = this.items.filter(i => i.id !== post.id);
@@ -401,7 +401,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
     this.errorMessage = '';
 
     if (!this.legacyFormKategori) {
-      this.errorMessage = 'Valj en kategori';
+      this.errorMessage = 'Välj en kategori';
       return;
     }
     if (!this.legacyFormVaraktighet || this.legacyFormVaraktighet <= 0) {
@@ -440,7 +440,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
 
   deleteLegacy(post: UnderhallsPost): void {
     if (this.deletingId !== null) return;
-    if (!confirm(`Ta bort underhallspost fran ${this.formatDatum(post.created_at)}?`)) return;
+    if (!confirm(`Ta bort underhållspost från ${this.formatDatum(post.created_at)}?`)) return;
     this.deletingId = post.id;
     this.svc.deleteEntry(post.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {

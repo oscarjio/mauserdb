@@ -122,8 +122,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   }
 
   getTrendText(trend: string): string {
-    if (trend === 'up') return 'Uppat';
-    if (trend === 'down') return 'Nedat';
+    if (trend === 'up') return 'Uppåt';
+    if (trend === 'down') return 'Nedåt';
     return 'Stabil';
   }
 

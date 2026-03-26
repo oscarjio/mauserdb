@@ -237,7 +237,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     ).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.bedomLoading = false;
         if (res?.success) {
-          this.bedomMessage = res.message || 'Bedomning sparad';
+          this.bedomMessage = res.message || 'Bedömning sparad';
           this.loadLista();
           this.loadOverview();
           this.loadStatistik();
@@ -247,7 +247,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
             this.selectedCert.kommentar = this.bedomKommentar;
           }
         } else {
-          this.bedomError = res?.error || 'Kunde inte spara bedomning';
+          this.bedomError = res?.error || 'Kunde inte spara bedömning';
         }
     });
   }
@@ -266,11 +266,11 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   submitGenerera(): void {
     if (!this.genBatchNummer) {
-      this.genError = 'Batchnummer kravs';
+      this.genError = 'Batchnummer krävs';
       return;
     }
     if (!this.genAntalIbc || this.genAntalIbc < 1) {
-      this.genError = 'Antal IBC maste vara minst 1';
+      this.genError = 'Antal IBC måste vara minst 1';
       return;
     }
 
@@ -289,7 +289,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.genLoading = false;
         if (res?.success) {
-          this.genMessage = `Certifikat skapat (Kvalitetspoang: ${res.kvalitetspoang})`;
+          this.genMessage = `Certifikat skapat (Kvalitetspoäng: ${res.kvalitetspoang})`;
           this.loadAll();
           // Reset form
           this.genBatchNummer = '';
@@ -353,7 +353,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: 'Kvalitetspoang',
+            label: 'Kvalitetspoäng',
             data,
             backgroundColor: colors,
             borderRadius: 3,
@@ -403,9 +403,9 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   statusLabel(status: string): string {
     switch (status) {
-      case 'godkand': return 'Godkand';
-      case 'underkand': return 'Underkand';
-      default: return 'Ej bedomd';
+      case 'godkand': return 'Godkänd';
+      case 'underkand': return 'Underkänd';
+      default: return 'Ej bedömd';
     }
   }
 

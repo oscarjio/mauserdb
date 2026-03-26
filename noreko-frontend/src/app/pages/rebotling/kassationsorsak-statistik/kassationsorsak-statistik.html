@@ -46,12 +46,12 @@
     </div>
     <div class="col-md-3">
       <div class="kpi-card">
-        <div class="kpi-label">Trend vs foreg. period</div>
+        <div class="kpi-label">Trend vs föreg. period</div>
         <div class="kpi-value">
           <i [class]="cachedTrendIcon" class="me-1"></i>
-          {{ overview.trend_direction === 'up' ? 'Uppat' : overview.trend_direction === 'down' ? 'Nedat' : 'Stabilt' }}
+          {{ overview.trend_direction === 'up' ? 'Uppåt' : overview.trend_direction === 'down' ? 'Nedåt' : 'Stabilt' }}
         </div>
-        <div class="kpi-sub">Foreg. {{ overview.prev_kassationsgrad }}%</div>
+        <div class="kpi-sub">Föreg. {{ overview.prev_kassationsgrad }}%</div>
       </div>
     </div>
   </div>
@@ -71,7 +71,7 @@
   <div class="chart-card mb-4" *ngIf="paretoData && !loadingPareto">
     <h5 class="card-title mb-3">
       <i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-diagram — Kassationsorsaker
-      <small class="text-muted ms-2">(klicka pa en stapel för drilldown)</small>
+      <small class="text-muted ms-2">(klicka på en stapel för drilldown)</small>
     </h5>
     <div class="chart-wrapper">
       <canvas id="paretoChart"></canvas>
@@ -86,7 +86,7 @@
   <!-- TRENDDIAGRAM PER ORSAK -->
   <div class="chart-card mb-4" *ngIf="trendData && !loadingTrend">
     <h5 class="card-title mb-3">
-      <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Trend per orsak over tid
+      <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Trend per orsak över tid
     </h5>
     <div class="orsak-checkbox-list mb-3">
       <label *ngFor="let s of trendData.series; let i = index; trackBy: trackByIndex">
@@ -109,7 +109,7 @@
   <!-- PER OPERATOR -->
   <div class="data-card mb-4" *ngIf="operatorData && !loadingOperator">
     <h5 class="card-title mb-3">
-      <i class="fas fa-user me-2" style="color:#68d391"></i>Kassationsprofil per operator
+      <i class="fas fa-user me-2" style="color:#68d391"></i>Kassationsprofil per operatör
     </h5>
 
     <div class="text-muted" *ngIf="operatorData.operators.length === 0">

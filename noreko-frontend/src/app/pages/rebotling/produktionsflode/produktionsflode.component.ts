@@ -180,7 +180,7 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     const lastX = padding + colSpacing * (colCount - 1);
 
     result.push({
-      id: 'godkand', label: 'Godkand', x: lastX, y: padding + 20,
+      id: 'godkand', label: 'Godkänd', x: lastX, y: padding + 20,
       w: nodeW, h: okH, color: '#48bb78', value: summary.godkanda,
     });
 

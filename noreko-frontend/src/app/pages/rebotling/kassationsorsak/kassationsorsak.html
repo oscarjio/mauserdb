@@ -57,7 +57,7 @@
                [style.color]="kassationFarg(overview.kassation_pct)">
             {{ overview.kassation_pct }}%
           </div>
-          <div class="kps-kpi-sub">Igar: {{ overview.kassation_pct_igar }}%</div>
+          <div class="kps-kpi-sub">Igår: {{ overview.kassation_pct_igar }}%</div>
         </ng-container>
         <ng-template #laddaKpi2>
           <div class="kps-kpi-value text-muted">—</div>
@@ -68,7 +68,7 @@
     <!-- Värsta station -->
     <div class="col-6 col-md-3">
       <div class="kps-kpi-card">
-        <div class="kps-kpi-label">Varsta station</div>
+        <div class="kps-kpi-label">Värsta station</div>
         <ng-container *ngIf="!loadingOverview && overview; else laddaKpi3">
           <div class="kps-kpi-value" style="font-size:1.2rem">
             {{ overview.varsta_station || '—' }}

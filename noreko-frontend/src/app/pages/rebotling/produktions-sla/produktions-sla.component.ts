@@ -395,8 +395,8 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   trendLabel(trend: string): string {
     switch (trend) {
-      case 'uppat': return 'Uppat';
-      case 'nedat': return 'Nedat';
+      case 'uppat': return 'Uppåt';
+      case 'nedat': return 'Nedåt';
       default: return 'Stabil';
     }
   }

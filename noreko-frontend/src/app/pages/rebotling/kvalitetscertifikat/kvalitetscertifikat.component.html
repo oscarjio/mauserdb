@@ -61,7 +61,7 @@
 
     <div class="col-6 col-md-3">
       <div class="kpi-card">
-        <div class="kpi-label">Snitt kvalitetspoang</div>
+        <div class="kpi-label">Snitt kvalitetspoäng</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
           <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
@@ -69,7 +69,7 @@
           <div class="kpi-value" [style.color]="poangColor(overview?.snitt_kvalitetspoang ?? 0)">
             {{ formatDecimal(overview?.snitt_kvalitetspoang, 1) }}
           </div>
-          <div class="kpi-sub">Av 100 mojliga</div>
+          <div class="kpi-sub">Av 100 möjliga</div>
         </div>
       </div>
     </div>
@@ -90,11 +90,11 @@
       <option value="">Alla statusar</option>
       <option value="godkand">Godkänd</option>
       <option value="underkand">Underkänd</option>
-      <option value="ej_bedomd">Ej bedomd</option>
+      <option value="ej_bedomd">Ej bedömd</option>
     </select>
 
     <select class="filter-select" aria-label="Filtrera operatör" [(ngModel)]="filterOperator" (change)="onFilterChange()">
-      <option [ngValue]="0">Alla operatorer</option>
+      <option [ngValue]="0">Alla operatörer</option>
       <option *ngFor="let op of operatorer; trackBy: trackByOperatorId" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
     </select>
   </div>
@@ -103,7 +103,7 @@
   <div class="chart-card mb-4">
     <div class="chart-title">
       <i class="fas fa-chart-bar me-2" style="color:#48bb78;"></i>
-      Kvalitetspoang per batch (senaste 30)
+      Kvalitetspoäng per batch (senaste 30)
     </div>
     <div *ngIf="loadingStatistik" class="loading-spinner">
       <div role="status" class="spinner-border spinner-border-sm text-info me-2"><span class="visually-hidden">Laddar...</span></div> Laddar...
@@ -158,7 +158,7 @@
               Cykeltid <i [class]="sortIcon('cykeltid_snitt')"></i>
             </th>
             <th scope="col" class="text-end sortable-th" (click)="sortBy('kvalitetspoang')" tabindex="0" (keydown.enter)="sortBy('kvalitetspoang')">
-              Poang <i [class]="sortIcon('kvalitetspoang')"></i>
+              Poäng <i [class]="sortIcon('kvalitetspoang')"></i>
             </th>
             <th scope="col">Status</th>
             <th scope="col" class="text-center">Certifikat</th>
@@ -228,7 +228,7 @@
       <div *ngIf="!loadingDetalj && !errorDetalj && selectedCert" class="cert-content" id="printable-cert">
         <!-- Certifikat-huvud -->
         <div class="cert-header-section">
-          <div class="cert-company">Noreko / Mauser IBC-tvatteri</div>
+          <div class="cert-company">Noreko / Mauser IBC-tvätteri</div>
           <div class="cert-title-big">KVALITETSCERTIFIKAT</div>
           <div class="cert-subtitle">Batch: {{ selectedCert.batch_nummer }}</div>
         </div>
@@ -279,12 +279,12 @@
           </div>
         </div>
 
-        <!-- Kvalitetsbedomning -->
+        <!-- Kvalitetsbedömning -->
         <div class="cert-section">
-          <div class="cert-section-title">Kvalitetsbedomning</div>
+          <div class="cert-section-title">Kvalitetsbedömning</div>
           <div class="cert-grid">
             <div class="cert-field">
-              <span class="cert-field-label">Kvalitetspoang</span>
+              <span class="cert-field-label">Kvalitetspoäng</span>
               <span class="cert-field-value cert-poang" [style.color]="poangColor(selectedCert.kvalitetspoang)">
                 {{ formatDecimal(selectedCert.kvalitetspoang) }} / 100
               </span>
@@ -296,11 +296,11 @@
               </span>
             </div>
             <div class="cert-field" *ngIf="selectedCert.bedomd_av">
-              <span class="cert-field-label">Bedomd av</span>
+              <span class="cert-field-label">Bedömd av</span>
               <span class="cert-field-value">{{ selectedCert.bedomd_av }}</span>
             </div>
             <div class="cert-field" *ngIf="selectedCert.bedomd_datum">
-              <span class="cert-field-label">Bedomd datum</span>
+              <span class="cert-field-label">Bedömt datum</span>
               <span class="cert-field-value">{{ formatDate(selectedCert.bedomd_datum) }}</span>
             </div>
           </div>
@@ -337,19 +337,19 @@
 
         <!-- Bedom-sektion (ej vid utskrift) -->
         <div class="cert-section no-print" *ngIf="selectedCert.status === 'ej_bedomd'">
-          <div class="cert-section-title">Bedom certifikat</div>
+          <div class="cert-section-title">Bedöm certifikat</div>
           <div class="d-flex gap-2 mb-3 align-items-center">
             <button class="btn btn-sm"
                     [class.btn-success]="bedomStatus === 'godkand'"
                     [class.btn-outline-success]="bedomStatus !== 'godkand'"
                     (click)="bedomStatus = 'godkand'">
-              <i class="fas fa-check me-1"></i>Godkann
+              <i class="fas fa-check me-1"></i>Godkänn
             </button>
             <button class="btn btn-sm"
                     [class.btn-danger]="bedomStatus === 'underkand'"
                     [class.btn-outline-danger]="bedomStatus !== 'underkand'"
                     (click)="bedomStatus = 'underkand'">
-              <i class="fas fa-times me-1"></i>Underkann
+              <i class="fas fa-times me-1"></i>Underkänn
             </button>
           </div>
           <div class="mb-3">
@@ -361,7 +361,7 @@
                   [disabled]="bedomLoading || !bedomStatus">
             <span *ngIf="bedomLoading" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
             <i *ngIf="!bedomLoading" class="fas fa-save me-1"></i>
-            Spara bedomning
+            Spara bedömning
           </button>
           <span *ngIf="bedomMessage" class="text-success small ms-2">
             <i class="fas fa-check-circle me-1"></i>{{ bedomMessage }}

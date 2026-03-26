@@ -22,7 +22,7 @@
     </div>
     <div class="col-md-3 col-6">
       <div class="kpi-card">
-        <div class="kpi-label">Samsta station</div>
+        <div class="kpi-label">Sämsta station</div>
         <div class="kpi-value text-danger" *ngIf="overview.worst_station">{{ overview.worst_station_rate }}%</div>
         <div class="kpi-value text-muted" *ngIf="!overview.worst_station">--</div>
         <div class="kpi-sub">{{ overview.worst_station || 'Inga data' }}</div>
@@ -30,7 +30,7 @@
     </div>
     <div class="col-md-3 col-6">
       <div class="kpi-card">
-        <div class="kpi-label">Samsta operator</div>
+        <div class="kpi-label">Sämsta operatör</div>
         <div class="kpi-value text-danger" *ngIf="overview.worst_operator">{{ overview.worst_operator_rate }}%</div>
         <div class="kpi-value text-muted" *ngIf="!overview.worst_operator">--</div>
         <div class="kpi-sub">{{ overview.worst_operator || 'Inga data' }}</div>
@@ -46,7 +46,7 @@
             {{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}%
           </span>
         </div>
-        <div class="kpi-sub">Foregaende: {{ overview.prev_rate }}%</div>
+        <div class="kpi-sub">Föregående: {{ overview.prev_rate }}%</div>
       </div>
     </div>
   </div>
@@ -62,7 +62,7 @@
   <!-- Station trend diagram -->
   <div class="chart-card mb-4">
     <div class="d-flex justify-content-between align-items-start mb-3">
-      <h5 class="card-title mb-0">Kassationsrate per station over tid</h5>
+      <h5 class="card-title mb-0">Kassationsrate per station över tid</h5>
     </div>
     <!-- Station checkboxar -->
     <div class="station-checkboxes mb-3" *ngIf="trendData?.series?.length">
@@ -89,7 +89,7 @@
     <!-- Operator tabell -->
     <div class="col-lg-7">
       <div class="table-card">
-        <h5 class="card-title mb-3">Kassationsrate per operator</h5>
+        <h5 class="card-title mb-3">Kassationsrate per operatör</h5>
         <div *ngIf="loadingOperators" class="text-center py-4">
           <div class="spinner-border spinner-border-sm text-info" role="status"></div>
         </div>
@@ -231,7 +231,7 @@
         </tbody>
       </table>
       <div class="heatmap-legend mt-2 d-flex align-items-center gap-1">
-        <span class="small text-muted me-2">Fargskala:</span>
+        <span class="small text-muted me-2">Färgskala:</span>
         <span class="heatmap-legend-item" style="background:#276749">0-1%</span>
         <span class="heatmap-legend-item" style="background:#38a169">1-2%</span>
         <span class="heatmap-legend-item" style="background:#68d391; color:#1a202c">2-3%</span>

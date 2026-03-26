@@ -38,7 +38,7 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
   }
 
   saveNewEvent(): void {
-    if (!this.newEvent.event_date || !this.newEvent.title.trim()) { this.eventsAdminError = 'Datum och titel kravs.'; return; }
+    if (!this.newEvent.event_date || !this.newEvent.title.trim()) { this.eventsAdminError = 'Datum och titel krävs.'; return; }
     this.eventsAdminSaving = true; this.eventsAdminError = ''; this.eventsAdminMessage = '';
     this.rebotlingService.addProductionEvent(this.newEvent).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { this.eventsAdminSaving = false;

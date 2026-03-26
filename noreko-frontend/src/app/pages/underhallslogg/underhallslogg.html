@@ -5,9 +5,9 @@
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title">
-          <i class="fas fa-tools me-2 text-warning"></i>Underhallslogg
+          <i class="fas fa-tools me-2 text-warning"></i>Underhållslogg
         </h2>
-        <p class="page-subtitle">Registrera och folj upp underhall per station — planerat vs oplanerat</p>
+        <p class="page-subtitle">Registrera och följ upp underhåll per station — planerat vs oplanerat</p>
       </div>
       <div class="d-flex gap-2">
         <button *ngIf="activeTab === 'rebotling' && loggedIn" class="btn-spara-sm" (click)="toggleForm()">
@@ -59,7 +59,7 @@
           <div class="stat-card">
             <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
             <div class="stat-value">{{ kpi ? formatTid(kpi.snitt_tid_min) : '0 min' }}</div>
-            <div class="stat-label">Snitt tid per underhall</div>
+            <div class="stat-label">Snitt tid per underhåll</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
@@ -67,8 +67,8 @@
             <div class="stat-icon text-danger"><i class="fas fa-map-marker-alt"></i></div>
             <div class="stat-value stat-value-sm">{{ kpi?.top_station?.station_namn ?? '--' }}</div>
             <div class="stat-label">
-              <span *ngIf="kpi?.top_station">{{ kpi!.top_station!.antal }} underhall</span>
-              <span *ngIf="!kpi?.top_station">Inget underhall</span>
+              <span *ngIf="kpi?.top_station">{{ kpi!.top_station!.antal }} underhåll</span>
+              <span *ngIf="!kpi?.top_station">Inget underhåll</span>
             </div>
           </div>
         </div>
@@ -77,7 +77,7 @@
       <!-- Registreringsformular (inline, visas vid klick) -->
       <div *ngIf="showForm" class="card-dark mb-4">
         <div class="card-dark-header">
-          <i class="fas fa-plus-circle me-2 text-success"></i>Registrera nytt underhall
+          <i class="fas fa-plus-circle me-2 text-success"></i>Registrera nytt underhåll
         </div>
         <div class="card-dark-body">
 
@@ -90,14 +90,14 @@
             <div class="col-12 col-md-4">
               <label class="form-label-dark">Station</label>
               <select aria-label="Välj station" class="form-control-dark" [(ngModel)]="formStationId">
-                <option [ngValue]="0">-- Valj station --</option>
+                <option [ngValue]="0">-- Välj station --</option>
                 <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
               </select>
             </div>
 
             <!-- Typ -->
             <div class="col-12 col-md-4">
-              <label class="form-label-dark">Typ av underhall</label>
+              <label class="form-label-dark">Typ av underhåll</label>
               <div class="radio-group">
                 <label class="radio-option" [class.selected]="formTyp === 'planerat'">
                   <input type="radio" name="formTyp" value="planerat" [(ngModel)]="formTyp">
@@ -130,7 +130,7 @@
 
             <!-- Utford av -->
             <div class="col-12 col-md-3">
-              <label class="form-label-dark">Utford av</label>
+              <label class="form-label-dark">Utförd av</label>
               <input type="text" class="form-control-dark" [(ngModel)]="formUtfordAv" maxlength="100">
             </div>
 
@@ -145,7 +145,7 @@
             <button class="btn-spara" (click)="spara()" [disabled]="submitting || !formStationId || !formDatum || !formVaraktighet || formVaraktighet <= 0">
               <span *ngIf="submitting" role="status" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!submitting" class="fas fa-save me-2"></i>
-              {{ submitting ? 'Sparar...' : 'Spara underhall' }}
+              {{ submitting ? 'Sparar...' : 'Spara underhåll' }}
             </button>
           </div>
         </div>
@@ -213,7 +213,7 @@
       <!-- Underhallslista (filtrerbar) -->
       <div class="card-dark">
         <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
-          <span><i class="fas fa-history me-2"></i>Underhallsposter</span>
+          <span><i class="fas fa-history me-2"></i>Underhållsposter</span>
 
           <select aria-label="Välj station" class="filter-select" [(ngModel)]="filterStation" (change)="onFilterChange()">
             <option [ngValue]="0">Alla stationer</option>
@@ -241,7 +241,7 @@
 
           <div *ngIf="!loadingItems && items.length === 0" class="empty-state">
             <i class="fas fa-clipboard text-muted"></i>
-            <p>Inga underhallsposter hittades.</p>
+            <p>Inga underhållsposter hittades.</p>
           </div>
 
           <div *ngIf="!loadingItems && items.length > 0" class="table-responsive">
@@ -253,7 +253,7 @@
                   <th scope="col">Typ</th>
                   <th scope="col">Varaktighet</th>
                   <th scope="col">Stopporsak</th>
-                  <th scope="col">Utford av</th>
+                  <th scope="col">Utförd av</th>
                   <th scope="col" class="td-beskrivning-hdr">Beskrivning</th>
                   <th scope="col" *ngIf="loggedIn"></th>
                 </tr>
@@ -297,7 +297,7 @@
         <div class="col-12 col-lg-6">
           <div class="card-dark">
             <div class="card-dark-header">
-              <i class="fas fa-plus-circle me-2 text-success"></i>Registrera generellt underhall
+              <i class="fas fa-plus-circle me-2 text-success"></i>Registrera generellt underhåll
             </div>
             <div class="card-dark-body">
               <div class="alert-error-msg" *ngIf="errorMessage && activeTab === 'general'" role="alert">
@@ -307,13 +307,13 @@
               <div class="form-group mb-3">
                 <label class="form-label-dark">Kategori</label>
                 <select aria-label="Välj kategori" class="form-control-dark" [(ngModel)]="legacyFormKategori">
-                  <option value="">-- Valj kategori --</option>
+                  <option value="">-- Välj kategori --</option>
                   <option *ngFor="let kat of kategorier; trackBy: trackByIndex" [value]="kat.namn">{{ kat.namn }}</option>
                 </select>
               </div>
 
               <div class="form-group mb-3">
-                <label class="form-label-dark">Typ av underhall</label>
+                <label class="form-label-dark">Typ av underhåll</label>
                 <div class="radio-group">
                   <label class="radio-option" [class.selected]="legacyFormTyp === 'planerat'">
                     <input type="radio" name="legacyTyp" value="planerat" [(ngModel)]="legacyFormTyp">
@@ -344,7 +344,7 @@
               <button class="btn-spara" (click)="sparaLegacy()" [disabled]="legacySubmitting">
                 <span *ngIf="legacySubmitting" role="status" class="spinner-border spinner-border-sm me-2"></span>
                 <i *ngIf="!legacySubmitting" class="fas fa-save me-2"></i>
-                {{ legacySubmitting ? 'Sparar...' : 'Spara underhall' }}
+                {{ legacySubmitting ? 'Sparar...' : 'Spara underhåll' }}
               </button>
             </div>
           </div>
@@ -357,7 +357,7 @@
               <div class="stat-card">
                 <div class="stat-icon text-info"><i class="fas fa-clipboard-list"></i></div>
                 <div class="stat-value">{{ stats?.totalt_antal ?? 0 }}</div>
-                <div class="stat-label">Totalt underhall</div>
+                <div class="stat-label">Totalt underhåll</div>
                 <div class="stat-period">senaste {{ legacyFilterDays }} dagarna</div>
               </div>
             </div>
@@ -417,7 +417,7 @@
           </div>
           <div *ngIf="!loadingHistorik && historik.length === 0" class="empty-state">
             <i class="fas fa-clipboard text-muted"></i>
-            <p>Inga underhallsposter hittades.</p>
+            <p>Inga underhållsposter hittades.</p>
           </div>
           <div *ngIf="!loadingHistorik && historik.length > 0" class="table-responsive">
             <table class="underhall-table">

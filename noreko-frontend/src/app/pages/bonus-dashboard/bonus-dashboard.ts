@@ -732,7 +732,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     const header = ['Rank', 'Trend', 'Operatör', 'Bonus Snitt', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'IBC OK', 'Timmar'];
     const rows = data.map((r: RankingEntry) => [
       r.rank,
-      this.getOperatorTrend(r) === 'up' ? 'Uppat' : this.getOperatorTrend(r) === 'down' ? 'Nedåt' : 'Stabil',
+      this.getOperatorTrend(r) === 'up' ? 'Uppåt' : this.getOperatorTrend(r) === 'down' ? 'Nedåt' : 'Stabil',
       r.operator_name || ('Op ' + r.operator_id),
       (r.bonus_avg ?? 0).toFixed(1),
       (r.effektivitet ?? 0).toFixed(1) + '%',
