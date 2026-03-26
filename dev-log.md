@@ -1,3 +1,50 @@
+## Worker B -- Session #348 (2026-03-26) -- 20+ sidor granskade, 7 diakritikfixar
+
+### UPPGIFT 1: OPERATOR-UI SIDOR (10 sidor) -- KLAR
+Djupgranskade alla 10 operator-sidor:
+1. **operator-dashboard** -- Dark theme OK, svenska OK, lifecycle OK (destroy$, clearInterval, clearTimeout, chart.destroy), 3 flikar (idag/vecka/stamning)
+2. **operator-ranking** -- Dark theme OK, svenska OK, lifecycle OK, 6 dataladd + 2 charts
+3. **operator-onboarding** -- **FIX: 3 diakritikfel** (manader -> manader i periodvaljare)
+4. **operator-compare** -- Dark theme OK, svenska OK, lifecycle OK, radar+trend charts
+5. **operator-detail** -- **FIX: 4 diakritikfel** (Uppnatt -> Uppnatt i achievements)
+6. **operator-trend** -- Dark theme OK, svenska OK, lifecycle OK, prognos med linjar regression
+7. **operator-personal-dashboard** -- **FIX: 2 diakritikfel** (Over/Nara -> Over/Nara i tempoLabel)
+8. **operators** -- Dark theme OK, svenska OK, lifecycle OK, CRUD + trend + korrelation + kompatibilitetsmatris
+9. **operatorsportal** -- Dark theme OK, svenska OK, lifecycle OK, personlig vy med bonus
+10. **operator-attendance** -- Dark theme OK, svenska OK, lifecycle OK, kalendervy
+
+### UPPGIFT 2: ADMIN-SIDOR (4 sidor) -- KLAR
+1. **bonus-admin** -- Mycket komplex sida (1490 rader). Dark theme OK, svenska OK, lifecycle OK med clearTimeout. Simulator, payouts, fairness audit alla OK
+2. **news-admin** -- Dark theme OK, svenska OK, lifecycle OK. CRUD med sok/filter/prioritet/arkivering
+3. **vpn-admin** -- Dark theme OK, svenska OK, lifecycle OK (clearInterval). Polling 30s
+4. **feature-flag-admin** -- Dark theme OK, svenska OK, lifecycle OK. Bulk-update + canDeactivate guard
+
+### UPPGIFT 3: KVALITET/ANALYTICS UI (3+ sidor) -- KLAR
+1. **kvalitetstrend** -- Dark theme OK, svenska OK, lifecycle OK. Vecka/manad toggle, operatorsdetalj
+2. **heatmap** -- Dark theme OK, svenska OK. Tooltip, legend, KPI-kort
+3. **oee-trendanalys** -- Dark theme OK, svenska OK. 5 KPI-kort, trend, stationer, flaskhalsar, prediktion, periodjamforelse
+
+### UPPGIFT 4: REBOTLING UI-SIDOR (ej live) -- KLAR
+- **rebotling-sammanfattning** -- Dark theme OK, svenska OK
+- **kvalitets-trendbrott** -- Dark theme OK, svenska OK
+- **statistik-produktionsrytm** -- Dark theme OK, svenska OK
+- **statistik-veckodag** -- Dark theme OK, svenska OK
+- **oee-jamforelse** -- **FIX: 3 diakritikfel** (Mal-OEE -> Mal-OEE, Uppnatt -> Uppnatt)
+- **statistik-waterfall-oee** -- **FIX: 2 diakritikfel** (Uppnatt/Forlust -> Uppnatt/Forlust)
+
+### UPPGIFT 5: BYGG OCH DEPLOY -- KLAR
+- `npx ng build` -- framgangsrik utan fel
+- Deployad till dev via rsync
+
+### SAMMANFATTNING
+- 20+ sidor granskade
+- 7 diakritikfixar i 6 filer
+- Alla sidor: dark theme korrekt, text pa svenska, lifecycle korrekt, data visas korrekt
+- Inga engelska strangar hittade i synliga UI-element
+- Alla grafer har korrekt konfiguration for dark theme
+
+---
+
 ## Worker A -- Session #347 (2026-03-26) -- 5 auth-buggar fixade + alert/admin endpoints granskade + prestandaoptimering
 
 ### UPPGIFT 1: ALERT-SYSTEMET GRANSKAT -- 4 CONTROLLERS -- KLAR
