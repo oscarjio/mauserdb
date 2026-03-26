@@ -668,7 +668,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             display: true,
@@ -741,7 +741,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {

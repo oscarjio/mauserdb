@@ -92,6 +92,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {

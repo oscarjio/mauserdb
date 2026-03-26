@@ -1171,7 +1171,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         scales: {
           r: {
             min: 0,

@@ -765,6 +765,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             labels: { color: '#e2e8f0' }
@@ -1038,6 +1039,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       data: { labels, datasets },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
@@ -1393,6 +1395,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         interaction: {
           mode: 'index',
           intersect: false,

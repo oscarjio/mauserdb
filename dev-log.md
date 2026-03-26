@@ -1,3 +1,51 @@
+## Worker B -- Session #332 (2026-03-26) -- Chart.js responsivitet, formulargranskning, tabellgranskning, skiftoverlamning
+
+### Uppgift 1: Granska ALLA Chart.js-konfigurationer
+- Identifierade 124 filer med Chart.js i hela frontend-kodbasen
+- **Fixat maintainAspectRatio: false** pa 6 filer som saknade det (historik.ts, operator-compare.ts, rebotling-admin.ts, bonus-dashboard.ts, statistik-veckodag.ts, operatorsbonus.component.ts)
+- Ovriga ~190 instanser hade redan korrekt konfiguration sedan tidigare sessioner
+- Verifierade dark theme-farger pa samtliga grafer: ticks (#a0aec0/#718096), gridlines (rgba-baserade), legendfarger (#e2e8f0) — konsistent
+- Tooltips ar pa svenska (IBC, OEE, Stopptid, Kassation, Minuter per IBC, Producerade IBC osv)
+- "World Class (85%)" behalles — etablerad OEE-term aven pa svenska
+- Alla grafer har responsive: true + maintainAspectRatio: false
+
+### Uppgift 2: Granska alla formularsidor
+- Granskade 18 filer med formularelement (form, ngSubmit, FormGroup)
+- Login: korrekt validering (required, minlength), svenska etiketter, dark theme, loading-state, felmeddelanden
+- Register: losenordsvalidering (minst 8 tecken, bokstav+siffra), e-postvalidering, matchningskontroll — allt pa svenska
+- Skiftoverlamning: fullstandigt formular med checklista, fritext, KPI-autoifyllning fran PLC, loading-state, submit-flode
+- Alla formularsidor har korrekt dark theme (dark-input, dark-select klasser)
+- Felmeddelanden visas pa svenska ("Kunde inte spara", "Ogiltig e-postadress" osv)
+
+### Uppgift 3: Granska alla tabeller
+- Granskade 121 filer med tabeller
+- Alla tabeller anvander `table-responsive` wrapper for overflow pa smala skarmar
+- Tomma-tillstand finns pa svenska ("Inga overlamningar annu", "Inga anteckningar", "Inga data att visa" osv)
+- Dark theme: table-dark, alternerade farger, hover-effekt — konsistent
+- Sortering fungerar korrekt i operatorsbonus, operators-listan m.fl.
+
+### Uppgift 4: Granska skiftoverlamning frontend
+- Tre separata skiftoverlamning-komponenter granskade:
+  1. `skiftoverlamning` (pages/) — fullstandig dashboard + formular + detaljvy med KPI-jamforelse mot mal
+  2. `skiftoverlamning-protokoll` (rebotling/) — checklista-baserat protokoll med 6 kontrollpunkter + historik
+  3. `shift-handover` (pages/) — anteckningssystem med prioritet, kvittering, filtrering
+- Alla tre har korrekt lifecycle (OnInit/OnDestroy, destroy$, takeUntil, clearInterval)
+- Data visas korrekt med KPI-fargkodning (gron/gul/rod baserat pa mal)
+- Berakningar stammer (checklistaProgress, OEE-comparison, kassationsgradsjamforelse)
+- Alla texter pa svenska
+
+### Uppgift 5: Diakritikfixar i operatorsbonus
+- "Narvaro" -> "Narvaro" (3 stallen i chart labels)
+- "Manad" -> "Manad" (periodLabel)
+- "Team-mal" -> "Team-mal" (faktorLabel)
+
+### Uppgift 6: Bygg och deploy
+- Byggde framgangsrikt: `npx ng build` — 0 errors
+- Deployade till dev via rsync till dev.mauserdb.com
+- 6 frontend-filer andrade (chart-fixar + diakritiker)
+
+---
+
 ## Worker B -- Session #331 (2026-03-26) -- Frontend UX: adaptiv granularitet, polling-optimering, datakvalitet
 
 ### Uppgift 1: Forbattra rebotling-grafer med adaptiv granularitet

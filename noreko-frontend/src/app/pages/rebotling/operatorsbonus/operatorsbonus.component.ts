@@ -280,7 +280,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.radarChart = new Chart(canvas, {
       type: 'radar',
       data: {
-        labels: ['IBC/h', 'Kvalitet', 'Narvaro', 'Team'],
+        labels: ['IBC/h', 'Kvalitet', 'Närvaro', 'Team'],
         datasets: [{
           label: op.operator_namn,
           data: [op.pct_ibc, op.pct_kvalitet, op.pct_narvaro, op.pct_team],
@@ -339,7 +339,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
         datasets: [
           { label: 'IBC/h',    data: ibcData,  backgroundColor: '#4299e1', borderRadius: 3 },
           { label: 'Kvalitet', data: kvalData, backgroundColor: '#48bb78', borderRadius: 3 },
-          { label: 'Narvaro',  data: narvData, backgroundColor: '#ecc94b', borderRadius: 3 },
+          { label: 'Närvaro',  data: narvData, backgroundColor: '#ecc94b', borderRadius: 3 },
           { label: 'Team',     data: teamData, backgroundColor: '#9f7aea', borderRadius: 3 },
         ],
       },
@@ -383,7 +383,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.simChart = new Chart(canvas, {
       type: 'doughnut',
       data: {
-        labels: ['IBC/h', 'Kvalitet', 'Narvaro', 'Team'],
+        labels: ['IBC/h', 'Kvalitet', 'Närvaro', 'Team'],
         datasets: [{
           data: [sim.bonus_ibc, sim.bonus_kvalitet, sim.bonus_narvaro, sim.bonus_team],
           backgroundColor: ['#4299e1', '#48bb78', '#ecc94b', '#9f7aea'],
@@ -436,7 +436,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   periodLabel(p: string): string {
     switch (p) {
       case 'vecka': return 'Vecka';
-      case 'manad': return 'Manad';
+      case 'manad': return 'Månad';
       default: return 'Idag';
     }
   }
@@ -445,8 +445,8 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     const labels: Record<string, string> = {
       'ibc_per_timme': 'IBC per timme',
       'kvalitet':      'Kvalitet (%)',
-      'narvaro':       'Narvaro (%)',
-      'team_bonus':    'Team-mal (%)',
+      'narvaro':       'Närvaro (%)',
+      'team_bonus':    'Team-mål (%)',
     };
     return labels[faktor] ?? faktor;
   }
