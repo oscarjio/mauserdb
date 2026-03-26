@@ -367,7 +367,7 @@ interface ProfileResponse {
                      style="font-weight:700;font-size:14px;">100+ IBC ett skift</div>
                 <div style="font-size:12px;margin-top:4px;"
                      [style.color]="profil.achievements.has_100_ibc_day ? '#d69e2e' : '#4a5568'">
-                  {{ profil.achievements.has_100_ibc_day ? 'Uppnatt!' : 'Ej uppnatt' }}
+                  {{ profil.achievements.has_100_ibc_day ? 'Uppnått!' : 'Ej uppnått' }}
                 </div>
               </div>
             </div>
@@ -385,7 +385,7 @@ interface ProfileResponse {
                      style="font-weight:700;font-size:14px;">95%+ kvalitet en vecka</div>
                 <div style="font-size:12px;margin-top:4px;"
                      [style.color]="profil.achievements.has_95_quality_week ? '#38a169' : '#4a5568'">
-                  {{ profil.achievements.has_95_quality_week ? 'Uppnatt senaste veckan!' : 'Ej uppnatt' }}
+                  {{ profil.achievements.has_95_quality_week ? 'Uppnått senaste veckan!' : 'Ej uppnått' }}
                 </div>
               </div>
             </div>

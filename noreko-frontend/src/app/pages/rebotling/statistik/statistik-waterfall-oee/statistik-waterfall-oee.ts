@@ -75,7 +75,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#48bb78', borderWidth: 1,
-            callbacks: { label: (ctx: any) => { const v = ctx.parsed.x; if (v == null) return ''; return ctx.datasetIndex === 0 ? `Uppnatt: ${v.toFixed(1)}%` : `Forlust: ${v.toFixed(1)}%`; } }
+            callbacks: { label: (ctx: any) => { const v = ctx.parsed.x; if (v == null) return ''; return ctx.datasetIndex === 0 ? `Uppnått: ${v.toFixed(1)}%` : `Förlust: ${v.toFixed(1)}%`; } }
           }
         },
         scales: {

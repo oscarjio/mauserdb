@@ -88,13 +88,13 @@
     <!-- Mal-OEE -->
     <div class="col-6 col-md-3">
       <div class="oee-kpi-card">
-        <div class="oee-kpi-label">Mal-OEE</div>
+        <div class="oee-kpi-label">Mål-OEE</div>
         <ng-container *ngIf="!loading && data; else laddaKpi4">
           <div class="oee-kpi-value" style="color:#fc8181">
             {{ data!.mal_oee }}%
           </div>
           <div class="oee-kpi-sub" *ngIf="data!.aktuell_vecka">
-            {{ data!.aktuell_vecka!.oee_pct >= data!.mal_oee ? 'Uppnatt!' : 'Ej uppnatt' }}
+            {{ data!.aktuell_vecka!.oee_pct >= data!.mal_oee ? 'Uppnått!' : 'Ej uppnått' }}
           </div>
         </ng-container>
         <ng-template #laddaKpi4>

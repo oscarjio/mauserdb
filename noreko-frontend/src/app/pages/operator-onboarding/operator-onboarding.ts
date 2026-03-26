@@ -29,9 +29,9 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
   // ---- Period ----
   months = 6;
   readonly monthOptions: MonthOption[] = [
-    { val: 3,  label: '3 manader'  },
-    { val: 6,  label: '6 manader'  },
-    { val: 12, label: '12 manader' },
+    { val: 3,  label: '3 månader'  },
+    { val: 6,  label: '6 månader'  },
+    { val: 12, label: '12 månader' },
   ];
 
   // ---- Laddning ----

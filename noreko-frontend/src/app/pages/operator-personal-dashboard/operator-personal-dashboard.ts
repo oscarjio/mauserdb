@@ -341,8 +341,8 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
 
   get tempoLabel(): string {
     if (!this.tempo) return '';
-    if (this.tempo.procent_vs_snitt >= 110) return 'Over snittet!';
-    if (this.tempo.procent_vs_snitt >= 90) return 'Nara snittet';
+    if (this.tempo.procent_vs_snitt >= 110) return 'Över snittet!';
+    if (this.tempo.procent_vs_snitt >= 90) return 'Nära snittet';
     return 'Under snittet';
   }
 
