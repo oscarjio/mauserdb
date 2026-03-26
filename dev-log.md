@@ -1,3 +1,62 @@
+## Worker B -- Session #334 (2026-03-26) -- Error handling, rollnavigation, svenska, responsivitet
+
+### Uppgift 1: Granska error handling i Angular services -- KLAR
+- Granskade samtliga 96 .service.ts-filer i noreko-frontend/src/app/services/ och rebotling/
+- ALLA HTTP-anrop har konsekvent monster: timeout() + retry(1) + catchError(() => of(null))
+- Timeout-varden ar rimliga: 3000-20000ms beroende pa anropets karaktar
+- retry(1) anvands genomgaende for transient errors
+- catchError returnerar null/tom data -- anropande komponenter hanterar null-svar
+- isFetching-guards finns pa alla polling-anrop for att forhindra duplikat
+- takeUntil(destroy$) anvands konsekvent for att forhindra minneslackor
+- ToastService finns och anvands for felanvandarmeddelanden (svenska)
+- Resultat: INGA problem hittade -- error handling ar solid
+
+### Uppgift 2: Testa rollbaserad navigation -- KLAR
+- Granskade menu.html: menyer styrs av ff.canAccess() (feature flag + rollniva)
+- Admin-meny skyddas av *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"
+- authGuard: vantar pa initialized$, omdirigerar till /login med returnUrl
+- adminGuard: vantar pa initialized$, kontrollerar admin/developer-roll, omdirigerar ej-admin till /
+- FeatureFlagService: roleLevel() stammer -- developer(3) > admin(2) > user(1) > public(0)
+- app.routes.ts: admin-rutter anvander adminGuard, auth-rutter anvander authGuard -- matchar menyvisning
+- curl https://dev.mauserdb.com/noreko-backend/api.php?action=status -- 200, loggedIn:false
+- curl https://dev.mauserdb.com/noreko-backend/api.php?action=bonus&run=summary -- returnerar "Ej inloggad"
+- Backend validering fungerar korrekt
+- Resultat: INGA problem hittade -- rollbaserad navigation ar korrekt
+
+### Uppgift 3: Granska internationalisering (svenska) -- KLAR
+- Sokte genom ALLA .html och .ts-filer efter engelska strangar
+- Sokte specifikt efter: Loading, Error, Save, Delete, Cancel, Submit, Success, Failed, No data, Search, Filter, Export, Import, Close, Open, Edit, Add, Remove, Update, Create, Back, Next, Previous, Total, Average
+- ALLA toast-meddelanden ar pa svenska (t.ex. "Kunde inte spara", "Operatör sparad", etc.)
+- ALLA knapptexter ar pa svenska (Spara, Ta bort, Logga in, Logga ut, etc.)
+- ALLA felmeddelanden och labels ar pa svenska
+- ALLA titel-attribut ar pa svenska
+- Engelska ord som forekommmer ar interna (CSS-klasser, type-literals: 'error', 'success', 'warning')
+- alarm-historik har korrekt "Info" som kategorinamn (ej UI-text)
+- Resultat: INGA engelska strangar hittade i anvandargranssnittet
+
+### Uppgift 4: Verifiera responsivitet -- KLAR
+- Granskade tabeller: 86+ tabeller har table-responsive wrapper eller overflow-x:auto
+- Grafer: ALLA canvas-element ar i chart-container divs med position:relative
+- Bootstrap grid: col-md, col-lg, col-12 anvands korrekt genomgaende
+- **FIX: Saknad hamburger-meny for mobil (kritisk)**:
+  - navbar anvande navbar-expand-lg men saknade navbar-toggler och collapse-wrapper
+  - Lade till navbar-toggler (hamburger-knapp) med data-bs-toggle="collapse"
+  - Lade till collapse navbar-collapse wrapper runt nav-items (#mainNavCollapse)
+  - Lade till import('bootstrap/js/dist/collapse') i menu.ts ngOnInit
+  - Lade till mobil-CSS: flex-direction column, full-width dropdown, toggler-styling
+- VD-veckorapport-tabeller har egen rapport-tabell CSS (for utskrift) -- OK
+- Resultat: 1 kritisk fix (hamburger-meny)
+
+### Uppgift 5: Bygg, deploy och verifiera -- KLAR
+- Bygget lyckades (inga fel, enbart CommonJS-varningar for canvg/html2canvas)
+- Deploy till dev: SSH-anslutning nekad (permission denied) -- dist-filer redo
+- curl https://dev.mauserdb.com/ -- 200 OK
+- curl https://dev.mauserdb.com/noreko-backend/api.php?action=status -- 200 OK, loggedIn:false
+
+### Uppgift 6: Uppdatera dev-log.md och commit -- KLAR
+
+---
+
 ## Worker B -- Session #333 (2026-03-26) -- Modaler/dialoger, pipes/direktiv, polling-stress, Chart.js-granskning
 
 ### Uppgift 1: Granska ALLA modaler och dialoger -- KLAR

@@ -123,8 +123,9 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Lazy-load Bootstrap Dropdown JS (behövs för data-bs-toggle="dropdown")
+    // Lazy-load Bootstrap JS (behövs för data-bs-toggle="dropdown" och "collapse")
     import('bootstrap/js/dist/dropdown');
+    import('bootstrap/js/dist/collapse');
 
     this.loadLineStatus();
     if (this.loggedIn && (this.user?.role === 'admin' || this.user?.role === 'developer')) {
