@@ -238,7 +238,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
             borderWidth: 2,
           },
           {
-            label: 'Godkanda',
+            label: 'Godkända',
             data: okData,
             borderColor: '#48bb78',
             backgroundColor: '#48bb7822',
@@ -299,7 +299,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     switch (this.periodData.granularity) {
       case 'dag':   return 'per dag';
       case 'vecka': return 'per vecka';
-      case 'manad': return 'per manad';
+      case 'manad': return 'per månad';
       default:      return '';
     }
   }

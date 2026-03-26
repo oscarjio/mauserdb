@@ -77,7 +77,7 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
           this.loading = false;
           this.error = null;
         } else if (!data) {
-          this.error = 'Kunde inte hämta data fran servern.';
+          this.error = 'Kunde inte hämta data från servern.';
           this.loading = false;
         }
       });
@@ -126,12 +126,12 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   }
 
   get machineStatusText(): string {
-    if (!this.machine) return 'OKAND';
+    if (!this.machine) return 'OKÄND';
     switch (this.machine.status) {
-      case 'running': return 'KOR';
+      case 'running': return 'KÖR';
       case 'stopped': return 'STOPP';
-      case 'unknown': return 'OKAND';
-      default:        return 'OKAND';
+      case 'unknown': return 'OKÄND';
+      default:        return 'OKÄND';
     }
   }
 

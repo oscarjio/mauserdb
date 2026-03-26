@@ -30,7 +30,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   readonly periodOptions = [
     { value: 'idag',  label: 'Idag' },
     { value: 'vecka', label: 'Denna vecka' },
-    { value: 'manad', label: 'Denna manad' },
+    { value: 'manad', label: 'Denna månad' },
     { value: '30d',   label: '30 dagar' },
   ];
 

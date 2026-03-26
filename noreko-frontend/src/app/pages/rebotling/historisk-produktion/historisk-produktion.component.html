@@ -269,7 +269,7 @@
           Totalt: <strong>{{ tabell.summor.total }}</strong> IBC
         </span>
         <span class="summor-item">
-          Godkanda: <strong class="text-success">{{ tabell.summor.ibc_ok }}</strong>
+          Godkända: <strong class="text-success">{{ tabell.summor.ibc_ok }}</strong>
         </span>
         <span class="summor-item">
           Kasserade: <strong class="text-danger">{{ tabell.summor.ibc_ej_ok }}</strong>
@@ -287,7 +287,7 @@
                 Datum <i [class]="sortIcon('date')"></i>
               </th>
               <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ok')" tabindex="0" (keydown.enter)="sortBy('ibc_ok')">
-                Godkanda <i [class]="sortIcon('ibc_ok')"></i>
+                Godkända <i [class]="sortIcon('ibc_ok')"></i>
               </th>
               <th scope="col" class="sortable text-end" (click)="sortBy('ibc_ej_ok')" tabindex="0" (keydown.enter)="sortBy('ibc_ej_ok')">
                 Kasserade <i [class]="sortIcon('ibc_ej_ok')"></i>

@@ -153,7 +153,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: 'Godkanda',
+            label: 'Godkända',
             data: okData,
             backgroundColor: '#48bb78',
             borderRadius: 4,

@@ -182,7 +182,7 @@
               </div>
               <div class="d-flex align-items-center gap-3">
                 <span *ngIf="d.underhall" class="underhall-badge">
-                  <i class="fas fa-tools me-1"></i>Underhall
+                  <i class="fas fa-tools me-1"></i>Underhåll
                 </span>
                 <span style="font-size:0.9rem; color:#e2e8f0; min-width:70px; text-align:right">
                   {{ formatDuration(d.varaktighet_min) }}
@@ -207,7 +207,7 @@
               </div>
               <div *ngIf="d.underhall" class="mt-2 p-2" style="background:rgba(79,209,197,0.08); border-radius:0.375rem">
                 <i class="fas fa-tools me-1" style="color:#4fd1c5"></i>
-                <strong style="color:#4fd1c5">Underhallsatgard:</strong>
+                <strong style="color:#4fd1c5">Underhållsåtgärd:</strong>
                 {{ d.underhall.station_namn }} — {{ d.underhall.beskrivning || 'Ingen beskrivning' }}
               </div>
             </div>

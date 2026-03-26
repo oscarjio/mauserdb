@@ -29,7 +29,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
   period = '30d';
   readonly periodOptions = [
     { value: 'vecka',  label: 'Denna vecka' },
-    { value: 'manad',  label: 'Denna manad' },
+    { value: 'manad',  label: 'Denna månad' },
     { value: '30d',    label: 'Senaste 30d' },
   ];
   customFrom = '';

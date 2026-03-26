@@ -318,7 +318,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
     }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.submitting = false;
       if (res?.success) {
-        this.toast.success('Underhall registrerat!');
+        this.toast.success('Underhåll registrerat!');
         this.showForm = false;
         this.refreshAll();
       } else {
@@ -420,7 +420,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
       next: res => {
         this.legacySubmitting = false;
         if (res.success) {
-          this.toast.success('Underhall loggat!');
+          this.toast.success('Underhåll loggat!');
           this.legacyFormKommentar = '';
           this.legacyFormVaraktighet = null;
           this.legacyFormTyp = 'planerat';

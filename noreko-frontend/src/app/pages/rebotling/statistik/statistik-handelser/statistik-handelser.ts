@@ -27,7 +27,7 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
   eventColor(type: string): string { const colors: Record<string, string> = { underhall: '#f97316', ny_operator: '#3b82f6', mal_andring: '#a855f7', rekord: '#eab308', ovrigt: '#6b7280' }; return colors[type] ?? '#6b7280'; }
-  eventTypeLabel(type: string): string { const labels: Record<string, string> = { underhall: 'Underhall', ny_operator: 'Ny operator', mal_andring: 'Malandring', rekord: 'Rekord', ovrigt: 'Ovrigt' }; return labels[type] ?? 'Ovrigt'; }
+  eventTypeLabel(type: string): string { const labels: Record<string, string> = { underhall: 'Underhåll', ny_operator: 'Ny operatör', mal_andring: 'Måländring', rekord: 'Rekord', ovrigt: 'Övrigt' }; return labels[type] ?? 'Övrigt'; }
 
   loadProductionEvents(): void {
     if (this.productionEventsLoading) return; this.productionEventsLoading = true;

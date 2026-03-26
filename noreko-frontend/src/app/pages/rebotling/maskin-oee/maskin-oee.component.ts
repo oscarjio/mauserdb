@@ -38,7 +38,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   readonly periodOptions: { key: PeriodKey; label: string }[] = [
     { key: 'dag',   label: 'Idag' },
     { key: 'vecka', label: 'Vecka' },
-    { key: 'manad', label: 'Manad (30d)' },
+    { key: 'manad', label: 'Månad (30d)' },
   ];
 
   // Maskin-filter

@@ -35,7 +35,7 @@
 
     <div class="col-6 col-md-3">
       <div class="kpi-card">
-        <div class="kpi-label">Godkanda batchar</div>
+        <div class="kpi-label">Godkända batchar</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
           <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
@@ -82,7 +82,7 @@
     <select class="filter-select" aria-label="Filtrera period" [(ngModel)]="filterPeriod" (change)="onFilterChange()">
       <option value="">Alla perioder</option>
       <option value="vecka">Denna vecka</option>
-      <option value="manad">Denna manad</option>
+      <option value="manad">Denna månad</option>
       <option value="kvartal">Detta kvartal</option>
     </select>
 

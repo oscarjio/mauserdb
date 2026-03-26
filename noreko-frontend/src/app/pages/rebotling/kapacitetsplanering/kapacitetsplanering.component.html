@@ -472,14 +472,14 @@
        ============================================================ -->
   <div class="kp-card mb-4">
     <div class="kp-card-header">
-      <i class="fas fa-clock me-2" style="color:#f6ad55"></i>Tid-fordelning per dag
+      <i class="fas fa-clock me-2" style="color:#f6ad55"></i>Tidsfördelning per dag
     </div>
     <div class="kp-card-body">
       <div *ngIf="loadingTidFordelning" class="kp-loading py-4">
         <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
       </div>
       <div *ngIf="errorTidFordelning && !loadingTidFordelning" class="kp-error py-3">
-        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda tid-fordelning
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda tidsfördelning
       </div>
       <div *ngIf="!loadingTidFordelning && !errorTidFordelning" class="chart-wrapper">
         <canvas id="tidFordelningChart"></canvas>

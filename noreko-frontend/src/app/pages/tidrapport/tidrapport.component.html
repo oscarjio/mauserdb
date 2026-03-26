@@ -8,7 +8,7 @@
         Tidrapport
       </h1>
       <p class="page-subtitle text-muted mb-0">
-        Arbetstider, skiftfordelning och operatorsstatistik
+        Arbetstider, skiftfördelning och operatörsstatistik
       </p>
     </div>
     <div class="d-flex gap-2 flex-wrap align-items-center">
@@ -27,7 +27,7 @@
   <!-- Anpassat datumintervall -->
   <div class="row g-3 mb-4" *ngIf="period === 'anpassat'">
     <div class="col-auto">
-      <label class="form-label" for="tidrapportFrom" style="color:#a0aec0; font-size:0.8rem;">Fran</label>
+      <label class="form-label" for="tidrapportFrom" style="color:#a0aec0; font-size:0.8rem;">Från</label>
       <input type="date" id="tidrapportFrom" class="form-control form-control-sm form-control-dark"
              [(ngModel)]="customFrom" (change)="loadAll()">
     </div>
@@ -78,7 +78,7 @@
     </div>
     <div class="col-6 col-lg-3">
       <div class="kpi-card">
-        <div class="kpi-label">Mest aktiv operator</div>
+        <div class="kpi-label">Mest aktiv operatör</div>
         <div class="kpi-value" style="font-size:1.1rem; color: #f6ad55;" *ngIf="!sammanfattningLoading">
           {{ sammanfattning?.mest_aktiv || 'Inga data' }}
         </div>
@@ -102,7 +102,7 @@
       <div class="card-dark p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h6 class="section-title mb-0">
-            <i class="fas fa-users me-2" style="color:#63b3ed"></i>Per operator
+            <i class="fas fa-users me-2" style="color:#63b3ed"></i>Per operatör
           </h6>
           <span style="color:#718096; font-size:0.8rem" *ngIf="operatorData">
             {{ operatorData.total }} operatorer
@@ -110,7 +110,7 @@
         </div>
         <div *ngIf="operatorLoading" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div *ngIf="operatorError && !operatorLoading" class="alert alert-danger py-2">
-          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatorsdata.
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatörsdata.
         </div>
         <div class="table-dark-custom" *ngIf="!operatorLoading && !operatorError && operatorData?.operatorer?.length">
           <div class="table-responsive">
@@ -121,7 +121,7 @@
                   <th scope="col" class="text-end">Skift</th>
                   <th scope="col" class="text-end">Total tid</th>
                   <th scope="col" class="text-end">Snitt/skift</th>
-                  <th scope="col" class="text-center" style="min-width:150px">Fordelning (FM / EM / Natt)</th>
+                  <th scope="col" class="text-center" style="min-width:150px">Fördelning (FM / EM / Natt)</th>
                   <th scope="col" class="text-end">Senaste</th>
                 </tr>
               </thead>
@@ -155,7 +155,7 @@
           </div>
         </div>
         <div *ngIf="!operatorLoading && !operatorError && (!operatorData?.operatorer?.length)" class="text-center py-3" style="color:#718096">
-          Inga operatorsdata för perioden.
+          Inga operatörsdata för perioden.
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@
                     [(ngModel)]="filterOperatorId"
                     (change)="loadDetaljer()"
                     style="width:auto; min-width:150px">
-              <option [ngValue]="0">Alla operatorer</option>
+              <option [ngValue]="0">Alla operatörer</option>
               <option *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackById" [ngValue]="op.user_id">
                 {{ op.namn }}
               </option>

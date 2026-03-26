@@ -1,3 +1,42 @@
+## Worker B -- Session #340 (2026-03-26) -- Stopporsak/Andon UI-granskning + Tidrapport UI + Rebotling-sammanfattning + 55+ diakritikfixar
+
+### Uppgift 1: GRANSKA STOPPORSAKER/ANDON-UI -- KLAR
+- Granskade 5 stopporsak-komponenter: registrering, trend, operator, rebotling/stopporsaker, rebotling/stopporsak-dashboard
+- Granskade 2 andon-komponenter: andon (realtidsvy med S-kurva, skifttimer, daglig utmaning) + andon-board (fabriksskärm)
+- Dark theme korrekt i alla komponenter (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Formulärvalidering OK: kommentar maxlength=500, kategoriväljare, bekräftelsepanel
+- Lifecycle OK: destroy$ + takeUntil + clearInterval/clearTimeout + visibilitychange-guard i andon
+- Chart.js korrekt: stacked bar (trend), doughnut (operator), line (detalj), S-kurva (andon)
+- Tom-tillstånd OK i alla komponenter
+- **Fixade diakritik:** OKÄND, KÖR, från servern, fabriksskärm (andon-board), Pågående (stopporsaker), Underhåll/Underhållsåtgärd (stopporsaker)
+
+### Uppgift 2: GRANSKA TIDRAPPORT-UI + EXPORT -- KLAR
+- Tidrapport-komponent: sammanfattning KPI, per operatör-tabell, veckochart, detaljlista, CSV-export
+- Periodväljare (vecka/månad/30d/anpassat) + datumfilter
+- CSV-export öppnar URL i ny flik -- korrekt implementation
+- Chart.js stacked bar med dark theme tooltip
+- Lifecycle OK med destroy$, chartTimer, refreshTimer (5 min intervall)
+- **Fixade 8 diakritikfel:** skiftfördelning, operatörsstatistik, operatörsdata (3x), Mest aktiv operatör, Per operatör, Fördelning, Alla operatörer, Denna månad
+
+### Uppgift 3: GRANSKA REBOTLING-SAMMANFATTNING -- KLAR
+- Rebotling-sammanfattning: 5 KPI-kort (produktion, OEE, kassation, larm, drifttid), produktionsgraf 7d, larmvy, maskinstatus-tabell, snabblänkar
+- Auto-refresh var 60:e sekund -- korrekt
+- Chart.js stacked bar (godkända/kasserade)
+- PDF-export-knapp integrerad
+- Maskinstatus-tabell med OEE, tillgänglighet, produktion, kassation, stopptid per maskin
+- **Fixade:** Godkända (chart label)
+
+### Uppgift 4: DIAKRITIK-SWEEP -- 55+ fixar
+Fixade synliga UI-texter i 30+ filer:
+- **Godkända** (12x): rebotling-sammanfattning, historisk-produktion, produktionsflöde, produktionspuls, statistik-skiftrapport-operator, statistik-kvalitet-deepdive, statistik-oee-gauge, kvalitetscertifikat
+- **Operatörsdata** (8x): tidrapport, historisk-sammanfattning, kassationsorsak-statistik, operatorsbonus, kassationsanalys, kvalitets-trendbrott, statistik-pareto-stopp
+- **Fördelning-ord** (6x): Stopptidsfördelning, Tidsfördelning, Cykeltidsfördelning, Kassationsfördelning, skiftfördelning, Poängfördelning
+- **Månad** (5x): avvikelselarm, maskin-oee, stopptidsanalys, operator-ranking, kvalitetscertifikat
+- **Underhåll** (5x): underhållslogg (3x), rebotling-admin, stopporsaker
+- **Övrigt:** Produktionsmål-dashboard, Sätt/följ/månadsmål, Blå/Grön, Jämn/Höga/på/störningar, Genomströmning, VD-översikt, Månadsrapport, Operatörsjämförelse, Tvättlinje, Måländring, Övrigt, fabriksskärm, KÖR/OKÄND, från servern
+
+---
+
 ## Worker B -- Session #339 (2026-03-26) -- Leveransplanering + Maskinunderhåll UI-granskning + VD-flödet E2E + 50+ diakritikfixar
 
 ### Uppgift 1: GRANSKA LEVERANSPLANERING UI -- KLAR

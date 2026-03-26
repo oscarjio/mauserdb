@@ -164,10 +164,10 @@
                 <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
               </div>
               <div *ngIf="errorOperatorer && !loadingOperatorer" class="alert alert-danger py-2 m-3">
-                <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatorsdata.
+                <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatörsdata.
               </div>
               <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length === 0" class="text-center text-muted py-4">
-                Ingen operatorsdata.
+                Ingen operatörsdata.
               </div>
               <div class="table-responsive" *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length > 0">
                 <table class="table table-dark table-sm table-hover mb-0">

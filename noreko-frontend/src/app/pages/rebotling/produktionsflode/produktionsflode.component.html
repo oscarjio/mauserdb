@@ -58,14 +58,14 @@
       </div>
     </div>
 
-    <!-- Godkanda -->
+    <!-- Godkända -->
     <div class="col-6 col-lg-2">
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#48bb7822; color:#48bb78;">
           <i class="fas fa-check-circle"></i>
         </div>
         <div class="kpi-body">
-          <div class="kpi-label">Godkanda</div>
+          <div class="kpi-label">Godkända</div>
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.godkanda ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
@@ -208,7 +208,7 @@
           <div class="col-3">
             <div class="flow-stat">
               <span class="flow-stat-val" style="color:#48bb78;">{{ flodeData.summary.godkanda }}</span>
-              <span class="flow-stat-label">Godkanda ut</span>
+              <span class="flow-stat-label">Godkända ut</span>
             </div>
           </div>
           <div class="col-3">
@@ -254,7 +254,7 @@
           Totalt: <strong>{{ stationerData.totalt }}</strong> IBC
         </span>
         <span class="summor-item">
-          Godkanda: <strong class="text-success">{{ stationerData.totalt_godkanda }}</strong>
+          Godkända: <strong class="text-success">{{ stationerData.totalt_godkanda }}</strong>
         </span>
         <span class="summor-item">
           Kasserade: <strong class="text-danger">{{ stationerData.totalt_kasserade }}</strong>
@@ -268,9 +268,9 @@
               <th scope="col">#</th>
               <th scope="col">Station</th>
               <th scope="col" class="text-end">Inkommande</th>
-              <th scope="col" class="text-end">Godkanda</th>
+              <th scope="col" class="text-end">Godkända</th>
               <th scope="col" class="text-end">Kasserade</th>
-              <th scope="col" class="text-end">Genomstromning</th>
+              <th scope="col" class="text-end">Genomströmning</th>
               <th scope="col" class="text-end">Tid/IBC (sek)</th>
               <th scope="col" class="text-center">Status</th>
             </tr>

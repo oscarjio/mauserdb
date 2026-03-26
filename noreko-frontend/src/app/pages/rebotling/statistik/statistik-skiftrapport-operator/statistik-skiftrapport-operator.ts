@@ -303,7 +303,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
   exportCSV(): void {
     if (this.data.length === 0) return;
 
-    const headers = ['Datum', 'Skift', 'IBC Godkanda', 'Kasserade', 'Totalt', 'Cykeltid (min)', 'OEE (%)', 'Drifttid (min)', 'Stopptid (min)', 'Rasttid (min)'];
+    const headers = ['Datum', 'Skift', 'IBC Godkända', 'Kasserade', 'Totalt', 'Cykeltid (min)', 'OEE (%)', 'Drifttid (min)', 'Stopptid (min)', 'Rasttid (min)'];
     const rows = this.data.map(r => [
       r.datum,
       r.skift,

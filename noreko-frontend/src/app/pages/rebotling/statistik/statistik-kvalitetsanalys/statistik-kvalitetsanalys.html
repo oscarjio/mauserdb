@@ -25,8 +25,8 @@
 <div class="kvalitet-kpi-label">Trend vs forra veckan</div></div></div></div>
 <div class="mb-4"><h6 class="mb-2" style="color:#a0aec0;"><i class="fas fa-chart-area me-2" style="color:#4299e1;"></i>Kvalitetstrend</h6>
 <div style="height:350px;position:relative;"><canvas id="rejectionTrendChart"></canvas></div>
-<p class="small mt-2 mb-0" style="color:#718096;"><i class="fas fa-info-circle me-1" style="color:#4299e1;"></i>Bla linje = daglig kvalitet%. Gron streckad = 7-dagars glidande snitt.</p></div>
-<div><h6 class="mb-2" style="color:#a0aec0;"><i class="fas fa-chart-bar me-2" style="color:#ed8936;"></i>Kassationsfordelning</h6>
+<p class="small mt-2 mb-0" style="color:#718096;"><i class="fas fa-info-circle me-1" style="color:#4299e1;"></i>Blå linje = daglig kvalitet%. Grön streckad = 7-dagars glidande snitt.</p></div>
+<div><h6 class="mb-2" style="color:#a0aec0;"><i class="fas fa-chart-bar me-2" style="color:#ed8936;"></i>Kassationsfördelning</h6>
 <ng-container *ngIf="rejectionHasParetoData && rejectionParetoData.length > 0">
 <div class="row g-3 mb-3"><div class="col-auto"><span class="badge" style="background:#2d3748;color:#ed8936;font-size:0.85rem;padding:0.5rem 0.8rem;">Totalt kasserade: {{ rejectionTotalKassation }}</span></div></div>
 <div style="height:300px;position:relative;"><canvas id="rejectionParetoDeepChart"></canvas></div>

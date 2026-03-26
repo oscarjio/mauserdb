@@ -150,7 +150,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
   }
 
   formatDuration(min: number | null): string {
-    if (min === null || min === undefined) return 'Pagaende';
+    if (min === null || min === undefined) return 'Pågående';
     if (min < 60) return `${min} min`;
     const h = Math.floor(min / 60);
     const m = min % 60;

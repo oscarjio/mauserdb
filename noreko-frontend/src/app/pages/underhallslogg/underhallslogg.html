@@ -41,7 +41,7 @@
           <div class="stat-card">
             <div class="stat-icon text-info"><i class="fas fa-wrench"></i></div>
             <div class="stat-value">{{ kpi?.totalt_denna_manad ?? 0 }}</div>
-            <div class="stat-label">Underhall denna månad</div>
+            <div class="stat-label">Underhåll denna månad</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
@@ -154,7 +154,7 @@
       <!-- Per-station tabell -->
       <div class="card-dark mb-4" *ngIf="perStation.length > 0">
         <div class="card-dark-header d-flex align-items-center gap-2">
-          <span><i class="fas fa-chart-bar me-2 text-info"></i>Underhall per station</span>
+          <span><i class="fas fa-chart-bar me-2 text-info"></i>Underhåll per station</span>
           <select aria-label="Välj per station days" class="filter-select ms-auto" [(ngModel)]="perStationDays" (change)="onPerStationDaysChange()">
             <option [value]="7">7 dagar</option>
             <option [value]="14">14 dagar</option>
@@ -198,7 +198,7 @@
       <!-- Chart: Planerat vs oplanerat per manad -->
       <div class="card-dark mb-4">
         <div class="card-dark-header">
-          <i class="fas fa-chart-bar me-2 text-success"></i>Planerat vs Oplanerat per manad (senaste 6 man)
+          <i class="fas fa-chart-bar me-2 text-success"></i>Planerat vs Oplanerat per månad (senaste 6 mån)
         </div>
         <div class="card-dark-body">
           <div class="chart-container">
@@ -226,7 +226,7 @@
             <option value="oplanerat">Oplanerat</option>
           </select>
 
-          <input type="date" class="filter-input" [(ngModel)]="filterFrom" (change)="onFilterChange()" placeholder="Fran">
+          <input type="date" class="filter-input" [(ngModel)]="filterFrom" (change)="onFilterChange()" placeholder="Från">
           <input type="date" class="filter-input" [(ngModel)]="filterTo" (change)="onFilterChange()" placeholder="Till">
 
           <button class="btn-export ms-auto" (click)="exportCSV()" [disabled]="items.length === 0">
