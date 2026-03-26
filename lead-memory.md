@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-25 (session #330)*
+*Senast uppdaterad: 2026-03-26 (session #331)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#328: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#330: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,20 +74,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Forbattra rebotling-grafer (adaptiv granularitet)
-- [ ] Granska error handling i Angular services
-- [ ] Optimera polling-intervall
-- [ ] Verifiera operatorsbonus-berakningar mot prod DB
+- [x] Forbattra rebotling-grafer (adaptiv granularitet) — session #331
+- [x] Granska error handling i Angular services — session #331 (OK, 508 anrop alla har catchError)
+- [x] Optimera polling-intervall — session #331
+- [x] Verifiera operatorsbonus-berakningar mot prod DB — session #331 (OK)
+- [ ] Granska Chart.js dark theme + svenska tooltips
+- [ ] Testa formularsidor end-to-end
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #331 (klar)
+Worker A: 3 buggar — AndonController dagmal fallback 100->1000 (4 stallen), getBoardStatus shift_plan felaktiga kolumner (shift_date->datum), SkiftrapportExport multi-day SQL crash (datum undefined). Operatorsbonus + PDF verifierade OK.
+Worker B: Adaptiv granularitet i statistik-dashboard (veckoaggregering for 90d), 7d/14d perioder i trendanalys, polling optimerat pa 8 sidor (60s->120-300s), 2 engelska termer fixade. Services error handling OK (508 HTTP-anrop alla har catchError).
+
 ### 2026-03-25 — Session #330 (klar)
-Worker A: 8 buggar — AndonController 5 SQL-fixar (felaktiga kolumnnamn, dagmal visade 100 ist for 1000), OperatorDashboard 3 PDO-param-fixar (500-fel i UNION ALL), RebotlingAnalytics 2 fixar (produktion_procent ar kumulativ fran PLC, AVG() meningslos, ersatt med kvalitetsprocent). 70+ endpoints testade, 0 st 500.
-Worker B: 85+ UX-fixar — 59 filer aria-label diakritiker, 12 skiftoverlamning-fixar, engelska titlar oversatta (Bonus Dashboard, VD Dashboard, Live Ranking), 20+ ytterligare diakritik-fixar. Lifecycle rent (41/41 komponenter). Byggd och deployad.
+Worker A: 8 buggar — AndonController 5 SQL-fixar, OperatorDashboard 3 PDO-param-fixar, RebotlingAnalytics 2 fixar (produktion_procent kumulativ). 70+ endpoints testade, 0 st 500.
+Worker B: 85+ UX-fixar — 59 filer diakritiker, 12 skiftoverlamning-fixar, engelska titlar oversatta. Lifecycle rent (41/41). Byggd och deployad.
 
 ### 2026-03-25 — Session #328 (klar)
 Worker A: 3 buggar — PHP authorization. 107 endpoints, 0 st 500.
 Worker B: 21 buggar — svenska diakritiker + engelska rubriker.
-
-### 2026-03-25 — Session #329 (avbruten)
-Workers startades aldrig.
