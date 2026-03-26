@@ -1,3 +1,47 @@
+## Worker A -- Session #335 (2026-03-26) -- Rebotling PHP audit + bonus/VD-dashboard verifiering + hourly-rhythm fix
+
+### Uppgift 1: Granska ALLA rebotling PHP controllers mot prod DB schema -- KLAR
+- Last prod_db_schema.sql och jamforde mot alla 7 Rebotling*-controllers
+- RebotlingController.php: Alla SQL-queries matchar schemat (rebotling_ibc, rebotling_onoff, rebotling_rast, rebotling_runtime, rebotling_settings, rebotling_products, produktionsmal_undantag, vader_data)
+- RebotlingAdminController.php: Korrekt mot rebotling_settings, rebotling_weekday_goals, rebotling_shift_times, rebotling_goal_history
+- RebotlingAnalyticsController.php: Korrekt mot rebotling_ibc, rebotling_onoff, rebotling_skiftrapport, rebotling_annotations
+- RebotlingSammanfattningController.php: Korrekt mot rebotling_ibc, maskin_oee_daglig, avvikelselarm
+- RebotlingStationsdetaljController.php: Korrekt mot rebotling_ibc, rebotling_onoff, maskin_register
+- RebotlingTrendanalysController.php: Anvander COUNT(*) + lopnummer-baserad kassation (aldre metod) istallet for ibc_ok/ibc_ej_ok. Fungerande men inexakt for nyare data. Ej andrad da det skulle vara en stor refactor och aldre data saknar ibc_ok.
+- RebotlingProductController.php: has_lopnummer kolumn finns i prod men saknas i dump-filen (redan migrerad manuellt)
+
+### Uppgift 1b: BUG FIXAD - hourly-rhythm 500-fel
+- **Problem:** `getHourlyRhythm()` anvande `LAG(ibc_ok, 1, 0) OVER (...)` -- MariaDB 10.11 stodjer inte LAG med 3 argument (default value)
+- **Fix:** Andrade till `COALESCE(LAG(COALESCE(ibc_ok, 0)) OVER (...), 0)` som fungerar korrekt
+- Verifierat: endpoint returnerar nu 200 med korrekt data
+
+### Uppgift 2: Granska operatorsbonus-berakningar mot prod DB -- KLAR
+- BonusController.php: Korrekt kumulativ aggregering (MAX per skiftraknare, sedan SUM/AVG over skift). Alla SQL matchar schemat.
+- OperatorsbonusController.php: Korrekt bonusformel (min(verkligt/mal, 1.0) * max_bonus). 4 faktorer: IBC/h (40%), kvalitet (30%), narvaro (20%), team-mal (10%). Konfig fran bonus_konfiguration-tabellen.
+- operator_narvaro-tabellen finns inte i schemat -- hanteras med try/catch och fallback till rebotling_ibc-data (korrekt)
+- Korde bonus-queries mot prod DB: resultat rimliga (ex. op 168 har 170 ibc_ok pa skift 75)
+
+### Uppgift 3: Granska VD-dashboard KPI-berakningar -- KLAR
+- VdDashboardController.php: 6 endpoints (oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus)
+- OEE-berakning korrekt: Tillganglighet * Prestanda * Kvalitet, ideal cykeltid = 120s
+- IBC-aggregering korrekt: MAX(ibc_ok) per skiftraknare, sedan SUM
+- Aktiva operatorer: UNION av op1/op2/op3 fran rebotling_ibc -- korrekt
+- Dagsmal fran produktions_mal med fallback till snitt senaste 30 dagar -- korrekt
+- Station-OEE fordelar lika over stationer (rebotling saknar station_id) -- rimlig metod
+- Korde queries mot prod DB: 14 ok_ibc, 0 ej_ok_ibc for 2026-03-25
+
+### Uppgift 4: Testa ALLA endpoints med curl mot dev.mauserdb.com -- KLAR
+- Testade samtliga 116 actions fran api.php
+- **1 st 500-fel hittat och fixat:** rebotling&run=hourly-rhythm (LAG-bugg)
+- Alla andra endpoints returnerar korrekt HTTP-kod (200, 400, 401, 403, 404 beroende pa behorighetskrav och parametrar)
+- Inga timeouts eller ovantade fel
+
+### Uppgift 5: Deploy -- KLAR
+- rsync med --exclude db_config.php --exclude cors_origins.php till /var/www/mauserdb-dev/noreko-backend/
+- Verifierat: hourly-rhythm returnerar 200 efter deploy
+
+---
+
 ## Worker A -- Session #334 (2026-03-26) -- PHP error handling audit, produktion_procent fix, role guards, endpoint test
 
 ### Uppgift 1: Granska error handling i ALLA PHP controllers -- KLAR

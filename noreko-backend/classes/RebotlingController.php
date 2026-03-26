@@ -2279,7 +2279,7 @@ class RebotlingController {
                     datum,
                     skiftraknare,
                     HOUR(datum) AS timme_h,
-                    ibc_ok - LAG(ibc_ok, 1, 0) OVER (PARTITION BY DATE(datum), skiftraknare ORDER BY datum) AS ibc_delta,
+                    COALESCE(ibc_ok, 0) - COALESCE(LAG(COALESCE(ibc_ok, 0)) OVER (PARTITION BY DATE(datum), skiftraknare ORDER BY datum), 0) AS ibc_delta,
                     CASE WHEN (ibc_ok + ibc_ej_ok) > 0 THEN ibc_ok * 100.0 / (ibc_ok + ibc_ej_ok) ELSE NULL END AS kvalitet_pct
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
