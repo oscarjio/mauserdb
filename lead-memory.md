@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #346)*
+*Senast uppdaterad: 2026-03-26 (session #347)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#346: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#347: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,12 +74,17 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska alert-systemet (Alerts+Avvikelselarm+AlarmHistorik+KassationskvotAlarm SQL+UI)
-- [ ] Granska rebotling-admin djupare (alla endpoints+SQL+UI)
-- [ ] Endpoint-sweep: alla kvarvarande controllers (curl, leta 500-fel)
-- [ ] Prestandaprofilering runda 2 (alla endpoints, optimera >500ms)
+- [ ] Granska Energi/Kvalitet/Forbrukning-controllers + UI
+- [ ] Granska OperatorController djupare + operator-UI
+- [ ] Granska alla admin-sidor (endpoints + UI UX)
+- [ ] End-to-end testning rebotling-flodet
+- [ ] Responsiv design-sweep
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #347 (klar)
+Worker A: Alert-system 4 controllers granskade (22 ep). 5 auth-buggar fixade: KassationskvotAlarmController 6 GET-ep utan auth, RebotlingController service-status utan admin-auth, ProduktionskostnadController/ProduktionsSlaController/BatchSparningController alla ep utan auth. 2 prestandaopt: AvvikelselarmController -27%, AlarmHistorikController -30%. RebotlingAdminController 27 ep OK. 100+ ep sweep-testade.
+Worker B: Alert/alarm UI 4 komp OK. Rebotling-admin UI OK. 10 statistik/graf-sidor granskade — produktion_procent bekraftad korrekt (ej kumulativ). 17 diakritikfixar i 9 filer. Build+deploy OK.
 
 ### 2026-03-26 — Session #346 (klar)
 Worker A: Skiftrapport veckosammanstallning optimerad 63→3 queries (4.83s→0.51s, 9.5x snabbare). Gamification 4 ep OK. NotifikationController finns ej (alerts hanteras via AlertsController etc). Maskin-admin 4 controllers 22 ep — 1 auth-bugg fixad (MaskinunderhallController GET utan auth). 27 ep testade, 0 SQL-buggar.
@@ -88,7 +93,3 @@ Worker B: Gamification/notifikation/maskin-admin/energi UI granskade — alla OK
 ### 2026-03-26 — Session #345 (klar)
 Worker A: 10 rapport/bonus/skift/stopp-controllers granskade (47 ep). 6 buggar fixade: WeeklyReportController runtime_plc sek/min-fel (OEE 60x for lagt), getOperatorOfWeek dividerade /3600 istf /60 (IBC/h 60x for hogt), VDVeckorapportController+StopporsakTrendController filtrade pa created_at istf start_time, BonusAdminController blockerade developer-roll, SkiftrapportController GET-endpoints saknade auth.
 Worker B: 24 komp granskade (5 rapport + 5 bonus + 7 skiftrapport + 7 stopporsak). Alla OK. 12 diakritikfixar i 7 filer. Build+deploy OK.
-
-### 2026-03-26 — Session #344 (klar)
-Worker A: Dashboard 3 controllers (15 ep) — 4 buggar fixade: station/cykel_tid-kolumner, getDagligtMal enum+ORDER BY. Prestandaopt: rebotling -45%. Auth 6 controllers OK.
-Worker B: Dashboard+auth UI granskade. Login a11y fixat. 30 diakritikfixar. Build+deploy OK.
