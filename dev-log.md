@@ -1,3 +1,65 @@
+## Worker A -- Session #344 (2026-03-26) -- Dashboard/Hem SQL-buggar fixade + prestandaoptimering + Auth/Roller granskade
+
+### UPPGIFT 1: DASHBOARD/HEM-SIDA — ENDPOINTS + SQL — KLAR
+Granskade 3 dashboard-controllers:
+- ProduktionsDashboardController.php (6 endpoints: oversikt, vecko-produktion, vecko-oee, stationer-status, senaste-alarm, senaste-ibc)
+- DashboardLayoutController.php (3 endpoints: get-layout, save-layout, available-widgets)
+- VdDashboardController.php (6 endpoints: oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus)
+
+**Buggar hittade och fixade:**
+1. **ProduktionsDashboardController** — refererade `station`-kolumn i `rebotling_ibc` (finns EJ i schemat/prod DB). Orsakade 500-fel pa 3 endpoints (stationer-status, senaste-ibc, oversikt/aktiva stationer). **Fix:** Bytte till `maskin_register` + `maskin_oee_daglig` for stationsdata.
+2. **ProduktionsDashboardController::getDagligtMal()** — frågade efter `typ IN ('daglig','dag','dagligt')` men enum har bara `dag|vecka|manad`. ORDER BY `skapad_av` (int) istallet for `skapad_datum` (datetime). **Fix:** Anvander `typ = 'dag'` och `ORDER BY skapad_datum DESC`.
+3. **StatusController::getAllLinesStatus()** — refererade `cykel_tid`-kolumn i `rebotling_ibc` (finns EJ). Tyst catch dolde felet men OEE beraknades felaktigt. **Fix:** Anvander ideal cykeltid (120 sek).
+4. **RebotlingAdminController::getAllLinesStatus()** — samma `cykel_tid`-bugg som StatusController. **Fix:** Samma fix.
+5. **DashboardLayoutController** — SQL mot `dashboard_layouts` stammer med schema. Inga buggar.
+6. **VdDashboardController** — anvander `maskin_register` korrekt (inga `station`-buggar). SQL ok mot schema.
+
+Verifierade alla SQL-queries mot prod_db_schema.sql och prod DB (SHOW COLUMNS).
+Testade alla publika endpoints med curl — alla returnerar 200 med korrekt data.
+
+### UPPGIFT 2: PRESTANDAPROFILERING — KLAR
+Testade 13 endpoints med curl och matt svarstider:
+
+**Fore optimering:**
+- `rebotling` (default/getLiveStats): 770-935ms (OVER 500ms-grans)
+- `rebotling&run=skift`: 934ms (OVER)
+- `rebotling&run=live-ranking`: 495ms (gransfall)
+- Ovriga: 130-465ms (OK)
+
+**Optimering:**
+- **RebotlingController::getLiveStats()**: Tog bort `ensureSettingsTable()` (CREATE TABLE IF NOT EXISTS) som kordes pa varje request. Tabellen existerar redan i prod. Lade till lazy fallback vid Exception.
+
+**Efter optimering:**
+- `rebotling`: 512ms (fran 935ms, -45%)
+- `rebotling&run=skift`: 537ms (fran 934ms, -42%)
+- `rebotling&run=live-ranking`: 396ms (fran 495ms, -20%)
+- `status&run=all-lines`: 242ms (fran 344ms, -30%, tack vare cykel_tid-fixen)
+- Alla ovriga: under 400ms
+
+### UPPGIFT 3: AUTH/ANVANDARE/ROLLER — ENDPOINTS + SQL — KLAR
+Granskade 6 auth-relaterade controllers:
+- LoginController.php — bcrypt via AuthHelper::verifyPassword (password_verify). Rate limiting per IP + username. CSRF-token genereras vid login. Session regeneration. **OK.**
+- RegisterController.php — bcrypt via AuthHelper::hashPassword (password_hash). Rate limiting. Input-validering (langd, format, registreringskod). Transaktion med FOR UPDATE. **OK.**
+- ProfileController.php — bcrypt for losenordsbyte (verifyPassword + hashPassword). Rate limiting for losenordsforsok. Session regeneration vid rollbyte/losenordsbyte. **OK.**
+- AdminController.php — bcrypt for skapa/uppdatera anvandare. Admin-only access. Transaktion med FOR UPDATE. Audit logging. **OK.**
+- StatusController.php — read_and_close session. Session timeout-check. CSRF-token refresh. **OK.**
+- AuthHelper.php — ENBART bcrypt (PASSWORD_BCRYPT). Inga sha1/md5 anrop. CSRF med hash_equals (timing-safe). **OK.**
+
+SQL-queries mot `users`-tabellen stammer med prod_db_schema.sql:
+- Kolumner anvanda: id, username, password, email, phone, code, admin, role, last_login, active, operator_id — alla existerar i schemat.
+- Inga felaktiga kolumner eller JOINs.
+
+### UPPGIFT 4: DEPLOY + COMMIT — KLAR
+Deployade 4 filer till dev.mauserdb.com:
+- classes/ProduktionsDashboardController.php
+- classes/RebotlingAdminController.php
+- classes/RebotlingController.php
+- classes/StatusController.php
+
+Verifierade efter deploy: 13 endpoints testade, alla 200 OK, inga 500-fel.
+
+---
+
 ## Worker B -- Session #343 (2026-03-26) -- Personal/Roster + Rapporter + Rebotling-statistik grafer UI-granskning + 55 diakritikfixar
 
 ### UPPGIFT 1: PERSONAL/ROSTER — UI + TEMPLATES — KLAR

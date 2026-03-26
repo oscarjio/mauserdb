@@ -487,11 +487,20 @@ class RebotlingController {
             $rebotlingToday = $ibcToday;
             $rebotlingTarget = 1000; // fallback
             try {
-                $this->ensureSettingsTable();
+                // rebotling_settings-tabellen finns alltid i produktion — hoppa over ensureSettingsTable()
+                // for att undvika onodigt CREATE TABLE IF NOT EXISTS-anrop pa varje request.
                 $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sRow) $rebotlingTarget = (int)$sRow['rebotling_target'];
             } catch (Exception $e) {
                 error_log('RebotlingController::getLiveStats: kunde inte läsa rebotling_settings: ' . $e->getMessage());
+                // Fallback: skapa tabellen om den inte finns (sallsynt)
+                try {
+                    $this->ensureSettingsTable();
+                    $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                    if ($sRow) $rebotlingTarget = (int)$sRow['rebotling_target'];
+                } catch (Exception $e2) {
+                    error_log('RebotlingController::getLiveStats ensureSettings fallback: ' . $e2->getMessage());
+                }
             }
 
             // Kolla om undantag finns för idag

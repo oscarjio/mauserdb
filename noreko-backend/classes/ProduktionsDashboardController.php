@@ -173,10 +173,10 @@ class ProduktionsDashboardController {
 
             $stmt = $this->pdo->prepare("
                 SELECT mal_antal FROM rebotling_produktionsmal
-                WHERE typ IN ('daglig','dag','dagligt')
-                  AND (start_datum IS NULL OR start_datum <= :datum)
-                  AND (slut_datum  IS NULL OR slut_datum  >= :datum2)
-                ORDER BY skapad_av DESC, id DESC
+                WHERE typ = 'dag'
+                  AND start_datum <= :datum
+                  AND slut_datum  >= :datum2
+                ORDER BY skapad_datum DESC, id DESC
                 LIMIT 1
             ");
             $stmt->execute([':datum' => $datum, ':datum2' => $datum]);
@@ -331,33 +331,29 @@ class ProduktionsDashboardController {
         if ($kassGrad > 5.0)      $kassGradFarg = 'red';
         elseif ($kassGrad > 2.0)  $kassGradFarg = 'yellow';
 
-        // --- Aktiva stationer just nu ---
+        // --- Aktiva stationer (maskin_register) ---
+        // rebotling_ibc har ingen 'station'-kolumn; anvand maskin_register istallet.
+        try {
+            $stmtTot = $this->pdo->query("
+                SELECT COUNT(*) FROM maskin_register WHERE aktiv = 1
+            ");
+            $totalStationer = (int)($stmtTot->fetchColumn() ?? 0);
+        } catch (\PDOException $e) {
+            error_log('ProduktionsDashboardController::oversikt totalStationer: ' . $e->getMessage());
+            $totalStationer = 0;
+        }
+        // Aktiva = maskiner med OEE-data idag
         try {
             $stmtAktiva = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT station) AS aktiva
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
-                  AND station IS NOT NULL AND station != ''
+                SELECT COUNT(DISTINCT maskin_id) AS aktiva
+                FROM maskin_oee_daglig
+                WHERE datum = CURDATE()
             ");
             $stmtAktiva->execute();
             $aktivaStationer = (int)($stmtAktiva->fetchColumn() ?? 0);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::oversikt aktiva: ' . $e->getMessage());
             $aktivaStationer = 0;
-        }
-
-        // --- Totalt antal stationer ---
-        try {
-            $stmtTot = $this->pdo->query("
-                SELECT COUNT(DISTINCT station) AS tot
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            ");
-            $totalStationer = (int)($stmtTot->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {
-            error_log('ProduktionsDashboardController::oversikt totalStationer: ' . $e->getMessage());
-            $totalStationer = 0;
         }
 
         // --- Skiftinfo ---
@@ -501,89 +497,67 @@ class ProduktionsDashboardController {
     private function getStationerStatus(): void {
         $idag = date('Y-m-d');
 
-        // Hamta alla aktiva stationer (senaste 30 dagarna)
+        // Hamta alla aktiva stationer fran maskin_register
+        // (rebotling_ibc har ingen 'station'-kolumn)
         try {
             $stmt = $this->pdo->query("
-                SELECT DISTINCT station
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                ORDER BY station
+                SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id
             ");
-            $stationer = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            $stationer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::stationer-status stationer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationer', 500);
             return;
         }
 
-        // Maskinens totala drifttid for idag (ej per station)
-        $drifttidSekIdag = $this->getDrifttidSek($idag . ' 00:00:00', date('Y-m-d', strtotime($idag . ' +1 day')) . ' 00:00:00');
-        $periodSek = self::PLANERAD_DAG_SEK;
-
-        // Hamta alla stationers data i en enda query (istallet for N+1)
-        $stationData = [];
+        // Hamta maskin_oee_daglig for alla maskiner idag (batched query, ej N+1)
+        $oeeData = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    station,
-                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal,
-                    MAX(senaste) AS senaste_datum
-                FROM (
-                    SELECT station, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                           MAX(datum) AS senaste
-                    FROM rebotling_ibc
-                    WHERE station IS NOT NULL AND station != ''
-                      AND datum >= :idag AND datum < DATE_ADD(:idag2, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
-                    GROUP BY station, skiftraknare
-                ) sub
-                GROUP BY station
+                SELECT maskin_id, planerad_tid_min, drifttid_min, stopptid_min,
+                       total_output, ok_output, kassation,
+                       tillganglighet_pct, prestanda_pct, kvalitet_pct, oee_pct
+                FROM maskin_oee_daglig
+                WHERE datum = :idag
             ");
-            $stmt->execute([':idag' => $idag, ':idag2' => $idag]);
+            $stmt->execute([':idag' => $idag]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $stationData[$row['station']] = $row;
+                $oeeData[(int)$row['maskin_id']] = $row;
             }
         } catch (\PDOException $e) {
-            error_log('ProduktionsDashboardController::stationer-status idag: ' . $e->getMessage());
+            error_log('ProduktionsDashboardController::stationer-status oee: ' . $e->getMessage());
         }
 
         $result = [];
-        foreach ($stationer as $station) {
-            $rad = $stationData[$station] ?? ['ok_antal' => 0, 'ej_ok_antal' => 0, 'senaste_datum' => null];
+        foreach ($stationer as $maskin) {
+            $maskinId = (int)$maskin['id'];
+            $rad = $oeeData[$maskinId] ?? null;
 
-            $okAntal     = (int)($rad['ok_antal']      ?? 0);
-            $total       = $okAntal + (int)($rad['ej_ok_antal'] ?? 0);
-            $senasteDatum = $rad['senaste_datum']       ?? null;
-
-            // OEE for stationen idag (anvander maskinens drifttid)
-            $tillganglighet = $periodSek > 0 ? min(1.0, $drifttidSekIdag / $periodSek) : 0.0;
-            $prestanda = $drifttidSekIdag > 0
-                ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSekIdag)
-                : 0.0;
-            $kvalitet   = $total > 0 ? ($okAntal / $total) : 0.0;
-            $oee        = $tillganglighet * $prestanda * $kvalitet;
-
-            // Status: produerat nagot senaste 30 min = 'kor', annars 'stopp'
-            $statusKor = false;
-            if ($senasteDatum) {
-                $senasteTid = strtotime($senasteDatum);
-                $statusKor  = ($senasteTid !== false) && (time() - $senasteTid) < 1800;
+            if ($rad) {
+                $total   = (int)($rad['total_output'] ?? 0);
+                $okAntal = (int)($rad['ok_output']    ?? 0);
+                $oee     = (float)($rad['oee_pct']            ?? 0.0);
+                $tillg   = (float)($rad['tillganglighet_pct'] ?? 0.0);
+                $prest   = (float)($rad['prestanda_pct']      ?? 0.0);
+                $kval    = (float)($rad['kvalitet_pct']       ?? 0.0);
+                // Om drifttid finns idag -> maskin kor (forenklad status)
+                $statusKor = ((float)($rad['drifttid_min'] ?? 0)) > 0;
+            } else {
+                $total = 0; $okAntal = 0;
+                $oee = 0.0; $tillg = 0.0; $prest = 0.0; $kval = 0.0;
+                $statusKor = false;
             }
 
             $result[] = [
-                'station'            => $station,
+                'station'            => $maskin['namn'],
                 'status'             => $statusKor ? 'kor' : 'stopp',
                 'ibc_idag'           => $total,
                 'ok_idag'            => $okAntal,
-                'oee_pct'            => round($oee * 100, 1),
-                'tillganglighet_pct' => round($tillganglighet * 100, 1),
-                'prestanda_pct'      => round($prestanda * 100, 1),
-                'kvalitet_pct'       => round($kvalitet * 100, 1),
-                'senaste_ibc_tid'    => $senasteDatum,
+                'oee_pct'            => round($oee, 1),
+                'tillganglighet_pct' => round($tillg, 1),
+                'prestanda_pct'      => round($prest, 1),
+                'kvalitet_pct'       => round($kval, 1),
+                'senaste_ibc_tid'    => null,
             ];
         }
 
@@ -643,14 +617,15 @@ class ProduktionsDashboardController {
 
     private function getSenasteIbc(): void {
         try {
+            // rebotling_ibc har ingen 'station'-kolumn — hamta utan den
             $stmt = $this->pdo->query("
                 SELECT
                     id,
                     datum,
-                    station,
                     COALESCE(ibc_ok, 0) AS ibc_ok,
                     COALESCE(ibc_ej_ok, 0) AS ibc_ej_ok,
-                    lopnummer
+                    lopnummer,
+                    skiftraknare
                 FROM rebotling_ibc
                 ORDER BY datum DESC, id DESC
                 LIMIT 10
@@ -660,11 +635,11 @@ class ProduktionsDashboardController {
             $ibc = [];
             foreach ($rader as $rad) {
                 $ibc[] = [
-                    'id'          => (int)$rad['id'],
-                    'datum'       => $rad['datum'],
-                    'station'     => $rad['station'] ?? null,
-                    'ok'          => (int)$rad['ibc_ok'],
-                    'status_text' => ((int)$rad['ibc_ej_ok'] > 0) ? 'Kasserad' : 'OK',
+                    'id'            => (int)$rad['id'],
+                    'datum'         => $rad['datum'],
+                    'skiftraknare'  => $rad['skiftraknare'] !== null ? (int)$rad['skiftraknare'] : null,
+                    'ok'            => (int)$rad['ibc_ok'],
+                    'status_text'   => ((int)$rad['ibc_ej_ok'] > 0) ? 'Kasserad' : 'OK',
                 ];
             }
 

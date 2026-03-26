@@ -164,14 +164,10 @@ class StatusController {
                         $rastSek    = (float)$oeeRow['rasttime'];
                         $prodTid    = $runtimeSek - $rastSek;
                         if ($prodTid > 0) {
-                            $snittCykel = 60;
-                            try {
-                                $cRow = $pdo->query(
-                                    "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY AND cykel_tid > 0"
-                                )->fetchColumn();
-                                if ($cRow > 0) $snittCykel = (float)$cRow;
-                            } catch (Exception $e) { error_log('StatusController::getAllLinesStatus snittCykel: ' . $e->getMessage()); }
-                            $maxMojlig = $prodTid / $snittCykel;
+                            // rebotling_ibc har ingen 'cykel_tid'-kolumn.
+                            // Anvand ideal cykeltid (120 sekunder per IBC) som standard.
+                            $idealCykelSek = 120;
+                            $maxMojlig = $prodTid / $idealCykelSek;
                             if ($maxMojlig > 0) {
                                 $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                             }
