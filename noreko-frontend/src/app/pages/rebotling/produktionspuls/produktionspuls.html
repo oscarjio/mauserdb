@@ -3,7 +3,7 @@
     <h2 class="puls-title">
       <i class="fas fa-heartbeat me-2 text-danger"></i>Produktionspuls
     </h2>
-    <p class="puls-subtitle">Realtids-ticker -- se vad som hander NU pa rebotling-linjen. Uppdateras var 30:e sekund.</p>
+    <p class="puls-subtitle">Realtids-ticker -- se vad som händer NU på rebotling-linjen. Uppdateras var 30:e sekund.</p>
 
     <!-- Laddar -->
     <div *ngIf="loading" class="text-center py-5">
@@ -26,7 +26,7 @@
          (mouseenter)="onTickerMouseEnter()"
          (mouseleave)="onTickerMouseLeave()">
       <div class="ticker-track" [class.ticker-paused]="paused">
-        <!-- Forsta kopian -->
+        <!-- Första kopian -->
         <ng-container *ngFor="let item of items; let i = index; trackBy: trackByIndex">
           <div [ngClass]="getItemClass(item)" [title]="item.produkt">
             <div class="puls-icon-row">
@@ -47,7 +47,7 @@
             </div>
             <div class="puls-status">
               <span *ngIf="item.kasserad" class="badge bg-danger">Kasserad</span>
-              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lang cykel</span>
+              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lång cykel</span>
               <span *ngIf="!item.kasserad && !item.over_target" class="badge bg-success">OK</span>
             </div>
           </div>
@@ -73,7 +73,7 @@
             </div>
             <div class="puls-status">
               <span *ngIf="item.kasserad" class="badge bg-danger">Kasserad</span>
-              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lang cykel</span>
+              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lång cykel</span>
               <span *ngIf="!item.kasserad && !item.over_target" class="badge bg-success">OK</span>
             </div>
           </div>
@@ -200,7 +200,7 @@
             <tr>
               <th scope="col">Tid</th>
               <th scope="col">Typ</th>
-              <th scope="col">Handelse</th>
+              <th scope="col">Händelse</th>
               <th scope="col">Detalj</th>
             </tr>
           </thead>

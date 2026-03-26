@@ -78,11 +78,11 @@
       </div>
     </div>
 
-    <!-- Mest forbattrade -->
+    <!-- Mest förbättrade -->
     <div class="col-md-3 col-sm-6">
       <div class="kpi-card">
         <div class="kpi-icon" style="color: #ed8936;"><i class="fas fa-arrow-up"></i></div>
-        <div class="kpi-label">Mest forbattrade skiftet</div>
+        <div class="kpi-label">Mest förbättrade skiftet</div>
         <div class="kpi-value" *ngIf="sammanfattning.mest_forbattrad">
           {{ sammanfattning.mest_forbattrad.label }}
         </div>
@@ -226,7 +226,7 @@
           </ul>
           <div class="bp-footer text-muted small" *ngIf="bp.basta_station">
             <i class="fas fa-star text-warning me-1"></i>
-            Basta station: {{ bp.basta_station }}
+            Bästa station: {{ bp.basta_station }}
             <span *ngIf="bp.basta_station_oee"> (OEE {{ bp.basta_station_oee }}%)</span>
           </div>
         </div>

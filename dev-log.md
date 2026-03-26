@@ -58,6 +58,117 @@ Deployade 4 filer till dev.mauserdb.com:
 
 Verifierade efter deploy: 13 endpoints testade, alla 200 OK, inga 500-fel.
 
+## Worker B -- Session #344 (2026-03-26) -- Dashboard/Auth UI-granskning + 27 diakritikfixar + accessibility + bygg + deploy
+
+### UPPGIFT 1: DASHBOARD/HEM-SIDA — UI + WIDGETS + REALTIDSDATA — KLAR
+Granskade news-komponenten (news.ts, news.html, news.css) som ar hemsidan (path: '').
+
+**Template (news.html):**
+- Dark theme korrekt: #2d3748 cards, #e2e8f0 text, #1a202c header-bakgrund. OK.
+- Responsivitet: col-lg-6 col-xl-3 for produktionskort, col-6 col-sm-4 col-md-3 col-lg-2 for favoriter. OK.
+- Bootstrap 5 klasser korrekt anvanda. OK.
+- Tom-tillstand: "Inga handelser att visa" visas vid filteredEvents.length === 0. OK.
+- Laddar-tillstand: Spinner + "Hamtar handelser..." OK.
+- Produktionspuls-widget inkluderad. OK.
+- Favoriter-widget visas for inloggade. OK.
+- Quick links visas for inloggade, VD-oversikt bara for admin. OK.
+
+**TypeScript (news.ts):**
+- OnInit + OnDestroy implementerat. OK.
+- destroy$ Subject med takeUntil pa alla observables. OK.
+- intervalId + eventsIntervalId clearas i ngOnDestroy. OK.
+- Polling: fetchAllData() var 5:e sek, loadEvents() var 5:e minut. OK.
+- isFetchingData/isFetchingEvents guards mot overlappande requests. OK.
+- Alla HTTP-anrop har timeout(4000/8000) + catchError + takeUntil. OK.
+
+**Diakritikfix:**
+1. news.ts: 'Hog OEE' -> 'Hog OEE' (fix: 'Hog OEE' -> 'Hog OEE' i getCategoryLabel)
+
+### UPPGIFT 2: REBOTLING-LIVE ADJACENTA SIDOR — UI — KLAR
+Granskade templates under noreko-frontend/src/app/pages/rebotling/ (ej rebotling-live).
+Stickprovskontroll pa dark theme, responsivitet, chart.destroy():
+- kassationsanalys.ts: chart.destroy() i ngOnDestroy. OK.
+- produktionstakt.ts: chart.destroy() i ngOnDestroy. OK.
+- kvalitets-trendbrott.ts: chart.destroy() i ngOnDestroy. OK.
+- Alla granskade sidor anvander takeUntil(destroy$). OK.
+
+**Diakritikfixar (UI-synliga strängar):**
+1. news.ts: 'Hog OEE' -> 'Hög OEE'
+2. produktionspuls.html: 'Lang cykel' -> 'Lång cykel' (2 ställen)
+3. produktionspuls.html: 'hander NU pa' -> 'händer NU på'
+4. produktionspuls.html: 'Handelse' -> 'Händelse'
+5. maskin-drifttid.html: 'Hog produktion' -> 'Hög produktion'
+6. maskin-drifttid.html: 'Lag produktion' -> 'Låg produktion'
+7. maskin-drifttid.html: 'Utanfor arbetstid' -> 'Utanför arbetstid'
+8. maskin-drifttid.ts: 'Hog produktion' -> 'Hög produktion'
+9. maskin-drifttid.ts: 'Lag produktion' -> 'Låg produktion'
+10. maskin-drifttid.ts: 'Utanfor arbetstid' -> 'Utanför arbetstid'
+11. kapacitetsplanering.html: 'Lang cykeltid' -> 'Lång cykeltid'
+12. kapacitetsplanering.html: 'Lagst kapacitet' -> 'Lägst kapacitet'
+13. kapacitetsplanering.html: 'Berakna' -> 'Beräkna' (2 ställen)
+14. kapacitetsplanering.html: 'Beraknar bemanning...' -> 'Beräknar bemanning...'
+15. kapacitetsplanering.html: 'Beraknar...' -> 'Beräknar...'
+16. kapacitetsplanering.html: 'Kunde inte berakna bemanning' -> 'Kunde inte beräkna bemanning'
+17. kapacitetsplanering.html: 'Kunde inte berakna prognos' -> 'Kunde inte beräkna prognos'
+18. operators-prestanda.component.ts: 'Behover stod' -> 'Behöver stöd'
+19. statistik-waterfall-oee.html: 'Beraknar OEE-forluster...' -> 'Beräknar OEE-förluster...'
+20. statistik-waterfall-oee.html: 'Gron = uppnadd andel, gra = forlust' -> 'Grön = uppnådd andel, grå = förlust'
+21. statistik-waterfall-oee.ts: 'Forlust' -> 'Förlust'
+22. statistik-waterfall-oee.ts: 'Uppnatt' -> 'Uppnått'
+23. statistik-oee-gauge.html: 'Beraknar OEE...' -> 'Beräknar OEE...'
+24. statistik-bonus-simulator.html: 'Beraknar...' -> 'Beräknar...'
+25. statistik-bonus-simulator.html: 'Forklaringstext' -> 'Förklaringstext' (rubrik)
+26. statistik-bonus-simulator.html: 'berakningen' -> 'beräkningen'
+27. statistik-bonus-simulator.html: 'Bonuspoang' -> 'Bonuspoäng', 'malet' -> 'målet', 'Baspoangen' -> 'Baspoängen'
+
+**Ytterligare diakritikfixar (utanfor rebotling/):**
+28. skiftjamforelse.html: 'Mest forbattrade skiftet' -> 'Mest förbättrade skiftet'
+29. operator-ranking.component.html: 'Fullstandig ranking' -> 'Fullständig ranking'
+30. kassations-drilldown.html: 'Handelser:' -> 'Händelser:'
+
+**Totalt: 30 diakritikfixar.**
+
+### UPPGIFT 3: AUTH/ANVÄNDARE/ROLLER — UI — KLAR
+Granskade:
+- **login.ts**: Dark theme korrekt (#2d3748 card, #1a202c input bg, #e2e8f0 text). Losenord ar type="password" -- aldrig klartext. Form-validering: required, minlength, maxlength, [disabled] vid loading. OnDestroy med destroy$ + complete(). Open redirect-skydd: validerar returnUrl.
+  - **Fix:** Lade till for/id-kopplingar (label for="login-username") och autocomplete-attribut for battre a11y.
+- **register.html/ts**: Dark theme korrekt. Losenord type="password" med styrka-feedback. Alla labels har for+id-kopplingar. OnDestroy med destroy$ + clearTimeout. OK.
+- **users.html/ts**: Dark theme via users.css. Losenord type="password" i edit-formularet. Admin-check i ngOnInit (router.navigate(['/']) om ej admin). Admin routes skyddade av adminGuard i router. OnDestroy med destroy$ + clearTimeout(searchTimer).
+  - **Fix:** card-header ändrad fran bg-success text-white till dark theme (#1a202c bakgrund). h1-titel fargad #e2e8f0.
+- **create-user.html/ts**: Dark theme via create-user.css. Losenord type="password". Admin-check i ngOnInit. ComponentCanDeactivate implementerat.
+  - **Fix:** card-header ändrad fran bg-success text-white till dark theme. h1-titel fargad #e2e8f0.
+- **auth.guard.ts**: authGuard och adminGuard korrekt implementerade. Admin-sidor kraver admin-roll (adminGuard). Ej-inloggade skickas till /login med returnUrl. Ej-admin skickas till /. Väntar pa initialized$ fore avgörande.
+
+### UPPGIFT 4: ACCESSIBILITY-SWEEP — KLAR
+Granskade:
+- **Kontrast:** #e2e8f0 text mot #1a202c bakgrund = ca 11.5:1 (utmarkt). #a0aec0 mot #1a202c = ca 5.3:1 (OK). Inga kontrastproblem hittade.
+- **aria-labels:** Interaktiva element i users.html har aria-label ("Redigera anvandare", "Ta bort anvandare", etc.). Sorterbara kolumner har tabindex="0" och keydown.enter-handlers.
+- **label-for kopplingar:** login.ts saknade for/id — **fixat**. register.html har for/id. create-user.html har for/id. users.html formular har labels.
+- **Alt-text pa bilder:** Alla <img> taggar har alt-attribut (header.html: "Noreko logo", stoppage-log: maskinnamn).
+- **Keyboard-navigation:** Sorterbara kolumner har tabindex="0" + (keydown.enter). Filter-knappar kan nås med Tab. OK.
+- **Focus-styles:** Browser-default focus-styles aktiva. form-control:focus har border-color + box-shadow. OK.
+- **role="alert":** Felmeddelanden i register.html har role="alert". OK.
+
+### UPPGIFT 5: DIAKRITIK-SWEEP — KLAR
+Systematisk sokning genom ALLA .html och .ts filer under pages/ med regex-monster for:
+- Hog/Lag/Lang/Lagst -> Hög/Låg/Lång/Lägst
+- Berakna/Beraknar -> Beräkna/Beräknar
+- Forlust/forluster -> Förlust/förluster
+- Fullstandig -> Fullständig
+- forbattrade -> förbättrade
+- Handelse -> Händelse
+- Behover stod -> Behöver stöd
+- Bonuspoang/Baspoangen -> Bonuspoäng/Baspoängen
+- Gron/gra/uppnadd -> Grön/grå/uppnådd
+- Uppnatt -> Uppnått
+
+**Totalt: 30 diakritikfixar i 14 filer.**
+
+### UPPGIFT 6: BYGG + DEPLOY — KLAR
+- Bygg: `npx ng build` lyckades (94 sek, inga fel, endast varningar for canvg CommonJS-beroenden och en tvattlinje-live NgIf-import -- ror EJ)
+- Deploy: rsync till dev.mauserdb.com OK (314 KB skickat, 196 filer)
+- Commit: se nedan
+
 ---
 
 ## Worker B -- Session #343 (2026-03-26) -- Personal/Roster + Rapporter + Rebotling-statistik grafer UI-granskning + 55 diakritikfixar

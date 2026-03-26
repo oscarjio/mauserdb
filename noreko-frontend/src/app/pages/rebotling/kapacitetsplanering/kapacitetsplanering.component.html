@@ -62,7 +62,7 @@
       <div class="kp-kpi-card">
         <div class="kp-kpi-label">Flaskhals-station</div>
         <div class="kp-kpi-value" style="color:#fc8181; font-size:1rem;">{{ kpiData.flaskhals.station }}</div>
-        <div class="kp-kpi-sub" style="font-size:0.7rem;">{{ kpiData.flaskhals.typ === 'cykeltid' ? 'Lang cykeltid' : 'Lagst kapacitet' }}</div>
+        <div class="kp-kpi-sub" style="font-size:0.7rem;">{{ kpiData.flaskhals.typ === 'cykeltid' ? 'Lång cykeltid' : 'Lägst kapacitet' }}</div>
       </div>
     </div>
 
@@ -241,7 +241,7 @@
           <div class="input-group input-group-sm">
             <input type="number" class="form-control kp-input" [(ngModel)]="orderbehovInput" name="orderbehov" #orderbehovCtrl="ngModel" min="1" max="99999" required>
             <button class="btn btn-info" (click)="uppdateraBemanning()" [disabled]="!orderbehovInput || orderbehovInput < 1">
-              <i class="fas fa-calculator me-1"></i>Berakna
+              <i class="fas fa-calculator me-1"></i>Beräkna
             </button>
           </div>
           <div class="text-danger small mt-1" *ngIf="orderbehovCtrl.invalid && orderbehovCtrl.touched">
@@ -251,10 +251,10 @@
       </div>
 
       <div *ngIf="loadingBemanning" class="kp-loading py-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beraknar bemanning...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beräknar bemanning...
       </div>
       <div *ngIf="errorBemanning && !loadingBemanning" class="kp-error py-3">
-        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna bemanning
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte beräkna bemanning
       </div>
 
       <div *ngIf="!loadingBemanning && !errorBemanning && bemanningData" class="row g-3">
@@ -398,16 +398,16 @@
         </div>
         <div class="col-12 col-md-4 d-flex align-items-end">
           <button class="btn btn-info w-100" (click)="beraknaPrognos()" [disabled]="!prognosTimmar || prognosTimmar < 1 || !prognosOperatorer || prognosOperatorer < 1">
-            <i class="fas fa-play me-2"></i>Berakna prognos
+            <i class="fas fa-play me-2"></i>Beräkna prognos
           </button>
         </div>
       </div>
 
       <div *ngIf="loadingPrognos" class="kp-loading py-3">
-        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beraknar...
+        <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Beräknar...
       </div>
       <div *ngIf="errorPrognos && !loadingPrognos" class="kp-error py-3">
-        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte berakna prognos
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte beräkna prognos
       </div>
 
       <div *ngIf="!loadingPrognos && !errorPrognos && prognosData" class="row g-3">

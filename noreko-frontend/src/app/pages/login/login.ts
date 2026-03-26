@@ -18,14 +18,14 @@ import { environment } from '../../../environments/environment';
         <h2><i class="fas fa-sign-in-alt me-2"></i>Logga in</h2>
         <form (ngSubmit)="login()" class="login-form">
           <div class="mb-3">
-            <label class="form-label">Användarnamn</label>
-            <input type="text" class="form-control" placeholder="Ange användarnamn"
-                   [(ngModel)]="username" name="username" required minlength="3" maxlength="50" [disabled]="loading" />
+            <label class="form-label" for="login-username">Användarnamn</label>
+            <input type="text" class="form-control" id="login-username" placeholder="Ange användarnamn"
+                   [(ngModel)]="username" name="username" required minlength="3" maxlength="50" [disabled]="loading" autocomplete="username" />
           </div>
           <div class="mb-3">
-            <label class="form-label">Lösenord</label>
-            <input type="password" class="form-control" placeholder="Ange lösenord"
-                   [(ngModel)]="password" name="password" required minlength="8" maxlength="128" [disabled]="loading" />
+            <label class="form-label" for="login-password">Lösenord</label>
+            <input type="password" class="form-control" id="login-password" placeholder="Ange lösenord"
+                   [(ngModel)]="password" name="password" required minlength="8" maxlength="128" [disabled]="loading" autocomplete="current-password" />
           </div>
           <button type="submit" class="btn btn-primary w-100" [disabled]="loading || !username || !password">
             <span *ngIf="loading"><i class="fas fa-spinner fa-spin me-1"></i>Loggar in...</span>

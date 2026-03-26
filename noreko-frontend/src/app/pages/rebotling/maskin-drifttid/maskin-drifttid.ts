@@ -217,10 +217,10 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
 
   statusText(status: string): string {
     switch (status) {
-      case 'hog':     return 'Hog produktion';
-      case 'lag':     return 'Lag produktion';
+      case 'hog':     return 'Hög produktion';
+      case 'lag':     return 'Låg produktion';
       case 'stopp':   return 'Stopp / Inaktiv';
-      case 'utanfor': return 'Utanfor arbetstid';
+      case 'utanfor': return 'Utanför arbetstid';
       default:        return '';
     }
   }

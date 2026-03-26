@@ -256,16 +256,16 @@
       <!-- Laddning -->
       <div class="text-center py-5" *ngIf="loading && operatorer.length === 0">
         <div class="spinner-border text-success" role="status"></div>
-        <div class="text-muted mt-2">Beraknar...</div>
+        <div class="text-muted mt-2">Beräknar...</div>
       </div>
 
-      <!-- Forklaringstext -->
+      <!-- Förklaringstext -->
       <div class="sim-card mt-3" *ngIf="operatorer.length">
-        <div class="sim-card-title">Hur fungerar berakningen?</div>
+        <div class="sim-card-title">Hur fungerar beräkningen?</div>
         <ul class="small text-muted mb-0">
-          <li>Bonuspoang = (Effektivitet × eff-vikt) + (Produktivitet normaliserad × prod-vikt) + (Kvalitet × kval-vikt)</li>
-          <li>Produktivitet normaliseras mot malet (max 120% av malet)</li>
-          <li>Baspoangen multipliceras med tier-multiplikatorn (Outstanding/Excellent/etc.)</li>
+          <li>Bonuspoäng = (Effektivitet × eff-vikt) + (Produktivitet normaliserad × prod-vikt) + (Kvalitet × kval-vikt)</li>
+          <li>Produktivitet normaliseras mot målet (max 120% av målet)</li>
+          <li>Baspoängen multipliceras med tier-multiplikatorn (Outstanding/Excellent/etc.)</li>
           <li>Slutpoangen begransas av bonustaken</li>
           <li>"Nuv. bonus" = medelvarde per skift med aktuella parametrar</li>
           <li>"Sim. bonus" = medelvarde per skift med dina justerade parametrar</li>

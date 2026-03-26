@@ -63,11 +63,11 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
       data: {
         labels,
         datasets: [
-          { label: 'Uppnatt', data: achieved,
+          { label: 'Uppnått', data: achieved,
             backgroundColor: achieved.map(v => v >= 85 ? 'rgba(72,187,120,0.85)' : v >= 65 ? 'rgba(236,201,75,0.85)' : 'rgba(252,129,129,0.85)'),
             borderColor: achieved.map(v => v >= 85 ? 'rgba(72,187,120,1)' : v >= 65 ? 'rgba(236,201,75,1)' : 'rgba(252,129,129,1)'),
             borderWidth: 1, borderRadius: 4, stack: 'oee' },
-          { label: 'Forlust', data: losses, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderRadius: 4, stack: 'oee' }
+          { label: 'Förlust', data: losses, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderRadius: 4, stack: 'oee' }
         ]
       },
       options: {

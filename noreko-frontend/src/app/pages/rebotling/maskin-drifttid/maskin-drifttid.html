@@ -70,10 +70,10 @@
         </ng-template>
       </div>
     </div>
-    <!-- Basta dag -->
+    <!-- Bästa dag -->
     <div class="col-6 col-md-3">
       <div class="mdt-kpi-card">
-        <div class="mdt-kpi-label">Basta dag</div>
+        <div class="mdt-kpi-label">Bästa dag</div>
         <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi3">
           <div class="mdt-kpi-value" style="color:#48bb78; font-size:1.2rem">
             {{ formatDatum(kpiData.basta_dag) }}
@@ -86,10 +86,10 @@
         </ng-template>
       </div>
     </div>
-    <!-- Samsta dag -->
+    <!-- Sämsta dag -->
     <div class="col-6 col-md-3">
       <div class="mdt-kpi-card">
-        <div class="mdt-kpi-label">Samsta dag</div>
+        <div class="mdt-kpi-label">Sämsta dag</div>
         <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi4">
           <div class="mdt-kpi-value" style="color:#fc8181; font-size:1.2rem">
             {{ formatDatum(kpiData.samsta_dag) }}
@@ -107,16 +107,16 @@
   <!-- Fargforklaring -->
   <div class="mdt-legend mb-3">
     <span class="mdt-legend-item">
-      <span class="mdt-legend-dot" style="background:#48bb78"></span>Hog produktion
+      <span class="mdt-legend-dot" style="background:#48bb78"></span>Hög produktion
     </span>
     <span class="mdt-legend-item">
-      <span class="mdt-legend-dot" style="background:#ecc94b"></span>Lag produktion
+      <span class="mdt-legend-dot" style="background:#ecc94b"></span>Låg produktion
     </span>
     <span class="mdt-legend-item">
       <span class="mdt-legend-dot" style="background:#fc8181"></span>Stopp / Inaktiv
     </span>
     <span class="mdt-legend-item">
-      <span class="mdt-legend-dot" style="background:#4a5568"></span>Utanfor arbetstid
+      <span class="mdt-legend-dot" style="background:#4a5568"></span>Utanför arbetstid
     </span>
   </div>
 

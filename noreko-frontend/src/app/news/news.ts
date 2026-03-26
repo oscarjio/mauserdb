@@ -400,7 +400,7 @@ export class News implements OnInit, OnDestroy {
       info:          'Info',
       viktig:        'Viktig',
       rekord:        'Rekord',
-      hog_oee:       'Hog OEE',
+      hog_oee:       'Hög OEE',
       certifiering:  'Certifiering',
       urgent:        'Brådskande',
     };
