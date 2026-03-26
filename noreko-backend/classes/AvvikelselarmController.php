@@ -179,66 +179,56 @@ class AvvikelselarmController {
 
     private function getOverview(): void {
         try {
-            // Aktiva larm (ej kvitterade)
-            $aktivaTotal = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM avvikelselarm WHERE kvitterad = 0"
-            )->fetchColumn();
-
-            // Kritiska aktiva larm
-            $aktivaKritiska = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM avvikelselarm WHERE kvitterad = 0 AND allvarlighetsgrad = 'kritisk'"
-            )->fetchColumn();
-
-            // Larm idag
             $idag = date('Y-m-d');
-            $stmt = $this->pdo->prepare(
-                "SELECT COUNT(*) FROM avvikelselarm WHERE tidsstampel >= :idag AND tidsstampel < DATE_ADD(:idagb, INTERVAL 1 DAY)"
-            );
+
+            // Kombinerad query: KPI:er + snitt losningstid (6 queries -> 2)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    SUM(kvitterad = 0) AS aktiva_totalt,
+                    SUM(kvitterad = 0 AND allvarlighetsgrad = 'kritisk') AS aktiva_kritiska,
+                    SUM(tidsstampel >= :idag AND tidsstampel < DATE_ADD(:idagb, INTERVAL 1 DAY)) AS larm_idag,
+                    AVG(CASE WHEN kvitterad = 1 AND kvitterad_datum IS NOT NULL
+                        THEN TIMESTAMPDIFF(MINUTE, tidsstampel, kvitterad_datum) END) AS snitt_min
+                FROM avvikelselarm
+            ");
             $stmt->execute([':idag' => $idag, ':idagb' => $idag]);
-            $larmIdag = (int)$stmt->fetchColumn();
+            $kpi = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Snitt losningstid (minuter) for kvitterade larm
-            $snittLosning = 0.0;
-            $stmt = $this->pdo->query("
-                SELECT AVG(TIMESTAMPDIFF(MINUTE, tidsstampel, kvitterad_datum)) AS snitt_min
-                FROM avvikelselarm
-                WHERE kvitterad = 1 AND kvitterad_datum IS NOT NULL
-            ");
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row && $row['snitt_min'] !== null) {
-                $snittLosning = round((float)$row['snitt_min'], 1);
-            }
+            $aktivaTotal    = (int)($kpi['aktiva_totalt']   ?? 0);
+            $aktivaKritiska = (int)($kpi['aktiva_kritiska'] ?? 0);
+            $larmIdag       = (int)($kpi['larm_idag']       ?? 0);
+            $snittLosning   = $kpi['snitt_min'] !== null ? round((float)$kpi['snitt_min'], 1) : 0.0;
 
-            // Fordelning per typ (aktiva)
+            // Kombinerad query: fordelning per typ + allvarlighetsgrad (2 queries -> 1)
             $stmt = $this->pdo->query("
-                SELECT typ, COUNT(*) AS antal
+                SELECT typ, allvarlighetsgrad, COUNT(*) AS antal
                 FROM avvikelselarm
                 WHERE kvitterad = 0
-                GROUP BY typ
-                ORDER BY antal DESC
+                GROUP BY typ, allvarlighetsgrad
             ");
+            $perTypMap  = [];
+            $perGradMap = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $antal = (int)$row['antal'];
+                $typ   = $row['typ'];
+                $grad  = $row['allvarlighetsgrad'];
+                $perTypMap[$typ]   = ($perTypMap[$typ]   ?? 0) + $antal;
+                $perGradMap[$grad] = ($perGradMap[$grad] ?? 0) + $antal;
+            }
+
+            // Formatera per_typ (sorterat pa antal)
+            arsort($perTypMap);
             $perTyp = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $perTyp[] = [
-                    'typ'   => $row['typ'],
-                    'antal' => (int)$row['antal'],
-                ];
+            foreach ($perTypMap as $typ => $antal) {
+                $perTyp[] = ['typ' => $typ, 'antal' => $antal];
             }
 
-            // Fordelning per allvarlighetsgrad (aktiva)
-            $stmt = $this->pdo->query("
-                SELECT allvarlighetsgrad, COUNT(*) AS antal
-                FROM avvikelselarm
-                WHERE kvitterad = 0
-                GROUP BY allvarlighetsgrad
-                ORDER BY FIELD(allvarlighetsgrad, 'kritisk', 'varning', 'info')
-            ");
+            // Formatera per_allvarlighetsgrad (fast ordning)
             $perGrad = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $perGrad[] = [
-                    'allvarlighetsgrad' => $row['allvarlighetsgrad'],
-                    'antal'             => (int)$row['antal'],
-                ];
+            foreach (['kritisk', 'varning', 'info'] as $grad) {
+                if (isset($perGradMap[$grad])) {
+                    $perGrad[] = ['allvarlighetsgrad' => $grad, 'antal' => $perGradMap[$grad]];
+                }
             }
 
             $this->sendSuccess([

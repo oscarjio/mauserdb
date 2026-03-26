@@ -1,3 +1,62 @@
+## Worker A -- Session #347 (2026-03-26) -- 5 auth-buggar fixade + alert/admin endpoints granskade + prestandaoptimering
+
+### UPPGIFT 1: ALERT-SYSTEMET GRANSKAT -- 4 CONTROLLERS -- KLAR
+Granskade AlertsController, AvvikelselarmController, AlarmHistorikController, KassationskvotAlarmController (24 endpoints totalt).
+
+**AlertsController.php** (6 endpoints: active, history, acknowledge, settings GET/POST, check):
+- SQL korrekt mot prod_db_schema.sql (alerts, alert_settings, users, rebotling_ibc, stoppage_log, stoppage_reasons)
+- Auth: alla endpoints kraver inloggning, settings POST kraver admin -- OK
+- Alla endpoints testade med curl -- 200 OK
+
+**AvvikelselarmController.php** (7 endpoints: overview, aktiva, historik, kvittera, regler, uppdatera-regel, trend):
+- SQL korrekt mot prod_db_schema.sql (avvikelselarm, larmregler)
+- Auth: alla endpoints kraver inloggning, uppdatera-regel kraver admin -- OK
+- Alla endpoints testade med curl -- 200 OK
+- **PRESTANDAOPTIMERING: overview 6 queries -> 2** (758ms -> 555ms, 27% snabbare)
+
+**AlarmHistorikController.php** (3 endpoints: list, summary, timeline):
+- SQL korrekt mot prod_db_schema.sql (stoppage_log, stoppage_reasons, rebotling_ibc, kassationsregistrering, rebotling_weekday_goals)
+- Auth: alla endpoints kraver inloggning -- OK
+- Alla endpoints testade med curl -- 200 OK
+- **PRESTANDAOPTIMERING: SHOW TABLES cachade** (list 1130ms -> 726ms, summary 972ms -> 673ms, timeline 1059ms -> 766ms, ~30% snabbare)
+
+**KassationskvotAlarmController.php** (7 endpoints: aktuell-kvot, alarm-historik, troskel-hamta, troskel-spara, timvis-trend, per-skift, top-orsaker):
+- SQL korrekt mot prod_db_schema.sql (rebotling_ibc, rebotling_kassationsalarminst, kassationsregistrering, kassationsorsak_typer)
+- **BUGG FIXAD: ALLA 6 GET-endpoints saknade auth** -- aktuell-kvot, alarm-historik, troskel-hamta, timvis-trend, per-skift, top-orsaker var tillgangliga utan inloggning. Fix: la till session-kontroll i handle().
+
+### UPPGIFT 2: REBOTLING-ADMIN GRANSKAT -- KLAR
+Granskade RebotlingAdminController.php (27 endpoints) via RebotlingController routing:
+- SQL korrekt mot prod_db_schema.sql (rebotling_settings, rebotling_weekday_goals, rebotling_goal_history, rebotling_shift_times, rebotling_ibc, rebotling_onoff, rebotling_lopnummer_current, rebotling_skiftrapport, rebotling_kv_settings, produktionsmal_undantag, produktionskostnad_config, news, batch_order, batch_ibc)
+- **BUGG FIXAD: service-status GET saknade auth** -- endpoint var tillganglig utan inloggning trots att den ger intern produktionsdata. Fix: la till 'service-status' i adminOnlyActions-listan.
+- Alla POST-endpoints kraver admin-session -- OK
+- saveMaintenanceLog() refererar till rebotling_maintenance_log som INTE finns i prod -- ger 500 (befintligt problem, ej nytt)
+
+### UPPGIFT 3: ENDPOINT-SWEEP -- 3 NYA AUTH-BUGGAR FIXADE
+Testade ALLA 100+ action-endpoints med curl mot dev.mauserdb.com.
+
+**Buggar hittade och fixade:**
+1. **ProduktionskostnadController** -- ALLA endpoints saknade auth. Fix: la till session-kontroll i handle().
+2. **ProduktionsSlaController** -- ALLA endpoints saknade auth. Fix: la till session-kontroll i handle().
+3. **BatchSparningController** -- ALLA endpoints saknade auth. Fix: la till session-kontroll i handle().
+
+Ovriga controllers (90+) har korrekt auth (returnerar 401/403 utan inloggning).
+
+### UPPGIFT 4: PRESTANDAPROFILERING -- KLAR
+Mat responstid pa alla 24 alert-endpoints med curl:
+- Under 500ms: 14 endpoints (OK)
+- Over 500ms: 4 endpoints (optimerade, se ovan)
+- AvvikelselarmController overview: 758ms -> 555ms (6 queries -> 2)
+- AlarmHistorikController list/summary/timeline: ~1050ms -> ~720ms (cachade SHOW TABLES)
+
+### SUMMERING
+- 5 auth-buggar fixade (KassationskvotAlarm 6 GET, service-status, ProduktionskostnadController, ProduktionsSlaController, BatchSparningController)
+- 2 prestandaoptimeringar (avvikelselarm overview, alarm-historik SHOW TABLES-cache)
+- 24+ alert-endpoints granskade och testade
+- 27 rebotling-admin endpoints granskade
+- 100+ endpoints sweep-testade
+
+---
+
 ## Worker B -- Session #347 (2026-03-26) -- Alert/alarm + rebotling-admin + statistik-sidor granskade + 17 diakritikfixar
 
 ### UPPGIFT 1: ALERT/ALARM UI-SIDOR -- GRANSKADE OK

@@ -18,10 +18,27 @@
  */
 class AlarmHistorikController {
     private $pdo;
+    private $tableCache = [];
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+    }
+
+    /**
+     * Cacha tabellexistens-kontroll (SHOW TABLES ar dyrt att kora upprepade ganger).
+     */
+    private function tableExists(string $tableName): bool {
+        if (isset($this->tableCache[$tableName])) {
+            return $this->tableCache[$tableName];
+        }
+        try {
+            $check = $this->pdo->query("SHOW TABLES LIKE " . $this->pdo->quote($tableName));
+            $this->tableCache[$tableName] = ($check && $check->rowCount() > 0);
+        } catch (\PDOException $e) {
+            $this->tableCache[$tableName] = false;
+        }
+        return $this->tableCache[$tableName];
     }
 
     public function handle(): void {
@@ -106,9 +123,7 @@ class AlarmHistorikController {
      */
     private function getLangaStopp(string $fromDate, string $toDate): array {
         try {
-            // Kontrollera att tabellen finns
-            $check = $this->pdo->query("SHOW TABLES LIKE 'stoppage_log'");
-            if (!$check || $check->rowCount() === 0) return [];
+            if (!$this->tableExists('stoppage_log')) return [];
 
             $stmt = $this->pdo->prepare("
                 SELECT
@@ -155,9 +170,7 @@ class AlarmHistorikController {
      */
     private function getLagTakt(string $fromDate, string $toDate): array {
         try {
-            // Kontrollera tabeller
-            $check1 = $this->pdo->query("SHOW TABLES LIKE 'rebotling_ibc'");
-            if (!$check1 || $check1->rowCount() === 0) return [];
+            if (!$this->tableExists('rebotling_ibc')) return [];
 
             // Hamta daglig produktion (MAX per skift, SUM per dag)
             $stmt = $this->pdo->prepare("
@@ -185,8 +198,7 @@ class AlarmHistorikController {
 
             // Hamta mal per veckodag om tabellen finns
             $goals = [];
-            $goalCheck = $this->pdo->query("SHOW TABLES LIKE 'rebotling_weekday_goals'");
-            if ($goalCheck && $goalCheck->rowCount() > 0) {
+            if ($this->tableExists('rebotling_weekday_goals')) {
                 $goalStmt = $this->pdo->query("SELECT weekday, daily_goal AS goal FROM rebotling_weekday_goals");
                 foreach ($goalStmt->fetchAll(\PDO::FETCH_ASSOC) as $g) {
                     $goals[(int)$g['weekday']] = (int)$g['goal'];
@@ -232,10 +244,8 @@ class AlarmHistorikController {
      */
     private function getHogKassation(string $fromDate, string $toDate): array {
         try {
-            $checkKass = $this->pdo->query("SHOW TABLES LIKE 'kassationsregistrering'");
-            if (!$checkKass || $checkKass->rowCount() === 0) return [];
-            $checkIbc = $this->pdo->query("SHOW TABLES LIKE 'rebotling_ibc'");
-            if (!$checkIbc || $checkIbc->rowCount() === 0) return [];
+            if (!$this->tableExists('kassationsregistrering')) return [];
+            if (!$this->tableExists('rebotling_ibc')) return [];
 
             // Kassationer per dag
             $stmtKass = $this->pdo->prepare("
@@ -304,8 +314,7 @@ class AlarmHistorikController {
      */
     private function getMaskinStopp(string $fromDate, string $toDate): array {
         try {
-            $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_ibc'");
-            if (!$check || $check->rowCount() === 0) return [];
+            if (!$this->tableExists('rebotling_ibc')) return [];
 
             // Dagar dar total IBC = 0 trots att det finns rader (maskin registrerad men ingen produktion)
             $stmt = $this->pdo->prepare("

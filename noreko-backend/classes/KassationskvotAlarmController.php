@@ -39,6 +39,11 @@ class KassationskvotAlarmController {
             }
         }
 
+        if (empty($_SESSION['user_id'])) {
+            $this->sendError('Inloggning kravs', 401);
+            return;
+        }
+
         $run = trim($_GET['run'] ?? '');
 
         if ($method === 'POST') {

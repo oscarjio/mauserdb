@@ -24,6 +24,14 @@ class ProduktionsSlaController {
     }
 
     public function handle(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
+        if (empty($_SESSION['user_id'])) {
+            $this->sendError('Inloggning krävs', 401);
+            return;
+        }
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = trim($_GET['run'] ?? '');
 

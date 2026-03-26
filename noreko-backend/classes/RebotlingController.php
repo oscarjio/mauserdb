@@ -28,6 +28,7 @@ class RebotlingController {
                 'alert-thresholds', 'today-snapshot', 'notification-settings',
                 'all-lines-status', 'goal-exceptions', 'weekly-summary-email',
                 'live-ranking-settings', 'live-ranking-config', 'goal-history',
+                'service-status',
             ];
             if (in_array($action, $adminOnlyActions, true)) {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
