@@ -848,7 +848,7 @@ class GamificationController {
 
             // Badge-statistik — batch-rakning utan N+1
             // Rakna antal operatorer som uppfyller varje badge-krav i EN query per badge
-            $badgeCount = $this->countBadgesTotal($from, $to, $leaderboard);
+            $badgeCount = $this->countBadgesTotal($leaderboard);
 
             // Streak-statistik
             $streaks = array_column($leaderboard, 'streak');
@@ -878,7 +878,7 @@ class GamificationController {
      * Batch-rakna totalt antal badges utan N+1.
      * Gor EN query per badge-typ istallet for 5 queries per operator.
      */
-    private function countBadgesTotal(string $from, string $to, array $leaderboard): int {
+    private function countBadgesTotal(array $leaderboard): int {
         if (empty($leaderboard)) return 0;
 
         $userIds = array_column($leaderboard, 'user_id');
