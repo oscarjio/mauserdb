@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #346):
-- [ ] **Optimera skiftrapport veckosammanstallning** — 6.6s svarstid (63 queries), behover batch-optimering
-- [ ] **Granska gamification-systemet** — A: GamificationController+AchievementController SQL, B: gamification-UI+badges
-- [ ] **Granska notifikationer** — A: NotifikationController SQL+endpoints, B: notifikation-UI+realtid
-- [ ] **Granska maskin-admin** — A: MaskinController+MaskinRegisterController SQL, B: maskin-admin-UI
-- [ ] **Granska energi-systemet djupare** — A: EnergiController berakningar, B: energi-grafer+trender
+### Nasta (session #347):
+- [ ] **Granska Alert-systemet** — A: AlertsController+AvvikelselarmController+AlarmHistorikController SQL, B: alert-UI
+- [ ] **Granska kassationskvot-alarm** — A: KassationskvotAlarmController SQL+endpoints, B: UI
+- [ ] **Granska rebotling-admin djupare** — A: alla endpoints+SQL, B: formulär+validering+UX
+- [ ] **Endpoint-sweep: alla kvarvarande controllers** — A: curl alla endpoints, leta 500-fel
+- [ ] **Prestandaprofilering runda 2** — A: mät alla endpoints, optimera >500ms
 
 ## Parkerade features (ta inte dessa nu)
 
