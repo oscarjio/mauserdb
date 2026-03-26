@@ -1,3 +1,37 @@
+## Worker A -- Session #336 (2026-03-26) -- Admin-panel audit + prestanda-audit (N+1 fix) + skiftrapporter + 150 endpoints OK
+
+### Uppgift 1: Admin-panel audit -- KLAR
+- Granskat AdminController.php, BonusAdminController.php, RebotlingAdminController.php mot prod_db_schema.sql
+- AdminController: Korrekt -- bcrypt via AuthHelper, transaktion + FOR UPDATE for race conditions, validering pa alla falt, audit-loggning
+- BonusAdminController: Korrekt -- 20+ endpoints, alla med validering, felhantering, audit trail. bonus_config, bonus_level_amounts, bonus_payouts matchar schema
+- RebotlingAdminController: Korrekt -- ensureTable/ensureColumn-migreringar, rebotling_settings, rebotling_weekday_goals, rebotling_kv_settings, rebotling_goal_history alla matchar schema
+- Rollkontroll: AdminController kraver session role=admin, BonusAdminController isAdmin() kontrollerar session, RebotlingAdminController har per-metod admin-check
+- Inga SQL-injektioner hittade -- alla queries anvander prepared statements
+
+### Uppgift 2: Prestanda-audit (N+1 fixar) -- KLAR
+- **SkiftjamforelseController::trend()**: FIXAD -- Ersatte N*3 separata SQL-queries (30*3=90 queries for 30 dagar) med EN bulk-query som hamtar all data per dag+skift
+- **SkiftjamforelseController::jamforelse()**: FIXAD -- Ersatte N*3 queries for stabilitetsberakning med EN bulk-query
+- **SkiftjamforelseController::bestPractices()**: FIXAD -- Flyttade getStopptidPerSkift() och getProduktionPerSkift() utanfor loopen (anropades redundant 3 ganger)
+- **SkiftrapportController::getSkiftjamforelse()**: FIXAD -- Ersatte N*3 calcSkiftData()-anrop (30*3=90 queries, vardera 2-3 SQL = 180-270 queries) med 2 bulk-queries (IBC + drifttid). Endpoint gick fran TIMEOUT (>15s) till 0.7s
+- SELECT * finns i bonus_config (1 rad) och rebotling_settings (1 rad) -- acceptabelt, ej andrat
+
+### Uppgift 3: Skiftrapporter -- verifiering mot prod DB -- KLAR
+- Verifierat IBC-aggregering: MAX per skiftraknare -> SUM = korrekt (193 ibc_ok for 2026-03-24 med 3 skift)
+- rebotling_skiftrapport lagrar manuellt inmatad data, rebotling_ibc lagrar PLC-data -- separata datakallor
+- OEE-berakning: Tillganglighet * Prestanda * Kvalitet med IDEAL_CYCLE_SEC=120s -- korrekt formel
+- calcSkiftData() anvander MAX per skiftraknare -> SUM for IBC-aggregering -- matchar hur PLC rapporterar
+
+### Uppgift 4: Testa ALLA endpoints med curl mot dev.mauserdb.com -- KLAR
+- Testade 150 actions fran api.php
+- **1 timeout fixat:** skiftrapport&run=skiftjamforelse (N+1 prestanda-bugg, nu 0.7s)
+- Alla 150 endpoints returnerar korrekt HTTP-kod (200, 401, 403 beroende pa behorighetskrav)
+- Inga 500-fel eller timeouts
+
+### Uppgift 5: Deploy -- KLAR
+- rsync med --exclude db_config.php --exclude cors_origins.php till /var/www/mauserdb-dev/noreko-backend/
+- Verifierat: skiftjamforelse returnerar 200 (0.7s) efter deploy
+- Checksum-verifiering: lokala och serverfiler matchar
+
 ## Worker B -- Session #336 (2026-03-26) -- Tom-tillstand tvattlinje/saglinje/klassificering + PDF-export audit + UX-genomgang
 
 ### Uppgift 1: Tvattlinje/Saglinje/Klassificering -- Tom-tillstand och UI -- KLAR

@@ -1084,6 +1084,99 @@ class SkiftrapportController {
      */
     private function getSkiftjamforelse(): void {
         $antalDagar = max(7, min(90, intval($_GET['dagar'] ?? 30)));
+        $fromDate = date('Y-m-d', strtotime("-{$antalDagar} days"));
+        $toDate   = date('Y-m-d');
+
+        // Bulk-query: IBC-data per dag och skift (ersatter N*3 separata anrop)
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) AS dag,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END AS skift_namn,
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_total
+                FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok,
+                        MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_dt AND datum < DATE_ADD(:to_dt, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare,
+                        CASE
+                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                            ELSE 'natt'
+                        END
+                ) AS per_skift
+                GROUP BY dag, skift_namn
+                ORDER BY dag ASC
+            ");
+            $stmt->execute([':from_dt' => $fromDate . ' 00:00:00', ':to_dt' => $toDate]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::getSkiftjamforelse bulk: ' . $e->getMessage());
+            $rows = [];
+        }
+
+        // Bygg en map: dag -> skift -> {ok, ej_ok, runtime}
+        $bulkMap = [];
+        foreach ($rows as $row) {
+            $bulkMap[$row['dag']][$row['skift_namn']] = [
+                'ok_antal'   => (int)$row['ok_antal'],
+                'ej_ok_antal'=> (int)$row['ej_ok_antal'],
+                'runtime'    => (int)$row['runtime_total'],
+            ];
+        }
+
+        // Drifttid fran rebotling_onoff per dag och skift (en enda query)
+        $drifttidMap = [];
+        try {
+            $driftStmt = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END AS skift_namn,
+                    datum, running
+                FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
+            ");
+            $driftStmt->execute([':from_dt' => $fromDate . ' 00:00:00', ':to_dt' => $toDate . ' 23:59:59']);
+            $onoffRows = $driftStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Berakna drifttid per dag/skift fran on/off-sekvenser
+            $prevTime = null;
+            $prevRunning = null;
+            $prevDay = null;
+            $prevSkift = null;
+            foreach ($onoffRows as $oor) {
+                $ts = strtotime($oor['datum']);
+                $running = (int)$oor['running'];
+                $day = $oor['dag'];
+                $skiftN = $oor['skift_namn'];
+
+                if ($prevTime !== null && $prevRunning === 1 && $prevDay === $day && $prevSkift === $skiftN) {
+                    if (!isset($drifttidMap[$day][$skiftN])) $drifttidMap[$day][$skiftN] = 0;
+                    $drifttidMap[$day][$skiftN] += ($ts - $prevTime);
+                }
+                $prevTime = $ts;
+                $prevRunning = $running;
+                $prevDay = $day;
+                $prevSkift = $skiftN;
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::getSkiftjamforelse drifttid: ' . $e->getMessage());
+        }
 
         $dagData = [];
         $skiftTotaler = [
@@ -1094,19 +1187,29 @@ class SkiftrapportController {
 
         for ($i = $antalDagar - 1; $i >= 0; $i--) {
             $datum = date('Y-m-d', strtotime("-{$i} days"));
-            $skift = $this->getSkiftIntervall($datum);
             $dagEntry = ['datum' => $datum];
 
-            foreach ($skift as $namn => $intervall) {
-                $sd = $this->calcSkiftData($intervall[0], $intervall[1]);
-                $dagEntry[$namn . '_producerade'] = $sd['producerade'];
-                $dagEntry[$namn . '_oee_pct'] = $sd['oee_pct'];
+            foreach (['dag', 'kvall', 'natt'] as $namn) {
+                $ibcData = $bulkMap[$datum][$namn] ?? ['ok_antal' => 0, 'ej_ok_antal' => 0, 'runtime' => 0];
+                $okIbc = $ibcData['ok_antal'];
+                $totalIbc = $okIbc + $ibcData['ej_ok_antal'];
+                $kasserade = $totalIbc - $okIbc;
+                $drifttidSek = $drifttidMap[$datum][$namn] ?? 0;
 
-                $skiftTotaler[$namn]['producerade'] += $sd['producerade'];
-                $skiftTotaler[$namn]['kasserade'] += $sd['kasserade'];
-                $skiftTotaler[$namn]['godkanda'] += $sd['godkanda'];
-                if ($sd['producerade'] > 0) {
-                    $skiftTotaler[$namn]['oee_sum'] += $sd['oee_pct'];
+                // OEE-berakning
+                $tillganglighet = self::SKIFT_LANGD_SEK > 0 ? min(1.0, $drifttidSek / self::SKIFT_LANGD_SEK) : 0.0;
+                $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+                $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+                $oee = round($tillganglighet * $prestanda * $kvalitet * 100, 1);
+
+                $dagEntry[$namn . '_producerade'] = $totalIbc;
+                $dagEntry[$namn . '_oee_pct'] = $oee;
+
+                $skiftTotaler[$namn]['producerade'] += $totalIbc;
+                $skiftTotaler[$namn]['kasserade'] += $kasserade;
+                $skiftTotaler[$namn]['godkanda'] += $okIbc;
+                if ($totalIbc > 0) {
+                    $skiftTotaler[$namn]['oee_sum'] += $oee;
                     $skiftTotaler[$namn]['count']++;
                 }
             }

@@ -331,17 +331,60 @@ class SkiftjamforelseController {
             // Volym = normaliserad IBC/h (max = 100)
             $maxIbcH = max(1, max(array_column($prod, 'ibc_per_h')));
 
-            // Stabilitet: vi beraknar per dag-variation for varje skift
+            // Stabilitet: berakna per dag-variation for varje skift via en enda query
             $stabilitet = [];
-            foreach (array_keys(self::SKIFT) as $skift) {
-                $dagOee = [];
-                for ($i = $days - 1; $i >= 0; $i--) {
-                    $dag = date('Y-m-d', strtotime("-{$i} days"));
-                    $dayProd = $this->getProduktionPerSkiftSingleDay($dag, $skift);
-                    if ($dayProd['ibc_ok'] > 0) {
-                        $dagOee[] = $dayProd['oee_pct'];
-                    }
+            $stabStmt = $this->pdo->prepare(
+                "SELECT
+                    DATE(datum) AS dag,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                        ELSE 'Natt'
+                    END AS skift,
+                    COALESCE(SUM(max_ok), 0) AS ibc_ok,
+                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                    COUNT(DISTINCT skiftraknare) AS antal_pass
+                 FROM (
+                    SELECT datum, skiftraknare,
+                        MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok, MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY DATE(datum), skiftraknare,
+                        CASE
+                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                            ELSE 'Natt'
+                        END
+                    HAVING COUNT(*) > 1
+                 ) s
+                 GROUP BY dag, skift"
+            );
+            $stabStmt->execute([$from, $today]);
+            $stabRows = $stabStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Bygg daglig OEE per skift
+            $dagOeeMap = [];
+            foreach ($stabRows as $sr) {
+                $skiftKey = $sr['skift'];
+                $ibcOk    = (int)$sr['ibc_ok'];
+                $ibcEjOk  = (int)$sr['ibc_ej_ok'];
+                $runtime  = (int)$sr['runtime_min'];
+                $antalPass = (int)$sr['antal_pass'];
+                $ibcTotal = $ibcOk + $ibcEjOk;
+                $ibcPerH  = $runtime > 0 ? $ibcOk / ($runtime / 60) : 0.0;
+                $planMin  = $antalPass * self::PLANERAD_MIN;
+                $tillg    = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+                $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
+                if ($ibcOk > 0) {
+                    $dagOeeMap[$skiftKey][] = $oee;
                 }
+            }
+
+            foreach (array_keys(self::SKIFT) as $skift) {
+                $dagOee = $dagOeeMap[$skift] ?? [];
                 if (count($dagOee) >= 2) {
                     $mean = array_sum($dagOee) / count($dagOee);
                     $variance = 0;
@@ -350,7 +393,6 @@ class SkiftjamforelseController {
                     }
                     $variance /= count($dagOee);
                     $stddev = sqrt($variance);
-                    // Lag stabilitet: 100 - stddev (capped 0-100)
                     $stabilitet[$skift] = max(0, min(100, round(100 - $stddev * 2, 1)));
                 } else {
                     $stabilitet[$skift] = 50;
@@ -443,18 +485,74 @@ class SkiftjamforelseController {
     private function trend(): void {
         try {
             $days  = $this->getDays();
+            $today = date('Y-m-d');
+            $from  = date('Y-m-d', strtotime("-{$days} days"));
 
+            // En enda query som hamtar all data per dag och skift (ersatter N+1)
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                    DATE(datum) AS dag,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                        ELSE 'Natt'
+                    END AS skift,
+                    COALESCE(SUM(max_ok), 0) AS ibc_ok,
+                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                    COUNT(DISTINCT skiftraknare) AS antal_pass
+                 FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ok,
+                        MAX(ibc_ej_ok) AS max_ej_ok,
+                        MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY DATE(datum), skiftraknare,
+                        CASE
+                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'FM'
+                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'EM'
+                            ELSE 'Natt'
+                        END
+                    HAVING COUNT(*) > 1
+                 ) s
+                 GROUP BY dag, skift
+                 ORDER BY dag ASC, skift ASC"
+            );
+            $stmt->execute([$from, $today]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Bygg en map: dag -> skift -> oee_pct
+            $dagMap = [];
+            foreach ($rows as $row) {
+                $dag    = $row['dag'];
+                $skift  = $row['skift'];
+                $ibcOk  = (int)$row['ibc_ok'];
+                $ibcEjOk = (int)$row['ibc_ej_ok'];
+                $runtime = (int)$row['runtime_min'];
+                $antalPass = (int)$row['antal_pass'];
+                $ibcTotal = $ibcOk + $ibcEjOk;
+
+                $ibcPerH   = $runtime > 0 ? $ibcOk / ($runtime / 60) : 0.0;
+                $planMin   = $antalPass * self::PLANERAD_MIN;
+                $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+                $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+                $oee       = round($tillg * $prest * $kvalFakt * 100, 1);
+
+                $dagMap[$dag][$skift] = $ibcOk > 0 ? $oee : null;
+            }
+
+            // Bygg trendpunkter for alla dagar
             $trendPoints = [];
-
             for ($i = $days - 1; $i >= 0; $i--) {
                 $dag = date('Y-m-d', strtotime("-{$i} days"));
                 $point = ['datum' => $dag];
-
                 foreach (array_keys(self::SKIFT) as $skift) {
-                    $dayData = $this->getProduktionPerSkiftSingleDay($dag, $skift);
-                    $point[$skift] = $dayData['ibc_ok'] > 0 ? $dayData['oee_pct'] : null;
+                    $point[$skift] = $dagMap[$dag][$skift] ?? null;
                 }
-
                 $trendPoints[] = $point;
             }
 
@@ -522,6 +620,10 @@ class SkiftjamforelseController {
                 $allStationSkift[$key] = $row;
             }
 
+            // Hamta stopptid och produktion en gang (utanfor loopen)
+            $stoppData = $this->getStopptidPerSkift($from, $today);
+            $prodData  = $this->getProduktionPerSkift($from, $today);
+
             // For varje skift, hitta basta station
             foreach (array_keys(self::SKIFT) as $skift) {
                 $skiftLabel = self::SKIFT[$skift]['label'];
@@ -555,11 +657,9 @@ class SkiftjamforelseController {
                     }
                 }
 
-                // Stopptid for skiftet
-                $stoppData = $this->getStopptidPerSkift($from, $today);
                 $stoppMin  = $stoppData[$skift] ?? 0;
 
-                $skiftData = $this->getProduktionPerSkift($from, $today)[$skift];
+                $skiftData = $prodData[$skift];
 
                 $insights = [];
                 if ($bastaStation && $bastaOee > 0) {
