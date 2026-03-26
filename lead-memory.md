@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #341)*
+*Senast uppdaterad: 2026-03-26 (session #342)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#341: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#342: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,13 +74,17 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska kvalitetskontroll-UI
-- [ ] Granska energi/miljo-UI
-- [ ] Granska underhallsplanering-UI
-- [ ] Verifiera produktion_procent-berakning mot prod DB
-- [ ] Rensa oanvanda signaturparams (countBadgesTotal)
+- [ ] Granska personal/roster-UI
+- [ ] Granska lager/inventarie-UI
+- [ ] Granska rapporter-UI
+- [ ] Granska rebotling-statistik grafer (berakningar, adaptiv granularitet)
+- [ ] Endpoint-stress: testa med ogiltiga params
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #342 (klar)
+Worker A: produktion_procent verifierad — momentan takt fran PLC, INTE kumulativ (ingen fix behovs). Oanvanda $from/$to params borttagna fran countBadgesTotal. Kvalitetskontroll (8 ep), Energi (3 ep), Underhall (29 ep) — alla SQL matchar schema. 116 endpoints testade, 0 st 500.
+Worker B: Kvalitetskontroll 10 komp + Underhall 4 komp granskade — alla OK. Energi/miljo — inga dedikerade komp. 70+ diakritikfixar i 21 filer. Build+deploy OK.
 
 ### 2026-03-26 — Session #341 (klar)
 Worker A: Gamification 2.3x + Onboarding 3.7x snabbare (N+1 batch-fix). Alarm-historik 3 endpoints OK. Produktionsmal 12 endpoints OK + 1 bugg fixad (HAVING-filter). 188 endpoints testade, 0 st 500.
@@ -89,7 +93,3 @@ Worker B: Gamification/skiftoverlamning/alarm/produktionsmal UI granskade — al
 ### 2026-03-26 — Session #340 (klar)
 Worker A: Operatorsbonus verifierad mot prod DB. 6 N+1-prestandafixar (7-10x). 2 st 500-fel fixade. 159 endpoints, 0 st 500.
 Worker B: Stopporsak/andon 7 komp OK. Tidrapport+Rebotling-sammanfattning OK. 55+ diakritikfixar.
-
-### 2026-03-26 — Session #339 (klar)
-Worker A: Rebotling-data verifierad mot prod DB. Kassationsanalys 5 controllers OK. 170+ endpoints, 0 st 500.
-Worker B: Leveransplanering+Maskinunderhall UI OK. VD-flodet E2E OK. 50+ diakritikfixar.

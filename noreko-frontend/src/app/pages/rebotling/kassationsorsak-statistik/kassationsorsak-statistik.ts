@@ -8,7 +8,6 @@ import {
   KassationsorsakStatistikService,
   OverviewData,
   ParetoData,
-  ParetoItem,
   TrendData,
   PerOperatorData,
   PerShiftData,

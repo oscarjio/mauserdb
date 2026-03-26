@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #342):
-- [ ] **Granska kvalitetskontroll-UI** — kassation, reklamation, kvalitetscertifikat korrekt?
-- [ ] **Granska energi/miljo-UI** — energiforbrukning, miljorapport, grafer stammer?
-- [ ] **Granska underhallsplanering-UI** — schemalagt underhall, historik, notifieringar OK?
-- [ ] **Verifiera produktion_procent** — verkar kumulativ, undersok berakning mot prod DB
-- [ ] **Rensa oanvanda $from/$to params** — GamificationController countBadgesTotal har oanvanda signaturparams
+### Nasta (session #343):
+- [ ] **Granska personal/roster-UI** — personalhantering, roster, scheman korrekt?
+- [ ] **Granska lager/inventarie-UI** — lagerhantering, inventering, saldo stammer?
+- [ ] **Granska rapporter-UI** — alla rapporttyper, PDF-export, dataintervall OK?
+- [ ] **Granska rebotling-statistik grafer** — berakningar korrekta, adaptiv granularitet?
+- [ ] **Endpoint-stress: testa med ogiltiga params** — skicka tomma/felaktiga varden, verifiera felhantering
 
 ## Parkerade features (ta inte dessa nu)
 
