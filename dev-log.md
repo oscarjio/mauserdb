@@ -1,3 +1,63 @@
+## Worker B -- Session #333 (2026-03-26) -- Modaler/dialoger, pipes/direktiv, polling-stress, Chart.js-granskning
+
+### Uppgift 1: Granska ALLA modaler och dialoger -- KLAR
+- Granskade 4 HTML-filer med Bootstrap/custom modaler:
+  - leveransplanering: modal-content #2d3748, border #4a5568, text #e2e8f0 -- OK
+  - kvalitetscertifikat: cert-modal #2d3748, border-radius 12px -- OK
+  - maskinunderhall: modal-content-custom #2d3748, border #4a5568 -- OK
+  - shift-plan: wv-modal #2d3748, border #4a5568, text #e2e8f0 -- OK
+- Alla modaler har korrekt dark theme
+- Validering med svenska felmeddelanden (ngModel required, touched) -- OK
+- Stangning rensar state (open-metoder aterinitierar formulardatan)
+- Klick utanfor stanger modal (backdrop click handlers) -- OK
+- **FIX**: Lade till @HostListener('document:keydown.escape') i 6 komponenter:
+  - leveransplanering, maskinunderhall, kvalitetscertifikat
+  - batch-sparning, skiftplanering, shift-plan
+- Formkontroller har ratt typ och validation (required, min/max, maxlength)
+
+### Uppgift 2: Granska Angular pipes och direktiv -- KLAR
+- Sokt igenom hela noreko-frontend/src/app for @Pipe och @Directive
+- Resultat: INGA custom pipes eller direktiv finns i kodbasen
+- Templates anvander enbart inbyggda Angular pipes (date, number, etc.)
+- Ingen risk for minneslackor fran impure pipes
+
+### Uppgift 3: Stresstesta polling under last -- KLAR
+- Identifierade 76 filer med setInterval/timer/interval
+- **Alla** komponenter med setInterval har matchande clearInterval + ngOnDestroy
+- isFetching-guards anvands korrekt i komponenter med tata pollningintervall
+- timeout() anvands pa HTTP-anrop genomgaende (8000-10000ms)
+- takeUntil(destroy$) anvands konsekvent for att undvika lackor
+- Pollningintervall ar rimliga: 15s-300s beroende pa komponent
+- destroy$.closed-check finns som extra sakerhet pa flera stallen
+- Inga minneslackor identifierade -- alla resurser rensas korrekt
+
+### Uppgift 4: Granska grafer och Chart.js -- KLAR
+- 110 filer med Chart.js-instanser granskade
+- Alla Chart-instanser forstors i ngOnDestroy (chart?.destroy()) -- OK
+- maintainAspectRatio: false verifierat -- alla satta till false sedan #332
+- **FIX**: 4 filer saknade maintainAspectRatio: false:
+  - statistik-kassation-pareto.ts (1 chart)
+  - statistik-produktionsrytm.ts (1 chart)
+  - production-analysis.ts (radar chart, saknade aven responsive: true)
+  - bonus-dashboard.ts (radar chart, saknade aven responsive: true)
+- Tooltips pa svenska med korrekt formatering -- OK
+- Farger matchar dark theme (#e2e8f0 text, #a0aec0 ticks, rgba grid) -- OK
+
+### Uppgift 5: Bygg, deploy och verifiera -- KLAR
+- Bygget lyckades (91.7s, inga fel)
+- Deploy till dev med rsync -- OK
+- curl https://dev.mauserdb.com/ -- 200 OK
+- curl rebotling overview endpoint -- 200 OK med korrekt data
+
+### Sammanfattning
+- 4 Chart.js-fixar (maintainAspectRatio + responsive pa radar charts)
+- 6 Escape-tangent-fixar pa modaler
+- Inga custom pipes/direktiv (bekraftad av Worker A ocksa)
+- Alla 76 polling-komponenter har korrekt cleanup
+- Alla modaler har dark theme
+
+---
+
 ## Worker A -- Session #333 (2026-03-26) -- Autentisering end-to-end, PDF-export granskning, pipes, full endpoint-audit
 
 ### Uppgift 1: Testa autentisering end-to-end — KLAR

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -92,6 +92,11 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
       this.capacityChart.destroy();
       this.capacityChart = null;
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showAssignModal) { this.closeAssignModal(); }
   }
 
   loadAll(): void {

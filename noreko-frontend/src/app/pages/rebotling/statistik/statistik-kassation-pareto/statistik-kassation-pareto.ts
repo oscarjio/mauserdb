@@ -64,7 +64,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
       { label: 'Antal kassationer', data: values, backgroundColor: values.map((v: number) => { const intensity = v/maxVal; if (intensity >= 0.8) return 'rgba(252,129,129,0.85)'; if (intensity >= 0.4) return 'rgba(237,137,54,0.75)'; return 'rgba(74,85,104,0.7)'; }),
         borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderRadius: 4, yAxisID: 'y' },
       { label: 'Kumulativ %', data: kumulativ, type: 'line' as any, borderColor: '#ed8936', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#ed8936', tension: 0.2, yAxisID: 'yRight' }
-    ] }, options: { responsive: true, interaction: { mode: 'index', intersect: false },
+    ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: '#e2e8f0' } }, tooltip: { callbacks: { label: (ctx: any) => { if (ctx.datasetIndex === 0) { const item = this.kassationPareto[ctx.dataIndex]; return ['Antal: '+item.antal, 'Andel: '+item.pct+'%']; } return 'Kumulativ: '+ctx.parsed.y+'%'; } } } },
       scales: { x: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.06)' } }, y: { beginAtZero: true, ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'Antal', color: '#a0aec0' } },
         yRight: { position: 'right', min: 0, max: 100, ticks: { color: '#ed8936', callback: (v: any) => v+'%' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Kumulativ %', color: '#ed8936' } } } },

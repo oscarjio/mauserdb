@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -108,6 +108,12 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.barChart.destroy();
       this.barChart = null;
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showGenereraModal) { this.closeGenerera(); }
+    else if (this.showModal) { this.closeModal(); }
   }
 
   loadAll(): void {

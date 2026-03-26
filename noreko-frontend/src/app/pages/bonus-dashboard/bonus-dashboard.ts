@@ -411,6 +411,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         }]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
           r: {
             beginAtZero: true,

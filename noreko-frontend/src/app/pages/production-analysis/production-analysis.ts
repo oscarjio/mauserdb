@@ -363,6 +363,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         datasets: datasets as NonNullable<typeof datasets[number]>[]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
           r: {
             beginAtZero: true,

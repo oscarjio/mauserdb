@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -100,6 +100,11 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
       this.refreshTimer = null;
     }
     if (this.kapacitetChartTimer !== null) { clearTimeout(this.kapacitetChartTimer); this.kapacitetChartTimer = null; }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showNewOrderModal) { this.showNewOrderModal = false; }
   }
 
   canDeactivate(): boolean {
