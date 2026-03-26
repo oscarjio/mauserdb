@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #341):
-- [ ] **Granska gamification-UI** — badges, XP, niva, leaderboard, milestones korrekt?
-- [ ] **Granska skiftoverlamning-UI** — formular, validering, historik, meddelandefunktion OK?
-- [ ] **Granska alarm-historik** — larmdata, filtrering, tidsberakning, graf korrekt?
-- [ ] **Granska produktionsmal-UI** — CRUD, berakningar, progress mot mal, grafer stammer?
-- [ ] **Endpoint-stress: gamification+onboarding** — fortfarande >1.5s efter N+1 fix, undersok vidare
+### Nasta (session #342):
+- [ ] **Granska kvalitetskontroll-UI** — kassation, reklamation, kvalitetscertifikat korrekt?
+- [ ] **Granska energi/miljo-UI** — energiforbrukning, miljorapport, grafer stammer?
+- [ ] **Granska underhallsplanering-UI** — schemalagt underhall, historik, notifieringar OK?
+- [ ] **Verifiera produktion_procent** — verkar kumulativ, undersok berakning mot prod DB
+- [ ] **Rensa oanvanda $from/$to params** — GamificationController countBadgesTotal har oanvanda signaturparams
 
 ## Parkerade features (ta inte dessa nu)
 

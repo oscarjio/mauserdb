@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #340)*
+*Senast uppdaterad: 2026-03-26 (session #341)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#340: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#341: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,22 +74,22 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska gamification-UI (badges, XP, leaderboard)
-- [ ] Granska skiftoverlamning-UI
-- [ ] Granska alarm-historik
-- [ ] Granska produktionsmal-UI
-- [ ] Endpoint-stress: gamification+onboarding (>1.5s)
+- [ ] Granska kvalitetskontroll-UI
+- [ ] Granska energi/miljo-UI
+- [ ] Granska underhallsplanering-UI
+- [ ] Verifiera produktion_procent-berakning mot prod DB
+- [ ] Rensa oanvanda signaturparams (countBadgesTotal)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #341 (klar)
+Worker A: Gamification 2.3x + Onboarding 3.7x snabbare (N+1 batch-fix). Alarm-historik 3 endpoints OK. Produktionsmal 12 endpoints OK + 1 bugg fixad (HAVING-filter). 188 endpoints testade, 0 st 500.
+Worker B: Gamification/skiftoverlamning/alarm/produktionsmal UI granskade — alla OK. 65+ diakritikfixar i 14 filer. Build+deploy OK.
+
 ### 2026-03-26 — Session #340 (klar)
-Worker A: Operatorsbonus verifierad mot prod DB — alla berakningar matchar exakt. 6 N+1-prestandafixar: operatorsbonus 7x, kapacitetsplanering 5.6x, oee-jamforelse 10x snabbare. 2 st 500-fel fixade (utnyttjandegrad SQL-bugg). 159 endpoints testade, 0 st 500. Lead: Rensat 4 oanvanda metoder + 3 oanvanda variabler fran N+1-refaktorering.
-Worker B: Stopporsak/andon 7 komponenter OK (inkl realtid, trend, operator-drill-down). Tidrapport UI+CSV-export OK. Rebotling-sammanfattning OK (5 KPI, grafer, PDF). 55+ diakritikfixar i 39 filer (Godkanda, Operatorsdata, fordelning-ord m.fl.). Build+deploy OK.
+Worker A: Operatorsbonus verifierad mot prod DB. 6 N+1-prestandafixar (7-10x). 2 st 500-fel fixade. 159 endpoints, 0 st 500.
+Worker B: Stopporsak/andon 7 komp OK. Tidrapport+Rebotling-sammanfattning OK. 55+ diakritikfixar.
 
 ### 2026-03-26 — Session #339 (klar)
-Worker A: Rebotling-data verifierad mot prod DB — 4908 IBC, 1098 onoff, 13 operatorer, API matchar exakt. Kassationsanalys 5 controllers OK. 170+ endpoints testade, 0 st 500.
-Worker B: Leveransplanering+Maskinunderhall UI OK. VD-flodet 7 sidor E2E OK. 50+ diakritikfixar. Build OK.
-
-### 2026-03-26 — Session #338 (klar)
-Worker A: StatistikOverblick N+1 fix: KPI 13x, OEE 43x snabbare. Effektivitet 500-bugg fixad. 160+ endpoints OK.
-Worker B: Skiftrapport+Admin UI OK. 109 Chart.js-grafer OK. 75+ diakritikfixar. Deployat.
+Worker A: Rebotling-data verifierad mot prod DB. Kassationsanalys 5 controllers OK. 170+ endpoints, 0 st 500.
+Worker B: Leveransplanering+Maskinunderhall UI OK. VD-flodet E2E OK. 50+ diakritikfixar.
