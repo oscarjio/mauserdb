@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #343):
-- [ ] **Granska personal/roster-UI** — personalhantering, roster, scheman korrekt?
-- [ ] **Granska lager/inventarie-UI** — lagerhantering, inventering, saldo stammer?
-- [ ] **Granska rapporter-UI** — alla rapporttyper, PDF-export, dataintervall OK?
-- [ ] **Granska rebotling-statistik grafer** — berakningar korrekta, adaptiv granularitet?
-- [ ] **Endpoint-stress: testa med ogiltiga params** — skicka tomma/felaktiga varden, verifiera felhantering
+### Nasta (session #344):
+- [ ] **Granska dashboard/hem-sida** — A: endpoints+SQL, B: UI+widgets+realtidsdata
+- [ ] **Granska rebotling-live adjacenta sidor** — B: UI runt live-vyn (EJ sjalva live-sidan)
+- [ ] **Prestandaprofilering** — A: identifiera langsamma endpoints (>500ms), optimera SQL
+- [ ] **Granska auth/anvandare/roller** — A: endpoints+SQL, B: UI+login+behorighetskontroll
+- [ ] **Accessibility-sweep** — B: kontrast, aria-labels, keyboard-nav i alla sidor
 
 ## Parkerade features (ta inte dessa nu)
 
