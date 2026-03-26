@@ -87,7 +87,8 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
 
   ngOnInit(): void {
     this.loadAll();
-    this.refreshTimer = setInterval(() => this.loadAll(), 60000);
+    // Leveransplanering: uppdatera var 2:a minut
+    this.refreshTimer = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {

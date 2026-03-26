@@ -30,6 +30,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   // ---- Period ----
   trendPeriod = 30;
   readonly periodOptions = [
+    { val: 1,  label: '1 dag'    },
     { val: 7,  label: '7 dagar'  },
     { val: 14, label: '14 dagar' },
     { val: 30, label: '30 dagar' },
@@ -70,7 +71,8 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
-    this.refreshInterval = setInterval(() => this.loadAll(), 60000);
+    // Statistik-dashboard: uppdatera var 2:a minut (data andras inte varje sekund)
+    this.refreshInterval = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {
@@ -193,10 +195,13 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     if (!canvas) return;
 
     const daily     = this.trendData.daily;
-    const labels    = daily.map(d => d.datum);
-    const ibcData   = daily.map(d => d.total);
-    const kassData  = daily.map(d => d.kassation_pct);
-    const snittLine = daily.map(() => this.trendData!.snitt_ibc_dag);
+
+    // Adaptiv granularitet: aggregera data baserat pa tidsspann
+    const aggregated = this.aggregateByGranularity(daily);
+    const labels    = aggregated.map(d => d.label);
+    const ibcData   = aggregated.map(d => d.total);
+    const kassData  = aggregated.map(d => d.kassation_pct);
+    const snittLine = aggregated.map(() => this.trendData!.snitt_ibc_dag);
 
     if (this.trendChart) { (this.trendChart as any).destroy(); }
     this.trendChart = new Chart(canvas, {
@@ -211,7 +216,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
             backgroundColor: 'rgba(99,179,237,0.15)',
             borderWidth: 2,
             fill: true,
-            pointRadius: 4,
+            pointRadius: aggregated.length > 60 ? 0 : aggregated.length > 30 ? 2 : 4,
             pointHoverRadius: 7,
             tension: 0.3,
             yAxisID: 'yLeft',
@@ -244,11 +249,11 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        onClick: (_event, elements) => {
+        onClick: (_event: any, elements: any[]) => {
           if (elements.length > 0) {
             const idx   = elements[0].index;
-            const item  = daily[idx];
-            if (item) this.showTrendTooltip(item);
+            const item  = aggregated[idx];
+            if (item) this.showTrendTooltip(item as any);
           }
         },
         plugins: {
@@ -268,7 +273,11 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#a0aec0', maxRotation: 45, maxTicksLimit: 15 },
+            ticks: {
+              color: '#a0aec0',
+              maxRotation: 45,
+              maxTicksLimit: this.getAdaptiveTickLimit(),
+            },
             grid:  { color: 'rgba(255,255,255,0.05)' },
           },
           yLeft: {
@@ -294,6 +303,89 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
         },
       },
     });
+  }
+
+  // ================================================================
+  // ADAPTIV GRANULARITET
+  // ================================================================
+
+  /** Returnera adaptiv maxTicksLimit baserat pa period */
+  private getAdaptiveTickLimit(): number {
+    if (this.trendPeriod <= 7) return 7;
+    if (this.trendPeriod <= 14) return 14;
+    if (this.trendPeriod <= 30) return 15;
+    return 12; // 90 dagar -> visa 12 etiketter (veckovis)
+  }
+
+  /** Granularitetsetikett for UI */
+  getGranularityLabel(): string {
+    if (this.trendPeriod <= 1) return 'per timme';
+    if (this.trendPeriod <= 14) return 'per dag';
+    if (this.trendPeriod <= 30) return 'per dag';
+    return 'per vecka';
+  }
+
+  /** Aggregera daglig data till lamplig granularitet baserat pa tidsspann.
+   *  <= 14 dagar: visa per dag (ingen aggregering).
+   *  > 14 dagar: aggregera per vecka.
+   */
+  private aggregateByGranularity(daily: ProductionTrendItem[]): {
+    label: string;
+    datum: string;
+    total: number;
+    ibc_ok: number;
+    ibc_ej_ok: number;
+    kassation_pct: number;
+    drifttid_h: number;
+    ibc_per_h: number;
+  }[] {
+    if (this.trendPeriod <= 30) {
+      // Per dag — visa rakt av
+      return daily.map(d => ({
+        label: d.datum,
+        datum: d.datum,
+        total: d.total,
+        ibc_ok: d.ibc_ok,
+        ibc_ej_ok: d.ibc_ej_ok,
+        kassation_pct: d.kassation_pct,
+        drifttid_h: d.drifttid_h,
+        ibc_per_h: d.ibc_per_h,
+      }));
+    }
+
+    // >= 90 dagar -> aggregera per vecka
+    const weeks = new Map<string, ProductionTrendItem[]>();
+    daily.forEach(d => {
+      const dt = parseLocalDate(d.datum);
+      // ISO vecka: man-son
+      const dayOfWeek = dt.getDay() || 7; // son=7
+      const monday = new Date(dt);
+      monday.setDate(dt.getDate() - dayOfWeek + 1);
+      const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+      if (!weeks.has(key)) weeks.set(key, []);
+      weeks.get(key)!.push(d);
+    });
+
+    const result: any[] = [];
+    weeks.forEach((items, key) => {
+      const totalIbc = items.reduce((s, i) => s + i.total, 0);
+      const totalOk = items.reduce((s, i) => s + i.ibc_ok, 0);
+      const totalEjOk = items.reduce((s, i) => s + i.ibc_ej_ok, 0);
+      const avgKass = totalIbc > 0 ? +(totalEjOk / totalIbc * 100).toFixed(1) : 0;
+      const totalDrift = items.reduce((s, i) => s + i.drifttid_h, 0);
+      const avgIbcH = totalDrift > 0 ? +(totalIbc / totalDrift).toFixed(1) : 0;
+      result.push({
+        label: `V${key.slice(5)}`,
+        datum: key,
+        total: totalIbc,
+        ibc_ok: totalOk,
+        ibc_ej_ok: totalEjOk,
+        kassation_pct: avgKass,
+        drifttid_h: +totalDrift.toFixed(1),
+        ibc_per_h: avgIbcH,
+      });
+    });
+    return result;
   }
 
   // ================================================================

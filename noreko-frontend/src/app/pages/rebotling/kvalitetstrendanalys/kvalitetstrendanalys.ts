@@ -78,7 +78,8 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
-    this.refreshInterval = setInterval(() => this.loadAll(), 60000);
+    // Kvalitetstrendanalys: historisk data — uppdatera var 2:a minut
+    this.refreshInterval = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {

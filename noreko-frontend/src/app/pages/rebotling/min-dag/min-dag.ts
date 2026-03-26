@@ -52,8 +52,8 @@ export class MinDagPage implements OnInit, OnDestroy {
       this.loadAll();
     });
 
-    // Auto-refresh var 60:e sekund
-    this.refreshTimer = setInterval(() => this.loadAll(), 60000);
+    // Auto-refresh var 2:a minut (personal stats, inte live-data)
+    this.refreshTimer = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {

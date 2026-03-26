@@ -118,11 +118,11 @@
       <div class="sim-card mb-3">
         <div class="sim-card-title">Tier-multiplikatorer</div>
         <div class="slider-row">
-          <label>Outstanding (&ge;95p) <strong>&times;{{ (tier95/100).toFixed(2) }}</strong></label>
+          <label>Enastående (&ge;95p) <strong>&times;{{ (tier95/100).toFixed(2) }}</strong></label>
           <input type="range" min="100" max="300" step="5" [(ngModel)]="tier95" (input)="onSliderChange()" class="form-range range-outstanding">
         </div>
         <div class="slider-row">
-          <label>Excellent (&ge;90p) <strong>&times;{{ (tier90/100).toFixed(2) }}</strong></label>
+          <label>Utmärkt (&ge;90p) <strong>&times;{{ (tier90/100).toFixed(2) }}</strong></label>
           <input type="range" min="100" max="300" step="5" [(ngModel)]="tier90" (input)="onSliderChange()" class="form-range range-excellent">
         </div>
         <div class="slider-row">

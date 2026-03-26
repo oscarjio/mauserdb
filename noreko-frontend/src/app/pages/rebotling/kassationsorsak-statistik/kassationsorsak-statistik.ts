@@ -77,7 +77,8 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
-    this.refreshTimer = setInterval(() => this.loadAll(), 60000);
+    // Kassationsorsak-statistik: historisk data — uppdatera var 2:a minut
+    this.refreshTimer = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {

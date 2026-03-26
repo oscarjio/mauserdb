@@ -50,6 +50,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   // Graf: aktiv period
   aktivPeriod = 90;
   readonly periodAlternativ = [
+    { varde: 7,  etikett: '7 dagar'  },
+    { varde: 14, etikett: '14 dagar' },
     { varde: 30, etikett: '30 dagar' },
     { varde: 60, etikett: '60 dagar' },
     { varde: 90, etikett: '90 dagar' },
@@ -75,9 +77,10 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.laddaAllt();
+    // Trendanalys ar historiska data — uppdatera var 5:e minut
     this.pollingInterval = setInterval(() => {
       if (!this.destroy$.closed) this.laddaAllt();
-    }, 60000);
+    }, 300000);
   }
 
   ngOnDestroy(): void {

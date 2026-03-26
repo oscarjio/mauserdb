@@ -102,7 +102,8 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
       error: () => { this.errorMaskiner = true; }
     });
     this.loadAll();
-    this.refreshTimer = setInterval(() => this.loadAll(), 60000);
+    // Stopptidsanalys: historisk data — uppdatera var 2:a minut
+    this.refreshTimer = setInterval(() => this.loadAll(), 120000);
   }
 
   ngOnDestroy(): void {
