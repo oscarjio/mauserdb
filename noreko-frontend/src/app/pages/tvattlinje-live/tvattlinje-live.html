@@ -4,6 +4,11 @@
     <span class="freshness-dot"></span>
     <span class="freshness-text">{{ freshnessLabel }}</span>
   </div>
+  <!-- Ej i drift-banner visas när ingen data mottagits och linjen inte kör -->
+  <div *ngIf="lastDataUpdate === null && !isLineRunning" class="not-running-banner text-center py-2" style="background: #2a3f5f; border: 1px solid #3d6b9e; border-radius: 8px; margin-bottom: 0.5rem;">
+    <i class="fas fa-info-circle me-2" style="color: #90cdf4;"></i>
+    <span style="color: #90cdf4;">Tvättlinjen är ej i drift — väntar på data från PLC</span>
+  </div>
   <div class="row g-0 h-100">
     <div class="col-6 d-flex align-items-stretch">
       <div class="live-card flex-fill clock-card h-100 w-100 d-flex flex-column justify-content-center align-items-center">

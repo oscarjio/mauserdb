@@ -1,3 +1,42 @@
+## Worker B -- Session #336 (2026-03-26) -- Tom-tillstand tvattlinje/saglinje/klassificering + PDF-export audit + UX-genomgang
+
+### Uppgift 1: Tvattlinje/Saglinje/Klassificering -- Tom-tillstand och UI -- KLAR
+- Granskat alla 12 Angular-komponenter for tvattlinje, saglinje och klassificeringslinje (live, admin, skiftrapport, statistik)
+- **tvattlinje-live.html**: Lade till "ej i drift"-banner som visas nar ingen data mottagits och linjen inte kor
+- saglinje-live och klassificeringslinje-live: Redan bra hantering med "Vanter pa data" / "Inget rapporterat" meddelanden
+- Alla statistik-sidor: Har "ej i drift"-banners och OEE-trend tom-tillstand -- OK
+- Alla admin-sidor: Har driftstatus-banners och systemstatus-kort -- OK
+- Alla skiftrapporter: Anvander SharedSkiftrapportComponent med emptyText config -- OK
+- Grafer hanterar tomma dataset korrekt (returnerar utan att krascha vid tom data)
+- Loading states (spinners) finns i alla komponenter -- OK
+- Error states med svenska felmeddelanden finns overallt -- OK
+
+### Uppgift 2: PDF-Export -- Audit -- KLAR
+- Granskat PDF-export i 3 system:
+  1. **PdfExportService** (html2canvas + jsPDF): Screenshot-baserad export. Hanterar tom data (returnerar tidigt om element saknas). Landskaps/portratt valjs automatiskt. Dark theme-bakgrund (#1a202c) inkluderas korrekt.
+  2. **SharedSkiftrapportComponent.exportPDF()** (pdfmake): Genererar tabellbaserad PDF for enskild skiftrapport. Hanterar tom data (returnerar tidigt om inget totalt). Svenska tecken fungerar via pdfmake/vfs_fonts (Roboto). Layout korrekt med tabeller for produktion/kvalitet.
+  3. **SkiftrapportExportComponent** (pdfmake): Fullstandig dag- och veckorapport. Hanterar tom data ("Ingen produktionsdata hittades"). Svenska tecken OK med Roboto font. Layout med sektioner (produktion, cykeltider, drifttid, OEE, operatorer, trender). Veckorapport med landscape-format och dagstabell.
+- Alla export-funktioner (CSV/Excel/PDF) kontrollerar tomma dataset innan export -- OK
+- BOM (\uFEFF) inkluderas i CSV for korrekt ÅÄÖ-hantering -- OK
+
+### Uppgift 3: UX-genomgang -- Diakritikfix -- KLAR
+- Fixade saknade svenska tecken (ÅÄÖ) i 4 filer:
+  - tvattlinje-admin.html: "Atkomst nekad" -> "Åtkomst nekad", "behorighet" -> "behörighet", "Ga tillbaka" -> "Gå tillbaka"
+  - saglinje-admin.html: Samma diakritikfixar
+  - klassificeringslinje-admin.html: Samma diakritikfixar
+  - executive-dashboard.html: "Atkomst nekad" -> "Åtkomst nekad", "kraver admin-behorighet" -> "kräver admin-behörighet"
+- Granskat dark theme-konsistens: Alla sidor anvander korrekt #1a202c/#2d3748/#e2e8f0 palett -- OK
+- Alla sidor har Bootstrap 5 responsiva klasser (col-6 col-md-3 etc.) -- OK
+- Inga engelska synliga strangar kvar i UI-text
+
+### Uppgift 4: Bygg och deploy -- KLAR
+- Angular-bygge lyckat utan fel (enbart CommonJS-varningar)
+- Frontend deployad till dev.mauserdb.com via rsync
+- Backend deployad till dev.mauserdb.com via rsync
+- Verifierat: sajten returnerar HTTP 200, API svarar
+
+---
+
 ## Worker A -- Session #335 (2026-03-26) -- Rebotling PHP audit + bonus/VD-dashboard verifiering + hourly-rhythm fix
 
 ### Uppgift 1: Granska ALLA rebotling PHP controllers mot prod DB schema -- KLAR
