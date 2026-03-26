@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #338)*
+*Senast uppdaterad: 2026-03-26 (session #339)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#338: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#339: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,12 +74,17 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska rebotling-live data mot prod DB
-- [ ] Granska kassationsanalys (berakningar, Pareto)
-- [ ] Granska leveransplanering + maskinunderhall UI
-- [ ] End-to-end test: VD-flodet
+- [ ] Granska operatorsbonus-berakningar mot prod DB
+- [ ] Granska stopporsaker/andon-UI
+- [ ] Granska tidrapport-UI + export
+- [ ] Granska rebotling-sammanfattning mot prod DB
+- [ ] Prestanda-audit: langsammaste endpoints
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #339 (klar)
+Worker A: Rebotling-data verifierad mot prod DB — 4908 IBC, 1098 onoff, 13 operatorer, API matchar exakt. Kassationsanalys 5 controllers OK, Pareto korrekt. 170+ endpoints testade, 0 st 500.
+Worker B: Leveransplanering UI OK (9 diakritikfixar). Maskinunderhall UI OK (5 diakritikfixar). VD-flodet 7 sidor E2E OK. 50+ diakritikfixar i 37 filer (Manad, Tillganglighet, Okand, Mal, Oversikt m.fl.). Build OK.
 
 ### 2026-03-26 — Session #338 (klar)
 Worker A: PRESTANDA — StatistikOverblick N+1 fix: KPI 8.77s->0.64s (13x), OEE 16.8s->0.39s (43x). Effektivitet 500-bugg fixad (NULL COALESCE + HAVING). produktion_procent bekraftad korrekt (momentan PLC-rate). 160+ endpoints testade, 0 st 500. Angular routing 80+ rutter OK, alla guards OK, lazy loading OK.
@@ -88,7 +93,3 @@ Worker B: Skiftrapport-UI 6 komponenter OK. Admin-sidor 5 komponenter OK. 109 Ch
 ### 2026-03-26 — Session #337 (klar)
 Worker A: SAKERHETS-AUDIT KLAR — inga SQL injection, XSS eller CSRF-problem. 135 endpoints testade, 0 st 500.
 Worker B: Operatorsbonus UI OK. VD-dashboard UI OK + 21 diakritikfixar. Alla modaler OK. 92 services felhantering OK.
-
-### 2026-03-26 — Session #336 (klar)
-Worker A: Admin-panel OK. PRESTANDA: 4 N+1-fixar — skiftjamforelse 270->2 queries. 150 endpoints OK.
-Worker B: 12 komponenter granskade, tom-tillstand-banner. PDF-export OK. 4 diakritikfixar.

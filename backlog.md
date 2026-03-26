@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #339):
-- [ ] **Granska rebotling-live data mot prod DB** — stammer IBC-data, operatorsnamn, skiftinfo?
-- [ ] **Granska kassationsanalys** — berakningar, grafer, Pareto-diagram korrekt?
-- [ ] **Granska leveransplanering UI** — formular, validering, CRUD, kalenderfunktion
-- [ ] **Granska maskinunderhall UI** — formular, historik, varningsnivaer
-- [ ] **End-to-end test: VD-flodet** — logga in som VD, navigera alla sidor, verifiera data
+### Nasta (session #340):
+- [ ] **Granska operatorsbonus-berakningar mot prod DB** — stammer bonus, rattvisefaktorer, utbetalningar?
+- [ ] **Granska stopporsaker/andon-UI** — formular, kategorier, tidsberakning korrekt?
+- [ ] **Granska tidrapport-UI** — formuleringsvalidering, sparar korrekt, CSV/Excel-export OK?
+- [ ] **Granska rebotling-sammanfattning** — stammer siffror mot prod DB? Korrekt tidsperiod?
+- [ ] **Prestanda-audit: langsammaste endpoints** — tidtaga alla, optimera >2s
 
 ## Parkerade features (ta inte dessa nu)
 
