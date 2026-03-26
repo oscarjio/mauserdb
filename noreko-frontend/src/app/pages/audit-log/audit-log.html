@@ -45,7 +45,7 @@
           <!-- Action dropdown (dynamic) -->
           <div class="filter-group">
             <label class="filter-label"><i class="fas fa-tag me-1"></i>Åtgärdstyp</label>
-            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()" aria-label="Filtrera atgardstyp">
+            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()" aria-label="Filtrera åtgärdstyp">
               <option value="">Alla åtgärder</option>
               <ng-container *ngIf="availableActions.length > 0; else staticOptions">
                 <option *ngFor="let a of availableActions; trackBy: trackByIndex" [value]="a">{{ getActionLabel(a) }}</option>

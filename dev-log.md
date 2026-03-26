@@ -1,3 +1,51 @@
+## Worker B -- Session #346 (2026-03-26) -- Gamification/Notifikation/Maskin-admin/Energi UI-granskning + 8 diakritikfixar
+
+### UPPGIFT 1: GAMIFICATION UI + BADGES -- GRANSKAD OK
+Granskade `rebotling/gamification/` (komponent + service + CSS):
+- **Template**: Tre flikar (Leaderboard, Min profil, VD-vy). Podium, ranking-tabell, badges, milstolpar, KPI-kort. All text pa svenska. Dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text).
+- **Lifecycle**: OnInit + OnDestroy + destroy$ + takeUntil + clearInterval -- korrekt.
+- **CSS**: Fullt dark theme-kompatibelt.
+- **Fix**: 1 diakritikfix i HTML-kommentar (Engagemangsoversikt -> Engagemangsoversikt med o-trema).
+
+### UPPGIFT 2: NOTIFIKATION-UI -- GRANSKAD OK
+Notifikationer hanteras i rebotling-admin (E-postnotifikationer-sektion, rad ~920-1050). Granskade:
+- Toggle-switchar for stopp/OEE/certifikat/underhall/skiftrapport -- korrekt
+- E-postinmatning, sparknapp, feedback -- korrekt
+- Automatisk skiftrapport-panel -- korrekt
+- Lifecycle: Hanteras via rebotling-admin destroy$/takeUntil -- korrekt
+
+### UPPGIFT 3: MASKIN-ADMIN UI -- GRANSKAD OK
+Inget separat maskin-admin-komponent -- maskinhantering sker via rebotling-admin. Granskade:
+- Produkthantering (CRUD for produkter) -- korrekt
+- Systemstatus (PLC-ping, databas, IBC idag) -- korrekt
+- Maskinstatus & Underhallsprediktor (cykeltidsgraf + baseline) -- korrekt
+- Prediktivt underhall (IBC-baserat serviceintervall) -- korrekt
+- Korrelationsanalys (underhall vs stopp) -- korrekt Chart.js-konfiguration
+- Lifecycle: destroy$ + takeUntil + clearInterval x3 + chart.destroy() x3 -- korrekt
+
+### UPPGIFT 4: ENERGI-GRAFER + TRENDER -- GRANSKAD OK
+Energikostnader hanteras via `produktionskostnad/`:
+- 3 Chart.js-grafer: Doughnut (kostnadsuppdelning), Linjediagram (kostnad/IBC trend), Stapeldiagram (skiftjamforelse)
+- Axlar, farger, tooltips, responsivitet -- korrekt dark theme
+- Alla charts har destroy() i ngOnDestroy, clearTimeout for chart-timers -- korrekt
+- Daglig briefing: Bar chart (veckotrend) -- korrekt
+
+### UPPGIFT 5: DIAKRITIK-SWEEP -- 8 FIXAR
+1. daglig-briefing.component.html: `troskel` -> `troskel` (med o-trema)
+2. daglig-briefing.component.html: `Bast:` -> `Bast:` (med a-trema)
+3. daglig-briefing.component.html: `operatorer aktiva` -> `operatorer` (med o-trema)
+4. daglig-briefing.component.html: `Inga aktiva operatorer` -> `operatorer` (med o-trema)
+5. skiftoverlamning.component.html: `Bekrafta skiftoverlamning` (aria-label) -> korrekt diakritik
+6. skiftoverlamning.component.html: `Kommentar om handelser: Ja` -> `handelser` (med a-trema)
+7. skiftoverlamning.component.html: `Kommentar om handelser: Nej` -> `handelser` (med a-trema)
+8. audit-log.html: `Filtrera atgardstyp` (aria-label) -> `atgardstyp` (med a-trema + a-trema)
+
+### UPPGIFT 6: BYGG OCH DEPLOY -- KLAR
+- `npx ng build` -- lyckad (endast warnings, inga errors)
+- `rsync` deploy till dev.mauserdb.com -- lyckad
+
+---
+
 ## Worker A -- Session #345 (2026-03-26) -- Rapport/Bonus/Skift/Stopp controllers granskade + 6 buggar fixade + auth-fix
 
 ### UPPGIFT 1: RAPPORTER -- Controllers + SQL + Endpoints -- KLAR

@@ -67,7 +67,7 @@
         <div class="kpi-body">
           <div class="kpi-label">Kassationsrate</div>
           <div class="kpi-value" [ngClass]="getKassClass(sammanfattning.kassationsrate)">{{ sammanfattning.kassationsrate }}%</div>
-          <div class="kpi-sub text-muted">{{ sammanfattning.kasserade }} av {{ sammanfattning.total_ibc }} (troskel: {{ sammanfattning.kassation_troskel }}%)</div>
+          <div class="kpi-sub text-muted">{{ sammanfattning.kasserade }} av {{ sammanfattning.total_ibc }} (tröskel: {{ sammanfattning.kassation_troskel }}%)</div>
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@
           <div class="kpi-label">Stoppminuter</div>
           <div class="kpi-value">{{ sammanfattning.stopp_minuter }}</div>
           <div class="kpi-sub text-muted" *ngIf="sammanfattning.basta_operator">
-            Bast: {{ sammanfattning.basta_operator.namn }} ({{ sammanfattning.basta_operator.total_ibc }} IBC)
+            Bäst: {{ sammanfattning.basta_operator.namn }} ({{ sammanfattning.basta_operator.total_ibc }} IBC)
           </div>
         </div>
       </div>
@@ -137,8 +137,8 @@
         <div *ngIf="loadingBemanning" class="text-center py-3"><div role="status" class="spinner-border spinner-border-sm text-secondary"><span class="visually-hidden">Laddar...</span></div></div>
         <div *ngIf="errorBemanning" class="text-danger small">Kunde inte ladda bemanning.</div>
         <div *ngIf="!loadingBemanning && !errorBemanning">
-          <div class="bemanning-count mb-2">{{ bemanningAntal }} operatorer aktiva idag</div>
-          <div *ngIf="operatorer.length === 0" class="text-muted small">Inga aktiva operatorer.</div>
+          <div class="bemanning-count mb-2">{{ bemanningAntal }} operatörer aktiva idag</div>
+          <div *ngIf="operatorer.length === 0" class="text-muted small">Inga aktiva operatörer.</div>
           <div class="operator-item" *ngFor="let op of operatorer; trackBy: trackByIndex">
             <span class="op-namn"><i class="fas fa-user me-1" style="color:#a0aec0"></i>{{ op.namn }}</span>
             <span class="op-ibc">{{ op.ibc_idag }} IBC</span>
