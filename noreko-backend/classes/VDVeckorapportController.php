@@ -49,6 +49,12 @@ class VDVeckorapportController {
             echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
+        $role = $_SESSION['role'] ?? '';
+        if ($role !== 'admin' && $role !== 'developer') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behorighet'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
 
         $run = trim($_GET['run'] ?? '');
         switch ($run) {

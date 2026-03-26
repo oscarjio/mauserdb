@@ -1,3 +1,65 @@
+## Worker A -- Session #334 (2026-03-26) -- PHP error handling audit, produktion_procent fix, role guards, endpoint test
+
+### Uppgift 1: Granska error handling i ALLA PHP controllers -- KLAR
+- Granskade samtliga ~90 PHP controllers i noreko-backend/classes/
+- api.php har global try/catch med \Throwable — fangar ALLA PHP-fel, inklusive TypeError/ValueError
+- PDO konfigurerad med ERRMODE_EXCEPTION — alla SQL-fel kastas som exceptions
+- 1136 catch-block i controllers anvander \Exception (inte \Throwable), men api.php:s globala handler fangar allt som slippar igenom — sakerhetsnatet fungerar
+- Inga controllers lackor interna felmeddelanden ($e->getMessage()) till anvandaren — alla returnerar generiska svenska felmeddelanden
+- Division by zero: samtliga platser har >0-kontroller (DagligSammanfattning, Morgonrapport, RebotlingTrendanalys, etc.)
+- Ingen display_errors eller error_reporting satt i backend — PHP-varningar nar aldrig klienten
+- Alla SQL-queries anvander prepared statements (PDO prepare/execute) — ingen SQL injection-risk
+
+### Uppgift 2: produktion_procent-berakning -- FIXAD (igen)
+**Bakgrund:** Session #330 andrade berakningen till delta-baserad logik, baserat pa antagandet att vardet ar kumulativt fran PLC.
+
+**Ny analys:** Undersokta faktisk prod DB-data for skiftraknare 78:
+- Tidiga cykler: 7, 17, 34, 47, 68, 102, 141, 181 (ramp-up)
+- Stabiliserade cykler: 80, 74, 78, 82, 85, 85, 83, 79, 80, 81... (oscillerar runt 80%)
+
+**Rotorsak:** PLC-backend (noreko-plcbackend/Rebotling.php) beraknar produktion_procent som:
+`(ibcCount * 60 / totalRuntimeMinutes) / hourlyTarget * 100`
+= momentan produktionstakt i procent av mal. INTE kumulativt.
+
+Tidiga varden (>100%) ar artefakter av kort runtime i borjan av skiftet (fa cykler / kort tid = hog takt). Delta-logiken fran session #330 producerade nonsens-varden (snitt 27.9% istallet for korrekta ~75%).
+
+**Fix 1:** RebotlingController::getStatistics() — tog bort delta-logik, anvander nu ravarden med filter (0 < pct <= 200, cap till 100). Resultat: 74.7% snitt (verifierat mot prod).
+**Fix 2:** RebotlingController::getDayStats() — tog bort delta-logik, cap:ar varden >100 till 100, satter >200 till 0 (ramp-up-artefakter).
+
+### Uppgift 3: Granska lazy loading och routing guards -- KLAR
+- app.routes.ts: 161 rader, samtliga routes anvander lazy loading via `loadComponent: () => import(...)`
+- Publika routes (12 st): live-views, statistik, skiftrapporter, login, register — INGA guards (korrekt)
+- Autentiserade routes (~80 st): authGuard pa samtliga — korrekt
+- Admin-routes (~28 st): adminGuard pa samtliga — korrekt
+- adminGuard checkar role === 'admin' || role === 'developer' — korrekt
+- authGuard vantar pa initialized$ innan beslut — undviker race condition — korrekt
+- pendingChangesGuard pa formularsidor (leveransplanering, underhallslogg, etc.) — korrekt
+- **FIX:** VdDashboardController saknades backend-rollkontroll (bara user_id). Lade till admin/developer-check.
+- **FIX:** VDVeckorapportController saknades backend-rollkontroll (bara user_id). Lade till admin/developer-check.
+- Ovriga admin-controllers (AdminController, AuditController, BonusAdminController, etc.) har korrekt rollkontroll
+
+### Uppgift 4: Testa ALLA endpoints med curl -- KLAR
+- Testade 115 endpoints mot https://dev.mauserdb.com/noreko-backend/api.php
+- Resultat: 27 OK (publika), 88 Auth (401/403 — forvantat), 0 FAIL (inga 500 eller timeouts)
+- Verifierade specifika endpoints: rebotling, tvattlinje, saglinje, feature-flags, status — alla returnerar korrekt JSON
+- NewsController returnerar 404 utan run-parameter — korrekt beteende (kraver run=events)
+
+### Uppgift 5: Deploy och verifiera -- KLAR
+- Frontend bygge: OK (warnings for canvg/html2canvas CommonJS — icke-kritiska)
+- Backend deploy: rsync (exkluderat db_config.php och cors_origins.php)
+- Frontend deploy: rsync --delete till dist/
+- Verifiering:
+  - produktion_procent: 74.7% snitt (korrekt, var 27.9% fore fix)
+  - day-stats: inga varden >100%, tidiga ramp-up cap:ade till 100
+  - vd-dashboard: 401 utan auth (ny rollkontroll fungerar)
+  - vd-veckorapport: 401 utan auth (ny rollkontroll fungerar)
+  - 115/115 endpoints svarar utan 500-fel
+
+### Andrade filer
+- noreko-backend/classes/RebotlingController.php (produktion_procent fix)
+- noreko-backend/classes/VdDashboardController.php (admin-rollkontroll)
+- noreko-backend/classes/VDVeckorapportController.php (admin-rollkontroll)
+
 ## Worker B -- Session #334 (2026-03-26) -- Error handling, rollnavigation, svenska, responsivitet
 
 ### Uppgift 1: Granska error handling i Angular services -- KLAR

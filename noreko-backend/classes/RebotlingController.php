@@ -873,27 +873,20 @@ class RebotlingController {
             $target_cycle_time = 0;
             
             if ($total_cycles > 0) {
-                // produktion_procent ar kumulativ fran PLC — berakna delta per cykel
-                // inom varje skiftraknare for att fa momentant varde.
-                $prevPctBySkift = [];
-                $deltaPercents  = [];
+                // produktion_procent ar en momentan takt-procent fran PLC-backend:
+                // (faktisk_per_timme / mal_per_timme) * 100.
+                // Tidiga cykler i ett skift kan ge varden >100% pga kort runtime.
+                // Filtrera bort orimliga varden (>200%) och anvand ravaarden direkt.
+                $validPercents = [];
                 foreach ($cycles as $c) {
-                    $sk  = $c['skiftraknare'] ?? 0;
-                    $pct = (int)($c['produktion_procent'] ?? 0);
-                    if (isset($prevPctBySkift[$sk]) && $pct > $prevPctBySkift[$sk]) {
-                        $delta = $pct - $prevPctBySkift[$sk];
-                        // Rimlighetskontroll: delta > 100 ar anomali, hoppa over
-                        if ($delta <= 100) {
-                            $deltaPercents[] = $delta;
-                        }
-                    } elseif ($pct > 0 && $pct <= 100) {
-                        // Forsta cykeln i skiftet eller PLC-reset — anvand ratt som momentant
-                        $deltaPercents[] = $pct;
+                    $pct = (float)($c['produktion_procent'] ?? 0);
+                    // Filtrera bort nollor och orimligt hoga varden (ramp-up-artefakter)
+                    if ($pct > 0 && $pct <= 200) {
+                        $validPercents[] = min($pct, 100);
                     }
-                    $prevPctBySkift[$sk] = $pct;
                 }
-                $avg_production_percent = count($deltaPercents) > 0
-                    ? array_sum($deltaPercents) / count($deltaPercents)
+                $avg_production_percent = count($validPercents) > 0
+                    ? array_sum($validPercents) / count($validPercents)
                     : 0;
                 
                 // Beräkna genomsnittlig cykeltid
@@ -1011,21 +1004,17 @@ class RebotlingController {
             $stmt->execute(['date' => $date, 'dateb' => $date]);
             $hourly_data_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // produktion_procent ar kumulativ fran PLC — berakna delta per cykel
-            $prevPctBySkift = [];
+            // produktion_procent ar en momentan takt-procent (faktisk/mal * 100).
+            // Tidiga cykler i ett skift kan ge >100% pga kort runtime — cap till 100.
+            // Orimligt hoga varden (>200%) ar ramp-up-artefakter — satt till 0.
             $hourly_data = [];
             foreach ($hourly_data_raw as $row) {
-                $sk  = $row['skiftraknare'] ?? 0;
-                $pct = (int)($row['produktion_procent'] ?? 0);
-                if (isset($prevPctBySkift[$sk]) && $pct > $prevPctBySkift[$sk]) {
-                    $delta = $pct - $prevPctBySkift[$sk];
-                    $row['produktion_procent'] = ($delta <= 100) ? $delta : 0;
-                } elseif ($pct > 100) {
-                    // Kumulativt varde utan foregaende referens — satt till 0
+                $pct = (float)($row['produktion_procent'] ?? 0);
+                if ($pct > 200) {
                     $row['produktion_procent'] = 0;
+                } elseif ($pct > 100) {
+                    $row['produktion_procent'] = 100;
                 }
-                // Varden 0-100 som ar forsta i skiftet/efter reset behalles som de ar
-                $prevPctBySkift[$sk] = $pct;
                 $hourly_data[] = $row;
             }
 

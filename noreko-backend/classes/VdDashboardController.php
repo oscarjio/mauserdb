@@ -32,6 +32,11 @@ class VdDashboardController {
             $this->sendError('Inloggning kravs', 401);
             return;
         }
+        $role = $_SESSION['role'] ?? '';
+        if ($role !== 'admin' && $role !== 'developer') {
+            $this->sendError('Endast admin har behorighet', 403);
+            return;
+        }
 
         $run = trim($_GET['run'] ?? '');
 
