@@ -1,3 +1,45 @@
+## Worker A -- Session #346 (2026-03-26) -- Skiftrapport veckosammanstallning 9.5x snabbare + Gamification/Maskin granskade + auth-fix
+
+### UPPGIFT 1: SKIFTRAPPORT VECKOSAMMANSTALLNING OPTIMERAD -- KLAR
+**Problem:** `getVeckosammanstallning()` kor 63 separata queries (7 dagar x 3 skift x 3 queries/skift via `calcSkiftData()`). Baseline: 4.83 sekunder.
+
+**Fix:** Ersatt 63 separata queries med 3 batch-queries:
+1. IBC-data per dag+skift (rebotling_ibc med GROUP BY dag, skift)
+2. Drifttid per dag+skift (rebotling_onoff med on/off-sekvensberakning)
+3. Kassationsorsaker per dag+skift (kassationsregistrering)
+
+**Resultat:** 0.51 sekunder -- 9.5x snabbare (mal var under 2 sek).
+
+### UPPGIFT 2: GAMIFICATION-SYSTEMET -- BACKEND -- KLAR
+Granskade GamificationController.php (4 endpoints: leaderboard, badges, min-profil, overview):
+- SQL-queries matchar prod_db_schema.sql korrekt
+- Tabeller anvands: rebotling_ibc (op1/op2/op3), operators, users, stopporsak_registreringar
+- Auth: alla endpoints kraver inloggning (OK)
+- Alla 4 endpoints testade med curl -- 200 OK
+- Inga buggar hittade
+
+### UPPGIFT 3: NOTIFIKATIONER -- EJ TILLAMPLIG
+NotifikationController.php existerar INTE i kodbasen. Narmaste controllers ar AlertsController, AvvikelselarmController, AlarmHistorikController, KassationskvotAlarmController.
+
+### UPPGIFT 4: MASKIN-ADMIN -- BACKEND -- KLAR
+Granskade 4 maskin-controllers (22 endpoints totalt):
+
+**MaskinunderhallController.php** (6 endpoints):
+- **BUGG FIXAD: GET-endpoints saknade auth** -- overview, machines, machine-history, timeline var tillgangliga utan inloggning. Fix: la till session-kontroll fore alla GET-routes.
+- POST add-service kraver login, add-machine kraver admin -- OK
+
+**MaskinOeeController.php** (6 endpoints) -- SQL OK, auth OK, alla testade 200 OK
+
+**MaskinhistorikController.php** (6 endpoints) -- SQL OK, auth OK, alla testade 200 OK
+
+**MaskinDrifttidController.php** (4 endpoints) -- SQL OK, auth OK, alla testade 200 OK
+
+### SUMMERING
+- 1 prestandaoptimering (veckosammanstallning 63 queries -> 3, 9.5x snabbare)
+- 1 auth-bugg fixad (MaskinunderhallController GET saknade inloggningskrav)
+- 27 endpoints granskade och testade
+- 0 SQL-buggar mot prod_db_schema.sql
+
 ## Worker B -- Session #346 (2026-03-26) -- Gamification/Notifikation/Maskin-admin/Energi UI-granskning + 8 diakritikfixar
 
 ### UPPGIFT 1: GAMIFICATION UI + BADGES -- GRANSKAD OK

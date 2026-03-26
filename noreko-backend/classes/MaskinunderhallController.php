@@ -27,6 +27,14 @@ class MaskinunderhallController {
         $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'GET') {
+            // Auth-kontroll: maskindata kräver inloggning
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start(['read_and_close' => true]);
+            }
+            if (empty($_SESSION['user_id'])) {
+                $this->sendError('Ej inloggad', 401);
+                return;
+            }
             switch ($run) {
                 case 'overview':        $this->getOverview();       break;
                 case 'machines':        $this->getMachines();       break;
