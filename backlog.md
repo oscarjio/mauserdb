@@ -7,16 +7,16 @@
 
 ### NY KONTEXT — Anvand detta:
 - **prod_db_schema.sql** i projektroten — FACIT for alla SQL-queries
-- **Deploy till dev**: rsync backend+dist till dev.mauserdb.com (se memory/feedback_deploy_workflow.md)
+- **Deploy till dev**: rsync till /var/www/mauserdb-dev/ pa dev.mauserdb.com (ssh -p 32546)
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #340):
-- [ ] **Granska operatorsbonus-berakningar mot prod DB** — stammer bonus, rattvisefaktorer, utbetalningar?
-- [ ] **Granska stopporsaker/andon-UI** — formular, kategorier, tidsberakning korrekt?
-- [ ] **Granska tidrapport-UI** — formuleringsvalidering, sparar korrekt, CSV/Excel-export OK?
-- [ ] **Granska rebotling-sammanfattning** — stammer siffror mot prod DB? Korrekt tidsperiod?
-- [ ] **Prestanda-audit: langsammaste endpoints** — tidtaga alla, optimera >2s
+### Nasta (session #341):
+- [ ] **Granska gamification-UI** — badges, XP, niva, leaderboard, milestones korrekt?
+- [ ] **Granska skiftoverlamning-UI** — formular, validering, historik, meddelandefunktion OK?
+- [ ] **Granska alarm-historik** — larmdata, filtrering, tidsberakning, graf korrekt?
+- [ ] **Granska produktionsmal-UI** — CRUD, berakningar, progress mot mal, grafer stammer?
+- [ ] **Endpoint-stress: gamification+onboarding** — fortfarande >1.5s efter N+1 fix, undersok vidare
 
 ## Parkerade features (ta inte dessa nu)
 

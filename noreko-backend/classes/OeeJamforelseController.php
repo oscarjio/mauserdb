@@ -67,9 +67,6 @@ class OeeJamforelseController {
     }
 
     /**
-     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
-     */
-    /**
      * Fördela drifttidssekunder mellan ISO-veckor.
      */
     private function addDrifttidToWeeks(array &$perWeek, int $fromTs, int $toTs): void {
@@ -79,99 +76,6 @@ class OeeJamforelseController {
         $yw = date('oW', $fromTs);
         if (!isset($perWeek[$yw])) $perWeek[$yw] = 0;
         $perWeek[$yw] += $sek;
-    }
-
-    private function calcDrifttidSek(string $from, string $to): int {
-        $stmt = $this->pdo->prepare("
-            SELECT datum, running FROM rebotling_onoff
-            WHERE datum >= :from_dt AND datum < :to_dt ORDER BY datum ASC
-        ");
-        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        $sek = 0; $lastOn = null;
-        foreach ($rows as $r) {
-            $ts = strtotime($r['datum']);
-            if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
-            else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
-        }
-        if ($lastOn !== null) $sek += max(0, min(time(), strtotime($to)) - $lastOn);
-        return $sek;
-    }
-
-    /**
-     * Berakna OEE for ett datumintervall (from_date - to_date inklusive).
-     * Returnerar oee_pct, tillganglighet_pct, prestanda_pct, kvalitet_pct samt ravardata.
-     */
-    private function calcOeeForRange(string $fromDate, string $toDate): array {
-        $fromDt = $fromDate . ' 00:00:00';
-        $toDt   = date('Y-m-d', strtotime($toDate . ' +1 day')) . ' 00:00:00';
-
-        // 1) Drifttid fran rebotling_onoff (datum + running kolumner)
-        try {
-            $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
-        } catch (\PDOException $e) {
-            error_log('OeeJamforelse::calcOeeForRange onoff: ' . $e->getMessage());
-            $drifttidSek = 0;
-        }
-
-        // Planerad tid: antal vardagar * 8h
-        $d = new \DateTime($fromDate);
-        $end = new \DateTime($toDate);
-        $arbetsdagar = 0;
-        while ($d <= $end) {
-            $dow = (int)$d->format('N'); // 1=man, 7=son
-            if ($dow <= 5) $arbetsdagar++;
-            $d->modify('+1 day');
-        }
-        $planeradSek = $arbetsdagar * self::SCHEMA_SEK_PER_DAG;
-        $stopptidSek = max(0, $planeradSek - $drifttidSek);
-
-        // 2) IBC-data via kumulativa PLC-fält
-        try {
-            $ibcStmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                      AND skiftraknare IS NOT NULL
-                    GROUP BY skiftraknare
-                ) sub
-            ");
-            $ibcStmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $ibcRow   = $ibcStmt->fetch(\PDO::FETCH_ASSOC);
-            $okIbc    = (int)($ibcRow['ok_antal']    ?? 0);
-            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_antal'] ?? 0);
-        } catch (\PDOException $e) {
-            error_log('OeeJamforelse::calcOeeForRange ibc: ' . $e->getMessage());
-            $totalIbc = 0;
-            $okIbc    = 0;
-        }
-
-        // 3) Berakna OEE-faktorer
-        $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
-        $prestanda = $drifttidSek > 0
-            ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek)
-            : 0.0;
-        $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
-        $oee = $tillganglighet * $prestanda * $kvalitet;
-
-        return [
-            'oee_pct'              => round($oee * 100, 1),
-            'tillganglighet_pct'   => round($tillganglighet * 100, 1),
-            'prestanda_pct'        => round($prestanda * 100, 1),
-            'kvalitet_pct'         => round($kvalitet * 100, 1),
-            'drifttid_h'           => round($drifttidSek / 3600, 1),
-            'stopptid_h'           => round($stopptidSek / 3600, 1),
-            'planerad_h'           => round($planeradSek / 3600, 1),
-            'total_ibc'            => $totalIbc,
-            'ok_ibc'               => $okIbc,
-            'kasserade_ibc'        => $totalIbc - $okIbc,
-            'arbetsdagar'          => $arbetsdagar,
-        ];
     }
 
     // ================================================================
@@ -227,7 +131,6 @@ class OeeJamforelseController {
         }
 
         // Batch-hämta drifttid från rebotling_onoff för hela perioden
-        $drifttidSekTotal = 0;
         $drifttidPerWeek = [];
         try {
             $globalFromDt = $globalFromStr . ' 00:00:00';

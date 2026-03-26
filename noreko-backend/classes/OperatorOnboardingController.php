@@ -245,40 +245,6 @@ class OperatorOnboardingController {
         return $result;
     }
 
-    /**
-     * Beräkna en operatörs nuvarande IBC/h (senaste 30 dagar).
-     */
-    private function getCurrentIbcH(int $opNumber): float {
-        try {
-            $stmt = $this->pdo->prepare(
-                "SELECT
-                    SUM(sub.ibc_ok) AS total_ibc,
-                    SUM(sub.drifttid) AS total_drifttid
-                 FROM (
-                    SELECT ibc_ok, COALESCE(drifttid, 0) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op1 = ? AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
-                    UNION ALL
-                    SELECT ibc_ok, COALESCE(drifttid, 0) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op2 = ? AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
-                    UNION ALL
-                    SELECT ibc_ok, COALESCE(drifttid, 0) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op3 = ? AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
-                 ) AS sub"
-            );
-            $stmt->execute([$opNumber, $opNumber, $opNumber]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row && (int)$row['total_drifttid'] > 0) {
-                return round((int)$row['total_ibc'] / ((int)$row['total_drifttid'] / 60.0), 1);
-            }
-        } catch (\PDOException $e) {
-            error_log('OperatorOnboardingController::getCurrentIbcH: ' . $e->getMessage());
-        }
-        return 0.0;
-    }
-
     // ================================================================
     // run=overview
     // ================================================================

@@ -131,7 +131,7 @@ class KapacitetsplaneringController {
     /**
      * Hamtar antal stationer — rebotling_ibc har ingen station-kolumn, returnera 1.
      */
-    private function getAntalStationer(string $fromDate, string $toDate): int {
+    private function getAntalStationer(): int {
         return 1;
     }
 
@@ -208,28 +208,6 @@ class KapacitetsplaneringController {
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getDrifttidSek: ' . $e->getMessage());
             return 0;
-        }
-    }
-
-    /**
-     * Hamtar produktionsmal for ett datum om rebotling_produktionsmal finns.
-     */
-    private function getProduktionsmal(string $datum): ?int {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT mal_antal FROM rebotling_produktionsmal
-                WHERE start_datum <= :datum
-                  AND (slut_datum IS NULL OR slut_datum >= :datum2)
-                  AND typ = 'vecka'
-                ORDER BY skapad_av DESC, id DESC
-                LIMIT 1
-            ");
-            $stmt->execute([':datum' => $datum, ':datum2' => $datum]);
-            $val = $stmt->fetchColumn();
-            return $val !== false ? (int)$val : null;
-        } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController::getProduktionsmal: ' . $e->getMessage());
-            return null;
         }
     }
 
@@ -383,7 +361,7 @@ class KapacitetsplaneringController {
         $prognosVecka = round($snittPerDag * 5, 0);
 
         // Genomsnittligt utnyttjande senaste 30 dagar
-        $antalStRef = $this->getAntalStationer($refFrom, $today);
+        $antalStRef = $this->getAntalStationer();
         $teorMaxRef = $antalStRef * $maxPerStationPerDag;
         $utnyttjandeSnitt = $teorMaxRef > 0 ? min(100, round($snittPerDag / $teorMaxRef * 100, 1)) : 0.0;
 
@@ -522,7 +500,6 @@ class KapacitetsplaneringController {
         );
 
         // Batch-hämta produktionsmål i en enda query (eliminerar N+1)
-        $malPerDag = [];
         try {
             $stmtMal = $this->pdo->prepare("
                 SELECT start_datum, slut_datum, mal_antal
@@ -1245,7 +1222,6 @@ class KapacitetsplaneringController {
 
         $config = $this->loadKapacitetConfig();
         $antalStationer = !empty($config) ? count($config) : $this->getAntalStationer(
-            date('Y-m-d', strtotime('-30 days')), date('Y-m-d')
         );
 
         // Historisk produktivitet
