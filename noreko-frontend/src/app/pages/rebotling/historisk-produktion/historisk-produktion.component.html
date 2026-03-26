@@ -39,7 +39,7 @@
               (click)="selectPeriod(365)">365d</button>
       <span class="text-muted mx-1">|</span>
       <input type="date" class="form-control form-control-sm custom-date"
-             [(ngModel)]="customFrom" aria-label="Fran datum" />
+             [(ngModel)]="customFrom" aria-label="Från datum" />
       <span class="text-muted">-</span>
       <input type="date" class="form-control form-control-sm custom-date"
              [(ngModel)]="customTo" aria-label="Till datum" />
@@ -85,14 +85,14 @@
       </div>
     </div>
 
-    <!-- Basta dag -->
+    <!-- Bästa dag -->
     <div class="col-6 col-lg-3">
       <div class="kpi-card">
         <div class="kpi-icon" style="background:#ecc94b22; color:#ecc94b;">
           <i class="fas fa-trophy"></i>
         </div>
         <div class="kpi-body">
-          <div class="kpi-label">Basta dag</div>
+          <div class="kpi-label">Bästa dag</div>
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.basta_dag_antal ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
@@ -130,7 +130,7 @@
         <div class="trend-sub text-muted">
           Nuvarande: <strong>{{ jamforelse.nuvarande.total }}</strong> IBC
           &mdash;
-          Foregaende: <strong>{{ jamforelse.foregaende.total }}</strong> IBC
+          Föregående: <strong>{{ jamforelse.foregaende.total }}</strong> IBC
         </div>
       </div>
       <div class="ms-auto d-flex gap-3 flex-wrap" *ngIf="jamforelse.diff">
@@ -328,7 +328,7 @@
           <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1" aria-label="Föregående sida">
             <i class="fas fa-angle-left"></i>
           </button>
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Nasta sida">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Nästa sida">
             <i class="fas fa-angle-right"></i>
           </button>
           <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.total_pages)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Sista sidan">

@@ -28,7 +28,7 @@
           <i class="fas fa-check-circle"></i><span>Kvalitet & OEE</span>
         </button>
         <button [class.active]="activeTab === 'operators'" (click)="setTab('operators')">
-          <i class="fas fa-users"></i><span>Operatorer</span>
+          <i class="fas fa-users"></i><span>Operatörer</span>
         </button>
         <button [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">
           <i class="fas fa-microscope"></i><span>Analys</span>
@@ -47,7 +47,7 @@
         </button>
       </div>
       <div class="card-body">
-        <p class="text-muted mb-3">Valj vilka widgets som ska visas och andra ordning med pilknapparna.</p>
+        <p class="text-muted mb-3">Välj vilka widgets som ska visas och ändra ordning med pilknapparna.</p>
         <div class="layout-widget-list">
           <div class="layout-widget-item" *ngFor="let w of dashboardLayout; let i = index; let first = first; let last = last; trackBy: trackByIndex">
             <div class="d-flex align-items-center gap-3">
@@ -126,7 +126,7 @@
               <span class="ov-unit">IBC</span>
             </div>
             <div class="ov-sub">
-              av {{ overviewData.todayTarget }} mal
+              av {{ overviewData.todayTarget }} mål
               <span class="ov-pct" [ngClass]="overviewData.todayPct >= 90 ? 'text-success' : overviewData.todayPct >= 70 ? 'text-warning' : 'text-danger'">
                 ({{ overviewData.todayPct }}%)
               </span>
@@ -158,7 +158,7 @@
               <span class="ov-unit">IBC</span>
             </div>
             <div class="ov-sub">
-              Forr. vecka: {{ overviewData.prevWeekIbc }}
+              Förr. vecka: {{ overviewData.prevWeekIbc }}
               <span class="ov-trend" [ngClass]="getTrendClass(overviewData.weekDiffPct)">
                 <i class="fas" [ngClass]="getTrendIcon(overviewData.weekDiffPct)"></i>
                 {{ overviewData.weekDiffPct > 0 ? '+' : '' }}{{ overviewData.weekDiffPct | number:'1.0-0' }}%
@@ -233,7 +233,7 @@
         <div class="col-lg-3 mb-4">
           <div class="dark-card">
             <div class="card-header">
-              <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Valj Period</h5>
+              <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Välj Period</h5>
               <small class="text-muted" *ngIf="viewMode !== 'day'">Klicka för att markera, dubbelklicka för att öppna</small>
               <small class="text-muted" *ngIf="viewMode === 'day'">Visar cykeltid per producerad IBC</small>
             </div>
@@ -290,11 +290,11 @@
               <div>
                 <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</h5>
                 <small class="text-muted d-block">
-                  <span style="color:#27ae60">&#9632;</span> Kor &nbsp;
+                  <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
                   <span style="color:#ffc107">&#9632;</span> Rast &nbsp;
                   <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
                   <span style="color:#ffc107">--</span> Snitt &nbsp;
-                  <span style="color:#ff8800">--</span> Mal
+                  <span style="color:#ff8800">--</span> Mål
                 </small>
               </div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -339,13 +339,13 @@
                    [style.width.%]="seg.widthPct"></div>
             </div>
             <div class="d-flex gap-3 mt-1">
-              <small><span class="tl-dot running"></span> Kor</small>
+              <small><span class="tl-dot running"></span> Kör</small>
               <small><span class="tl-dot rast"></span> Rast</small>
               <small><span class="tl-dot stopped"></span> Stopp</small>
             </div>
           </div>
 
-          <!-- Skiftversikt (dag-vy) -->
+          <!-- Skiftöversikt (dag-vy) -->
           <div *ngIf="viewMode === 'day' && shiftSummaries.length > 0" class="row g-2 mb-4">
             <div class="col-12"><h6 class="text-muted"><i class="fas fa-layer-group me-2"></i>Skiftöversikt</h6></div>
             <div class="col-auto" *ngFor="let s of shiftSummaries; trackBy: trackByIndex">
@@ -415,7 +415,7 @@
       <div *ngIf="!loading && tableData.length === 0" class="text-center py-5">
         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
         <h5>Ingen data för vald period</h5>
-        <p class="text-muted">Valj en annan period eller vänta på att produktionen startar</p>
+        <p class="text-muted">Välj en annan period eller vänta på att produktionen startar</p>
       </div>
     </div>
   </div>
@@ -496,9 +496,9 @@
             </div>
             <div class="heatmap-legend mt-3 d-flex align-items-center gap-2 flex-wrap">
               <small class="text-muted me-1"><span class="hm-zero-box"></span> Ingen prod.</small>
-              <small class="text-muted">Lag</small>
+              <small class="text-muted">Låg</small>
               <div class="heatmap-legend-bar" [style.background]="getHeatmapLegendGradient()"></div>
-              <small class="text-muted">Hog</small>
+              <small class="text-muted">Hög</small>
               <small class="text-muted ms-2">{{ getHeatmapLegendLow() }} -> {{ getHeatmapLegendHigh() }}</small>
             </div>
           </div>

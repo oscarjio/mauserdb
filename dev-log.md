@@ -1,3 +1,79 @@
+## Worker B -- Session #347 (2026-03-26) -- Alert/alarm + rebotling-admin + statistik-sidor granskade + 17 diakritikfixar
+
+### UPPGIFT 1: ALERT/ALARM UI-SIDOR -- GRANSKADE OK
+Granskade 4 alert/alarm-komponenter:
+
+**rebotling/alerts/** (alerts.html + alerts.ts):
+- 3 flikar: Aktiva, Historik, Inställningar. Dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text).
+- Lifecycle: OnInit + OnDestroy + destroy$ + takeUntil + clearInterval(pollTimer) + clearTimeout -- korrekt.
+- API: AlertsService med timeout(10s/15s) + catchError -- korrekt felhantering.
+- Polling var 60:e sekund -- korrekt med guard (isFetchingActive).
+
+**alarm-historik/** (alarm-historik.html + alarm-historik.ts + alarm-historik.css):
+- KPI-kort, tidslinje (Chart.js), larmlista, per-typ-fordelning. Fullt dark theme.
+- Lifecycle: OnInit + OnDestroy + destroy$ + takeUntil + chart.destroy() -- korrekt.
+- CSS: Komplett dark theme med #1a202c/#2d3748/#e2e8f0 genomgaende.
+
+**rebotling/kassationskvot-alarm/** (kassationskvot-alarm.component.html/ts/scss):
+- KPI-kort (senaste timmen, aktuellt skift, idag), trendgraf, per-skift-tabell, alarm-historik, top-orsaker.
+- Lifecycle: OnInit + OnDestroy + destroy$ + takeUntil + interval(60s) pipe + clearTimeout -- korrekt.
+- Trend-graf med troskelllinjer (varning + alarm) via Chart.js plugin -- korrekt.
+- SCSS: Fullt dark theme med pulsanimationer for alarm-status.
+
+Inga buggar hittade.
+
+### UPPGIFT 2: REBOTLING-ADMIN UI -- GRANSKAD OK
+Granskade rebotling-admin (rebotling-admin.html/ts/css) -- stor komponent med ~1500 rader TS:
+- **Produkthantering**: CRUD med inline-redigering, has_lopnummer toggle. Validering korrekt.
+- **Veckodagsmal**: 7-dagars grid, snabbval, kopiera helg, idag-markering.
+- **Skifttider**: 3 skift med start/slut/enabled.
+- **Systemstatus**: PLC-ping med 3 nivaer (ok/warn/err), db-info, IBC idag.
+- **Daglig snapshot**: Auto-uppdatering var 5:e minut.
+- **Alert-trosklar**: 6 konfigurerbara vardes (OEE/prod/PLC/kvalitet).
+- **E-postnotifikationer**: Toggle-switchar + e-postlista.
+- **Live Ranking TV**: Kolumnval + sortering + refreshintervall.
+- **Prediktivt underhall**: IBC-baserat serviceintervall + korrelationsanalys.
+- **Kassationsregistrering**: Orsak-val + antal + kommentar.
+- **Dagsmalshistorik**: Steg-graf + undantag (datum-specifika mal).
+- Lifecycle: destroy$ + takeUntil + clearTimeout/clearInterval x3 + chart.destroy() x3 + visibilitychange-guard -- korrekt.
+- Dark theme i CSS -- korrekt.
+
+### UPPGIFT 3: REBOTLING-STATISTIK/GRAFER -- GRANSKADE OK
+Granskade 10 statistik/graf-sidor:
+
+1. **statistik-produktionsrytm**: Stapeldiagram per klockslag, tabell. Dark theme OK.
+2. **statistik-veckodag**: Stapeldiagram per veckodag med basta/samsta markering. Dark theme OK.
+3. **historisk-produktion**: KPI-kort, trendindikator, produktionsgraf, sorterad tabell med paginering. Dark theme OK.
+4. **produktionstakt**: Realtids IBC/h med trendpil, 4h/dag/vecka snitt, timtabell. Dark theme OK.
+5. **produktions-sla**: Gauge-diagram, veckodiagram, historikgraf, daglig tabell. Dark theme OK.
+6. **kvalitets-trendbrott**: SPC-chart med sigma-granser, drill-down per dag/skift/operator. Dark theme OK.
+7. **rebotling-sammanfattning**: KPI-oversikt, produktionsgraf 7d, larm, maskinstatus, snabblankar. Dark theme OK.
+8. **rebotling-statistik**: 5-flikad dashboard (Oversikt/Produktion/Kvalitet/Operatorer/Analys), kalender-navigering, heatmap, @defer lazy loading. Dark theme OK.
+9. **oee-trendanalys**: KPI (idag/7d/30d), trendlinje, per-station-tabell, flaskhalsar, periodjamforelse, prediktion. Dark theme OK.
+10. **heatmap**: KPI-kort, matrisvy timme x dag, tooltip, legend-gradient. Dark theme OK.
+
+**produktion_procent**: Undersoktes i rebotling-statistik (avgProdPct). Beraknas som effektivitet i tabelldata (cycles * avg_cycle_time / total_time), INTE kumulativt -- vardet ar per-period (dag/manad). Verkar korrekt.
+
+### UPPGIFT 4: DIAKRITIK-SWEEP -- 17 FIXAR
+Sokte igenom alla .html-filer under pages/ och fixade:
+
+1. **produktionstakt.html**: "Maltal" -> "Maltal" (4 forekomster: rubrik, title, label, tabellhuvud)
+2. **produktions-sla.component.html**: "Mal-konfiguration" -> "Mal-konfiguration", "Valj maltyp" -> "Valj maltyp", "Fran" -> "Fran", "Dagligt mal:" -> "Dagligt mal:", "Over mal:" -> "Over mal:", "Mal" (tabellhuvud) -> "Mal"
+3. **historisk-produktion.component.html**: "Nasta sida" -> "Nasta sida"
+4. **pareto.html**: "Over 80%" -> "Over 80%", "80%-grans" -> "80%-grans"
+5. **maskin-oee.component.html**: "'Over mal' : 'Under mal'" -> "'Over mal' : 'Under mal'"
+6. **min-dag.html**: "Over malet!" -> "Over malet!"
+7. **drifttids-timeline.component.html**: "Nasta dag" -> "Nasta dag"
+8. **statistik-produktionsmal.html**: "Mal natt-banner" -> "Mal natt-banner" (HTML-kommentar)
+9. **rebotling-statistik.html**: "Kor" -> "Kor" (2 forekomster: legend + tidslinje), "Skiftversikt" -> "Skiftoversikt"
+
+### SUMMERING
+- 4 alert/alarm-komponenter granskade -- inga buggar
+- 1 rebotling-admin-komponent granskad -- inga buggar
+- 10 statistik/graf-sidor granskade -- inga buggar
+- 17 diakritikfixar i 9 template-filer
+- Build OK, deployat till dev
+
 ## Worker A -- Session #346 (2026-03-26) -- Skiftrapport veckosammanstallning 9.5x snabbare + Gamification/Maskin granskade + auth-fix
 
 ### UPPGIFT 1: SKIFTRAPPORT VECKOSAMMANSTALLNING OPTIMERAD -- KLAR
