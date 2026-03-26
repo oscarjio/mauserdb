@@ -186,7 +186,7 @@
   <!-- Per-typ sammanfattning -->
   <div class="card-section" *ngIf="!loadingSummary && summary && summary.total > 0">
     <h2 class="section-title">
-      <i class="fas fa-tags me-2 text-info"></i>Fordelning per typ
+      <i class="fas fa-tags me-2 text-info"></i>Fördelning per typ
     </h2>
     <div class="typ-grid">
       <div class="typ-card" *ngFor="let entry of summary.per_typ | keyvalue; trackBy: trackByIndex">

@@ -1,3 +1,53 @@
+## Worker B -- Session #341 (2026-03-26) -- Gamification/skiftöverlämning/alarm/produktionsmål UI-granskning + 65+ diakritikfixar
+
+### Uppgift 1: GRANSKA GAMIFICATION-UI -- KLAR
+- Granskade gamification.component (rebotling/) + statistik-leaderboard
+- Dark theme: korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text) i alla komponenter
+- Lifecycle: OnInit/OnDestroy, destroy$, takeUntil, clearInterval -- allt korrekt
+- Inga Chart.js-grafer i gamification-komponenterna (data visas som tabeller/kort)
+- Tom-tillstånd: hanteras korrekt ("Inga operatörer med produktion för perioden", "Kunde inte hämta din profil")
+- Responsivt: ja, med @media queries
+- **Fixade 7 diakritikfel**: Fullstandig->Fullständig, Poang->Poäng, Utmarkelser->Utmärkelser, Langsta->Längsta, operatorer->operatörer
+
+### Uppgift 2: GRANSKA SKIFTÖVERLÄMNING-UI -- KLAR
+- Granskade 3 komponenter: shift-handover (pages/), skiftoverlamning (pages/), skiftoverlamning (rebotling/)
+- shift-handover: Formulär med validering (max 500 tecken, required text), filterflikar, kvittenshantering, optimistic updates, dark theme OK
+- skiftoverlamning (pages/): Dashboard + formulär + detaljvy + historik, checklista, severity-flaggning, dark theme OK
+- skiftoverlamning (rebotling/): Protokoll-version med manuell checklista (6 punkter), kommentarfält, bekräftelsedialog, historik med expanderbara detaljer
+- Lifecycle: alla har OnDestroy, destroy$, takeUntil, clearInterval/clearTimeout -- korrekt
+- **Fixade 10 diakritikfel**: pagar->pågår, Forra->Förra, fran forra->från förra, Oppna->Öppna, Overlamning->Överlämning, Skiftoverlamning->Skiftöverlämning, hamtad fran skiftraknare->hämtad från skifträknare, Hog->Hög, Lag->Låg, ar slut->är slut
+
+### Uppgift 3: GRANSKA ALARM-HISTORIK UI -- KLAR
+- Granskade alarm-historik.component
+- Chart.js stacked bar chart med dark theme tooltips -- korrekt (legend color #e2e8f0, grid rgba)
+- Chart destroy() i ngOnDestroy -- korrekt
+- Filtrering: period (7/30/90), severity, typ, status -- allt finns
+- Varaktighetsberäkning: formatVaraktighet() -- korrekt (minuter + timmar)
+- Tom-tillstånd: "Inga larm registrerade under perioden" + "Inga larm matchar filtret" -- OK
+- Dark theme korrekt i alla element
+- **Fixade 2 diakritikfel**: Atgardad->Åtgärdad, Fordelning per typ->Fördelning per typ
+
+### Uppgift 4: GRANSKA PRODUKTIONSMÅL-UI -- KLAR
+- Granskade 3 komponenter: produktionsmal (pages/), rebotling/produktionsmal, statistik-produktionsmal
+- produktionsmal (pages/): CRUD-formulär, doughnut chart, bar chart, historiktabell -- allt dark theme OK
+- rebotling/produktionsmal: Skiftprogress, veckoöversikt, historik, stationsbreakdown, chart.js dark theme OK
+- statistik-produktionsmal: Dag/vecka gauge-donuts, admin-redigering, streak-badges
+- Charts: alla har destroy() i ngOnDestroy, dark theme tooltips (backgroundColor #2d3748, titleColor #e2e8f0) -- korrekt
+- Lifecycle: destroy$, takeUntil, clearTimeout, clearInterval -- alla korrekt
+- **Fixade 30+ diakritikfel**: Produktionsmal->Produktionsmål, Satt->Sätt, Spara mal->Spara mål, Progress mot mal->Progress mot mål, Aterstar->Återstår, Historik tidigare mal->Historik tidigare mål, Uppnadd->Uppnådd, Pagar->Pågår, Beraknad->Beräknad, Malet sparades->Målet sparades, Fyll i alla falt->Fyll i alla fält, Mal/dag->Mål/dag, Dagsmal->Dagsmål, Veckomal->Veckomål, Pa mal->På mål, Nara mal->Nära mål, Under mal->Under mål, uppnatt->uppnått, Andra->Ändra, vs forra veckan->vs förra veckan, maluppfyllnad->måluppfyllnad
+
+### Uppgift 5: DIAKRITIK-SWEEP -- KLAR
+- Sökte igenom alla .ts och .html i noreko-frontend/src/app/
+- Fixade totalt 65+ diakritikfel i 15 filer
+- Ytterligare fixar utanför huvudkomponenterna: underhallslogg (Fordelning->Fördelning), utnyttjandegrad (Fordelning->Fördelning), favoriter.service (Forsta timmen->Första timmen, operator->operatör)
+- Var noga med att INTE ändra variabelnamn/interface-namn (t.ex. FordelningData, PoangFordelningItem etc.) -- bara UI-synliga strängar
+
+### Uppgift 6: BYGG + DEPLOY -- KLAR
+- `npx ng build` lyckades (inga errors, bara CommonJS-varningar)
+- Frontend deployad till dev.mauserdb.com via rsync
+
+### Uppgift 7: COMMIT -- se nedan
+
 ## Worker A -- Session #341 (2026-03-26) -- Gamification+Onboarding under 1s + Alarm-historik+Produktionsmal granskade OK + 188 endpoints 0 st 500-fel + HAVING-bugg fixad
 
 ### Uppgift 1: ENDPOINT-STRESS GAMIFICATION + ONBOARDING -- KLAR

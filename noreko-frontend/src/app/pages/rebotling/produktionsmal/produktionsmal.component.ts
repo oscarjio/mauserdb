@@ -196,7 +196,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
           this.formAntal = null;
           this.laddaAllt();
         } else {
-          this.sparFel = res?.error || 'Kunde inte spara malet.';
+          this.sparFel = res?.error || 'Kunde inte spara målet.';
         }
       });
   }
@@ -237,7 +237,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
             barPercentage: 0.7,
           },
           {
-            label: 'Mal',
+            label: 'Mål',
             data: data.mal,
             type: 'line',
             borderColor: '#f6ad55',

@@ -84,7 +84,7 @@
 
     <!-- Rankingtabell -->
     <div class="chart-card mb-4" *ngIf="!loadingLeaderboard && leaderboardData?.leaderboard?.length">
-      <h6 class="mb-3"><i class="fas fa-list-ol me-2"></i>Fullstandig ranking</h6>
+      <h6 class="mb-3"><i class="fas fa-list-ol me-2"></i>Fullständig ranking</h6>
       <div class="table-responsive">
         <table class="table table-sm mb-0 ranking-table">
           <thead>
@@ -94,7 +94,7 @@
               <th scope="col" class="text-end">IBC</th>
               <th scope="col" class="text-end">Kvalitet</th>
               <th scope="col" class="text-end">Stopp</th>
-              <th scope="col" class="text-end">Poang</th>
+              <th scope="col" class="text-end">Poäng</th>
               <th scope="col" class="text-center">Svit</th>
             </tr>
           </thead>
@@ -166,7 +166,7 @@
               </div>
               <div class="profil-stat">
                 <span class="profil-stat-value">{{ profilData.total_poang }}</span>
-                <span class="profil-stat-label">Poang denna vecka</span>
+                <span class="profil-stat-label">Poäng denna vecka</span>
               </div>
               <div class="profil-stat">
                 <span class="profil-stat-value">{{ profilData.total_ibc }}</span>
@@ -185,7 +185,7 @@
 
       <!-- Badges -->
       <div class="chart-card mb-4">
-        <h6 class="mb-3"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Utmarkelser ({{ profilData.antal_badges }})</h6>
+        <h6 class="mb-3"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Utmärkelser ({{ profilData.antal_badges }})</h6>
         <div class="row g-3">
           <div class="col-6 col-md-4 col-lg-2" *ngFor="let badge of profilData.badges; trackBy: trackByIndex">
             <div class="badge-card" [class.badge-earned]="badge.uppnadd" [class.badge-locked]="!badge.uppnadd">
@@ -249,7 +249,7 @@
       <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
           <div class="kpi-card">
-            <div class="kpi-label">Aktiva operatorer</div>
+            <div class="kpi-label">Aktiva operatörer</div>
             <div class="kpi-value">{{ overviewData.total_operatorer }}</div>
           </div>
         </div>
@@ -261,13 +261,13 @@
         </div>
         <div class="col-6 col-lg-3">
           <div class="kpi-card">
-            <div class="kpi-label">Utmarkelser utdelade</div>
+            <div class="kpi-label">Utmärkelser utdelade</div>
             <div class="kpi-value" style="color:#ecc94b">{{ overviewData.total_badges_utdelade }}</div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
           <div class="kpi-card">
-            <div class="kpi-label">Langsta svit</div>
+            <div class="kpi-label">Längsta svit</div>
             <div class="kpi-value" style="color:#fc8181">{{ overviewData.max_streak }}d</div>
           </div>
         </div>

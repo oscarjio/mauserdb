@@ -14,7 +14,7 @@
     <app-pdf-export-button
       targetElementId="produktionsmal-content"
       filename="produktionsmal"
-      title="Produktionsmal-dashboard">
+      title="Produktionsmål-dashboard">
     </app-pdf-export-button>
   </div>
 
@@ -23,7 +23,7 @@
     <div class="card-body">
       <h5 class="card-title mb-3">
         <i class="fas fa-plus-circle me-2" style="color: #4fd1c5;"></i>
-        Satt nytt produktionsmal
+        Sätt nytt produktionsmål
       </h5>
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
@@ -49,7 +49,7 @@
                   (click)="sparaMal()">
             <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"></span>
             <i class="fas fa-save me-1" *ngIf="!sparLoading"></i>
-            Spara mal
+            Spara mål
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@
     <div class="mb-3">
       <span class="badge bg-info text-dark px-3 py-2 fs-6">
         <i class="fas fa-calendar-alt me-1"></i>
-        {{ typLabel(progress!.mal!.typ) }}smal: {{ formatNumber(progress!.mal!.mal_antal) }} IBC
+        {{ typLabel(progress!.mal!.typ) }}smål: {{ formatNumber(progress!.mal!.mal_antal) }} IBC
         <span class="ms-2 text-dark opacity-75">
           ({{ formatDatum(progress!.mal!.start_datum) }} — {{ formatDatum(progress!.mal!.slut_datum) }})
         </span>
@@ -102,7 +102,7 @@
       <div class="col-12 col-lg-5">
         <div class="card card-dark h-100">
           <div class="card-body d-flex flex-column align-items-center justify-content-center">
-            <h6 class="card-title mb-3">Progress mot mal</h6>
+            <h6 class="card-title mb-3">Progress mot mål</h6>
             <div class="doughnut-container">
               <canvas id="progressDoughnut"></canvas>
             </div>
@@ -126,7 +126,7 @@
           <!-- Aterstar -->
           <div class="col-6">
             <div class="kpi-card">
-              <div class="kpi-label">Aterstar</div>
+              <div class="kpi-label">Återstår</div>
               <div class="kpi-value text-warning">
                 {{ formatNumber(progress!.aterstaar) }}
               </div>
@@ -150,7 +150,7 @@
               <div class="kpi-value" style="color: #b794f4;">
                 {{ progress!.snitt_per_dag }}
               </div>
-              <div class="kpi-unit">IBC/dag (mal: {{ progress!.mal_per_dag }})</div>
+              <div class="kpi-unit">IBC/dag (mål: {{ progress!.mal_per_dag }})</div>
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@
             <div class="prognos-titel fw-bold">Prognos</div>
             <div class="prognos-text">{{ progress!.prognos_status }}</div>
             <div class="prognos-detalj text-muted small mt-1" *ngIf="progress!.prognos_slut > 0">
-              Beraknad slutproduktion: {{ formatNumber(progress!.prognos_slut) }} IBC
+              Beräknad slutproduktion: {{ formatNumber(progress!.prognos_slut) }} IBC
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@
     <div class="card-body">
       <h5 class="card-title mb-3">
         <i class="fas fa-history me-2" style="color: #f6ad55;"></i>
-        Historik — tidigare mal
+        Historik — tidigare mål
       </h5>
 
       <div class="text-center py-3" *ngIf="historikLoading">
@@ -212,10 +212,10 @@
             <tr>
               <th scope="col">Typ</th>
               <th scope="col">Period</th>
-              <th scope="col" class="text-end">Mal</th>
+              <th scope="col" class="text-end">Mål</th>
               <th scope="col" class="text-end">Utfall</th>
               <th scope="col" class="text-end">Uppfyllnad</th>
-              <th scope="col" class="text-center">Uppnadd</th>
+              <th scope="col" class="text-center">Uppnådd</th>
               <th scope="col" class="text-end">Differens</th>
             </tr>
           </thead>
@@ -244,7 +244,7 @@
                   <i class="fas fa-times-circle"></i> Nej
                 </span>
                 <span *ngIf="!r.avslutad" class="text-muted">
-                  <i class="fas fa-clock"></i> Pagar
+                  <i class="fas fa-clock"></i> Pågår
                 </span>
               </td>
               <td class="text-end">

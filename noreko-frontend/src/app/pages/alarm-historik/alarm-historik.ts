@@ -238,7 +238,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
   }
 
   statusLabel(s: string): string {
-    return s === 'active' ? 'Aktiv' : 'Atgardad';
+    return s === 'active' ? 'Aktiv' : 'Åtgärdad';
   }
 
   statusClass(s: string): string {

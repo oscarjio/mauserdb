@@ -133,7 +133,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
 
   sparaMal(): void {
     if (!this.formAntal || this.formAntal <= 0 || !this.formStartdatum) {
-      this.sparFel = 'Fyll i alla falt korrekt.';
+      this.sparFel = 'Fyll i alla fält korrekt.';
       return;
     }
     this.sparLoading = true;
@@ -145,11 +145,11 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
       .subscribe(res => {
         this.sparLoading = false;
         if (res?.success) {
-          this.sparMeddelande = 'Malet sparades!';
+          this.sparMeddelande = 'Målet sparades!';
           this.sparFel = '';
           this.laddaAllt();
         } else {
-          this.sparFel = res?.error || 'Kunde inte spara malet.';
+          this.sparFel = res?.error || 'Kunde inte spara målet.';
         }
       });
   }
@@ -179,7 +179,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     this.doughnutChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Producerat', 'Aterstar'],
+        labels: ['Producerat', 'Återstår'],
         datasets: [{
           data: [Math.min(producerat, mal), aterstaar],
           backgroundColor: [mainColor, '#4a5568'],
@@ -264,7 +264,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
             barPercentage: 0.7,
           },
           {
-            label: `Mal/dag (${malPerDag})`,
+            label: `Mål/dag (${malPerDag})`,
             data: malLine,
             type: 'line',
             borderColor: '#f6ad55',

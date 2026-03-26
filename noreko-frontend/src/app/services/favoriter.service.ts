@@ -70,8 +70,8 @@ export const AVAILABLE_PAGES: AvailablePage[] = [
   { route: '/saglinje/live', label: 'Saglinje Live', icon: 'fas fa-broadcast-tower', color: '#ed8936' },
   { route: '/klassificeringslinje/live', label: 'Klassificeringslinje Live', icon: 'fas fa-broadcast-tower', color: '#9f7aea' },
   { route: '/rebotling/cykeltid-heatmap', label: 'Cykeltids-heatmap', icon: 'fas fa-th', color: '#63b3ed' },
-  { route: '/rebotling/forsta-timme-analys', label: 'Forsta timmen', icon: 'fas fa-stopwatch', color: '#63b3ed' },
-  { route: '/rebotling/stopporsak-operator', label: 'Stopporsak per operator', icon: 'fas fa-exclamation-triangle', color: '#fc8181' },
+  { route: '/rebotling/forsta-timme-analys', label: 'Första timmen', icon: 'fas fa-stopwatch', color: '#63b3ed' },
+  { route: '/rebotling/stopporsak-operator', label: 'Stopporsak per operatör', icon: 'fas fa-exclamation-triangle', color: '#fc8181' },
 ];
 
 @Injectable({ providedIn: 'root' })

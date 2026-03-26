@@ -6,7 +6,7 @@
       <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <h5 class="mb-0 pm-title">
           <i class="fas fa-bullseye me-2" style="color:#ed8936;"></i>
-          Produktionsmal-tracker
+          Produktionsmål-tracker
         </h5>
         <div class="d-flex align-items-center gap-2">
           <span class="small text-muted" *ngIf="todayData || weekData">
@@ -19,7 +19,7 @@
       <!-- Loading initialt -->
       <div class="text-center py-5" *ngIf="loadingToday && !todayData && !weekData">
         <div class="spinner-border" style="color:#ed8936;" role="status"></div>
-        <div class="text-muted mt-2 small">Hämtar produktionsmal...</div>
+        <div class="text-muted mt-2 small">Hämtar produktionsmål...</div>
       </div>
 
       <!-- Felmeddelande -->
@@ -44,7 +44,7 @@
             <div class="d-flex align-items-center justify-content-between mb-2">
               <span class="pm-card-title">
                 <i class="fas fa-sun me-1" style="color:#ecc94b;"></i>
-                Dagsmal
+                Dagsmål
               </span>
               <div class="d-flex align-items-center gap-2">
                 <!-- Streak-badge -->
@@ -56,7 +56,7 @@
                   *ngIf="isAdmin && !editingDaily"
                   class="btn btn-sm btn-outline-secondary"
                   (click)="startEditDaily()"
-                  title="Andra dagsmal">
+                  title="Ändra dagsmål">
                   <i class="fas fa-edit"></i>
                 </button>
               </div>
@@ -78,7 +78,7 @@
                 </div>
                 <div class="pm-stat">
                   <div class="pm-stat-val" style="color:#e2e8f0;">{{ todayData.target }}</div>
-                  <div class="pm-stat-lbl">Mal</div>
+                  <div class="pm-stat-lbl">Mål</div>
                 </div>
                 <div class="pm-stat">
                   <div class="pm-stat-val"
@@ -98,14 +98,14 @@
               <!-- Mal natt-banner -->
               <div class="pm-goal-achieved" *ngIf="todayData.percentage >= 100">
                 <i class="fas fa-trophy me-2" style="color:#ecc94b;"></i>
-                Dagsmal uppnatt!
+                Dagsmål uppnått!
               </div>
             </div>
 
             <!-- Admin: redigera dagsmål -->
             <div class="pm-edit-form mt-3" *ngIf="isAdmin && editingDaily">
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <label class="text-muted small mb-0">Nytt dagsmal (IBC):</label>
+                <label class="text-muted small mb-0">Nytt dagsmål (IBC):</label>
                 <input
                   type="number"
                   class="form-control form-control-sm"
@@ -134,7 +134,7 @@
             <div class="d-flex align-items-center justify-content-between mb-2">
               <span class="pm-card-title">
                 <i class="fas fa-calendar-week me-1" style="color:#63b3ed;"></i>
-                Veckomal
+                Veckomål
               </span>
               <div class="d-flex align-items-center gap-2">
                 <!-- Streak-badge -->
@@ -146,7 +146,7 @@
                   *ngIf="isAdmin && !editingWeekly"
                   class="btn btn-sm btn-outline-secondary"
                   (click)="startEditWeekly()"
-                  title="Andra veckomal">
+                  title="Ändra veckomål">
                   <i class="fas fa-edit"></i>
                 </button>
               </div>
@@ -168,7 +168,7 @@
                 </div>
                 <div class="pm-stat">
                   <div class="pm-stat-val" style="color:#e2e8f0;">{{ weekData.target }}</div>
-                  <div class="pm-stat-lbl">Mal</div>
+                  <div class="pm-stat-lbl">Mål</div>
                 </div>
                 <div class="pm-stat">
                   <div class="pm-stat-val"
@@ -185,17 +185,17 @@
                 {{ formatTimeRemaining(weekData.time_remaining_seconds) }}
               </div>
 
-              <!-- Mal uppnatt-banner -->
+              <!-- Mål uppnått-banner -->
               <div class="pm-goal-achieved" *ngIf="weekData.percentage >= 100">
                 <i class="fas fa-trophy me-2" style="color:#ecc94b;"></i>
-                Veckomal uppnatt!
+                Veckomål uppnått!
               </div>
             </div>
 
             <!-- Admin: redigera veckamål -->
             <div class="pm-edit-form mt-3" *ngIf="isAdmin && editingWeekly">
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <label class="text-muted small mb-0">Nytt veckomal (IBC):</label>
+                <label class="text-muted small mb-0">Nytt veckomål (IBC):</label>
                 <input
                   type="number"
                   class="form-control form-control-sm"

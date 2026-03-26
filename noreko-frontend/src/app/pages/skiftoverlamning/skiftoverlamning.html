@@ -45,7 +45,7 @@
         <div class="d-flex align-items-center gap-3 flex-wrap">
           <div class="shift-indicator" [class.shift-active]="aktuelltSkift.aktiv_nu" [class.shift-stopped]="!aktuelltSkift.aktiv_nu">
             <span class="pulse-dot"></span>
-            {{ aktuelltSkift.aktiv_nu ? 'Produktion pagar' : 'Stoppad' }}
+            {{ aktuelltSkift.aktiv_nu ? 'Produktion pågår' : 'Stoppad' }}
           </div>
           <div>
             <span class="badge fs-6" [ngClass]="skiftBadgeClass(aktuelltSkift.skift_typ)">
@@ -101,7 +101,7 @@
     <div *ngIf="skiftSammanfattning" class="card section-card mb-4">
       <div class="card-header">
         <h5 class="mb-0">
-          <i class="fas fa-chart-bar me-2 text-info"></i>Forra skiftet: {{ skiftSammanfattning.forra_skift_typ_label }}
+          <i class="fas fa-chart-bar me-2 text-info"></i>Förra skiftet: {{ skiftSammanfattning.forra_skift_typ_label }}
           <span class="text-muted small ms-2">{{ formatDate(skiftSammanfattning.forra_datum) }}</span>
         </h5>
       </div>
@@ -159,7 +159,7 @@
 
         <!-- Förra skiftets överlämningsnoteringar -->
         <div *ngIf="skiftSammanfattning.overlamning" class="mt-3 p-3 forra-noteringar">
-          <h6 class="text-muted mb-2"><i class="fas fa-sticky-note me-1"></i>Noteringar fran forra skiftet</h6>
+          <h6 class="text-muted mb-2"><i class="fas fa-sticky-note me-1"></i>Noteringar från förra skiftet</h6>
           <div class="row g-2">
             <div class="col-12" *ngIf="skiftSammanfattning.overlamning.problem_text">
               <div class="small"><strong class="text-danger">Problem:</strong> {{ truncate(skiftSammanfattning.overlamning.problem_text, 200) }}</div>
@@ -179,7 +179,7 @@
     <div *ngIf="oppnaProblem.length > 0" class="card section-card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-          <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Oppna problem
+          <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Öppna problem
           <span class="badge bg-danger ms-2">{{ oppnaProblem.length }}</span>
         </h5>
       </div>
@@ -327,7 +327,7 @@
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
               <h4 class="mb-1 text-light">
-                Overlamning {{ formatDate(selectedItem.datum) }}
+                Överlämning {{ formatDate(selectedItem.datum) }}
                 <span class="badge ms-2" [ngClass]="skiftBadgeClass(selectedItem.skift_typ)">
                   {{ selectedItem.skift_typ_label }}
                 </span>
@@ -489,7 +489,7 @@
             </div>
           </div>
           <div *ngIf="autoKpis" class="small text-muted mt-2">
-            <i class="fas fa-info-circle me-1"></i>Data hamtad fran skiftraknare #{{ autoKpis.skiftraknare }} ({{ autoKpis.skift_datum }})
+            <i class="fas fa-info-circle me-1"></i>Data hämtad från skifträknare #{{ autoKpis.skiftraknare }} ({{ autoKpis.skift_datum }})
           </div>
         </div>
 
@@ -590,9 +590,9 @@
             <label class="form-label small text-muted">Allvarlighetsgrad</label>
             <select aria-label="Välj allvarlighetsgrad" class="form-select form-select-sm dark-select" style="max-width: 200px;"
                     [(ngModel)]="form.allvarlighetsgrad">
-              <option value="lag">Lag</option>
+              <option value="lag">Låg</option>
               <option value="medel">Medel</option>
-              <option value="hog">Hog</option>
+              <option value="hog">Hög</option>
               <option value="kritisk">Kritisk</option>
             </select>
           </div>

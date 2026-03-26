@@ -5,10 +5,10 @@
     <div>
       <h1 class="page-title">
         <i class="fas fa-chart-line me-2" style="color: #48bb78;"></i>
-        Produktionsmal-uppfoljning
+        Produktionsmål-uppföljning
       </h1>
       <p class="page-subtitle text-muted mb-0">
-        Dagliga och veckovisa produktionsmal vs faktiskt utfall
+        Dagliga och veckovisa produktionsmål vs faktiskt utfall
       </p>
     </div>
   </div>
@@ -18,7 +18,7 @@
     <!-- Dagens mal -->
     <div class="col-6 col-lg-3">
       <div class="kpi-card">
-        <div class="kpi-label">Dagens mal</div>
+        <div class="kpi-label">Dagens mål</div>
         <div class="kpi-value" style="color: #63b3ed;" *ngIf="!sammanfattningLoading">
           {{ formatNumber(sammanfattning?.dag_mal ?? 0) }}
         </div>
@@ -54,9 +54,9 @@
           <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
         <div class="kpi-unit">
-          <span *ngIf="sammanfattning?.dag_farg === 'gron'" style="color:#48bb78"><i class="fas fa-check-circle me-1"></i>Pa mal</span>
-          <span *ngIf="sammanfattning?.dag_farg === 'gul'" style="color:#ecc94b"><i class="fas fa-exclamation-circle me-1"></i>Nara mal</span>
-          <span *ngIf="sammanfattning?.dag_farg === 'rod'" style="color:#fc5c65"><i class="fas fa-times-circle me-1"></i>Under mal</span>
+          <span *ngIf="sammanfattning?.dag_farg === 'gron'" style="color:#48bb78"><i class="fas fa-check-circle me-1"></i>På mål</span>
+          <span *ngIf="sammanfattning?.dag_farg === 'gul'" style="color:#ecc94b"><i class="fas fa-exclamation-circle me-1"></i>Nära mål</span>
+          <span *ngIf="sammanfattning?.dag_farg === 'rod'" style="color:#fc5c65"><i class="fas fa-times-circle me-1"></i>Under mål</span>
         </div>
       </div>
     </div>
@@ -72,7 +72,7 @@
         <div *ngIf="sammanfattningLoading" class="text-center py-2">
           <span role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></span>
         </div>
-        <div class="kpi-unit">vs forra veckan</div>
+        <div class="kpi-unit">vs förra veckan</div>
       </div>
     </div>
   </div>
@@ -101,7 +101,7 @@
 
       <div *ngIf="!skiftLoading && !skiftError && skiftData">
         <div class="mb-3 text-muted small">
-          Dagsmal: {{ formatNumber(skiftData.dag_mal) }} IBC | Total hittills: {{ formatNumber(skiftData.total_utfall) }} IBC
+          Dagsmål: {{ formatNumber(skiftData.dag_mal) }} IBC | Total hittills: {{ formatNumber(skiftData.total_utfall) }} IBC
         </div>
         <div *ngFor="let s of skiftData.skift; trackBy: trackByIndex" class="mb-3">
           <div class="d-flex justify-content-between align-items-center mb-1">
@@ -151,7 +151,7 @@
     <div class="card-body">
       <h5 class="card-title mb-3">
         <i class="fas fa-history me-2" style="color: #b794f4;"></i>
-        Historisk maluppfyllnad — senaste 30 dagarna
+        Historisk måluppfyllnad — senaste 30 dagarna
       </h5>
 
       <div class="text-center py-3" *ngIf="historikLoading">
@@ -168,7 +168,7 @@
             <tr>
               <th scope="col">Datum</th>
               <th scope="col">Veckodag</th>
-              <th scope="col" class="text-end">Mal</th>
+              <th scope="col" class="text-end">Mål</th>
               <th scope="col" class="text-end">Utfall</th>
               <th scope="col" class="text-end">Uppfyllnad</th>
               <th scope="col" class="text-center">Trend</th>
@@ -242,14 +242,14 @@
     <div class="card-body">
       <h5 class="card-title mb-3">
         <i class="fas fa-cogs me-2" style="color: #ecc94b;"></i>
-        Satt produktionsmal
+        Sätt produktionsmål
       </h5>
       <div class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
           <label class="form-label text-muted small" for="malFormTyp">Typ</label>
           <select id="malFormTyp" aria-label="Välj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
-            <option value="dag">Dagsmal (alla vardagar)</option>
-            <option value="vecka">Veckomal</option>
+            <option value="dag">Dagsmål (alla vardagar)</option>
+            <option value="vecka">Veckomål</option>
           </select>
         </div>
         <div class="col-12 col-md-4">
@@ -267,7 +267,7 @@
                   (click)="sparaMal()">
             <span *ngIf="sparLoading" role="status" class="spinner-border spinner-border-sm me-1"><span class="visually-hidden">Laddar...</span></span>
             <i class="fas fa-save me-1" *ngIf="!sparLoading"></i>
-            Spara mal
+            Spara mål
           </button>
         </div>
       </div>

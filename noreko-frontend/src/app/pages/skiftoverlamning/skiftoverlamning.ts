@@ -237,7 +237,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     this.svc.create(this.form).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.isSubmitting = false;
       if (res?.success) {
-        this.toast.success('Skiftoverlamning sparad!');
+        this.toast.success('Skiftöverlämning sparad!');
         this.backToDashboard();
       } else {
         this.toast.error(res?.error ?? 'Kunde inte spara — kontrollera anslutningen');
@@ -259,7 +259,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     if (!this.aktuelltSkift) return;
     const kvar = this.aktuelltSkift.tid_kvar_min;
     if (kvar <= 0) {
-      this.tidKvarFormatted = 'Skiftet ar slut';
+      this.tidKvarFormatted = 'Skiftet är slut';
       return;
     }
     const h = Math.floor(kvar / 60);
@@ -338,9 +338,9 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   severityLabel(grad: string): string {
     switch (grad) {
       case 'kritisk': return 'Kritisk';
-      case 'hog':     return 'Hog';
+      case 'hog':     return 'Hög';
       case 'medel':   return 'Medel';
-      case 'lag':     return 'Lag';
+      case 'lag':     return 'Låg';
       default:        return grad;
     }
   }
