@@ -1,3 +1,51 @@
+## Worker A -- Session #331 (2026-03-26) -- Backend bugfixar: Andon dagmal, shift_plan SQL, multi-day export
+
+### Uppgift 1: Verifiera operatorsbonus-berakningar mot prod DB
+- Last prod_db_schema.sql och jamforde med OperatorsbonusController.php
+- bonus_konfiguration-tabellen matchar koden (faktor, vikt, mal_varde, max_bonus_kr, beskrivning)
+- rebotling_ibc-kolumner (ibc_ok, ibc_ej_ok, runtime_plc, op1/op2/op3, skiftraknare) matchar SQL-queries
+- operator_narvaro-tabellen finns inte i prod DB men koden har fallback via rebotling_ibc — ej kritiskt
+- Testade alla operatorsbonus-endpoints (overview, per-operator, konfiguration, simulering, historik) — alla OK
+
+### Uppgift 2: Verifiera Andon-tavlan efter dagmal-fix
+- **BUG FIXAD:** dagmal fallback var 100 istallet for 1000 (DB default ar rebotling_target=1000)
+  - Fixat i 4 stallen: getStatus, getHourlyToday, getDailyChallenge, getBoardStatus
+- **BUG FIXAD:** getBoardStatus shift_plan-query anvande felaktiga kolumner (shift_date, op_name)
+  - shift_plan har datum (inte shift_date) och op_number (inte op_name)
+  - Fixat med korrekt JOIN till operators-tabellen for att hamta namn
+- Verifierat alla andon-endpoints mot dev: status, board-status, hourly-today, daily-challenge, recent-stoppages, andon-notes — alla returnerar korrekta varden
+
+### Uppgift 3: Granska PDF-export
+- Last SkiftrapportExportController.php (report-data + multi-day)
+- Last RebotlingAnalyticsController.php (shift-pdf-summary)
+- **BUG FIXAD:** multi-day SQL-query refererade DATE(datum) i yttre query men subquery aliasade den som created_at
+  - Yttre GROUP BY DATE(datum) kraschade for datum fanns inte i subquery s
+  - Fixat: subquery alias andrad till dag, yttre query refererar s.dag
+- report-data endpoint verifierad OK — kolumner matchar prod_db_schema.sql
+- shift-pdf-summary: rebotling_skiftrapport kolumner matchar schema
+
+### Uppgift 4: Grundlig endpoint-testning
+Loggade in som aiab (admin) och testade foljande endpoints:
+- andon (6 run-varianter): alla OK, mal_idag = 1000 korrekt
+- operatorsbonus (5 run-varianter): alla OK
+- bonusadmin (8 run-varianter): alla OK
+- bonus (summary, ranking): OK
+- skiftrapport-export (report-data, multi-day): OK (multi-day fixad)
+- Inga 500-fel hittades
+
+### Uppgift 5: Deploy till dev
+- Deployade AndonController.php och SkiftrapportExportController.php till dev via rsync
+- Verifierade alla fixar med curl mot dev.mauserdb.com
+- Git commit + push till main: d602cb16
+
+### Sammanfattning
+3 buggar hittade och fixade:
+1. Andon dagmal fallback 100 -> 1000 (4 stallen)
+2. Andon shift_plan query felaktiga kolumnnamn (shift_date/op_name -> datum/op_number+JOIN)
+3. SkiftrapportExport multi-day SQL broken subquery alias (DATE(datum) -> s.dag)
+
+---
+
 ## Worker B -- Session #330 (2026-03-25) -- Grundlig template-granskning, svenska diakritiker, lifecycle-check
 
 ### Uppgift 1: Grundlig genomgang av ALLA HTML-templates
