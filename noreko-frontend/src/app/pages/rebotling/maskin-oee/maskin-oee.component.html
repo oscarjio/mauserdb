@@ -41,7 +41,7 @@
     <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-trophy" style="color:#68d391"></i></div>
-        <div class="kpi-label">Basta maskin</div>
+        <div class="kpi-label">Bästa maskin</div>
         <div class="kpi-value" style="color:#68d391; font-size:1.1rem">
           {{ overview.basta_maskin?.namn || '-' }}
         </div>
@@ -54,7 +54,7 @@
     <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></div>
-        <div class="kpi-label">Samsta maskin</div>
+        <div class="kpi-label">Sämsta maskin</div>
         <div class="kpi-value" style="color:#fc8181; font-size:1.1rem">
           {{ overview.samsta_maskin?.namn || '-' }}
         </div>
@@ -91,7 +91,7 @@
 
   <!-- Error maskinlista -->
   <div class="alert alert-warning" *ngIf="errorMaskiner" style="background:#744210; border-color:#ecc94b; color:#fefcbf;">
-    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda maskinlistan. Filtreringsfunktionen kan vara begransad.
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda maskinlistan. Filtreringsfunktionen kan vara begränsad.
   </div>
 
   <!-- OEE PER MASKIN — Gauge-kort med T/P/K progress bars -->

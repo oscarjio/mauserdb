@@ -199,7 +199,7 @@
         <div class="bonus-kr-body">
           <ng-container *ngIf="getBonusLevelKey(stats.kpis?.bonus_avg || 0) as currentKey">
             <div class="bonus-kr-current mb-3">
-              <div class="bkc-label">Nuvarande niva</div>
+              <div class="bkc-label">Nuvarande nivå</div>
               <div class="bkc-level">
                 <i class="fas fa-medal me-2" [style]="getLevelIconStyle(currentKey)"></i>
                 <span [style]="getLevelIconStyle(currentKey)" class="fw-semibold">{{ getLevelDisplayName(currentKey) }}</span>

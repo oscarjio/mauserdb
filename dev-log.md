@@ -25025,3 +25025,62 @@ Testade samtliga 107 endpoints tva ganger (fore och efter fixes).
 - `noreko-backend/classes/ProduktionskostnadController.php` — requireAdmin() for update-config
 - `noreko-backend/classes/ProduktionsSlaController.php` — requireAdmin() for set-goal
 - `noreko-backend/classes/MaskinunderhallController.php` — requireAdmin() for add-machine
+
+## Worker B -- Session #345 (2026-03-26) -- Rapport/Bonus/Skiftrapport/Stopporsak UI-granskning + 12 diakritikfixar
+
+### UPPGIFT 1: RAPPORT-SIDOR — UI + Templates — KLAR
+Granskade alla rapport-relaterade frontend-komponenter:
+- veckorapport (html + ts) — OK, korrekt lifecycle, svensk text, dark theme
+- morgonrapport (html + ts) — OK, alla KPI-kort korrekt, trendpilar fungerar
+- monthly-report (html + ts) — OK, Chart.js-diagram, OEE-trend, operatorsranking, CSV/PDF-export
+- tidrapport (html + ts) — OK, periodvalj, operatorstabell, chart, CSV-export
+- vd-veckorapport (html + ts) — OK, KPI-jamforelse, trender/anomalier, utskriftsrapport
+
+Alla har: OnInit/OnDestroy, destroy$ + takeUntil, clearTimeout/clearInterval, scope="col" pa th, role="alert" pa felmeddelanden, trackBy pa ngFor.
+
+### UPPGIFT 2: BONUS-SIDOR — UI + Templates — KLAR
+Granskade alla bonus-relaterade frontend-komponenter:
+- bonus-dashboard (html + ts) — OK, ranking, hall of fame, loneprognos, trend chart
+- bonus-admin (ts) — OK, very comprehensive, correct lifecycle
+- my-bonus (html + ts) — OK, massive komponent med achievements, streak, peer ranking
+- operatorsbonus (html + ts) — OK, radar chart, bar chart, simulator
+- statistik-bonus-simulator (html) — OK, slider-baserad simulator
+
+### UPPGIFT 3: SKIFTRAPPORT-SIDOR — UI + Templates — KLAR
+Granskade skiftrapport-relaterade sidor:
+- rebotling-skiftrapport, shared-skiftrapport, skiftrapport-export, skiftrapport-sammanstallning
+- skiftoverlamning, skiftjamforelse, statistik-skiftjamforelse, statistik-skiftrapport-operator
+- skiftplanering
+OBS: tvattlinje-skiftrapport, saglinje-skiftrapport, klassificeringslinje-skiftrapport ej rorda (absolut regel).
+
+### UPPGIFT 4: STOPPORSAK-SIDOR — UI + Templates — KLAR
+Granskade alla stopporsak-relaterade frontend-komponenter:
+- stopporsak-registrering (html) — OK, snabbregistrering med aktiva stopp
+- stopporsak-trend (html) — OK, veckovis trendanalys, sparkline, detaljvy
+- stopporsak-operator (html) — OK, drill-down per operator, donut chart
+- stoppage-log (html) — OK, massiv komponent med logg, statistik, pareto-flik, QR-koder
+- rebotling/stopporsaker (html) — OK, dashboard med pareto, station, trend
+- rebotling/stopptidsanalys (html) — OK, per-maskin analys med trend, filter
+- rebotling/statistik/statistik-pareto-stopp (html) — OK, klickbara staplar, drill-down modal
+
+### UPPGIFT 5: DIAKRITIK-SWEEP — 12 fixar
+Fixade felaktig diakritik i .html-filer:
+1. stopptidsanalys.component.html: "begransad" -> "begränsad"
+2. stopptidsanalys.component.html: "storst forst" -> "störst först"
+3. stopptidsanalys.component.html: "Langsta stopp" -> "Längsta stopp"
+4. operatorsbonus.component.html: "Operatorsbonus" -> "Operatörsbonus"
+5. my-bonus.html: "Nuvarande niva" -> "Nuvarande nivå"
+6. bonus-dashboard.html: "Löneprojekton" -> "Löneprojektion" (4 forekomster)
+7. statistik-bonus-simulator.html: "paverkas" -> "påverkas"
+8. statistik-bonus-simulator.html: "maste" -> "måste"
+9. maskin-oee.component.html: "begransad" -> "begränsad"
+10. kapacitetsplanering.component.html: "Begransad" -> "Begränsad"
+
+### Andrade filer:
+- noreko-frontend/src/app/pages/rebotling/stopptidsanalys/stopptidsanalys.component.html (3 diakritikfixar)
+- noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html (1 diakritikfix)
+- noreko-frontend/src/app/pages/my-bonus/my-bonus.html (1 diakritikfix)
+- noreko-frontend/src/app/pages/bonus-dashboard/bonus-dashboard.html (4 diakritikfixar)
+- noreko-frontend/src/app/pages/rebotling/statistik/statistik-bonus-simulator/statistik-bonus-simulator.html (2 diakritikfixar)
+- noreko-frontend/src/app/pages/rebotling/maskin-oee/maskin-oee.component.html (1 diakritikfix)
+- noreko-frontend/src/app/pages/rebotling/kapacitetsplanering/kapacitetsplanering.component.html (1 diakritikfix)
