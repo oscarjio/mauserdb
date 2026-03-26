@@ -57,7 +57,7 @@
                 <code class="feature-key">{{ flag.feature_key }}</code>
               </td>
               <td>
-                <select class="form-select form-select-sm role-select" [(ngModel)]="flag.min_role" [attr.aria-label]="'Minsta roll for ' + flag.label">
+                <select class="form-select form-select-sm role-select" [(ngModel)]="flag.min_role" [attr.aria-label]="'Minsta roll för ' + flag.label">
                   <option *ngFor="let r of roles; trackBy: trackByIndex" [value]="r">{{ roleLabel(r) }}</option>
                 </select>
               </td>

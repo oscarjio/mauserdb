@@ -3,13 +3,13 @@
   <!-- Rubrik + kontroller -->
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <h2 class="page-title mb-0">
-      <i class="fas fa-clipboard-list me-2" style="color:#4fd1c5"></i>Skiftrapport-sammanstallning
+      <i class="fas fa-clipboard-list me-2" style="color:#4fd1c5"></i>Skiftrapport-sammanställning
     </h2>
     <div class="d-flex align-items-center flex-wrap gap-3">
       <app-pdf-export-button
         targetElementId="skiftrapport-sammanstallning-content"
         filename="skiftrapport-sammanstallning"
-        title="Skiftrapport-sammanstallning">
+        title="Skiftrapport-sammanställning">
       </app-pdf-export-button>
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small" for="datumValj">Datum:</label>
@@ -20,7 +20,7 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- 3 Skiftkort (Dag / Kvall / Natt)               -->
+  <!-- 3 Skiftkort (Dag / Kväll / Natt)               -->
   <!-- ============================================== -->
   <div class="row g-3 mb-4">
     <ng-container *ngIf="!loadingDaglig && dagligData; else laddaDaglig">
@@ -138,13 +138,13 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- Veckosammanstallning — tabell                  -->
+  <!-- Veckosammanställning — tabell                  -->
   <!-- ============================================== -->
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="sr-card">
         <div class="sr-card-header">
-          <i class="fas fa-table me-2" style="color:#63b3ed"></i>Veckosammanstallning (senaste 7 dagar)
+          <i class="fas fa-table me-2" style="color:#63b3ed"></i>Veckosammanställning (senaste 7 dagar)
         </div>
         <div class="sr-card-body p-0">
           <div *ngIf="loadingVecko" class="sr-loading p-3">
@@ -159,7 +159,7 @@
                 <tr>
                   <th scope="col">Dag</th>
                   <th scope="col" class="text-center" colspan="2">Dag (06-14)</th>
-                  <th scope="col" class="text-center" colspan="2">Kvall (14-22)</th>
+                  <th scope="col" class="text-center" colspan="2">Kväll (14-22)</th>
                   <th scope="col" class="text-center" colspan="2">Natt (22-06)</th>
                   <th scope="col" class="text-end">Totalt</th>
                   <th scope="col" class="text-end">OEE snitt</th>
@@ -215,20 +215,20 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- Skiftjamforelse — linjediagram 30 dagar        -->
+  <!-- Skiftjämförelse — linjediagram 30 dagar        -->
   <!-- ============================================== -->
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="sr-card">
         <div class="sr-card-header">
-          <i class="fas fa-chart-line me-2" style="color:#9f7aea"></i>Skiftjamforelse — OEE per skift (30 dagar)
+          <i class="fas fa-chart-line me-2" style="color:#9f7aea"></i>Skiftjämförelse — OEE per skift (30 dagar)
         </div>
         <div class="sr-card-body">
           <div *ngIf="loadingJamforelse" class="sr-loading">
             <div role="status" class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
           </div>
           <div *ngIf="errorJamforelse && !loadingJamforelse" class="sr-error">
-            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda jamforelsedata
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda jämförelsedata
           </div>
           <div *ngIf="!loadingJamforelse && !errorJamforelse" class="sr-chart-wrapper">
             <canvas id="skiftJamforelseChart"></canvas>
@@ -242,7 +242,7 @@
   <div class="row g-3 mb-4" *ngIf="jamforelseData">
     <div class="col-12 col-md-4" *ngFor="let entry of [
       { namn: 'Dag (06-14)', key: 'dag', ikon: 'fas fa-sun', farg: '#f6ad55' },
-      { namn: 'Kvall (14-22)', key: 'kvall', ikon: 'fas fa-cloud-moon', farg: '#63b3ed' },
+      { namn: 'Kväll (14-22)', key: 'kvall', ikon: 'fas fa-cloud-moon', farg: '#63b3ed' },
       { namn: 'Natt (22-06)', key: 'natt', ikon: 'fas fa-moon', farg: '#9f7aea' }
     ]; trackBy: trackByIndex">
       <div class="skift-card">

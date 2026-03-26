@@ -26,5 +26,5 @@
 <td><span class="badge" [style.background]="eventColor(e.event_type)" style="font-size:0.75rem; color:#fff;">{{ eventTypeLabel(e.event_type) }}</span></td>
 <td>{{ e.title }}</td><td style="color:#a0aec0;">{{ e.description }}</td>
 <td><button class="btn btn-sm" style="background:transparent; color:#fc8181; border:1px solid #4a5568; padding:2px 8px;" (click)="removeEvent(e.id)" title="Ta bort" aria-label="Ta bort"><i class="fas fa-trash-alt"></i></button></td></tr></tbody></table></div></div>
-<div *ngIf="productionEvents.length === 0" class="text-center py-3"><p style="color:#718096; font-size:0.9rem; margin:0;">Inga handelser registrerade for de senaste 90 dagarna.</p></div>
+<div *ngIf="productionEvents.length === 0" class="text-center py-3"><p style="color:#718096; font-size:0.9rem; margin:0;">Inga handelser registrerade för de senaste 90 dagarna.</p></div>
 </div></div></div></div></div>

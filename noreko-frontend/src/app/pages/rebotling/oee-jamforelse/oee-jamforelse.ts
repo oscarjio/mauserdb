@@ -118,7 +118,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
             order: 1,
           },
           {
-            label: 'Tillganglighet %',
+            label: 'Tillgänglighet %',
             data: tillgValues,
             borderColor: '#63b3ed',
             borderWidth: 1.5,

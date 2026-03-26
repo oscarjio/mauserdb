@@ -50,7 +50,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
   // Skiftnamn
   readonly skiftNamn: Record<string, string> = {
     dag: 'Dag (06-14)',
-    kvall: 'Kvall (14-22)',
+    kvall: 'Kväll (14-22)',
     natt: 'Natt (22-06)',
   };
   readonly skiftFarger: Record<string, string> = {
@@ -240,7 +240,7 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
             fill: false,
           },
           {
-            label: 'Kvall (14-22)',
+            label: 'Kväll (14-22)',
             data: kvallOee,
             borderColor: '#63b3ed',
             backgroundColor: 'rgba(99, 179, 237, 0.1)',

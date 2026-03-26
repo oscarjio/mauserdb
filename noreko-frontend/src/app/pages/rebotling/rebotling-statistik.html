@@ -114,7 +114,7 @@
       </div>
     </div>
 
-    <!-- Produktionsoverblick (VD-vy) -->
+    <!-- Produktionsöverblick (VD-vy) -->
     <div class="container-fluid" *ngIf="overviewData && !overviewLoading">
       <div class="overview-panel mb-4">
         <div class="overview-title"><i class="fas fa-tachometer-alt me-2"></i>Produktionspuls</div>
@@ -414,8 +414,8 @@
       <!-- No Data -->
       <div *ngIf="!loading && tableData.length === 0" class="text-center py-5">
         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-        <h5>Ingen data for vald period</h5>
-        <p class="text-muted">Valj en annan period eller vanta pa att produktionen startar</p>
+        <h5>Ingen data för vald period</h5>
+        <p class="text-muted">Valj en annan period eller vänta på att produktionen startar</p>
       </div>
     </div>
   </div>
@@ -505,7 +505,7 @@
 
           <div *ngIf="!loading && heatmapRows.length === 0" class="text-center py-4 text-muted">
             <i class="fas fa-inbox fa-2x mb-2"></i>
-            <div>Ingen data for perioden</div>
+            <div>Ingen data för perioden</div>
           </div>
         </div>
       </div>

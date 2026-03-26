@@ -8,7 +8,7 @@
           <i class="bi bi-file-earmark-bar-graph me-2" style="color:#4fd1c5"></i>
           Historisk sammanfattning
         </h2>
-        <p class="text-muted small mb-0 mt-1">Auto-genererad rapport for vald period</p>
+        <p class="text-muted small mb-0 mt-1">Auto-genererad rapport för vald period</p>
       </div>
       <button class="btn btn-outline-light btn-sm no-print" (click)="printReport()" aria-label="Skriv ut rapport">
         <i class="bi bi-printer me-1"></i> Skriv ut rapport
@@ -43,7 +43,7 @@
 
     <!-- Error perioder -->
     <div *ngIf="errorPerioder && !loadingPerioder" class="alert alert-danger">
-      <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda tillgangliga perioder.
+      <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda tillgängliga perioder.
     </div>
 
     <!-- Error rapport -->
@@ -146,7 +146,7 @@
             <canvas id="trendChartCanvas"></canvas>
           </div>
           <div *ngIf="!loadingTrend && !errorTrend && (!trendData?.trend?.length)" class="text-center text-muted py-4">
-            Ingen trenddata for perioden.
+            Ingen trenddata för perioden.
           </div>
         </div>
       </div>
@@ -270,7 +270,7 @@
             <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda stopporsaker.
           </div>
           <div *ngIf="!loadingStopporsaker && !errorStopporsaker && stopporsaker.length === 0" class="text-center text-muted py-4">
-            Inga stopporsaker registrerade for perioden.
+            Inga stopporsaker registrerade för perioden.
           </div>
           <div *ngIf="!loadingStopporsaker && !errorStopporsaker && stopporsaker.length > 0">
             <div style="position:relative; height:300px;" class="mb-3">

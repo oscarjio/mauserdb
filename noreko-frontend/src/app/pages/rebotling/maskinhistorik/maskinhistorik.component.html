@@ -215,7 +215,7 @@
     <div class="col-12">
       <div class="mh-card">
         <div class="mh-card-header">
-          <i class="fas fa-table me-2" style="color:#63b3ed"></i>Jamforelse — alla stationer
+          <i class="fas fa-table me-2" style="color:#63b3ed"></i>Jämförelse — alla stationer
           <span class="mh-badge ms-2">senaste {{ period }} dagar</span>
         </div>
         <div class="mh-card-body p-0">
@@ -223,7 +223,7 @@
             <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar...
           </div>
           <div *ngIf="errorJamforelse && !loadingJamforelse" class="mh-error p-3">
-            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda jamforelsedata
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda jämförelsedata
           </div>
           <div *ngIf="!loadingJamforelse && !errorJamforelse && jamforelseData.length > 0"
                class="table-responsive">
@@ -286,7 +286,7 @@
           <div *ngIf="!loadingJamforelse && !errorJamforelse && jamforelseData.length === 0"
                class="text-center py-4 text-muted">
             <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-            Ingen jamforelsedata tillganglig
+            Ingen jämförelsedata tillgänglig
           </div>
         </div>
       </div>

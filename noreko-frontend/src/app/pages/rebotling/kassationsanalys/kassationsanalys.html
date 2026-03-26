@@ -99,7 +99,7 @@
     </div>
     <div *ngIf="!loadingOrsaker && orsaker.length === 0 && !errorOrsaker" class="kas-empty">
       <i class="fas fa-check-circle fa-2x mb-2" style="color:#48bb78;opacity:.5"></i>
-      <p>Inga kassationsorsaker registrerade for perioden.</p>
+      <p>Inga kassationsorsaker registrerade för perioden.</p>
     </div>
     <div *ngIf="errorOrsaker" class="kas-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsaksdata.</div>
 
@@ -150,7 +150,7 @@
       <canvas id="kasTrendChart"></canvas>
     </div>
     <div *ngIf="!loadingTrend && !trendData?.har_data" class="kas-empty">
-      <p>Ingen trenddata for perioden.</p>
+      <p>Ingen trenddata för perioden.</p>
     </div>
     <div *ngIf="errorTrend" class="kas-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata.</div>
   </div>

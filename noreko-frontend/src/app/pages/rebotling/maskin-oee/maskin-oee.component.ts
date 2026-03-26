@@ -298,7 +298,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: 'Tillganglighet',
+            label: 'Tillgänglighet',
             data: tData,
             backgroundColor: '#63b3ed',
             borderRadius: 2,

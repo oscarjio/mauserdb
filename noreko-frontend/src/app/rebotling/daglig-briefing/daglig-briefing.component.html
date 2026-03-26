@@ -5,7 +5,7 @@
       <h2 class="page-title mb-1">
         <i class="fas fa-newspaper me-2" style="color:#4fd1c5"></i>Daglig Briefing
       </h2>
-      <p class="text-muted mb-0" *ngIf="visatDatum">Rapport for {{ visatDatum }}</p>
+      <p class="text-muted mb-0" *ngIf="visatDatum">Rapport för {{ visatDatum }}</p>
     </div>
     <div class="d-flex align-items-center gap-2 no-print">
       <select class="form-select form-select-sm datum-select" aria-label="Välj datum" [(ngModel)]="datumVal" (ngModelChange)="onDatumChange()">

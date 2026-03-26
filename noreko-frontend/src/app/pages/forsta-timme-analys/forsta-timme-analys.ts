@@ -321,7 +321,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
   shiftLabel(s: string): string {
     const map: Record<string, string> = {
       dag:   'Dag (06:00)',
-      kväll: 'Kvall (14:00)',
+      kväll: 'Kväll (14:00)',
       natt:  'Natt (22:00)',
     };
     return map[s] ?? s;

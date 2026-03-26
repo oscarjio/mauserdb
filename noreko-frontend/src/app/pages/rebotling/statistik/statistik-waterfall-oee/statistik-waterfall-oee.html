@@ -21,7 +21,7 @@
 <div class="col-6 col-sm-3"><div class="p-2 rounded text-center" style="background:#2d3748;"><div class="small text-muted">OEE (A&times;P&times;Q)</div>
 <div class="fw-bold" style="font-size:1.2rem;" [style.color]="(oeeWaterfallData.oee ?? 0) >= 65 ? '#48bb78' : (oeeWaterfallData.oee ?? 0) >= 45 ? '#ecc94b' : '#fc8181'">{{ oeeWaterfallData.oee | number:'1.1-1' }}%</div></div></div></div>
 <div class="text-center py-4" *ngIf="oeeWaterfallLoading"><div class="spinner-border text-success" role="status"></div><div class="text-muted mt-2 small">Beraknar OEE-forluster...</div></div>
-<div class="text-center py-4" *ngIf="oeeWaterfallLoaded && !oeeWaterfallLoading && (!oeeWaterfallData || !oeeWaterfallData.success)"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen OEE-data for vald period.</p></div>
+<div class="text-center py-4" *ngIf="oeeWaterfallLoaded && !oeeWaterfallLoading && (!oeeWaterfallData || !oeeWaterfallData.success)"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen OEE-data för vald period.</p></div>
 <div style="height:260px;position:relative;" *ngIf="oeeWaterfallLoaded && !oeeWaterfallLoading && oeeWaterfallData && oeeWaterfallData.success"><canvas id="oeeWaterfallChart"></canvas></div>
 <p class="small text-muted mt-2 mb-0" *ngIf="oeeWaterfallLoaded && oeeWaterfallData && oeeWaterfallData.success"><i class="fas fa-info-circle me-1" style="color:#48bb78;"></i>Gron = uppnadd andel, gra = forlust. OEE = Tillganglighet &times; Prestanda &times; Kvalitet.</p>
 </div></div></div>

@@ -65,7 +65,7 @@
       <!-- Laddar data -->
       <div class="text-center py-4" *ngIf="loading">
         <div class="spinner-border" style="color:#63b3ed;" role="status"></div>
-        <div class="text-muted mt-2 small">Hämtar skiftrapport for {{ operatorName }}...</div>
+        <div class="text-muted mt-2 small">Hämtar skiftrapport för {{ operatorName }}...</div>
       </div>
 
       <!-- Resultat -->
@@ -161,7 +161,7 @@
       <!-- Ingen data -->
       <div class="text-center py-4" *ngIf="!loading && selectedOperatorId > 0 && data.length === 0 && operatorName">
         <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-        <p class="text-muted mb-0">Ingen skiftdata hittades for {{ operatorName }} i vald period.</p>
+        <p class="text-muted mb-0">Ingen skiftdata hittades för {{ operatorName }} i vald period.</p>
       </div>
 
     </div>

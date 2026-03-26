@@ -24,7 +24,7 @@
   </div>
 
   <div *ngIf="!loadingSummary && !errorSummary && produkter.length === 0" class="pte-no-data">
-    Ingen produktdata hittades for den valda perioden.
+    Ingen produktdata hittades för den valda perioden.
   </div>
 
   <div *ngIf="!loadingSummary && produkter.length > 0" class="row g-3 mb-4">
@@ -98,7 +98,7 @@
           <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
         </div>
         <canvas #cykeltidChart class="pte-chart-canvas" *ngIf="!loadingTrend"></canvas>
-        <div *ngIf="!loadingTrend && !trendHarData" class="pte-no-data">Ingen trenddata tillganglig.</div>
+        <div *ngIf="!loadingTrend && !trendHarData" class="pte-no-data">Ingen trenddata tillgänglig.</div>
       </div>
     </div>
 

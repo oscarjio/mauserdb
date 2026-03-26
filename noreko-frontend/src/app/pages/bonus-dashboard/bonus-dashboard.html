@@ -362,9 +362,9 @@
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <!-- Period-jämförelseknapp -->
         <div class="period-toggle-group">
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'today'" (click)="selectedPeriod='today'; onPeriodChange()" aria-label="Visa ranking for idag" [attr.aria-pressed]="selectedPeriod === 'today'">Idag</button>
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()" aria-label="Visa ranking for denna vecka" [attr.aria-pressed]="selectedPeriod === 'week'">Denna vecka</button>
-          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()" aria-label="Visa ranking for denna manad" [attr.aria-pressed]="selectedPeriod === 'month'">Denna månad</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'today'" (click)="selectedPeriod='today'; onPeriodChange()" aria-label="Visa ranking för idag" [attr.aria-pressed]="selectedPeriod === 'today'">Idag</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()" aria-label="Visa ranking för denna vecka" [attr.aria-pressed]="selectedPeriod === 'week'">Denna vecka</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()" aria-label="Visa ranking för denna månad" [attr.aria-pressed]="selectedPeriod === 'month'">Denna månad</button>
         </div>
         <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="cachedActiveRanking.length > 0" title="Exportera ranking till CSV" aria-label="Exportera ranking till CSV">
           <i class="fas fa-download me-1"></i>CSV

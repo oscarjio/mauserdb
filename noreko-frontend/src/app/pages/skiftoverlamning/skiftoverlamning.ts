@@ -319,7 +319,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   skiftLabel(typ: string): string {
     switch (typ) {
       case 'dag': return 'Dag';
-      case 'kvall': return 'Kvall';
+      case 'kvall': return 'Kväll';
       case 'natt': return 'Natt';
       default: return typ;
     }

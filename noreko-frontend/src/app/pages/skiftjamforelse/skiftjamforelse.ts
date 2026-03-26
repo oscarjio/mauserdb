@@ -153,7 +153,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     if (!canvas || !this.jamforelse?.radar) return;
 
     const radar = this.jamforelse.radar;
-    const labels = ['Tillganglighet', 'Prestanda', 'Kvalitet', 'Volym', 'Stabilitet'];
+    const labels = ['Tillgänglighet', 'Prestanda', 'Kvalitet', 'Volym', 'Stabilitet'];
 
     const toArr = (r: any) => [r.tillganglighet, r.prestanda, r.kvalitet, r.volym, r.stabilitet];
 

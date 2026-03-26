@@ -170,7 +170,7 @@
             <span class="compare-val">{{ jamforelse.nuvarande.total }} IBC</span>
           </div>
           <div class="compare-item">
-            <span class="compare-label">Godkanda</span>
+            <span class="compare-label">Godkända</span>
             <span class="compare-val text-success">{{ jamforelse.nuvarande.ibc_ok }}</span>
           </div>
           <div class="compare-item">
@@ -195,7 +195,7 @@
     <div class="col-md-6">
       <div class="compare-card">
         <div class="compare-title">
-          <i class="fas fa-history me-2 text-warning"></i>Foregaende period
+          <i class="fas fa-history me-2 text-warning"></i>Föregående period
         </div>
         <div class="compare-dates">{{ jamforelse.foregaende.from }} - {{ jamforelse.foregaende.to }}</div>
         <div class="compare-grid">
@@ -204,7 +204,7 @@
             <span class="compare-val">{{ jamforelse.foregaende.total }} IBC</span>
           </div>
           <div class="compare-item">
-            <span class="compare-label">Godkanda</span>
+            <span class="compare-label">Godkända</span>
             <span class="compare-val text-success">{{ jamforelse.foregaende.ibc_ok }}</span>
           </div>
           <div class="compare-item">
@@ -243,7 +243,7 @@
     </div>
     <div *ngIf="!loadingGraph && (!periodData || periodData.series.length === 0)"
          class="text-center text-muted py-4">
-      <i class="fas fa-info-circle me-1"></i>Ingen produktionsdata for vald period
+      <i class="fas fa-info-circle me-1"></i>Ingen produktionsdata för vald period
     </div>
   </div>
 
@@ -340,7 +340,7 @@
 
     <div *ngIf="!loadingTable && (!tabell || tabell.rows.length === 0)"
          class="text-center text-muted py-3">
-      <i class="fas fa-info-circle me-1"></i>Ingen data for vald period
+      <i class="fas fa-info-circle me-1"></i>Ingen data för vald period
     </div>
   </div>
   </div><!-- /#historisk-produktion-content -->

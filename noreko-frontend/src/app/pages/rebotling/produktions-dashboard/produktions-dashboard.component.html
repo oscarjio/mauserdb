@@ -150,7 +150,7 @@
 
   </div>
 
-  <!-- Loading / Error for KPI -->
+  <!-- Loading / Error för KPI -->
   <div class="pd-loading-row" *ngIf="loadingOversikt" aria-live="polite">
     <span class="pd-spinner"></span> Laddar KPI:er...
   </div>
@@ -176,7 +176,7 @@
         </div>
         <canvas id="prodChart" *ngIf="!loadingGrafer && veckoProd.length > 0"></canvas>
         <div class="pd-empty" *ngIf="!loadingGrafer && veckoProd.length === 0 && !errorGrafer">
-          Ingen produktionsdata tillganglig.
+          Ingen produktionsdata tillgänglig.
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@
         </div>
         <canvas id="oeeChart" *ngIf="!loadingGrafer && veckoOee.length > 0"></canvas>
         <div class="pd-empty" *ngIf="!loadingGrafer && veckoOee.length === 0 && !errorGrafer">
-          Ingen OEE-data tillganglig.
+          Ingen OEE-data tillgänglig.
         </div>
       </div>
     </div>

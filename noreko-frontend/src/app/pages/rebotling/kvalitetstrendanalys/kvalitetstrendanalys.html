@@ -38,7 +38,7 @@
     </div>
     <div class="col-md-3 col-6">
       <div class="kpi-card">
-        <div class="kpi-label">Trend vs foregaende</div>
+        <div class="kpi-label">Trend vs föregående</div>
         <div class="kpi-value">
           <i [class]="getTrendIcon(overview.trend_direction)" class="me-2"></i>
           <span [class.text-danger]="overview.trend_direction === 'up'"
@@ -242,7 +242,7 @@
       </div>
     </div>
     <div *ngIf="heatmapData && heatmapData.weeks.length === 0 && !loadingHeatmap" class="text-muted text-center py-3">
-      Inga data for vald period.
+      Inga data för vald period.
     </div>
   </div>
 

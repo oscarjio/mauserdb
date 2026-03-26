@@ -7,7 +7,7 @@
 <button class="btn btn-sm btn-outline-info" (click)="loadRejectionAnalysis()" [disabled]="rejectionAnalysisLoading"><i class="fas fa-sync-alt me-1" [class.fa-spin]="rejectionAnalysisLoading"></i>Hamta</button>
 <button class="btn btn-sm btn-outline-secondary" (click)="exportRejectionCSV()" [disabled]="!rejectionTrendData.length" title="Exportera kvalitetsdata som CSV"><i class="fas fa-file-csv me-1"></i>CSV</button></div></div>
 <div class="text-center py-5" *ngIf="rejectionAnalysisLoading"><div class="spinner-border text-info" role="status" style="width:2rem;height:2rem;"><span class="visually-hidden">Laddar...</span></div><p class="mt-2 mb-0" style="color:#a0aec0; font-size:0.9rem;">Hämtar kvalitetsanalysdata...</p></div>
-<div class="text-center py-5" *ngIf="rejectionAnalysisLoaded && !rejectionAnalysisLoading && rejectionTrendData.length === 0"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen kvalitetsdata for vald period.</p></div>
+<div class="text-center py-5" *ngIf="rejectionAnalysisLoaded && !rejectionAnalysisLoading && rejectionTrendData.length === 0"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen kvalitetsdata för vald period.</p></div>
 <ng-container *ngIf="rejectionAnalysisLoaded && !rejectionAnalysisLoading && rejectionTrendData.length > 0">
 <div class="row g-3 mb-4">
 <div class="col-6 col-md-3"><div class="kvalitet-kpi-card text-center"><div class="kvalitet-kpi-icon" style="background:rgba(66,153,225,0.15);color:#4299e1;"><i class="fas fa-check-circle"></i></div>

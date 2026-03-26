@@ -70,13 +70,13 @@
 
   <!-- Ingen data -->
   <div *ngIf="!loadingOverview && !errorOverview && !harOperatorer" class="no-data-msg">
-    <i class="fas fa-info-circle text-info me-2"></i>Inga operatorer hittades for den valda perioden.
+    <i class="fas fa-info-circle text-info me-2"></i>Inga operatörer hittades för den valda perioden.
   </div>
 
   <!-- Operatorstabell -->
   <div class="card-section" *ngIf="!loadingOverview && harOperatorer">
     <h2 class="section-title">
-      <i class="fas fa-table me-2 text-info"></i>Operatorer — klicka for detaljer
+      <i class="fas fa-table me-2 text-info"></i>Operatorer — klicka för detaljer
     </h2>
 
     <div class="table-responsive">
@@ -144,7 +144,7 @@
                   <!-- Laddning -->
                   <div *ngIf="loadingCurve" class="detail-loading">
                     <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
-                    Hämtar larlingskurva for {{ op.namn }}...
+                    Hämtar lärlingskurva för {{ op.namn }}...
                   </div>
 
                   <!-- Fel -->
@@ -165,7 +165,7 @@
                     </div>
 
                     <div *ngIf="!harCurve" class="no-data-msg">
-                      Ingen veckodata tillganglig annu.
+                      Ingen veckodata tillgänglig ännu.
                     </div>
 
                     <div *ngIf="harCurve" class="detail-grid">

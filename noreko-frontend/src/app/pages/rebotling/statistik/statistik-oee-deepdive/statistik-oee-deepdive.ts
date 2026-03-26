@@ -134,7 +134,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         labels,
         datasets: [
           { label: 'OEE %', data: this.oeeTrendDays.map(d => d.oee), borderColor: '#4299e1', backgroundColor: 'rgba(66,153,225,0.1)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2, yAxisID: 'y' },
-          { label: 'Tillganglighet %', data: this.oeeTrendDays.map(d => d.availability), borderColor: '#48bb78', borderDash: [5, 3], tension: 0.3, pointRadius: 2, borderWidth: 1.5, fill: false, yAxisID: 'y' },
+          { label: 'Tillgänglighet %', data: this.oeeTrendDays.map(d => d.availability), borderColor: '#48bb78', borderDash: [5, 3], tension: 0.3, pointRadius: 2, borderWidth: 1.5, fill: false, yAxisID: 'y' },
           { label: 'Prestanda %', data: this.oeeTrendDays.map(d => d.performance), borderColor: '#ecc94b', borderDash: [5, 3], tension: 0.3, pointRadius: 2, borderWidth: 1.5, fill: false, yAxisID: 'y' },
           { label: 'Kvalitet %', data: this.oeeTrendDays.map(d => d.quality), borderColor: '#fc8181', borderDash: [5, 3], tension: 0.3, pointRadius: 2, borderWidth: 1.5, fill: false, yAxisID: 'y' },
           { label: 'WCM 85%', data: labels.map(() => 85), borderColor: '#48bb78', borderDash: [8, 4], borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0, type: 'line' as const },

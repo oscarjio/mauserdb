@@ -68,7 +68,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
   // Skiftnamn
   readonly skiftNamn: Record<string, string> = {
     dag: 'Dag (06-14)',
-    kvall: 'Kvall (14-22)',
+    kvall: 'Kväll (14-22)',
     natt: 'Natt (22-06)',
   };
 

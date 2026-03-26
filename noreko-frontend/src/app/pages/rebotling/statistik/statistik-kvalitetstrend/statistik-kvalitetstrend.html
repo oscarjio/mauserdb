@@ -19,7 +19,7 @@
 <i class="fas" [class.fa-arrow-up]="qualityTrendKpi.trend === 'up'" [class.fa-arrow-down]="qualityTrendKpi.trend === 'down'" [class.fa-minus]="qualityTrendKpi.trend === 'stable'"></i>
 {{ qualityTrendKpi.trend === 'up' ? 'Stigande' : qualityTrendKpi.trend === 'down' ? 'Fallande' : 'Stabil' }}</div></div></div></div>
 <div class="text-center py-4" *ngIf="qualityTrendLoading"><div class="spinner-border text-warning" role="status"></div><div class="text-muted mt-2 small">Hämtar kvalitetsdata...</div></div>
-<div class="text-center py-4" *ngIf="qualityTrendLoaded && !qualityTrendLoading && qualityTrendData.length === 0"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen kvalitetsdata for vald period.</p></div>
+<div class="text-center py-4" *ngIf="qualityTrendLoaded && !qualityTrendLoading && qualityTrendData.length === 0"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen kvalitetsdata för vald period.</p></div>
 <div style="height:300px;position:relative;" *ngIf="qualityTrendLoaded && !qualityTrendLoading && qualityTrendData.length > 0"><canvas id="qualityTrendChart"></canvas></div>
 <p class="small text-muted mt-2 mb-0" *ngIf="qualityTrendLoaded && qualityTrendData.length > 0"><i class="fas fa-info-circle me-1" style="color:#ecc94b;"></i>Gul linje = daglig kvalitet%. Orange tjock linje = 7-dagars rullande snitt. Rod streckad linje = kvalitetsmal 90%.</p>
 </div></div></div>

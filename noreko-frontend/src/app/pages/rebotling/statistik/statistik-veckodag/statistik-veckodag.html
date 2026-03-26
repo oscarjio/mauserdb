@@ -11,7 +11,7 @@
 <span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Samsta dag</span></p>
 <div *ngIf="weekdayLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="text-muted small mt-2">Hämtar veckodag-statistik...</div></div>
 <div *ngIf="!weekdayLoading && weekdayData.length > 0" style="height:260px; position:relative;"><canvas id="weekdayChart"></canvas></div>
-<div *ngIf="!weekdayLoading && weekdayData.length === 0" class="text-center py-4"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen data tillganglig for vald period.</p></div>
+<div *ngIf="!weekdayLoading && weekdayData.length === 0" class="text-center py-4"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen data tillgänglig för vald period.</p></div>
 <div class="mt-3" *ngIf="!weekdayLoading && weekdayData.length > 0"><div class="table-responsive">
 <table class="table table-sm" style="color:#e2e8f0; font-size:0.85rem;">
 <thead><tr style="border-color:#4a5568; color:#a0aec0;"><th scope="col">Veckodag</th><th class="text-end" scope="col">Snitt IBC/dag</th><th class="text-end" scope="col">Max IBC</th><th class="text-end" scope="col">Min IBC</th><th class="text-end" *ngIf="weekdayData[0]?.snitt_oee !== null" scope="col">Snitt OEE</th><th class="text-end" scope="col">Antal dagar</th></tr></thead>

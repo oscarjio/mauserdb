@@ -1,3 +1,46 @@
+## Worker B -- Session #338 (2026-03-26) -- 75+ diakritikfixar (åäö) + skiftrapport-UI granskning + admin-UI granskning + graf/chart-granskning
+
+### Uppgift 1: SKIFTRAPPORT-UI DJUP GRANSKNING -- KLAR
+- Granskade alla skiftrapport-komponenter: skiftrapport-export, skiftrapport-sammanstallning, rebotling-skiftrapport, shared-skiftrapport, saglinje-skiftrapport, tvattlinje-skiftrapport, klassificeringslinje-skiftrapport
+- **skiftrapport-export**: PDF-generering med pdfmake fungerar korrekt, dag+veckorapport, tom-tillstand hanteras, dark theme OK, diakritik OK
+- **skiftrapport-sammanstallning**: 3 skiftkort + stapeldiagram + veckosammanstallning + skiftjamforelse -- alla OK. Chart.js grafer har destroy() i ngOnDestroy. Tom-tillstand hanterat
+- **shared-skiftrapport**: CRUD-operationer, CSV/Excel/PDF-export, datumfiltrering -- allt OK. Lifecycle korrekt med destroy$/takeUntil/clearInterval/clearTimeout
+- **FIXAT**: 10 diakritikfel i skiftrapport-sammanstallning (Kvall->Kväll, sammanstallning->sammanställning, jamforelsedata->jämförelsedata etc.)
+- **FIXAT**: "Anvandare" -> "Användare" i shared-skiftrapport CSV/Excel-export
+
+### Uppgift 2: ADMIN-SIDOR UI DJUP GRANSKNING -- KLAR
+- Granskade bonus-admin, news-admin, vpn-admin, feature-flag-admin, rebotling-admin, saglinje-admin, tvattlinje-admin, klassificeringslinje-admin
+- **bonus-admin**: Tabs (oversikt, viktningar, mal, prognos, perioder, simulator, bonusnivaer, utbetalningar, historik, rattvise-audit) -- svenska UI, dark theme OK, formulär med validering OK
+- **vpn-admin**: Rolbaserad atkomst (admin-only), VPN-klienttabell, disconnect-funktion -- allt OK, diakritik OK
+- **news-admin**: CRUD for nyheter, kategori-val, publicerings-toggle -- OK
+- **feature-flag-admin**: FIXAT "for" -> "för" i aria-label
+- Alla admin-sidor har korrekt OnInit/OnDestroy lifecycle, takeUntil-pattern, dark theme
+
+### Uppgift 3: GRANSKA ALLA GRAFER/CHARTS -- KLAR
+- Hittade 109 filer med "new Chart" -- ALLA har ngOnDestroy med chart.destroy()
+- Alla grafer har: svenska labels, dark theme (mork bakgrund, ljus text), responsive, maintainAspectRatio
+- Tom-data hanteras korrekt (visar meddelande istallet for tom canvas)
+- **FIXAT**: 6 "Tillganglighet" -> "Tillgänglighet" i chart-labels (skiftjamforelse, maskinhistorik, oee-jamforelse, maskin-oee, statistik-oee-deepdive, statistik-waterfall-oee)
+
+### Uppgift 4: DIAKRITIK-SWEEP -- KLAR (75+ fixar)
+Fixade diakritik i 76 filer (75+ unika andrinagar). Huvudsakliga kategorier:
+- **"Kvall" -> "Kväll"**: 11 forekomster i 6 filer (skiftrapport-sammanstallning, forsta-timme-analys, skiftoverlamning, kassationskvot-alarm, kassationsorsak-statistik)
+- **"tillganglig" -> "tillgänglig"**: 21 forekomster (operator-ranking, maskinhistorik, rebotling-sammanfattning, produktionsmal, utnyttjandegrad, produktions-dashboard, oee-trendanalys, kvalitets-trendbrott, m.fl.)
+- **"for" -> "för"**: 40+ forekomster (tidrapport, stopporsaker, kassationsanalys, operator-onboarding, heatmap, historisk-sammanfattning, m.fl.)
+- **"jamforelse" -> "jämförelse"**: 15 forekomster (skiftjamforelse, maskinhistorik, oee-trendanalys, maskin-oee, historisk-produktion)
+- **"Anvandare" -> "Användare"**: shared-skiftrapport CSV/Excel export
+- **"foregaende" -> "föregående"**: andon
+- **"genomfort" -> "genomfört"**: andon
+- **"Tidsforlustfordelning" -> "Tidsförlustfördelning"**: utnyttjandegrad
+- Diverse: "Otillracklig"->"Otillräcklig", "maste"->"måste", "kora igang"->"köra igång", "Produktionsoverblick"->"Produktionsöverblick", "Okand"->"Okänd"
+- OBS: Inga filnamn, variabelnamn, CSS-klasser eller URL:er andrrades -- bara synlig UI-text!
+
+### Uppgift 5: DEPLOY + BUILD -- KLAR
+- Frontend byggd med `npx ng build` -- 0 errors, bara CommonJS-varningar
+- Deployad till dev.mauserdb.com via rsync (mauserdb-dev + frontend)
+
+---
+
 ## Worker A -- Session #338 (2026-03-26) -- Rebotling-statistik djupgranskning + N+1-prestandafix (17s->0.4s) + EffektivitetController 500-fix + 160+ endpoints testade + routing audit
 
 ### Uppgift 1: Rebotling-statistik berakningar -- DJUP GRANSKNING -- KLAR

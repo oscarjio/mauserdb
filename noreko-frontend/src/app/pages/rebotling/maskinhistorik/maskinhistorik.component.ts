@@ -302,7 +302,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
             order: 1,
           },
           {
-            label: 'Tillganglighet %',
+            label: 'Tillgänglighet %',
             data: tillg,
             borderColor: '#63b3ed',
             borderWidth: 1.5,

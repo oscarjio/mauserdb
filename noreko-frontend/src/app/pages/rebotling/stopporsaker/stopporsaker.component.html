@@ -30,7 +30,7 @@
           <span [class.kpi-trend-up]="sammanfattning.trend_pct > 0"
                 [class.kpi-trend-down]="sammanfattning.trend_pct < 0">
             <i [class]="getTrendArrow(sammanfattning.trend_pct)"></i>
-            {{ sammanfattning.trend_pct > 0 ? '+' : '' }}{{ sammanfattning.trend_pct }}% vs foregaende
+            {{ sammanfattning.trend_pct > 0 ? '+' : '' }}{{ sammanfattning.trend_pct }}% vs föregående
           </span>
         </div>
       </div>
@@ -81,7 +81,7 @@
           <canvas id="paretoChart"></canvas>
         </div>
         <div *ngIf="!loadingPareto && (!paretoData?.pareto?.length)" class="text-center py-4" style="color:#718096">
-          Inga stopporsaker registrerade for perioden.
+          Inga stopporsaker registrerade för perioden.
         </div>
       </div>
     </div>
@@ -93,7 +93,7 @@
           <canvas id="stationChart"></canvas>
         </div>
         <div *ngIf="!loadingStation && (!stationData?.stationer?.length)" class="text-center py-4" style="color:#718096">
-          Inga stations-data for perioden.
+          Inga stations-data för perioden.
         </div>
       </div>
     </div>
@@ -154,7 +154,7 @@
           </table>
         </div>
         <div *ngIf="!loadingOrsaker && (!orsakerData?.orsaker?.length)" class="text-center py-3" style="color:#718096">
-          Inga orsaker for perioden.
+          Inga orsaker för perioden.
         </div>
       </div>
     </div>
@@ -215,7 +215,7 @@
         </div>
 
         <div *ngIf="!loadingDetaljer && (!detaljerData?.detaljer?.length)" class="text-center py-3" style="color:#718096">
-          Inga stopp registrerade for perioden.
+          Inga stopp registrerade för perioden.
         </div>
       </div>
     </div>

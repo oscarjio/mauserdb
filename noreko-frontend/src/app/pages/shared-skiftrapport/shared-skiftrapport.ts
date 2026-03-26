@@ -335,7 +335,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   exportCSV() {
     if (!this.filteredReports.length) return;
-    const h = ['ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt', 'Kvalitet %', 'Kommentar', 'Anvandare', 'Inlagd'];
+    const h = ['ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt', 'Kvalitet %', 'Kommentar', 'Användare', 'Inlagd'];
     const rows = this.filteredReports.map(r => [
       r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.totalt,
       this.getQualityPct(r) ?? '', r.kommentar || '', r.user_name || '',
@@ -356,7 +356,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     import('xlsx').then(XLSX => {
       const headers = [
         'ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt',
-        'Kvalitet %', 'Kommentar', 'Anvandare', 'Inlagd'
+        'Kvalitet %', 'Kommentar', 'Användare', 'Inlagd'
       ];
       const rows = this.filteredReports.map(r => [
         r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.totalt,
