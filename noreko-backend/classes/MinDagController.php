@@ -177,7 +177,8 @@ class MinDagController {
         }
 
         $today    = date('Y-m-d');
-        $opFilter = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+        // Unika paramnamn per kolumn (ATTR_EMULATE_PREPARES=false kräver unika named params)
+        $opFilter = "(op1 = :op_id_a OR op2 = :op_id_b OR op3 = :op_id_c)";
         $opInfo   = $this->getOperatorInfo($opId);
 
         try {
@@ -196,7 +197,7 @@ class MinDagController {
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
+            $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
             $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($shifts)) {
@@ -265,7 +266,7 @@ class MinDagController {
                     GROUP BY dag
                 ) AS per_day
             ");
-            $stmtSnitt->execute(['op_id' => $opId, 'since30' => $since30, 'today' => $today]);
+            $stmtSnitt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'since30' => $since30, 'today' => $today]);
             $snittIbc30d = (float)($stmtSnitt->fetchColumn() ?? 0);
 
             $this->sendSuccess([
@@ -305,7 +306,8 @@ class MinDagController {
         }
 
         $today    = date('Y-m-d');
-        $opFilter = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+        // Unika paramnamn per kolumn (ATTR_EMULATE_PREPARES=false kräver unika named params)
+        $opFilter = "(op1 = :op_id_a OR op2 = :op_id_b OR op3 = :op_id_c)";
 
         try {
             // Hämta råcykeltider per timme — använd cykeltid-kolumnen om den finns,
@@ -323,7 +325,7 @@ class MinDagController {
                 GROUP BY HOUR(datum)
                 ORDER BY timme ASC
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
+            $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $trend = [];
@@ -374,7 +376,8 @@ class MinDagController {
         }
 
         $today    = date('Y-m-d');
-        $opFilter = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+        // Unika paramnamn per kolumn (ATTR_EMULATE_PREPARES=false kräver unika named params)
+        $opFilter = "(op1 = :op_id_a OR op2 = :op_id_b OR op3 = :op_id_c)";
 
         try {
             // Hämta dagens produktion
@@ -396,7 +399,7 @@ class MinDagController {
                     GROUP BY skiftraknare
                 ) AS ps
             ");
-            $stmt->execute(['op_id' => $opId, 'today' => $today, 'todayb' => $today]);
+            $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcOk    = (int)($row['total_ibc_ok']    ?? 0);
