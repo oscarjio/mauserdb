@@ -11,7 +11,7 @@
         <!-- OEE Breakdown bars -->
         <div class="row g-3 mb-4" *ngIf="oeeData">
           <div class="col-12">
-            <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px" class="mb-3">Senaste manaden -- Breakdown</h6>
+            <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px" class="mb-3">Senaste månaden -- Breakdown</h6>
           </div>
           <div class="col-md-3 text-center">
             <div class="small text-muted mb-2">OEE Total</div>
@@ -33,7 +33,7 @@
                 <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.availability)"
                      [style.width.%]="getOEEBarWidth(oeeData.availability)" style="border-radius:7px"></div>
               </div>
-              <div class="small text-muted mt-1">Kortid: {{ oeeData.operating_hours }}h / Planerad tid: {{ oeeData.planned_hours }}h</div>
+              <div class="small text-muted mt-1">Körtid: {{ oeeData.operating_hours }}h / Planerad tid: {{ oeeData.planned_hours }}h</div>
             </div>
             <div class="mb-3">
               <div class="d-flex justify-content-between small mb-1">
@@ -55,7 +55,7 @@
                 <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.quality)"
                      [style.width.%]="getOEEBarWidth(oeeData.quality)" style="border-radius:7px"></div>
               </div>
-              <div class="small text-muted mt-1">{{ oeeData.good_ibc }} godkanda / {{ oeeData.total_ibc }} totala IBC</div>
+              <div class="small text-muted mt-1">{{ oeeData.good_ibc }} godkända / {{ oeeData.total_ibc }} totala IBC</div>
             </div>
           </div>
         </div>

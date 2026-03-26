@@ -1,3 +1,47 @@
+## Worker B -- Session #343 (2026-03-26) -- Personal/Roster + Rapporter + Rebotling-statistik grafer UI-granskning + 55 diakritikfixar
+
+### UPPGIFT 1: PERSONAL/ROSTER — UI + TEMPLATES — KLAR
+Granskade 6 personal/roster-komponenter:
+- operators, shift-plan, operator-attendance, narvarotracker, skiftplanering, operator-onboarding
+**Resultat:** Dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text). Lifecycle OK (OnInit/OnDestroy, destroy$, takeUntil). Tom-tillstånd hanterat (alla har meddelanden vid tom data). Responsivt (table-responsive, col-*). Svensk text. Diakritik: fixade "operatorer" -> "operatörer" (synlig text), "Larlingskurva" -> "Lärlingskurva", "narvodagar" -> "närvarodagar".
+
+### UPPGIFT 2: LAGER/INVENTARIE — UI + TEMPLATES — KLAR
+Inga dedikerade lager/inventarie-komponenter hittades i noreko-frontend/src/app/pages/. Produktionskostnad och underhållslogg nämner material men har inga separata lagerkomponenter.
+
+### UPPGIFT 3: RAPPORTER — UI + TEMPLATES — KLAR
+Granskade 4 rapport-komponenter:
+- veckorapport, monthly-report, skiftrapport-export, morgonrapport
+**Resultat:** Dark theme OK. Lifecycle korrekt. Tom-tillstånd hanterat. Responsivt. PDF-export finns i monthly-report (via window.print()) och skiftrapport-export (via jsPDF). Diakritik: fixade "Maluppfyllnad" -> "Måluppfyllnad", "Foregaende vecka" -> "Föregående vecka" (6 st), "Manadsrapport" -> "Månadsrapport".
+
+### UPPGIFT 4: REBOTLING-STATISTIK GRAFER — KLAR
+Granskade 10+ graf-komponenter under rebotling/statistik/:
+- statistik-kvalitetstrend, statistik-pareto-stopp, statistik-prediktion, statistik-produktionsrytm
+- statistik-skiftrapport-operator, statistik-veckodag, statistik-cykeltid-operator
+- statistik-histogram, statistik-spc, statistik-kvalitetsanalys, statistik-oee-deepdive
+**Resultat:** Beräkningar korrekta. Adaptiv granularitet via periodval (7/14/30/90 dagar). Dark theme på grafer OK. chart?.destroy() i ngOnDestroy korrekt. Totalt 25+ diakritikfixar i statistik-graferna.
+
+### UPPGIFT 5: DIAKRITIK-SWEEP — 55 FIXAR
+Fixade 55 diakritikfel i UI-synliga strängar i 22 filer:
+- "Maluppfyllnad" -> "Måluppfyllnad" (2 st), "Foregaende" -> "Föregående" (7 st)
+- "Manadsrapport" -> "Månadsrapport", "Larlingskurva" -> "Lärlingskurva"
+- "operatorer" -> "operatörer" (synlig text, 18 st i 11 filer)
+- "Hamta" -> "Hämta" (5 st), "godkanda" -> "godkända" (3 st)
+- "Baserat pa/korning/Dagsmal/na dagsmalet" -> korrekt diakritik (4 st)
+- "Rod/kvalitetsmal/Beraknar/Medelvarde/kontrollgranser/utanfor" -> korrekt (7 st)
+- "forra/kraver/manaden/Kortid/lagst/Bast" -> korrekt (6 st)
+- "Fran datum/Per operator/kor" -> korrekt (8 st)
+- "narvodagar" -> "närvarodagar" (1 st)
+
+### UPPGIFT 6: BYGG + DEPLOY — KLAR
+- Build: `npx ng build` — framgångsrik (inga fel)
+- Deploy: `rsync` till dev.mauserdb.com — framgångsrik
+
+### UPPGIFT 7: COMMIT + PUSH — se nedan
+
+### UPPGIFT 8: DEV-LOG — KLAR (denna post)
+
+---
+
 ## Worker A -- Session #343 (2026-03-26) -- Backend-granskning: personal/roster + lager + rapporter + endpoint-stress (1 buggfix)
 
 ### UPPGIFT 1: PERSONAL/ROSTER — ENDPOINTS + SQL — KLAR

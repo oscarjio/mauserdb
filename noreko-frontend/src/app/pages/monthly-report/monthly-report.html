@@ -55,7 +55,7 @@
     <!-- Rapport-rubrik (synlig i utskrift) -->
     <div class="print-title">
       <div class="print-logo">NOREKO</div>
-      <h2>Manadsrapport &mdash; {{ report.month_label }}</h2>
+      <h2>Månadsrapport &mdash; {{ report.month_label }}</h2>
       <p class="print-subtitle">Automatgenererad av Noreko produktionssystem</p>
       <p class="print-date">Utskriftsdatum: {{ printTimestamp }}</p>
     </div>
@@ -173,7 +173,7 @@
           </div>
         </div>
 
-        <!-- Basta vecka -->
+        <!-- Bästa vecka -->
         <div class="kpi-card" *ngIf="report.basta_vecka">
           <div class="kpi-label">
             <i class="fas fa-arrow-trend-up me-1 text-success"></i>Bästa vecka
@@ -182,7 +182,7 @@
           <div class="kpi-sub">{{ report.basta_vecka.ibc | number }} IBC -- OEE {{ report.basta_vecka.avg_oee }}%</div>
         </div>
 
-        <!-- Samsta vecka -->
+        <!-- Sämsta vecka -->
         <div class="kpi-card" *ngIf="report.samsta_vecka">
           <div class="kpi-label">
             <i class="fas fa-arrow-trend-down me-1 text-danger"></i>Sämsta vecka
@@ -347,14 +347,14 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 4: Basta & Samsta dag ===== -->
+    <!-- ===== SEKTION 4: Basta & Sämsta dag ===== -->
     <section class="report-section" *ngIf="report.best_day || report.worst_day || compareData?.best_day || compareData?.worst_day">
       <h2 class="section-title">
         <i class="fas fa-star me-2"></i>Bästa &amp; Sämsta dag
       </h2>
       <div class="best-worst-grid">
 
-        <!-- Basta dag -->
+        <!-- Bästa dag -->
         <ng-container *ngIf="compareData?.best_day; else fallbackBestDay">
           <div class="day-card day-best">
             <div class="day-card-header">
@@ -394,7 +394,7 @@
           </div>
         </ng-template>
 
-        <!-- Samsta dag -->
+        <!-- Sämsta dag -->
         <ng-container *ngIf="compareData?.worst_day; else fallbackWorstDay">
           <div class="day-card day-worst">
             <div class="day-card-header">

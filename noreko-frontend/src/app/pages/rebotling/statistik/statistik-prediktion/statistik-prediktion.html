@@ -3,7 +3,7 @@
     <div class="dark-card">
       <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-bullseye me-2 text-warning"></i>Prognos för slutet av dagen</h5>
-        <small class="text-muted">Baserat pa nuvarande produktionstakt ({{ prediktionRunningHours }}h korning sedan kl 06:00)</small>
+        <small class="text-muted">Baserat på nuvarande produktionstakt ({{ prediktionRunningHours }}h körning sedan kl 06:00)</small>
       </div>
       <div class="card-body">
         <div class="text-center py-3" *ngIf="prediktionLoading"><div class="spinner-border text-warning" role="status"></div></div>
@@ -19,13 +19,13 @@
             <div class="small text-muted">{{ prediktionRemainingHours }}h kvar av produktionsdagen</div>
           </div>
           <div class="col-md-4 text-center">
-            <div class="small text-muted mb-1">Dagsmal</div>
+            <div class="small text-muted mb-1">Dagsmål</div>
             <div style="font-size:2.2rem;font-weight:800;color:#e2e8f0">{{ prediktionMal }}</div>
           </div>
         </div>
         <div class="mt-4">
           <div class="d-flex justify-content-between small text-muted mb-1">
-            <span>Prognos {{ prediktionPrognos }} IBC av mal {{ prediktionMal }}</span>
+            <span>Prognos {{ prediktionPrognos }} IBC av mål {{ prediktionMal }}</span>
             <span [ngClass]="getPrediktionTextClass()">{{ prediktionPct }}%</span>
           </div>
           <div class="progress" style="height:18px;border-radius:9px;background:rgba(255,255,255,0.07)">
@@ -37,7 +37,7 @@
           </div>
           <div class="small text-muted mt-2 text-center" *ngIf="prediktionPrognos > 0 && prediktionMal > 0">
             <span *ngIf="prediktionPrognos >= prediktionMal" class="text-success">
-              <i class="fas fa-check-circle me-1"></i>Prognosen pekar mot att na dagsmalet!
+              <i class="fas fa-check-circle me-1"></i>Prognosen pekar mot att nå dagsmålet!
             </span>
             <span *ngIf="prediktionPrognos < prediktionMal" class="text-warning">
               <i class="fas fa-exclamation-triangle me-1"></i>

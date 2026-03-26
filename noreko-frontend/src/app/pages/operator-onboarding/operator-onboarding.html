@@ -24,7 +24,7 @@
       </div>
     </div>
     <div class="filter-info" *ngIf="overview">
-      <span class="info-chip"><i class="fas fa-users me-1"></i>{{ overview.kpi.antal_operatorer }} operatorer</span>
+      <span class="info-chip"><i class="fas fa-users me-1"></i>{{ overview.kpi.antal_operatorer }} operatörer</span>
       <span class="info-chip ms-2"><i class="fas fa-user-plus me-1"></i>{{ overview.kpi.antal_nya }} nya (&lt; 90 dagar)</span>
     </div>
   </div>
@@ -41,7 +41,7 @@
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-user-plus" style="color:#4299e1"></i></div>
         <div class="kpi-value" style="color:#4299e1">{{ overview.kpi.antal_nya }}</div>
-        <div class="kpi-label">Nya operatorer (&lt; 90 dagar)</div>
+        <div class="kpi-label">Nya operatörer (&lt; 90 dagar)</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-hourglass-half" style="color:#ecc94b"></i></div>
@@ -53,7 +53,7 @@
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-trophy" style="color:#48bb78"></i></div>
         <div class="kpi-value" style="color:#48bb78">{{ overview.kpi.basta_nykomling_ibc_h }}</div>
-        <div class="kpi-label">Basta nykomling (IBC/h)<br><small class="text-muted">{{ overview.kpi.basta_nykomling_namn }}</small></div>
+        <div class="kpi-label">Bästa nykomling (IBC/h)<br><small class="text-muted">{{ overview.kpi.basta_nykomling_namn }}</small></div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fas fa-chart-line" style="color:#f6ad55"></i></div>
@@ -76,7 +76,7 @@
   <!-- Operatorstabell -->
   <div class="card-section" *ngIf="!loadingOverview && harOperatorer">
     <h2 class="section-title">
-      <i class="fas fa-table me-2 text-info"></i>Operatorer — klicka för detaljer
+      <i class="fas fa-table me-2 text-info"></i>Operatörer — klicka för detaljer
     </h2>
 
     <div class="table-responsive">
@@ -157,7 +157,7 @@
                     <div class="detail-header">
                       <span class="detail-title">
                         <i class="fas fa-chart-line me-2" style="color:#4299e1"></i>
-                        {{ curveData.operator_namn }} — Larlingskurva (start: {{ curveData.start_datum }})
+                        {{ curveData.operator_namn }} — Lärlingskurva (start: {{ curveData.start_datum }})
                       </span>
                       <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail(); $event.stopPropagation()">
                         <i class="fas fa-times me-1"></i>Stäng

@@ -260,7 +260,7 @@
       <div *ngIf="!loadingBemanning && !errorBemanning && bemanningData" class="row g-3">
         <div class="col-6 col-md-3">
           <div class="kp-kpi-card-sm">
-            <div class="kp-kpi-label">Totalt operatorer</div>
+            <div class="kp-kpi-label">Totalt operatörer</div>
             <div class="kp-kpi-value-sm" style="color:#9f7aea">{{ bemanningData.total_operatorer }}</div>
           </div>
         </div>
@@ -290,7 +290,7 @@
               <thead>
                 <tr>
                   <th scope="col">Station</th>
-                  <th scope="col" class="text-end">Operatorer</th>
+                  <th scope="col" class="text-end">Operatörer</th>
                   <th scope="col" class="text-center">Extra bemanning</th>
                 </tr>
               </thead>
@@ -379,7 +379,7 @@
       <i class="fas fa-calculator me-2" style="color:#f6ad55"></i>Prognos-simulator
     </div>
     <div class="kp-card-body">
-      <p class="text-muted small mb-3">"Om vi kor X timmar med Y operatorer, kan vi producera Z IBC"</p>
+      <p class="text-muted small mb-3">"Om vi kör X timmar med Y operatörer, kan vi producera Z IBC"</p>
 
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-4">
@@ -390,10 +390,10 @@
           </div>
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label text-light small">Antal operatorer *</label>
+          <label class="form-label text-light small">Antal operatörer *</label>
           <input type="number" class="form-control kp-input" [(ngModel)]="prognosOperatorer" name="prognosOperatorer" #progOpCtrl="ngModel" min="1" max="50" required>
           <div class="text-danger small mt-1" *ngIf="progOpCtrl.invalid && progOpCtrl.touched">
-            Ange antal operatorer (1-50).
+            Ange antal operatörer (1-50).
           </div>
         </div>
         <div class="col-12 col-md-4 d-flex align-items-end">
@@ -512,8 +512,8 @@
               <th scope="col" class="text-end">Max kapacitet</th>
               <th scope="col" class="text-end">Utnyttjande %</th>
               <th scope="col" class="text-center">Trend</th>
-              <th scope="col" class="text-end">Basta dag</th>
-              <th scope="col" class="text-end">Samsta dag</th>
+              <th scope="col" class="text-end">Bästa dag</th>
+              <th scope="col" class="text-end">Sämsta dag</th>
             </tr>
           </thead>
           <tbody>

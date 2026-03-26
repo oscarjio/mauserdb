@@ -118,7 +118,7 @@
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value text-bonus">{{ formatKr(overview?.snitt_bonus) }}</div>
-          <div class="kpi-sub">Per operator — {{ periodLabel(period) }}</div>
+          <div class="kpi-sub">Per operatör — {{ periodLabel(period) }}</div>
         </div>
       </div>
     </div>
@@ -146,7 +146,7 @@
         </div>
         <div *ngIf="!loadingOverview">
           <div class="kpi-value">{{ formatKr(overview?.total_utbetald) }}</div>
-          <div class="kpi-sub">Alla operatorer — {{ periodLabel(period) }}</div>
+          <div class="kpi-sub">Alla operatörer — {{ periodLabel(period) }}</div>
         </div>
       </div>
     </div>
@@ -154,7 +154,7 @@
     <!-- Antal kvalificerade -->
     <div class="col-6 col-md-3">
       <div class="kpi-card">
-        <div class="kpi-label">Kvalificerade operatorer</div>
+        <div class="kpi-label">Kvalificerade operatörer</div>
         <div *ngIf="loadingOverview" class="loading-spinner py-2">
           <div role="status" class="spinner-border spinner-border-sm text-info"><span class="visually-hidden">Laddar...</span></div>
         </div>
@@ -190,7 +190,7 @@
       </div>
     </div>
 
-    <!-- Radardiagram: Per operator -->
+    <!-- Radardiagram: Per operatör -->
     <div class="col-12 col-md-5">
       <div class="chart-card">
         <div class="chart-title">

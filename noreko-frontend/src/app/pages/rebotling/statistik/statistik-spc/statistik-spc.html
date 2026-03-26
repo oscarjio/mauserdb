@@ -25,7 +25,7 @@
             [disabled]="spcLoading"
           >
             <i class="fas fa-sync-alt me-1" [class.fa-spin]="spcLoading"></i>
-            Hamta
+            Hämta
           </button>
         </div>
       </div>
@@ -34,7 +34,7 @@
       <div class="row g-2 mb-3" *ngIf="spcLoaded && spcN > 0">
         <div class="col-6 col-sm-3">
           <div class="p-2 rounded text-center" style="background:#2d3748;">
-            <div class="small text-muted">Medelvarde IBC/h</div>
+            <div class="small text-muted">Medelvärde IBC/h</div>
             <div class="fw-bold" style="color:#48bb78;font-size:1.1rem;">{{ spcMean | number:'1.1-1' }}</div>
           </div>
         </div>
@@ -61,7 +61,7 @@
       <!-- Laddningsindikator -->
       <div class="text-center py-4" *ngIf="spcLoading">
         <div class="spinner-border text-primary" role="status"></div>
-        <div class="text-muted mt-2 small">Beraknar kontrollgranser...</div>
+        <div class="text-muted mt-2 small">Beräknar kontrollgränser...</div>
       </div>
 
       <!-- Ingen data -->
@@ -77,7 +77,7 @@
 
       <p class="small text-muted mt-2 mb-0" *ngIf="spcLoaded && spcN > 0">
         <i class="fas fa-exclamation-triangle me-1" style="color:#fc8181;"></i>
-        Punkter utanfor kontrollgranserna (rod/orange) indikerar onormal variation i processen.
+        Punkter utanför kontrollgränserna (röd/orange) indikerar onormal variation i processen.
       </p>
     </div>
   </div>

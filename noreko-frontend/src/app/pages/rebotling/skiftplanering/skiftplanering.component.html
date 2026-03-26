@@ -60,14 +60,14 @@
 
   <!-- Veckoväljare -->
   <div class="week-nav mb-3" *ngIf="!loadingSchedule">
-    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)" aria-label="Foregaende vecka">
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)" aria-label="Föregående vecka">
       <i class="fas fa-chevron-left"></i>
     </button>
     <span class="week-label">
       Vecka {{ currentWeek }}
       <small class="text-muted ms-2">{{ monday }} - {{ sunday }}</small>
     </span>
-    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(1)" aria-label="Nasta vecka">
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(1)" aria-label="Nästa vecka">
       <i class="fas fa-chevron-right"></i>
     </button>
   </div>
@@ -281,7 +281,7 @@
       </div>
 
       <div *ngIf="errorOperators && !loadingOperators" class="alert alert-danger py-2">
-        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatorer.
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatörer.
       </div>
 
       <div class="alert alert-success py-2" *ngIf="assignMessage">{{ assignMessage }}</div>
