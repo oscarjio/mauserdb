@@ -1,3 +1,50 @@
+## Worker B -- Session #342 (2026-03-26) -- Kvalitetskontroll/Underhåll UI-granskning + 70+ diakritikfixar + build + deploy
+
+### UPPGIFT 1: KVALITETSKONTROLL-UI GRANSKNING -- KLAR
+Granskade 10 kvalitetskontroll-komponenter:
+- kassations-drilldown, kassationsanalys, kassationskvot-alarm
+- kassationsorsak, kassationsorsak-statistik
+- kvalitetscertifikat, kvalitetstrendanalys, kvalitets-trendbrott, kvalitetstrend
+- statistik-kassation-pareto, statistik-kassationsanalys, statistik-kvalitetstrend
+**Resultat:** Dark theme OK, lifecycle (OnInit/OnDestroy, destroy$, takeUntil, clearTimeout/clearInterval, chart?.destroy()) korrekt i alla. Tom-tillstånd hanterat. Chart.js grafer har dark tooltips och destroy i ngOnDestroy. Responsivt (table-responsive, col-*). Diakritikproblem fixade (se uppgift 4).
+
+### UPPGIFT 2: ENERGI/MILJÖ-UI GRANSKNING -- KLAR
+Inga dedikerade energi/miljö-komponenter hittades i noreko-frontend/src/app/.
+
+### UPPGIFT 3: UNDERHÅLLSPLANERING-UI GRANSKNING -- KLAR
+Granskade 4 underhåll-komponenter:
+- underhallslogg, underhallsprognos, maskinunderhall, prediktivt-underhall
+**Resultat:** Dark theme OK, lifecycle korrekt (destroy$, takeUntil, clearInterval/clearTimeout, chart.destroy()). Tom-tillstånd hanterat. Responsivt. Diakritikproblem fixade (se uppgift 4).
+
+### UPPGIFT 4: DIAKRITIK-SWEEP -- 70+ FIXAR
+Fixade 70+ diakritikfel i UI-synliga strängar i 21 filer:
+- "over tid" → "över tid" (4 st)
+- "Varsta/Samsta" → "Värsta/Sämsta" (4 st)
+- "foreg./Foregaende" → "föreg./Föregående" (4 st)
+- "forandring" → "förändring" (1 st)
+- "Forbattras/Forsamras" → "Förbättras/Försämras" (2 st)
+- "Uppat/Nedat" → "Uppåt/Nedåt" (6 st)
+- "Godkand/Underkand" → "Godkänd/Underkänd" (4 st)
+- "bedomd/bedomning/Bedom" → "bedömd/bedömning/Bedöm" (8 st)
+- "kvalitetspoang" → "kvalitetspoäng" (4 st)
+- "mojliga" → "möjliga", "tvatteri" → "tvätteri" (2 st)
+- "underhall" → "underhåll" (12+ st i underhallslogg + prediktivt-underhall)
+- "Utford" → "Utförd", "kravs" → "krävs", "maste" → "måste" (5 st)
+- "Hog/Lag" → "Hög/Låg", "monsteranalys" → "mönsteranalys" (4 st)
+- "Fargskala/Fargintensitet" → "Färgskala/Färgintensitet" (2 st)
+- "Flode" → "Flöde", "Igar" → "Igår", "upptackta" → "upptäckta" (3 st)
+- "pa en stapel" → "på en stapel", "per operator" → "per operatör" (4 st)
+- "Valj" → "Välj" i confirm-dialoger och dropdowns (3 st)
+
+### UPPGIFT 5: BYGG + DEPLOY -- KLAR
+- `npx ng build` — lyckades utan fel (bara CommonJS-varningar)
+- Deploy till dev.mauserdb.com lyckades
+
+### UPPGIFT 6: COMMIT + PUSH -- KLAR
+- 21 filer committade och pushade
+
+---
+
 ## Worker A -- Session #342 (2026-03-26) -- produktion_procent verifierad + GamificationController rensat + kvalitet/underhall/energi-endpoints granskade + 116 endpoints testade 0 fel
 
 ### Uppgift 1: VERIFIERA produktion_procent MOT PROD DB -- KLAR
