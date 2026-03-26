@@ -11,11 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #349):
-- [ ] **End-to-end testning rebotling-flodet** — A+B: fran PLC-data till dashboard till rapport
-- [ ] **Responsiv design-sweep** — B: alla sidor pa mobil/tablet
-- [ ] **Resterande ogranskade controllers** — A: MorgonrapportController, DagligBriefingController, ProduktionspulsController, ProduktionsPrognosController, FavoriterController, SkiftplaneringController, UnderhallsloggController, SkiftoverlamningController, RebotlingStationsdetaljController, HistoriskSammanfattningController, StatistikOverblickController, StatistikDashboardController, SkiftjamforelseController
-- [ ] **MyStatsController + MinDagController djupgranskning** — A: SQL+ep, B: UI
+### Pagaende (session #349):
+- [~] **15 ogranskade controllers djupgranskning** — A: SQL+ep+auth (Morgonrapport, DagligBriefing, Produktionspuls, ProduktionsPrognos, Favoriter, Skiftplanering, Underhallslogg, Skiftoverlamning, RebotlingStationsdetalj, HistoriskSammanfattning, StatistikOverblick, StatistikDashboard, Skiftjamforelse, MyStats, MinDag)
+- [~] **End-to-end rebotling-flodet** — A: backend-data, B: UI-flode
+- [~] **20+ ogranskade frontend-sidor** — B: VD/executive, rebotling UI, statistik, operator/personal
+- [~] **produktion_procent undersok** — B: ar det kumulativt? Fixa berakning/visning
+
+### Nasta (session #350):
+- [ ] **Responsiv design-sweep** — alla sidor pa mobil/tablet
+- [ ] **Prestandaoptimering** — identifiera langa queries, N+1-problem
+- [ ] **Felhantering UI** — tomma tillstand, laddningsindikatorer, felmeddelanden
+- [ ] **Chart.js enhetlig styling** — alla grafer med samma fargpalett och dark theme
+- [ ] **Endpoint-svarstider** — logga och optimera endpoints over 1s
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #348)*
+*Senast uppdaterad: 2026-03-26 (session #349)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#348: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#349: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -77,11 +77,17 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - [x] Operator-controllers djupgranskning (7st) + 10 operator-UI-sidor (session #348)
 - [x] Kvalitet-controllers (4st) + kvalitet/analytics UI (session #348)
 - [x] Analytics-controllers (7st) + admin-sidor UI (session #348)
-- [ ] End-to-end testning rebotling-flodet
+- [~] 15 resterande controllers djupgranskning (session #349 pagaende)
+- [~] End-to-end rebotling-flodet (session #349 pagaende)
+- [~] 20+ ogranskade frontend-sidor (session #349 pagaende)
 - [ ] Responsiv design-sweep
-- [ ] Resterande ogranskade controllers (13st)
+- [ ] Prestandaoptimering (langa queries, N+1)
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #349 (pagaende)
+Worker A: 15 controllers djupgranskning (Morgonrapport, DagligBriefing, Produktionspuls, ProduktionsPrognos, Favoriter, Skiftplanering, Underhallslogg, Skiftoverlamning, RebotlingStationsdetalj, HistoriskSammanfattning, StatistikOverblick, StatistikDashboard, Skiftjamforelse, MyStats, MinDag) + end-to-end rebotling backend.
+Worker B: 20+ frontend-sidor (VD/executive, rebotling UI, statistik, operator/personal) + produktion_procent-undersökning.
 
 ### 2026-03-26 — Session #348 (klar)
 Worker A: 18 controllers djupgranskade (7 operator + 4 kvalitet + 7 analytics). 3 buggar fixade: OperatorCompareController YEARWEEK-alias fel (500-fel), KvalitetstrendanalysController station_id existerade ej i prod (SQL-fel), DrifttidsTimelineController reason/operator_name existerade ej i stoppage_log (SQL-fel). 70+ endpoints curl-testade. Auth OK. Deploy OK.
@@ -90,7 +96,3 @@ Worker B: 23+ frontend-sidor granskade (10 operator + 4 admin + 3 kvalitet/analy
 ### 2026-03-26 — Session #347 (klar)
 Worker A: Alert-system 4 controllers (22 ep). 5 auth-buggar fixade. 2 prestandaopt (-27%, -30%). RebotlingAdmin 27 ep OK. 100+ ep sweep.
 Worker B: Alert/alarm UI 4 komp OK. Rebotling-admin OK. 10 statistik-sidor OK. 17 diakritikfixar.
-
-### 2026-03-26 — Session #346 (klar)
-Worker A: Skiftrapport 9.5x snabbare (63→3 queries). Maskin-admin 1 auth-bugg fixad. 27 ep testade.
-Worker B: Gamification/notifikation/maskin-admin/energi UI OK. 8 diakritikfixar.
