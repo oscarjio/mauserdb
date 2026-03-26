@@ -11,13 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #332):
-- [ ] **Granska alla Chart.js-konfigurationer** — dark theme farger, tooltips pa svenska, responsivt
-- [ ] **Testa alla formularsidor** — validering, felmeddelanden, submit-flode
-- [ ] **Granska skiftoverlamning end-to-end** — data fran PLC till visning, ratt berakningar
-- [ ] **Verifiera att gamification/ranking visar korrekta poang** — berakningslogik i backend
-- [ ] **Granska alla tabeller** — sortering, paginering, tomma-tillstand
-- [ ] **Deploy alla session #331 fixar till dev** — backend rsync misslyckades pga SSH timeout
+### Nasta (session #333):
+- [ ] **Granska alla Angular pipes och direktiv** — custom pipes korrekt, inga minneslaickor
+- [ ] **Testa autentisering end-to-end** — login, logout, session-timeout, rollbaserad access
+- [ ] **Granska PDF-export** — layout, svenska texter, korrekt data
+- [ ] **Stresstesta polling under last** — manga samtidiga tabs, minnesanvandning
+- [ ] **Granska alla modaler/dialoger** — dark theme, validering, stangning rensar state
 
 ## Parkerade features (ta inte dessa nu)
 

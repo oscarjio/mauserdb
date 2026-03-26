@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #331)*
+*Senast uppdaterad: 2026-03-26 (session #332)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -74,14 +74,21 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [x] Forbattra rebotling-grafer (adaptiv granularitet) — session #331
-- [x] Granska error handling i Angular services — session #331 (OK, 508 anrop alla har catchError)
-- [x] Optimera polling-intervall — session #331
-- [x] Verifiera operatorsbonus-berakningar mot prod DB — session #331 (OK)
-- [ ] Granska Chart.js dark theme + svenska tooltips
-- [ ] Testa formularsidor end-to-end
+- [x] Granska Chart.js dark theme + svenska tooltips — session #332 (6 fixar, alla OK)
+- [x] Testa formularsidor end-to-end — session #332 (alla OK)
+- [x] Granska tabeller — session #332 (alla OK)
+- [x] Gamification/ranking SQL-granskning — session #332 (alla OK)
+- [x] Skiftoverlamning end-to-end — session #332 (alla OK)
+- [x] 114 endpoints testade — session #332 (0 st 500)
+- [ ] Granska Angular pipes/direktiv
+- [ ] Testa autentisering end-to-end
+- [ ] Granska PDF-export
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-26 — Session #332 (klar)
+Worker A: Deploy #331 fixar till dev (lyckades), gamification/ranking SQL OK, skiftoverlamning backend OK, 114 endpoints testade 0 st 500, deploy-scripts uppdaterade med --exclude db_config.php. Inga nya buggar.
+Worker B: 6 Chart.js-fixar (maintainAspectRatio: false), alla formular/tabeller verifierade OK, skiftoverlamning frontend OK, diakritikfixar i operatorsbonus. Byggt och deployat.
 
 ### 2026-03-26 — Session #331 (klar)
 Worker A: 3 buggar — AndonController dagmal fallback 100->1000 (4 stallen), getBoardStatus shift_plan felaktiga kolumner (shift_date->datum), SkiftrapportExport multi-day SQL crash (datum undefined). Operatorsbonus + PDF verifierade OK.
@@ -90,7 +97,3 @@ Worker B: Adaptiv granularitet i statistik-dashboard (veckoaggregering for 90d),
 ### 2026-03-25 — Session #330 (klar)
 Worker A: 8 buggar — AndonController 5 SQL-fixar, OperatorDashboard 3 PDO-param-fixar, RebotlingAnalytics 2 fixar (produktion_procent kumulativ). 70+ endpoints testade, 0 st 500.
 Worker B: 85+ UX-fixar — 59 filer diakritiker, 12 skiftoverlamning-fixar, engelska titlar oversatta. Lifecycle rent (41/41). Byggd och deployad.
-
-### 2026-03-25 — Session #328 (klar)
-Worker A: 3 buggar — PHP authorization. 107 endpoints, 0 st 500.
-Worker B: 21 buggar — svenska diakritiker + engelska rubriker.
