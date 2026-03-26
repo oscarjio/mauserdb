@@ -19,6 +19,7 @@
 <div *ngIf="eventsAdminMessage" class="mt-2" style="color:#48bb78; font-size:0.85rem;"><i class="fas fa-check-circle me-1"></i>{{ eventsAdminMessage }}</div>
 <div *ngIf="eventsAdminError" class="mt-2" style="color:#fc8181; font-size:0.85rem;"><i class="fas fa-exclamation-circle me-1"></i>{{ eventsAdminError }}</div></div>
 <div *ngIf="productionEvents.length > 0"><h6 style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">Befintliga handelser (senaste 90 dagar)</h6>
+<div class="table-responsive">
 <div class="table-responsive"><table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.85rem;">
 <thead><tr style="border-color:#4a5568; color:#a0aec0;"><th scope="col">Datum</th><th scope="col">Typ</th><th scope="col">Titel</th><th scope="col">Beskrivning</th><th scope="col"></th></tr></thead>
 <tbody><tr *ngFor="let e of productionEvents; trackBy: trackByIndex" style="border-color:#4a5568;">
@@ -26,5 +27,6 @@
 <td><span class="badge" [style.background]="eventColor(e.event_type)" style="font-size:0.75rem; color:#fff;">{{ eventTypeLabel(e.event_type) }}</span></td>
 <td>{{ e.title }}</td><td style="color:#a0aec0;">{{ e.description }}</td>
 <td><button class="btn btn-sm" style="background:transparent; color:#fc8181; border:1px solid #4a5568; padding:2px 8px;" (click)="removeEvent(e.id)" title="Ta bort" aria-label="Ta bort"><i class="fas fa-trash-alt"></i></button></td></tr></tbody></table></div></div>
+</div>
 <div *ngIf="productionEvents.length === 0" class="text-center py-3"><p style="color:#718096; font-size:0.9rem; margin:0;">Inga handelser registrerade för de senaste 90 dagarna.</p></div>
 </div></div></div></div></div>

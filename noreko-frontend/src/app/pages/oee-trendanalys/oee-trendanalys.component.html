@@ -123,6 +123,7 @@
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda stationsdata.
         </div>
         <div class="table-dark-custom" *ngIf="!loadingStationer && !errorStationer && stationerData?.stationer?.length">
+          <div class="table-responsive">
           <table class="table table-sm mb-0">
             <thead>
               <tr>
@@ -182,6 +183,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div *ngIf="!loadingStationer && !errorStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#718096">
           Inga stationsdata för perioden.
@@ -249,6 +251,7 @@
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda jämförelsedata.
         </div>
         <div class="table-dark-custom" *ngIf="!loadingJamforelse && !errorJamforelse && jamforelseData?.stationer?.length">
+          <div class="table-responsive">
           <table class="table table-sm mb-0">
             <thead>
               <tr>
@@ -279,6 +282,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <div *ngIf="!loadingJamforelse && !errorJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#718096">
           Inga jämförelsedata tillgängliga.

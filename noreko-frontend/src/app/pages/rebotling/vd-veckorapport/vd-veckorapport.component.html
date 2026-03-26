@@ -28,6 +28,7 @@
       <!-- KPI-tabell -->
       <section class="rapport-sektion">
         <h2>KPI-jämförelse — Denna vecka vs förra veckan</h2>
+        <div class="table-responsive">
         <table class="rapport-tabell">
           <thead>
             <tr>
@@ -57,11 +58,13 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <!-- Daglig produktion -->
       <section class="rapport-sektion" *ngIf="sammanfattningData.daglig?.length">
         <h2>Daglig produktion</h2>
+        <div class="table-responsive">
         <table class="rapport-tabell">
           <thead>
             <tr>
@@ -78,11 +81,13 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <!-- Top operatörer -->
       <section class="rapport-sektion" *ngIf="sammanfattningData.operatorer?.length">
         <h2>Operatörsprestanda</h2>
+        <div class="table-responsive">
         <table class="rapport-tabell">
           <thead>
             <tr>
@@ -103,11 +108,13 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <!-- Stopporsaker -->
       <section class="rapport-sektion" *ngIf="sammanfattningData.stopporsaker?.length">
         <h2>Stopporsaker</h2>
+        <div class="table-responsive">
         <table class="rapport-tabell">
           <thead>
             <tr>
@@ -126,11 +133,13 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <!-- Anomalier -->
       <section class="rapport-sektion" *ngIf="sammanfattningData.anomalier?.length">
         <h2>Identifierade anomalier</h2>
+        <div class="table-responsive">
         <table class="rapport-tabell">
           <thead>
             <tr>
@@ -153,6 +162,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <div class="rapport-footer">

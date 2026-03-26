@@ -120,6 +120,7 @@
 
     <!-- Kalendergrid -->
     <div *ngIf="!loading" class="sp-grid-wrapper">
+      <div class="table-responsive">
       <table class="sp-table">
         <thead>
           <tr>
@@ -212,6 +213,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Förklaring -->
@@ -273,6 +275,7 @@
 
     <!-- Grid: rader = dagar, kolumner = skift -->
     <div *ngIf="!weekViewLoading && weekViewData.length > 0" class="wv-grid-wrapper">
+      <div class="table-responsive">
       <table class="wv-table">
         <thead>
           <tr>
@@ -363,6 +366,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
   </div><!-- /veckoöversikt -->

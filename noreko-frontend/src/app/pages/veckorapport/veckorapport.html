@@ -82,6 +82,7 @@
       </div>
 
       <!-- Daglig tabell -->
+      <div class="table-responsive">
       <table class="report-table" *ngIf="report.production.daily">
         <thead>
           <tr>
@@ -96,6 +97,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <!-- Sektion 2: Effektivitet -->
@@ -158,6 +160,7 @@
 
       <div *ngIf="report.stops.top_reasons.length > 0">
         <h3 class="sub-title">Topp stopporsaker</h3>
+        <div class="table-responsive">
         <table class="report-table">
           <thead>
             <tr>
@@ -174,6 +177,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
       <div *ngIf="report.stops.top_reasons.length === 0" class="text-muted">
         Inga registrerade stopp denna vecka.
@@ -215,6 +219,7 @@
       <h2 class="section-title">
         <i class="fas fa-chart-line me-2 no-print"></i>Veckosammanfattning
       </h2>
+      <div class="table-responsive">
       <table class="report-table summary-table">
         <thead>
           <tr>
@@ -267,6 +272,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <!-- Footer (visas vid utskrift) -->

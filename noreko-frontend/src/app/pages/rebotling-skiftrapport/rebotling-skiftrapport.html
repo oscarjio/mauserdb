@@ -868,6 +868,7 @@
                             <span class="text-warning fw-semibold">Operatörer detta skift</span>
                           </div>
                           <div class="operator-rank-table">
+                            <div class="table-responsive">
                             <table class="table table-sm mb-0">
                               <thead>
                                 <tr>
@@ -908,6 +909,7 @@
                                 </ng-container>
                               </tbody>
                             </table>
+                            </div>
                           </div>
                         </div>
 
@@ -1213,6 +1215,7 @@
                                   <i class="fas fa-boxes me-2"></i>Produktion
                                 </div>
                                 <div class="card-body py-2">
+                                  <div class="table-responsive">
                                   <table class="table table-sm mb-0">
                                     <tbody>
                                       <tr>
@@ -1237,6 +1240,7 @@
                                       </tr>
                                     </tbody>
                                   </table>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1605,6 +1609,7 @@
                   <div *ngIf="compareResult.a.operators.length === 0" class="text-muted small p-3 text-center">
                     Ingen operatörsdata
                   </div>
+                  <div class="table-responsive">
                   <table *ngIf="compareResult.a.operators.length > 0" class="table table-sm mb-0">
                     <thead>
                       <tr>
@@ -1640,6 +1645,7 @@
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
 
@@ -1653,6 +1659,7 @@
                   <div *ngIf="compareResult.b.operators.length === 0" class="text-muted small p-3 text-center">
                     Ingen operatörsdata
                   </div>
+                  <div class="table-responsive">
                   <table *ngIf="compareResult.b.operators.length > 0" class="table table-sm mb-0">
                     <thead>
                       <tr>
@@ -1688,6 +1695,7 @@
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </div>

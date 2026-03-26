@@ -25622,3 +25622,58 @@ Fixade felaktig diakritik i .html-filer:
 - noreko-frontend/src/app/pages/rebotling/statistik/statistik-bonus-simulator/statistik-bonus-simulator.html (2 diakritikfixar)
 - noreko-frontend/src/app/pages/rebotling/maskin-oee/maskin-oee.component.html (1 diakritikfix)
 - noreko-frontend/src/app/pages/rebotling/kapacitetsplanering/kapacitetsplanering.component.html (1 diakritikfix)
+
+---
+
+## Session #350 — Worker B (2026-03-26)
+**Fokus: Responsiv design-sweep + felhantering UI + Chart.js granskning + diakritik**
+
+### UPPGIFT 1: RESPONSIV DESIGN-SWEEP — 31 tabeller fixade
+Gick igenom samtliga Angular-komponenter (37 HTML-filer med tabeller).
+Identifierade 31 tabeller som saknade `<div class="table-responsive">` wrapper.
+Fixade med automatiserat script som korrekt hanterar nästlade tabeller.
+
+Filer som fick table-responsive wrappers:
+- certifications.html (1 tabell)
+- daglig-sammanfattning.html (2 tabeller)
+- kassations-drilldown.html (1 tabell)
+- morgonrapport.html (4 tabeller)
+- oee-trendanalys.component.html (2 tabeller)
+- rebotling-skiftrapport.html (4 tabeller)
+- kvalitetscertifikat.component.html (1 tabell)
+- produktions-dashboard.component.html (1 tabell)
+- statistik-cykeltid-operator.html (1 tabell)
+- statistik-handelser.html (1 tabell)
+- stopporsaker.component.html (1 tabell)
+- vd-veckorapport.component.html (5 tabeller)
+- shift-plan.html (2 tabeller)
+- skiftrapport-export.html (1 tabell)
+- veckorapport.html (3 tabeller)
+
+Resterande tabeller i codebasen har redan table-responsive, overflow-x:auto, eller liknande wrapper (verifierat med script).
+
+### UPPGIFT 2: FELHANTERING UI — granskning
+Granskade alla rebotling-sidors HTML-filer:
+- ALLA sidor har laddningsindikatorer (spinner + "Laddar..."-text)
+- ALLA sidor har felmeddelanden vid API-fel (alert/error div med fa-exclamation-triangle)
+- Tomma tillstand hanteras genomgaende via *ngIf-guards pa data
+- Inga brister funna — error handling ar val implementerad
+
+### UPPGIFT 3: CHART.JS GRANSKNING — 112 filer
+Granskade 112 TypeScript-filer med Chart.js-anvandning:
+- responsive: true + maintainAspectRatio: false: 192 forekomster i 109 filer — konsekvent
+- Dark theme-farger anvands genomgaende:
+  - Tick/label-farg: #a0aec0 (mest), #718096 (alternativ) — bada val synliga pa dark bg
+  - Grid-farg: rgba(255,255,255,0.04-0.08) eller #374151 — konsekvent subtilt
+  - Legend-farg: #a0aec0 — konsekvent
+- Fargpalett: #4299e1 (primar), #48bb78 (sekundar), #ecc94b (varning), #fc8181 (fara) anvands konsekvent
+- Alla canvas-element har container med definierad hojd via CSS-klasser eller inline styles
+- Inga inkonsistenser funna som kraver atgard
+
+### UPPGIFT 4: DIAKRITIK-FIXAR — 2 fixar
+1. statistik-oee-gauge.html: "Gron" -> "Grön", "Rod" -> "Röd"
+2. statistik-waterfall-oee.html: "forlustkallor" -> "förlustkällor"
+
+### Deployat till dev:
+- Frontend byggt med `npx ng build` — inga errors
+- rsync till dev.mauserdb.com — verifierat med curl (HTTP 200)
