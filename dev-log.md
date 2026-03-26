@@ -1,3 +1,44 @@
+## Worker A -- Session #339 (2026-03-26) -- Rebotling-dataverifiering OK + Kassationsanalys granskning OK + 100+ endpoints testade (0 st 500-fel)
+
+### Uppgift 1: GRANSKA REBOTLING DATA MOT PROD DB -- KLAR
+- Verifierat rebotling_ibc: 4908 rader, senaste data 2026-03-25, skiftraknare 78
+- Verifierat rebotling_onoff: 1098 rader, running/stopped-events korrekt
+- Verifierat operators-tabell: 13 operatorer, number-kolumn matchar PLC-registervarden (t.ex. 151=Eligijus, 168=Mayo)
+- **Skiftrapport-data matchar exakt mellan prod DB och API:**
+  - Shift 35 (24 mars): op1=151 -> Eligijus (korrekt)
+  - Shift 34 (24 mars): op1=168/op2=157/op3=156 -> Mayo/Evaldas/Biniam (korrekt)
+  - Shift 32 (23 mars): op1=164/op2=167/op3=151 -> Ted/Kim/Eligijus (korrekt)
+- **OEE veckodata verifierat:** API returnerar total_ibc=241 (239 ok + 2 ej_ok), runtime_hours=22.1 -- matchar exakt mot prod DB (SUM av MAX per skift)
+- **Notering:** Shift 36 (25 mars) har op=0/99 (PLC-default = inga operatorer tilldelade) -- korrekt att op_name=null
+- **Notering:** Shift 74 har ibc_ok=1 i rebotling_ibc men skiftrapport visar 170 -- PLC uppdaterade kvalitetsreg sent; skiftrapporten ar korrekt
+
+### Uppgift 2: GRANSKA KASSATIONSANALYS BACKEND -- KLAR
+- Granskade KassationsanalysController.php (1522 rader) -- alla 14 endpoints (summary, by-cause, daily-stacked, drilldown, overview, by-period, details, trend-rate, sammanfattning, orsaker, orsaker-trend, per-station, per-operator, detaljer)
+- Granskade KassationsDrilldownController.php (overview, reason-detail, trend)
+- Granskade KassationskvotAlarmController.php (aktuell-kvot, alarm-historik, troskel-hamta, troskel-spara, timvis-trend, per-skift, top-orsaker)
+- Granskade KassationsorsakController.php (overview, pareto, trend, per-operator, per-shift, drilldown)
+- Granskade KassationsorsakPerStationController.php (overview, per-station, top-orsaker, trend, detaljer)
+- **SQL verifierat mot prod_db_schema.sql** -- alla tabellnamn och kolumner matchar korrekt
+- **Pareto-berakning korrekt:** andel = antal/total*100, kumulativ% ackumuleras -- summerar till 100%
+- **Operatorskoppling korrekt:** JOIN pa operators.number (inte operators.id) -- matchar PLC-registervarden
+- Inga 500-fel pa nagot kassationsendpoint
+
+### Uppgift 3: TESTA ALLA ENDPOINTS -- KLAR (0 st 500-fel)
+- Testade samtliga 100+ action-endpoints via curl mot dev.mauserdb.com
+- Testade 40+ rebotling sub-endpoints (run=status, oee, day-stats, skiftrapport-list, etc.)
+- Testade alla kassation-family endpoints med run-parametrar
+- Testade gamification, prediktivt-underhall, statistikdashboard, vd-dashboard, etc.
+- **Resultat: 0 st 500-fel** -- alla returnerar korrekt statuskod:
+  - 200: Publika endpoints (rebotling, status, historik, skiftrapport, etc.)
+  - 401: Inloggning kravs (de flesta endpoints)
+  - 403: Admin-behorighet kravs
+  - 400: Saknade parametrar (forvantad felhantering)
+  - 404/405: Korrekt for endpoints utan default-vy eller POST-only
+
+### Uppgift 4: DEPLOY -- KLAR
+- Backend deployad via rsync till mauserdb-dev (redan synkad, inga andrinagar kravdes)
+- Verifierat att api.php checksumma matchar mellan lokal och dev
+
 ## Worker B -- Session #338 (2026-03-26) -- 75+ diakritikfixar (åäö) + skiftrapport-UI granskning + admin-UI granskning + graf/chart-granskning
 
 ### Uppgift 1: SKIFTRAPPORT-UI DJUP GRANSKNING -- KLAR
