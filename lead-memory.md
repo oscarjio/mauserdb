@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #344)*
+*Senast uppdaterad: 2026-03-26 (session #345)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#344: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#345: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,22 +74,22 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [ ] Granska rapporter djupare (veckorapport/morgonrapport SQL+UI+PDF)
-- [ ] Granska bonus-systemet (BonusController SQL + bonus-dashboard UI)
-- [ ] Granska skiftrapporter (endpoints + alla skiftrapport-UI)
-- [ ] Granska stopporsakssystemet (endpoints + stopporsak-UI+grafer)
-- [ ] Ytterligare prestandaoptimering (fler endpoints >500ms)
+- [ ] Optimera skiftrapport veckosammanstallning (6.6s, 63 queries)
+- [ ] Granska gamification-systemet (GamificationController+AchievementController SQL+UI)
+- [ ] Granska notifikationer (NotifikationController SQL+UI)
+- [ ] Granska maskin-admin (MaskinController SQL+UI)
+- [ ] Granska energi-systemet djupare (berakningar+grafer)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-26 — Session #345 (klar)
+Worker A: 10 rapport/bonus/skift/stopp-controllers granskade (47 ep). 6 buggar fixade: WeeklyReportController runtime_plc sek/min-fel (OEE 60x for lagt), getOperatorOfWeek dividerade /3600 istf /60 (IBC/h 60x for hogt), VDVeckorapportController+StopporsakTrendController filtrade pa created_at istf start_time, BonusAdminController blockerade developer-roll, SkiftrapportController GET-endpoints saknade auth. Not: skiftrapport veckosammanstallning 6.6s (63 queries).
+Worker B: 24 komp granskade (5 rapport + 5 bonus + 7 skiftrapport + 7 stopporsak). Alla OK. 12 diakritikfixar i 7 filer. Build+deploy OK.
+
 ### 2026-03-26 — Session #344 (klar)
-Worker A: Dashboard 3 controllers (15 ep) granskade — 4 buggar fixade: ProduktionsDashboardController refererade icke-existerande station/cykel_tid-kolumner (brot 3 ep), getDagligtMal felaktig enum+ORDER BY, StatusController+RebotlingAdminController cykel_tid-bugg. Prestandaopt: rebotling 935ms->512ms (-45%). Auth 6 controllers — bcrypt+CSRF+rate limiting OK.
-Worker B: Dashboard+rebotling-adjacenta+auth UI granskade. Login label-for+autocomplete fixat. Users/create-user dark theme fixat. A11y: kontrast 11.5:1 OK, keyboard-nav OK. 30 diakritikfixar i 14 filer. Build+deploy OK.
+Worker A: Dashboard 3 controllers (15 ep) — 4 buggar fixade: station/cykel_tid-kolumner, getDagligtMal enum+ORDER BY. Prestandaopt: rebotling -45%. Auth 6 controllers OK.
+Worker B: Dashboard+auth UI granskade. Login a11y fixat. 30 diakritikfixar. Build+deploy OK.
 
 ### 2026-03-26 — Session #343 (klar)
-Worker A: Personal/roster (41 ep), lager/inventarie (28 ep), rapporter (36 ep) — alla SQL matchar schema. 1 buggfix: OperatorController::getOperatorTrend() duplicate named params. 105 endpoints, 0 st 500.
-Worker B: Personal/roster 6 komp + rapporter 4 komp + rebotling-statistik 10+ graf-komp granskade — alla OK. 55 diakritikfixar i 22 filer. Build+deploy OK.
-
-### 2026-03-26 — Session #342 (klar)
-Worker A: produktion_procent verifierad — momentan takt fran PLC, INTE kumulativ. Kvalitetskontroll (8 ep), Energi (3 ep), Underhall (29 ep) — alla SQL matchar schema. 116 endpoints, 0 st 500.
-Worker B: Kvalitetskontroll 10 komp + Underhall 4 komp granskade — alla OK. 70+ diakritikfixar i 21 filer. Build+deploy OK.
+Worker A: Personal/roster/lager/rapporter (105 ep) — 1 buggfix: OperatorController duplicate params. Alla SQL OK.
+Worker B: Personal/roster+rapporter+rebotling-statistik granskade. 55 diakritikfixar. Build+deploy OK.
