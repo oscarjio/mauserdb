@@ -368,7 +368,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
             borderWidth: 1,
           },
           {
-            label: 'Försenat (dagar efter interval)',
+            label: 'Försenat (dagar efter intervall)',
             data: overskirdet,
             backgroundColor: 'rgba(229,62,62,0.9)',
             borderColor: '#c53030',
@@ -432,8 +432,8 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     switch (status) {
       case 'gron': return 'OK';
       case 'gul':  return 'Snart';
-      case 'rod':  return 'Forsenat';
-      default:     return 'Okand';
+      case 'rod':  return 'Försenat';
+      default:     return 'Okänd';
     }
   }
 

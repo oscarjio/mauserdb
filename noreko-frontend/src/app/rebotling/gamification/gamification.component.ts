@@ -26,7 +26,7 @@ export class GamificationPage implements OnInit, OnDestroy {
   readonly periodOptions = [
     { value: 'dag',   label: 'Idag' },
     { value: 'vecka', label: 'Vecka' },
-    { value: 'manad', label: 'Manad' },
+    { value: 'manad', label: 'Månad' },
   ];
 
   // Loading

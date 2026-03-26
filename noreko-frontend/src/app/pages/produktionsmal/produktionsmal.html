@@ -30,7 +30,7 @@
           <label class="form-label text-muted small">Typ</label>
           <select aria-label="Välj typ" class="form-select form-select-dark" [(ngModel)]="formTyp">
             <option value="vecka">Vecka</option>
-            <option value="manad">Manad</option>
+            <option value="manad">Månad</option>
           </select>
         </div>
         <div class="col-12 col-md-3">
@@ -260,7 +260,7 @@
       <div *ngIf="!historikLoading && !historikError && historik.length === 0"
            class="text-center py-4 text-muted">
         <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
-        Ingen malhistorik ännu. Satt ditt forsta mal ovan!
+        Ingen målhistorik ännu. Sätt ditt första mål ovan!
       </div>
     </div>
   </div>

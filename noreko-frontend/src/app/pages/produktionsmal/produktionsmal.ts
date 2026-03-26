@@ -344,7 +344,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
   }
 
   typLabel(typ: string): string {
-    return typ === 'vecka' ? 'Vecka' : 'Manad';
+    return typ === 'vecka' ? 'Vecka' : 'Månad';
   }
 
   prognosFargKlass(): string {

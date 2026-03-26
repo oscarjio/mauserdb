@@ -4,12 +4,12 @@
   <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
     <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
       <i class="fas fa-chart-line me-2" style="color:#63b3ed;"></i>
-      Historisk produktionsoversikt
+      Historisk produktionsöversikt
     </h1>
     <app-pdf-export-button
       targetElementId="historisk-produktion-content"
       filename="historisk-produktion"
-      title="Historisk Produktionsoversikt">
+      title="Historisk Produktionsöversikt">
     </app-pdf-export-button>
   </div>
 
@@ -322,10 +322,10 @@
           Sida {{ tabell.page }} av {{ tabell.total_pages }}
         </span>
         <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(1)" [disabled]="tabell.page <= 1" aria-label="Forsta sidan">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(1)" [disabled]="tabell.page <= 1" aria-label="Första sidan">
             <i class="fas fa-angle-double-left"></i>
           </button>
-          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1" aria-label="Foregaende sida">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1" aria-label="Föregående sida">
             <i class="fas fa-angle-left"></i>
           </button>
           <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages" aria-label="Nasta sida">

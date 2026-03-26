@@ -3,16 +3,16 @@
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
       <h2 class="page-title mb-1">
-        <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>Statistik - Overblick
+        <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>Statistik - Överblick
       </h2>
       <p class="text-muted mb-0">Sammanfattning av produktion, OEE och kvalitet</p>
     </div>
     <div class="d-flex align-items-center gap-2">
       <label class="text-muted small me-1 mb-0">Period:</label>
       <select aria-label="Välj period" class="form-select form-select-sm period-select" [(ngModel)]="months" (ngModelChange)="onPeriodChange()">
-        <option [ngValue]="3">3 manader</option>
-        <option [ngValue]="6">6 manader</option>
-        <option [ngValue]="12">12 manader</option>
+        <option [ngValue]="3">3 månader</option>
+        <option [ngValue]="6">6 månader</option>
+        <option [ngValue]="12">12 månader</option>
       </select>
     </div>
   </div>
@@ -30,7 +30,7 @@
           <div class="kpi-value">{{ kpi.total_produktion | number }}</div>
           <div class="kpi-trend" [ngClass]="getTrendClass(kpi.produktion_trend)">
             <i [class]="getTrendIcon(kpi.produktion_trend)"></i>
-            {{ abs(kpi.produktion_trend) }}% vs foreg. 30d
+            {{ abs(kpi.produktion_trend) }}% vs föreg. 30d
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@
           <div class="kpi-value">{{ kpi.snitt_oee }}%</div>
           <div class="kpi-trend" [ngClass]="getTrendClass(kpi.oee_trend)">
             <i [class]="getTrendIcon(kpi.oee_trend)"></i>
-            {{ abs(kpi.oee_trend) }} pp vs foreg. 30d
+            {{ abs(kpi.oee_trend) }} pp vs föreg. 30d
           </div>
         </div>
       </div>
@@ -64,7 +64,7 @@
           <div class="kpi-value">{{ kpi.kassationsrate }}%</div>
           <div class="kpi-trend" [ngClass]="getTrendClass(kpi.kassation_trend, true)">
             <i [class]="getTrendIcon(kpi.kassation_trend)"></i>
-            {{ abs(kpi.kassation_trend) }} pp vs foreg. 30d
+            {{ abs(kpi.kassation_trend) }} pp vs föreg. 30d
           </div>
         </div>
       </div>
@@ -79,12 +79,12 @@
         <div class="kpi-body">
           <div class="kpi-label">Produktions-trend</div>
           <div class="kpi-value">
-            <span *ngIf="kpi.produktion_trend > 0" class="text-success">Uppat</span>
-            <span *ngIf="kpi.produktion_trend < 0" class="text-danger">Nedat</span>
+            <span *ngIf="kpi.produktion_trend > 0" class="text-success">Uppåt</span>
+            <span *ngIf="kpi.produktion_trend < 0" class="text-danger">Nedåt</span>
             <span *ngIf="kpi.produktion_trend === 0" class="text-muted">Stabilt</span>
           </div>
           <div class="kpi-trend text-muted">
-            Foreg: {{ kpi.prev_total | number }} IBC
+            Föreg: {{ kpi.prev_total | number }} IBC
           </div>
         </div>
       </div>

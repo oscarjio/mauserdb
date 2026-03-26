@@ -113,7 +113,7 @@
               <div class="kpi-value" [ngClass]="kpiComparison(skiftSammanfattning.oee_pct, skiftSammanfattning.mal.oee_mal)">
                 {{ skiftSammanfattning.oee_pct }}%
               </div>
-              <div class="kpi-sub">Mal: {{ skiftSammanfattning.mal.oee_mal }}%</div>
+              <div class="kpi-sub">Mål: {{ skiftSammanfattning.mal.oee_mal }}%</div>
               <div class="progress mt-2" style="height: 4px;">
                 <div class="progress-bar" [style.width.%]="skiftSammanfattning.oee_pct"
                      [class.bg-success]="skiftSammanfattning.oee_pct >= skiftSammanfattning.mal.oee_mal"
@@ -128,7 +128,7 @@
               <div class="kpi-value" [ngClass]="kpiComparison(skiftSammanfattning.ibc_ok, skiftSammanfattning.mal.ibc_mal)">
                 {{ skiftSammanfattning.ibc_ok }}
               </div>
-              <div class="kpi-sub">Mal: {{ skiftSammanfattning.mal.ibc_mal }}</div>
+              <div class="kpi-sub">Mål: {{ skiftSammanfattning.mal.ibc_mal }}</div>
               <div class="progress mt-2" style="height: 4px;">
                 <div class="progress-bar bg-info" [style.width.%]="skiftSammanfattning.mal.ibc_mal > 0 ? (skiftSammanfattning.ibc_ok / skiftSammanfattning.mal.ibc_mal) * 100 : 0"></div>
               </div>
@@ -140,7 +140,7 @@
               <div class="kpi-value" [ngClass]="kpiComparisonReverse(skiftSammanfattning.kassationsgrad_pct, skiftSammanfattning.mal.kassation_mal)">
                 {{ skiftSammanfattning.kassationsgrad_pct }}%
               </div>
-              <div class="kpi-sub">Mal: &lt;{{ skiftSammanfattning.mal.kassation_mal }}%</div>
+              <div class="kpi-sub">Mål: &lt;{{ skiftSammanfattning.mal.kassation_mal }}%</div>
             </div>
           </div>
           <div class="col-6 col-md-3">
@@ -582,7 +582,7 @@
             <input class="form-check-input" type="checkbox" id="pagaendeCheck"
                    [(ngModel)]="form.har_pagaende_problem">
             <label class="form-check-label text-danger" for="pagaendeCheck">
-              <i class="fas fa-flag me-1"></i>Flagga som pagaende problem (visas i overblick)
+              <i class="fas fa-flag me-1"></i>Flagga som pågående problem (visas i överblick)
             </label>
           </div>
 

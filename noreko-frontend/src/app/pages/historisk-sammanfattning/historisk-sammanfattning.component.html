@@ -65,7 +65,7 @@
 
       <!-- KPI-jamforelse -->
       <h5 class="section-title mb-3">
-        <i class="bi bi-bar-chart me-2"></i>KPI-jamforelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
+        <i class="bi bi-bar-chart me-2"></i>KPI-jämförelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
       </h5>
       <div class="row g-3 mb-4">
         <!-- OEE -->
@@ -77,7 +77,7 @@
               <i [class]="deltaIcon(rapport.jamforelse.oee_delta)"></i>
               {{ abs(rapport.jamforelse.oee_delta) }}%
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous.oee_pct }}%</div>
+            <div class="kpi-prev">Föreg: {{ rapport.previous.oee_pct }}%</div>
           </div>
         </div>
         <!-- Total IBC -->
@@ -89,7 +89,7 @@
               <i [class]="deltaIcon(rapport.jamforelse.ibc_delta)"></i>
               {{ abs(rapport.jamforelse.ibc_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.ibc_ok) }}</div>
+            <div class="kpi-prev">Föreg: {{ formatNum(rapport.previous.ibc_ok) }}</div>
           </div>
         </div>
         <!-- Snitt IBC/dag -->
@@ -101,7 +101,7 @@
               <i [class]="deltaIcon(rapport.jamforelse.snitt_delta)"></i>
               {{ abs(rapport.jamforelse.snitt_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous.snitt_ibc_per_dag }}</div>
+            <div class="kpi-prev">Föreg: {{ rapport.previous.snitt_ibc_per_dag }}</div>
           </div>
         </div>
         <!-- Stopptid -->
@@ -113,7 +113,7 @@
               <i [class]="deltaIcon(-rapport.jamforelse.stopptid_delta)"></i>
               {{ abs(rapport.jamforelse.stopptid_delta) }}
             </div>
-            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.stopptid_min) }}</div>
+            <div class="kpi-prev">Föreg: {{ formatNum(rapport.previous.stopptid_min) }}</div>
           </div>
         </div>
         <!-- Kvalitet -->
@@ -125,7 +125,7 @@
               <i [class]="deltaIcon(rapport.jamforelse.kvalitet_delta)"></i>
               {{ abs(rapport.jamforelse.kvalitet_delta) }}%
             </div>
-            <div class="kpi-prev">Foreg: {{ rapport.previous.kvalitet_pct }}%</div>
+            <div class="kpi-prev">Föreg: {{ rapport.previous.kvalitet_pct }}%</div>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@
         </div>
       </div>
 
-      <!-- Top 5 operatorer + Stationsoversikt -->
+      <!-- Top 5 operatorer + Stationsöversikt -->
       <div class="row g-3 mb-4">
         <!-- Top 5 operatorer -->
         <div class="col-lg-6">
@@ -204,11 +204,11 @@
           </div>
         </div>
 
-        <!-- Stationsoversikt -->
+        <!-- Stationsöversikt -->
         <div class="col-lg-6">
           <div class="card dark-card h-100">
             <div class="card-header">
-              <h5 class="mb-0"><i class="bi bi-building me-2"></i>Stationsoversikt</h5>
+              <h5 class="mb-0"><i class="bi bi-building me-2"></i>Stationsöversikt</h5>
             </div>
             <div class="card-body p-0">
               <div *ngIf="loadingStationer" class="text-center py-4">

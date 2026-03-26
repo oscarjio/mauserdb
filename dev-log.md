@@ -1,3 +1,45 @@
+## Worker B -- Session #339 (2026-03-26) -- Leveransplanering + Maskinunderhåll UI-granskning + VD-flödet E2E + 50+ diakritikfixar
+
+### Uppgift 1: GRANSKA LEVERANSPLANERING UI -- KLAR
+- Granskad leveransplanering komponent: formulär, validering, CRUD, kalenderfunktion, Gantt-diagram, kapacitetsprognos
+- Formulärvalidering OK: kundnamn required, antal IBC min=1, önskat leveransdatum required
+- Dark theme OK (#2d3748 cards, #e2e8f0 text), responsivt med col-6/col-md-3
+- Tom-tillstånd OK: "Inga ordrar matchar filtret"
+- Modal med Escape-stängning + canDeactivate guard -- korrekt implementerat
+- Lifecycle OK: destroy$ + takeUntil + clearInterval/clearTimeout
+- Backend-endpoints (leveransplanering run=overview/ordrar/kapacitet) -- kräver auth (korrekt)
+- **Fixade 9 diakritikfel:** Försenad, Beställning, Önskat, Beräknat, Åtgärd, Månad, krävs, Tillgänglig, Från
+
+### Uppgift 2: GRANSKA MASKINUNDERHÅLL UI -- KLAR
+- Granskad maskinunderhall: maskinlista, servicehistorik (expanderbar), tidslinjediagram, 2 modaler
+- Formulärvalidering OK: maskin_id required, service_datum required, maskinnamn required, intervall 1-3650
+- Dark theme OK, responsivt, tom-tillstånd för filter + historik
+- Backend-endpoints (maskinunderhall run=overview/machines/machine-history/timeline) -- alla returnerar success=true
+- 6 maskiner registrerade, 0 kommande service, 6 försenade (inga servicehistorik registrerade)
+- **Fixade 5 diakritikfel:** Gröna, Röda, Försenat, Okänd, intervall (stavning)
+
+### Uppgift 3: END-TO-END TEST VD-FLÖDET -- KLAR
+- VD-dashboard: Hero-section (IBC, OEE, operatörer), Mål vs Faktiskt progress bar, stoppstatus, top 3 operatörer, OEE per station (Chart.js bar), veckotrend (Chart.js line dubbel-y), skiftstatus, OEE breakdown -- alla sektioner granskade
+- Backend VD-dashboard endpoints (6 st: oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus) -- kräver auth (korrekt för VD-data)
+- Statistik-överblick: KPI-kort, 3 grafer (produktion, OEE, kassation per vecka) -- OK
+- Daglig briefing: datumväljare, KPI-kort, sammanfattningstext -- OK
+- Historisk sammanfattning: periodval, KPI-jämförelse, trenddiagram, top 5 operatörer, stationsöversikt, stopporsaker pareto -- OK
+- Morgonrapport: datumväljare, utskrift, rapportinnehåll -- OK
+- Operator-ranking: MVP-kort, periodfilter -- OK
+- **Fixade 3 diakritikfel i VD-relaterade sidor:** ännu (punkt), Statistik-Överblick rubrik, KPI-jämförelse
+
+### Uppgift 4: DIAKRITIK-SWEEP -- KLAR (50+ fixar i 30+ filer)
+Systematisk genomgång av alla .html och .ts filer. Fixade synlig UI-text (INTE variabelnamn, filnamn, CSS-klasser, URL:er):
+- **"Manad" -> "Månad"** (7 filer): leveransplanering, gamification, historisk-sammanfattning, operator-ranking, produktionsmal, kapacitetsplanering
+- **"Tillganglighet" -> "Tillgänglighet"** (7 filer): maskinhistorik, rebotling-sammanfattning, maskin-oee, statistik-oee-gauge, statistik-oee-deepdive, statistik-waterfall-oee, skiftjamforelse
+- **"Tillganglig tid" -> "Tillgänglig tid"** (2 filer): utnyttjandegrad, veckorapport
+- **"Okand" -> "Okänd"** (3 filer): rebotling-sammanfattning, operator-onboarding, underhallslogg
+- **"Mal" -> "Mål"** (6 filer): maskin-oee, skiftoverlamning, min-dag, kapacitetsplanering, produktionsmal, daglig-briefing
+- **"Oversikt" -> "Överblick/Översikt"** (8 filer): statistik-overblick, historisk-sammanfattning, alarm-historik, rebotling-statistik, historisk-produktion, kapacitetsplanering, produktionsmal
+- **"Forsenad/Forsenat" -> "Försenad/Försenat"** (3 filer): leveransplanering, maskinunderhall
+- **Övriga:** Beställning, Önskat, Beräknat, Åtgärd, Igår, Välj, Lägg till, Världsklass, Hämta, Bäst, Sämst, Uppåt, Nedåt, Föreg, Första, Föregående, På mål, Närmar sig, Behöver stöd, pågående, krävs, Sätt i produktion
+- **Frontend byggt framgångsrikt** (inga kompileringsfel)
+
 ## Worker A -- Session #339 (2026-03-26) -- Rebotling-dataverifiering OK + Kassationsanalys granskning OK + 100+ endpoints testade (0 st 500-fel)
 
 ### Uppgift 1: GRANSKA REBOTLING DATA MOT PROD DB -- KLAR

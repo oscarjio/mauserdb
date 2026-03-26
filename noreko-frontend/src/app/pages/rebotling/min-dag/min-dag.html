@@ -99,10 +99,10 @@
             </div>
             <div style="font-size:0.82rem; margin-top:0.4rem;"
                  [style.color]="(summary?.kvalitet_pct ?? 0) >= 95 ? '#48bb78' : '#fc8181'">
-              {{ (summary?.kvalitet_pct ?? 0) >= 95 ? 'Over kvalitetsmalet 95%' : 'Under kvalitetsmalet 95%' }}
+              {{ (summary?.kvalitet_pct ?? 0) >= 95 ? 'Över kvalitetsmålet 95%' : 'Under kvalitetsmålet 95%' }}
             </div>
             <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;">
-              Mal: 95%
+              Mål: 95%
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@
           </h5>
           <span style="color:#a0aec0; font-size:0.82rem;" *ngIf="malSek > 0">
             <span style="display:inline-block; width:20px; border-top:2px dashed #48bb78; vertical-align:middle; margin-right:6px;"></span>
-            Mal: {{ formatSek(malSek) }}
+            Mål: {{ formatSek(malSek) }}
           </span>
         </div>
 
@@ -180,7 +180,7 @@
                 {{ goals.ibc.kvar }} kvar
               </span>
               <span style="color:#48bb78; font-size:0.8rem;" *ngIf="goals.ibc.kvar === 0">
-                <i class="fas fa-trophy me-1"></i>Mal uppnatt!
+                <i class="fas fa-trophy me-1"></i>Mål uppnått!
               </span>
             </div>
           </div>

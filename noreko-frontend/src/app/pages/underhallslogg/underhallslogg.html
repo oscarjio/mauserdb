@@ -436,7 +436,7 @@
               <tbody>
                 <tr *ngFor="let post of historik; trackBy: trackByIndex">
                   <td class="td-datum">{{ formatDatum(post.created_at) }}</td>
-                  <td class="td-operator">{{ post.operator_namn || 'Okand' }}</td>
+                  <td class="td-operator">{{ post.operator_namn || 'Okänd' }}</td>
                   <td>{{ post.kategori }}</td>
                   <td>
                     <span class="badge-typ" [class.badge-planerat]="post.typ === 'planerat'" [class.badge-oplanerat]="post.typ === 'oplanerat'">

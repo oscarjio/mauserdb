@@ -9,9 +9,9 @@
     </div>
     <div class="d-flex align-items-center gap-2 no-print">
       <select class="form-select form-select-sm datum-select" aria-label="Välj datum" [(ngModel)]="datumVal" (ngModelChange)="onDatumChange()">
-        <option value="igar">Igar</option>
+        <option value="igar">Igår</option>
         <option value="idag">Idag</option>
-        <option value="specifikt">Valj datum</option>
+        <option value="specifikt">Välj datum</option>
       </select>
       <input *ngIf="datumVal === 'specifikt'"
              type="date"
@@ -42,7 +42,7 @@
           <div class="kpi-label">Produktion</div>
           <div class="kpi-value">{{ sammanfattning.total_ibc }}</div>
           <div class="kpi-sub" [ngClass]="getMalClass(sammanfattning.mal_procent)">
-            {{ sammanfattning.mal_procent }}% av mal ({{ sammanfattning.dagsmal }})
+            {{ sammanfattning.mal_procent }}% av mål ({{ sammanfattning.dagsmal }})
           </div>
         </div>
       </div>
@@ -55,7 +55,7 @@
         <div class="kpi-body">
           <div class="kpi-label">OEE</div>
           <div class="kpi-value" [ngClass]="getOeeClass(sammanfattning.oee_pct)">{{ sammanfattning.oee_pct }}%</div>
-          <div class="kpi-sub text-muted">Mal: {{ sammanfattning.oee_mal }}%</div>
+          <div class="kpi-sub text-muted">Mål: {{ sammanfattning.oee_mal }}%</div>
         </div>
       </div>
     </div>

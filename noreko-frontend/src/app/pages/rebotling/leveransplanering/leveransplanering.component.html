@@ -23,7 +23,7 @@
         <option value="alla">Alla</option>
         <option value="planerad">Planerad</option>
         <option value="i_produktion">I produktion</option>
-        <option value="forsenad">Forsenad</option>
+        <option value="forsenad">Försenad</option>
         <option value="levererad">Levererad</option>
       </select>
     </div>
@@ -123,11 +123,11 @@
             <th scope="col" class="sortable" (click)="sortBy('prioritet')" tabindex="0" (keydown.enter)="sortBy('prioritet')">Prio <i [class]="getSortIcon('prioritet')"></i></th>
             <th scope="col" class="sortable" (click)="sortBy('kundnamn')" tabindex="0" (keydown.enter)="sortBy('kundnamn')">Kund <i [class]="getSortIcon('kundnamn')"></i></th>
             <th scope="col" class="sortable" (click)="sortBy('antal_ibc')" tabindex="0" (keydown.enter)="sortBy('antal_ibc')">Antal IBC <i [class]="getSortIcon('antal_ibc')"></i></th>
-            <th scope="col" class="sortable" (click)="sortBy('bestallningsdatum')" tabindex="0" (keydown.enter)="sortBy('bestallningsdatum')">Bestallning <i [class]="getSortIcon('bestallningsdatum')"></i></th>
-            <th scope="col" class="sortable" (click)="sortBy('onskat_leveransdatum')" tabindex="0" (keydown.enter)="sortBy('onskat_leveransdatum')">Onskat <i [class]="getSortIcon('onskat_leveransdatum')"></i></th>
-            <th scope="col" class="sortable" (click)="sortBy('beraknat_leveransdatum')" tabindex="0" (keydown.enter)="sortBy('beraknat_leveransdatum')">Beraknat <i [class]="getSortIcon('beraknat_leveransdatum')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('bestallningsdatum')" tabindex="0" (keydown.enter)="sortBy('bestallningsdatum')">Beställning <i [class]="getSortIcon('bestallningsdatum')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('onskat_leveransdatum')" tabindex="0" (keydown.enter)="sortBy('onskat_leveransdatum')">Önskat <i [class]="getSortIcon('onskat_leveransdatum')"></i></th>
+            <th scope="col" class="sortable" (click)="sortBy('beraknat_leveransdatum')" tabindex="0" (keydown.enter)="sortBy('beraknat_leveransdatum')">Beräknat <i [class]="getSortIcon('beraknat_leveransdatum')"></i></th>
             <th scope="col">Status</th>
-            <th scope="col">Atgard</th>
+            <th scope="col">Åtgärd</th>
           </tr>
         </thead>
         <tbody>
@@ -159,8 +159,8 @@
                         (click)="updateStatus(order.id, 'levererad')">
                   <i class="fas fa-check"></i>
                 </button>
-                <button class="btn btn-outline-info btn-sm" title="Satt i produktion"
-                        aria-label="Satt i produktion"
+                <button class="btn btn-outline-info btn-sm" title="Sätt i produktion"
+                        aria-label="Sätt i produktion"
                         *ngIf="order.status === 'planerad'"
                         (click)="updateStatus(order.id, 'i_produktion')">
                   <i class="fas fa-play"></i>
@@ -205,7 +205,7 @@
   <!-- KAPACITETSPROGNOS — linjediagram -->
   <div class="chart-card mb-4" *ngIf="kapacitetData">
     <h5 class="card-title mb-3">
-      <i class="fas fa-chart-area me-2" style="color:#68d391"></i>Kapacitetsprognos — Tillganglig vs Planerad
+      <i class="fas fa-chart-area me-2" style="color:#68d391"></i>Kapacitetsprognos — Tillgänglig vs Planerad
     </h5>
 
     <div class="text-center py-3" *ngIf="loadingKapacitet">
@@ -246,11 +246,11 @@
               <input type="number" id="orderPrioritet" class="form-control" [(ngModel)]="newOrder.prioritet" name="prioritet" min="1" max="10">
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="orderBestallning">Bestallningsdatum</label>
+              <label class="form-label" for="orderBestallning">Beställningsdatum</label>
               <input type="date" id="orderBestallning" class="form-control" [(ngModel)]="newOrder.bestallningsdatum" name="bestallningsdatum">
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="orderLeveransdatum">Onskat leveransdatum *</label>
+              <label class="form-label" for="orderLeveransdatum">Önskat leveransdatum *</label>
               <input type="date" id="orderLeveransdatum" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" #levDatumCtrl="ngModel" required aria-required="true">
               <div class="text-danger small mt-1" *ngIf="levDatumCtrl.invalid && levDatumCtrl.touched">
                 Önskat leveransdatum krävs.

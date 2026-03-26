@@ -26,7 +26,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
 
   // Period selection
   typOptions = [
-    { value: 'manad', label: 'Manad' },
+    { value: 'manad', label: 'Månad' },
     { value: 'kvartal', label: 'Kvartal' },
   ];
   selectedTyp = 'manad';

@@ -215,7 +215,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
       case 'gron': return 'OK';
       case 'gul':  return 'Varning';
       case 'rod':  return 'Kritisk';
-      default:     return 'Okand';
+      default:     return 'Okänd';
     }
   }
 

@@ -34,7 +34,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   readonly periodOptions: { key: PeriodKey; label: string }[] = [
     { key: 'alla',  label: 'Alla' },
     { key: 'vecka', label: 'Vecka' },
-    { key: 'manad', label: 'Manad' },
+    { key: 'manad', label: 'Månad' },
   ];
 
   // Loading
@@ -236,7 +236,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
       case 'planerad':       return 'Planerad';
       case 'i_produktion':   return 'I produktion';
       case 'levererad':      return 'Levererad';
-      case 'forsenad':       return 'Forsenad';
+      case 'forsenad':       return 'Försenad';
       default:               return status;
     }
   }
@@ -279,11 +279,11 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   submitNewOrder(): void {
     this.newOrderError = '';
     if (!this.newOrder.kundnamn.trim()) {
-      this.newOrderError = 'Kundnamn kravs';
+      this.newOrderError = 'Kundnamn krävs';
       return;
     }
     if (!this.newOrder.onskat_leveransdatum) {
-      this.newOrderError = 'Onskat leveransdatum kravs';
+      this.newOrderError = 'Önskat leveransdatum krävs';
       return;
     }
 
@@ -348,7 +348,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
         labels,
         datasets: [
           {
-            label: 'Beraknad leverans (dagar)',
+            label: 'Beräknad leverans (dagar)',
             data: barData,
             backgroundColor: barColors,
             borderColor: barBorders,
@@ -387,7 +387,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
         },
         scales: {
           x: {
-            title: { display: true, text: 'Dagar fran idag', color: '#a0aec0' },
+            title: { display: true, text: 'Dagar från idag', color: '#a0aec0' },
             ticks: { color: '#a0aec0' },
             grid: { color: 'rgba(255,255,255,0.05)' },
             beginAtZero: true,
@@ -418,7 +418,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
         labels: shortDates,
         datasets: [
           {
-            label: 'Tillganglig kapacitet',
+            label: 'Tillgänglig kapacitet',
             data: this.kapacitetData.tillganglig,
             borderColor: '#68d391',
             backgroundColor: 'rgba(104, 211, 145, 0.1)',

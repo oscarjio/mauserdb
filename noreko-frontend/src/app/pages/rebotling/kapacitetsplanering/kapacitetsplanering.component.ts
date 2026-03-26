@@ -34,7 +34,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   readonly periodAlternativ = [
     { varde: 'idag',  etikett: 'Idag' },
     { varde: 'vecka', etikett: 'Vecka' },
-    { varde: 'manad', etikett: 'Manad' },
+    { varde: 'manad', etikett: 'Månad' },
   ];
 
   // Diagramperiod (dagar)

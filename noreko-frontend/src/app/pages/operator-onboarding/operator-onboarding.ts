@@ -254,10 +254,10 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
 
   statusLabel(status: string): string {
     switch (status) {
-      case 'gron': return 'Pa mal';
-      case 'gul':  return 'Narmar sig';
-      case 'rod':  return 'Behover stod';
-      default:     return 'Okand';
+      case 'gron': return 'På mål';
+      case 'gul':  return 'Närmar sig';
+      case 'rod':  return 'Behöver stöd';
+      default:     return 'Okänd';
     }
   }
 
