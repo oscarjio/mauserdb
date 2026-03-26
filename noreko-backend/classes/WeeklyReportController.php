@@ -117,17 +117,18 @@ class WeeklyReportController {
         // Skiftlängd = 8 h = 28800 sek
         $shiftSeconds = 28800;
 
+        // runtime_plc är i MINUTER (PLC-enhet). Konvertera till sekunder för OEE-beräkning.
         $sql = "
             SELECT DATE(datum) AS dag,
                    SUM(delta_ok)              AS ibc_ok,
                    SUM(delta_ok + delta_ej)   AS ibc_total,
-                   SUM(runtime_sek)           AS runtime_sek,
+                   SUM(runtime_min)           AS runtime_min,
                    COUNT(DISTINCT skiftraknare) AS num_shifts
             FROM (
                 SELECT DATE(datum) AS datum, skiftraknare,
                        MAX(ibc_ok)      - MIN(ibc_ok)      AS delta_ok,
                        MAX(ibc_ej_ok)   - MIN(ibc_ej_ok)   AS delta_ej,
-                       MAX(runtime_plc)                     AS runtime_sek
+                       MAX(runtime_plc)                     AS runtime_min
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ?
                 GROUP BY DATE(datum), skiftraknare
@@ -141,7 +142,7 @@ class WeeklyReportController {
 
         $totalIbc      = 0;
         $totalIbcTotal = 0;
-        $totalRuntime  = 0;
+        $totalRuntimeMin = 0;
         $totalShifts   = 0;
         $workingDays   = 0;
         $bestIbc       = 0;
@@ -150,7 +151,7 @@ class WeeklyReportController {
         foreach ($rows as $r) {
             $ibcOk  = intval($r['ibc_ok'] ?? 0);
             $ibcTot = intval($r['ibc_total'] ?? 0);
-            $rt     = intval($r['runtime_sek'] ?? 0);
+            $rtMin  = intval($r['runtime_min'] ?? 0);
             $shifts = intval($r['num_shifts'] ?? 0);
 
             // Räkna bara vardagar
@@ -161,7 +162,7 @@ class WeeklyReportController {
 
             $totalIbc      += $ibcOk;
             $totalIbcTotal += $ibcTot;
-            $totalRuntime  += $rt;
+            $totalRuntimeMin += $rtMin;
             $totalShifts   += $shifts;
 
             if ($ibcOk > $bestIbc) {
@@ -172,9 +173,11 @@ class WeeklyReportController {
 
         $avgIbcPerDay  = $workingDays > 0 ? round($totalIbc / $workingDays) : 0;
         $avgQuality    = $totalIbcTotal > 0 ? round($totalIbc / $totalIbcTotal * 100, 1) : 0.0;
-        // OEE = runtime / (shifts * shiftSeconds)
+        // OEE = runtime_sek / (shifts * shiftSeconds)
+        // runtime_plc är i minuter — konvertera till sekunder
+        $totalRuntimeSek = $totalRuntimeMin * 60;
         $maxRuntime    = $totalShifts * $shiftSeconds;
-        $avgOee        = $maxRuntime > 0 ? round($totalRuntime / $maxRuntime * 100, 1) : 0.0;
+        $avgOee        = $maxRuntime > 0 ? round($totalRuntimeSek / $maxRuntime * 100, 1) : 0.0;
 
         // ISO-veckonummer för perioden (använd måndagen)
         $weekNum = intval($mondayDt->format('W'));
@@ -195,6 +198,7 @@ class WeeklyReportController {
      * Hämtar veckans bästa operatör för en given period.
      */
     private function getOperatorOfWeek(string $fromDate, string $toDate): ?array {
+        // runtime_plc är i MINUTER — dividera med 60 för timmar (inte 3600)
         $sqlOp = "
             SELECT op_id, o.name,
                    SUM(delta_ok)                              AS total_ibc,
@@ -204,7 +208,7 @@ class WeeklyReportController {
                 SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
                        MAX(ibc_ok)-MIN(ibc_ok)     AS delta_ok,
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                       MAX(runtime_plc)/3600.0      AS runtime_h
+                       MAX(runtime_plc)/60.0        AS runtime_h
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op1
@@ -212,7 +216,7 @@ class WeeklyReportController {
                 SELECT op2, DATE(datum), skiftraknare,
                        MAX(ibc_ok)-MIN(ibc_ok),
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                       MAX(runtime_plc)/3600.0
+                       MAX(runtime_plc)/60.0
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op2
@@ -220,7 +224,7 @@ class WeeklyReportController {
                 SELECT op3, DATE(datum), skiftraknare,
                        MAX(ibc_ok)-MIN(ibc_ok),
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                       MAX(runtime_plc)/3600.0
+                       MAX(runtime_plc)/60.0
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op3

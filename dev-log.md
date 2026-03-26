@@ -1,3 +1,54 @@
+## Worker A -- Session #345 (2026-03-26) -- Rapport/Bonus/Skift/Stopp controllers granskade + 6 buggar fixade + auth-fix
+
+### UPPGIFT 1: RAPPORTER -- Controllers + SQL + Endpoints -- KLAR
+Granskade 4 rapport-controllers:
+- **VeckorapportController.php** (1 endpoint: report) -- SQL korrekt mot schema
+- **MorgonrapportController.php** (1 endpoint: rapport) -- SQL korrekt mot schema
+- **WeeklyReportController.php** (2 endpoints: summary, week-compare) -- **2 buggar fixade**
+- **VDVeckorapportController.php** (5 endpoints: kpi-jamforelse, trender-anomalier, top-bottom-operatorer, stopporsaker, vecka-sammanfattning) -- **1 bugg fixad**
+
+**Buggar hittade och fixade:**
+1. **WeeklyReportController::aggregateWeekStats()** -- behandlade `runtime_plc` som sekunder (dividerade med 28800 for OEE). `runtime_plc` ar i MINUTER (vardena 13-515 i prod). OEE beraknades 60x for lagt. **Fix:** Konverterar runtime_plc * 60 till sekunder fore OEE-berakning.
+2. **WeeklyReportController::getOperatorOfWeek()** -- dividerade `runtime_plc` med 3600 (som om det vore sekunder). **Fix:** Andrade till /60.0 for korrekt timberakning.
+3. **VDVeckorapportController::hamtaStopporsaker()** -- filtrerade `stoppage_log` pa `DATE(sl.created_at)` istallet for `DATE(sl.start_time)`. `created_at` ar nar raden skapades i DB, inte nar stoppet borjade. **Fix:** Bytte till `start_time`.
+
+### UPPGIFT 2: BONUS-SYSTEMET -- Controllers + SQL + Endpoints -- KLAR
+Granskade 2 bonus-controllers:
+- **BonusController.php** (~15 endpoints) -- SQL korrekt mot schema, korrekt kumulativ aggregering
+- **BonusAdminController.php** (~20 endpoints) -- **1 bugg fixad**
+
+**Bugg fixad:**
+4. **BonusAdminController::isAdmin()** -- kontrollerade bara `role === 'admin'`, inte `developer`. VDVeckorapportController kollar bade admin och developer. **Fix:** Lade till `developer` i behorighetskontrollen med `in_array()`.
+
+### UPPGIFT 3: SKIFTRAPPORTER -- Controllers + SQL + Endpoints -- KLAR
+Granskade 2 skiftrapport-controllers:
+- **SkiftrapportController.php** (~10 endpoints) -- SQL korrekt, **auth-brist fixad**
+- **SkiftrapportExportController.php** (2 endpoints) -- SQL korrekt
+
+**Sakerhetsproblem fixat:**
+5. **SkiftrapportController** -- GET-endpoints saknade auth-kontroll. Produktionsdata (operatorslistor, daglig sammanstallning, veckosammanstallning, skiftjamforelse) var tillgangliga utan inloggning. **Fix:** La till session-kontroll fore alla GET-routes.
+
+### UPPGIFT 4: STOPPORSAKER -- Controllers + SQL + Endpoints -- KLAR
+Granskade 2 stopporsak-controllers:
+- **StopporsakController.php** (6 endpoints) -- SQL korrekt mot schema
+- **StopporsakTrendController.php** (3 endpoints) -- **1 bugg fixad**
+
+**Bugg fixad:**
+6. **StopporsakTrendController::hamtaStoppdata()** -- anvande `DATE(sl.created_at)` for stoppage_log (samma bugg som VDVeckorapportController). **Fix:** Bytte till `DATE(sl.start_time)`.
+
+### UPPGIFT 5: ENDPOINT-SWEEP -- KLAR
+Testade 47 endpoints med curl mot dev.mauserdb.com:
+- **47 endpoints granskade**
+- **0 st 500-fel**
+- **6 buggar fixade** (4 SQL-buggar + 1 auth-brist + 1 behorighetsbugg)
+- Svarstider: alla <500ms (efter auth returnerar 401 snabbt)
+- **Prestandanot:** `skiftrapport&run=veckosammanstallning` kor 63 separata queries (7 dagar x 3 skift x 3 queries). Nar authenticated tar den ~6.6s. Rekommenderar batch-optimering i framtida session.
+
+### Deployat till dev
+Backend deployat via rsync.
+
+---
+
 ## Worker A -- Session #344 (2026-03-26) -- Dashboard/Hem SQL-buggar fixade + prestandaoptimering + Auth/Roller granskade
 
 ### UPPGIFT 1: DASHBOARD/HEM-SIDA — ENDPOINTS + SQL — KLAR

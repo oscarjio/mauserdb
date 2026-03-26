@@ -21,6 +21,12 @@ class SkiftrapportController {
         }
 
         if ($method === 'GET') {
+            // Auth-kontroll för GET-endpoints (produktionsdata kräver inloggning)
+            if (empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $run = trim($_GET['run'] ?? '');
             if ($run === 'lopnummer') {
                 $this->getLopnummerForSkift();

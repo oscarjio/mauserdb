@@ -116,13 +116,13 @@ class StopporsakTrendController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    CONCAT(YEAR(sl.created_at), '-W', LPAD(WEEK(sl.created_at, 3), 2, '0')) AS vecka_key,
+                    CONCAT(YEAR(sl.start_time), '-W', LPAD(WEEK(sl.start_time, 3), 2, '0')) AS vecka_key,
                     COALESCE(sr.name, 'Okänd orsak') AS reason,
                     COUNT(*) AS cnt,
                     COALESCE(SUM(sl.duration_minutes), 0) AS total_min
                  FROM stoppage_log sl
                  LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
-                 WHERE DATE(sl.created_at) BETWEEN ? AND ?
+                 WHERE DATE(sl.start_time) BETWEEN ? AND ?
                  GROUP BY vecka_key, sr.name
                  ORDER BY vecka_key, cnt DESC"
             );

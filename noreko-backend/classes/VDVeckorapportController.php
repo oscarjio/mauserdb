@@ -511,7 +511,7 @@ class VDVeckorapportController {
                     AVG(sl.duration_minutes * 60)    AS medel_tid_sek
                 FROM stoppage_log sl
                 LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
-                WHERE DATE(sl.created_at) BETWEEN :fran AND :till
+                WHERE DATE(sl.start_time) BETWEEN :fran AND :till
                   AND sl.duration_minutes > 0
                 GROUP BY sr.name
                 ORDER BY total_tid_sek DESC

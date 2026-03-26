@@ -1815,7 +1815,7 @@ class BonusAdminController {
     }
 
     private function isAdmin(): bool {
-        return !empty($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+        return !empty($_SESSION['user_id']) && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'], true);
     }
 
     private function exportCSV(array $data, string $filename) {
