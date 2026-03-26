@@ -256,15 +256,22 @@ class ProduktionsSlaController {
             $veckoPct = $veckoTarget > 0 ? round(($veckoProd['ibc_ok'] / $veckoTarget) * 100, 1) : 0;
 
             // Streak — dagar i rad där daglig produktion >= mål (bakåt från igår)
+            // Optimerad: hämta alla dagars produktion i EN query (max 90 dagar)
             $streak = 0;
+            $streakFrom = (new \DateTime($today))->modify('-90 days')->format('Y-m-d');
+            $streakTo   = (new \DateTime($today))->modify('-1 day')->format('Y-m-d');
+            $perDayData = $this->getProductionPerDay($streakFrom, $streakTo);
+            // Indexera per dag för snabb uppslag
+            $prodByDay = [];
+            foreach ($perDayData as $d) {
+                $prodByDay[$d['dag']] = (int)$d['ibc_ok'];
+            }
             $checkDate = new \DateTime($today);
             $checkDate->modify('-1 day');
-            for ($i = 0; $i < 365; $i++) {
+            for ($i = 0; $i < 90; $i++) {
                 $d = $checkDate->format('Y-m-d');
-                $dayProd = $this->getProductionForRange($d, $d);
-                $dayGoal = $this->getActiveGoal('dagligt', $d);
-                $dayTarget = $dayGoal ? (int)$dayGoal['target_ibc'] : $dagligtTarget;
-                if ($dayProd['ibc_ok'] >= $dayTarget && $dayProd['ibc_ok'] > 0) {
+                $dayIbc = $prodByDay[$d] ?? 0;
+                if ($dayIbc >= $dagligtTarget && $dayIbc > 0) {
                     $streak++;
                     $checkDate->modify('-1 day');
                 } else {

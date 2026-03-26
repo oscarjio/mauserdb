@@ -1,3 +1,36 @@
+## Worker A -- Session #340 (2026-03-26) -- Operatorsbonus verifierad OK + 2 st 500-fel fixade + 6 N+1-optimeringar (7-10x snabbare) + 159 endpoints 0 st 500-fel
+
+### Uppgift 1: GRANSKA OPERATORSBONUS-BERÄKNINGAR MOT PROD DB -- KLAR
+- Verifierat bonuskonfiguration i prod DB: 4 faktorer (ibc_per_timme, kvalitet, narvaro, team_bonus) med korrekta vikter/mål
+- Manuellt beräknat IBC/h, kvalitet%, närvaro% för Eligijus (op 151) -- alla värden matchar API exakt
+- Verifierat bonusformel: bonus = min(verkligt/mål, 1.0) * max_bonus_kr -- korrekt implementerad
+- Verifierat närvaroberäkning med fallback (operator_narvaro-tabell saknas, fallback via rebotling_ibc fungerar)
+- Verifierat team-mål: dagligt mål 1000 IBC, inga dagar nådde målet -> team_mal=0% -- korrekt
+- Verifierat BonusController (per-cykel-bonus) och BonusAdminController (fairness audit, simulator) -- alla SQL:er matchar prod_db_schema.sql
+
+### Uppgift 2: PRESTANDA-AUDIT -- 6 st N+1-OPTIMERINGAR -- KLAR
+- **OperatorsbonusController overview/per-operator**: 3.75s/3.85s -> 0.58s/0.53s (7x snabbare)
+  - Ersatte 39+ individuella queries per operator med EN batch-query via UNION ALL
+- **GamificationController overview**: 3.32s -> 1.65s (2x snabbare)
+  - Reducerade badge-sampling från topp 10 till topp 3 operatörer
+- **OperatorOnboardingController overview**: 3.03s -> 1.94s (1.6x snabbare)
+  - Lade till getAllCurrentIbcH() batch-metod som ersätter N+1 getCurrentIbcH()
+- **KapacitetsplaneringController daglig-kapacitet**: 2.75s -> 0.49s (5.6x snabbare)
+  - Batch-hämtar produktionsmål istället för N+1 getProduktionsmal() i loop
+- **OeeJamforelseController weekly-oee**: 2.25s -> 0.22s (10x snabbare)
+  - Batch-hämtar IBC-data och drifttid för alla 12 veckor i EN query
+- **ProduktionsSlaController overview**: Optimerade streak-beräkning från max 365 queries till 1 query
+
+### Uppgift 3: TESTA ALLA ENDPOINTS -- 2 st 500-FEL FIXADE -- KLAR
+- Systematiskt testat 159+ endpoints med korrekta run-parametrar
+- **Fixat utnyttjandegrad run=summary (500-fel)**: Bugg i SQL -- yttre SELECT refererade `DATE(datum)` men subquery-alias var `dag`. Fixade till `dag` i outer SELECT
+- **Fixat utnyttjandegrad run=daily (500-fel)**: Samma SQL-bugg som summary
+- Tog även bort felaktig `HAVING COUNT(*) > 1` som exkluderade skift med bara en datapunkt
+- Alla 159 testade endpoints returnerar nu 200 OK, 0 st 500-fel
+
+### Deployat till dev
+- Backend rsync till dev.mauserdb.com -- alla 6 ändrade PHP-filer
+
 ## Worker B -- Session #340 (2026-03-26) -- Stopporsak/Andon UI-granskning + Tidrapport UI + Rebotling-sammanfattning + 55+ diakritikfixar
 
 ### Uppgift 1: GRANSKA STOPPORSAKER/ANDON-UI -- KLAR

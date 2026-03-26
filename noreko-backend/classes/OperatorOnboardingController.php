@@ -204,6 +204,48 @@ class OperatorOnboardingController {
     }
 
     /**
+     * Batch-hämta nuvarande IBC/h för ALLA operatörer (senaste 30 dagar) i EN query.
+     * Eliminerar N+1-problem i overview().
+     * @return array<int, float>  op_number => ibc_h
+     */
+    private function getAllCurrentIbcH(): array {
+        $result = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT op_id,
+                       SUM(total_ibc) AS total_ibc,
+                       SUM(total_drift) AS total_drift
+                FROM (
+                    SELECT op1 AS op_id, SUM(ibc_ok) AS total_ibc, SUM(COALESCE(drifttid, 0)) AS total_drift
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
+                    GROUP BY op1
+                    UNION ALL
+                    SELECT op2, SUM(ibc_ok), SUM(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
+                    GROUP BY op2
+                    UNION ALL
+                    SELECT op3, SUM(ibc_ok), SUM(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND ibc_ok > 0
+                    GROUP BY op3
+                ) AS sub
+                GROUP BY op_id
+            ");
+            $stmt->execute();
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $opId = (int)$row['op_id'];
+                $drift = (int)$row['total_drift'];
+                $result[$opId] = $drift > 0 ? round((int)$row['total_ibc'] / ($drift / 60.0), 1) : 0.0;
+            }
+        } catch (\PDOException $e) {
+            error_log('OperatorOnboardingController::getAllCurrentIbcH: ' . $e->getMessage());
+        }
+        return $result;
+    }
+
+    /**
      * Beräkna en operatörs nuvarande IBC/h (senaste 30 dagar).
      */
     private function getCurrentIbcH(int $opNumber): float {
@@ -254,6 +296,9 @@ class OperatorOnboardingController {
             $opNames    = $this->getOperatorNames();
             $teamSnitt  = $this->getTeamAverageIbcH();
 
+            // --- Batch-hämta nuvarande IBC/h för ALLA operatörer i EN query ---
+            $allCurrentIbcH = $this->getAllCurrentIbcH();
+
             $operatorer = [];
             $nyaCount   = 0;
             $totalVeckorTillSnitt = 0;
@@ -270,7 +315,7 @@ class OperatorOnboardingController {
                 $isNy = $daysSinceFirst < 90;
                 $veckorAktiv = max(1, (int)ceil($daysSinceFirst / 7));
 
-                $currentIbcH = $this->getCurrentIbcH($opNum);
+                $currentIbcH = $allCurrentIbcH[$opNum] ?? 0.0;
                 $pctAvSnitt = $teamSnitt > 0 ? round(($currentIbcH / $teamSnitt) * 100, 1) : 0.0;
 
                 // Status: grön >= 90%, gul 70-90%, röd < 70%

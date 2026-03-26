@@ -96,7 +96,7 @@ class UtnyttjandegradController {
     private function getDagligDrifttid(string $fromDate, string $toDate): array {
         $stmt = $this->pdo->prepare(
             "SELECT
-                DATE(datum) AS dag,
+                dag,
                 SUM(max_runtime) AS runtime_min
              FROM (
                 SELECT
@@ -105,8 +105,8 @@ class UtnyttjandegradController {
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ?
+                  AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
              ) sub
              GROUP BY dag
              ORDER BY dag ASC"

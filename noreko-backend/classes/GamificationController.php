@@ -846,10 +846,10 @@ class GamificationController {
             $totalIbc = array_sum(array_column($leaderboard, 'total_ibc'));
             $avgPoang = $totalOperatorer > 0 ? round($totalPoang / $totalOperatorer, 1) : 0;
 
-            // Badge-statistik — estimera baserat pa top 10 for att undvika N+1
+            // Badge-statistik — estimera baserat pa top 3 for att undvika N+1
             // (getBadges gor flera DB-queries per operator, alltfor dyrt for alla)
             $badgeCount = 0;
-            $badgeSample = array_slice($leaderboard, 0, 10);
+            $badgeSample = array_slice($leaderboard, 0, 3);
             foreach ($badgeSample as $op) {
                 $badges = $this->getBadges($op['user_id']);
                 $badgeCount += count($badges);

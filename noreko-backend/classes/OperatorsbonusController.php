@@ -206,20 +206,89 @@ class OperatorsbonusController {
             return [];
         }
 
-        // Hämta produktionsdata per operatör
+        // --- Batch-hämta all produktionsdata i EN query (eliminerar N+1) ---
+        $batchData = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    op_id,
+                    COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                    COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
+                    COALESCE(SUM(shift_ok), 0) AS total_ok,
+                    COALESCE(SUM(shift_ok), 0) + COALESCE(SUM(shift_ej_ok), 0) AS total_all,
+                    COUNT(DISTINCT dag) AS unika_dagar
+                FROM (
+                    SELECT
+                        op_id,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                        MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
+                        DATE(MAX(datum)) AS dag
+                    FROM (
+                        SELECT op1 AS op_id, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                        FROM rebotling_ibc
+                        WHERE op1 IS NOT NULL AND op1 > 0
+                          AND skiftraknare IS NOT NULL
+                          AND DATE(datum) BETWEEN :from1 AND :to1
+                        UNION ALL
+                        SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                        FROM rebotling_ibc
+                        WHERE op2 IS NOT NULL AND op2 > 0
+                          AND skiftraknare IS NOT NULL
+                          AND DATE(datum) BETWEEN :from2 AND :to2
+                        UNION ALL
+                        SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                        FROM rebotling_ibc
+                        WHERE op3 IS NOT NULL AND op3 > 0
+                          AND skiftraknare IS NOT NULL
+                          AND DATE(datum) BETWEEN :from3 AND :to3
+                    ) AS all_ops
+                    GROUP BY op_id, skiftraknare
+                ) AS per_shift
+                GROUP BY op_id
+            ");
+            $stmt->execute([
+                ':from1' => $fromDate, ':to1' => $toDate,
+                ':from2' => $fromDate, ':to2' => $toDate,
+                ':from3' => $fromDate, ':to3' => $toDate,
+            ]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $batchData[(int)$row['op_id']] = $row;
+            }
+        } catch (\PDOException $e) {
+            error_log('OperatorsbonusController::getOperatorData batch: ' . $e->getMessage());
+        }
+
+        $arbetsDagar = $this->countWorkDays($fromDate, $toDate);
+
         foreach ($opRows as $op) {
             $opId     = (int)$op['id'];
             $opNumber = (int)$op['number'];
             $opNamn   = $op['namn'];
 
-            // IBC per timme — beräkna från rebotling_ibc via op1/op2/op3 = operators.number
-            $ibcPerTimme = $this->getOperatorIbcPerTimme($opNumber, $fromDate, $toDate);
+            $data = $batchData[$opNumber] ?? null;
 
-            // Kvalitet — andel godkända IBC
-            $kvalitet = $this->getOperatorKvalitet($opNumber, $fromDate, $toDate);
+            if ($data) {
+                $totalIbc    = (int)$data['total_ibc'];
+                $runtimeMin  = (float)$data['total_runtime_min'];
+                $timmar      = $runtimeMin / 60.0;
+                $ibcPerTimme = $timmar > 0 ? round($totalIbc / $timmar, 2) : 0;
 
-            // Närvaro — andel närvarade skift
-            $narvaro = $this->getOperatorNarvaro($opNumber, $fromDate, $toDate);
+                $ok    = (int)$data['total_ok'];
+                $total = (int)$data['total_all'];
+                $kvalitet = $total > 0 ? round(($ok / $total) * 100, 1) : 0;
+
+                $dagar  = (int)$data['unika_dagar'];
+                $narvaro = ($arbetsDagar > 0 && $dagar > 0)
+                    ? round(min(($dagar / $arbetsDagar) * 100, 100), 1)
+                    : 0;
+            } else {
+                $ibcPerTimme = 0;
+                $kvalitet    = 0;
+                $narvaro     = 0;
+            }
 
             $operators[] = [
                 'operator_id'    => $opId,

@@ -521,6 +521,24 @@ class KapacitetsplaneringController {
             date('Y-m-d', strtotime($toDateStr . ' +1 day')) . ' 00:00:00'
         );
 
+        // Batch-hämta produktionsmål i en enda query (eliminerar N+1)
+        $malPerDag = [];
+        try {
+            $stmtMal = $this->pdo->prepare("
+                SELECT start_datum, slut_datum, mal_antal
+                FROM rebotling_produktionsmal
+                WHERE typ = 'vecka'
+                  AND start_datum <= :to_date
+                  AND (slut_datum IS NULL OR slut_datum >= :from_date)
+                ORDER BY skapad_av DESC, id DESC
+            ");
+            $stmtMal->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
+            $malRows = $stmtMal->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getDagligKapacitet (mal-batch): ' . $e->getMessage());
+            $malRows = [];
+        }
+
         for ($i = $period - 1; $i >= 0; $i--) {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
@@ -532,7 +550,16 @@ class KapacitetsplaneringController {
 
             $drifttidSek = $driftPerDag[$dagStr] ?? 0;
             $teorMax     = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
-            $mal         = $this->getProduktionsmal($dagStr);
+
+            // Hitta giltigt mål för detta datum från batch-data
+            $mal = null;
+            foreach ($malRows as $mr) {
+                if ($mr['start_datum'] <= $dagStr && ($mr['slut_datum'] === null || $mr['slut_datum'] >= $dagStr)) {
+                    $mal = (int)$mr['mal_antal'];
+                    break;
+                }
+            }
+
             $outnyttjad  = max(0, (int)$teorMax - $faktisk);
 
             $result[] = [
