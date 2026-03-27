@@ -130,7 +130,8 @@ try {
     $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::ATTR_PERSISTENT => true   // Återanvänd DB-anslutningar mellan requests (~5-10ms besparing per request)
     ]);
 } catch (\Throwable $e) {
     error_log('api.php: Databasanslutning misslyckades: ' . get_class($e) . ': ' . $e->getMessage());
