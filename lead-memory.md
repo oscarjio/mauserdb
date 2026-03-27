@@ -73,7 +73,7 @@ Session #363: 156 endpoints 0x500 + rebotling backend SQL OK + error handling 11
 Session #364: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL filter borttaget 220 stallen 44 filer) + PHP parse error FIXAD (RebotlingAnalyticsController.php) + slow endpoints optimerade (today-snapshot, all-lines-status) + 55 endpoints 0x500 + 94 sidor mobile/UX granskade 0 problem + $rows7 dead code borttagen + deploy dev OK.
 Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237ms + month-compare 984ms->627ms (CTE-optimering) + getOtherLineStatus dead code borttagen + covering index + 97 endpoints 0x500 + UX alla sidor OK + produktion_procent EJ kumulativ (bekraftad) + rebotling-statistik djupgranskning + VD Dashboard OK + error handling audit + lifecycle-audit alla Chart-komponenter + build + deploy dev OK.
 Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k rader 0 problem + integration test API vs DB perfekt match + error/404-hantering OK + data-korrekthet 0 diskrepanser + Angular kodgranskning 92 services OK + 115 chart-filer OK + build 0 fel + deploy dev OK.
-Session #367: (pagaende) Performance EXPLAIN-audit + operatorsbonus-granskning + admin CRUD + caching + bundle-optimering.
+Session #367: month-compare 1032ms→540ms + operatorsbonus RATTVIS + admin CRUD OK + caching 6 controllers OK + bundle 151 kB (redan optimerad) + 111 endpoints 0x500 + $cutoff dead code borttagen + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -86,12 +86,12 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #367):
-- [ ] Performance-djupdyk — EXPLAIN-audit (month-compare 1032ms)
-- [ ] Rebotling operatorsbonus-granskning — rattvis berakning per operator
-- [ ] Admin-floden end-to-end — CRUD for operatorer, mal, skift
-- [ ] Caching-strategi — PHP file cache, identifiera endpoints att cacha
-- [ ] Frontend bundle-optimering — 8.8MB bundle, lazy loading
+### Nasta (session #368):
+- [ ] Month-compare vidare optimering (540ms, covering index)
+- [ ] Write-through cache invalidering vid admin-CRUD
+- [ ] Rebotling heatmap UX — interaktivitet + tooltips
+- [ ] Error monitoring — centraliserad loggning
+- [ ] E2E regressionstest — automatiserat
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -103,6 +103,6 @@ Worker B: Data-korrekthet 9 nyckel-endpoints verifierade mot prod DB — 0 diskr
 Worker A: Diskrepans-fix verifierad mot prod DB — API 1058 cykler (matchar DB). Benchmarking 926ms→237ms, month-compare 984ms→627ms. Dead code + covering index. 97 endpoints 0x500.
 Worker B: 37 templates + 100+ komponenter OK. produktion_procent EJ kumulativ (bekraftad). Rebotling-statistik 7 sidor OK. VD Dashboard robust. Error handling audit OK.
 
-### 2026-03-27 — Session #367 (pagaende)
-Worker A: Performance EXPLAIN-audit (month-compare 1032ms), admin CRUD end-to-end, caching-strategi, endpoint-stresstest.
-Worker B: Rebotling operatorsbonus djupgranskning, frontend bundle-optimering (8.8MB), UX-granskning alla sidor.
+### 2026-03-27 — Session #367 (klar)
+Worker A: month-compare optimerad 1032ms→540ms (DATE_FORMAT→range scan + query-konsolidering). Admin CRUD OK (operatorer+skift). Caching 6 controllers TTL 5-30s OK. 111 endpoints 0x500 alla <2s. Deploy dev OK.
+Worker B: Operatorsbonus RATTVIS (op1/op2/op3 identiskt via UNION ALL, team-bonus gemensam). Bundle redan 151 kB (8.8MB var gammal matning). UX+dark theme OK. Build 0 fel. Deploy dev OK.

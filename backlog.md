@@ -11,12 +11,20 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Pagaende (session #367):
-- [~] **Performance-djupdyk** — EXPLAIN-audit month-compare 1032ms (Worker A)
-- [~] **Rebotling operatorsbonus-granskning** — rattvis berakning per operator (Worker B)
-- [~] **Admin-floden end-to-end** — CRUD operatorer/mal/skift via API (Worker A)
-- [~] **Caching-strategi** — PHP file cache granskning (Worker A)
-- [~] **Frontend bundle-optimering** — 8.8MB bundle, lazy loading (Worker B)
+### Klart (session #367):
+- [x] Performance month-compare 1032ms→540ms (DATE_FORMAT→range scan + query-konsolidering)
+- [x] Rebotling operatorsbonus — rattvis (op1/op2/op3 identiskt krediterade, UNION ALL)
+- [x] Admin CRUD end-to-end — operatorer + skiftplanering verifierat OK
+- [x] Caching-strategi — 6 controllers, TTL 5-30s, acceptabelt
+- [x] Frontend bundle — redan 151 kB (lazy loading pa plats), 8.8MB var gammal matning
+- [x] 111 endpoints 0x500 alla <2s + deploy dev OK
+
+### Nasta (session #368):
+- [ ] **Month-compare vidare optimering** — 540ms kan forbattras med covering index
+- [ ] **Write-through cache invalidering** — explicit cache-rensning vid admin-CRUD
+- [ ] **Rebotling heatmap UX** — forbattra interaktivitet och tooltips
+- [ ] **Error monitoring** — centralisera error_log till filtrerbar dashboard
+- [ ] **E2E regressionstest** — automatiserat testsvit for kritiska floden
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1957,7 +1957,6 @@ class RebotlingAnalyticsController {
             }
 
             // Månadsöversikt senaste 13 månader — beräknas från per_shift CTE
-            $cutoff = (new DateTime('now', $tz))->modify('-13 months')->format('Y-m');
             $stmtMonthly = $this->pdo->query("
                 WITH per_shift AS (
                     SELECT
