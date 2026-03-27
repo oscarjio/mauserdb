@@ -11,13 +11,20 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Pagaende (session #366):
-- [~] **Full endpoint-stresstest + PHP controller-audit** — Worker A testar ALLA endpoints, granskar edge cases, fixar
-- [~] **Integration test API-floden** — Worker A testar kompletta floden (operators, rebotling, statistik, filter)
-- [~] **Error/404-hantering** — Worker A saker att okanda actions ger 404 inte 500
-- [~] **Data-korrekthet UI vs DB** — Worker B jamfor API-svar mot prod DB for alla rebotling-sidor
-- [~] **Angular kodgranskning + build** — Worker B granskar services/guards/interceptors, fixar varningar
-- [~] **Chart-datakorrekthet** — Worker B verifierar att alla grafer visar ratt data med ratt axlar/labels
+### Klart (session #366):
+- [x] Full endpoint-stresstest 129 tester 0x500 + PHP controller-audit 112 filer
+- [x] Integration test API vs DB — perfekt match (ibc_today, historik mars)
+- [x] Error/404-hantering — okand action→404, SQLi→400, XSS→404, konsistent JSON
+- [x] Data-korrekthet UI vs DB — alla nyckel-endpoints verifierade, 0 diskrepanser
+- [x] Angular kodgranskning 92 services + guards + interceptors — inga problem
+- [x] Chart-datakorrekthet 115 filer — korrekt mappning, svenska etiketter, dark theme
+
+### Nasta (session #367):
+- [ ] **Performance-djupdyk** — EXPLAIN-audit pa resterande slow queries (month-compare 1032ms)
+- [ ] **Rebotling operatorsbonus-granskning** — verifiera att bonus beraknas rattvist per operator
+- [ ] **Admin-floden end-to-end** — testa CRUD for operatorer, mal, skift via API
+- [ ] **Caching-strategi** — granska PHP file cache, identifiera endpoints som bor cachas
+- [ ] **Frontend bundle-optimering** — analysera 8.8MB bundle, identifiera lazy loading-mojligheter
 
 ## Parkerade features (ta inte dessa nu)
 
