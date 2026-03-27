@@ -366,6 +366,20 @@ class AlarmHistorikController {
         $severity = trim($_GET['severity'] ?? 'all');
         $typ      = trim($_GET['typ'] ?? 'all');
 
+        // Filcache 30s TTL
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheKey = 'alarm_historik_list_' . $days . '_' . $status . '_' . $severity . '_' . $typ;
+        $cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+
         $alarms = $this->collectAlarms($fromDate, $toDate);
 
         // Filtrera pa severity
@@ -383,13 +397,16 @@ class AlarmHistorikController {
             $alarms = array_values(array_filter($alarms, fn($a) => $a['typ'] === $typ));
         }
 
-        $this->sendSuccess([
+        $responseData = [
             'alarms'    => $alarms,
             'count'     => count($alarms),
             'days'      => $days,
             'from_date' => $fromDate,
             'to_date'   => $toDate,
-        ]);
+        ];
+        $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+        @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+        $this->sendSuccess($responseData);
     }
 
     // ================================================================
@@ -404,6 +421,19 @@ class AlarmHistorikController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        // Filcache 30s TTL
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/alarm_historik_summary_' . $days . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
 
         $alarms = $this->collectAlarms($fromDate, $toDate);
 
@@ -429,7 +459,7 @@ class AlarmHistorikController {
         $periodDagar = max(1, $days);
         $snittPeriod = round($total / $periodDagar, 2);
 
-        $this->sendSuccess([
+        $responseData = [
             'days'           => $days,
             'from_date'      => $fromDate,
             'to_date'        => $toDate,
@@ -441,7 +471,10 @@ class AlarmHistorikController {
             'vanligast_typ'  => $vanligastTyp,
             'snitt_per_dag'  => $snittPeriod,
             'dagar_med_larm' => $unikaDagar,
-        ]);
+        ];
+        $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+        @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+        $this->sendSuccess($responseData);
     }
 
     // ================================================================
@@ -456,6 +489,19 @@ class AlarmHistorikController {
         $days     = $this->getDays();
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        // Filcache 30s TTL
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/alarm_historik_timeline_' . $days . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
 
         $alarms = $this->collectAlarms($fromDate, $toDate);
 
@@ -497,7 +543,7 @@ class AlarmHistorikController {
 
         $harData = array_sum($critical) + array_sum($warning) + array_sum($info) > 0;
 
-        $this->sendSuccess([
+        $responseData = [
             'labels'   => $labels,
             'dates'    => $allDates,
             'datasets' => [
@@ -528,6 +574,9 @@ class AlarmHistorikController {
             ],
             'har_data' => $harData,
             'days'     => $days,
-        ]);
+        ];
+        $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+        @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+        $this->sendSuccess($responseData);
     }
 }

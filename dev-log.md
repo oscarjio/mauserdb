@@ -80,6 +80,62 @@ Inga kodandringar gjordes — alla granskade sidor var korrekta.
 - trackBy pa alla *ngFor, table-responsive pa alla tabeller
 - Angular-app + API fungerar korrekt pa dev.mauserdb.com
 
+## Session #359 — Worker A (2026-03-27)
+**Fokus: Performance-optimering oee-trendanalys + alarm-historik + CRUD-integrationstest + 109 endpoints regressionstest + E2E 50/50**
+
+### UPPGIFT 1: Performance-optimering — KLAR
+Optimerade de tva langsammaste endpoints fran session #358:
+
+**oee-trendanalys (alla 6 run-parametrar):**
+- Lagt till filcache 30s TTL pa alla endpoints (sammanfattning, per-station, trend, flaskhalsar, jamforelse, prediktion)
+- Lagt till composite index `idx_onoff_datum_running` pa `rebotling_onoff(datum, running)`
+- **Fore: 988ms-1494ms (sammanfattning) | Efter: 124-213ms (warm cache) = 85% snabbare**
+
+**alarm-historik (alla 3 run-parametrar):**
+- Lagt till filcache 30s TTL pa list, summary, timeline
+- Lagt till composite index `idx_stoppage_start_duration` pa `stoppage_log(start_time, duration_minutes)`
+- **Fore: 708ms-1036ms | Efter: 130-213ms (warm cache) = 70-84% snabbare**
+
+**Migration:** `noreko-backend/migrations/2026-03-27_session359_performance_indexes.sql`
+**Andrade filer:** `classes/OeeTrendanalysController.php`, `classes/AlarmHistorikController.php`
+
+### UPPGIFT 2: CRUD-integrationstest — KLAR
+Testat fullstandigt Create-Read-Update-Delete-flode for:
+
+| Resurs | CREATE | READ | UPDATE | DELETE | VERIFY |
+|--------|--------|------|--------|--------|--------|
+| Operators | OK | OK | OK | OK | OK (borttagen) |
+| Produkttyper | OK | OK | OK | OK | OK (borttagen) |
+| Underhallslogg | OK | OK | OK | OK (soft-delete) | OK |
+| Bonusmal | — | OK (get_config) | — | — | OK (get_stats, get_periods) |
+
+Alla test-resurser skapade, verifierade, uppdaterade och raderade utan fel.
+
+### UPPGIFT 3: Endpoint-regressionstest — KLAR
+Testat 109 endpoint-kombinationer (alla actions fran api.php classNameMap).
+**Resultat: 109/109 PASS, 0 x 500 fel.**
+
+Sarskilt verifierade performance-optimerade endpoints:
+- oee-trendanalys: sammanfattning, per-station, trend, flaskhalsar, prediktion — alla OK
+- alarm-historik: list, summary, timeline — alla OK
+
+### UPPGIFT 4: E2E-test — KLAR
+Kort `tests/rebotling_e2e.sh` med 50 autentiserade endpoints.
+**Resultat: 50/50 PASS, 0 x 500 fel.**
+
+### UPPGIFT 5: Deploy — KLAR
+Deployat backend till dev.mauserdb.com:
+- `classes/OeeTrendanalysController.php` (filcache alla endpoints)
+- `classes/AlarmHistorikController.php` (filcache alla endpoints)
+- `migrations/2026-03-27_session359_performance_indexes.sql`
+- Index applicerade pa produktions-DB
+
+### Sammanfattning
+- 2 langsammaste endpoints optimerade fran ~1s till ~200ms (filcache + index)
+- CRUD-integrationstest: operators + produkttyper + underhallslogg + bonus — alla OK
+- 109 endpoints testade, 0 x 500
+- E2E: 50/50 PASS
+
 ## Session #358 — Worker A (2026-03-27)
 **Fokus: Fullstandig endpoint-testning alla icke-rebotling controllers + schema-granskning + performance-audit + produktion_procent-verifiering**
 

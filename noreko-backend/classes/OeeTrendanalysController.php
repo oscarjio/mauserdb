@@ -408,6 +408,19 @@ class OeeTrendanalysController {
             $from = date('Y-m-d', strtotime("-{$days} days"));
             $to   = date('Y-m-d');
 
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/oee_trendanalys_perstation_' . $days . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
             $current = $this->calcOeePerStation($from, $to);
 
             // Foregaende period for delta
@@ -444,12 +457,15 @@ class OeeTrendanalysController {
             }
             unset($s);
 
-            $this->sendSuccess([
+            $responseData = [
                 'stationer' => $stationer,
                 'days'      => $days,
                 'from_date' => $from,
                 'to_date'   => $to,
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::perStation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationsdata', 500);
@@ -548,6 +564,20 @@ class OeeTrendanalysController {
             $days    = $this->getDays();
             $station = $this->getStation();
 
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheKey = 'oee_trendanalys_trend_' . $days . '_' . ($station ?? 'all');
+            $cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
             $fromDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
             $toDate   = date('Y-m-d');
 
@@ -596,7 +626,7 @@ class OeeTrendanalysController {
             $maxOee  = !empty($oeeValues) ? max($oeeValues) : 0;
             $minOee  = !empty($nonZero) ? min($nonZero) : 0;
 
-            $this->sendSuccess([
+            $responseData = [
                 'trend'           => $trendPoints,
                 'avg_oee'         => $avgOee,
                 'max_oee'         => $maxOee,
@@ -605,7 +635,10 @@ class OeeTrendanalysController {
                 'typical_pct'     => round(self::TYPICAL * 100, 0),
                 'days'            => $days,
                 'station'         => $station,
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::trend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
@@ -621,6 +654,19 @@ class OeeTrendanalysController {
             $days = $this->getDays();
             $from = date('Y-m-d', strtotime("-{$days} days"));
             $to   = date('Y-m-d');
+
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/oee_trendanalys_flaskhalsar_' . $days . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
 
             $perStation = $this->calcOeePerStation($from, $to);
 
@@ -696,12 +742,15 @@ class OeeTrendanalysController {
             }
             unset($f);
 
-            $this->sendSuccess([
+            $responseData = [
                 'flaskhalsar' => $flaskhalsar,
                 'days'        => $days,
                 'from_date'   => $from,
                 'to_date'     => $to,
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::flaskhalsar: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta flaskhalsar', 500);
@@ -728,6 +777,20 @@ class OeeTrendanalysController {
     private function jamforelse(): void {
         try {
             $days = $this->getDays();
+
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheKey = 'oee_trendanalys_jamforelse_' . $days . '_' . md5(($_GET['from1'] ?? '') . ($_GET['to1'] ?? '') . ($_GET['from2'] ?? '') . ($_GET['to2'] ?? ''));
+            $cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
 
             // Period 1 (aktuell)
             $from1 = trim($_GET['from1'] ?? date('Y-m-d', strtotime("-{$days} days")));
@@ -790,12 +853,15 @@ class OeeTrendanalysController {
             // Sortera efter delta (storst forbattring forst)
             usort($stationer, fn($a, $b) => $b['delta'] <=> $a['delta']);
 
-            $this->sendSuccess([
+            $responseData = [
                 'stationer'  => $stationer,
                 'period1'    => ['from' => $from1, 'to' => $to1, 'oee_pct' => round($total1['oee'] * 100, 1)],
                 'period2'    => ['from' => $from2, 'to' => $to2, 'oee_pct' => round($total2['oee'] * 100, 1)],
                 'total_delta' => round(($total1['oee'] - $total2['oee']) * 100, 1),
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::jamforelse: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
@@ -809,6 +875,19 @@ class OeeTrendanalysController {
     private function prediktion(): void {
         try {
             $days = 30;
+
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/oee_trendanalys_prediktion.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
 
             $fromDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
             $toDate   = date('Y-m-d');
@@ -873,7 +952,7 @@ class OeeTrendanalysController {
             if ($reg['slope'] > 0.1) $trendDir = 'up';
             elseif ($reg['slope'] < -0.1) $trendDir = 'down';
 
-            $this->sendSuccess([
+            $responseData = [
                 'historisk'   => $historisk,
                 'prediktion'  => $prediktion,
                 'slope'       => $reg['slope'],
@@ -881,7 +960,10 @@ class OeeTrendanalysController {
                 'r2'          => $reg['r2'],
                 'trend'       => $trendDir,
                 'medel_30d'   => count($oeeValues) > 0 ? round(array_sum($oeeValues) / count($oeeValues), 1) : 0,
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::prediktion: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta prediktionsdata', 500);
