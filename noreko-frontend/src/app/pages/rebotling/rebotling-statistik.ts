@@ -82,12 +82,6 @@ const annotationPlugin = {
 };
 Chart.register(annotationPlugin);
 
-interface OeeComponentDay {
-  datum: string;
-  tillganglighet: number | null;
-  kvalitet: number | null;
-}
-
 type ViewMode = 'year' | 'month' | 'day' | 'heatmap';
 
 interface PeriodCell {

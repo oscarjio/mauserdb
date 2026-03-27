@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #361)*
+*Senast uppdaterad: 2026-03-27 (session #363)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -69,35 +69,36 @@ Session #359: Performance-optimering oee-trendanalys 988ms→124ms + alarm-histo
 Session #360: EXPLAIN-audit 3 covering indexes + error-handling 3 fixes + stresstest <600ms + security audit 0 SQLi/XSS + API-docs 117 endpoints + 115 endpoints 0x500 + E2E 115/115 PASS.
 Session #361: Cache review 13 filer OK + DB persistent connections + PHP error_log (kraver root) + 130+128 endpoints 0x500 + bundle 8.8MB/72K main + admin guards OK + 50+ grafer OK + 0 DB diskrepanser + E2E 128/128 PASS.
 Session #362: API benchmark 103 endpoints 0x500 alla <500ms + 32 dead code filer borttagna + ErrorLogger centraliserad + 27 WCAG heading-fixes + 23 chart.destroy() fixes + backup OK + 0 DB diskrepanser.
+Session #363: 156 endpoints 0x500 + rebotling backend SQL OK + error handling 1186 loggar OK + rebotling-statistik IBC/h+effektivitet+bar chart granskad + CSV export fixad + UX alla sidor OK + DB 946 vs 1058 diskrepans noterad.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pipeline.
 
-### Session #327+ (NYA VERKTYG):
+### Verktyg:
 - prod_db_schema.sql i projektroten = facit for SQL
 - Deploy: rsync till /var/www/mauserdb-dev/ pa dev.mauserdb.com (ssh -p 32546)
 - Prod DB: ssh -p 32546 user@mauserdb.com + mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #363):
-- [ ] Integration test suite (API-floden)
-- [ ] Frontend lazy loading audit
-- [ ] PHP dependency audit (CVE:er)
+### Nasta (session #364):
+- [ ] API vs DB diskrepans — mars 946 vs 1058 cykler
+- [ ] Slow endpoints — exec-dashboard 1.5s, all-lines-status 614ms
 - [ ] Mobile responsivitet (375px/768px)
-- [ ] API rate limiting
+- [ ] Integration test suite (API-floden)
+- [ ] PHP dependency audit (CVE:er)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #363 (klar)
+Worker A: 156 endpoints stresstest — 0x500, alla svarstider rimliga (exec-dashboard 1.5s = aggregering). 7 rebotling-controllers — alla SQL matchar schema. EXPLAIN optimal indexanvandning. Error handling 1186 loggar, 0 tomma catches. Response-format konsistent. Inga fixes kravdes.
+Worker B: Rebotling-statistik andringar granskade — IBC/h korrekt, effektivitet korrekt, scroll-restore OK. CSV/Excel export fixad (kolumnnamn). 45+ rebotling + 48 icke-rebotling sidor — alla lifecycle OK, chart.destroy OK, dark theme OK. DB diskrepans: API 946 vs DB 1058 mars-cykler (pre-existerande, moj PHP limit).
+
 ### 2026-03-27 — Session #362 (klar)
-Worker A: API benchmark 103 endpoints — alla <500ms, 0x500. Unused code cleanup — 32 filer i controllers/ borttagna (-528 rader dead code). ErrorLogger centraliserad med timestamp+stacktrace. Silent catch i NewsController fixad. Allt deployat.
-Worker B: Backup-verifiering OK (5 backups, senaste 2026-03-06). WCAG audit — 27 heading-fixes i 24 filer + 2 aria-labels. 23 chart.destroy() fixes i graf-komponenter. 1 engelsk text fixad. 0 DB-diskrepanser. 49 filer committade.
+Worker A: API benchmark 103 endpoints — alla <500ms, 0x500. 32 dead code filer borttagna. ErrorLogger centraliserad. Silent catch fixad.
+Worker B: Backup OK. WCAG 27 heading-fixes + 2 aria-labels. 23 chart.destroy() fixes. 0 DB-diskrepanser.
 
 ### 2026-03-27 — Session #361 (klar)
-Worker A: Cache-strategi review 13 cache-filer (TTL 5-30s optimal). DB persistent connections aktiverat. PHP error_log kraver root — inga andringar. 130+128 endpoints 0x500. E2E 128/128 PASS.
-Worker B: Bundle-size 8.8MB/72K main — lazy loading perfekt. 28 admin-routes alla med adminGuard. 50+ grafer korrekt OEE+destroy. 0 DB-diskrepanser. 516 trackBy i 133 templates. Inga fixes behovdes.
-
-### 2026-03-27 — Session #360 (klar)
-Worker A: EXPLAIN-audit 15+ queries — 3 covering indexes (rebotling_ibc, stopporsak_registreringar, maskin_oee_daglig). Error-handling audit — 3 tysta catch-block fixade. Stresstest alla <600ms. 115 endpoints 0x500. E2E 115/115 PASS.
-Worker B: Security audit — 0 SQL injection, 0 XSS, CORS+headers OK. API-docs genererad (117 actions, 500+ subendpoints). UX-audit OK. PHP code quality OK. E2E 115/115 PASS.
+Worker A: Cache review 13 filer OK. DB persistent connections. 130+128 endpoints 0x500. E2E 128/128 PASS.
+Worker B: Bundle 8.8MB OK. 28 admin-routes OK. 50+ grafer OK. 0 DB-diskrepanser.
