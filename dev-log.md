@@ -41,6 +41,54 @@
 - Post-deploy: 7 publika endpoints testade — alla 200 OK, alla <0.5s
 - `driftstopp_events` i statistics-endpoint verifierad: present=true, count=4
 
+## Session #370 — Worker B (2026-03-27)
+**Fokus: Frontend UX-granskning + driftstopp-timeline commit + lifecycle audit + deploy dev**
+
+### UPPGIFT 1: Granska och committa uncommitted frontend-andringar — KLAR
+- **7 filer granskade** (min-dag.ts, rebotling-statistik.css/.html/.ts, rebotling-live.css/.html, RebotlingController.php)
+- **Driftstopp-timeline**: Ny typ `driftstopp` i timeline, detaljerad tabell (visa/dolj), tidsetiketter var 3h, now-marker, tooltip med varaktighet, PLC-brusfilter (<2min stopp absorberas i running)
+- **Effektivitet cap 150%**: `Math.min(150, ...)` pa heatmap, graf, och produktion_procent (undviker outliers som 6261%)
+- **Dag-navigering buggfix**: prev/next dag synkroniserar `currentYear`/`currentMonth`
+- **Rebotling-live UX**: Driftstopp-banner kompakt layout + status-bar-driftstopp klass
+- **Backend**: driftstopp_events query tillagd i RebotlingController statistik-endpoint
+- **Commit**: `0a86f6fc`
+
+### UPPGIFT 2: Icke-rebotling sidor UX-granskning — KLAR
+- **VD Dashboard**: Dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text), svenska, responsiv, aria-labels
+- **Executive Dashboard**: Komplett med linjestatus, alerts, bemanningsoversikt, veckorapport. Dark theme OK
+- **Operator Dashboard**: 3 flikar (Idag/Vecka/Stamning), dark theme, svenska, spinners med visually-hidden
+- **Bonus Dashboard**: Ranking, trendpilar, Hall of Fame, loneprognos, team-vy, export CSV. Dark theme, svenska
+- **Bonus Admin**: Config, targets, what-if simulator, utbetalningar, rattviseaudit. Dark theme, aria-labels
+- **FunktionshubPage**: Ren UI (inga subscriptions), sok + favoriter, korrekt trackBy
+- **Inga problem hittade pa icke-live sidor**
+
+### UPPGIFT 3: Rebotling Statistik Djupgranskning — KLAR
+- **API vs DB verifiering**:
+  - Cycles: API=122, DB=122 — MATCH
+  - Avg produktion_procent raw: API=258.1, DB=258.1 — MATCH
+  - 46 av 122 cykler har produktion_procent > 150% (max 6261%) — frontend cap vid 150% ar korrekt
+- **produktion_procent**: EJ kumulativ (bekraftat)
+- **Heatmap**: efficiency capped vid 150% — korrekt
+- **Timeline**: driftstopp-stod, merged segments, PLC-brusfilter, now-marker — OK
+- **0 diskrepanser**
+
+### UPPGIFT 4: Angular Lifecycle & Memory Leak Audit — KLAR
+- **Granskade komponenter**: VD Dashboard, Executive Dashboard, Operator Dashboard, Bonus Dashboard, Bonus Admin, Rebotling Statistik, FunktionshubPage
+- **Alla har korrekt**: destroy$ + takeUntil, clearInterval/clearTimeout, chart?.destroy()
+- **FunktionshubPage**: OnInit utan OnDestroy — OK (inga subscriptions/timers)
+- **0 memory leaks hittade**
+
+### UPPGIFT 5: Frontend Accessibility (WCAG AA) — KLAR
+- **Heading-hierarki**: h1 -> h2 korrekt, h2 -> h6 i cards (acceptabelt)
+- **Kontrast**: #e2e8f0/#1a202c >7:1, #a0aec0/#2d3748 ~4.5:1 — OK
+- **aria-labels**: Knappar, progressbars, spinners med visually-hidden
+- **Inga bilder** (Font Awesome ikoner)
+
+### UPPGIFT 6: Build + Deploy + Verifiering — KLAR
+- **Build**: OK (inga errors), 8.9 MB
+- **Deploy**: Frontend + Backend till dev.mauserdb.com
+- **14 endpoints testade**: 12x200, 2x401 (bonus kraver inloggning — korrekt)
+
 ## Session #369 — Worker A (2026-03-27)
 **Fokus: Backend djupgranskning + endpoint stresstest + deploy**
 
