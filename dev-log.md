@@ -114,3 +114,58 @@ Djupgranskade foljande controllers som INTE redan granskats som backend (Worker 
 - noreko-backend/classes/SkiftjamforelseController.php (borttog oanvand funktion + hjalpmetod)
 - noreko-backend/classes/HistoriskSammanfattningController.php (borttog oanvand parameter)
 - tests/rebotling_e2e.sh (nytt E2E-testskript)
+
+## Worker B -- Session #351 (2026-03-27)
+**Fokus: Mobil UX-test, navigationsverifiering, ikonfix, bundle-analys, frontend-granskning**
+
+### UPPGIFT 1: MOBIL UX-TEST -- KLAR
+- Verifierat alla HTML-filer for table-responsive: session #350 fixade 31 tabeller, 6 ytterligare hittades som anvander `overflow-x:auto` eller custom scroll-wrappers (`heatmap-scroll`, `heatmap-scroll-wrapper`) -- dessa ar funktionellt ekvivalenta och fungerar korrekt pa mobil.
+- Inga fasta bredder over 500px hittades (alla anvander max-width).
+- Inga horisontella scroll-problem identifierade.
+
+### UPPGIFT 2: NAVIGATIONSMENYN -- KLAR
+- Granskat alla 120+ routes i app.routes.ts.
+- Alla routes ar narbara via meny (53 direktlankar) + funktionshub (81 lankar).
+- Enda routes utan direktlank: `**` (404-sida) och `admin/operator/:id` (navigeras fran operatorslistan) -- bada korrekta.
+- Inga trasiga menylankaro -- alla pekar pa giltiga routes.
+- Menyordning logisk: Hem, Rebotling, Tvattlinje, Saglinje, Klassificeringslinje, Favoriter, Rapporter, Notifikationer, Anvandare, Admin, Information.
+
+### UPPGIFT 3: LADDNINGSTIDER OCH BUNDLE SIZE -- KLAR
+- Initial bundle: ~362 kB (gzipped ~98 kB) -- bra.
+- Storsta lazy chunk: 1.04 MB (pdfmake) + 835 kB (pdfmake-fonter) -- korrekt lazy-loadade, laddas bara vid PDF-export.
+- Alla routes anvander loadComponent (lazy loading) -- korrekt.
+- Inga moment.js eller lodash-importer.
+- canvg/html2canvas ar CommonJS (warnings) men nodvandiga for PDF-export.
+
+### UPPGIFT 4: GRANSKA ALLA FRONTEND-SIDOR -- KLAR
+
+**Bootstrap Icons (bi) till Font Awesome (fa) -- 20 fixar:**
+- 12 filer: `bi bi-inbox` till `fas fa-inbox` (tomma-lista-ikoner i andon, audit-log, certifications, news-admin, operator-attendance, operator-detail, operators, operator-trend, saglinje-admin, tvattlinje-admin, users, weekly-report)
+- funktionshub.ts: `bi bi-file-earmark-bar-graph` till `fas fa-chart-bar`, `bi bi-speedometer2` till `fas fa-tachometer-alt`
+- historisk-sammanfattning.component.ts: `bi bi-arrow-up-short` till `fas fa-arrow-up`, `bi bi-arrow-down-short` till `fas fa-arrow-down`, `bi bi-dash` till `fas fa-minus`
+
+**Dark theme-fix:**
+- menu.css: submenu background #fff till #2d3748, box-shadow anpassad for mork bakgrund
+
+**Ovrig verifiering:**
+- Inga console.log i nagon komponent (0 forekomster).
+- Alla komponenter har korrekt OnInit/OnDestroy + destroy$ + takeUntil + clearInterval.
+- Dark theme korrekt (#1a202c bg, #2d3748 cards) -- vita fargerm enbart i @media print-block (korrekt for utskrift).
+- Inga NaN/undefined/null-risker i templates (safe navigation och ngIf anvands genomgaende).
+
+### Andrade filer (15 st):
+- noreko-frontend/src/app/menu/menu.css
+- noreko-frontend/src/app/pages/andon/andon.html
+- noreko-frontend/src/app/pages/audit-log/audit-log.html
+- noreko-frontend/src/app/pages/certifications/certifications.html
+- noreko-frontend/src/app/pages/funktionshub/funktionshub.ts
+- noreko-frontend/src/app/pages/historisk-sammanfattning/historisk-sammanfattning.component.ts
+- noreko-frontend/src/app/pages/news-admin/news-admin.ts
+- noreko-frontend/src/app/pages/operator-attendance/operator-attendance.html
+- noreko-frontend/src/app/pages/operator-detail/operator-detail.ts
+- noreko-frontend/src/app/pages/operator-trend/operator-trend.html
+- noreko-frontend/src/app/pages/operators/operators.html
+- noreko-frontend/src/app/pages/saglinje-admin/saglinje-admin.html
+- noreko-frontend/src/app/pages/tvattlinje-admin/tvattlinje-admin.html
+- noreko-frontend/src/app/pages/users/users.html
+- noreko-frontend/src/app/pages/weekly-report/weekly-report.ts
