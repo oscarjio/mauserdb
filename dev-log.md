@@ -1,5 +1,98 @@
 # MauserDB Dev Log
 
+## Session #356 — Worker B (2026-03-27)
+**Fokus: Lazy loading audit + curl-testning + Chart.js-granskning + auth-flode + deploy**
+
+### UPPGIFT 1: Lazy Loading Audit — KLAR
+Granskade alla routes i app.routes.ts (161 rader, ~120 routes).
+**Resultat:**
+- ALLA routes anvander `loadComponent` (korrekt lazy loading) — inga eager-loadade moduler
+- Layout-komponenten ar korrekt eager-loadad (shell-komponent)
+- `PreloadAllModules` ar aktivt i app.config.ts — lazy chunks preloadas efter initial render
+
+**FIX: PdfExportService — dynamic import av jspdf + html2canvas**
+- `pdf-export.service.ts` hade top-level `import jsPDF from 'jspdf'` och `import html2canvas from 'html2canvas'`
+- Eftersom servicen ar `providedIn: 'root'` drogs dessa tunga bibliotek (406 KB + 203 KB) potentiellt in i initial bundle
+- Andrade till `const { default: jsPDF } = await import('jspdf')` (dynamic import vid behov)
+- Andrade till `const { default: html2canvas } = await import('html2canvas')` (dynamic import vid behov)
+- `exportTableToPdf()` andrad fran sync till async med dynamic import
+- Build bekraftar att jspdf (chunk-HZH526GP.js, 411 KB) och html2canvas (chunk-JQMGF462.js, 203 KB) nu ar lazy chunks
+
+**Ovriga tunga bibliotek:**
+- xlsx: Top-level import i historik.ts och production-calendar.ts — men bada ar lazy-loadade komponenter, sa xlsx hamnar i separata chunks
+- pdfmake: Top-level import i skiftrapport-export.ts — aven den lazy-loadad
+- chart.js: Importeras i ~90 komponenter — alla lazy-loadade
+
+**Build-resultat:** Initial bundle 69.77 KB (CSS 249 KB). 193+ lazy chunks.
+
+### UPPGIFT 2: Curl-testning av dev.mauserdb.com — KLAR
+**Frontend:**
+- `curl https://dev.mauserdb.com/` → 200 OK, korrekt index.html med Angular SPA
+- Dark theme inline styles korrekt (#1a202c bg)
+- Svensk text ("Laddar Mauserdb...")
+- Modulepreload-taggar for initial chunks korrekt
+
+**API-endpoints testade:**
+- `?action=status` → 200, `{"success":true,"loggedIn":false}`
+- `?action=rebotling&run=getLiveStats` → 200, korrekt data med rebotlingToday, hourlyTarget, utetemperatur
+- `?action=feature-flags&run=list` → 200, 120+ feature flags returneras korrekt
+- `?action=tvattlinje&run=getLiveStats` → 200, korrekt data
+- `?action=saglinje&run=getLiveStats` → 200, korrekt data
+- `?action=klassificeringslinje&run=getLiveStats` → 200, data OK (utetemperatur=null hanteras korrekt i template)
+
+**Template-granskning:**
+- Granskade rebotling-live.html: Korrekt null-guards overallt (?.operator, ?? fallback, *ngIf)
+- daglig-briefing.component.html: *ngIf="sammanfattning" skyddar alla KPI-kort, basta_operator har extra *ngIf
+- kassationskvot-alarm: *ngIf="!loadingAktuell && aktuellData" skyddar djupt nestlade egenskaper
+- min-dag.html: *ngIf="goals" skyddar malprogress-sektionen, loading/error states korrekt
+- Alla loading states implementerade (spinners, skeletons)
+
+### UPPGIFT 3: Chart.js / Grafer-granskning — KLAR
+**109 filer med `new Chart(`** — alla granskade:
+- ALLA 109 komponenter har bade `ngOnDestroy()` och `.destroy()` — inga minnesbackor
+- Chart.register(...registerables) anropas korrekt i varje komponent
+- Rebotling-live har speedometer med korrekt berakning (productionPercentage 0-200%)
+- Rebotling-statistik anvander custom annotationPlugin for vertikala markorer — korrekt implementerat
+- Tooltip-format: Svenska etiketter anvands genomgaende
+- Dark theme-styling: Korrekt anvandning av #e2e8f0 text, #2d3748 card-bakgrunder
+
+### UPPGIFT 4: Route Guards + Auth-flode — KLAR
+**Guards:**
+- `authGuard`: Vantar pa `initialized$` (filter+take(1)), sen `loggedIn$` → returnerar UrlTree till /login med returnUrl
+- `adminGuard`: Vantar pa `initialized$`, sen `user$` → kontrollerar role === 'admin' || 'developer'
+- `pendingChangesGuard`: Generisk canDeactivate med confirm()-dialog for osparade andringar
+- Alla tre guards korrekt implementerade med Observable<boolean | UrlTree>
+
+**Auth-flode:**
+- AuthService anvander sessionStorage (inte localStorage) — ratt for session-based auth
+- CSRF-token sparas i sessionStorage, bifogas via csrfInterceptor pa POST/PUT/DELETE/PATCH
+- Status-polling var 60:e sekund med switchMap (undviker parallella anrop)
+- Transienta fel (timeout, natverksfel) loggar INTE ut anvandaren — korrekt beteende
+- Login-sidan validerar returnUrl mot open redirect (`raw.startsWith('/') && !raw.startsWith('//')`)
+- Login satter auth-state synkront innan navigate() for att undvika guard race condition
+- Logout rensar state INNAN HTTP-anrop — sakerhet forst
+
+**Error Interceptor:**
+- Retry 1 gang for GET/HEAD/OPTIONS vid natverksfel eller 502/503/504
+- POST/PUT/DELETE retry:as ALDRIG (korrekt — undviker dubbletter)
+- 401 → clearSession() + redirect till /login med returnUrl
+- Skip toast for status-polling (action=status) och X-Skip-Error-Toast header
+- Svenska felmeddelanden for alla HTTP-statuskoder
+
+**GlobalErrorHandler:**
+- ChunkLoadError → reload med loop-skydd (10s cooldown)
+- Rate-limiting pa generiska toast-fel (max 1 per 3s)
+- Overlay-meddelande pa svenska vid upprepade chunk-fel
+
+### UPPGIFT 5: Build + Deploy — KLAR
+- `npx ng build` → Lyckad (277s). Initial bundle 69.77 KB. 193+ lazy chunks.
+- Varning: `*ngIf` i tvattlinje-live.html saknar NgIf/CommonModule import — INTE fixad (live-sida, ror ej)
+- Deploy: rsync till dev.mauserdb.com — alla nya chunks deployade
+- Server bekraftad: main-GOAFEEFQ.js finns pa server (CDN-cache visar an gammal hash)
+
+### UPPGIFT 6: Dev-log — KLAR
+Denna logg.
+
 ## Session #355 — Worker B (2026-03-27)
 **Fokus: WCAG kontrast-fix + bundle-analys + Global ErrorHandler + table-responsive + UX-granskning**
 

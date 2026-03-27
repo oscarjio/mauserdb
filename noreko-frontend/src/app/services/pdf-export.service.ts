@@ -1,6 +1,4 @@
 import { Injectable } from '@angular/core';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
@@ -8,6 +6,7 @@ export class PdfExportService {
   /**
    * Fångar ett HTML-element med html2canvas och skapar en PDF.
    * Väljer automatiskt landscape eller portrait baserat på aspektratio.
+   * Biblioteken html2canvas och jspdf laddas dynamiskt vid behov (lazy).
    */
   async exportToPdf(elementId: string, filename: string, title?: string): Promise<void> {
     const element = document.getElementById(elementId);
@@ -15,6 +14,12 @@ export class PdfExportService {
       console.error(`PdfExportService: element med id "${elementId}" hittades inte.`);
       return;
     }
+
+    // Dynamic import — html2canvas och jspdf laddas bara vid faktisk PDF-export
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
 
     let canvas: HTMLCanvasElement;
     try {
@@ -88,12 +93,13 @@ export class PdfExportService {
    * Skapar en ren tabell-PDF direkt från data (utan screenshot).
    * Passar för tabelldata som ska exporteras snyggt.
    */
-  exportTableToPdf(
+  async exportTableToPdf(
     data: Record<string, unknown>[],
     columns: { key: string; header: string; width?: number }[],
     filename: string,
     title?: string
-  ): void {
+  ): Promise<void> {
+    const { default: jsPDF } = await import('jspdf');
     const pdf = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
