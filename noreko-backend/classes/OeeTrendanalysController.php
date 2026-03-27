@@ -182,8 +182,8 @@ class OeeTrendanalysController {
     }
 
     /**
-     * Berakna OEE for en period per station (via rebotling_ibc.station_id).
-     * Returnerar array indexed by station_id.
+     * Berakna OEE for en period per station (fordelat lika, rebotling_ibc saknar station_id).
+     * Returnerar array indexed by station_id fran kapacitet_config.
      */
     private function calcOeePerStation(string $from, string $to): array {
         $stationer = $this->getStationer();

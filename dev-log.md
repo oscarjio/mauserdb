@@ -1,5 +1,70 @@
 # MauserDB Dev Log
 
+## Session #355 — Worker A (2026-03-27)
+**Fokus: SQL-query granskning mot prod_db_schema.sql + endpoint-testning + deploy**
+
+### UPPGIFT 1: SQL-query granskning mot prod schema — KLAR
+Systematisk granskning av ALLA 113 PHP controllers/classes i noreko-backend/classes/.
+
+**Metod:**
+1. Extraherade alla tabellnamn fran prod DB schema (89 tabeller)
+2. Extraherade alla tabellnamn refererade i SQL i alla controllers
+3. Jamforde — hittade 8 tabeller refererade i kod som saknas i schema
+4. Auditerade alla INSERT column/value counts
+5. Auditerade alla explicit table.column-referenser i WHERE/ORDER BY/GROUP BY
+6. Auditerade alla JOIN-kolumner (PK/FK-matchning)
+
+**Resultat: Schemat ar valldigt valalignerat med SQL-queries.**
+
+**Saknade tabeller i schema (alla korrekt hanterade i kod):**
+- `rebotling_kv_settings` — Finns pa prod men saknades i schema-dump. Lagt till i prod_db_schema.sql + migration.
+- `klassificeringslinje_ibc` — PLC-tabell, skapas vid linje-start. Try/catch i kod.
+- `saglinje_ibc`, `saglinje_onoff` — PLC-tabeller, try/catch i kod.
+- `rebotling_data`, `skift_log` — Bakom `tableExists()` fallback. Aldrig oanvant.
+- `rebotling_maintenance_log` — Try/catch med felmeddelande.
+- `rebotling_stopporsak` — SHOW TABLES-guard innan anvandning.
+
+**Fixar:**
+- `prod_db_schema.sql` — Lagt till rebotling_kv_settings-tabell som saknades
+- `MyStatsController.php` — Fixat felaktig kommentar (operators-tabell har ej 'initialer'-kolumn)
+- `OeeTrendanalysController.php` — Fixat missvisande kommentar om rebotling_ibc.station_id
+
+**Migration:**
+- `noreko-backend/migrations/2026-03-27_session355_rebotling_kv_settings.sql` — CREATE TABLE IF NOT EXISTS
+
+### UPPGIFT 2: Endpoint-testning mot dev — KLAR
+Testade 52 endpoints mot https://dev.mauserdb.com/noreko-backend/api.php
+
+**Resultat:**
+- 0 st 500-fel (inga serverfell)
+- 17 endpoints returnerade 200 OK med korrekt data (inkl. rebotling live-stats, dagmal, operators, etc.)
+- 33 st 400-fel — alla p.g.a. felaktiga run-parameternamn i testskriptet (ej buggar)
+- 2 st 404 — felaktiga run-parameter (ej buggar)
+- Aterutstade med ratt run-parametrar: alla 200 OK
+
+**Verifierade endpoints med korrekt data:**
+- status, rebotling&run=live-stats, rebotling&run=dagmal
+- news&run=events, alerts&run=active, produktionspuls&run=latest
+- historik&run=monthly, heatmap&run=heatmap-data, pareto&run=pareto-data
+- veckorapport&run=report, vd-dashboard&run=oversikt
+
+### UPPGIFT 3: Error handling — KLAR
+Granskade alla controllers for try/catch och JSON error responses.
+- 0 controllers med SQL men utan try/catch
+- 1 metod (RebotlingAdminController::getAdminEmailsPublic) — hjalparfunktion som returnerar array, ej API-endpoint. Korrekt beteende.
+- 389 inre catch-block som bara loggar — dessa ar avsiktliga graceful degradation-handlers inuti storre try-block som ger JSON-svar.
+
+### UPPGIFT 4: Deploy till dev — KLAR
+- Backend rsyncad till dev.mauserdb.com (exkl. db_config.php)
+- Migration kord pa dev DB
+- Endpoints verifierade efter deploy — alla OK
+
+### Andrade filer:
+- `prod_db_schema.sql` — Lagt till rebotling_kv_settings
+- `noreko-backend/classes/MyStatsController.php` — Fixat kommentar
+- `noreko-backend/classes/OeeTrendanalysController.php` — Fixat kommentar
+- `noreko-backend/migrations/2026-03-27_session355_rebotling_kv_settings.sql` — Ny migration
+
 ## Session #354 — Worker B (2026-03-27)
 **Fokus: Keyboard a11y + loading states + Chart.js touch-tooltips + UX-granskning**
 

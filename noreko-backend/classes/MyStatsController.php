@@ -20,7 +20,7 @@
  *
  * Tabeller:
  *   rebotling_ibc  (ibc_ok, ibc_ej_ok, datum, skiftraknare, op1, op2, op3, runtime_plc)
- *   operators      (id, number, name, initialer)
+ *   operators      (id, number, name, active)
  *   users          (id, operator_id, username)
  *
  * VIKTIGT: ibc_ok/ibc_ej_ok/runtime_plc är KUMULATIVA PLC-värden per skift.
