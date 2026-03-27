@@ -1090,7 +1090,9 @@ CREATE TABLE `rebotling_ibc` (
   KEY `idx_rebotling_ibc_op3` (`op3`),
   KEY `idx_rebotling_ibc_bonus` (`bonus_poang`),
   KEY `idx_rebotling_ibc_datum` (`datum`),
-  KEY `idx_datum` (`datum`)
+  KEY `idx_datum` (`datum`),
+  KEY `idx_rebotling_ibc_datum_skift` (`datum`,`skiftraknare`),
+  KEY `idx_ibc_skift_datum` (`skiftraknare`,`datum`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4920 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1150,7 +1152,8 @@ CREATE TABLE `rebotling_onoff` (
   `runtime_plc` smallint(6) NOT NULL DEFAULT 0,
   `skiftraknare` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_skiftraknare_onoff` (`skiftraknare`)
+  KEY `idx_skiftraknare_onoff` (`skiftraknare`),
+  KEY `idx_onoff_skift_datum_running` (`skiftraknare`,`datum`,`running`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1099 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1187,6 +1190,7 @@ CREATE TABLE `rebotling_products` (
   `cycle_time_minutes` int(11) NOT NULL DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `has_lopnummer` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

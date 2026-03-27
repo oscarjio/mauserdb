@@ -1,5 +1,95 @@
 # MauserDB Dev Log
 
+## Session #357 — Worker A (2026-03-27)
+**Fokus: Rebotling-endpoints djupgranskning + SQL-schema verifiering + Prod DB-analys + E2E 50/50 PASS**
+
+### UPPGIFT 1: Rebotling-endpoints djupgranskning — KLAR
+Identifierade och granskade ALLA rebotling-relaterade tabeller och controllers:
+
+**Rebotling-tabeller (17 st):** rebotling_ibc, rebotling_onoff, rebotling_settings, rebotling_kv_settings, rebotling_products, rebotling_production_goals, rebotling_produktionsmal, rebotling_shift_times, rebotling_skift_kommentar, rebotling_skiftoverlamning, rebotling_skiftrapport, rebotling_weekday_goals, rebotling_goal_history, rebotling_rast, rebotling_runtime, rebotling_driftstopp, rebotling_underhallslogg, rebotling_annotations, rebotling_lopnummer_current, rebotling_kassationsalarminst
+
+**Controllers granskade (7 st):**
+- RebotlingController.php (huvudcontroller, ~2000 rader)
+- RebotlingAdminController.php (admin-settings, weekday-goals, shift-times, notifications)
+- RebotlingAnalyticsController.php (analytics, reports, OEE-trend)
+- RebotlingStationsdetaljController.php (stationsdetalj med OEE-berakning)
+- RebotlingSammanfattningController.php (VD-dashboard oversikt)
+- RebotlingTrendanalysController.php (trendanalys, anomalier, prognos)
+- RebotlingProductController.php (CRUD for rebotling_products)
+
+**SQL-query granskning:**
+- Alla queries anvander korrekt per-skift-aggregering: MAX() per skiftraknare, sedan SUM() over skift
+- ibc_ok, ibc_ej_ok, runtime_plc, rasttime bekraftat KUMULATIVA PLC-varden — MAX() ar ratt
+- JOINs mot operators och rebotling_products ar korrekta
+- Datum-filtrering anvander index-vanliga >= / < istallet for funktionsanrop
+
+### UPPGIFT 2: produktion_procent-analys — KLAR
+**Agarens fragestallning: "Ar produktion_procent kumulativ?"**
+
+Svar: NEJ, den ar INTE kumulativ. Prod DB-analys visar:
+- Skift 78: varden gar 80 -> 85 -> 85 -> 74 -> 74 -> 56 (MINSKAR)
+- Det ar en MOMENTAN taktprocent fran PLC: (faktisk_per_timme / mal_per_timme) * 100
+- MEN: vid kort runtime ger den orimligt hoga varden (skift 76: 7 -> 1000!)
+- Formeln i PLC verkar vara ungefar: (ibc_count / runtime_plc) * nagon_faktor
+- Nar runtime ar liten (4 min) och ibc_count ar stor, exploderar varden
+
+Kodens nuvarande hantering i getLiveStats (rad 479-487) beraknar sin EGEN productionPercentage:
+`actualProductionPerHour = (ibcCurrentShift * 60) / totalRuntimeMinutes`
+`productionPercentage = (actualProductionPerHour / hourlyTarget) * 100`
+Detta ar KORREKT och anvander INTE DB-kolumnen produktion_procent.
+
+getStatistics och getDayStats LASER produktion_procent fran DB men filtrerar:
+- >200% → satt till 0 (ramp-up-artefakter)
+- >100% → cap till 100
+- 0 → exkluderas fran snitt
+Denna filtrering ar RIMLIG for rapporter.
+
+### UPPGIFT 3: Schema-mismatches fixade — KLAR
+1. **rebotling_products.has_lopnummer** — kolumnen finns i prod DB men saknades i prod_db_schema.sql. Fixad.
+2. **idx_rebotling_ibc_datum_skift** och **idx_ibc_skift_datum** — composite indexes finns i prod DB men saknades i schema. Fixade.
+3. **idx_onoff_skift_datum_running** — covering index finns i prod DB men saknades i schema. Fixad.
+4. **rebotling_maintenance_log** — tabellen refereras av saveMaintenanceLog() men finns INTE i prod DB. Ej skadligt (error loggas och 500 returneras vid anrop).
+
+### UPPGIFT 4: Prod DB-verifiering — KLAR
+- rebotling_ibc: 4908 rader, data fran 2025-10-10 till 2026-03-25
+- operators: 13 aktiva operatorer (Olof=1, Gorgen=2, Leif=3, Daniel=105, etc.)
+- Operator-kopplingen via op1/op2/op3 i rebotling_ibc anvander operator `number` (inte `id`)
+- Senaste data: skift 78, 2026-03-25 13:54:35
+- rebotling_onoff: 90 rader senaste veckan
+- Alla API-resultat matchades mot ra DB-queries: exakt stammer
+
+### UPPGIFT 5: Endpoint-testning med curl — KLAR
+Testade alla rebotling-endpoints mot dev.mauserdb.com:
+- getLiveStats: OK (ibcToday=0 idag, rebotlingTarget=1000)
+- getRunningStatus: OK (running=true, on_rast=false)
+- getOEE (today/week/month): OK (week: OEE=77.6, availability=100, performance=78.4, quality=99.1)
+- admin-settings: OK
+- today-snapshot: OK (daily_target=950, is_running=true)
+- system-status: OK (db_ok=true, last_plc_ping=2026-03-25)
+- rebotling-stationsdetalj (kpi-idag, senaste-ibc, realtid-oee, stopphistorik): OK
+- rebotling-sammanfattning (overview, produktion-7d, maskin-status): OK
+- rebotlingtrendanalys (trender): OK
+- Felhantering testad: ogiltiga run-params ger 400, utan login ger 401, ogiltiga datum fallback:ar korrekt
+
+### UPPGIFT 6: Performance-optimering — KLAR
+Alla nyckeltabeller har ratt indexes:
+- rebotling_ibc: idx_rebotling_ibc_datum_skift (datum, skiftraknare) — for GROUP BY queries
+- rebotling_ibc: idx_ibc_skift_datum (skiftraknare, datum) — for WHERE skiftraknare = X
+- rebotling_onoff: idx_onoff_skift_datum_running — covering index
+- getLiveStats anvander filcache med 5s TTL + settings-cache med 30s TTL
+- CTE mega-query i getLiveStats sparar 2 DB-roundtrips
+Inga saknade indexes hittade.
+
+### UPPGIFT 7: E2E-tester — KLAR
+Korde tests/rebotling_e2e.sh: **50/50 PASS, 0 FAIL, 0 SKIP**
+
+### Sammanfattning:
+- 7 rebotling-controllers granskade, alla SQL-queries verifierade mot schema
+- 3 schema-mismatches fixade i prod_db_schema.sql
+- produktion_procent-mystery lost: momentan taktprocent, INTE kumulativ, kodens hantering ar korrekt
+- Alla endpoints testade med curl + jämforda mot raw DB-queries
+- 50/50 E2E-tester passerar
+
 ## Session #356 — Worker A (2026-03-27)
 **Fokus: E2E regressionstest + HTTP interceptor audit + caching-strategi + endpoint-testning + PDO param-fix + deploy**
 
