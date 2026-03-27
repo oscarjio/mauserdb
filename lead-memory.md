@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #366)*
+*Senast uppdaterad: 2026-03-27 (session #367)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -73,6 +73,7 @@ Session #363: 156 endpoints 0x500 + rebotling backend SQL OK + error handling 11
 Session #364: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL filter borttaget 220 stallen 44 filer) + PHP parse error FIXAD (RebotlingAnalyticsController.php) + slow endpoints optimerade (today-snapshot, all-lines-status) + 55 endpoints 0x500 + 94 sidor mobile/UX granskade 0 problem + $rows7 dead code borttagen + deploy dev OK.
 Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237ms + month-compare 984ms->627ms (CTE-optimering) + getOtherLineStatus dead code borttagen + covering index + 97 endpoints 0x500 + UX alla sidor OK + produktion_procent EJ kumulativ (bekraftad) + rebotling-statistik djupgranskning + VD Dashboard OK + error handling audit + lifecycle-audit alla Chart-komponenter + build + deploy dev OK.
 Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k rader 0 problem + integration test API vs DB perfekt match + error/404-hantering OK + data-korrekthet 0 diskrepanser + Angular kodgranskning 92 services OK + 115 chart-filer OK + build 0 fel + deploy dev OK.
+Session #367: (pagaende) Performance EXPLAIN-audit + operatorsbonus-granskning + admin CRUD + caching + bundle-optimering.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -102,6 +103,6 @@ Worker B: Data-korrekthet 9 nyckel-endpoints verifierade mot prod DB — 0 diskr
 Worker A: Diskrepans-fix verifierad mot prod DB — API 1058 cykler (matchar DB). Benchmarking 926ms→237ms, month-compare 984ms→627ms. Dead code + covering index. 97 endpoints 0x500.
 Worker B: 37 templates + 100+ komponenter OK. produktion_procent EJ kumulativ (bekraftad). Rebotling-statistik 7 sidor OK. VD Dashboard robust. Error handling audit OK.
 
-### 2026-03-27 — Session #364 (klar)
-Worker A: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL, 220 stallen, 44 filer). PHP parse error FIXAD. Slow endpoints optimerade. 55 endpoints 0x500.
-Worker B: 94 sidor mobile responsivitet OK. Dark theme/lifecycle/svenska konsistent. VD Dashboard KPI:er korrekta. Build + deploy OK.
+### 2026-03-27 — Session #367 (pagaende)
+Worker A: Performance EXPLAIN-audit (month-compare 1032ms), admin CRUD end-to-end, caching-strategi, endpoint-stresstest.
+Worker B: Rebotling operatorsbonus djupgranskning, frontend bundle-optimering (8.8MB), UX-granskning alla sidor.
