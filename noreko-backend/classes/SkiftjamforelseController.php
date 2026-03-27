@@ -91,14 +91,6 @@ class SkiftjamforelseController {
         return max(1, min(365, $p));
     }
 
-    private function skiftTimewhere(string $skift, string $col): string {
-        $def = self::SKIFT[$skift];
-        if ($skift === 'Natt') {
-            return "(HOUR({$col}) >= {$def['start']} OR HOUR({$col}) < {$def['end']})";
-        }
-        return "(HOUR({$col}) >= {$def['start']} AND HOUR({$col}) < {$def['end']})";
-    }
-
     private function skiftForHour(int $hour): string {
         if ($hour >= 6 && $hour < 14) return 'FM';
         if ($hour >= 14 && $hour < 22) return 'EM';
@@ -443,60 +435,6 @@ class SkiftjamforelseController {
             error_log('SkiftjamforelseController::jamforelse: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
-    }
-
-    /**
-     * Hamta OEE for ett enstaka skift pa en enstaka dag.
-     */
-    private function getProduktionPerSkiftSingleDay(string $date, string $skift): array {
-        $timeCond = $this->skiftTimewhere($skift, 'datum');
-
-        $stmt = $this->pdo->prepare(
-            "SELECT
-                COUNT(DISTINCT skiftraknare) AS antal_pass,
-                COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
-                COALESCE(SUM(max_runtime), 0) AS runtime_min
-             FROM (
-                SELECT
-                    skiftraknare,
-                    MAX(ibc_ok)      AS max_ok,
-                    MAX(ibc_ej_ok)   AS max_ej_ok,
-                    MAX(runtime_plc) AS max_runtime
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND {$timeCond}
-                GROUP BY skiftraknare
-                HAVING COUNT(*) > 1
-             ) s"
-        );
-        $stmt->execute([$date, $date]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        $ibcOk    = (int)($row['ibc_ok']    ?? 0);
-        $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
-        $runtime  = (int)($row['runtime_min'] ?? 0);
-        $antalPass= (int)($row['antal_pass'] ?? 0);
-        $ibcTotal = $ibcOk + $ibcEjOk;
-        $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
-        $kvalitet = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
-
-        $planMin   = $antalPass * self::PLANERAD_MIN;
-        $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-        $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
-        $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
-        $oee       = $tillg * $prest * $kvalFakt;
-
-        return [
-            'ibc_ok'    => $ibcOk,
-            'ibc_total' => $ibcTotal,
-            'runtime_min' => $runtime,
-            'ibc_per_h' => $ibcPerH,
-            'oee_pct'   => round($oee * 100, 1),
-            'tillganglighet_pct' => round($tillg * 100, 1),
-            'prestanda_pct'      => round($prest * 100, 1),
-            'kvalitet_pct'       => $kvalitet,
-        ];
     }
 
     // ================================================================

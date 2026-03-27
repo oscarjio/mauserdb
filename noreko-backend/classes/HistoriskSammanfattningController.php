@@ -316,7 +316,7 @@ class HistoriskSammanfattningController {
             $stationer = $this->getStationer();
             $flaskhalsStn = null;
             $flaskhalsOee = 999;
-            $sharedStationData = $this->calcStationData($p['from'], $p['to'], 1);
+            $sharedStationData = $this->calcStationData($p['from'], $p['to']);
             if ($sharedStationData['ibc_ok'] > 0 && !empty($stationer)) {
                 // Alla stationer har samma OEE — visa forsta
                 $flaskhalsOee = $sharedStationData['oee_pct'];
@@ -416,7 +416,7 @@ class HistoriskSammanfattningController {
         }
     }
 
-    private function calcStationData(string $from, string $to, int $stationId): array {
+    private function calcStationData(string $from, string $to): array {
         try {
             // rebotling_ibc har ingen station_id-kolumn — returnera all data (enda linjen)
             $stmt = $this->pdo->prepare(
@@ -706,8 +706,8 @@ class HistoriskSammanfattningController {
             $stationer = $this->getStationer();
 
             // rebotling_ibc saknar station_id — berakna en gang, ateranvand for alla stationer (N+1 fix)
-            $currentShared = $this->calcStationData($p['from'], $p['to'], 1);
-            $prevShared    = $this->calcStationData($p['prev_from'], $p['prev_to'], 1);
+            $currentShared = $this->calcStationData($p['from'], $p['to']);
+            $prevShared    = $this->calcStationData($p['prev_from'], $p['prev_to']);
             $oeeDelta      = round($currentShared['oee_pct'] - $prevShared['oee_pct'], 1);
 
             $result = [];
