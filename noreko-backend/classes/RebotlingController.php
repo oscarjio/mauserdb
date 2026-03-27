@@ -849,6 +849,20 @@ class RebotlingController {
                 error_log('RebotlingController rast-events query: ' . $e->getMessage());
             }
 
+            // Hämta driftstopp events för perioden
+            $driftstopp_events = [];
+            try {
+                $dsStmt = $this->pdo->prepare(
+                    'SELECT datum, driftstopp_status FROM rebotling_driftstopp
+                     WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                     ORDER BY datum ASC'
+                );
+                $dsStmt->execute(['start' => $start, 'end' => $end]);
+                $driftstopp_events = $dsStmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                error_log('RebotlingController driftstopp-events query: ' . $e->getMessage());
+            }
+
             // Beräkna sammanfattning
             $total_cycles = count($cycles);
             $avg_production_percent = 0;
@@ -945,6 +959,7 @@ class RebotlingController {
                     'cycles' => $cycles,
                     'onoff_events' => $onoff_events,
                     'rast_events' => $rast_events,
+                    'driftstopp_events' => $driftstopp_events,
                     'summary' => [
                         'total_cycles' => $total_cycles,
                         'avg_production_percent' => round($avg_production_percent, 1),

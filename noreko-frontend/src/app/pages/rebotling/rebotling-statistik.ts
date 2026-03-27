@@ -168,7 +168,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   breadcrumb: string[] = [];
 
   totalRastMinutes: number = 0;
-  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' }[] = [];
+  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' | 'driftstopp'; startTime: string; endTime: string; duration: string }[] = [];
+  timelineEndPct: number = 100;
+  showTimelineDetail = false;
   shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number; rastMinutes: number }[] = [];
 
   // Dag-vy: längsta stopp (min) och utnyttjandegrad (%)
@@ -466,6 +468,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const date = new Date(this.selectedPeriods[0]);
       date.setDate(date.getDate() - 1);
       this.selectedPeriods = [date];
+      this.currentYear = date.getFullYear();
+      this.currentMonth = date.getMonth();
     }
 
     this.resetChartSelection();
@@ -488,6 +492,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const date = new Date(this.selectedPeriods[0]);
       date.setDate(date.getDate() + 1);
       this.selectedPeriods = [date];
+      this.currentYear = date.getFullYear();
+      this.currentMonth = date.getMonth();
     }
 
     this.resetChartSelection();
@@ -818,7 +824,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length
           : 0;
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = Math.round(avgEff);
+        cell.efficiency = Math.min(150, Math.round(avgEff));
       }
     });
 
@@ -1089,7 +1095,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         const avgTarget = value.cycles.reduce((s: number, c: any) => s + (c.target_cycle_time || 3), 0) / count;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.round((avgTarget / avgActual) * 100));
+          efficiencyArr.push(Math.min(150, Math.round((avgTarget / avgActual) * 100)));
         } else {
           efficiencyArr.push(0);
         }
@@ -1173,7 +1179,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       }
       const rollingAvg = windowCount > 0 ? windowSum / windowCount : 0;
-      const pp = rollingAvg > 0 ? Math.round((effTargetVal / rollingAvg) * 100) : 0;
+      const pp = rollingAvg > 0 ? Math.min(150, Math.round((effTargetVal / rollingAvg) * 100)) : 0;
       prodPct.push(pp);
       totalProdPct += pp;
       targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
@@ -1376,7 +1382,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           scales: {
             y: {
               beginAtZero: true,
-              suggestedMax: 150,
+              max: 150,
               title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
@@ -1749,13 +1755,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private buildTimelineSegments(data: any) {
-    if (this.viewMode !== 'day') { this.timelineSegments = []; return; }
-    const dayEnd = 1440;
+    if (this.viewMode !== 'day') { this.timelineSegments = []; this.timelineEndPct = 100; return; }
     const segments: typeof this.timelineSegments = [];
     const onoff: any[] = data.onoff_events || [];
     const rast: any[] = data.rast_events || [];
+    const driftstopp: any[] = data.driftstopp_events || [];
 
-    const events: { min: number; type: 'run_start' | 'run_end' | 'rast_start' | 'rast_end' }[] = [];
+    // Determine if this is today (use local date to avoid UTC timezone shift)
+    const now = new Date();
+    const isToday = this.selectedPeriods.length === 1 &&
+      this.selectedPeriods[0].getFullYear() === now.getFullYear() &&
+      this.selectedPeriods[0].getMonth() === now.getMonth() &&
+      this.selectedPeriods[0].getDate() === now.getDate();
+
+    type EvType = 'run_start' | 'run_end' | 'rast_start' | 'rast_end' | 'ds_start' | 'ds_end';
+    const events: { min: number; type: EvType }[] = [];
     onoff.forEach((e: any) => {
       const d = new Date(e.datum);
       const min = d.getHours() * 60 + d.getMinutes();
@@ -1766,25 +1780,99 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const min = d.getHours() * 60 + d.getMinutes();
       events.push({ min, type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
     });
+    driftstopp.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.driftstopp_status == 1 ? 'ds_start' : 'ds_end' });
+    });
     events.sort((a, b) => a.min - b.min);
 
-    let running = false, onRast = false, lastMin = 0;
-    const push = (end: number, r: boolean, rs: boolean) => {
+    // Cap timeline at current time (today) or last event (past days)
+    let capMin: number;
+    if (isToday) {
+      capMin = now.getHours() * 60 + now.getMinutes();
+    } else if (events.length > 0) {
+      capMin = events[events.length - 1].min;
+    } else {
+      capMin = 1440;
+    }
+    // Always show at least up to cap, and full 24h bar background
+    this.timelineEndPct = Math.min(100, (capMin / 1440) * 100);
+
+    const fmtTime = (min: number): string => {
+      const h = Math.floor(min / 60);
+      const m = Math.round(min % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    const fmtDuration = (mins: number): string => {
+      if (mins < 1) return '<1 min';
+      const h = Math.floor(mins / 60);
+      const m = Math.round(mins % 60);
+      return h > 0 ? `${h}h ${m}min` : `${m} min`;
+    };
+
+    let running = false, onRast = false, onDs = false, lastMin = 0;
+    const push = (end: number) => {
       if (end > lastMin) {
-        const type: 'running' | 'rast' | 'stopped' = rs ? 'rast' : r ? 'running' : 'stopped';
-        segments.push({ startPct: lastMin / 14.4, widthPct: (end - lastMin) / 14.4, type });
+        const type: 'running' | 'rast' | 'stopped' | 'driftstopp' =
+          onDs ? 'driftstopp' : onRast ? 'rast' : running ? 'running' : 'stopped';
+        segments.push({
+          startPct: (lastMin / 1440) * 100,
+          widthPct: ((end - lastMin) / 1440) * 100,
+          type,
+          startTime: fmtTime(lastMin),
+          endTime: fmtTime(end),
+          duration: fmtDuration(end - lastMin)
+        });
       }
     };
     for (const ev of events) {
-      push(ev.min, running, onRast);
+      if (ev.min > capMin) break;
+      push(ev.min);
       lastMin = ev.min;
       if (ev.type === 'run_start') running = true;
       else if (ev.type === 'run_end') running = false;
       else if (ev.type === 'rast_start') onRast = true;
       else if (ev.type === 'rast_end') onRast = false;
+      else if (ev.type === 'ds_start') onDs = true;
+      else if (ev.type === 'ds_end') onDs = false;
     }
-    push(dayEnd, running, onRast);
-    this.timelineSegments = segments;
+    push(capMin);
+
+    // Absorb very short stops (<2 min) into surrounding running periods (PLC noise)
+    const MIN_STOP_MINUTES = 2;
+    const cleaned: typeof segments = [];
+    for (const seg of segments) {
+      const segMins = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1])
+                    - (parseFloat(seg.startTime.split(':')[0]) * 60 + parseFloat(seg.startTime.split(':')[1]));
+      if (seg.type === 'stopped' && segMins < MIN_STOP_MINUTES && cleaned.length > 0 && cleaned[cleaned.length - 1].type === 'running') {
+        // Absorb short stop into previous running segment
+        const prev = cleaned[cleaned.length - 1];
+        prev.widthPct += seg.widthPct;
+        prev.endTime = seg.endTime;
+        const pStart = parseFloat(prev.startTime.split(':')[0]) * 60 + parseFloat(prev.startTime.split(':')[1]);
+        const pEnd = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1]);
+        prev.duration = fmtDuration(pEnd - pStart);
+      } else {
+        cleaned.push({ ...seg });
+      }
+    }
+
+    // Merge consecutive segments of the same type
+    const merged: typeof segments = [];
+    for (const seg of cleaned) {
+      const prev = merged.length > 0 ? merged[merged.length - 1] : null;
+      if (prev && prev.type === seg.type) {
+        prev.widthPct += seg.widthPct;
+        prev.endTime = seg.endTime;
+        const startMin = parseFloat(prev.startTime.split(':')[0]) * 60 + parseFloat(prev.startTime.split(':')[1]);
+        const endMin = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1]);
+        prev.duration = fmtDuration(endMin - startMin);
+      } else {
+        merged.push({ ...seg });
+      }
+    }
+    this.timelineSegments = merged;
   }
 
   private buildShiftSummaries(cycles: any[]) {

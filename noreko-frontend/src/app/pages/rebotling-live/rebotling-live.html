@@ -1,5 +1,5 @@
 <div class="rebotling-live-page container-fluid">
-  <div class="status-bar" [ngClass]="[statusBarClass, onRast ? 'status-bar-rast' : '']"></div>
+  <div class="status-bar" [ngClass]="[statusBarClass, onRast ? 'status-bar-rast' : '', onDriftstopp ? 'status-bar-driftstopp' : '']"></div>
 
   <!-- Rast-banner -->
   <div class="rast-banner" *ngIf="onRast">
@@ -9,15 +9,10 @@
   </div>
 
   <!-- Driftstopp-banner -->
-  <div class="driftstopp-banner text-center py-3" *ngIf="onDriftstopp">
-    <div class="d-flex align-items-center justify-content-center">
-      <i class="fas fa-exclamation-triangle fa-2x me-3 driftstopp-pulse"></i>
-      <div>
-        <h4 class="mb-0 fw-bold">DRIFTSTOPP</h4>
-        <span class="driftstopp-time">{{ driftstoppTimeLabel }} idag ({{ driftstoppCountToday }} stopp)</span>
-      </div>
-      <i class="fas fa-exclamation-triangle fa-2x ms-3 driftstopp-pulse"></i>
-    </div>
+  <div class="driftstopp-banner" *ngIf="onDriftstopp">
+    <i class="fas fa-exclamation-triangle me-2 driftstopp-pulse"></i>
+    <strong>DRIFTSTOPP</strong>
+    <span class="ms-3 driftstopp-time">{{ driftstoppTimeLabel }} idag</span>
   </div>
 
   <div class="freshness-indicator" [class]="freshnessClass">

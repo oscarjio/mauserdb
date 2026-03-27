@@ -128,18 +128,41 @@
   font-weight: 400;
 }
 
-/* Driftstopp-banner */
+/* Driftstopp-status bar – röd när driftstopp pågår */
+.status-bar-driftstopp {
+  background: linear-gradient(90deg, #c53030 0%, #9b2c2c 100%) !important;
+  box-shadow: 0 0 20px rgba(197, 48, 48, 0.6) !important;
+  animation: pulse-driftstopp 1.5s ease-in-out infinite !important;
+}
+
+@keyframes pulse-driftstopp {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+/* Driftstopp-banner – samma layout som rast-banner, fast röd */
 .driftstopp-banner {
-  background: linear-gradient(135deg, #c53030, #9b2c2c);
-  color: white;
-  border-bottom: 3px solid #feb2b2;
-  font-size: 1.1rem;
+  position: fixed;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1002;
+  background: rgba(197, 48, 48, 0.95);
+  color: #fff;
+  padding: 6px 24px;
+  border-radius: 0 0 12px 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 16px rgba(197, 48, 48, 0.4);
   animation: driftstopp-glow 2s ease-in-out infinite;
 }
 
 @keyframes driftstopp-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(197, 48, 48, 0.5); }
-  50% { box-shadow: 0 0 25px rgba(197, 48, 48, 0.8); }
+  0%, 100% { box-shadow: 0 4px 16px rgba(197, 48, 48, 0.4); }
+  50% { box-shadow: 0 4px 24px rgba(197, 48, 48, 0.7); }
 }
 
 .driftstopp-pulse {
@@ -147,13 +170,13 @@
 }
 
 @keyframes driftstopp-icon-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .driftstopp-time {
-  font-size: 0.9rem;
-  opacity: 0.9;
+  font-size: 0.85rem;
+  font-weight: 400;
 }
 
 /* Rast-kort */

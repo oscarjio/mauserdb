@@ -835,15 +835,29 @@
   background: rgba(0, 212, 255, 0.5);
 }
 
-.rast-timeline .timeline-bar { height:20px; border-radius:4px; overflow:hidden; background:#1a202c; border:1px solid #2d3748; }
-.timeline-seg { position:absolute; height:100%; }
-.seg-running { background:rgba(39,174,96,.7); }
-.seg-rast    { background:rgba(255,193,7,.8); }
-.seg-stopped { background:rgba(220,53,69,.4); }
-.tl-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; }
-.tl-dot.running { background:#27ae60; }
-.tl-dot.rast    { background:#ffc107; }
-.tl-dot.stopped { background:#dc3545; }
+.timeline-time-labels { display:flex; justify-content:space-between; margin-bottom:2px; }
+.timeline-time-labels small { color:#718096; font-size:.7rem; }
+.rast-timeline .timeline-bar { height:28px; border-radius:4px; overflow:visible; background:#1a202c; border:1px solid #2d3748; position:relative; }
+.timeline-seg { position:absolute; height:100%; cursor:pointer; transition: opacity 0.15s; z-index:1; }
+.timeline-seg:hover { opacity:0.85; filter:brightness(1.2); }
+.seg-running    { background:rgba(39,174,96,.7); }
+.seg-rast       { background:rgba(255,193,7,.8); }
+.seg-stopped    { background:rgba(100,116,139,.35); }
+.seg-driftstopp { background:rgba(159,18,18,.85); }
+.timeline-tick { position:absolute; top:0; width:1px; height:100%; background:rgba(255,255,255,.08); z-index:0; pointer-events:none; }
+.timeline-now-marker { position:absolute; top:-2px; width:2px; height:calc(100% + 4px); background:#63b3ed; z-index:2; pointer-events:none; border-radius:1px; }
+.tl-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+.tl-dot.running    { background:#27ae60; }
+.tl-dot.rast       { background:#ffc107; }
+.tl-dot.stopped    { background:#64748b; }
+.tl-dot.driftstopp { background:#9f1212; }
+
+/* Timeline detail table rows */
+.tbl-row-running    { background:rgba(39,174,96,.1) !important; }
+.tbl-row-rast       { background:rgba(255,193,7,.08) !important; }
+.tbl-row-stopped    { background:rgba(100,116,139,.06) !important; }
+.tbl-row-driftstopp { background:rgba(159,18,18,.15) !important; }
+.bg-driftstopp      { background-color:#9f1212 !important; }
 .shift-summary-card { background:#1a202c; border:1px solid #2d3748; border-radius:8px; padding:10px 16px; min-width:130px; }
 .shift-nr   { font-weight:700; color:#e2e8f0; margin-bottom:4px; }
 .shift-stat { font-size:.85rem; color:#a0aec0; }

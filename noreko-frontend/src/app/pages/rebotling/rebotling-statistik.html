@@ -186,9 +186,16 @@
 
           <!-- Timeline (dag-vy) -->
           <div *ngIf="viewMode === 'day' && timelineSegments.length > 0" class="rast-timeline mt-2 mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <small class="text-muted">00:00</small>
-              <small class="text-muted">24:00</small>
+            <div class="timeline-time-labels">
+              <small>00:00</small>
+              <small>03:00</small>
+              <small>06:00</small>
+              <small>09:00</small>
+              <small>12:00</small>
+              <small>15:00</small>
+              <small>18:00</small>
+              <small>21:00</small>
+              <small>24:00</small>
             </div>
             <div class="timeline-bar position-relative">
               <div *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
@@ -196,13 +203,64 @@
                    [class.seg-running]="seg.type === 'running'"
                    [class.seg-rast]="seg.type === 'rast'"
                    [class.seg-stopped]="seg.type === 'stopped'"
+                   [class.seg-driftstopp]="seg.type === 'driftstopp'"
                    [style.left.%]="seg.startPct"
-                   [style.width.%]="seg.widthPct"></div>
+                   [style.width.%]="seg.widthPct"
+                   [title]="(seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : 'Stopp') + ': ' + seg.startTime + ' \u2013 ' + seg.endTime + ' (' + seg.duration + ')'"></div>
+              <div class="timeline-tick" *ngFor="let t of [12.5, 25, 37.5, 50, 62.5, 75, 87.5]" [style.left.%]="t"></div>
+              <div class="timeline-now-marker" *ngIf="timelineEndPct < 100" [style.left.%]="timelineEndPct"></div>
             </div>
-            <div class="d-flex gap-3 mt-1">
-              <small><span class="tl-dot running"></span> Kör</small>
+            <div class="d-flex gap-3 mt-1 align-items-center">
+              <small><span class="tl-dot running"></span> I drift</small>
               <small><span class="tl-dot rast"></span> Rast</small>
               <small><span class="tl-dot stopped"></span> Stopp</small>
+              <small><span class="tl-dot driftstopp"></span> Driftstopp</small>
+              <small class="ms-auto">
+                <a href="javascript:void(0)" class="text-muted" (click)="showTimelineDetail = !showTimelineDetail">
+                  <i class="fas fa-list me-1"></i>{{ showTimelineDetail ? 'Dölj detaljer' : 'Visa detaljer' }}
+                </a>
+              </small>
+            </div>
+            <!-- Detaljerad tabell (dold som standard) -->
+            <div *ngIf="showTimelineDetail" class="mt-3">
+              <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm align-middle mb-0" style="border-radius:8px; overflow:hidden;">
+                  <thead>
+                    <tr class="text-uppercase" style="font-size:.75rem; letter-spacing:.5px;">
+                      <th class="ps-3" style="width:35%">Status</th>
+                      <th style="width:20%">Från</th>
+                      <th style="width:20%">Till</th>
+                      <th class="pe-3 text-end" style="width:25%">Varaktighet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
+                        [class.tbl-row-running]="seg.type === 'running'"
+                        [class.tbl-row-rast]="seg.type === 'rast'"
+                        [class.tbl-row-stopped]="seg.type === 'stopped'"
+                        [class.tbl-row-driftstopp]="seg.type === 'driftstopp'">
+                      <td class="ps-3">
+                        <span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;"
+                              [class.bg-success]="seg.type === 'running'"
+                              [class.bg-warning]="seg.type === 'rast'"
+                              [class.bg-secondary]="seg.type === 'stopped'"
+                              [class.bg-driftstopp]="seg.type === 'driftstopp'"></span>
+                        <span class="fw-semibold">{{ seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : 'Stopp' }}</span>
+                      </td>
+                      <td class="text-light">{{ seg.startTime }}</td>
+                      <td class="text-light">{{ seg.endTime }}</td>
+                      <td class="pe-3 text-end">
+                        <span class="badge rounded-pill"
+                              [class.bg-success]="seg.type === 'running'"
+                              [class.bg-warning]="seg.type === 'rast'"
+                              [class.text-dark]="seg.type === 'rast'"
+                              [class.bg-secondary]="seg.type === 'stopped'"
+                              [class.bg-driftstopp]="seg.type === 'driftstopp'">{{ seg.duration }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

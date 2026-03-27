@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
@@ -18,7 +19,7 @@ Chart.register(...registerables);
   standalone: true,
   selector: 'app-min-dag',
   templateUrl: './min-dag.html',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
 })
 export class MinDagPage implements OnInit, OnDestroy {
   loading = true;
