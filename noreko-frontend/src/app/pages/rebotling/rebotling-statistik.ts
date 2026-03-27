@@ -108,6 +108,7 @@ interface TableRow {
   avgCycleTime: number;
   efficiency: number;
   avgProdPct: number;
+  ibcPerHour: number;
   runtime: number;
   clickable: boolean;
 }
@@ -152,6 +153,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   avgEfficiency: number = 0;
   avgProdPct: number = 0;
   totalRuntimeHours: number = 0;
+  totalIbcPerHour: number = 0;
   targetCycleTime: number = 0;
 
   productionChart: Chart | null = null;
@@ -231,6 +233,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     qualityPct: number;
     days7: { date: string; ibc: number; target: number }[];
   } | null = null;
+
+  private savedScrollY: number | null = null;
 
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
@@ -428,6 +432,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   navigateToMonth(date?: Date) {
+    this.savedScrollY = window.scrollY;
     this.viewMode = 'month';
     if (date) {
       this.currentYear = date.getFullYear();
@@ -442,6 +447,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   navigateToDay(date: Date) {
+    this.savedScrollY = window.scrollY;
     this.viewMode = 'day';
     this.selectedPeriods = [date];
     this.currentYear = date.getFullYear();
@@ -685,6 +691,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.updateChart(response.data);
       this.updateTable(response.data);
       this.loading = false;
+
+      // Restore scroll position if saved (e.g. from month chart click)
+      if (this.savedScrollY !== null) {
+        const scrollTarget = this.savedScrollY;
+        this.savedScrollY = null;
+        setTimeout(() => window.scrollTo(0, scrollTarget), 50);
+      }
     });
   }
 
@@ -739,8 +752,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   updateStatistics(data: any) {
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
-    this.avgProdPct = Math.round(data.summary.avg_production_percent || 0);
+    // Compute proper efficiency: target_cycle_time / avg_cycle_time * 100
+    const targetCt = data.summary.target_cycle_time || 3;
+    const avgCt = data.summary.avg_cycle_time || 0;
+    const properEff = avgCt > 0 ? Math.round((targetCt / avgCt) * 100) : 0;
+    this.avgEfficiency = properEff;
+    this.avgProdPct = properEff;
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
     this.totalRastMinutes = data.summary.total_rast_minutes || 0;
@@ -1064,7 +1081,30 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (si >= 0) rastPeriods.push({ startIndex: si, endIndex: labels.length - 1 });
     }
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods };
+    // Build efficiency and cycle count arrays for bar chart (month/year views)
+    // Efficiency = target_cycle_time / avg_actual_cycle_time * 100
+    const efficiencyArr: number[] = [];
+    const cycleCountArr: number[] = [];
+    slicedEntries.forEach(([, value]) => {
+      const count = value.cycles.length;
+      cycleCountArr.push(count);
+      if (count > 0) {
+        const validTimes = value.cycles
+          .map((c: any) => c.cycle_time)
+          .filter((t: any) => t !== null && t !== undefined && t > 0 && t <= 30);
+        const avgTarget = value.cycles.reduce((s: number, c: any) => s + (c.target_cycle_time || 3), 0) / count;
+        if (validTimes.length > 0) {
+          const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
+          efficiencyArr.push(Math.round((avgTarget / avgActual) * 100));
+        } else {
+          efficiencyArr.push(0);
+        }
+      } else {
+        efficiencyArr.push(0);
+      }
+    });
+
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods, efficiencyArr, cycleCountArr };
   }
 
   /**
@@ -1256,9 +1296,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
     try {
-      // Day view: show produktion_procent per cycle. Other views: show cycle time.
       const isDayView = this.viewMode === 'day' && chartData.prodPct;
-      const datasets: any[] = isDayView ? [
+
+      if (!isDayView) {
+        // Month/Year view: bar chart with efficiency % and IBC count labels
+        this.createBarChart(ctx, chartData);
+        return;
+      }
+
+      // Day view: line chart with production %
+      const datasets: any[] = [
         {
           label: 'Produktion %',
           data: chartData.prodPct,
@@ -1282,50 +1329,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           pointRadius: 0,
           borderWidth: 2
         }
-      ] : [
-        {
-          label: 'Cykeltid (min)',
-          data: chartData.cycleTime,
-          borderColor: '#00d4ff',
-          backgroundColor: 'rgba(0, 212, 255, 0.1)',
-          tension: 0.4,
-          fill: true,
-          yAxisID: 'y',
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2
-        },
-        {
-          label: 'Snitt Cykeltid',
-          data: chartData.avgCycleTime,
-          borderColor: '#ffc107',
-          borderDash: [8, 4],
-          tension: 0,
-          fill: false,
-          yAxisID: 'y',
-          pointRadius: 0,
-          borderWidth: 2
-        }
       ];
-
-      // Add target line for non-day views
-      if (!isDayView) {
-        const hasTarget = chartData.targetCycleTime?.some((v: number) => v > 0);
-        if (hasTarget || this.targetCycleTime > 0) {
-          datasets.push({
-            label: 'Mål Cykeltid',
-            data: chartData.targetCycleTime,
-            borderColor: '#ff8800',
-            borderDash: [4, 4],
-            tension: 0,
-            stepped: false,
-            fill: false,
-            yAxisID: 'y',
-            pointRadius: 0,
-            borderWidth: 2.5
-          });
-        }
-      }
 
       this.productionChart = new Chart(ctx, {
         type: 'line',
@@ -1352,20 +1356,20 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               borderWidth: 1,
               padding: 12,
               displayColors: true,
-              callbacks: this.viewMode === 'day' ? {
+              callbacks: {
                 afterBody: (tooltipItems: any[]) => {
                   if (!tooltipItems.length || !chartData.produktNamn) return '';
                   const idx = tooltipItems[0].dataIndex;
                   const namn = chartData.produktNamn[idx];
                   return namn ? `Produkt: ${namn}` : '';
                 }
-              } : {}
+              }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
-              title: { display: true, text: isDayView ? 'Produktion %' : 'Cykeltid (minuter)', color: '#e0e0e0', font: { size: 13 } },
+              title: { display: true, text: 'Produktion %', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
@@ -1375,7 +1379,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 maxRotation: 45,
                 minRotation: 0,
                 autoSkip: true,
-                maxTicksLimit: this.viewMode === 'day' ? 24 : undefined
+                maxTicksLimit: 24
               },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             }
@@ -1408,7 +1412,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 const xEnd   = scales.x.getPixelForValue(period.endIndex + 1);
                 ctx.fillStyle = 'rgba(255, 193, 7, 0.42)';
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
-                // Övre kant-linje för synlighet
                 ctx.strokeStyle = 'rgba(255, 193, 7, 0.85)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -1432,7 +1435,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Produktnamn-etikett
                 ctx.fillStyle = '#ff8800';
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
@@ -1441,9 +1443,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               } catch (e) {}
             });
 
-            // Rita förhandsvisning av markerat intervall i ljusblått när man drar i dags-vy
+            // Rita förhandsvisning av markerat intervall
             if (
-              this.viewMode === 'day' &&
               this.chartSelectionPreviewStartIndex !== null &&
               this.chartSelectionPreviewEndIndex !== null
             ) {
@@ -1456,7 +1457,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 const xStart = scales.x.getPixelForValue(selStart);
                 const xEnd = scales.x.getPixelForValue(selEnd);
 
-                ctx.fillStyle = 'rgba(0, 153, 255, 0.18)'; // ljusblå, transparent
+                ctx.fillStyle = 'rgba(0, 153, 255, 0.18)';
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
               } catch (e) {}
             }
@@ -1469,6 +1470,166 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     } catch (error) {
       // Silently handle chart creation error — UI will show empty chart area
+    }
+  }
+
+  /**
+   * Bar chart for month/year views: bars = efficiency %, colored by value,
+   * IBC count as data label on top, click navigates to day/month.
+   */
+  private createBarChart(ctx: CanvasRenderingContext2D, chartData: any) {
+    const effData: number[] = chartData.efficiencyArr || [];
+    const countData: number[] = chartData.cycleCountArr || [];
+
+    // Color each bar by efficiency value
+    const barColors = effData.map((eff: number) => {
+      if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
+      if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
+      return 'rgba(220, 53, 69, 0.65)';
+    });
+
+    const barBorderColors = effData.map((eff: number) => {
+      if (eff >= 90) return '#27ae60';
+      if (eff >= 70) return '#ffc107';
+      return '#dc3545';
+    });
+
+    this.productionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: 'Effektivitet %',
+          data: effData,
+          backgroundColor: barColors,
+          borderColor: barBorderColors,
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: 'y'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        onClick: (_event: any, elements: any[]) => {
+          if (elements.length > 0) {
+            const idx = elements[0].index;
+            this.onBarChartClick(idx);
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            intersect: false, mode: 'index',
+            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#00d4ff',
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              label: (context: any) => {
+                const idx = context.dataIndex;
+                const eff = effData[idx] || 0;
+                const count = countData[idx] || 0;
+                return [`Effektivitet: ${eff}%`, `IBC: ${count}`];
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: 150,
+            title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
+            ticks: { color: '#a0a0a0' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          x: {
+            ticks: {
+              color: '#a0a0a0',
+              maxRotation: 45,
+              minRotation: 0,
+              autoSkip: true
+            },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          }
+        }
+      },
+      plugins: [{
+        id: 'ibcCountLabelsAndTargetLine',
+        afterDatasetsDraw: (chart: any) => {
+          const { ctx: c, chartArea, scales } = chart;
+          if (!chartArea) return;
+
+          // Draw 100% target line
+          const yScale = scales['y'];
+          if (yScale) {
+            const y100 = yScale.getPixelForValue(100);
+            if (y100 >= chartArea.top && y100 <= chartArea.bottom) {
+              c.save();
+              c.beginPath();
+              c.setLineDash([6, 4]);
+              c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+              c.lineWidth = 1.5;
+              c.moveTo(chartArea.left, y100);
+              c.lineTo(chartArea.right, y100);
+              c.stroke();
+              // Label
+              c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+              c.font = '10px sans-serif';
+              c.textAlign = 'right';
+              c.textBaseline = 'bottom';
+              c.fillText('Mål 100%', chartArea.right - 4, y100 - 3);
+              c.restore();
+            }
+          }
+
+          // Draw IBC count labels on bars
+          const dataset = chart.data.datasets[0];
+          if (!dataset) return;
+          const meta = chart.getDatasetMeta(0);
+          if (!meta?.data) return;
+
+          c.save();
+          c.font = 'bold 11px sans-serif';
+          c.textAlign = 'center';
+          c.textBaseline = 'bottom';
+
+          meta.data.forEach((bar: any, i: number) => {
+            const count = countData[i];
+            if (count > 0) {
+              c.fillStyle = '#e2e8f0';
+              c.fillText(`${count}`, bar.x, bar.y - 4);
+            }
+          });
+          c.restore();
+        }
+      }]
+    });
+  }
+
+  /** Handle click on bar chart bar — navigate to day or month */
+  private onBarChartClick(index: number) {
+    if (!this.productionChart) return;
+    const labels = this.productionChart.data.labels as string[];
+    if (!labels || index >= labels.length) return;
+
+    if (this.viewMode === 'month') {
+      // Label is the day number (e.g. "5") or "5/3 14" for hourly
+      const label = labels[index];
+      const dayNum = parseInt(label, 10);
+      if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+        const date = new Date(this.currentYear, this.currentMonth, dayNum);
+        this.navigateToDay(date);
+      }
+    } else if (this.viewMode === 'year') {
+      // Index 0-11 corresponds to months
+      const date = new Date(this.currentYear, index, 1);
+      this.navigateToMonth(date);
     }
   }
 
@@ -1761,9 +1922,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
         : 0;
 
-      const avgEff = cycles.length > 0
-        ? cycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / cycles.length
+      // Efficiency = target_cycle_time / avg_actual_cycle_time * 100
+      const avgTarget = cycles.length > 0
+        ? cycles.reduce((sum: number, c: any) => sum + (c.target_cycle_time || 3), 0) / cycles.length
+        : 3;
+      const avgEff = validCycleTimes.length > 0
+        ? (avgTarget / (validCycleTimes.reduce((s: number, t: number) => s + t, 0) / validCycleTimes.length)) * 100
         : 0;
+
+      const runtimeMinutes = cycles.length * avgCycleTime;
+      const runtimeHours = runtimeMinutes / 60;
+      const ibcPerHour = runtimeHours > 0 ? Math.round((cycles.length / runtimeHours) * 10) / 10 : 0;
 
       this.tableData.push({
         period: period,
@@ -1772,12 +1941,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
         efficiency: Math.round(avgEff),
         avgProdPct: Math.round(avgEff),
-        runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,
+        ibcPerHour: ibcPerHour,
+        runtime: Math.round(runtimeMinutes * 10) / 10,
         clickable: this.viewMode !== 'day'
       });
     });
 
     this.tableData.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Compute total IBC/h
+    const totalRuntime = this.tableData.reduce((sum, r) => sum + r.runtime, 0);
+    const totalRuntimeH = totalRuntime / 60;
+    this.totalIbcPerHour = totalRuntimeH > 0 ? Math.round((this.totalCycles / totalRuntimeH) * 10) / 10 : 0;
   }
 
   onTableRowClick(row: TableRow) {
@@ -2062,13 +2237,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   exportCSV() {
     if (this.tableData.length === 0) return;
 
-    const header = ['Period', 'Cykler', 'Cykeltid (min)', 'Effektivitet (%)', 'Drifttid (min)'];
+    const header = ['Period', 'IBC OK', 'Cykeltid (min)', 'Effektivitet (%)', 'IBC/h'];
     const rows = this.tableData.map(row => [
       row.period,
       row.cycles,
       row.avgCycleTime,
       row.efficiency,
-      row.runtime
+      row.ibcPerHour
     ]);
 
     const csvContent = [header, ...rows]
@@ -2090,10 +2265,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     import('xlsx').then(XLSX => {
       const data = this.tableData.map((row: any) => ({
         'Period': row.period,
-        'Cykler': row.cycles,
+        'IBC OK': row.cycles,
         'Cykeltid (min)': row.avgCycleTime,
         'Effektivitet (%)': row.efficiency,
-        'Drifttid (min)': row.runtime
+        'IBC/h': row.ibcPerHour
       }));
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
@@ -2103,6 +2278,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   // Visibility toggles for on-demand panels
+  showDetailTable: boolean = false;
+
   showWeekComparison: boolean = false;
   showPrediktion: boolean = false;
   showOeeDeepDive: boolean = false;
