@@ -68,6 +68,7 @@ Session #358: Icke-rebotling genomgang — 100+ endpoints 0x500, 80+ komponenter
 Session #359: Performance-optimering oee-trendanalys 988ms→124ms + alarm-historik 931ms→130ms (filcache+2 index). CRUD-integrationstest OK. 109 endpoints 0x500. Data-kvalitet DB vs API 0 diskrepanser. 118 grafer OK. E2E 50/50 PASS.
 Session #360: EXPLAIN-audit 3 covering indexes + error-handling 3 fixes + stresstest <600ms + security audit 0 SQLi/XSS + API-docs 117 endpoints + 115 endpoints 0x500 + E2E 115/115 PASS.
 Session #361: Cache review 13 filer OK + DB persistent connections + PHP error_log (kraver root) + 130+128 endpoints 0x500 + bundle 8.8MB/72K main + admin guards OK + 50+ grafer OK + 0 DB diskrepanser + E2E 128/128 PASS.
+Session #362: API benchmark 103 endpoints 0x500 alla <500ms + 32 dead code filer borttagna + ErrorLogger centraliserad + 27 WCAG heading-fixes + 23 chart.destroy() fixes + backup OK + 0 DB diskrepanser.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -80,14 +81,18 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #362):
-- [ ] Backup-verifiering
-- [ ] API response-tid benchmark
-- [ ] Unused code cleanup
-- [ ] Accessibility audit (keyboard nav + screen reader)
-- [ ] Error monitoring (custom loggvag)
+### Nasta (session #363):
+- [ ] Integration test suite (API-floden)
+- [ ] Frontend lazy loading audit
+- [ ] PHP dependency audit (CVE:er)
+- [ ] Mobile responsivitet (375px/768px)
+- [ ] API rate limiting
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #362 (klar)
+Worker A: API benchmark 103 endpoints — alla <500ms, 0x500. Unused code cleanup — 32 filer i controllers/ borttagna (-528 rader dead code). ErrorLogger centraliserad med timestamp+stacktrace. Silent catch i NewsController fixad. Allt deployat.
+Worker B: Backup-verifiering OK (5 backups, senaste 2026-03-06). WCAG audit — 27 heading-fixes i 24 filer + 2 aria-labels. 23 chart.destroy() fixes i graf-komponenter. 1 engelsk text fixad. 0 DB-diskrepanser. 49 filer committade.
 
 ### 2026-03-27 — Session #361 (klar)
 Worker A: Cache-strategi review 13 cache-filer (TTL 5-30s optimal). DB persistent connections aktiverat. PHP error_log kraver root — inga andringar. 130+128 endpoints 0x500. E2E 128/128 PASS.
@@ -96,7 +101,3 @@ Worker B: Bundle-size 8.8MB/72K main — lazy loading perfekt. 28 admin-routes a
 ### 2026-03-27 — Session #360 (klar)
 Worker A: EXPLAIN-audit 15+ queries — 3 covering indexes (rebotling_ibc, stopporsak_registreringar, maskin_oee_daglig). Error-handling audit — 3 tysta catch-block fixade. Stresstest alla <600ms. 115 endpoints 0x500. E2E 115/115 PASS.
 Worker B: Security audit — 0 SQL injection, 0 XSS, CORS+headers OK. API-docs genererad (117 actions, 500+ subendpoints). UX-audit OK. PHP code quality OK. E2E 115/115 PASS.
-
-### 2026-03-27 — Session #359 (klar)
-Worker A: oee-trendanalys 988ms→124ms, alarm-historik 931ms→130ms (filcache 30s TTL + 2 index). CRUD-integrationstest operators/produkttyper/underhallslogg/bonusmal — alla OK. 109 endpoints 0x500. E2E 50/50 PASS. Deploy+index applicerade.
-Worker B: Data-kvalitet prod DB vs API — 0 diskrepanser (IBC-count, historik, operatorer alla stammer). 118 graf-filer granskade — dark theme/lifecycle/OEE OK. WCAG AA alla PASS. Template-granskning trackBy+table-responsive OK.
