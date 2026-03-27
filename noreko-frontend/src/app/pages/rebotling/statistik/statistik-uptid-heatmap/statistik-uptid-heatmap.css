@@ -81,7 +81,7 @@
 }
 
 .axis-corner {
-  width: 72px;
+  width: 80px;
 }
 
 .hour-axis {
@@ -102,7 +102,7 @@
 }
 
 .day-label {
-  width: 72px;
+  width: 80px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -129,14 +129,36 @@
 }
 
 .heatmap-cell {
-  height: 26px;
+  height: 28px;
   border-radius: 3px;
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: filter 0.15s, box-shadow 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .heatmap-cell:hover {
   filter: brightness(1.3);
+  transform: scale(1.15);
+  z-index: 2;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
+}
+
+.heatmap-cell.cell-selected {
+  outline: 2px solid #63b3ed;
+  outline-offset: 1px;
+  transform: scale(1.1);
+  z-index: 3;
+}
+
+.cell-ibc-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1;
+  pointer-events: none;
 }
 
 /* Cell-status färger */
@@ -184,9 +206,10 @@
   padding: 0.5rem 0.75rem;
   z-index: 999;
   pointer-events: none;
-  min-width: 170px;
+  min-width: 190px;
   font-size: 0.78rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -100%);
 }
 
 .tt-date {
@@ -211,3 +234,60 @@
 .tt-detail {
   color: #a0aec0;
 }
+
+.tt-rate {
+  margin-top: 2px;
+}
+
+.tt-hint {
+  font-size: 0.62rem;
+  color: #718096;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Selected cell info bar */
+.selected-cell-info {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.selected-cell-info .badge-running { background: #276749; color: #c6f6d5; }
+.selected-cell-info .badge-stopped { background: #742a2a; color: #fed7d7; }
+.selected-cell-info .badge-idle    { background: #4a5568; color: #a0aec0; }
+
+/* Day IBC total */
+.day-ibc-total {
+  font-size: 0.6rem;
+  color: #48bb78;
+  font-weight: 600;
+}
+
+/* Hour totals row */
+.hour-totals-grid {
+  margin-top: 2px;
+}
+
+.hour-total {
+  font-size: 0.55rem;
+  color: #718096;
+  text-align: center;
+  min-height: 14px;
+}
+
+/* Legend gradient */
+.legend-gradient {
+  display: flex;
+  width: 42px;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.legend-grad-low  { flex: 1; background: rgb(40, 120, 80); }
+.legend-grad-mid  { flex: 1; background: rgb(36, 153, 100); }
+.legend-grad-high { flex: 1; background: rgb(32, 187, 120); }

@@ -12,7 +12,7 @@ import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
-type SortField = 'datum' | 'product_name' | 'user_name' | 'ibc_ok' | 'bur_ej_ok' | 'ibc_ej_ok' | 'totalt' | 'kvalitet' | 'ibc_per_h';
+type SortField = 'datum' | 'product_name' | 'user_name' | 'ibc_ok' | 'bur_ej_ok' | 'ibc_ej_ok' | 'totalt' | 'kvalitet' | 'ibc_per_h' | 'effektivitet';
 type SortDir   = 'asc' | 'desc';
 
 @Component({
@@ -29,6 +29,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   products: any[] = [];
   selectedIds: Set<number> = new Set();
   expanded: { [id: number]: boolean } = {};
+  expandedDays: { [dateKey: string]: boolean } = {};
   loading = false;
   errorMessage = '';
   successMessage = '';
@@ -242,6 +243,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         case 'totalt':       aVal = a.totalt ?? 0;      bVal = b.totalt ?? 0; break;
         case 'kvalitet':     aVal = this.getQualityPct(a) ?? -1; bVal = this.getQualityPct(b) ?? -1; break;
         case 'ibc_per_h':    aVal = this.getIbcPerHour(a) ?? -1; bVal = this.getIbcPerHour(b) ?? -1; break;
+        case 'effektivitet': aVal = this.getEfficiency(a) ?? -1; bVal = this.getEfficiency(b) ?? -1; break;
         default:             aVal = a.datum ?? ''; bVal = b.datum ?? '';
       }
       if (aVal < bVal) return this.sortDir === 'asc' ? -1 : 1;
@@ -250,6 +252,113 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
 
     return result;
+  }
+
+  // ========== Day-grouped view ==========
+  get groupedDays(): Array<{
+    date: string;
+    reports: any[];
+    totalIbc: number;
+    totalDrift: number;
+    products: string[];
+    operators: string[];
+    avgEfficiency: number | null;
+  }> {
+    const reports = this.filteredReports;
+    const dayMap: { [date: string]: any[] } = {};
+    reports.forEach(r => {
+      const d = (r.datum || '').substring(0, 10);
+      if (!dayMap[d]) dayMap[d] = [];
+      dayMap[d].push(r);
+    });
+
+    const days = Object.entries(dayMap).map(([date, dayReports]) => {
+      const totalIbc = dayReports.reduce((s, r) => s + (r.totalt || 0), 0);
+      const totalDrift = dayReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+
+      const productSet = new Set<string>();
+      dayReports.forEach(r => {
+        if (r.product_name) productSet.add(r.product_name);
+      });
+
+      const opSet = new Set<string>();
+      dayReports.forEach(r => {
+        if (r.op2_name) opSet.add(r.op2_name);
+        if (r.op1_name) opSet.add(r.op1_name);
+        if (r.op3_name) opSet.add(r.op3_name);
+      });
+
+      const effReports = dayReports.filter(r => this.getEfficiency(r) != null);
+      const avgEfficiency = effReports.length > 0
+        ? Math.round(effReports.reduce((s, r) => s + (this.getEfficiency(r) ?? 0), 0) / effReports.length)
+        : null;
+
+      return {
+        date,
+        reports: dayReports,
+        totalIbc,
+        totalDrift,
+        products: Array.from(productSet),
+        operators: Array.from(opSet),
+        avgEfficiency
+      };
+    });
+
+    // Sort by date descending
+    days.sort((a, b) => b.date.localeCompare(a.date));
+    return days;
+  }
+
+  toggleDay(date: string) {
+    this.expandedDays[date] = !this.expandedDays[date];
+    // Load lopnummer and comments for all reports in the day
+    if (this.expandedDays[date]) {
+      const day = this.groupedDays.find(d => d.date === date);
+      if (day) {
+        day.reports.forEach(report => {
+          if (report.skiftraknare && this.lopnummerMap[report.id] === undefined) {
+            this.loadLopnummer(report);
+          }
+          if (this.kommentarMap[report.id] === undefined) {
+            this.laddaKommentar(report);
+          }
+        });
+      }
+    }
+  }
+
+  isDayExpanded(date: string): boolean {
+    return !!this.expandedDays[date];
+  }
+
+  getShiftTimeRange(report: any): { start: string; stop: string } {
+    const datum = report.datum || '';
+    const startTime = datum.substring(11, 16) || '–';
+    const drifttid = report.drifttid || 0;
+    const rasttime = report.rasttime || 0;
+    let stopTime = '–';
+    if (datum.length >= 16 && (drifttid > 0 || rasttime > 0)) {
+      const totalMin = drifttid + rasttime;
+      const startDate = new Date(datum);
+      if (!isNaN(startDate.getTime())) {
+        startDate.setMinutes(startDate.getMinutes() + totalMin);
+        stopTime = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
+      }
+    }
+    // Use skiftTiderMap if available
+    const tider = this.skiftTiderMap[report.id];
+    if (tider?.start) {
+      const s = tider.start;
+      return {
+        start: s.substring(11, 16) || startTime,
+        stop: tider.slut ? tider.slut.substring(11, 16) : stopTime
+      };
+    }
+    return { start: startTime, stop: stopTime };
+  }
+
+  trackByDate(index: number, day: any): string {
+    return day.date;
   }
 
   sortBy(field: SortField) {
@@ -308,6 +417,18 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return Math.round(oeeSum / reports.length);
   }
 
+  get summaryAvgIbcH(): number | null {
+    const reports = this.filteredReports.filter(r => this.getIbcPerHour(r) != null);
+    if (!reports.length) return null;
+    return Math.round(reports.reduce((s, r) => s + (this.getIbcPerHour(r) ?? 0), 0) / reports.length * 10) / 10;
+  }
+
+  get summaryAvgEfficiency(): number | null {
+    const reports = this.filteredReports.filter(r => this.getEfficiency(r) != null);
+    if (!reports.length) return null;
+    return Math.round(reports.reduce((s, r) => s + (this.getEfficiency(r) ?? 0), 0) / reports.length);
+  }
+
   get summaryTotalRast(): number {
     return this.filteredReports.reduce((s, r) => s + (r.rasttime || 0), 0);
   }
@@ -346,6 +467,17 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   getIbcPerHour(r: any): number | null {
     if (!r.drifttid) return null;
     return Math.round((r.ibc_ok / (r.drifttid / 60)) * 10) / 10;
+  }
+
+  /** Effektivitet = actual IBC/h vs target IBC/h (baserat på produktens cykeltid) */
+  getEfficiency(r: any): number | null {
+    const ibcH = this.getIbcPerHour(r);
+    if (ibcH == null) return null;
+    // Hitta produktens cykeltid, default 3 min
+    const product = this.products?.find((p: any) => p.id === r.product_id);
+    const targetCycleMin = product?.cycle_time_minutes || 3;
+    const targetIbcH = 60 / targetCycleMin;
+    return Math.round((ibcH / targetIbcH) * 100);
   }
 
   getDefectPct(r: any): number | null {

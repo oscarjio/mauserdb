@@ -1,5 +1,47 @@
 # MauserDB Dev Log
 
+## Session #368 — Worker B (2026-03-27)
+**Fokus: Uncommitted changes granskning + heatmap UX + rebotling UX-granskning + chart-granskning + data-verifiering + deploy**
+
+### UPPGIFT 1: Granska uncommitted changes — KLAR
+- **rebotling-skiftrapport**: Forenklad vy — bort med Kvalitet/OEE/Rasttid/Vs.foregaende, in med Snitt IBC/h och Effektivitet (target_cycle_time-baserad). Tabellkolumner reducerade. `op2_name` ersatter `user_name`. Korrekt logik (effektivitet = actual IBC/h / target IBC/h * 100). Alla produkter har cycle_time 3 min = target 20 IBC/h. GODKANT.
+- **rebotling-statistik**: KPI-kort komprimerade till compact bar. VD-oversikt och kalender-sidopanel borttagna (duplicerade info). Effektivitetsberakning andrad fran `produktion_procent` till `target/rolling_avg * 100` med glidande medelv 5 cykler. 100%-mal-linje tillagd i grafen. GODKANT.
+
+### UPPGIFT 2: Rebotling heatmap UX forbattring — KLAR
+- **Gradient-farger**: Running-celler visar gron gradient baserat pa IBC-antal (morkt gron = fa, ljust gron = manga)
+- **IBC-etiketter**: Varje running-cell visar antal IBC i cellen
+- **Klickbarhet**: Klick pa cell visar vald cell-info med datum, tid, status, IBC-antal
+- **Dag-summor**: Varje rad visar total IBC for den dagen
+- **Tim-summor**: Kolumnsummor under heatmappen visar IBC per timme tvarsgaende
+- **Forbattrade tooltips**: Visar tidsintervall (t.ex. 07:00-08:00), takt-indikator (check/varning), klick-hint
+- **Legend**: Gradient-legend istf enfargsruta for drift
+- **Hover-effekt**: scale(1.15) + box-shadow for battre interaktivitet
+
+### UPPGIFT 3: UX-granskning rebotling-sidor — KLAR
+- **rebotling-statistik**: Dark theme konsistent (#1a202c bg, #2d3748 cards, #e2e8f0 text). Labels pa svenska. Charts korrekt lifecycle.
+- **rebotling-skiftrapport**: Dark theme OK. Filter, sortering, tooltips fungerar. Svenska labels. Charts destroy korrekt i ngOnDestroy.
+- **rebotling-operatorsbonus**: Dark theme OK. Radardiagram, stapeldiagram, doughnut alla med korrekt destroy. Bonuskonfiguration UI ser bra ut. Simulator fungerar.
+- **statistik-uptid-heatmap**: Forbattrad (se uppgift 2). Korrekt lifecycle (destroy$ + clearInterval).
+
+### UPPGIFT 4: Chart/graf-granskning — KLAR
+- **rebotling-statistik**: productionChart destroy + canvas cleanup i ngOnDestroy. `produktion_procent` beraknas nu korrekt som effektivitet (target/rolling_avg*100) — INTE kumulativ (bekraftat). suggestedMax=150, 100%-linje tillagd.
+- **rebotling-skiftrapport**: trendChart + efficiencyChart — korrekt destroy med try/catch. Timers (trendBuildTimer, effBuildTimer) rensas i ngOnDestroy.
+- **operatorsbonus**: radarChart + barChart + simChart — alla destroy korrekt. Timers rensas. Dark theme farger (#4299e1, #48bb78, #ecc94b, #9f7aea) konsistenta.
+- **Alla charts**: takeUntil(destroy$) pa alla subscriptions. clearInterval/clearTimeout i ngOnDestroy.
+
+### UPPGIFT 5: Data-verifiering mot prod DB — KLAR
+- **Skiftrapport**: 19 rapporter sedan mars-start, 857 total IBC OK — stammer med DB-query
+- **Daglig data (2026-03-27)**: 4 skift, 108 IBC OK, snitt drifttid 109.8 min — korrekt
+- **Heatmap-data**: rebotling_ibc 122 cykler idag (7505 ibc_count). Tim-fordelning stammer (7h:10, 8h:15, 10h:22, 11h:24, 13h:30 etc)
+- **Bonus-konfiguration**: IBC/h (40%, mal 12, max 500kr), Kvalitet (30%, mal 98%, max 400kr), Narvaro (20%, mal 100%, max 200kr), Team (10%, mal 95%, max 100kr) — stammer med DB
+- **Produkter**: 5 produkter, alla cycle_time_minutes=3 — effektivitetsberakning korrekt (target 20 IBC/h)
+- **0 diskrepanser** hittade
+
+### UPPGIFT 6: Bygg + Deploy — KLAR
+- `npx ng build` OK (0 fel, enbart harmless CommonJS-varningar)
+- rsync till dev.mauserdb.com OK
+- curl-verifiering: HTTP 200
+
 ## Session #367 — Worker A (2026-03-27)
 **Fokus: Performance-optimering month-compare + admin CRUD-test + caching-granskning + endpoint-stresstest + deploy dev**
 

@@ -47,6 +47,28 @@
     <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
   </div>
 
+  <!-- Vald cell info -->
+  <div class="selected-cell-info" *ngIf="selectedCell">
+    <div class="d-flex align-items-center justify-content-between">
+      <span>
+        <i class="fas fa-clock me-1 text-info"></i>
+        <strong>{{ selectedCell.date }}</strong> kl {{ formatHour(selectedCell.hour) }}:00
+        <span class="badge ms-2" [class]="'badge-' + selectedCell.status">
+          {{ getStatusLabel(selectedCell.status) }}
+        </span>
+        <span *ngIf="selectedCell.status === 'running'" class="ms-2">
+          <strong>{{ selectedCell.ibc_count }}</strong> IBC
+        </span>
+        <span *ngIf="selectedCell.status === 'stopped'" class="ms-2">
+          ~{{ selectedCell.stop_minutes }} min stopp
+        </span>
+      </span>
+      <button class="btn btn-sm btn-outline-secondary py-0 px-1" (click)="selectedCell = null" title="Stäng">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- Heatmap-rutnät -->
   <div class="heatmap-wrapper" *ngIf="!loading && !error && rows.length > 0">
     <!-- X-axel: timmar -->
@@ -61,24 +83,45 @@
         <div class="day-label">
           <span class="day-name">{{ row.dayLabel }}</span>
           <span class="day-date">{{ row.dateLabel }}</span>
+          <span class="day-ibc-total" *ngIf="getDayTotal(row) > 0">{{ getDayTotal(row) }} IBC</span>
         </div>
         <div class="cells-row">
           <div
             class="heatmap-cell"
             [class]="getCellClass(cell)"
+            [class.cell-selected]="selectedCell === cell"
+            [style.background]="getCellBackground(cell)"
             *ngFor="let cell of row.cells; trackBy: trackByIndex"
             (mouseenter)="showTooltip($event, cell)"
             (mouseleave)="hideTooltip()"
-          ></div>
+            (click)="onCellClick(cell)"
+          >
+            <span class="cell-ibc-label" *ngIf="cell.status === 'running' && cell.ibc_count > 0">{{ cell.ibc_count }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Legend -->
+    <!-- Dag-summa per timme (kolumnsumma) -->
+    <div class="heatmap-grid hour-totals-grid">
+      <div class="axis-corner"></div>
+      <div class="cells-row">
+        <div class="hour-total" *ngFor="let h of hours; trackBy: trackByIndex"
+             [title]="'Kl ' + formatHour(h) + ': ' + getHourTotal(h) + ' IBC totalt'">
+          {{ getHourTotal(h) || '' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend med gradient -->
     <div class="heatmap-legend">
       <div class="legend-item">
-        <div class="legend-dot cell-running"></div>
-        <span>Drift</span>
+        <div class="legend-gradient">
+          <div class="legend-grad-low"></div>
+          <div class="legend-grad-mid"></div>
+          <div class="legend-grad-high"></div>
+        </div>
+        <span>Drift (IBC: låg-hög)</span>
       </div>
       <div class="legend-item">
         <div class="legend-dot cell-stopped"></div>
@@ -104,15 +147,21 @@
     [style.left.px]="tooltip.x"
     [style.top.px]="tooltip.y"
   >
-    <div class="tt-date">{{ tooltip.cell.date }} — {{ formatHour(tooltip.cell.hour) }}:00</div>
+    <div class="tt-date">{{ tooltip.cell.date }} — {{ formatHour(tooltip.cell.hour) }}:00&ndash;{{ formatHour(tooltip.cell.hour + 1) }}:00</div>
     <div class="tt-status" [class]="'tt-' + tooltip.cell.status">
       {{ getStatusLabel(tooltip.cell.status) }}
     </div>
     <div class="tt-detail" *ngIf="tooltip.cell.status === 'running'">
-      IBC denna timme: <strong>{{ tooltip.cell.ibc_count }}</strong>
+      <div>IBC denna timme: <strong>{{ tooltip.cell.ibc_count }}</strong></div>
+      <div class="tt-rate" *ngIf="tooltip.cell.ibc_count > 0">
+        Takt: <strong>{{ tooltip.cell.ibc_count }}</strong> IBC/h
+        <span *ngIf="tooltip.cell.ibc_count >= 20" class="text-success ms-1"><i class="fas fa-check-circle"></i></span>
+        <span *ngIf="tooltip.cell.ibc_count > 0 && tooltip.cell.ibc_count < 15" class="text-warning ms-1"><i class="fas fa-exclamation-triangle"></i></span>
+      </div>
     </div>
     <div class="tt-detail" *ngIf="tooltip.cell.status === 'stopped'">
       Uppskattad stopptid: <strong>~{{ tooltip.cell.stop_minutes }} min</strong>
     </div>
+    <div class="tt-hint">Klicka för detaljer</div>
   </div>
 </div>

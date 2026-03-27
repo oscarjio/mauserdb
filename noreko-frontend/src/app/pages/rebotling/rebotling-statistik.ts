@@ -1155,22 +1155,35 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       cycleTime.push(Math.round(ct * 10) / 10);
       totalCycleTime += ct;
 
-      const pp = parseFloat(cycle.produktion_procent) || 0;
-      prodPct.push(Math.round(pp));
-      totalProdPct += pp;
-
       // Per-cykel mål baserat på produktens cykeltid (stegar vid produktbyte)
       const target = parseFloat(cycle.target_cycle_time);
+
+      // Beräkna riktig effektivitet: target_cycle_time / rolling_avg_cycle_time * 100
+      // Använd glidande medelvärde av de senaste 5 cyklerna för jämnare kurva
+      const effTargetVal = !isNaN(target) && target > 0 ? target : 3;
+      const windowSize = 5;
+      const startIdx = Math.max(0, i - windowSize + 1);
+      let windowSum = 0;
+      let windowCount = 0;
+      for (let w = startIdx; w <= i; w++) {
+        const wct = parseFloat(displayCycles[w].cycle_time);
+        if (!isNaN(wct) && wct > 0 && wct <= 30) {
+          windowSum += wct;
+          windowCount++;
+        }
+      }
+      const rollingAvg = windowCount > 0 ? windowSum / windowCount : 0;
+      const pp = rollingAvg > 0 ? Math.round((effTargetVal / rollingAvg) * 100) : 0;
+      prodPct.push(pp);
+      totalProdPct += pp;
       targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
 
       // Produktnamn per cykel (för tooltip)
       produktNamn.push(cycle.produkt_namn || '');
 
-      // Detektera produktbyte
+      // Detektera produktbyte (inkludera även första produkten vid index 0)
       if (cycle.produkt_id && cycle.produkt_id !== lastProduktId) {
-        if (lastProduktId !== null) {
-          produktByten.push({ index: i, namn: cycle.produkt_namn || 'Ny produkt' });
-        }
+        produktByten.push({ index: i, namn: cycle.produkt_namn || 'Ny produkt' });
         lastProduktId = cycle.produkt_id;
       }
     });
@@ -1298,10 +1311,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         return;
       }
 
-      // Day view: line chart with production %
+      // Day view: line chart with efficiency %
       const datasets: any[] = [
         {
-          label: 'Produktion %',
+          label: 'Effektivitet %',
           data: chartData.prodPct,
           borderColor: '#00d4ff',
           backgroundColor: 'rgba(0, 212, 255, 0.1)',
@@ -1313,7 +1326,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           borderWidth: 2
         },
         {
-          label: 'Snitt Prod%',
+          label: 'Snitt',
           data: chartData.avgProdPct,
           borderColor: '#ffc107',
           borderDash: [8, 4],
@@ -1363,7 +1376,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           scales: {
             y: {
               beginAtZero: true,
-              title: { display: true, text: 'Produktion %', color: '#e0e0e0', font: { size: 13 } },
+              suggestedMax: 150,
+              title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
@@ -1385,7 +1399,29 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             const { ctx, chartArea, scales } = chart;
             if (!chartArea || !scales.x) return;
 
-            const { top, bottom } = chartArea;
+            const { top, bottom, left, right } = chartArea;
+
+            // 100% mål-linje
+            const yScale = scales['y'];
+            if (yScale) {
+              const y100 = yScale.getPixelForValue(100);
+              if (y100 >= top && y100 <= bottom) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.moveTo(left, y100);
+                ctx.lineTo(right, y100);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('Mål 100%', right - 4, y100 - 3);
+                ctx.restore();
+              }
+            }
 
             chartData.runningPeriods.forEach((period: any) => {
               try {

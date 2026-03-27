@@ -114,104 +114,13 @@
       </div>
     </div>
 
-    <!-- Produktionsöverblick (VD-vy) -->
-    <div class="container-fluid" *ngIf="overviewData && !overviewLoading">
-      <div class="overview-panel mb-4">
-        <div class="overview-title"><i class="fas fa-tachometer-alt me-2"></i>Produktionspuls</div>
-        <div class="overview-grid">
-          <div class="overview-card">
-            <div class="ov-label">Idag</div>
-            <div class="ov-main">
-              <span class="ov-big">{{ overviewData.todayIbc }}</span>
-              <span class="ov-unit">IBC</span>
-            </div>
-            <div class="ov-sub">
-              av {{ overviewData.todayTarget }} mål
-              <span class="ov-pct" [ngClass]="overviewData.todayPct >= 90 ? 'text-success' : overviewData.todayPct >= 70 ? 'text-warning' : 'text-danger'">
-                ({{ overviewData.todayPct }}%)
-              </span>
-            </div>
-            <div class="ov-sub" *ngIf="overviewData.todayForecast > 0">
-              Prognos: <strong>{{ overviewData.todayForecast }}</strong> IBC
-            </div>
-          </div>
-          <div class="overview-card">
-            <div class="ov-label">Aktuell takt</div>
-            <div class="ov-main">
-              <span class="ov-big">{{ overviewData.ratePerH | number:'1.1-1' }}</span>
-              <span class="ov-unit">IBC/h</span>
-            </div>
-            <div class="ov-sub">
-              OEE idag: <strong [ngClass]="overviewData.oeeToday >= 65 ? 'text-success' : overviewData.oeeToday >= 50 ? 'text-warning' : 'text-danger'">{{ overviewData.oeeToday | number:'1.0-0' }}%</strong>
-            </div>
-            <div class="ov-sub">
-              <span class="ov-trend" [ngClass]="getTrendClass(getOeeDiff())">
-                <i class="fas" [ngClass]="getTrendIcon(getOeeDiff())"></i>
-                {{ getOeeDiff() > 0 ? '+' : '' }}{{ getOeeDiff() }}% vs igår
-              </span>
-            </div>
-          </div>
-          <div class="overview-card">
-            <div class="ov-label">Denna vecka</div>
-            <div class="ov-main">
-              <span class="ov-big">{{ overviewData.thisWeekIbc }}</span>
-              <span class="ov-unit">IBC</span>
-            </div>
-            <div class="ov-sub">
-              Förr. vecka: {{ overviewData.prevWeekIbc }}
-              <span class="ov-trend" [ngClass]="getTrendClass(overviewData.weekDiffPct)">
-                <i class="fas" [ngClass]="getTrendIcon(overviewData.weekDiffPct)"></i>
-                {{ overviewData.weekDiffPct > 0 ? '+' : '' }}{{ overviewData.weekDiffPct | number:'1.0-0' }}%
-              </span>
-            </div>
-            <div class="ov-sub">Kvalitet: <strong>{{ overviewData.qualityPct | number:'1.1-1' }}%</strong></div>
-          </div>
-          <div class="overview-card">
-            <div class="ov-label">Senaste 7 dagar</div>
-            <div class="ov-sparkline">
-              <svg width="120" height="32" viewBox="0 0 120 32">
-                <polyline [attr.points]="getSparklinePoints()" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-              </svg>
-            </div>
-            <div class="ov-sparkline-labels">
-              <span *ngFor="let d of overviewData.days7; let last = last; trackBy: trackByIndex" class="ov-spark-day" [class.ov-spark-today]="last">{{ d.ibc }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- KPI Cards -->
+    <!-- KPI Summary (compact, under navigation) -->
     <div class="container-fluid">
-      <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-cubes"></i></div>
-            <div class="kpi-value">{{ totalCycles }}</div>
-            <div class="kpi-label">Totalt Cykler</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-clock"></i></div>
-            <div class="kpi-value">{{ avgCycleTime }} min</div>
-            <div class="kpi-label">Snitt Cykeltid</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
-            <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</div>
-            <div class="kpi-label">Effektivitet</div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-          <div class="kpi-card">
-            <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
-            <div class="kpi-value">{{ totalRuntimeHours }} h</div>
-            <div class="kpi-label">Körtid</div>
-          </div>
-        </div>
+      <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
+        <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
+        <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
+        <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
+        <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
       </div>
     </div>
 
@@ -229,39 +138,8 @@
     <!-- Main Content: Calendar + Chart -->
     <div class="container-fluid" *ngIf="!loading">
       <div class="row">
-        <!-- Calendar Sidebar (only in day view) -->
-        <div class="col-lg-3 mb-4" *ngIf="viewMode === 'day'">
-          <div class="dark-card">
-            <div class="card-header">
-              <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Välj Period</h5>
-            </div>
-            <div class="card-body">
-              <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
-                <div *ngFor="let cell of visiblePeriodCells; trackBy: trackByIndex"
-                     class="period-cell"
-                     [class.has-data]="cell.hasData"
-                     [class.selected]="cell.isSelected"
-                     (mousedown)="onCellMouseDown(cell, $event)"
-                     (mouseenter)="onCellMouseEnter(cell)"
-                     (dblclick)="onCellDoubleClick(cell)">
-                  <div class="cell-label">{{ cell.label }}</div>
-                  <div class="cell-count" *ngIf="cell.hasData && viewMode === 'day' && cell.avgCycleTime > 0">
-                    {{ cell.avgCycleTime }}<small style="font-size: 0.7em;">min</small>
-                  </div>
-                  <div class="cell-info" *ngIf="cell.hasData && viewMode === 'day'">
-                    <small>{{ cell.cyclesCount }} cykel<span *ngIf="cell.cyclesCount !== 1">er</span></small>
-                  </div>
-                </div>
-              </div>
-              <div class="mt-3">
-                <small class="text-muted d-block text-center">Dra i grafen för att zooma in</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Chart -->
-        <div [class]="viewMode === 'day' ? 'col-lg-9 mb-4' : 'col-lg-12 mb-4'">
+        <div class="col-lg-12 mb-4">
           <div class="dark-card">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div>
@@ -271,7 +149,7 @@
                   <span style="color:#ffc107">&#9632;</span> Rast &nbsp;
                   <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
                   <span style="color:#ffc107">--</span> Snitt &nbsp;
-                  <span style="color:#ff8800">--</span> Mål
+                  <span style="color:rgba(255,255,255,0.4)">--</span> Mål 100%
                 </small>
                 <small class="text-muted d-block" *ngIf="viewMode !== 'day'">
                   Klicka p&aring; en stapel f&ouml;r att navigera.

@@ -116,67 +116,37 @@
 
       <!-- ======== SAMMANFATTNINGSKORT ======== -->
       <div class="summary-bar row g-2 mb-4" *ngIf="filteredReports.length > 0">
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-3">
           <div class="summary-card">
             <div class="summary-label">Total IBC</div>
             <div class="summary-value text-info">{{ summaryTotalIbc }}</div>
           </div>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-3">
           <div class="summary-card">
-            <div class="summary-label">Kvalitet</div>
-            <div class="summary-value"
-              [class.text-success]="(summaryAvgQuality ?? 0) >= 90"
-              [class.text-warning]="(summaryAvgQuality ?? 101) >= 70 && (summaryAvgQuality ?? 101) < 90"
-              [class.text-danger]="(summaryAvgQuality ?? 101) < 70 && summaryAvgQuality != null"
-              [class.text-muted]="summaryAvgQuality == null">
-              {{ summaryAvgQuality != null ? (summaryAvgQuality + '%') : '–' }}
+            <div class="summary-label">Snitt IBC/h</div>
+            <div class="summary-value text-warning">
+              {{ summaryAvgIbcH != null ? summaryAvgIbcH : '–' }}
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-3">
           <div class="summary-card">
-            <div class="summary-label">OEE (snitt)</div>
+            <div class="summary-label">Effektivitet</div>
             <div class="summary-value"
-              [class.text-success]="(summaryAvgOee ?? 0) >= 75"
-              [class.text-warning]="(summaryAvgOee ?? 101) >= 50 && (summaryAvgOee ?? 101) < 75"
-              [class.text-danger]="(summaryAvgOee ?? 101) < 50 && summaryAvgOee != null"
-              [class.text-muted]="summaryAvgOee == null">
-              {{ summaryAvgOee != null ? (summaryAvgOee + '%') : '–' }}
+              [class.text-success]="(summaryAvgEfficiency ?? 0) >= 90"
+              [class.text-warning]="(summaryAvgEfficiency ?? 101) >= 70 && (summaryAvgEfficiency ?? 101) < 90"
+              [class.text-danger]="(summaryAvgEfficiency ?? 101) < 70 && summaryAvgEfficiency != null"
+              [class.text-muted]="summaryAvgEfficiency == null">
+              {{ summaryAvgEfficiency != null ? (summaryAvgEfficiency + '%') : '–' }}
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-3">
           <div class="summary-card">
             <div class="summary-label">Drifttid</div>
             <div class="summary-value text-success">
               {{ summaryTotalDrift > 0 ? (summaryTotalDrift + ' min') : '–' }}
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="summary-card">
-            <div class="summary-label">Rasttid</div>
-            <div class="summary-value text-warning">
-              {{ summaryTotalRast > 0 ? (summaryTotalRast + ' min') : '–' }}
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="summary-card">
-            <div class="summary-label">Vs. föregående</div>
-            <div class="summary-value"
-              [class.text-success]="(summaryDeltaVsPrev ?? 0) > 0"
-              [class.text-danger]="(summaryDeltaVsPrev ?? 0) < 0"
-              [class.text-muted]="summaryDeltaVsPrev == null">
-              <ng-container *ngIf="summaryDeltaVsPrev != null">
-                <i class="fas me-1"
-                   [class.fa-arrow-up]="summaryDeltaVsPrev > 0"
-                   [class.fa-arrow-down]="summaryDeltaVsPrev < 0"
-                   [class.fa-minus]="summaryDeltaVsPrev === 0"></i>
-                {{ summaryDeltaVsPrev > 0 ? '+' : '' }}{{ summaryDeltaVsPrev }}
-              </ng-container>
-              <span *ngIf="summaryDeltaVsPrev == null">–</span>
             </div>
           </div>
         </div>
@@ -259,7 +229,7 @@
         </div>
       </div>
 
-      <!-- ======== SKIFTRAPPORTTABELL ======== -->
+      <!-- ======== SKIFTRAPPORTTABELL (DAGSGRUPPERAD) ======== -->
       <div class="card mb-4">
         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
           <h5 class="card-title mb-0">
@@ -310,7 +280,7 @@
           </div>
 
           <div class="table-responsive" *ngIf="!loading && filteredReports.length > 0">
-            <table class="table table-striped table-hover">
+            <table class="table table-hover mb-0">
               <thead class="table-dark" scope="col">
                 <tr>
                   <th width="40" *ngIf="isAdmin" scope="col">
@@ -318,545 +288,297 @@
                       [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
                       (change)="toggleSelectAll()" />
                   </th>
-                  <th class="sortable" (click)="sortBy('datum')" scope="col" tabindex="0" (keydown.enter)="sortBy('datum')">
-                    Datum <i class="fas ms-1" [ngClass]="sortIcon('datum')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('product_name')" scope="col" tabindex="0" (keydown.enter)="sortBy('product_name')">
-                    Produkt <i class="fas ms-1" [ngClass]="sortIcon('product_name')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('user_name')" scope="col" tabindex="0" (keydown.enter)="sortBy('user_name')">
-                    Användare <i class="fas ms-1" [ngClass]="sortIcon('user_name')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('ibc_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_ok')">
-                    IBC OK <i class="fas ms-1" [ngClass]="sortIcon('ibc_ok')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('bur_ej_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('bur_ej_ok')">
-                    Bur ej OK <i class="fas ms-1" [ngClass]="sortIcon('bur_ej_ok')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('ibc_ej_ok')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_ej_ok')">
-                    IBC ej OK <i class="fas ms-1" [ngClass]="sortIcon('ibc_ej_ok')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('totalt')" scope="col" tabindex="0" (keydown.enter)="sortBy('totalt')">
-                    Totalt <i class="fas ms-1" [ngClass]="sortIcon('totalt')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('kvalitet')" scope="col" tabindex="0" (keydown.enter)="sortBy('kvalitet')">
-                    Kval% <i class="fas ms-1" [ngClass]="sortIcon('kvalitet')"></i>
-                  </th>
-                  <th class="sortable" (click)="sortBy('ibc_per_h')" scope="col" tabindex="0" (keydown.enter)="sortBy('ibc_per_h')">
-                    IBC/h <i class="fas ms-1" [ngClass]="sortIcon('ibc_per_h')"></i>
-                  </th>
-                  <th title="Jämfört med föregående rad" scope="col">Vs. föreg.</th>
-                  <th scope="col">Inlagd</th>
-                  <th scope="col">Åtgärder</th>
+                  <th scope="col" style="width:40px;"></th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Produkter</th>
+                  <th scope="col">Operatörer</th>
+                  <th scope="col">Total IBC</th>
+                  <th scope="col">Snitt effektivitet</th>
+                  <th scope="col">Drifttid</th>
+                  <th scope="col">Skift</th>
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let report of filteredReports; let i = index; trackBy: trackByReportId">
-                  <tr [class.inlagd-row]="report.inlagd == 1">
-                    <td *ngIf="isAdmin">
-                      <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
+                <ng-container *ngFor="let day of groupedDays; trackBy: trackByDate">
+                  <!-- ===== DAGSRAD (sammanfattning) ===== -->
+                  <tr class="day-summary-row" (click)="toggleDay(day.date)" style="cursor:pointer;">
+                    <td *ngIf="isAdmin" (click)="$event.stopPropagation()">
+                      <!-- Checkbox for all reports in this day -->
                     </td>
-                    <td>{{ report.datum | date:'yyyy-MM-dd' }}</td>
-                    <td>
-                      <span class="badge bg-info">{{ report.product_name || '-' }}</span>
+                    <td class="text-center">
+                      <i class="fas day-chevron"
+                        [class.fa-chevron-down]="!isDayExpanded(day.date)"
+                        [class.fa-chevron-up]="isDayExpanded(day.date)"></i>
                     </td>
                     <td>
-                      <span class="badge bg-secondary">{{ report.user_name || '-' }}</span>
+                      <strong class="text-info">{{ day.date }}</strong>
                     </td>
-                    <td>{{ report.ibc_ok }}</td>
-                    <td>{{ report.bur_ej_ok }}</td>
-                    <td>{{ report.ibc_ej_ok }}</td>
-                    <td><strong>{{ report.totalt }}</strong></td>
                     <td>
-                      <span *ngIf="getQualityPct(report) != null"
+                      <span *ngFor="let p of day.products; trackBy: trackByIndex" class="badge bg-info me-1 mb-1">{{ p }}</span>
+                      <span *ngIf="day.products.length === 0" class="text-muted">–</span>
+                    </td>
+                    <td>
+                      <span *ngFor="let op of day.operators; trackBy: trackByIndex" class="badge bg-secondary me-1 mb-1">{{ op }}</span>
+                      <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
+                    </td>
+                    <td>
+                      <strong class="text-warning">{{ day.totalIbc }}</strong>
+                    </td>
+                    <td>
+                      <span *ngIf="day.avgEfficiency != null"
                         class="badge"
-                        [class.bg-success]="(getQualityPct(report) ?? 0) >= 90"
-                        [class.bg-warning]="(getQualityPct(report) ?? 0) >= 70 && (getQualityPct(report) ?? 0) < 90"
-                        [class.bg-danger]="(getQualityPct(report) ?? 0) < 70">
-                        {{ getQualityPct(report) }}%
+                        [class.bg-success]="(day.avgEfficiency ?? 0) >= 90"
+                        [class.bg-warning]="(day.avgEfficiency ?? 0) >= 70 && (day.avgEfficiency ?? 0) < 90"
+                        [class.bg-danger]="(day.avgEfficiency ?? 0) < 70">
+                        {{ day.avgEfficiency }}%
                       </span>
-                      <span *ngIf="getQualityPct(report) == null" class="text-muted">–</span>
+                      <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
                     </td>
                     <td>
-                      <span *ngIf="getIbcPerHour(report) != null" class="text-warning fw-semibold">
-                        {{ getIbcPerHour(report) }}
-                      </span>
-                      <span *ngIf="getIbcPerHour(report) == null" class="text-muted">–</span>
+                      <span *ngIf="day.totalDrift > 0" class="text-success">{{ formatDrifttid(day.totalDrift) }}</span>
+                      <span *ngIf="day.totalDrift === 0" class="text-muted">–</span>
                     </td>
                     <td>
-                      <ng-container *ngIf="getDeltaIbc(i) !== null">
-                        <span class="badge"
-                          [class.bg-success]="getDeltaIbc(i)! > 0"
-                          [class.bg-danger]="getDeltaIbc(i)! < 0"
-                          [class.bg-secondary]="getDeltaIbc(i) === 0">
-                          <i class="fas me-1"
-                            [class.fa-arrow-up]="getDeltaIbc(i)! > 0"
-                            [class.fa-arrow-down]="getDeltaIbc(i)! < 0"
-                            [class.fa-minus]="getDeltaIbc(i) === 0"></i>
-                          {{ getDeltaIbc(i)! > 0 ? '+' : '' }}{{ getDeltaIbc(i) }}
-                        </span>
-                      </ng-container>
-                      <span *ngIf="getDeltaIbc(i) === null" class="text-muted">–</span>
-                    </td>
-                    <td>
-                      <div class="form-check form-switch" *ngIf="isAdmin">
-                        <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1"
-                          (change)="toggleInlagd(report)" />
-                        <label class="form-check-label">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
-                      </div>
-                      <span *ngIf="!isAdmin" class="badge"
-                        [class.bg-success]="report.inlagd == 1"
-                        [class.bg-secondary]="report.inlagd == 0">
-                        {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="btn-group btn-group-sm" role="group">
-                        <!-- Trendknapp -->
-                        <button *ngIf="loggedIn && report.skiftraknare" class="btn btn-outline-primary"
-                          (click)="toggleTrend(report)"
-                          [title]="selectedTrendReportId === report.id ? 'Dölj trendgraf' : 'Visa trendgraf'">
-                          <i class="fas fa-chart-line"></i>
-                        </button>
-                        <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
-                          [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
-                          <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
-                        </button>
-                        <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
-                          <i class="fas fa-file-pdf"></i>
-                        </button>
-                        <button class="btn btn-outline-success" (click)="toggleShiftSummary(report)"
-                          [title]="shiftSummaryReportId === report.id ? 'Dölj skiftsammanfattning' : 'Visa skiftsammanfattning (utskrift)'">
-                          <i class="fas fa-print"></i>
-                        </button>
-                        <button class="btn btn-outline-warning" (click)="openShiftPdf(report)"
-                          title="Generera PDF-sammanfattning i nytt fonster">
-                          <i class="fas fa-file-export"></i>
-                        </button>
-                        <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort" aria-label="Ta bort">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
+                      <span class="badge bg-secondary">{{ day.reports.length }} st</span>
                     </td>
                   </tr>
 
-                  <!-- ======== PRODUKTIONSTRENDGRAF ======== -->
-                  <tr *ngIf="selectedTrendReportId === report.id" class="expand-row">
-                    <td [attr.colspan]="isAdmin ? 13 : 12" class="p-0">
-                      <div class="trend-panel p-3">
-                        <!-- Header med navigation -->
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                          <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-chart-line text-primary me-2"></i>
-                            <span class="text-primary fw-semibold">
-                              Produktionstrendgraf — {{ report.datum | date:'yyyy-MM-dd' }}
-                              <span class="text-muted small ms-2">(Skift {{ report.skiftraknare }})</span>
-                            </span>
-                          </div>
-                          <!-- Skift-navigering -->
-                          <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-secondary"
-                              (click)="prevSkift()"
-                              [disabled]="!canGoPrev"
-                              title="Föregående skift">
-                              <i class="fas fa-chevron-left me-1"></i>Föreg. skift
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary"
-                              (click)="nextSkift()"
-                              [disabled]="!canGoNext"
-                              title="Nästa skift">
-                              Nästa skift<i class="fas fa-chevron-right ms-1"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" (click)="toggleTrend(report)" title="Stäng">
-                              <i class="fas fa-times"></i>
-                            </button>
-                          </div>
-                        </div>
+                  <!-- ===== EXPANDERAD DAGSVY (skift-lista) ===== -->
+                  <tr *ngIf="isDayExpanded(day.date)" class="day-expanded-row">
+                    <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
+                      <div class="day-expanded-panel">
 
-                        <!-- Laddningsindikator -->
-                        <div *ngIf="trendLoading" class="text-center text-muted py-4">
-                          <i class="fas fa-spinner fa-spin me-2"></i>Hämtar trenddata...
-                        </div>
+                        <!-- Skifttabell för denna dag -->
+                        <div class="table-responsive">
+                          <table class="table table-sm mb-0 shift-detail-table">
+                            <thead>
+                              <tr>
+                                <th *ngIf="isAdmin" scope="col" width="40"></th>
+                                <th scope="col">Tid</th>
+                                <th scope="col">Produkt</th>
+                                <th scope="col">Operatör (kontrollstation)</th>
+                                <th scope="col">IBC OK</th>
+                                <th scope="col">IBC/h</th>
+                                <th scope="col">Effektivitet</th>
+                                <th scope="col">Drifttid</th>
+                                <th scope="col">Inlagd</th>
+                                <th scope="col">Åtgärder</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <ng-container *ngFor="let report of day.reports; trackBy: trackByReportId">
+                                <tr [class.inlagd-row]="report.inlagd == 1">
+                                  <td *ngIf="isAdmin">
+                                    <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
+                                  </td>
+                                  <td>
+                                    <span class="text-muted small">
+                                      {{ getShiftTimeRange(report).start }}
+                                      <i class="fas fa-arrow-right mx-1" style="font-size:0.6rem;"></i>
+                                      {{ getShiftTimeRange(report).stop }}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span class="badge bg-info">{{ report.product_name || '-' }}</span>
+                                  </td>
+                                  <td>
+                                    <span class="badge bg-secondary">{{ report.op2_name || '-' }}</span>
+                                    <span *ngIf="report.op1_name" class="badge bg-dark ms-1" style="font-size:0.7rem;">{{ report.op1_name }}</span>
+                                    <span *ngIf="report.op3_name" class="badge bg-dark ms-1" style="font-size:0.7rem;">{{ report.op3_name }}</span>
+                                  </td>
+                                  <td><strong>{{ report.ibc_ok }}</strong></td>
+                                  <td>
+                                    <span *ngIf="getIbcPerHour(report) != null" class="text-warning fw-semibold">
+                                      {{ getIbcPerHour(report) }}
+                                    </span>
+                                    <span *ngIf="getIbcPerHour(report) == null" class="text-muted">–</span>
+                                  </td>
+                                  <td>
+                                    <span *ngIf="getEfficiency(report) != null"
+                                      class="badge"
+                                      [class.bg-success]="(getEfficiency(report) ?? 0) >= 90"
+                                      [class.bg-warning]="(getEfficiency(report) ?? 0) >= 70 && (getEfficiency(report) ?? 0) < 90"
+                                      [class.bg-danger]="(getEfficiency(report) ?? 0) < 70">
+                                      {{ getEfficiency(report) }}%
+                                    </span>
+                                    <span *ngIf="getEfficiency(report) == null" class="text-muted">–</span>
+                                  </td>
+                                  <td>
+                                    <span *ngIf="report.drifttid" class="text-success small">{{ report.drifttid }} min</span>
+                                    <span *ngIf="!report.drifttid" class="text-muted">–</span>
+                                  </td>
+                                  <td>
+                                    <div class="form-check form-switch" *ngIf="isAdmin">
+                                      <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1"
+                                        (change)="toggleInlagd(report)" />
+                                      <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
+                                    </div>
+                                    <span *ngIf="!isAdmin" class="badge"
+                                      [class.bg-success]="report.inlagd == 1"
+                                      [class.bg-secondary]="report.inlagd == 0">
+                                      {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                      <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
+                                        [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
+                                        <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
+                                      </button>
+                                      <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                      </button>
+                                      <button class="btn btn-outline-success" (click)="toggleShiftSummary(report)"
+                                        [title]="shiftSummaryReportId === report.id ? 'Dölj skiftsammanfattning' : 'Visa skiftsammanfattning (utskrift)'">
+                                        <i class="fas fa-print"></i>
+                                      </button>
+                                      <button class="btn btn-outline-warning" (click)="openShiftPdf(report)"
+                                        title="Generera PDF-sammanfattning i nytt fönster">
+                                        <i class="fas fa-file-export"></i>
+                                      </button>
+                                      <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort" aria-label="Ta bort">
+                                        <i class="fas fa-trash"></i>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
 
-                        <!-- Felmeddelande -->
-                        <div *ngIf="trendError && !trendLoading" class="alert alert-secondary py-2">
-                          <i class="fas fa-info-circle me-2"></i>{{ trendError }}
-                        </div>
+                                <!-- Expanderad detaljrad per skift -->
+                                <tr *ngIf="expanded[report.id]" class="expand-row">
+                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
+                                    <div class="expand-panel p-3">
 
-                        <!-- KPI-kort ovanför grafen -->
-                        <div *ngIf="trendData && !trendLoading" class="row g-2 mb-3">
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Snitt IBC/h (detta skift)</div>
-                              <div class="kpi-value text-info">
-                                {{ trendData.kpi?.snitt_ibc_per_h ?? '–' }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Snitt IBC/h (genomsnitt)</div>
-                              <div class="kpi-value text-muted">
-                                {{ trendData.kpi?.snitt_ibc_per_h_avg > 0 ? trendData.kpi?.snitt_ibc_per_h_avg : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Differens vs genomsnitt</div>
-                              <div class="kpi-value"
-                                [class.text-success]="(trendData.kpi?.diff_pct ?? 0) > 0"
-                                [class.text-danger]="(trendData.kpi?.diff_pct ?? 0) < 0"
-                                [class.text-muted]="trendData.kpi?.diff_pct == null">
-                                <ng-container *ngIf="trendData.kpi?.diff_pct != null">
-                                  {{ trendData.kpi.diff_pct > 0 ? '+' : '' }}{{ trendData.kpi.diff_pct }}%
-                                </ng-container>
-                                <span *ngIf="trendData.kpi?.diff_pct == null">–</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Total IBC (PLC)</div>
-                              <div class="kpi-value text-warning">
-                                {{ (trendData.kpi?.total_ibc ?? 0) > 0 ? trendData.kpi.total_ibc : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                                      <!-- KPI-kort -->
+                                      <div class="row g-2 mb-3">
+                                        <div class="col-6 col-md-3">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Kvalitet</div>
+                                            <div class="kpi-value"
+                                              [class.text-success]="(getQualityPct(report) ?? 0) >= 90"
+                                              [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
+                                              [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
+                                              [class.text-muted]="getQualityPct(report) == null">
+                                              {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Effektivitet</div>
+                                            <div class="kpi-value"
+                                              [class.text-info]="getEfficiencyPct(report) != null"
+                                              [class.text-muted]="getEfficiencyPct(report) == null">
+                                              {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">IBC / timme</div>
+                                            <div class="kpi-value"
+                                              [class.text-warning]="getIbcPerHour(report) != null"
+                                              [class.text-muted]="getIbcPerHour(report) == null">
+                                              {{ getIbcPerHour(report) != null ? (getIbcPerHour(report) + ' st/h') : '–' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Kassation</div>
+                                            <div class="kpi-value"
+                                              [class.text-danger]="(getDefectPct(report) ?? 0) > 10"
+                                              [class.text-success]="(getDefectPct(report) ?? 101) <= 10 && getDefectPct(report) != null"
+                                              [class.text-muted]="getDefectPct(report) == null">
+                                              {{ getDefectPct(report) != null ? (getDefectPct(report) + '%') : '–' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
 
-                        <!-- Graf -->
-                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length > 0"
-                          class="trend-chart-wrapper">
-                          <canvas [id]="'trendCanvas-' + report.id"></canvas>
-                        </div>
+                                      <!-- Skiftsammanfattning -->
+                                      <div class="shift-summary mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                          <i class="fas fa-chart-bar text-primary me-2"></i>
+                                          <span class="text-primary fw-semibold">Skiftsammanfattning</span>
+                                        </div>
+                                        <div class="row g-2">
+                                          <div class="col-auto">
+                                            <div class="shift-stat-item">
+                                              <span class="shift-stat-label">Snitt cykeltid</span>
+                                              <span class="shift-stat-value text-info">
+                                                {{ getAvgCycleTime(report) != null ? (getAvgCycleTime(report) + ' min') : '–' }}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="shift-stat-item">
+                                              <span class="shift-stat-label">Drifttid</span>
+                                              <span class="shift-stat-value text-success">
+                                                {{ report.drifttid != null ? (report.drifttid + ' min') : '–' }}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="shift-stat-item">
+                                              <span class="shift-stat-label">Rasttid</span>
+                                              <span class="shift-stat-value text-warning">
+                                                {{ report.rasttime != null ? (report.rasttime + ' min') : '–' }}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="shift-stat-item">
+                                              <span class="shift-stat-label">Bonus-estimat</span>
+                                              <span class="shift-stat-value"
+                                                [class.text-success]="(getBonusEstimate(report) ?? 0) > 0"
+                                                [class.text-muted]="getBonusEstimate(report) == null || getBonusEstimate(report) === 0">
+                                                {{ getBonusEstimate(report) != null ? (getBonusEstimate(report) + ' kr') : '–' }}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
 
-                        <!-- Ingen PLC-data -->
-                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length === 0"
-                          class="text-center text-muted py-3">
-                          <i class="fas fa-database me-2"></i>
-                          Inga timdata tillgängliga från PLC för detta skift.
-                        </div>
-
-                        <!-- Legend -->
-                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length > 0"
-                          class="d-flex gap-4 mt-2 justify-content-center flex-wrap">
-                          <div class="d-flex align-items-center gap-2 small">
-                            <div style="width:24px;height:3px;background:#63b3ed;border-radius:2px;"></div>
-                            <span class="text-muted">Faktisk takt (IBC/h)</span>
-                          </div>
-                          <div class="d-flex align-items-center gap-2 small">
-                            <div style="width:24px;height:3px;background:#a0aec0;border-radius:2px;border-top:2px dashed #a0aec0;"></div>
-                            <span class="text-muted">Genomsnittsprofil (senaste 4 v, samma veckodag)</span>
-                          </div>
-                        </div>
-
-                        <!-- ======== EFFEKTIVITETSSEKTION ======== -->
-                        <div *ngIf="trendData?.efficiency && !trendLoading" class="eff-section mt-4">
-                          <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-tachometer-alt text-success me-2"></i>
-                            <span class="text-success fw-semibold fs-6">Effektivitet</span>
-                          </div>
-
-                          <!-- KPI-kort -->
-                          <div class="row g-2 mb-3">
-                            <div class="col-6 col-md">
-                              <div class="eff-kpi-card text-center">
-                                <div class="eff-kpi-label">Godkända IBCer</div>
-                                <div class="eff-kpi-value text-info">
-                                  {{ trendData.efficiency.ibc_ok ?? 0 }}
-                                </div>
-                              </div>
-                            </div>
-                            <div class="col-6 col-md">
-                              <div class="eff-kpi-card text-center">
-                                <div class="eff-kpi-label">Netto körtid</div>
-                                <div class="eff-kpi-value text-success">
-                                  {{ formatMinToHHMM(trendData.efficiency.netto_min) }}
-                                </div>
-                              </div>
-                            </div>
-                            <div class="col-6 col-md">
-                              <div class="eff-kpi-card text-center">
-                                <div class="eff-kpi-label">Effektivitet</div>
-                                <div class="eff-kpi-value"
-                                  [style.color]="trendData.efficiency.ibc_per_h >= 10 ? '#48bb78' : trendData.efficiency.ibc_per_h >= 5 ? '#ecc94b' : '#fc8181'">
-                                  {{ trendData.efficiency.ibc_per_h ?? 0 }} <small>IBC/h</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="col-6 col-md">
-                              <div class="eff-kpi-card text-center">
-                                <div class="eff-kpi-label">Stopp</div>
-                                <div class="eff-kpi-value text-danger">
-                                  {{ trendData.efficiency.stopp_count ?? 0 }}
-                                  <small class="text-muted" *ngIf="trendData.efficiency.stopp_min > 0">
-                                    ({{ trendData.efficiency.stopp_min }} min)
-                                  </small>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="col-6 col-md">
-                              <div class="eff-kpi-card text-center">
-                                <div class="eff-kpi-label">Skifttid</div>
-                                <div class="eff-kpi-value text-muted" style="font-size: 1rem;">
-                                  <span *ngIf="trendData.efficiency.start_tid">
-                                    {{ trendData.efficiency.start_tid.substring(11, 16) }}
-                                  </span>
-                                  <span *ngIf="!trendData.efficiency.start_tid">–</span>
-                                  <i class="fas fa-arrow-right mx-1" style="font-size:0.7rem;"></i>
-                                  <span *ngIf="trendData.efficiency.slut_tid">
-                                    {{ trendData.efficiency.slut_tid.substring(11, 16) }}
-                                  </span>
-                                  <span *ngIf="!trendData.efficiency.slut_tid">–</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Tidsfördelning -->
-                          <div class="row g-2 mb-3">
-                            <div class="col-12">
-                              <div class="eff-time-bar d-flex" style="height:24px; border-radius:6px; overflow:hidden;">
-                                <div *ngIf="trendData.efficiency.netto_min > 0"
-                                  [style.width.%]="(trendData.efficiency.netto_min / trendData.efficiency.brutto_min) * 100"
-                                  style="background:#48bb78;" class="d-flex align-items-center justify-content-center">
-                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
-                                    *ngIf="(trendData.efficiency.netto_min / trendData.efficiency.brutto_min) > 0.15">
-                                    Körtid {{ Math.round(trendData.efficiency.netto_min) }}m
-                                  </small>
-                                </div>
-                                <div *ngIf="trendData.efficiency.rast_min > 0"
-                                  [style.width.%]="(trendData.efficiency.rast_min / trendData.efficiency.brutto_min) * 100"
-                                  style="background:#ecc94b;" class="d-flex align-items-center justify-content-center">
-                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
-                                    *ngIf="(trendData.efficiency.rast_min / trendData.efficiency.brutto_min) > 0.1">
-                                    Rast {{ trendData.efficiency.rast_min }}m
-                                  </small>
-                                </div>
-                                <div *ngIf="trendData.efficiency.stopp_min > 0"
-                                  [style.width.%]="(trendData.efficiency.stopp_min / trendData.efficiency.brutto_min) * 100"
-                                  style="background:#fc8181;" class="d-flex align-items-center justify-content-center">
-                                  <small class="text-dark fw-bold" style="font-size:0.65rem;"
-                                    *ngIf="(trendData.efficiency.stopp_min / trendData.efficiency.brutto_min) > 0.1">
-                                    Stopp {{ trendData.efficiency.stopp_min }}m
-                                  </small>
-                                </div>
-                              </div>
-                              <div class="d-flex gap-3 mt-1 justify-content-center">
-                                <span class="d-flex align-items-center gap-1 small text-muted">
-                                  <span style="width:10px;height:10px;background:#48bb78;border-radius:2px;display:inline-block;"></span> Körtid
-                                </span>
-                                <span class="d-flex align-items-center gap-1 small text-muted">
-                                  <span style="width:10px;height:10px;background:#ecc94b;border-radius:2px;display:inline-block;"></span> Rast
-                                </span>
-                                <span class="d-flex align-items-center gap-1 small text-muted">
-                                  <span style="width:10px;height:10px;background:#fc8181;border-radius:2px;display:inline-block;"></span> Stopp
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Effektivitetstidslinje-graf -->
-                          <div *ngIf="trendData.efficiency_timeline?.length > 0"
-                            class="eff-chart-wrapper mb-3">
-                            <canvas [id]="'effCanvas-' + report.id"></canvas>
-                          </div>
-
-                          <!-- Legend för grafen -->
-                          <div *ngIf="trendData.efficiency_timeline?.length > 0"
-                            class="d-flex gap-4 mt-1 mb-3 justify-content-center flex-wrap">
-                            <div class="d-flex align-items-center gap-2 small">
-                              <div style="width:16px;height:12px;background:rgba(72,187,120,0.7);border:1px solid #48bb78;border-radius:2px;"></div>
-                              <span class="text-muted">Körning</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 small">
-                              <div style="width:16px;height:12px;background:rgba(236,201,75,0.7);border:1px solid #ecc94b;border-radius:2px;"></div>
-                              <span class="text-muted">Rast</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 small">
-                              <div style="width:16px;height:12px;background:rgba(252,129,129,0.7);border:1px solid #fc8181;border-radius:2px;"></div>
-                              <span class="text-muted">Stopp</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 small">
-                              <div style="width:24px;height:0;border-top:2px dashed #e2e8f0;"></div>
-                              <span class="text-muted">Skiftsnitt</span>
-                            </div>
-                          </div>
-
-                          <!-- Stopp-logg -->
-                          <div *ngIf="trendData.stopp_logg?.length > 0">
-                            <div class="d-flex align-items-center mb-2">
-                              <i class="fas fa-list-ul text-warning me-2"></i>
-                              <span class="text-warning fw-semibold small">Stopp- och rastlogg</span>
-                            </div>
-                            <div class="table-responsive">
-                              <table class="table table-sm table-dark mb-0" style="font-size:0.82rem;">
-                                <thead>
-                                  <tr>
-                                    <th scope="col" style="color:#a0aec0;">Starttid</th>
-                                    <th scope="col" style="color:#a0aec0;">Varaktighet</th>
-                                    <th scope="col" style="color:#a0aec0;">Typ</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  <tr *ngFor="let s of trendData.stopp_logg">
-                                    <td>{{ s.start.substring(11, 16) }}</td>
-                                    <td>{{ s.min }} min</td>
-                                    <td>
-                                      <span class="badge" [class.bg-danger]="s.typ === 'stopp'" [class.bg-warning]="s.typ === 'rast'" [class.text-dark]="s.typ === 'rast'">
-                                        {{ s.typ === 'rast' ? 'Rast' : 'Stopp' }}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-
-                        </div>
-                        <!-- END EFFEKTIVITETSSEKTION -->
-
-                      </div>
-                    </td>
-                  </tr>
-
-                  <!-- Expanderad detaljrad -->
-                  <tr *ngIf="expanded[report.id]" class="expand-row">
-                    <td [attr.colspan]="isAdmin ? 13 : 12" class="p-0">
-                      <div class="expand-panel p-3">
-
-                        <!-- KPI-kort -->
-                        <div class="row g-2 mb-3">
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Kvalitet</div>
-                              <div class="kpi-value"
-                                [class.text-success]="(getQualityPct(report) ?? 0) >= 90"
-                                [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
-                                [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
-                                [class.text-muted]="getQualityPct(report) == null">
-                                {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Effektivitet</div>
-                              <div class="kpi-value"
-                                [class.text-info]="getEfficiencyPct(report) != null"
-                                [class.text-muted]="getEfficiencyPct(report) == null">
-                                {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">IBC / timme</div>
-                              <div class="kpi-value"
-                                [class.text-warning]="getIbcPerHour(report) != null"
-                                [class.text-muted]="getIbcPerHour(report) == null">
-                                {{ getIbcPerHour(report) != null ? (getIbcPerHour(report) + ' st/h') : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6 col-md-3">
-                            <div class="kpi-card">
-                              <div class="kpi-label">Kassation</div>
-                              <div class="kpi-value"
-                                [class.text-danger]="(getDefectPct(report) ?? 0) > 10"
-                                [class.text-success]="(getDefectPct(report) ?? 101) <= 10 && getDefectPct(report) != null"
-                                [class.text-muted]="getDefectPct(report) == null">
-                                {{ getDefectPct(report) != null ? (getDefectPct(report) + '%') : '–' }}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Skiftsammanfattning -->
-                        <div class="shift-summary mb-3">
-                          <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-chart-bar text-primary me-2"></i>
-                            <span class="text-primary fw-semibold">Skiftsammanfattning</span>
-                          </div>
-                          <div class="row g-2">
-                            <div class="col-auto">
-                              <div class="shift-stat-item">
-                                <span class="shift-stat-label">Snitt cykeltid</span>
-                                <span class="shift-stat-value text-info">
-                                  {{ getAvgCycleTime(report) != null ? (getAvgCycleTime(report) + ' min') : '–' }}
-                                </span>
-                              </div>
-                            </div>
-                            <div class="col-auto">
-                              <div class="shift-stat-item">
-                                <span class="shift-stat-label">Drifttid</span>
-                                <span class="shift-stat-value text-success">
-                                  {{ report.drifttid != null ? (report.drifttid + ' min') : '–' }}
-                                </span>
-                              </div>
-                            </div>
-                            <div class="col-auto">
-                              <div class="shift-stat-item">
-                                <span class="shift-stat-label">Rasttid</span>
-                                <span class="shift-stat-value text-warning">
-                                  {{ report.rasttime != null ? (report.rasttime + ' min') : '–' }}
-                                </span>
-                              </div>
-                            </div>
-                            <div class="col-auto">
-                              <div class="shift-stat-item">
-                                <span class="shift-stat-label">Bonus-estimat</span>
-                                <span class="shift-stat-value"
-                                  [class.text-success]="(getBonusEstimate(report) ?? 0) > 0"
-                                  [class.text-muted]="getBonusEstimate(report) == null || getBonusEstimate(report) === 0">
-                                  {{ getBonusEstimate(report) != null ? (getBonusEstimate(report) + ' kr') : '–' }}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- PLC-data från skiftet -->
-                        <div class="mb-3">
-                          <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-microchip text-info me-2"></i>
-                            <span class="text-info fw-semibold">PLC-data från skiftet</span>
-                          </div>
-                          <div class="row g-3">
-                            <div class="col-auto">
-                              <div class="small text-muted mb-1">Tvättplats (op1)</div>
-                              <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ getOpLabel(report, 'op1') }}
-                              </span>
-                            </div>
-                            <div class="col-auto">
-                              <div class="small text-muted mb-1">Kontrollstation (op2)</div>
-                              <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ getOpLabel(report, 'op2') }}
-                              </span>
-                            </div>
-                            <div class="col-auto">
-                              <div class="small text-muted mb-1">Truckförare (op3)</div>
-                              <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ getOpLabel(report, 'op3') }}
-                              </span>
-                            </div>
-                            <div class="col-auto border-start border-secondary ps-3">
-                              <div class="small text-muted mb-1">Drifttid (D4007)</div>
-                              <span class="text-success fw-bold fs-6">
-                                {{ report.drifttid != null ? report.drifttid + ' min' : '–' }}
-                              </span>
-                            </div>
-                            <div class="col-auto">
-                              <div class="small text-muted mb-1">Rasttid (D4008)</div>
-                              <span class="text-warning fw-bold fs-6">
-                                {{ report.rasttime != null ? report.rasttime + ' min' : '–' }}
-                              </span>
-                            </div>
-                            <div class="col-auto border-start border-secondary ps-3">
-                              <div class="small text-muted mb-1">Löpnummer (D4009)</div>
-                              <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
+                                      <!-- PLC-data från skiftet -->
+                                      <div class="mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                          <i class="fas fa-microchip text-info me-2"></i>
+                                          <span class="text-info fw-semibold">PLC-data från skiftet</span>
+                                        </div>
+                                        <div class="row g-3">
+                                          <div class="col-auto">
+                                            <div class="small text-muted mb-1">Tvättplats (op1)</div>
+                                            <span class="badge bg-secondary px-3 py-2 fs-6">
+                                              {{ getOpLabel(report, 'op1') }}
+                                            </span>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="small text-muted mb-1">Kontrollstation (op2)</div>
+                                            <span class="badge bg-secondary px-3 py-2 fs-6">
+                                              {{ getOpLabel(report, 'op2') }}
+                                            </span>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="small text-muted mb-1">Truckförare (op3)</div>
+                                            <span class="badge bg-secondary px-3 py-2 fs-6">
+                                              {{ getOpLabel(report, 'op3') }}
+                                            </span>
+                                          </div>
+                                          <div class="col-auto border-start border-secondary ps-3">
+                                            <div class="small text-muted mb-1">Drifttid (D4007)</div>
+                                            <span class="text-success fw-bold fs-6">
+                                              {{ report.drifttid != null ? report.drifttid + ' min' : '–' }}
+                                            </span>
+                                          </div>
+                                          <div class="col-auto">
+                                            <div class="small text-muted mb-1">Rasttid (D4008)</div>
+                                            <span class="text-warning fw-bold fs-6">
+                                              {{ report.rasttime != null ? report.rasttime + ' min' : '–' }}
+                                            </span>
+                                          </div>
+                                          <div class="col-auto border-start border-secondary ps-3">
+                                            <div class="small text-muted mb-1">Löpnummer (D4009)</div>
+                                            <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
                             </div>
                           </div>
                         </div>
@@ -1058,9 +780,9 @@
                     </td>
                   </tr>
 
-                  <!-- ======== SKIFTSAMMANFATTNING (PRINT-VY) ======== -->
-                  <tr *ngIf="shiftSummaryReportId === report.id" class="expand-row">
-                    <td [attr.colspan]="isAdmin ? 13 : 12" class="p-0">
+                                <!-- ======== SKIFTSAMMANFATTNING (PRINT-VY) ======== -->
+                                <tr *ngIf="shiftSummaryReportId === report.id" class="expand-row">
+                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
                       <div class="shift-summary-panel p-3">
 
                         <!-- Header med stäng/skriv ut -->
@@ -1310,7 +1032,16 @@
                             </div>
                           </div>
 
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+
+                              </ng-container>
+                            </tbody>
+                          </table>
                         </div>
+
                       </div>
                     </td>
                   </tr>
@@ -1318,7 +1049,7 @@
                 </ng-container>
 
                 <tr *ngIf="filteredReports.length === 0">
-                  <td [attr.colspan]="isAdmin ? 13 : 12" class="text-center text-muted">
+                  <td [attr.colspan]="isAdmin ? 9 : 8" class="text-center text-muted">
                     <i class="fas fa-info-circle me-2"></i>
                     {{ reports.length === 0 ? 'Inga skiftrapporter hittades.' : 'Inga skift matchar det valda filtret.' }}
                   </td>

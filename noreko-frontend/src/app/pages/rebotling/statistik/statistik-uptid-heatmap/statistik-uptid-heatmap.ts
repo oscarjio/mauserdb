@@ -52,6 +52,12 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
     y: number;
   } = { visible: false, cell: null, x: 0, y: 0 };
 
+  // Selected cell (click)
+  selectedCell: UptimeHeatmapCell | null = null;
+
+  // Max IBC for gradient scaling
+  private maxIbc = 1;
+
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -107,6 +113,7 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
           if (!this.error) this.error = resp?.error ?? 'Okänt fel';
           return;
         }
+        this.maxIbc = Math.max(1, ...resp.cells.map(c => c.ibc_count || 0));
         this.buildRows(resp.cells);
         this.buildSummary(resp.cells);
       });
@@ -203,20 +210,60 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
   }
 
   getCellClass(cell: UptimeHeatmapCell): string {
+    if (cell.status === 'running') return ''; // Background set via getCellBackground
     return `cell-${cell.status}`;
   }
 
+  /** Gradient background for running cells based on IBC count */
+  getCellBackground(cell: UptimeHeatmapCell): string {
+    if (cell.status !== 'running') return '';
+    const ratio = Math.min((cell.ibc_count || 0) / this.maxIbc, 1);
+    // Green gradient: dark green (low) -> bright green (high)
+    const r = Math.round(40 + (32 - 40) * ratio);
+    const g = Math.round(120 + (187 - 120) * ratio);
+    const b = Math.round(80 + (120 - 80) * ratio);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
   showTooltip(event: MouseEvent, cell: UptimeHeatmapCell): void {
-    this.tooltip = {
-      visible: true,
-      cell,
-      x: (event as MouseEvent).offsetX + 12,
-      y: (event as MouseEvent).offsetY + 12,
-    };
+    const rect = (event.currentTarget as HTMLElement).closest('.uptid-heatmap-card')?.getBoundingClientRect();
+    const cellRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    if (rect) {
+      this.tooltip = {
+        visible: true,
+        cell,
+        x: cellRect.left - rect.left + cellRect.width / 2,
+        y: cellRect.top - rect.top - 8,
+      };
+    } else {
+      this.tooltip = {
+        visible: true,
+        cell,
+        x: (event as MouseEvent).offsetX + 12,
+        y: (event as MouseEvent).offsetY + 12,
+      };
+    }
   }
 
   hideTooltip(): void {
     this.tooltip = { visible: false, cell: null, x: 0, y: 0 };
+  }
+
+  onCellClick(cell: UptimeHeatmapCell): void {
+    this.selectedCell = this.selectedCell === cell ? null : cell;
+  }
+
+  /** Total IBC for a day row */
+  getDayTotal(row: HeatmapDayRow): number {
+    return row.cells.reduce((sum, c) => sum + (c.ibc_count || 0), 0);
+  }
+
+  /** Total IBC for a given hour across all days */
+  getHourTotal(hour: number): number {
+    return this.rows.reduce((sum, row) => {
+      const cell = row.cells[hour];
+      return sum + (cell?.ibc_count || 0);
+    }, 0);
   }
 
   formatHour(h: number): string {
