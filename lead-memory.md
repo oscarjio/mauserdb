@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #364)*
+*Senast uppdaterad: 2026-03-27 (session #366)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -71,6 +71,7 @@ Session #361: Cache review 13 filer OK + DB persistent connections + PHP error_l
 Session #362: API benchmark 103 endpoints 0x500 alla <500ms + 32 dead code filer borttagna + ErrorLogger centraliserad + 27 WCAG heading-fixes + 23 chart.destroy() fixes + backup OK + 0 DB diskrepanser.
 Session #363: 156 endpoints 0x500 + rebotling backend SQL OK + error handling 1186 loggar OK + rebotling-statistik IBC/h+effektivitet+bar chart granskad + CSV export fixad + UX alla sidor OK + DB 946 vs 1058 diskrepans noterad.
 Session #364: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL filter borttaget 220 stallen 44 filer) + PHP parse error FIXAD (RebotlingAnalyticsController.php) + slow endpoints optimerade (today-snapshot, all-lines-status) + 55 endpoints 0x500 + 94 sidor mobile/UX granskade 0 problem + $rows7 dead code borttagen + deploy dev OK.
+Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237ms + month-compare 984ms->627ms (CTE-optimering) + getOtherLineStatus dead code borttagen + covering index + 97 endpoints 0x500 + UX alla sidor OK + produktion_procent EJ kumulativ (bekraftad) + rebotling-statistik djupgranskning + VD Dashboard OK + error handling audit + lifecycle-audit alla Chart-komponenter + build + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -83,23 +84,24 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #365):
-- [ ] Verifiera diskrepans-fix mot prod DB (SSH var nere #364)
-- [ ] Benchmarking + month-compare endpoints (>1s)
-- [ ] Integration test suite (API-floden)
-- [ ] Error page / 404-hantering
+### Nasta (session #366):
+- [~] Full endpoint-stresstest + PHP controller-audit (edge cases, robusthet)
+- [~] Integration test API-floden (operators, rebotling, statistik, filter)
+- [~] Error/404-hantering (okanda actions → 404, inte 500)
+- [~] Data-korrekthet UI vs DB (API-svar vs prod DB for rebotling-sidor)
+- [~] Angular kodgranskning (services/guards/interceptors) + build
+- [~] Chart-datakorrekthet (axlar, labels, enheter, dark theme)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #365 (klar)
+Worker A: Diskrepans-fix verifierad mot prod DB — API returnerar nu 1058 cykler (matchar DB). Benchmarking: rebotling-data 926ms→237ms, month-compare 984ms→627ms (CTE-optimering). getOtherLineStatus dead code borttagen. Covering index pa rebotling_ibc(linje, skiftraknare, created_at). 97 endpoints 0x500. Deploy dev OK.
+Worker B: 37 templates + 100+ komponenter granskade — alla OK. produktion_procent INTE kumulativ (bekraftad via prod DB + PHP-kod). Rebotling-statistik djupgranskning 7 sidor — alla lifecycle/chart.destroy korrekt. VD Dashboard: 6 parallella anrop, 30s polling, felhantering robust. Error handling audit: interceptors, retry-logik, toast-service — allt korrekt. Build + deploy OK.
+
 ### 2026-03-27 — Session #364 (klar)
-Worker A: API vs DB diskrepans FIXAD — `skiftraknare IS NOT NULL` filter exkluderade 112 giltiga cykler (220 stallen, 44 filer). PHP parse error i RebotlingAnalyticsController.php FIXAD (trasigt try/catch efter refaktorering). Slow endpoints: today-snapshot 6→1 query, all-lines-status 4→1 query. 55 endpoints 0x500. PHP 8.2.29, inga composer-deps, bcrypt OK.
+Worker A: API vs DB diskrepans FIXAD — `skiftraknare IS NOT NULL` filter exkluderade 112 giltiga cykler (220 stallen, 44 filer). PHP parse error i RebotlingAnalyticsController.php FIXAD (trasigt try/catch efter refaktorering). Slow endpoints: today-snapshot 6→1 query, all-lines-status 4→1 query. 55 endpoints 0x500.
 Worker B: 94 sidor granskade for mobile responsivitet — alla redan responsive med Bootstrap grid. Dark theme, lifecycle, svenska texter: konsistent overallt. VD Dashboard: KPI:er korrekta, grafer OK, forkJoin + 30s polling. produktion_procent INTE kumulativ (bekraftad). Build + deploy OK.
-Lead: $rows7 undefined variable borttagen (dead code efter 14-dagars query konsolidering).
 
 ### 2026-03-27 — Session #363 (klar)
-Worker A: 156 endpoints stresstest — 0x500, alla svarstider rimliga (exec-dashboard 1.5s = aggregering). 7 rebotling-controllers — alla SQL matchar schema. EXPLAIN optimal indexanvandning. Error handling 1186 loggar, 0 tomma catches. Response-format konsistent. Inga fixes kravdes.
-Worker B: Rebotling-statistik andringar granskade — IBC/h korrekt, effektivitet korrekt, scroll-restore OK. CSV/Excel export fixad (kolumnnamn). 45+ rebotling + 48 icke-rebotling sidor — alla lifecycle OK, chart.destroy OK, dark theme OK. DB diskrepans: API 946 vs DB 1058 mars-cykler (pre-existerande, moj PHP limit).
-
-### 2026-03-27 — Session #362 (klar)
-Worker A: API benchmark 103 endpoints — alla <500ms, 0x500. 32 dead code filer borttagna. ErrorLogger centraliserad. Silent catch fixad.
-Worker B: Backup OK. WCAG 27 heading-fixes + 2 aria-labels. 23 chart.destroy() fixes. 0 DB-diskrepanser.
+Worker A: 156 endpoints stresstest — 0x500, alla svarstider rimliga. 7 rebotling-controllers — alla SQL matchar schema. Error handling 1186 loggar, 0 tomma catches. Response-format konsistent.
+Worker B: Rebotling-statistik granskad — IBC/h korrekt, effektivitet korrekt. CSV/Excel export fixad. 93 sidor — alla lifecycle OK. DB diskrepans: API 946 vs DB 1058 (fixades i #364).

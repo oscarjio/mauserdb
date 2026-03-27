@@ -11,13 +11,13 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #365):
-- [ ] **Verifiera diskrepans-fix mot prod DB** — bekrafta att API nu returnerar 1058 mars-cykler (SSH var nere session #364)
-- [ ] **Benchmarking + month-compare endpoints** — 1-1.2s, optimera (de enda >1s endpoints)
-- [ ] **Dead code cleanup** — getOtherLineStatus i RebotlingAdminController.php (oanvand)
-- [ ] **Integration test suite** — automatiserade tester for kritiska API-floden
-- [ ] **Error page / 404-hantering** — granska att alla routes har fallback
-- [ ] **API rate limiting** — skydd mot overbelastning
+### Pagaende (session #366):
+- [~] **Full endpoint-stresstest + PHP controller-audit** — Worker A testar ALLA endpoints, granskar edge cases, fixar
+- [~] **Integration test API-floden** — Worker A testar kompletta floden (operators, rebotling, statistik, filter)
+- [~] **Error/404-hantering** — Worker A saker att okanda actions ger 404 inte 500
+- [~] **Data-korrekthet UI vs DB** — Worker B jamfor API-svar mot prod DB for alla rebotling-sidor
+- [~] **Angular kodgranskning + build** — Worker B granskar services/guards/interceptors, fixar varningar
+- [~] **Chart-datakorrekthet** — Worker B verifierar att alla grafer visar ratt data med ratt axlar/labels
 
 ## Parkerade features (ta inte dessa nu)
 
