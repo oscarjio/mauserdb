@@ -99,7 +99,7 @@ interface FeedbackSummary {
           <h2 style="color:#e2e8f0;margin:0;font-weight:700;">
             <i class="fas fa-users-cog me-2" style="color:#63b3ed;"></i>Operatörsdashboard
           </h2>
-          <small style="color:#718096;">
+          <small style="color:#8fa3b8;">
             Uppdateras automatiskt var 60:e sekund &bull; {{ datum }}
           </small>
         </div>
@@ -151,7 +151,7 @@ interface FeedbackSummary {
           <div class="spinner-border" style="color:#63b3ed;" role="status">
             <span class="visually-hidden">Laddar&hellip;</span>
           </div>
-          <p style="color:#718096;margin-top:12px;">H&auml;mtar operat&ouml;rsstatus&hellip;</p>
+          <p style="color:#8fa3b8;margin-top:12px;">H&auml;mtar operat&ouml;rsstatus&hellip;</p>
         </div>
 
         <!-- KPI-kort -->
@@ -202,8 +202,8 @@ interface FeedbackSummary {
 
           <!-- Tom state -->
           <div *ngIf="operatorer.length === 0 && !laddar" class="text-center py-5">
-            <i class="fas fa-inbox" style="font-size:2rem;color:#4a5568;"></i>
-            <p style="color:#718096;margin-top:12px;">Inga operat&ouml;rer registrerade idag</p>
+            <i class="fas fa-inbox" style="font-size:2rem;color: #8fa3b8;"></i>
+            <p style="color:#8fa3b8;margin-top:12px;">Inga operat&ouml;rer registrerade idag</p>
           </div>
 
           <!-- Tabell -->
@@ -233,7 +233,7 @@ interface FeedbackSummary {
                           {{ op.namn }}
                           <i class="fas fa-external-link-alt" style="font-size:10px;color:#63b3ed;margin-left:4px;"></i>
                         </div>
-                        <div style="font-size:11px;color:#718096;">Op. #{{ op.op_id }}</div>
+                        <div style="font-size:11px;color:#8fa3b8;">Op. #{{ op.op_id }}</div>
                       </div>
                     </div>
                   </td>
@@ -252,14 +252,14 @@ interface FeedbackSummary {
                           style="font-size:14px;">
                       {{ op.kvalitet_pct | number:'1.1-1' }}%
                     </span>
-                    <span *ngIf="op.kvalitet_pct === null" style="color:#4a5568;">&#8212;</span>
+                    <span *ngIf="op.kvalitet_pct === null" style="color: #8fa3b8;">&#8212;</span>
                   </td>
                   <td style="padding:14px 16px;vertical-align:middle;text-align:right;color:#a0aec0;font-size:13px;">
                     <span *ngIf="op.minuter_sedan !== null">
                       <span *ngIf="op.minuter_sedan < 60">{{ op.minuter_sedan }} min sedan</span>
                       <span *ngIf="op.minuter_sedan >= 60">{{ timmar(op.minuter_sedan) }} h {{ minuter(op.minuter_sedan) }} min sedan</span>
                     </span>
-                    <span *ngIf="op.minuter_sedan === null" style="color:#4a5568;">Ok&auml;nd</span>
+                    <span *ngIf="op.minuter_sedan === null" style="color: #8fa3b8;">Ok&auml;nd</span>
                   </td>
                   <td style="padding:14px 16px;vertical-align:middle;text-align:center;">
                     <span [style.background]="statusBgColor(op.status)"
@@ -275,7 +275,7 @@ interface FeedbackSummary {
         </div>
 
         <!-- Statuslegend -->
-        <div class="d-flex flex-wrap gap-3 mt-3" style="font-size:12px;color:#718096;">
+        <div class="d-flex flex-wrap gap-3 mt-3" style="font-size:12px;color:#8fa3b8;">
           <span><span style="display:inline-block;width:10px;height:10px;background:#276749;border-radius:50%;margin-right:4px;"></span>Bra (&gt;18 IBC/h)</span>
           <span><span style="display:inline-block;width:10px;height:10px;background:#744210;border-radius:50%;margin-right:4px;"></span>OK (12&#8211;18 IBC/h)</span>
           <span><span style="display:inline-block;width:10px;height:10px;background:#742a2a;border-radius:50%;margin-right:4px;"></span>L&aring;g (&lt;12 IBC/h)</span>
@@ -294,7 +294,7 @@ interface FeedbackSummary {
           <div class="spinner-border" style="color:#63b3ed;" role="status">
             <span class="visually-hidden">Laddar&hellip;</span>
           </div>
-          <p style="color:#718096;margin-top:12px;">H&auml;mtar veckostats&hellip;</p>
+          <p style="color:#8fa3b8;margin-top:12px;">H&auml;mtar veckostats&hellip;</p>
         </div>
 
         <!-- Laddning veckodata (uppdatering med befintlig data) -->
@@ -363,7 +363,7 @@ interface FeedbackSummary {
                     style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
                   <!-- Rang -->
                   <td style="padding:14px 16px;vertical-align:middle;text-align:center;">
-                    <span [style.color]="i === 0 ? '#f6e05e' : i === 1 ? '#a0aec0' : i === 2 ? '#ed8936' : '#718096'"
+                    <span [style.color]="i === 0 ? '#f6e05e' : i === 1 ? '#a0aec0' : i === 2 ? '#ed8936' : '#8fa3b8'"
                           style="font-weight:700;font-size:15px;">
                       {{ i + 1 }}
                     </span>
@@ -380,7 +380,7 @@ interface FeedbackSummary {
                           {{ op.namn }}
                           <i class="fas fa-external-link-alt" style="font-size:10px;color:#63b3ed;margin-left:4px;"></i>
                         </div>
-                        <div style="font-size:11px;color:#718096;">Op. #{{ op.op_id }}</div>
+                        <div style="font-size:11px;color:#8fa3b8;">Op. #{{ op.op_id }}</div>
                       </div>
                     </div>
                   </td>
@@ -411,7 +411,7 @@ interface FeedbackSummary {
                     <span *ngIf="op.trend === 'ner'" style="color:#fc8181;font-size:16px;" title="Nedåt">
                       <i class="fas fa-arrow-down"></i>
                     </span>
-                    <span *ngIf="op.trend === 'stabil'" style="color:#718096;font-size:16px;" title="Stabil">
+                    <span *ngIf="op.trend === 'stabil'" style="color:#8fa3b8;font-size:16px;" title="Stabil">
                       <i class="fas fa-minus"></i>
                     </span>
                   </td>
@@ -435,9 +435,9 @@ interface FeedbackSummary {
 
         <!-- Tom state vecka -->
         <div *ngIf="!laddarVecka && weeklyData.length === 0" class="text-center py-5">
-          <i class="fas fa-calendar-times mb-3" style="font-size:2rem;opacity:.4;color:#718096;"></i>
-          <p style="color:#718096;margin-top:12px;">Ingen veckodata tillg&auml;nglig.</p>
-          <p class="small" style="color:#4a5568;">V&auml;lj en annan vecka eller kontrollera att skift registrerats.</p>
+          <i class="fas fa-calendar-times mb-3" style="font-size:2rem;opacity:.4;color:#8fa3b8;"></i>
+          <p style="color:#8fa3b8;margin-top:12px;">Ingen veckodata tillg&auml;nglig.</p>
+          <p class="small" style="color: #8fa3b8;">V&auml;lj en annan vecka eller kontrollera att skift registrerats.</p>
         </div>
 
       </ng-container>
@@ -452,7 +452,7 @@ interface FeedbackSummary {
           <div class="spinner-border" style="color:#805ad5;" role="status">
             <span class="visually-hidden">Laddar&hellip;</span>
           </div>
-          <p style="color:#718096;margin-top:12px;">H&auml;mtar st&auml;mningsdata&hellip;</p>
+          <p style="color:#8fa3b8;margin-top:12px;">H&auml;mtar st&auml;mningsdata&hellip;</p>
         </div>
 
         <!-- Uppdaterar (har befintlig data) -->
@@ -468,7 +468,7 @@ interface FeedbackSummary {
           <div *ngIf="feedbackSummary && feedbackSummary.total === 0" class="text-center py-5">
             <div style="font-size:3rem;margin-bottom:16px;">&#128578;</div>
             <p style="color:#a0aec0;font-size:15px;margin:0;">Inga feedbacks registrerade &auml;nnu.</p>
-            <p style="color:#718096;font-size:13px;margin-top:8px;">
+            <p style="color:#8fa3b8;font-size:13px;margin-top:8px;">
               Operat&ouml;rerna kan skicka st&auml;mning fr&aring;n Min Bonus-sidan.
             </p>
           </div>
@@ -489,7 +489,7 @@ interface FeedbackSummary {
                       <div style="font-size:3rem;font-weight:700;line-height:1;"
                            [style.color]="stamningFarg(feedbackSummary.avg_stamning)">
                         {{ feedbackSummary.avg_stamning | number:'1.1-1' }}
-                        <span style="font-size:1.2rem;color:#718096;">&nbsp;/ 4.0</span>
+                        <span style="font-size:1.2rem;color:#8fa3b8;">&nbsp;/ 4.0</span>
                       </div>
                     </div>
                     <div style="font-size:3rem;line-height:1;">
@@ -503,7 +503,7 @@ interface FeedbackSummary {
                          style="height:100%;border-radius:99px;transition:width .5s ease;">
                     </div>
                   </div>
-                  <div class="d-flex justify-content-between mt-1" style="font-size:11px;color:#718096;">
+                  <div class="d-flex justify-content-between mt-1" style="font-size:11px;color:#8fa3b8;">
                     <span>&#128543; 1</span>
                     <span>&#128528; 2</span>
                     <span>&#128522; 3</span>
@@ -559,7 +559,7 @@ interface FeedbackSummary {
 
               <!-- Tom dagslista -->
               <div *ngIf="feedbackSummary.per_dag.length === 0" class="text-center py-4">
-                <p style="color:#718096;margin:0;">Ingen daglig data tillg&auml;nglig.</p>
+                <p style="color:#8fa3b8;margin:0;">Ingen daglig data tillg&auml;nglig.</p>
               </div>
 
               <!-- Dagarna -->
@@ -593,7 +593,7 @@ interface FeedbackSummary {
                   </div>
 
                   <!-- Procent -->
-                  <div style="width:40px;flex-shrink:0;text-align:right;font-size:12px;color:#718096;">
+                  <div style="width:40px;flex-shrink:0;text-align:right;font-size:12px;color:#8fa3b8;">
                     {{ (dag.snitt / 4 * 100) | number:'1.0-0' }}%
                   </div>
 
@@ -602,7 +602,7 @@ interface FeedbackSummary {
             </div>
 
             <!-- Förklaring av ikoner -->
-            <div class="d-flex flex-wrap gap-4 mt-3" style="font-size:12px;color:#718096;">
+            <div class="d-flex flex-wrap gap-4 mt-3" style="font-size:12px;color:#8fa3b8;">
               <span>&#128543; 1 = Mycket d&aring;ligt</span>
               <span>&#128528; 2 = D&aring;ligt</span>
               <span>&#128522; 3 = Bra</span>
@@ -869,11 +869,11 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid:  { color: '#2d3748' }
           },
           y: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid:  { color: '#374151' },
             beginAtZero: true
           }
@@ -896,7 +896,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
   }
 
   getIbcColor(ibcPerH: number, status: string): string {
-    if (status === 'inaktiv') return '#718096';
+    if (status === 'inaktiv') return '#8fa3b8';
     if (ibcPerH >= 18) return '#68d391';
     if (ibcPerH >= 12) return '#f6e05e';
     return '#fc8181';
@@ -927,7 +927,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
       case 'bra':    return '#9ae6b4';
       case 'ok':     return '#fbd38d';
       case 'lag':    return '#feb2b2';
-      case 'inaktiv': return '#718096';
+      case 'inaktiv': return '#8fa3b8';
       default:       return '#a0aec0';
     }
   }

@@ -31,7 +31,7 @@
 .podium-silver { border-color: rgba(192,192,192,0.3); }
 .podium-bronze { border-color: rgba(205,127,50,0.3); }
 .podium-medal { margin-bottom: 0.5rem; }
-.podium-rank { color: #718096; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.podium-rank { color: #8fa3b8; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
 .podium-avatar {
   width: 56px; height: 56px;
   border-radius: 50%;
@@ -48,7 +48,7 @@
 .podium-name { color: #e2e8f0; font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem; }
 .podium-poang { color: #e2e8f0; font-size: 1.8rem; font-weight: 800; }
 .podium-poang-gold { color: #FFD700; font-size: 2.2rem; }
-.podium-label { color: #718096; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.podium-label { color: #8fa3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
 .podium-ibc { color: #a0aec0; font-size: 0.85rem; margin-top: 0.5rem; }
 
 /* MVP Card */
@@ -76,7 +76,7 @@
 .mvp-name { color: #e2e8f0; font-size: 1.3rem; font-weight: 700; }
 .mvp-stat { display: flex; flex-direction: column; }
 .mvp-stat-value { color: #e2e8f0; font-size: 1.2rem; font-weight: 700; }
-.mvp-stat-label { color: #718096; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.mvp-stat-label { color: #8fa3b8; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
 /* Ranking Table */
 .ranking-table { color: #e2e8f0; }

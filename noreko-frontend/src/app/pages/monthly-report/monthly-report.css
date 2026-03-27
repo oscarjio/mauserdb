@@ -84,7 +84,7 @@
 
 .print-subtitle {
   font-size: 0.9rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.2rem;
 }
 
@@ -168,7 +168,7 @@
 
 .kpi-sub {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .kpi-badge-wrap {
@@ -382,8 +382,8 @@
     color: #1a365d !important;
   }
 
-  .print-subtitle { color: #4a5568 !important; }
-  .print-date { color: #718096 !important; }
+  .print-subtitle { color: #8fa3b8 !important; }
+  .print-date { color: #8fa3b8 !important; }
 
   /* Print footer */
   .print-footer {
@@ -401,7 +401,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.72rem;
-    color: #718096 !important;
+    color: #8fa3b8 !important;
   }
 
   /* Sektionsrubriker */
@@ -429,9 +429,9 @@
     break-inside: avoid;
   }
 
-  .kpi-label { color: #4a5568 !important; }
+  .kpi-label { color: #8fa3b8 !important; }
   .kpi-value { color: #1a202c !important; }
-  .kpi-sub   { color: #718096 !important; }
+  .kpi-sub   { color: #8fa3b8 !important; }
 
   /* Chart */
   .chart-container {
@@ -449,7 +449,7 @@
   }
 
   .day-card-date { color: #1a202c !important; }
-  .day-stat-label { color: #4a5568 !important; }
+  .day-stat-label { color: #8fa3b8 !important; }
   .day-stat-value { color: #1a202c !important; }
   .day-card-stat { border-bottom-color: #e2e8f0 !important; }
 
@@ -503,7 +503,7 @@
    ============================================= */
 .compare-period-label {
   font-size: 0.82rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 400;
   margin-left: 0.75rem;
 }
@@ -569,7 +569,7 @@
 
 .diff-sub {
   font-size: 0.73rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* =============================================
@@ -652,7 +652,7 @@
 
 .op-stat-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 0.2rem;
@@ -686,8 +686,8 @@
   }
   .diff-positive { background: rgba(72,187,120,0.08) !important; border-color: #48bb78 !important; }
   .diff-negative { background: rgba(245,101,101,0.08) !important; border-color: #f56565 !important; }
-  .diff-label { color: #4a5568 !important; }
-  .diff-sub   { color: #718096 !important; }
+  .diff-label { color: #8fa3b8 !important; }
+  .diff-sub   { color: #8fa3b8 !important; }
   .op-of-month-card {
     background: #f7fafc !important;
     border-color: #f6e05e !important;
@@ -784,7 +784,7 @@
 
 .stopp-antal {
   font-size: 0.76rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: right;
 }
 
@@ -903,7 +903,7 @@
 
 .best-day-stat-label {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 0.15rem;
@@ -934,7 +934,7 @@
 }
 
 .op-initials-badge.rank-silver {
-  background: linear-gradient(135deg, #718096, #cbd5e0);
+  background: linear-gradient(135deg, #8fa3b8, #cbd5e0);
   color: #1a202c;
 }
 
@@ -1025,7 +1025,7 @@
 
   .stopp-label { color: #1a202c !important; }
   .stopp-pct   { color: #1a202c !important; }
-  .stopp-min   { color: #4a5568 !important; }
+  .stopp-min   { color: #8fa3b8 !important; }
   .stopp-bar-wrap { background: #e2e8f0 !important; }
 
   /* Rekordmanad-banner i utskrift */
@@ -1048,7 +1048,7 @@
 
   .best-day-date-big { color: #1a202c !important; }
   .best-day-stat-value { color: #1a202c !important; }
-  .best-day-stat-label { color: #4a5568 !important; }
+  .best-day-stat-label { color: #8fa3b8 !important; }
   .best-day-badge { background: #c6f6d5 !important; color: #276749 !important; }
 
   /* KPI diff-indikatorer i utskrift */

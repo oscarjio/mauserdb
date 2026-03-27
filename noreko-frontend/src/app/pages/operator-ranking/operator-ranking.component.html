@@ -72,7 +72,7 @@
   <div *ngIf="errorTopplista && !loadingTopplista" class="alert alert-danger mb-4">
     <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda topplistan. Försök igen senare.
   </div>
-  <div *ngIf="!loadingTopplista && !errorTopplista && (!topplistaData?.topplista?.length)" class="text-center py-3 mb-4" style="color:#718096">
+  <div *ngIf="!loadingTopplista && !errorTopplista && (!topplistaData?.topplista?.length)" class="text-center py-3 mb-4" style="color:#8fa3b8">
     Inga operatörer med produktion för perioden.
   </div>
 
@@ -208,28 +208,28 @@
                 <td class="text-end"><strong class="poang-value">{{ op.total_poang }}</strong></td>
                 <td class="text-end">
                   <span class="bonus-tag bonus-kvalitet" *ngIf="op.kvalitets_bonus > 0">+{{ op.kvalitets_bonus }}</span>
-                  <span *ngIf="op.kvalitets_bonus === 0" style="color:#718096">0</span>
+                  <span *ngIf="op.kvalitets_bonus === 0" style="color:#8fa3b8">0</span>
                 </td>
                 <td class="text-end">
                   <span class="bonus-tag bonus-tempo" *ngIf="op.tempo_bonus > 0">+{{ op.tempo_bonus }}</span>
-                  <span *ngIf="op.tempo_bonus === 0" style="color:#718096">0</span>
+                  <span *ngIf="op.tempo_bonus === 0" style="color:#8fa3b8">0</span>
                 </td>
                 <td class="text-end">
                   <span class="bonus-tag bonus-stopp" *ngIf="op.stopp_bonus > 0">+{{ op.stopp_bonus }}</span>
-                  <span *ngIf="op.stopp_bonus === 0" style="color:#718096">0</span>
+                  <span *ngIf="op.stopp_bonus === 0" style="color:#8fa3b8">0</span>
                 </td>
                 <td class="text-end"><strong>{{ op.total_bonus }}</strong></td>
                 <td class="text-center">
                   <span *ngIf="op.streak > 0" [style.color]="getStreakColor(op.streak)">
                     <i [class]="getStreakEmoji(op.streak)" class="me-1"></i>{{ op.streak }}d
                   </span>
-                  <span *ngIf="op.streak === 0" style="color:#718096">-</span>
+                  <span *ngIf="op.streak === 0" style="color:#8fa3b8">-</span>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div *ngIf="!loadingRanking && !errorRanking && (!rankingData?.ranking?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingRanking && !errorRanking && (!rankingData?.ranking?.length)" class="text-center py-3" style="color:#8fa3b8">
           Ingen rankingdata för perioden.
         </div>
       </div>
@@ -248,7 +248,7 @@
         <div class="chart-wrapper" *ngIf="!loadingPoangfordelning && !errorPoangfordelning">
           <canvas id="poangFordelningChart"></canvas>
         </div>
-        <div *ngIf="!loadingPoangfordelning && !errorPoangfordelning && (!poangfordelningData?.chart_data?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingPoangfordelning && !errorPoangfordelning && (!poangfordelningData?.chart_data?.length)" class="text-center py-3" style="color:#8fa3b8">
           Ingen data för diagrammet.
         </div>
       </div>
@@ -263,7 +263,7 @@
         <div class="chart-wrapper" *ngIf="!loadingHistorik && !errorHistorik">
           <canvas id="historikChart"></canvas>
         </div>
-        <div *ngIf="!loadingHistorik && !errorHistorik && (!historikData?.datasets?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingHistorik && !errorHistorik && (!historikData?.datasets?.length)" class="text-center py-3" style="color:#8fa3b8">
           Ingen historikdata tillgänglig.
         </div>
       </div>

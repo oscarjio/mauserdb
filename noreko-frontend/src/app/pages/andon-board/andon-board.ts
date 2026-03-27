@@ -116,12 +116,12 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   }
 
   get trendColor(): string {
-    if (!this.rate) return '#718096';
+    if (!this.rate) return '#8fa3b8';
     switch (this.rate.trend) {
       case 'up':     return '#48bb78';
       case 'down':   return '#f56565';
       case 'stable': return '#ed8936';
-      default:       return '#718096';
+      default:       return '#8fa3b8';
     }
   }
 
@@ -136,12 +136,12 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   }
 
   get machineStatusColor(): string {
-    if (!this.machine) return '#718096';
+    if (!this.machine) return '#8fa3b8';
     switch (this.machine.status) {
       case 'running': return '#48bb78';
       case 'stopped': return '#f56565';
       case 'unknown': return '#ed8936';
-      default:        return '#718096';
+      default:        return '#8fa3b8';
     }
   }
 
@@ -156,7 +156,7 @@ export class AndonBoardComponent implements OnInit, OnDestroy {
   }
 
   get qualityColor(): string {
-    if (!this.quality) return '#718096';
+    if (!this.quality) return '#8fa3b8';
     if (this.quality.scrap_rate_percent <= 2)  return '#48bb78';
     if (this.quality.scrap_rate_percent <= 5)  return '#ed8936';
     return '#f56565';

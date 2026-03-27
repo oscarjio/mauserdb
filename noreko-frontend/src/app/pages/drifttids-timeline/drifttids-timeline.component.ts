@@ -286,7 +286,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     if (type === 'running')   return '#48bb78';
     if (type === 'stopped')   return '#fc8181';
     if (type === 'unplanned') return '#4a5568';
-    return '#718096';
+    return '#8fa3b8';
   }
 
   utnyttjandegradFarg(pct: number): string {

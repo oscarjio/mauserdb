@@ -78,8 +78,8 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
     ] }, options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#a0aec0', font: { size: 11 } } }, tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#4299e1', borderWidth: 1,
         callbacks: { label: (ctx: any) => { const v = ctx.parsed.y; if (v === null) return ''; const idx = ctx.dataIndex; if (ctx.datasetIndex === 0) { const d = this.rejectionTrendData[idx]; return ['Kvalitet: '+v+'%', 'OK: '+(d?.ibc_ok??0)+'  Kasserade: '+(d?.ibc_kasserade??0)]; } return ctx.dataset.label+': '+v+'%'; } } } },
-      scales: { x: { ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { min: 0, max: 100, ticks: { color: '#718096', callback: (v: any) => v+'%' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'Kvalitet %', color: '#a0aec0', font: { size: 11 } } } } } });
+      scales: { x: { ticks: { color: '#8fa3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { min: 0, max: 100, ticks: { color: '#8fa3b8', callback: (v: any) => v+'%' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'Kvalitet %', color: '#a0aec0', font: { size: 11 } } } } } });
   }
 
   private renderRejectionParetoChart(): void {

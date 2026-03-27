@@ -814,7 +814,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       case 'silver':  return 'color:#a8a9ad';
       case 'guld':    return 'color:#ffd700';
       case 'platina': return 'color:#e5e4e2';
-      default:        return 'color:#718096';
+      default:        return 'color:#8fa3b8';
     }
   }
 
@@ -1135,10 +1135,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
             grid: { color: '#2d3748' }
           },
           y: {
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' },
             beginAtZero: false,
-            title: { display: true, text: 'Bonuspoäng', color: '#718096', font: { size: 11 } }
+            title: { display: true, text: 'Bonuspoäng', color: '#8fa3b8', font: { size: 11 } }
           }
         }
       }
@@ -1224,8 +1224,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
           legend: { display: false }
         },
         scales: {
-          x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, min: 0, max: 200 }
+          x: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' } },
+          y: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, min: 0, max: 200 }
         }
       }
     });
@@ -1284,11 +1284,11 @@ export class MyBonusPage implements OnInit, OnDestroy {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } }
         },
         scales: {
-          x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
+          x: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' } },
           y: {
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' },
-            title: { display: true, text: 'IBC/h', color: '#718096' },
+            title: { display: true, text: 'IBC/h', color: '#8fa3b8' },
             beginAtZero: false
           }
         }

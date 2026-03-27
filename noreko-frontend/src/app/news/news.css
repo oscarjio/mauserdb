@@ -421,12 +421,12 @@
 .reaction-btn {
   background: transparent;
   border: 1px solid #4a5568;
-  color: #718096;
+  color: #8fa3b8;
   transition: all 0.15s;
 }
 
 .reaction-btn:hover {
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #a0aec0;
 }
 

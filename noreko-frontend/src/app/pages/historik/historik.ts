@@ -253,7 +253,7 @@ interface VeckoData {
     }
 
     .page-subtitle {
-      color: #718096;
+      color: #8fa3b8;
       font-size: 0.95rem;
     }
 
@@ -290,7 +290,7 @@ interface VeckoData {
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #718096;
+      color: #8fa3b8;
       font-weight: 600;
     }
     .kpi-value {
@@ -301,7 +301,7 @@ interface VeckoData {
     }
     .kpi-sub {
       font-size: 0.75rem;
-      color: #718096;
+      color: #8fa3b8;
     }
 
     /* Grafkort */
@@ -689,11 +689,11 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', maxRotation: 45, font: { size: 11 } },
+            ticks: { color: '#8fa3b8', maxRotation: 45, font: { size: 11 } },
             grid: { color: 'rgba(74,85,104,0.4)' }
           },
           y: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid: { color: 'rgba(74,85,104,0.4)' },
             beginAtZero: true
           }
@@ -762,14 +762,14 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
         scales: {
           x: {
             ticks: {
-              color: '#718096',
+              color: '#8fa3b8',
               maxTicksLimit: 26,
               font: { size: 10 }
             },
             grid: { color: 'rgba(74,85,104,0.4)' }
           },
           y: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid: { color: 'rgba(74,85,104,0.4)' },
             beginAtZero: true
           }

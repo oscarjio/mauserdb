@@ -16,7 +16,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   margin-bottom: 0;
 }
@@ -115,7 +115,7 @@
 
 .veckonr-badge {
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -217,7 +217,7 @@
 
 .dag-ingen-data {
   font-size: 0.7rem;
-  color: #4a5568;
+  color: #8fa3b8;
   margin-top: 4px;
 }
 
@@ -232,7 +232,7 @@
   grid-column: 2 / -1;
   padding: 4px 8px;
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   display: flex;
   align-items: center;
 }
@@ -320,7 +320,7 @@
 
 .kpi-etikett {
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -337,7 +337,7 @@
 }
 
 .op-tabell thead th {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   border-bottom-color: rgba(255,255,255,0.08);
 }
@@ -360,7 +360,7 @@
 }
 
 .rank-badge.rank-1 { background: #d69e2e; color: #1a202c; }
-.rank-badge.rank-2 { background: #718096; color: #e2e8f0; }
+.rank-badge.rank-2 { background: #8fa3b8; color: #e2e8f0; }
 .rank-badge.rank-3 { background: #9c6e4a; color: #e2e8f0; }
 
 /* Stopporsaker */
@@ -419,7 +419,7 @@
 
 .summary-label {
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

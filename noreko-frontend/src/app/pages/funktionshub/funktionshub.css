@@ -23,7 +23,7 @@
 }
 
 .hub-count {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.85rem;
 }
 
@@ -41,7 +41,7 @@
   left: 0.8rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.85rem;
 }
 
@@ -56,7 +56,7 @@
 }
 
 .hub-search::placeholder {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .hub-search:focus {
@@ -73,7 +73,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #718096;
+  color: #8fa3b8;
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   font-size: 0.8rem;
@@ -210,7 +210,7 @@
   right: 0.4rem;
   background: none;
   border: none;
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 0.75rem;
   cursor: pointer;
   padding: 0.2rem;
@@ -246,7 +246,7 @@
 .hub-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .hub-empty p {

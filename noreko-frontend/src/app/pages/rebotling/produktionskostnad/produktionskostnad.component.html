@@ -303,6 +303,7 @@
 
     <div *ngIf="!loadingTable && dailyTable">
       <div style="overflow-x:auto;">
+        <div class="table-responsive">
         <table class="table-dark-custom">
           <thead>
             <tr>
@@ -346,6 +347,7 @@
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
       <div class="text-muted small mt-2">
         Visar {{ dailyTable.rows.length }} dagar ({{ dailyTable.from }} – {{ dailyTable.to }})

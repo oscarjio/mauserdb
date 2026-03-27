@@ -128,9 +128,9 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
           }
         },
         scales: {
-          x: { ticks: { color: '#718096' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          y: { beginAtZero: true, ticks: { color: '#718096' }, grid: { color: 'rgba(255,255,255,0.05)' },
-               title: { display: true, text: 'IBC OK', color: '#718096' } }
+          x: { ticks: { color: '#8fa3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, ticks: { color: '#8fa3b8' }, grid: { color: 'rgba(255,255,255,0.05)' },
+               title: { display: true, text: 'IBC OK', color: '#8fa3b8' } }
         }
       }
     });

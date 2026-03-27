@@ -58,7 +58,7 @@
 .header-sub {
   font-size: 0.75rem;
   font-weight: 400;
-  color: #718096;
+  color: #8fa3b8;
   margin-left: 0.5rem;
 }
 
@@ -103,7 +103,7 @@
 .select-icon {
   position: absolute;
   left: 0.6rem;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.8rem;
   pointer-events: none;
   z-index: 1;
@@ -139,7 +139,7 @@
 
 .control-loading {
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Period buttons */
@@ -318,7 +318,7 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .ot-empty-state {
@@ -327,14 +327,14 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 1rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: center;
   font-size: 1rem;
 }
 
 /* ----- Bootstrap override adjustments ----- */
 .text-muted {
-  color: #718096 !important;
+  color: #8fa3b8 !important;
 }
 
 .text-end {
@@ -423,7 +423,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 
@@ -436,7 +436,7 @@
 
 .ot-kpi-card .kpi-sub {
   font-size: 0.74rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* KPI-kortfärger */

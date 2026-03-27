@@ -82,7 +82,7 @@
 .kas-empty {
   text-align: center;
   padding: 32px 16px;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .kas-empty p {
@@ -154,7 +154,7 @@
 }
 
 .kas-detail-label {
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   font-size: 0.72rem;
   text-transform: uppercase;

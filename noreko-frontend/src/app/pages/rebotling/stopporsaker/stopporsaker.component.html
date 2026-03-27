@@ -80,7 +80,7 @@
         <div class="chart-wrapper" *ngIf="!loadingPareto">
           <canvas id="paretoChart"></canvas>
         </div>
-        <div *ngIf="!loadingPareto && (!paretoData?.pareto?.length)" class="text-center py-4" style="color:#718096">
+        <div *ngIf="!loadingPareto && (!paretoData?.pareto?.length)" class="text-center py-4" style="color:#8fa3b8">
           Inga stopporsaker registrerade för perioden.
         </div>
       </div>
@@ -92,7 +92,7 @@
         <div class="chart-wrapper" *ngIf="!loadingStation">
           <canvas id="stationChart"></canvas>
         </div>
-        <div *ngIf="!loadingStation && (!stationData?.stationer?.length)" class="text-center py-4" style="color:#718096">
+        <div *ngIf="!loadingStation && (!stationData?.stationer?.length)" class="text-center py-4" style="color:#8fa3b8">
           Inga stations-data för perioden.
         </div>
       </div>
@@ -155,7 +155,7 @@
           </table>
           </div>
         </div>
-        <div *ngIf="!loadingOrsaker && (!orsakerData?.orsaker?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingOrsaker && (!orsakerData?.orsaker?.length)" class="text-center py-3" style="color:#8fa3b8">
           Inga orsaker för perioden.
         </div>
       </div>
@@ -168,7 +168,7 @@
       <div class="chart-card">
         <h6 class="mb-3">
           <i class="fas fa-list me-2"></i>Senaste stopp
-          <span *ngIf="detaljerData" style="color:#718096; font-weight:400; font-size:0.8rem"> ({{ detaljerData.total }} st)</span>
+          <span *ngIf="detaljerData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem"> ({{ detaljerData.total }} st)</span>
         </h6>
         <div *ngIf="loadingDetaljer" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
 
@@ -179,7 +179,7 @@
                 <span style="font-size:1.2rem">{{ d.ikon }}</span>
                 <div>
                   <strong>{{ d.orsak }}</strong>
-                  <div style="font-size:0.75rem; color:#718096">{{ formatDate(d.start_time) }}</div>
+                  <div style="font-size:0.75rem; color:#8fa3b8">{{ formatDate(d.start_time) }}</div>
                 </div>
               </div>
               <div class="d-flex align-items-center gap-3">
@@ -189,7 +189,7 @@
                 <span style="font-size:0.9rem; color:#e2e8f0; min-width:70px; text-align:right">
                   {{ formatDuration(d.varaktighet_min) }}
                 </span>
-                <i class="fas" [class.fa-chevron-down]="expandedDetailId !== d.id" [class.fa-chevron-up]="expandedDetailId === d.id" style="color:#718096"></i>
+                <i class="fas" [class.fa-chevron-down]="expandedDetailId !== d.id" [class.fa-chevron-up]="expandedDetailId === d.id" style="color:#8fa3b8"></i>
               </div>
             </div>
             <div class="detail-expanded" *ngIf="expandedDetailId === d.id">
@@ -216,7 +216,7 @@
           </div>
         </div>
 
-        <div *ngIf="!loadingDetaljer && (!detaljerData?.detaljer?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingDetaljer && (!detaljerData?.detaljer?.length)" class="text-center py-3" style="color:#8fa3b8">
           Inga stopp registrerade för perioden.
         </div>
       </div>

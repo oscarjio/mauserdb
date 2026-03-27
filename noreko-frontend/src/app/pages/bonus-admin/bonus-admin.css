@@ -104,7 +104,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 .stat-value {
@@ -115,7 +115,7 @@
 }
 .stat-sub {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.25rem;
 }
 
@@ -164,7 +164,7 @@
 }
 .target-value small {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 400;
 }
 
@@ -178,7 +178,7 @@
 }
 .table-dark thead th {
   background: #161c29;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -312,7 +312,7 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.25rem;
 }
 .ft-value {
@@ -322,7 +322,7 @@
 }
 .ft-sub {
   font-size: 0.68rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.2rem;
 }
 
@@ -402,7 +402,7 @@
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 
@@ -502,7 +502,7 @@
 }
 .sim-preset-desc {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ============================================================
@@ -562,7 +562,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.75rem;
 }
 .sim-gauge-container {
@@ -605,7 +605,7 @@
 }
 .sim-gauge-sublabel {
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.15rem;
 }
 
@@ -649,7 +649,7 @@
   transition: width 0.6s ease-out;
 }
 .sim-hist-bar-actual {
-  background: #718096;
+  background: #8fa3b8;
 }
 .sim-hist-bar-simulated {
   background: #4299e1;
@@ -715,7 +715,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 .audit-summary-value {
@@ -726,7 +726,7 @@
 }
 .audit-summary-sub {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.25rem;
 }
 

@@ -25,7 +25,7 @@
 
 .form-control {
   background-color: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
@@ -168,7 +168,7 @@
 /* --- Sökfält --- */
 .search-icon {
   background-color: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #a0aec0;
 }
 
@@ -195,7 +195,7 @@
 
 .filter-pill {
   background-color: #4a5568;
-  border: 1px solid #718096;
+  border: 1px solid #8fa3b8;
   color: #a0aec0;
   border-radius: 1rem;
   padding: 0.25rem 0.75rem;
@@ -250,7 +250,7 @@
 .sort-icon {
   font-size: 0.7rem;
   margin-left: 0.375rem;
-  color: #718096;
+  color: #8fa3b8;
   letter-spacing: -1px;
 }
 

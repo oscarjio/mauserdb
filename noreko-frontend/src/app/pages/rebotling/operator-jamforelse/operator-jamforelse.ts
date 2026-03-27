@@ -400,7 +400,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
             min: 0,
             max: 100,
             ticks: {
-              color: '#718096',
+              color: '#8fa3b8',
               backdropColor: 'transparent',
               stepSize: 20,
             },

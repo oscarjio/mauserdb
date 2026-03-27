@@ -65,7 +65,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .filter-select, .filter-input {
@@ -96,7 +96,7 @@ input[type="date"].filter-input::-webkit-calendar-picker-indicator {
   left: 9px;
   top: 50%;
   transform: translateY(-50%);
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   pointer-events: none;
 }
@@ -106,7 +106,7 @@ input[type="date"].filter-input::-webkit-calendar-picker-indicator {
 }
 
 .filter-result-note {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   align-self: flex-end;
   padding-bottom: 0.25rem;
@@ -248,7 +248,7 @@ input[type="date"].filter-input::-webkit-calendar-picker-indicator {
 
 .audit-entity {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   font-family: monospace;
 }
 
@@ -271,7 +271,7 @@ input[type="date"].filter-input::-webkit-calendar-picker-indicator {
 }
 
 .audit-user { color: #a0aec0; font-weight: 500; }
-.audit-time { white-space: nowrap; color: #718096; }
+.audit-time { white-space: nowrap; color: #8fa3b8; }
 .audit-ip { color: #555; font-family: monospace; font-size: 0.73rem; }
 
 .audit-expand {

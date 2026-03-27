@@ -267,12 +267,12 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
       datasets.push({
         label: 'Prognos',
         data: forecastPadded,
-        borderColor: '#718096',
+        borderColor: '#8fa3b8',
         backgroundColor: 'transparent',
         fill: false,
         tension: 0.2,
         pointRadius: 4,
-        pointBackgroundColor: '#718096',
+        pointBackgroundColor: '#8fa3b8',
         borderWidth: 2,
         borderDash: [4, 4],
         spanGaps: true,
@@ -325,7 +325,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'IBC / timme',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 }
             }
           }

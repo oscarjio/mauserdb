@@ -30,7 +30,7 @@
 }
 
 .opdash-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 14px;
   margin: 0;
   text-transform: capitalize;
@@ -78,7 +78,7 @@
 .opdash-empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 15px;
 }
 
@@ -136,7 +136,7 @@
 /* --- Ingen data --- */
 .opdash-no-data {
   text-align: center;
-  color: #718096;
+  color: #8fa3b8;
   padding: 24px 0;
   font-size: 14px;
 }
@@ -304,7 +304,7 @@
 
 .opdash-stopp-time {
   font-size: 11px;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* --- Responsive --- */

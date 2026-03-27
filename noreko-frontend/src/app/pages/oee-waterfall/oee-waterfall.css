@@ -108,7 +108,7 @@
 
 .kpi-sub {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .kpi-trend {
@@ -204,7 +204,7 @@
 }
 
 .forlust-negativ {
-  border-left-color: #718096;
+  border-left-color: #8fa3b8;
 }
 
 .forlust-effektiv {
@@ -285,7 +285,7 @@
 
 .ibc-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

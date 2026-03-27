@@ -94,7 +94,7 @@
 
 .summary-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;
@@ -154,12 +154,12 @@
 .tier-outstanding { background: #744210; color: #f6ad55; border: 1px solid #f6ad55; }
 .tier-excellent   { background: #1c4532; color: #68d391; border: 1px solid #68d391; }
 .tier-god         { background: #1a365d; color: #63b3ed; border: 1px solid #63b3ed; }
-.tier-bas         { background: #2d3748; color: #a0aec0; border: 1px solid #718096; }
+.tier-bas         { background: #2d3748; color: #a0aec0; border: 1px solid #8fa3b8; }
 .tier-under       { background: #742a2a; color: #fc8181; border: 1px solid #fc8181; }
 
 .tier-name-small {
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 2px;
 }
 

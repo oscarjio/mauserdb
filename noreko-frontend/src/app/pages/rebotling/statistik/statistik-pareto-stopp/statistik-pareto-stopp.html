@@ -102,7 +102,7 @@
                   </td>
                   <td class="text-end">{{ item.total_minuter | number:'1.0-0' }}</td>
                   <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#ed8936' : '#a0aec0'">{{ item.pct_av_total | number:'1.1-1' }}%</td>
-                  <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#63b3ed' : '#718096'">{{ item.kumulativ_pct | number:'1.1-1' }}%</td>
+                  <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#63b3ed' : '#8fa3b8'">{{ item.kumulativ_pct | number:'1.1-1' }}%</td>
                   <td class="text-end text-muted">{{ item.antal_stopp }}</td>
                   <td class="text-end text-muted">{{ item.snitt_minuter | number:'1.1-1' }}</td>
                 </tr>

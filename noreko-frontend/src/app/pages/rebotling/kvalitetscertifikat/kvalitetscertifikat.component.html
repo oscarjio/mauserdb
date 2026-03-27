@@ -136,6 +136,7 @@
     </div>
 
     <div *ngIf="!loadingLista && !errorLista && certifikat.length > 0" style="overflow-x:auto;">
+      <div class="table-responsive">
       <table class="table-dark-custom">
         <thead>
           <tr>
@@ -192,6 +193,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div *ngIf="!loadingLista && !errorLista && certifikat.length === 0" class="text-muted small py-3 text-center">

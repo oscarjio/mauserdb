@@ -33,7 +33,7 @@
 }
 
 .kpi-sub {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   margin-top: 0.15rem;
 }
@@ -89,7 +89,7 @@
 
 /* Mini KPI under gauge */
 .kpi-mini-label {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   text-transform: uppercase;
 }

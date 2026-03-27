@@ -510,11 +510,11 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' }
           },
           y: {
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' },
             beginAtZero: true
           }
@@ -635,13 +635,13 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', font: { size: 10 }, maxTicksLimit: 10 },
+            ticks: { color: '#8fa3b8', font: { size: 10 }, maxTicksLimit: 10 },
             grid: { color: '#2d3748' }
           },
           y: {
             min: 1,
             max: 4,
-            ticks: { color: '#718096', stepSize: 1 },
+            ticks: { color: '#8fa3b8', stepSize: 1 },
             grid: { color: '#2d3748' }
           }
         }

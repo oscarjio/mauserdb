@@ -74,7 +74,7 @@
   flex-direction: column;
   align-items: flex-end;
   font-size: 0.9rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .refresh-time {
@@ -241,7 +241,7 @@
 
 .stat-unit {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -277,7 +277,7 @@
 
 .progress-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: right;
 }
 
@@ -319,7 +319,7 @@
 .team-goal {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .team-pct {
@@ -360,7 +360,7 @@
 
 .prognos-label {
   font-size: 1.1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .prognos-value {
@@ -422,7 +422,7 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 1.5rem;
 }
 

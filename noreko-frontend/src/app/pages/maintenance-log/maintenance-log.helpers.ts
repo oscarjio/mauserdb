@@ -149,7 +149,7 @@ export const SHARED_STYLES = `
   .empty-state {
     text-align: center;
     padding: 3rem 1rem;
-    color: #718096;
+    color: #8fa3b8;
   }
 
   /* Statistics table */
@@ -323,7 +323,7 @@ export const SHARED_STYLES = `
     color: #e2e8f0;
     box-shadow: 0 0 0 2px rgba(99,179,237,0.25);
   }
-  .form-control-dark::placeholder { color: #718096; }
+  .form-control-dark::placeholder { color: #8fa3b8; }
   .form-control-dark option,
   .form-select-dark option { background: #2d3748; }
   .form-text { font-size: 0.75rem; }

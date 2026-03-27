@@ -83,8 +83,8 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
           }
         },
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { min: 0, max: 100, ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'Kvalitet %', color: '#a0aec0', font: { size: 11 } } }
+          x: { ticks: { color: '#8fa3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { min: 0, max: 100, ticks: { color: '#8fa3b8', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'Kvalitet %', color: '#a0aec0', font: { size: 11 } } }
         }
       }
     });

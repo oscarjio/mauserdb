@@ -36,7 +36,7 @@
 
 .pd-subtitle {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .pd-header-right {
@@ -80,7 +80,7 @@
 
 .pd-uppdaterad {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ---- KPI-raden ---- */
@@ -124,7 +124,7 @@
 
 .pd-kpi-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.2rem;
@@ -251,7 +251,7 @@
   padding: 0.5rem 0.6rem;
   background: rgba(255,255,255,0.03);
   border-radius: 6px;
-  border-left: 3px solid #718096;
+  border-left: 3px solid #8fa3b8;
   font-size: 0.78rem;
 }
 
@@ -283,7 +283,7 @@
 }
 
 .pd-alarm-label {
-  color: #718096;
+  color: #8fa3b8;
   margin-right: 0.3rem;
   font-size: 0.72rem;
 }
@@ -302,7 +302,7 @@
 .pd-table th {
   text-align: left;
   padding: 0.4rem 0.6rem;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -380,7 +380,7 @@
 
 .pd-ibc-tid {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .pd-ibc-status-text {
@@ -393,7 +393,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.82rem;
   padding: 0.5rem 0;
 }
@@ -438,7 +438,7 @@
 }
 
 .pd-empty {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.82rem;
   font-style: italic;
   padding: 0.5rem 0;

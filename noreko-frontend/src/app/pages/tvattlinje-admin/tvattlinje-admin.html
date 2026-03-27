@@ -174,7 +174,7 @@
                   [class.fa-play-circle]="systemStatus.is_running"
                   [class.fa-pause-circle]="!systemStatus.is_running"
                   [class.text-success]="systemStatus.is_running"
-                  [style.color]="!systemStatus.is_running ? '#718096' : ''"></i>
+                  [style.color]="!systemStatus.is_running ? '#8fa3b8' : ''"></i>
               </div>
               <div class="status-label">Linjestatus</div>
               <div class="status-value">
@@ -200,7 +200,7 @@
                   [class.text-success]="getPlcStatus() === 'ok'"
                   [class.text-warning]="getPlcStatus() === 'warn'"
                   [class.text-danger]="getPlcStatus() === 'err'"
-                  [style.color]="getPlcStatus() === 'unknown' ? '#718096' : ''"></i>
+                  [style.color]="getPlcStatus() === 'unknown' ? '#8fa3b8' : ''"></i>
               </div>
               <div class="status-label">PLC senast sedd</div>
               <div class="status-value"
@@ -433,7 +433,7 @@
         </div>
 
         <div *ngIf="!weekdayGoalsLoading && weekdayGoals.length === 0" class="text-center py-4">
-          <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
           <p style="color: #a0aec0; margin-top: 0.5rem;">Inga inställningar tillgängliga.</p>
         </div>
 

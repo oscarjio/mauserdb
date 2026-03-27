@@ -84,7 +84,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 .kpi-value {
@@ -95,7 +95,7 @@
 }
 .kpi-sub {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.25rem;
 }
 
@@ -151,7 +151,7 @@
 }
 .table-dark thead th {
   background: #161c29;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -210,7 +210,7 @@
   width: 60px;
   flex-shrink: 0;
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: right;
   padding-right: 8px;
 }
@@ -236,7 +236,7 @@
 
 .heatmap-cell-header {
   font-weight: 600;
-  color: #718096;
+  color: #8fa3b8;
   background: transparent !important;
   font-size: 0.68rem;
 }
@@ -248,7 +248,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 .legend-box {
   width: 16px;
@@ -353,7 +353,7 @@
   justify-content: space-between;
   margin-top: 4px;
   font-size: 0.62rem;
-  color: #718096;
+  color: #8fa3b8;
   padding: 0 2px;
 }
 
@@ -387,11 +387,11 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.25rem;
 }
 .sst-val  { font-size: 1.8rem; font-weight: 800; line-height: 1.1; }
-.sst-sub  { font-size: 0.7rem; color: #718096; margin-top: 0.2rem; }
+.sst-sub  { font-size: 0.7rem; color: #8fa3b8; margin-top: 0.2rem; }
 
 /* ============================================================
    STOPPANALYS — KATEGORI-BADGES

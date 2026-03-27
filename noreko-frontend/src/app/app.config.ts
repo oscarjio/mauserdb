@@ -1,4 +1,4 @@
-import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, Injector, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withPreloading, PreloadAllModules, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
@@ -10,19 +10,36 @@ import { csrfInterceptor } from './interceptors/csrf.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { AuthService } from './services/auth.service';
 import { FeatureFlagService } from './services/feature-flag.service';
+import { ToastService } from './services/toast.service';
 
 registerLocaleData(localeSv);
 
 /**
- * Global ErrorHandler som fångar ChunkLoadError (uppstår när lazy-loaded
- * chunks inte kan hämtas, t.ex. efter en ny deploy medan användaren har
- * gammal version cachad). Laddar om sidan en gång för att hämta nya chunks.
+ * Global ErrorHandler som fångar:
+ * 1. ChunkLoadError — laddar om sidan en gång (lazy-load efter ny deploy)
+ * 2. Övriga okontrollerade fel — visar toast-meddelande på svenska
  *
- * Hanterar både webpack-stil ("Loading chunk X failed") och esbuild-stil
- * ("Failed to fetch dynamically imported module") samt generiska TypeError
- * från nätverksfel vid dynamisk import.
+ * HTTP-fel (401/403/404/500) hanteras redan av errorInterceptor med toast.
+ * Denna handler fångar allt övrigt (template-fel, null-referens, etc).
  */
 class GlobalErrorHandler implements ErrorHandler {
+  private toastService: ToastService | null = null;
+  /** Förhindra toast-spam: max 1 generiskt felmeddelande per 3 sekunder */
+  private lastGenericToast = 0;
+
+  constructor(private injector: Injector) {}
+
+  /**
+   * Lazy-hämtar ToastService via injector (undviker cirkulär DI vid uppstart).
+   */
+  private getToast(): ToastService | null {
+    if (this.toastService) return this.toastService;
+    try {
+      this.toastService = this.injector.get(ToastService, null);
+    } catch { /* ignorera om DI inte är redo */ }
+    return this.toastService;
+  }
+
   handleError(error: any): void {
     const chunkFailedMessage = /Loading chunk [\d]+ failed|ChunkLoadError|Failed to fetch dynamically imported module|dynamically imported module/i;
     const innerError = error?.rejection ?? error;
@@ -40,8 +57,19 @@ class GlobalErrorHandler implements ErrorHandler {
       this.showChunkErrorOverlay();
       return;
     }
-    // Fallback: logga övriga fel till konsolen
+
+    // Logga alltid till konsolen
     console.error(error);
+
+    // Visa toast för okontrollerade fel (med rate-limiting)
+    const now = Date.now();
+    if (now - this.lastGenericToast > 3000) {
+      this.lastGenericToast = now;
+      const toast = this.getToast();
+      if (toast) {
+        toast.error('Ett oväntat fel uppstod. Försök igen eller ladda om sidan.');
+      }
+    }
   }
 
   /**

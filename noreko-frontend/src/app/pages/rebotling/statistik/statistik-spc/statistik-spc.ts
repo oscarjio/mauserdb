@@ -145,12 +145,12 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
+            ticks: { color: '#8fa3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
             grid: { color: 'rgba(255,255,255,0.04)' }
           },
           y: {
             beginAtZero: false,
-            ticks: { color: '#718096', callback: (v: any) => v + ' IBC/h' },
+            ticks: { color: '#8fa3b8', callback: (v: any) => v + ' IBC/h' },
             grid: { color: 'rgba(255,255,255,0.04)' },
             title: { display: true, text: 'IBC per timme', color: '#a0aec0', font: { size: 12 } }
           }

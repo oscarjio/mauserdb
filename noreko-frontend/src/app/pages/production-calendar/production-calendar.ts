@@ -342,17 +342,17 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid: { color: 'rgba(74,85,104,0.3)' }
           },
           y: {
             beginAtZero: true,
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid: { color: 'rgba(74,85,104,0.3)' },
             title: {
               display: true,
               text: 'IBC / timme',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 }
             }
           }

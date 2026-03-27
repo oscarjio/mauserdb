@@ -16,7 +16,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.88rem;
   margin-bottom: 0;
   text-transform: capitalize;
@@ -258,7 +258,7 @@
   letter-spacing: 0.04em;
 }
 .skift-tid {
-  color: #718096;
+  color: #8fa3b8;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 8px;
 }
@@ -268,7 +268,7 @@
   font-size: 0.82rem;
 }
 .comp-table th {
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   font-size: 0.72rem;
   text-transform: uppercase;

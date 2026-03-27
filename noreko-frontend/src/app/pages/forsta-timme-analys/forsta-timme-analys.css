@@ -152,7 +152,7 @@
 }
 
 .chart-empty {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   text-align: center;
 }
@@ -198,7 +198,7 @@
 
 .table-empty {
   padding: 1.5rem;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   text-align: center;
 }

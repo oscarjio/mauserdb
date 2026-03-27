@@ -32,7 +32,7 @@
 
 .kpi-sub {
   font-size: 0.82rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .chart-card {
@@ -271,7 +271,7 @@
 
 .cert-field-label {
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -327,7 +327,7 @@
   margin-top: 1rem;
   border-top: 2px solid #4a5568;
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .cert-textarea {

@@ -59,7 +59,7 @@
 
 .sj-kpi-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 2px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -74,7 +74,7 @@
 
 .sj-kpi-sub {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 1px;
 }
 
@@ -92,7 +92,7 @@
 
 .sj-diff-title {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
@@ -111,7 +111,7 @@
 .sj-diff-row:last-child { border-bottom: none; }
 
 .sj-diff-label {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .sj-diff-val {

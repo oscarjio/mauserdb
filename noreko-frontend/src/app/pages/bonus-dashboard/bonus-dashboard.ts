@@ -577,13 +577,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid: { color: 'rgba(255,255,255,0.05)' },
           },
           y: {
             beginAtZero: true,
-            title: { display: true, text: 'IBC/h', color: '#718096', font: { size: 11 } },
-            ticks: { color: '#718096' },
+            title: { display: true, text: 'IBC/h', color: '#8fa3b8', font: { size: 11 } },
+            ticks: { color: '#8fa3b8' },
             grid: { color: 'rgba(255,255,255,0.05)' },
           }
         }
@@ -719,9 +719,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
           legend: { labels: { color: '#a0aec0' } }
         },
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Bonus', color: '#718096' }, min: 0 },
-          y1: { position: 'right', ticks: { color: '#718096' }, grid: { display: false }, title: { display: true, text: 'IBC OK', color: '#718096' }, min: 0 }
+          x: { ticks: { color: '#8fa3b8', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Bonus', color: '#8fa3b8' }, min: 0 },
+          y1: { position: 'right', ticks: { color: '#8fa3b8' }, grid: { display: false }, title: { display: true, text: 'IBC OK', color: '#8fa3b8' }, min: 0 }
         }
       }
     });

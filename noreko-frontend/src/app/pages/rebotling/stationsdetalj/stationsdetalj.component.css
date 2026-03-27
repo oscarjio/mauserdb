@@ -162,7 +162,7 @@
 
 .rt-kpi-label {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -183,7 +183,7 @@
 }
 
 .kpi-kort:hover {
-  border-color: #718096;
+  border-color: #8fa3b8;
 }
 
 .kpi-icon {
@@ -209,7 +209,7 @@
 
 .kpi-sub {
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .kpi-progress-bar {
@@ -301,7 +301,7 @@
 .chart-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .chart-error { color: #fc8181; }
@@ -402,7 +402,7 @@
 /* ---- Laddning ---- */
 .loading-block {
   text-align: center;
-  color: #718096;
+  color: #8fa3b8;
   padding: 2rem;
 }
 

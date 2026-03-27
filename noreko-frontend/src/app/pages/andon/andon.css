@@ -71,7 +71,7 @@ body {
 
 .fel-sub {
   font-size: 1.1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ------ Huvud-layout ------ */
@@ -111,7 +111,7 @@ body {
 }
 
 .meta-sep {
-  color: #4a5568;
+  color: #8fa3b8;
 }
 
 .meta-datum {
@@ -159,7 +159,7 @@ body {
 }
 
 .status-sep {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1.5rem;
   margin: 0 0.5rem;
 }
@@ -200,7 +200,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -226,7 +226,7 @@ body {
 
 .kpi-sub2 {
   font-size: 0.95rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .oee-etikett {
@@ -303,7 +303,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -341,7 +341,7 @@ body {
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.2rem;
 }
 
@@ -361,7 +361,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   flex-shrink: 0;
 }
@@ -374,7 +374,7 @@ body {
 }
 
 .stopp-laddas {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 1.1rem;
 }
 
@@ -435,7 +435,7 @@ body {
 }
 
 .stopp-sep {
-  color: #4a5568;
+  color: #8fa3b8;
 }
 
 .stopp-varaktighet {
@@ -443,7 +443,7 @@ body {
 }
 
 .stopp-tid {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.95rem;
 }
 
@@ -465,7 +465,7 @@ body {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.15em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -483,7 +483,7 @@ body {
   border-top: 1px solid #2d3748;
   padding-top: 0.5rem;
   font-size: 1.2rem;
-  color: #718096;
+  color: #8fa3b8;
   flex-shrink: 0;
 }
 
@@ -496,7 +496,7 @@ body {
 }
 
 .uppdatering-text {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .uppdatering-text strong {
@@ -590,7 +590,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -612,7 +612,7 @@ body {
 
 /* Tom state */
 .overlam-tom {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1.1rem;
   font-style: italic;
   padding: 0.3rem 0;
@@ -658,7 +658,7 @@ body {
 
 .overlam-tid {
   font-size: 0.95rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .overlam-operatoer {
@@ -703,7 +703,7 @@ body {
 
 .countdown-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 600;
@@ -761,7 +761,7 @@ body {
 
 .shift-pct-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 @keyframes pulse {
@@ -863,7 +863,7 @@ body {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -938,7 +938,7 @@ body {
 
 .ws-takt-sub {
   font-size: 0.9rem;
-  color: #718096;
+  color: #8fa3b8;
   width: 100%;
   flex-basis: 100%;
   margin-top: 0.1rem;
@@ -980,7 +980,7 @@ body {
   transform: translateY(-50%);
   font-size: 0.75rem;
   font-weight: 700;
-  color: #718096;
+  color: #8fa3b8;
   pointer-events: none;
 }
 
@@ -1014,7 +1014,7 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -1044,7 +1044,7 @@ body {
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -1140,7 +1140,7 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
 }
 
@@ -1202,7 +1202,7 @@ body {
 }
 
 .dc-separator {
-  color: #4a5568;
+  color: #8fa3b8;
 }
 
 .dc-target {
@@ -1211,7 +1211,7 @@ body {
 
 .dc-pct {
   font-size: 0.85rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-left: 0.3rem;
 }
 

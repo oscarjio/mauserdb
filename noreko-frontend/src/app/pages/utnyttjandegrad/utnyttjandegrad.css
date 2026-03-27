@@ -87,7 +87,7 @@
 
 .kpi-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.1rem;
@@ -140,7 +140,7 @@
 
 .circle-unit {
   font-size: 0.85rem;
-  fill: #718096;
+  fill: #8fa3b8;
 }
 
 /* ---- Utnyttjandegrad farg ---- */
@@ -233,7 +233,7 @@
 
 .legend-drift { background-color: #48bb78; }
 .legend-stopp { background-color: #e53e3e; }
-.legend-okand { background-color: #718096; }
+.legend-okand { background-color: #8fa3b8; }
 
 /* ---- Tabell ---- */
 .utn-table {
@@ -311,7 +311,7 @@
 }
 
 .topp-rank {
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   min-width: 1.5rem;
 }

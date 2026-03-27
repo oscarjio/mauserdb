@@ -36,7 +36,7 @@
 }
 
 .mdt-kpi-sub {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.8rem;
 }
 
@@ -144,7 +144,7 @@
   width: 30px;
   min-width: 30px;
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: center;
   flex-shrink: 0;
 }
@@ -154,7 +154,7 @@
   min-width: 32px;
   text-align: center;
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   flex-shrink: 0;
 }
 
@@ -189,7 +189,7 @@
   min-width: 48px;
   text-align: center;
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   flex-shrink: 0;
 }
@@ -221,7 +221,7 @@
 }
 
 .mdt-tooltip-status {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.72rem;
 }
 

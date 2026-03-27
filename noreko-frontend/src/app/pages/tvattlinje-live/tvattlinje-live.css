@@ -46,7 +46,7 @@
 .freshness-stale .freshness-text { color: #e74c3c; }
 
 .freshness-unknown .freshness-dot {
-  background: #718096;
+  background: #8fa3b8;
 }
 
 @keyframes freshnessGlow {

@@ -16,7 +16,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   margin-bottom: 0;
 }
@@ -51,7 +51,7 @@
 }
 
 .summary-label {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -203,7 +203,7 @@
 }
 
 .cell-empty {
-  color: #4a5568;
+  color: #8fa3b8;
 }
 
 .avg-cell {
@@ -265,7 +265,7 @@
 }
 
 .hour-avg-label {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.65rem;
 }
 

@@ -204,7 +204,7 @@ import {
       color: #a0aec0;
       margin-bottom: 0.3rem;
     }
-    .meta-sep { color: #4a5568; }
+    .meta-sep { color: #8fa3b8; }
     .entry-description {
       font-size: 0.85rem;
       color: #a0aec0;

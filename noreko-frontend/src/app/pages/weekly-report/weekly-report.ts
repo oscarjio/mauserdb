@@ -143,7 +143,7 @@ interface WeekCompare {
       background: rgba(99, 179, 237, 0.15);
     }
     .week-selector button:disabled {
-      color: #4a5568;
+      color: #8fa3b8;
       cursor: not-allowed;
     }
     .week-label {
@@ -222,7 +222,7 @@ interface WeekCompare {
     }
     .compare-section-title .week-labels {
       font-size: 0.8rem;
-      color: #718096;
+      color: #8fa3b8;
       font-weight: 400;
       text-transform: none;
       letter-spacing: 0;
@@ -255,7 +255,7 @@ interface WeekCompare {
     }
     .compare-prev {
       font-size: 0.72rem;
-      color: #718096;
+      color: #8fa3b8;
       margin-bottom: 0.4rem;
     }
     .diff-badge {
@@ -273,7 +273,7 @@ interface WeekCompare {
     .compare-loading {
       text-align: center;
       padding: 1.5rem;
-      color: #718096;
+      color: #8fa3b8;
       font-size: 0.85rem;
       background: #2d3748;
       border-radius: 10px;
@@ -370,7 +370,7 @@ interface WeekCompare {
     }
     .kpi-sub {
       font-size: 0.72rem;
-      color: #718096;
+      color: #8fa3b8;
       margin-top: 0.3rem;
     }
     .text-green  { color: #48bb78; }
@@ -430,7 +430,7 @@ interface WeekCompare {
     .day-card.worst .day-card-value { color: #fc8181; }
     .day-card-date  {
       font-size: 0.82rem;
-      color: #718096;
+      color: #8fa3b8;
     }
 
     /* ---- Dagsdetaljer-tabell ---- */
@@ -534,7 +534,7 @@ interface WeekCompare {
     .empty-state {
       text-align: center;
       padding: 2rem;
-      color: #718096;
+      color: #8fa3b8;
       font-size: 0.9rem;
     }
 
@@ -790,7 +790,7 @@ interface WeekCompare {
       <div class="daily-table-panel">
         <h4><i class="fas fa-table me-2" style="color:#63b3ed"></i>Daglig produktion</h4>
         <div class="empty-state" *ngIf="!data.daily || data.daily.length === 0" style="text-align:center;padding:2rem 0;">
-          <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
           <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen data för vald vecka.</p>
         </div>
         <table class="daily-table" *ngIf="data.daily && data.daily.length > 0">

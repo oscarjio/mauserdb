@@ -23,7 +23,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   margin-bottom: 0;
 }
@@ -44,7 +44,7 @@
 
 .filter-label {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -247,7 +247,7 @@
 }
 
 .kpi-mini-label {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .kpi-mini-val {
@@ -303,7 +303,7 @@
 
 .skift-kpi-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

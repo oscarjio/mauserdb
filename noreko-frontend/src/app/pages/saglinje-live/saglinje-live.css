@@ -35,7 +35,7 @@
 .freshness-warning .freshness-text { color: #f1c40f; }
 .freshness-stale .freshness-dot { background: #e74c3c; animation: fBlink 1s ease-in-out infinite; }
 .freshness-stale .freshness-text { color: #e74c3c; }
-.freshness-unknown .freshness-dot { background: #718096; }
+.freshness-unknown .freshness-dot { background: #8fa3b8; }
 
 @keyframes fGlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes fBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

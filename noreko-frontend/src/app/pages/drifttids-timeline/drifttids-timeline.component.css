@@ -25,7 +25,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   margin: 0;
 }
@@ -125,7 +125,7 @@
 }
 
 .kpi-sub {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   margin-top: 0.25rem;
 }
@@ -157,7 +157,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ----------------------------------------------------------------
@@ -180,7 +180,7 @@
   position: absolute;
   transform: translateX(-50%);
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   white-space: nowrap;
 }
 
@@ -270,7 +270,7 @@
 }
 
 .tooltip-label {
-  color: #718096;
+  color: #8fa3b8;
   min-width: 60px;
 }
 
@@ -311,7 +311,7 @@
 
 .detail-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

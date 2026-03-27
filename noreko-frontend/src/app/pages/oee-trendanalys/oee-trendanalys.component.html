@@ -98,7 +98,7 @@
       <div class="chart-card">
         <h6 class="mb-3">
           <i class="fas fa-chart-line me-2"></i>OEE-trend
-          <span *ngIf="trendData" style="color:#718096; font-weight:400; font-size:0.8rem">
+          <span *ngIf="trendData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Snitt: {{ trendData.avg_oee }}% | Max: {{ trendData.max_oee }}% | Min: {{ trendData.min_oee }}%
           </span>
         </h6>
@@ -185,7 +185,7 @@
           </table>
           </div>
         </div>
-        <div *ngIf="!loadingStationer && !errorStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingStationer && !errorStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#8fa3b8">
           Inga stationsdata för perioden.
         </div>
       </div>
@@ -202,7 +202,7 @@
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
                 <strong>{{ f.station_namn }}</strong>
-                <span class="ms-2" style="color:#718096; font-size:0.8rem">OEE: {{ f.oee_pct }}%</span>
+                <span class="ms-2" style="color:#8fa3b8; font-size:0.8rem">OEE: {{ f.oee_pct }}%</span>
               </div>
               <span class="badge"
                     [class.badge-tillganglighet]="f.orsak === 'tillganglighet'"
@@ -214,17 +214,17 @@
             <div style="font-size:0.8rem; color:#a0aec0" class="mb-1">
               <i class="fas fa-lightbulb me-1" style="color:#ecc94b"></i>{{ f.atgardsforslag }}
             </div>
-            <div *ngIf="f.stopp_info" style="font-size:0.75rem; color:#718096">
+            <div *ngIf="f.stopp_info" style="font-size:0.75rem; color:#8fa3b8">
               <i class="fas fa-stop-circle me-1" style="color:#fc8181"></i>{{ f.stopp_info }}
             </div>
-            <div class="d-flex gap-3 mt-2" style="font-size:0.75rem; color:#718096">
+            <div class="d-flex gap-3 mt-2" style="font-size:0.75rem; color:#8fa3b8">
               <span>T: {{ f.tillganglighet_pct }}%</span>
               <span>P: {{ f.prestanda_pct }}%</span>
               <span>K: {{ f.kvalitet_pct }}%</span>
             </div>
           </div>
         </div>
-        <div *ngIf="!loadingFlaskhalsar && !errorFlaskhalsar && (!flaskhalserData?.flaskhalsar?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingFlaskhalsar && !errorFlaskhalsar && (!flaskhalserData?.flaskhalsar?.length)" class="text-center py-3" style="color:#8fa3b8">
           Inga flaskhalsar identifierade.
         </div>
       </div>
@@ -237,7 +237,7 @@
       <div class="chart-card">
         <h6 class="mb-3">
           <i class="fas fa-exchange-alt me-2"></i>Periodjämförelse
-          <span *ngIf="jamforelseData" style="color:#718096; font-weight:400; font-size:0.8rem">
+          <span *ngIf="jamforelseData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Total OEE: {{ jamforelseData.period1.oee_pct }}% vs {{ jamforelseData.period2.oee_pct }}%
             <span [class.delta-positive]="jamforelseData.total_delta > 0"
                   [class.delta-negative]="jamforelseData.total_delta < 0"
@@ -284,7 +284,7 @@
           </table>
           </div>
         </div>
-        <div *ngIf="!loadingJamforelse && !errorJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingJamforelse && !errorJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#8fa3b8">
           Inga jämförelsedata tillgängliga.
         </div>
       </div>
@@ -297,7 +297,7 @@
       <div class="chart-card">
         <h6 class="mb-3">
           <i class="fas fa-crystal-ball me-2" style="color:#b794f4"></i>OEE-prediktion (kommande 7 dagar)
-          <span *ngIf="prediktionData" style="color:#718096; font-weight:400; font-size:0.8rem">
+          <span *ngIf="prediktionData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Trend: {{ getTrendText(prediktionData.trend) }} | R2: {{ prediktionData.r2 }}
           </span>
         </h6>

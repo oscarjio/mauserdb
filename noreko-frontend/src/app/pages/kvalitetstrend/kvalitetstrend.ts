@@ -291,12 +291,12 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     datasets.push({
       label: 'Teamsnitt',
       data: teamData,
-      borderColor: '#718096',
+      borderColor: '#8fa3b8',
       backgroundColor: 'transparent',
       fill: false,
       tension: 0.3,
       pointRadius: 3,
-      pointBackgroundColor: '#718096',
+      pointBackgroundColor: '#8fa3b8',
       borderWidth: 2,
       borderDash: [6, 4],
       spanGaps: true,
@@ -360,7 +360,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Kvalitet %',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },
@@ -504,7 +504,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Kvalitet %',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },

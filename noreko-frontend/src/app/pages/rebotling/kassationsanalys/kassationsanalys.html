@@ -216,7 +216,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let op of operatorer; trackBy: trackByIndex">
-                <td class="text-center" style="color:#718096;">{{ op.ranking }}</td>
+                <td class="text-center" style="color:#8fa3b8;">{{ op.ranking }}</td>
                 <td class="fw-bold" style="color:#e2e8f0;">{{ op.operator }}</td>
                 <td class="text-end text-danger fw-bold">{{ op.kasserade }}</td>
                 <td class="text-end" style="color:#a0aec0;">{{ op.totalt }}</td>
@@ -259,7 +259,7 @@
           <ng-container *ngFor="let ibc of detaljer; trackBy: trackById">
             <tr class="kas-detail-row" (click)="toggleRow(ibc.id)" style="cursor:pointer;" tabindex="0" (keydown.enter)="toggleRow(ibc.id)">
               <td class="text-center">
-                <i class="fas" [class.fa-chevron-down]="isExpanded(ibc.id)" [class.fa-chevron-right]="!isExpanded(ibc.id)" style="color:#718096;font-size:.75rem;"></i>
+                <i class="fas" [class.fa-chevron-down]="isExpanded(ibc.id)" [class.fa-chevron-right]="!isExpanded(ibc.id)" style="color:#8fa3b8;font-size:.75rem;"></i>
               </td>
               <td>{{ formatDatum(ibc.datum) }}</td>
               <td class="fw-bold" style="color:#e2e8f0;">{{ ibc.station || '-' }}</td>

@@ -52,7 +52,7 @@
 }
 
 .last-updated {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.82rem;
   white-space: nowrap;
 }
@@ -84,7 +84,7 @@
 }
 
 .summary-sep {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1rem;
 }
 
@@ -181,13 +181,13 @@
 }
 
 .note-textarea::placeholder {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .char-counter {
   text-align: right;
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.25rem;
 }
 
@@ -246,7 +246,7 @@
 }
 
 .priority-btn.inactive:hover {
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
@@ -344,7 +344,7 @@
 }
 
 .retry-btn:hover {
-  background: #718096;
+  background: #8fa3b8;
 }
 
 /* --- Anteckningssektionen --- */
@@ -393,13 +393,13 @@
 }
 
 .filter-tab:hover {
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
 .filter-tab.active {
   background: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
@@ -422,7 +422,7 @@
 }
 
 .tab-badge {
-  background: #718096;
+  background: #8fa3b8;
   color: #e2e8f0;
   border-radius: 9999px;
   font-size: 0.72rem;
@@ -445,7 +445,7 @@
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .empty-state i {
@@ -484,7 +484,7 @@
 }
 
 .note-card.priority-normal {
-  border-left-color: #718096;
+  border-left-color: #8fa3b8;
 }
 
 .note-card.priority-important {
@@ -575,7 +575,7 @@
 }
 
 .note-date {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.8rem;
 }
 
@@ -672,7 +672,7 @@
 }
 
 .note-time {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* --- Responsivitet --- */

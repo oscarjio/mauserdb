@@ -35,7 +35,7 @@ const COLORS = [
     .kpi-card { background: #2d3748; border-radius: 0.5rem; padding: 1.25rem; text-align: center; border: 1px solid #4a5568; }
     .kpi-label { color: #a0aec0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
     .kpi-value { color: #e2e8f0; font-size: 1.6rem; font-weight: 700; }
-    .kpi-sub { color: #718096; font-size: 0.75rem; margin-top: 0.25rem; }
+    .kpi-sub { color: #8fa3b8; font-size: 0.75rem; margin-top: 0.25rem; }
     .kpi-trend-up { color: #fc8181; }
     .kpi-trend-down { color: #68d391; }
     .chart-card { background: #2d3748; border-radius: 0.5rem; padding: 1.25rem; border: 1px solid #4a5568; }
@@ -323,7 +323,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
             position: 'left',
             ticks: { color: '#a0aec0', font: { size: 10 } },
             grid: { color: 'rgba(74,85,104,0.3)' },
-            title: { display: true, text: 'Antal', color: '#718096', font: { size: 11 } },
+            title: { display: true, text: 'Antal', color: '#8fa3b8', font: { size: 11 } },
           },
           y1: {
             position: 'right',
@@ -331,7 +331,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
             max: 100,
             ticks: { color: '#a0aec0', font: { size: 10 }, callback: (v) => v + '%' },
             grid: { display: false },
-            title: { display: true, text: 'Kumulativ %', color: '#718096', font: { size: 11 } },
+            title: { display: true, text: 'Kumulativ %', color: '#8fa3b8', font: { size: 11 } },
           },
         },
       },
@@ -379,7 +379,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
           x: {
             ticks: { color: '#a0aec0', font: { size: 10 } },
             grid: { color: 'rgba(74,85,104,0.3)' },
-            title: { display: true, text: 'Minuter', color: '#718096', font: { size: 11 } },
+            title: { display: true, text: 'Minuter', color: '#8fa3b8', font: { size: 11 } },
           },
           y: {
             ticks: { color: '#a0aec0', font: { size: 10 } },
@@ -452,13 +452,13 @@ export class StopporsakerPage implements OnInit, OnDestroy {
             position: 'left',
             ticks: { color: '#a0aec0', font: { size: 10 }, stepSize: 1 },
             grid: { color: 'rgba(74,85,104,0.3)' },
-            title: { display: true, text: 'Antal', color: '#718096', font: { size: 11 } },
+            title: { display: true, text: 'Antal', color: '#8fa3b8', font: { size: 11 } },
           },
           y1: {
             position: 'right',
             ticks: { color: '#a0aec0', font: { size: 10 } },
             grid: { display: false },
-            title: { display: true, text: 'Minuter', color: '#718096', font: { size: 11 } },
+            title: { display: true, text: 'Minuter', color: '#8fa3b8', font: { size: 11 } },
           },
         },
       },

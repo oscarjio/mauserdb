@@ -12,7 +12,7 @@
 /* --- Page header --- */
 .page-header { border-bottom: 1px solid #2d3748; padding-bottom: 0.75rem; }
 .page-title  { font-size: 1.5rem; font-weight: 700; color: #f7fafc; margin: 0; }
-.page-subtitle { font-size: 0.85rem; color: #718096; margin: 0.2rem 0 0; }
+.page-subtitle { font-size: 0.85rem; color: #8fa3b8; margin: 0.2rem 0 0; }
 
 /* --- Setup card --- */
 .setup-card {
@@ -185,7 +185,7 @@
   left: 0; right: 0;
   display: flex;
   font-size: 0.6rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 .tier-labels-row span { position: absolute; transform: translateX(-50%); }
 .tier-labels-row span:first-child { left: 0; transform: none; }
@@ -198,7 +198,7 @@
   gap: 1rem;
 }
 .hero-qs { display: flex; flex-direction: column; }
-.qs-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; }
+.qs-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: #8fa3b8; }
 .qs-val   { font-size: 1rem; font-weight: 700; }
 
 /* ============================================================
@@ -239,7 +239,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.25rem;
 }
 .kpi-value {
@@ -249,7 +249,7 @@
 }
 .kpi-sub {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.35rem;
 }
 
@@ -294,7 +294,7 @@
   gap: 1.25rem;
 }
 .projection-icon { font-size: 2rem; flex-shrink: 0; }
-.projection-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
+.projection-label { font-size: 0.75rem; color: #8fa3b8; text-transform: uppercase; letter-spacing: 0.5px; }
 .projection-value { font-size: 1.6rem; font-weight: 800; }
 
 /* ============================================================
@@ -303,7 +303,7 @@
 .stats-table { font-size: 0.83rem; }
 .stats-table thead th {
   background: #161c29;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -338,7 +338,7 @@
 .formula-table { font-size: 0.8rem; }
 .formula-table thead th {
   background: #161c29;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.7rem;
   text-transform: uppercase;
 }
@@ -400,7 +400,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.6rem;
 }
 .prognosis-row {
@@ -410,7 +410,7 @@
   align-items: center;
 }
 .prog-item { display: flex; flex-direction: column; }
-.prog-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; }
+.prog-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #8fa3b8; }
 .prog-val   { font-size: 1.2rem; font-weight: 800; line-height: 1.1; }
 .prog-sep   { width: 1px; height: 30px; background: #2d3748; flex-shrink: 0; }
 
@@ -437,7 +437,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.5rem;
 }
 .weekly-legend {
@@ -446,7 +446,7 @@
   gap: 5px;
   flex-wrap: wrap;
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 .legend-dot {
   width: 10px; height: 10px;
@@ -463,7 +463,7 @@
   flex-shrink: 0;
   align-self: center;
 }
-.legend-text { color: #718096; }
+.legend-text { color: #8fa3b8; }
 
 /* Lagsjämförelse grid */
 .team-compare-grid {
@@ -484,7 +484,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #718096;
+  color: #8fa3b8;
 }
 .tc-row {
   display: flex;
@@ -493,9 +493,9 @@
   flex-wrap: wrap;
 }
 .tc-val-block { display: flex; flex-direction: column; align-items: center; }
-.tc-sub  { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; }
+.tc-sub  { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; color: #8fa3b8; }
 .tc-val  { font-size: 1.1rem; font-weight: 800; line-height: 1.1; }
-.tc-vs   { font-size: 0.62rem; color: #4a5568; font-weight: 600; }
+.tc-vs   { font-size: 0.62rem; color: #8fa3b8; font-weight: 600; }
 .tc-diff {
   font-size: 0.82rem;
   font-weight: 700;
@@ -558,9 +558,9 @@
 .pb-sep{width:1px;background:#2d3748;flex-shrink:0;margin:.25rem 0}
 .pb-icon{font-size:1.4rem;flex-shrink:0;opacity:.85}
 .pb-content{flex:1;min-width:0}
-.pb-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;color:#718096;margin-bottom:.15rem}
+.pb-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;color:#8fa3b8;margin-bottom:.15rem}
 .pb-value{font-size:1.35rem;font-weight:800;line-height:1.1}
-.pb-date{font-size:.68rem;color:#4a5568;margin-top:.1rem}
+.pb-date{font-size:.68rem;color: #8fa3b8;margin-top:.1rem}
 /* Streak */
 .streak-card{background:linear-gradient(135deg,#1a202c 0%,#2a2535 100%)}
 .streak-row{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
@@ -569,9 +569,9 @@
 .streak-num-hot{color:#fc8181;text-shadow:0 0 20px rgba(229,62,62,.5)}
 @keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.75}}
 .streak-hot .streak-num{animation:streakPulse 2s ease-in-out infinite}
-.streak-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#718096;margin-top:.2rem;text-align:center}
+.streak-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#8fa3b8;margin-top:.2rem;text-align:center}
 .streak-divider{width:1px;height:50px;background:#2d3748;flex-shrink:0}
-.streak-longest-num{font-size:2rem;font-weight:800;color:#4a5568;line-height:1}
+.streak-longest-num{font-size:2rem;font-weight:800;color: #8fa3b8;line-height:1}
 .streak-message{text-align:center}
 /* Achievements */
 .achievements-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.75rem}
@@ -582,23 +582,23 @@
 .achievement-locked:hover{opacity:.55;transform:none}
 .achievement-icon{font-size:1.6rem}
 .achievement-earned .achievement-icon{color:#f6e05e}
-.achievement-locked .achievement-icon{color:#4a5568}
+.achievement-locked .achievement-icon{color: #8fa3b8}
 .achievement-label{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:#a0aec0;line-height:1.2}
 .achievement-earned .achievement-label{color:#f6e05e}
-.achievement-lock{position:absolute;top:6px;right:8px;font-size:.6rem;color:#4a5568}
+.achievement-lock{position:absolute;top:6px;right:8px;font-size:.6rem;color: #8fa3b8}
 .achievements-count{text-align:center}
 
-.bonus-kr-card{background:#2d3748;border-radius:12px;border:1px solid #4a5568;padding:1.25rem 1.5rem}.bonus-kr-not-configured{color:#718096;font-size:.9rem}.bonus-kr-header{font-weight:600;font-size:1.05rem;color:#e2e8f0;margin-bottom:1rem}.bonus-kr-body{display:flex;flex-direction:column;gap:.75rem}.bonus-kr-current{background:rgba(255,255,255,.03);border-radius:8px;padding:.9rem 1rem;border:1px solid #4a5568}.bkc-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#718096;margin-bottom:.35rem}.bkc-level{font-size:1.1rem}.bkc-progress-wrap{display:flex;align-items:center}.bkc-progress-bar{flex:1;height:8px;background:#1a202c;border-radius:99px;overflow:hidden}.bkc-progress-fill{height:100%;border-radius:99px;background:currentColor;transition:width .5s ease}.bkc-amount{font-size:.95rem;color:#e2e8f0}.bkc-sek{font-size:1.1rem}.bonus-kr-next{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;background:rgba(72,187,120,.07);border:1px solid rgba(72,187,120,.2);border-radius:8px;padding:.7rem 1rem}.bkn-label{font-size:.85rem;color:#a0aec0}.bkn-value{font-size:.95rem}.bonus-kr-top,.bonus-kr-below{font-size:.9rem}.bonus-kr-top{padding:.7rem 1rem;background:rgba(72,187,120,.07);border-radius:8px;border:1px solid rgba(72,187,120,.2)}@media(max-width:576px){.bonus-kr-card{padding:.9rem 1rem}.bonus-kr-next{flex-direction:column;gap:.25rem}}
+.bonus-kr-card{background:#2d3748;border-radius:12px;border:1px solid #4a5568;padding:1.25rem 1.5rem}.bonus-kr-not-configured{color:#8fa3b8;font-size:.9rem}.bonus-kr-header{font-weight:600;font-size:1.05rem;color:#e2e8f0;margin-bottom:1rem}.bonus-kr-body{display:flex;flex-direction:column;gap:.75rem}.bonus-kr-current{background:rgba(255,255,255,.03);border-radius:8px;padding:.9rem 1rem;border:1px solid #4a5568}.bkc-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#8fa3b8;margin-bottom:.35rem}.bkc-level{font-size:1.1rem}.bkc-progress-wrap{display:flex;align-items:center}.bkc-progress-bar{flex:1;height:8px;background:#1a202c;border-radius:99px;overflow:hidden}.bkc-progress-fill{height:100%;border-radius:99px;background:currentColor;transition:width .5s ease}.bkc-amount{font-size:.95rem;color:#e2e8f0}.bkc-sek{font-size:1.1rem}.bonus-kr-next{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;background:rgba(72,187,120,.07);border:1px solid rgba(72,187,120,.2);border-radius:8px;padding:.7rem 1rem}.bkn-label{font-size:.85rem;color:#a0aec0}.bkn-value{font-size:.95rem}.bonus-kr-top,.bonus-kr-below{font-size:.9rem}.bonus-kr-top{padding:.7rem 1rem;background:rgba(72,187,120,.07);border-radius:8px;border:1px solid rgba(72,187,120,.2)}@media(max-width:576px){.bonus-kr-card{padding:.9rem 1rem}.bonus-kr-next{flex-direction:column;gap:.25rem}}
 /* ===== Din placering (ranking) ===== */
 .ranking-card{background:#2d3748;border-radius:12px;border:1px solid #4a5568;overflow:hidden}
 .ranking-header{display:flex;align-items:center;padding:.9rem 1.25rem;background:rgba(255,255,255,.03);border-bottom:1px solid #4a5568;font-weight:600;font-size:.95rem;color:#e2e8f0}
 .ranking-body{padding:1rem 1.25rem}
 .ranking-period-toggle{display:flex;gap:2px;background:#1a202c;border-radius:6px;padding:2px}
-.ranking-period-btn{background:transparent;border:none;color:#718096;font-size:.72rem;font-weight:600;padding:.25rem .55rem;border-radius:5px;cursor:pointer;transition:background .15s,color .15s;text-transform:uppercase;letter-spacing:.04em}
+.ranking-period-btn{background:transparent;border:none;color:#8fa3b8;font-size:.72rem;font-weight:600;padding:.25rem .55rem;border-radius:5px;cursor:pointer;transition:background .15s,color .15s;text-transform:uppercase;letter-spacing:.04em}
 .ranking-period-btn.active{background:#2d3748;color:#e2e8f0}
 .ranking-main{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
 .ranking-position{display:flex;align-items:baseline;gap:.1rem;min-width:80px}
-.rank-hash{font-size:1.4rem;font-weight:700;color:#718096;line-height:1}
+.rank-hash{font-size:1.4rem;font-weight:700;color:#8fa3b8;line-height:1}
 .rank-number{font-size:3rem;font-weight:900;color:#e2e8f0;line-height:1}
 .ranking-meta{display:flex;flex-direction:column;gap:.15rem}
 .ranking-of-total{font-size:.9rem;color:#a0aec0;font-weight:500}
@@ -606,14 +606,14 @@
 .ranking-kpis{display:flex;gap:1rem;flex-wrap:wrap}
 .ranking-kpi-item{display:flex;flex-direction:column;align-items:flex-end;min-width:60px}
 .ranking-kpi-val{font-size:1.1rem;font-weight:700;color:#e2e8f0;line-height:1}
-.ranking-kpi-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:#718096;margin-top:.1rem}
+.ranking-kpi-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:#8fa3b8;margin-top:.1rem}
 .ranking-progress-wrapper{width:100%}
 .ranking-progress-labels{display:flex;justify-content:space-between;margin-bottom:.25rem}
 .ranking-progress-bar-bg{height:10px;background:#1a202c;border-radius:99px;overflow:hidden;border:1px solid #4a5568}
 .ranking-progress-bar-fill{height:100%;border-radius:99px;transition:width .6s ease}
 .fill-gold{background:linear-gradient(90deg,#f6e05e,#ed8936)}
 .fill-blue{background:linear-gradient(90deg,#4299e1,#63b3ed)}
-.fill-gray{background:linear-gradient(90deg,#4a5568,#718096)}
+.fill-gray{background:linear-gradient(90deg,#4a5568,#8fa3b8)}
 .ranking-diff{color:#a0aec0}
 .ranking-motivation{padding:.4rem .6rem;border-radius:6px;background:rgba(255,255,255,.04);display:inline-block}
 
@@ -760,7 +760,7 @@
 }
 
 .feedback-textarea::placeholder {
-  color: #718096 !important;
+  color: #8fa3b8 !important;
 }
 
 .feedback-alert {
@@ -830,7 +830,7 @@
 .calendar-header-row span {
   text-align: center;
   font-size: 0.65rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -848,7 +848,7 @@
   border-radius: 6px;
   font-size: 0.75rem;
   background: #2d3748;
-  color: #718096;
+  color: #8fa3b8;
   cursor: default;
   transition: transform 0.1s;
   border: 2px solid transparent;
@@ -987,7 +987,7 @@
 .achievement-locked-v2:hover { opacity: .7; }
 .achievement-icon-v2 { font-size: 1.8rem; }
 .achievement-earned-v2 .achievement-icon-v2 { color: #f6e05e; }
-.achievement-locked-v2 .achievement-icon-v2 { color: #4a5568; }
+.achievement-locked-v2 .achievement-icon-v2 { color: #8fa3b8; }
 .achievement-name-v2 {
   font-size: .72rem;
   font-weight: 700;
@@ -999,7 +999,7 @@
 .achievement-earned-v2 .achievement-name-v2 { color: #f6e05e; }
 .achievement-desc-v2 {
   font-size: .6rem;
-  color: #718096;
+  color: #8fa3b8;
   line-height: 1.2;
   max-height: 2.4em;
   overflow: hidden;
@@ -1026,7 +1026,7 @@
 }
 .achievement-progress-text-v2 {
   font-size: .58rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 600;
   min-width: 26px;
   text-align: right;
@@ -1042,7 +1042,7 @@
   top: 6px;
   right: 8px;
   font-size: .6rem;
-  color: #4a5568;
+  color: #8fa3b8;
 }
 
 /* ============================================================
@@ -1066,7 +1066,7 @@
 }
 .peer-week-label {
   font-size: .72rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 400;
 }
 .peer-ranking-body {
@@ -1084,7 +1084,7 @@
 .peer-rank-hash {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #718096;
+  color: #8fa3b8;
   line-height: 1;
 }
 .peer-rank-number {
@@ -1130,7 +1130,7 @@
 }
 .peer-table thead th {
   background: #161c29;
-  color: #718096;
+  color: #8fa3b8;
   font-size: .7rem;
   text-transform: uppercase;
   letter-spacing: .5px;
@@ -1181,7 +1181,7 @@
   letter-spacing: .04em;
 }
 .peer-anon {
-  color: #718096;
+  color: #8fa3b8;
   font-size: .82rem;
 }
 .peer-motivation {

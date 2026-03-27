@@ -92,13 +92,13 @@ button:focus-visible,
 }
 
 .form-control::placeholder {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .form-control:disabled,
 .form-select:disabled {
   background-color: #1a202c;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Card dark theme */

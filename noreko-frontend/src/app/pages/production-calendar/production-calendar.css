@@ -45,7 +45,7 @@
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.25rem;
 }
 .kpi-value {
@@ -55,7 +55,7 @@
 }
 .kpi-sub {
   font-size: 0.68rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.3rem;
 }
 
@@ -66,7 +66,7 @@
 }
 .legend-label {
   font-weight: 600;
-  color: #718096;
+  color: #8fa3b8;
 }
 .legend-item {
   display: flex;
@@ -91,7 +91,7 @@
 }
 .weekday-header span {
   font-size: 0.6rem;
-  color: #4a5568;
+  color: #8fa3b8;
   text-align: center;
 }
 
@@ -132,7 +132,7 @@
   content: 'M  T  O  T  F  L  S';
   display: block;
   font-size: 0.52rem;
-  color: #4a5568;
+  color: #8fa3b8;
   letter-spacing: 4px;
   margin-bottom: 3px;
   font-family: monospace;
@@ -271,7 +271,7 @@
 
   .kpi-label,
   .kpi-sub {
-    color: #4a5568 !important;
+    color: #8fa3b8 !important;
   }
 
   .kpi-value {
@@ -280,7 +280,7 @@
 
   /* Legend */
   .legend-row {
-    color: #4a5568 !important;
+    color: #8fa3b8 !important;
   }
 
   .legend-label {
@@ -294,7 +294,7 @@
 
   /* Månads-prefix text */
   .month-block::before {
-    color: #718096 !important;
+    color: #8fa3b8 !important;
   }
 
   /* Dagcell — behåll färger men lägg till kantlinje */
@@ -383,7 +383,7 @@
 /* Legend-hint */
 .legend-hint {
   font-size: 0.75rem;
-  color: #4a5568;
+  color: #8fa3b8;
   margin-left: auto;
   font-style: italic;
 }
@@ -451,12 +451,12 @@
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 2px;
 }
 
 .dd-kpi-sep {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1.3rem;
   font-weight: 300;
   align-self: center;
@@ -498,7 +498,7 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .dd-skift-value {
@@ -532,7 +532,7 @@
 
 .dd-op-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -550,7 +550,7 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   cursor: default;
-  border: 1px solid #718096;
+  border: 1px solid #8fa3b8;
 }
 
 /* Print: dölj dagdetalj-panel */

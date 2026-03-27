@@ -104,7 +104,7 @@
 .rank-gold   { color: #d69e2e; }
 .rank-silver { color: #a0aec0; }
 .rank-bronze { color: #c05621; }
-.rank-default { color: #718096; }
+.rank-default { color: #8fa3b8; }
 
 /* ---- Operatörsinfo ---- */
 .lb-operator-info {
@@ -151,9 +151,9 @@
 }
 
 .lb-bar-gold    { background: linear-gradient(90deg, #b7791f, #d69e2e); }
-.lb-bar-silver  { background: linear-gradient(90deg, #718096, #a0aec0); }
+.lb-bar-silver  { background: linear-gradient(90deg, #8fa3b8, #a0aec0); }
 .lb-bar-bronze  { background: linear-gradient(90deg, #9c4221, #c05621); }
-.lb-bar-default { background: linear-gradient(90deg, #2d3748, #718096); }
+.lb-bar-default { background: linear-gradient(90deg, #2d3748, #8fa3b8); }
 
 .lb-score-val {
   font-size: 1.05rem;
@@ -177,7 +177,7 @@
 
 .trend-up   { color: #48bb78; }
 .trend-down { color: #fc8181; }
-.trend-same { color: #718096; }
+.trend-same { color: #8fa3b8; }
 .trend-new  { color: #f6e05e; font-size: 0.75rem; }
 
 /* ---- Footer ---- */

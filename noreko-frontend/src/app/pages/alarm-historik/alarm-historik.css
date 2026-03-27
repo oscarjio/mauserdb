@@ -129,7 +129,7 @@
 .kpi-warning  { border-left: 4px solid #f6ad55; }
 .kpi-total    { border-left: 4px solid #63b3ed; }
 .kpi-avg      { border-left: 4px solid #68d391; }
-.kpi-error    { border-left: 4px solid #718096; }
+.kpi-error    { border-left: 4px solid #8fa3b8; }
 
 /* ---- Top-typ bar ---- */
 .top-typ-bar {
@@ -342,7 +342,7 @@
 
 .typ-pct {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: right;
 }
 

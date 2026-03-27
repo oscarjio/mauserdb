@@ -29,12 +29,12 @@ import { RouterModule } from '@angular/router';
     .error-code {
       font-size: 8rem;
       font-weight: 900;
-      color: #4a5568;
+      color: #8fa3b8;
       line-height: 1;
       margin-bottom: 0.5rem;
     }
     h2 { color: #e2e8f0; font-size: 1.8rem; }
-    p { color: #718096; font-size: 1.1rem; }
+    p { color: #8fa3b8; font-size: 1.1rem; }
   `]
 })
 export class NotFoundPage {}

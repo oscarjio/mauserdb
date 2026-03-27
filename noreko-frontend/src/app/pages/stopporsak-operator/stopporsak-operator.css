@@ -229,12 +229,12 @@
   border-left: 3px solid #fc8181;
 }
 
-.td-rank   { color: #718096; font-weight: 700; min-width: 30px; }
+.td-rank   { color: #8fa3b8; font-weight: 700; min-width: 30px; }
 .td-namn   { font-weight: 500; }
 .td-tid    { font-weight: 600; }
 .td-antal  { color: #a0aec0; }
 .td-orsak  { color: #a0aec0; font-size: 0.82rem; }
-.td-chevron { color: #718096; text-align: center; width: 30px; }
+.td-chevron { color: #8fa3b8; text-align: center; width: 30px; }
 
 /* ---- Procent-stapel ---- */
 .pct-bar-wrap {
@@ -374,8 +374,8 @@
 
 .td-antal-d   { color: #fc8181; font-weight: 600; }
 .td-tid-d     { color: #f6ad55; }
-.td-senaste   { color: #718096; font-size: 0.78rem; }
-.td-rank-sm   { color: #718096; font-weight: 700; }
+.td-senaste   { color: #8fa3b8; font-size: 0.78rem; }
+.td-rank-sm   { color: #8fa3b8; font-weight: 700; }
 
 .orsak-dot {
   display: inline-block;

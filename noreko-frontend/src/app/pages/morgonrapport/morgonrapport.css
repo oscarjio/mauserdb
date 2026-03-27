@@ -99,7 +99,7 @@
 
 .kpi-detalj {
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.35rem;
 }
 
@@ -310,7 +310,7 @@
   position: absolute;
   bottom: -18px;
   font-size: 0.58rem;
-  color: #718096;
+  color: #8fa3b8;
   white-space: nowrap;
   transform: rotate(-45deg);
   transform-origin: top left;

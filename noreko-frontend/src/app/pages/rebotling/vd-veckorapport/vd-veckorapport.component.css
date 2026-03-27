@@ -154,13 +154,13 @@
 }
 
 .rapport-period {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 0.85rem;
   margin: 0;
 }
 
 .rapport-foretag {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.8rem;
   margin: 0;
 }
@@ -210,7 +210,7 @@
   border-top: 1px solid #e2e8f0;
   padding-top: 12px;
   margin-top: 24px;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   text-align: center;
 }

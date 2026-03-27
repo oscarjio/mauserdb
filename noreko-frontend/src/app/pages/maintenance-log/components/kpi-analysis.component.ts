@@ -90,7 +90,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
           </table>
         </div>
         <!-- Förklaring -->
-        <div class="kpi-legend p-3 border-top" style="border-color: #3d4f6b !important; font-size: 0.78rem; color: #718096;">
+        <div class="kpi-legend p-3 border-top" style="border-color: #3d4f6b !important; font-size: 0.78rem; color: #8fa3b8;">
           <strong class="text-muted">MTBF</strong> = Genomsnittlig tid mellan fel (dagar) &nbsp;·&nbsp;
           <strong class="text-muted">MTTR</strong> = Genomsnittlig reparationstid per incident (timmar) &nbsp;·&nbsp;
           Period: senaste {{ kpiDays }} dagar

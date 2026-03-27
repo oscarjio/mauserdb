@@ -16,7 +16,7 @@
 }
 
 .page-subtitle {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.9rem;
   margin-bottom: 0;
 }
@@ -63,7 +63,7 @@
 
 .summary-sub {
   font-size: 0.85rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* --- Knappar --- */
@@ -147,7 +147,7 @@
 
 .badge-secondary {
   background: rgba(255, 255, 255, 0.06);
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* --- Operatörsnamn --- */
@@ -258,7 +258,7 @@
 
 .seq-dot-none {
   background: transparent;
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1.1rem;
 }
 

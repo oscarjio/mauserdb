@@ -97,7 +97,7 @@
 
 .kpi-label {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 0.2rem;
@@ -155,7 +155,7 @@
 
 .progress-label-small {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ---- Best day card ---- */
@@ -202,13 +202,13 @@
 
 .best-day-label {
   font-size: 0.78rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .best-day-sep {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 1.4rem;
 }
 
@@ -409,7 +409,7 @@
 
 .hof-ibc-label {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

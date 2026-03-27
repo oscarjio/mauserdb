@@ -276,7 +276,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
 
   getStamningColorFromInt(stamning: number): string {
     const colors = ['', 'rgba(245,101,101,0.9)', 'rgba(237,137,54,0.9)', 'rgba(72,187,120,0.9)', 'rgba(56,178,172,0.9)'];
-    return colors[stamning] ?? '#718096';
+    return colors[stamning] ?? '#8fa3b8';
   }
 
   getSentimentBadgeClass(color: string): string {

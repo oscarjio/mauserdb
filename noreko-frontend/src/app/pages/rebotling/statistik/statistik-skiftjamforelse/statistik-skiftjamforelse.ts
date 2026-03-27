@@ -269,7 +269,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
             beginAtZero: this.activeChart !== 'cykeltid',
             ticks: { color: '#a0aec0' },
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: yLabel, color: '#718096', font: { size: 11 } }
+            title: { display: true, text: yLabel, color: '#8fa3b8', font: { size: 11 } }
           }
         }
       }

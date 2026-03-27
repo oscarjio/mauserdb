@@ -98,7 +98,7 @@
 
 .report-generated {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* ---- Sektioner ---- */
@@ -258,7 +258,7 @@
 }
 
 .text-muted {
-  color: #718096 !important;
+  color: #8fa3b8 !important;
 }
 
 /* ---- Summary section ---- */
@@ -275,7 +275,7 @@
 
 .report-footer {
   text-align: center;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   margin-top: 1rem;
 }

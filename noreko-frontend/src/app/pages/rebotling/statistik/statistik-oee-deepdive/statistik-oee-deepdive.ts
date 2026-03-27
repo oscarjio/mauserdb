@@ -150,8 +150,8 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
           verticalAnnotations: { annotations: combinedAnnotations }
         } as any,
         scales: {
-          x: { ticks: { color: '#718096', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { beginAtZero: true, max: 100, ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+          x: { ticks: { color: '#8fa3b8', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { beginAtZero: true, max: 100, ticks: { color: '#8fa3b8', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
         }
       }
     });

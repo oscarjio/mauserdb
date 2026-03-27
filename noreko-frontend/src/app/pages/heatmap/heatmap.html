@@ -127,6 +127,7 @@
 
     <!-- Heatmap-tabell -->
     <div *ngIf="!loadingHeatmap && hasData" class="heatmap-scroll-wrapper">
+      <div class="table-responsive">
       <table class="heatmap-table">
         <thead>
           <tr>
@@ -156,6 +157,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 

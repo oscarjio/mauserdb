@@ -155,7 +155,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     if (streak >= 7) return '#fc8181';
     if (streak >= 3) return '#ecc94b';
     if (streak >= 1) return '#68d391';
-    return '#718096';
+    return '#8fa3b8';
   }
 
   // ---- Data loading ----

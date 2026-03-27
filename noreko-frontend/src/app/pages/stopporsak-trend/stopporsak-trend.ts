@@ -270,7 +270,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Antal stopp',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },
@@ -355,7 +355,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Antal stopp',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },
@@ -414,7 +414,7 @@ export class StopporsakTrendComponent implements OnInit, OnDestroy {
 
   getReasonColor(reason: string): string {
     const idx = this.weeklyData?.top_reasons.indexOf(reason) ?? -1;
-    if (idx < 0) return '#718096';
+    if (idx < 0) return '#8fa3b8';
     return this.COLORS[idx % this.COLORS.length];
   }
 

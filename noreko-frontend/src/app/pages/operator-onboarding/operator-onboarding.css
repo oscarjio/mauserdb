@@ -186,12 +186,12 @@
   background: rgba(66, 153, 225, 0.12);
 }
 
-.td-rank    { color: #718096; font-weight: 700; min-width: 30px; }
+.td-rank    { color: #8fa3b8; font-weight: 700; min-width: 30px; }
 .td-namn    { font-weight: 500; }
 .td-datum   { color: #a0aec0; font-size: 0.82rem; }
 .td-ibc     { font-weight: 600; }
 .td-veckor  { color: #a0aec0; text-align: center; }
-.td-chevron { color: #718096; text-align: center; width: 30px; }
+.td-chevron { color: #8fa3b8; text-align: center; width: 30px; }
 
 /* ---- NY-badge ---- */
 .badge-ny {

@@ -56,7 +56,7 @@
 }
 
 .ka-card-unit {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
 }
 
@@ -72,7 +72,7 @@
 }
 
 .ka-hint {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 0.75rem;
   font-style: italic;
 }
@@ -87,7 +87,7 @@
 .ka-empty-state {
   text-align: center;
   padding: 32px 16px;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .ka-empty-state p {
@@ -137,7 +137,7 @@
 }
 
 .ka-chevron {
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 0.65rem;
   transition: transform 0.2s ease;
 }

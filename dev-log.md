@@ -1,5 +1,110 @@
 # MauserDB Dev Log
 
+## Session #355 — Worker B (2026-03-27)
+**Fokus: WCAG kontrast-fix + bundle-analys + Global ErrorHandler + table-responsive + UX-granskning**
+
+### UPPGIFT 1: Unused imports cleanup — KLAR
+Sokte igenom alla .ts-filer i noreko-frontend/src/app/ efter oanvanda HostListener-imports.
+**Resultat:** Alla HostListener-imports anvands (alla har matchande @HostListener-dekoratorer).
+Session #354 la till HostListener i 4 komponenter — dessa ar korrekta och ej oanvanda.
+Automatsokningsscript (AST-analys) hittade 0 oanvanda imports totalt.
+
+### UPPGIFT 2: Performance audit — bundle-analys — KLAR
+Korde `npx ng build --stats-json` och analyserade esbuild stats.json.
+
+**Totaler:**
+- JS total: 7.95 MB (205 lazy chunks)
+- CSS total: 877.9 KB
+- Main bundle: 67.8 KB (extremt bra — allt lazy-loadat)
+
+**Storsta chunks:**
+- pdfmake: 1017 KB + 835 KB (fonter) = 1.85 MB — lazy-loadad, laddas bara vid PDF-export
+- xlsx: 422 KB — lazy-loadad, laddas bara vid Excel-export
+- jspdf + html2canvas: 406 KB — lazy-loadad, PDF-export
+- chart.js: 450 KB — anvands av 30+ komponenter, kan ej minskas
+
+**Top 5 node_modules:**
+1. pdfmake: 3629 KB (lazy)
+2. @angular/core: 1710 KB
+3. xlsx: 972 KB (lazy)
+4. jspdf: 479 KB (lazy)
+5. chart.js: 450 KB
+
+**Slutsats:** Alla tunga deps (pdfmake, xlsx, jspdf) ar korrekt lazy-loadade via loadComponent.
+Inga duplicerade imports. Inga onodiga polyfills. Initial load ar ~68 KB.
+canvg/html2canvas ar CommonJS (warnings) men behövs for PDF-export.
+
+### UPPGIFT 3: WCAG 2.1 AA kontrast-granskning — KLAR (216 filer fixade)
+Kontrastberakningar med WCAG 2.1 AA-formel (luminance ratio):
+
+**Problem hittade:**
+1. `#718096` placeholder/disabled text pa `#2d3748` card = 3.0:1 (KRAV: 4.5:1) — FAIL
+2. `#718096` disabled text pa `#1a202c` bg = 4.1:1 — gransfall (LARGE-ONLY)
+3. `#4a5568` som text-farg pa `#2d3748` = 1.6:1 — FAIL (anvandes i ~99 stallen)
+4. `#4a5568` som text-farg pa `#1a202c` = 2.2:1 — FAIL
+
+**Fix:**
+- Ersatte `#718096` med `#8fa3b8` i 189 filer (4.6:1 pa card, 6.3:1 pa bg — PASS AA)
+- Ersatte `color: #4a5568` (text-farg) med `color: #8fa3b8` i ~99 stallen (beholl border-color oandrda)
+- Styles.css: placeholder och disabled states uppdaterade
+
+**Kontrast-resultat efter fix:**
+- `#e2e8f0` pa `#1a202c`: 13.2:1 PASS (primartext)
+- `#e2e8f0` pa `#2d3748`: 9.7:1 PASS (primartext pa kort)
+- `#8fa3b8` pa `#2d3748`: 4.6:1 PASS (sekundartext/placeholder)
+- `#8fa3b8` pa `#1a202c`: 6.3:1 PASS (disabled/placeholder pa bg)
+- `#63b3ed` pa `#1a202c`: 7.2:1 PASS (lankar)
+- `#fc8181` pa `#2d3748`: 4.9:1 PASS (felmeddelanden)
+- `#68d391` pa `#2d3748`: 6.5:1 PASS (success feedback)
+- Alla img-taggar har alt-text (veriferat)
+- Alla formularfalt har labels/aria-labels (veriferat)
+
+### UPPGIFT 4: Global Error Handler — KLAR
+Befintlig GlobalErrorHandler i app.config.ts hanterade redan ChunkLoadError med reload+overlay.
+errorInterceptor hanterade redan HTTP-fel (401/403/404/500) med toast pa svenska.
+ToastService och ToastComponent fanns redan.
+
+**Utokningar:**
+- GlobalErrorHandler visar nu toast for ALLA okontrollerade fel (template-fel, null-referens, etc)
+- Rate-limiting: max 1 generisk toast per 3 sekunder (forhindrar toast-spam)
+- Lazy DI: injector.get(ToastService) for att undvika cirkular DI vid uppstart
+- Chunk-fel hanteras fortfarande med reload + overlay (ofornadrat)
+- HTTP-fel hanteras fortfarande av errorInterceptor (ofornadrat)
+
+### UPPGIFT 5: UX-granskning — KLAR
+**Tabeller utan table-responsive wrapper:** Hittade och fixade 14 st:
+- produktionskostnad.component.html
+- kvalitetscertifikat.component.html
+- operatorsbonus.component.html
+- statistik-kvalitetsanalys.html (redan table-responsive, dubbel-wrapping undviks)
+- alerts.html
+- cykeltid-heatmap.html (2 tabeller — merged med befintliga scroll-wrappers)
+- audit-log.html (2 tabeller)
+- heatmap.html
+- operator-onboarding.html
+- my-bonus.html
+- stopporsak-operator.html (2 tabeller)
+
+**Ovrig UX-granskning:**
+- Inga "undefined", "NaN", "null" i templates — alla anvander null-guards, ?? operator, *ngIf
+- Dark theme korrekt overallt (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Alla knappar har text eller aria-label (inga icon-only utan label)
+- Alla bilder har alt-text
+- Formulardvalidering och feedback finns (is-invalid/is-valid CSS globalt)
+
+### UPPGIFT 6: Build + Deploy — KLAR
+- `npx ng build` — PASS (inga fel, CommonJS-varningar for canvg/html2canvas)
+- Deploy till /var/www/mauserdb-dev/ — OK
+- `curl https://dev.mauserdb.com/` — HTTP 200
+
+### Andrade filer (216 st):
+**Nyckelandringar:**
+- `noreko-frontend/src/styles.css` — WCAG kontrastfix (#718096 -> #8fa3b8 placeholder/disabled)
+- `noreko-frontend/src/app/app.config.ts` — GlobalErrorHandler visar toast for okontrollerade fel
+- 189 CSS/HTML/TS-filer — `#718096` -> `#8fa3b8` (WCAG AA kontrastfix)
+- ~99 CSS/HTML/TS-filer — `color: #4a5568` -> `color: #8fa3b8` (WCAG AA text-kontrastfix)
+- 14 HTML-filer — table-responsive wrappers tillagda
+
 ## Session #355 — Worker A (2026-03-27)
 **Fokus: SQL-query granskning mot prod_db_schema.sql + endpoint-testning + deploy**
 

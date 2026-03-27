@@ -89,7 +89,7 @@
 }
 
 .stats-sep {
-  color: #4a5568;
+  color: #8fa3b8;
   margin: 0 0.25rem;
 }
 
@@ -156,7 +156,7 @@
 }
 
 .expiry-date {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.8rem;
 }
 
@@ -256,7 +256,7 @@
 
 .sort-label {
   font-size: 0.82rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 .filter-btn {
@@ -343,7 +343,7 @@
 
 .op-number {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* === Certifieringslista === */
@@ -396,7 +396,7 @@
 
 .cert-date {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   flex: 1;
 }
 
@@ -415,7 +415,7 @@
 .revoke-btn {
   background: transparent;
   border: none;
-  color: #718096;
+  color: #8fa3b8;
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
@@ -666,7 +666,7 @@
 }
 
 .optional {
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 400;
 }
 
@@ -788,7 +788,7 @@ textarea.form-control {
 
 .filter-group-label {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
   font-weight: 500;
   min-width: 50px;
   flex-shrink: 0;

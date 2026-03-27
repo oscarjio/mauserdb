@@ -14,7 +14,7 @@
         Uppdateras var 30:e sekund
       </small>
       <br>
-      <small style="color:#718096;" *ngIf="lastUpdate">Senast: {{ lastUpdate }}</small>
+      <small style="color:#8fa3b8;" *ngIf="lastUpdate">Senast: {{ lastUpdate }}</small>
     </div>
   </div>
 
@@ -217,7 +217,7 @@
             <canvas id="vdStationChart"></canvas>
           </div>
           <div *ngIf="!stationOee?.stationer?.length && !loading" class="text-center py-4">
-            <i class="fas fa-chart-bar" style="font-size:2rem; color:#4a5568;"></i>
+            <i class="fas fa-chart-bar" style="font-size:2rem; color: #8fa3b8;"></i>
             <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen stationsdata tillgänglig</p>
           </div>
         </div>
@@ -235,7 +235,7 @@
             <canvas id="vdTrendChart"></canvas>
           </div>
           <div *ngIf="!veckotrend?.trend?.length && !loading" class="text-center py-4">
-            <i class="fas fa-chart-line" style="font-size:2rem; color:#4a5568;"></i>
+            <i class="fas fa-chart-line" style="font-size:2rem; color: #8fa3b8;"></i>
             <p class="mt-2" style="color:#a0aec0; font-size:0.85rem;">Ingen trenddata tillgänglig</p>
           </div>
         </div>

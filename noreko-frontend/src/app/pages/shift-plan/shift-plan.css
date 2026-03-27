@@ -111,7 +111,7 @@
 
 .skift-time {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 1px;
 }
 
@@ -218,7 +218,7 @@
   align-items: center;
   gap: 4px;
   font-size: 0.72rem;
-  color: #4a5568;
+  color: #8fa3b8;
   transition: color 0.15s;
 }
 
@@ -259,7 +259,7 @@
 .btn-close-panel {
   background: transparent;
   border: none;
-  color: #718096;
+  color: #8fa3b8;
   cursor: pointer;
   padding: 0 2px;
   font-size: 0.8rem;
@@ -318,7 +318,7 @@
 
 .op-num {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   flex-shrink: 0;
 }
 
@@ -494,7 +494,7 @@
   border: none;
   border-bottom: 3px solid transparent;
   padding: 8px 18px;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -606,7 +606,7 @@
 
 .wv-skift-tid {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Dag-cell */
@@ -693,7 +693,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #4a5568;
+  color: #8fa3b8;
   margin-bottom: 4px;
 }
 
@@ -774,7 +774,7 @@
   border-radius: 50%;
   background: rgba(255,255,255,0.06);
   border: 1px dashed #4a5568;
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.65rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -801,7 +801,7 @@
   background: transparent;
   border: 1px dashed #4a5568;
   border-radius: 5px;
-  color: #4a5568;
+  color: #8fa3b8;
   font-size: 0.72rem;
   padding: 3px 8px;
   cursor: pointer;
@@ -862,7 +862,7 @@
 .wv-modal-close {
   background: transparent;
   border: none;
-  color: #718096;
+  color: #8fa3b8;
   cursor: pointer;
   font-size: 0.85rem;
   padding: 2px 4px;

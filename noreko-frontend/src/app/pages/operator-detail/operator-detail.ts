@@ -110,7 +110,7 @@ interface ProfileResponse {
         <div class="spinner-border" style="color:#63b3ed;" role="status">
           <span class="visually-hidden">Laddar...</span>
         </div>
-        <p style="color:#718096;margin-top:12px;">Hämtar operatörsprofil...</p>
+        <p style="color:#8fa3b8;margin-top:12px;">Hämtar operatörsprofil...</p>
       </div>
 
       <!-- Felmeddelande -->
@@ -123,7 +123,7 @@ interface ProfileResponse {
 
       <!-- Empty-state: ingen operatörsdata -->
       <div *ngIf="!laddar && !felmeddelande && !profil" class="text-center py-5">
-        <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+        <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
         <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen operatörsdata hittades.</p>
         <a routerLink="/admin/operator-dashboard"
            style="color:#63b3ed;font-size:14px;">Tillbaka</a>
@@ -170,7 +170,7 @@ interface ProfileResponse {
                    [style.color]="profil.rank_this_week.rank === 1 ? '#f6e05e' : profil.rank_this_week.rank === 2 ? '#a0aec0' : profil.rank_this_week.rank === 3 ? '#ed8936' : '#e2e8f0'">
                 #{{ profil.rank_this_week.rank }}
               </div>
-              <div style="color:#718096;font-size:12px;">
+              <div style="color:#8fa3b8;font-size:12px;">
                 av {{ profil.rank_this_week.total_ops }} denna vecka
               </div>
             </div>
@@ -248,7 +248,7 @@ interface ProfileResponse {
                 </div>
                 <div style="color:#a0aec0;font-size:12px;margin-top:4px;">
                   Bästa IBC ett skift
-                  <span *ngIf="profil.stats_all.bast_datum" style="display:block;color:#718096;font-size:11px;">
+                  <span *ngIf="profil.stats_all.bast_datum" style="display:block;color:#8fa3b8;font-size:11px;">
                     {{ formatDatum(profil.stats_all.bast_datum!) }}
                   </span>
                 </div>
@@ -281,8 +281,8 @@ interface ProfileResponse {
         <!-- Ingen trenddata -->
         <div *ngIf="profil.trend_weekly.length === 0"
              style="background:#2d3748;border-radius:12px;padding:24px;border:1px solid #4a5568;margin-bottom:24px;text-align:center;">
-          <i class="fas fa-chart-line" style="font-size:2rem;color:#4a5568;"></i>
-          <p style="color:#718096;margin-top:12px;margin-bottom:0;">Ingen trenddata tillgänglig</p>
+          <i class="fas fa-chart-line" style="font-size:2rem;color: #8fa3b8;"></i>
+          <p style="color:#8fa3b8;margin-top:12px;margin-bottom:0;">Ingen trenddata tillgänglig</p>
         </div>
 
         <!-- ============================================================ -->
@@ -311,7 +311,7 @@ interface ProfileResponse {
               <tbody>
                 <tr *ngFor="let s of profil.recent_shifts; trackBy: trackByIndex" style="border-bottom:1px solid #3d4a5c;">
                   <td style="padding:12px 16px;color:#a0aec0;font-size:13px;">{{ s.datum }}</td>
-                  <td style="padding:12px 16px;text-align:right;color:#718096;font-size:13px;">{{ s.skiftnr }}</td>
+                  <td style="padding:12px 16px;text-align:right;color:#8fa3b8;font-size:13px;">{{ s.skiftnr }}</td>
                   <td style="padding:12px 16px;text-align:right;font-weight:700;color:#63b3ed;">{{ s.ibc }}</td>
                   <td style="padding:12px 16px;text-align:right;">
                     <span *ngIf="s.ibc_per_h !== null"
@@ -319,18 +319,18 @@ interface ProfileResponse {
                           style="font-weight:700;">
                       {{ s.ibc_per_h | number:'1.1-1' }}
                     </span>
-                    <span *ngIf="s.ibc_per_h === null" style="color:#4a5568;">—</span>
+                    <span *ngIf="s.ibc_per_h === null" style="color: #8fa3b8;">—</span>
                   </td>
                   <td style="padding:12px 16px;text-align:right;">
                     <span *ngIf="s.quality_pct !== null"
                           [style.color]="s.quality_pct >= 95 ? '#68d391' : s.quality_pct >= 85 ? '#f6e05e' : '#fc8181'">
                       {{ s.quality_pct | number:'1.1-1' }}%
                     </span>
-                    <span *ngIf="s.quality_pct === null" style="color:#4a5568;">—</span>
+                    <span *ngIf="s.quality_pct === null" style="color: #8fa3b8;">—</span>
                   </td>
                   <td style="padding:12px 16px;text-align:right;color:#a0aec0;font-size:13px;">
                     <span *ngIf="s.runtime_min !== null">{{ s.runtime_min }} min</span>
-                    <span *ngIf="s.runtime_min === null" style="color:#4a5568;">—</span>
+                    <span *ngIf="s.runtime_min === null" style="color: #8fa3b8;">—</span>
                   </td>
                 </tr>
               </tbody>
@@ -341,8 +341,8 @@ interface ProfileResponse {
         <!-- Inga skift -->
         <div *ngIf="profil.recent_shifts.length === 0"
              style="background:#2d3748;border-radius:12px;padding:24px;border:1px solid #4a5568;margin-bottom:24px;text-align:center;">
-          <i class="fas fa-inbox" style="font-size:2rem;color:#4a5568;"></i>
-          <p style="color:#718096;margin-top:12px;margin-bottom:0;">Inga skift registrerade</p>
+          <i class="fas fa-inbox" style="font-size:2rem;color: #8fa3b8;"></i>
+          <p style="color:#8fa3b8;margin-top:12px;margin-bottom:0;">Inga skift registrerade</p>
         </div>
 
         <!-- ============================================================ -->
@@ -363,7 +363,7 @@ interface ProfileResponse {
                   <i class="fas fa-fire"
                      [style.color]="profil.achievements.has_100_ibc_day ? '#f6e05e' : '#4a5568'"></i>
                 </div>
-                <div [style.color]="profil.achievements.has_100_ibc_day ? '#f6e05e' : '#718096'"
+                <div [style.color]="profil.achievements.has_100_ibc_day ? '#f6e05e' : '#8fa3b8'"
                      style="font-weight:700;font-size:14px;">100+ IBC ett skift</div>
                 <div style="font-size:12px;margin-top:4px;"
                      [style.color]="profil.achievements.has_100_ibc_day ? '#d69e2e' : '#4a5568'">
@@ -381,7 +381,7 @@ interface ProfileResponse {
                   <i class="fas fa-star"
                      [style.color]="profil.achievements.has_95_quality_week ? '#68d391' : '#4a5568'"></i>
                 </div>
-                <div [style.color]="profil.achievements.has_95_quality_week ? '#68d391' : '#718096'"
+                <div [style.color]="profil.achievements.has_95_quality_week ? '#68d391' : '#8fa3b8'"
                      style="font-weight:700;font-size:14px;">95%+ kvalitet en vecka</div>
                 <div style="font-size:12px;margin-top:4px;"
                      [style.color]="profil.achievements.has_95_quality_week ? '#38a169' : '#4a5568'">
@@ -399,7 +399,7 @@ interface ProfileResponse {
                   <i class="fas fa-bolt"
                      [style.color]="profil.achievements.streak_days >= 5 ? '#63b3ed' : '#4a5568'"></i>
                 </div>
-                <div [style.color]="profil.achievements.streak_days >= 5 ? '#63b3ed' : '#718096'"
+                <div [style.color]="profil.achievements.streak_days >= 5 ? '#63b3ed' : '#8fa3b8'"
                      style="font-weight:700;font-size:14px;">
                   {{ profil.achievements.streak_days }} dagars aktiv streak
                 </div>
@@ -426,7 +426,7 @@ interface ProfileResponse {
                 <i class="fas fa-check-circle" style="color:#68d391;font-size:1.2rem;"></i>
                 <div>
                   <div style="font-weight:600;color:#e2e8f0;font-size:14px;">{{ lineLabel(cert.line) }}</div>
-                  <div style="color:#718096;font-size:12px;">
+                  <div style="color:#8fa3b8;font-size:12px;">
                     Godkänd {{ cert.certified_date }}
                     <span *ngIf="cert.expires_date"> &bull; Utgår {{ cert.expires_date }}</span>
                   </div>
@@ -558,7 +558,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
           {
             label: `Snitt (${avgVal.toFixed(1)} IBC/h)`,
             data: avgLine,
-            borderColor: '#718096',
+            borderColor: '#8fa3b8',
             backgroundColor: 'transparent',
             pointRadius: 0,
             borderDash: [6, 4],
@@ -584,11 +584,11 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid:  { color: '#374151' }
           },
           y: {
-            ticks: { color: '#718096', font: { size: 11 } },
+            ticks: { color: '#8fa3b8', font: { size: 11 } },
             grid:  { color: '#374151' },
             beginAtZero: true
           }

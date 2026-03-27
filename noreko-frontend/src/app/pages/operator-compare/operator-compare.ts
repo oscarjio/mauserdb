@@ -222,7 +222,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
 
           <!-- Ingen radar-data -->
           <div *ngIf="!radarLoading && !radarData" class="radar-no-data">
-            <i class="fas fa-chart-pie fa-2x mb-2" style="color:#4a5568"></i>
+            <i class="fas fa-chart-pie fa-2x mb-2" style="color: #8fa3b8"></i>
             <p>Kunde inte ladda radar-data.</p>
           </div>
         </div>
@@ -398,7 +398,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
 
         <!-- Ingen trenddata -->
         <div class="trend-card no-data-card" *ngIf="!hasTrendData()">
-          <i class="fas fa-chart-line fa-2x mb-2" style="color:#4a5568"></i>
+          <i class="fas fa-chart-line fa-2x mb-2" style="color: #8fa3b8"></i>
           <p>Ingen trenddata tillgänglig för vald period.</p>
         </div>
 
@@ -406,7 +406,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
 
       <!-- Tom tillstånd (ingen sökning gjord ännu) -->
       <div class="empty-state" *ngIf="!compareData && !isLoading">
-        <i class="fas fa-users fa-3x mb-3" style="color:#4a5568"></i>
+        <i class="fas fa-users fa-3x mb-3" style="color: #8fa3b8"></i>
         <p>Välj två operatörer ovan och klicka <strong>Jämför</strong> för att se statistiken.</p>
       </div>
 
@@ -532,7 +532,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
     .vs-divider {
       font-size: 1.1rem;
       font-weight: 800;
-      color: #718096;
+      color: #8fa3b8;
       padding-bottom: 8px;
       align-self: flex-end;
     }
@@ -661,7 +661,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
       align-items: center;
       justify-content: center;
       padding: 40px 20px;
-      color: #718096;
+      color: #8fa3b8;
       gap: 12px;
     }
     .radar-content {
@@ -712,13 +712,13 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
       color: #e2e8f0;
       font-weight: 700;
     }
-    .score-sep { color: #4a5568; }
+    .score-sep { color: #8fa3b8; }
     .radar-no-data {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #718096;
+      color: #8fa3b8;
       padding: 40px 24px;
     }
 
@@ -841,7 +841,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #718096;
+      color: #8fa3b8;
       padding: 40px 24px;
     }
     .chart-wrapper {
@@ -877,7 +877,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
       align-items: center;
       justify-content: center;
       padding: 60px 20px;
-      color: #718096;
+      color: #8fa3b8;
       text-align: center;
     }
     .empty-state p {
@@ -1178,7 +1178,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             max: 100,
             ticks: {
               stepSize: 20,
-              color: '#718096',
+              color: '#8fa3b8',
               backdropColor: 'transparent',
               font: { size: 10 },
             },
@@ -1312,7 +1312,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'IBC per vecka',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },

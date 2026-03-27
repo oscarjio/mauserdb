@@ -219,7 +219,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       case 'winning':  return '#48bb78';
       case 'on-track': return '#ed8936';
       case 'behind':   return '#f44336';
-      default:         return '#718096';
+      default:         return '#8fa3b8';
     }
   }
 
@@ -230,7 +230,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       case 'winning':  return '#48bb78';
       case 'on-track': return '#ed8936';
       case 'behind':   return '#f44336';
-      default:         return '#718096';
+      default:         return '#8fa3b8';
     }
   }
 
@@ -492,7 +492,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   get skifttimerFarg(): string {
-    if (this.skiftStatus === 'slut' || this.skiftStatus === 'ej_startat') return '#718096';
+    if (this.skiftStatus === 'slut' || this.skiftStatus === 'ej_startat') return '#8fa3b8';
     if (this.skiftProgressPct >= 90) return '#f44336';
     if (this.skiftProgressPct >= 75) return '#ff9800';
     return '#00e676';
@@ -527,7 +527,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       case 'material':  return '#ff9800';
       case 'operatör':
       case 'operator':  return '#4299e1';
-      default:          return '#718096';
+      default:          return '#8fa3b8';
     }
   }
 
@@ -793,7 +793,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
         scales: {
           x: {
             ticks: {
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 10 },
               maxRotation: 0,
               autoSkip: true,
@@ -806,7 +806,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
           y: {
             beginAtZero: true,
             ticks: {
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
               stepSize: undefined,
             },
@@ -859,7 +859,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
 
   /** Färg baserat på hur nära target snitt7d ligger */
   get productionRateColor(): string {
-    if (!this.productionRate) return '#718096';
+    if (!this.productionRate) return '#8fa3b8';
     const pct = this.productionRate.dag_mal > 0
       ? (this.productionRate.avg_ibc_per_day_7d / this.productionRate.dag_mal) * 100
       : 0;

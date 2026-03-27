@@ -201,8 +201,8 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
           verticalAnnotations: { annotations: cycleAnnotations }
         } as any,
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { beginAtZero: true, position: 'left', ticks: { color: '#718096' }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'IBC OK', color: '#a0aec0', font: { size: 11 } } },
+          x: { ticks: { color: '#8fa3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { beginAtZero: true, position: 'left', ticks: { color: '#8fa3b8' }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'IBC OK', color: '#a0aec0', font: { size: 11 } } },
           y2: { beginAtZero: true, position: 'right', ticks: { color: '#48bb78', callback: (v: any) => v + '/h' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'IBC/h', color: '#48bb78', font: { size: 11 } } }
         }
       }

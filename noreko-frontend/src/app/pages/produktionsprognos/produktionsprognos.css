@@ -18,7 +18,7 @@
 
 .page-subtitle {
   font-size: 0.85rem;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Cards */
@@ -69,7 +69,7 @@
 
 .vd-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.2rem;
@@ -89,7 +89,7 @@
 
 .vd-unit {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.2rem;
 }
 
@@ -144,7 +144,7 @@
 /* Statistik mini */
 .stat-mini-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -157,7 +157,7 @@
 .stat-mini-unit {
   font-size: 0.7rem;
   font-weight: 400;
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Detaljer */
@@ -169,7 +169,7 @@
 
 .detail-label {
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 0.3rem;
 }
 

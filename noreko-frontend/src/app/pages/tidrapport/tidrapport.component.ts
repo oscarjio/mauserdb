@@ -289,7 +289,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Timmar',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },

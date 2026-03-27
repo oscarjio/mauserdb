@@ -59,7 +59,7 @@
                  [style.color]="ibcVsSnittFarg(summary.ibc_today, summary.snitt_ibc_30d)">
               {{ cachedIbcVsSnittText }}
             </div>
-            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
+            <div style="color:#8fa3b8; font-size:0.78rem; margin-top:0.25rem;"
                  *ngIf="summary && summary.snitt_ibc_30d > 0">
               Snitt 30 dagar: {{ summary.snitt_ibc_30d | number:'1.0-0' }} IBC
             </div>
@@ -80,7 +80,7 @@
                  [style.color]="cykelTrendFarg(summary.vs_team_cykel)">
               {{ cachedCykelTrendText }}
             </div>
-            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
+            <div style="color:#8fa3b8; font-size:0.78rem; margin-top:0.25rem;"
                  *ngIf="summary && summary.team_snitt_sek > 0">
               Team-snitt: {{ formatSek(summary.team_snitt_sek) }}
             </div>
@@ -101,7 +101,7 @@
                  [style.color]="(summary?.kvalitet_pct ?? 0) >= 95 ? '#48bb78' : '#fc8181'">
               {{ (summary?.kvalitet_pct ?? 0) >= 95 ? 'Över kvalitetsmålet 95%' : 'Under kvalitetsmålet 95%' }}
             </div>
-            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;">
+            <div style="color:#8fa3b8; font-size:0.78rem; margin-top:0.25rem;">
               Mål: 95%
             </div>
           </div>
@@ -116,10 +116,10 @@
             <div style="font-size:2.5rem; font-weight:700; color:#ecc94b; line-height:1;">
               {{ (summary?.bonus_poang ?? 0) | number:'1.0-0' }}
             </div>
-            <div style="color:#718096; font-size:0.78rem; margin-top:0.5rem;">
+            <div style="color:#8fa3b8; font-size:0.78rem; margin-top:0.5rem;">
               Senaste skiftet idag
             </div>
-            <div style="color:#718096; font-size:0.78rem; margin-top:0.15rem;"
+            <div style="color:#8fa3b8; font-size:0.78rem; margin-top:0.15rem;"
                  *ngIf="summary && summary.antal_skift > 0">
               {{ summary.antal_skift }} {{ summary.antal_skift === 1 ? 'skift' : 'skift' }} idag
             </div>
@@ -141,8 +141,8 @@
         </div>
 
         <div *ngIf="trendData.length === 0 && !loading" class="text-center py-4">
-          <i class="fas fa-chart-area fa-2x mb-2" style="color:#4a5568;"></i>
-          <div style="color:#718096;">Ingen cykeltidsdata registrerad idag.</div>
+          <i class="fas fa-chart-area fa-2x mb-2" style="color: #8fa3b8;"></i>
+          <div style="color:#8fa3b8;">Ingen cykeltidsdata registrerad idag.</div>
         </div>
 
         <div *ngIf="trendData.length > 0" style="height:260px; position:relative;">
@@ -176,7 +176,7 @@
               <span style="font-size:0.8rem;" [style.color]="progressFarg(goals.ibc.progress)">
                 {{ goals.ibc.progress | number:'1.0-0' }}%
               </span>
-              <span style="color:#718096; font-size:0.8rem;" *ngIf="goals.ibc.kvar > 0">
+              <span style="color:#8fa3b8; font-size:0.8rem;" *ngIf="goals.ibc.kvar > 0">
                 {{ goals.ibc.kvar }} kvar
               </span>
               <span style="color:#48bb78; font-size:0.8rem;" *ngIf="goals.ibc.kvar === 0">
@@ -214,8 +214,8 @@
 
       <!-- Ingen data-banner (om ingen produktion idag) -->
       <div *ngIf="summary && !summary.har_data"
-           style="background:#2d3748; border-radius:10px; padding:1.5rem; text-align:center; color:#718096;">
-        <i class="fas fa-coffee fa-2x mb-2" style="color:#4a5568;"></i>
+           style="background:#2d3748; border-radius:10px; padding:1.5rem; text-align:center; color:#8fa3b8;">
+        <i class="fas fa-coffee fa-2x mb-2" style="color: #8fa3b8;"></i>
         <div>Inga IBC registrerade idag for dig. Dags att köra igång!</div>
       </div>
 

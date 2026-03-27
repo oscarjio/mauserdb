@@ -146,7 +146,7 @@
 
 .kpi-sub {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.1rem;
 }
 
@@ -154,7 +154,7 @@
 
 .text-success { color: #48bb78 !important; }
 .text-danger  { color: #fc8181 !important; }
-.text-muted   { color: #718096 !important; }
+.text-muted   { color: #8fa3b8 !important; }
 
 /* ---- Sektionskort ---- */
 
@@ -285,7 +285,7 @@
 
 .bonus-points-sub {
   font-size: 0.8rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.2rem;
 }
 
@@ -315,7 +315,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.72rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-top: 0.3rem;
 }
 
@@ -326,7 +326,7 @@
 
 .bonus-period-info {
   font-size: 0.75rem;
-  color: #718096;
+  color: #8fa3b8;
   text-align: center;
 }
 
@@ -371,7 +371,7 @@
 }
 
 .dot-active   { background: #48bb78; box-shadow: 0 0 6px rgba(72,187,120,0.6); }
-.dot-inactive { background: #718096; }
+.dot-inactive { background: #8fa3b8; }
 
 /* ---- Laddning och fel ---- */
 

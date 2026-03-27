@@ -196,7 +196,7 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
             title: {
               display: true,
               text: 'IBC/h',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },

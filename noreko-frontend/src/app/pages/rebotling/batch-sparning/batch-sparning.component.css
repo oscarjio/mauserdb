@@ -47,7 +47,7 @@
 }
 
 .kpi-sub {
-  color: #718096;
+  color: #8fa3b8;
   font-size: 0.75rem;
   margin-top: 0.25rem;
 }
@@ -142,7 +142,7 @@
 }
 
 .dark-input::placeholder {
-  color: #718096;
+  color: #8fa3b8;
 }
 
 /* Detail overlay */

@@ -444,12 +444,12 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
         },
         scales: {
           x: {
-            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },
+            ticks: { color: '#8fa3b8', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },
             grid: { color: 'rgba(255,255,255,0.04)' }
           },
           y: {
             beginAtZero: true,
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: 'rgba(255,255,255,0.06)' },
             title: { display: true, text: 'Antal kassationer', color: '#a0aec0', font: { size: 11 } }
           }

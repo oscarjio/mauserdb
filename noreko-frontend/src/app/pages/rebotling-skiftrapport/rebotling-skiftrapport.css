@@ -25,7 +25,7 @@
 
 .form-control {
   background-color: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
@@ -135,7 +135,7 @@
 
 .form-check-input {
   background-color: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
 }
 
 .form-check-input:checked {
@@ -225,7 +225,7 @@
 
 .kpi-label {
   font-size: 0.68rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
@@ -253,7 +253,7 @@
 
 .summary-label {
   font-size: 0.68rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
@@ -293,7 +293,7 @@
 
 .shift-stat-label {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -306,7 +306,7 @@
 /* Filter bar */
 .filter-bar .form-control {
   background-color: #4a5568;
-  border-color: #718096;
+  border-color: #8fa3b8;
   color: #e2e8f0;
 }
 
@@ -330,7 +330,7 @@
 
 .compare-kpi-label {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -343,7 +343,7 @@
 
 .compare-day-date {
   font-size: 0.7rem;
-  color: #718096;
+  color: #8fa3b8;
   margin-bottom: 2px;
 }
 
@@ -423,7 +423,7 @@
 
 .eff-kpi-label {
   font-size: 0.68rem;
-  color: #718096;
+  color: #8fa3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
@@ -533,7 +533,7 @@
 
 .rank-default {
   background: rgba(74, 85, 104, 0.3);
-  color: #718096;
+  color: #8fa3b8;
   border: 1px solid #4a5568;
   font-size: 0.75rem;
 }

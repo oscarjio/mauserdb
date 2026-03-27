@@ -33,7 +33,7 @@ import { environment } from '../../../environments/environment';
           </button>
           <div *ngIf="error" class="alert alert-danger mt-3 mb-0 py-2">{{ error }}</div>
           <div class="text-center mt-3">
-            <small style="color: #718096;">Inget konto? <a routerLink="/register" style="color: #4299e1; text-decoration: none;">Registrera dig</a></small>
+            <small style="color: #8fa3b8;">Inget konto? <a routerLink="/register" style="color: #4299e1; text-decoration: none;">Registrera dig</a></small>
           </div>
         </form>
       </div>
@@ -69,7 +69,7 @@ import { environment } from '../../../environments/environment';
       color: #e2e8f0;
       box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
     }
-    .form-control::placeholder { color: #718096; }
+    .form-control::placeholder { color: #8fa3b8; }
   `]
 })
 export class LoginPage implements OnDestroy {

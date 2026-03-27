@@ -499,9 +499,9 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: { legend: { labels: { color: '#a0aec0' } } },
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
-          y: { position: 'left', ticks: { color: '#718096' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Bonus', color: '#718096' }, min: 0, max: 100 },
-          y1: { position: 'right', ticks: { color: '#718096' }, grid: { display: false }, title: { display: true, text: 'IBC OK', color: '#718096' }, min: 0 }
+          x: { ticks: { color: '#8fa3b8', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { position: 'left', ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Bonus', color: '#8fa3b8' }, min: 0, max: 100 },
+          y1: { position: 'right', ticks: { color: '#8fa3b8' }, grid: { display: false }, title: { display: true, text: 'IBC OK', color: '#8fa3b8' }, min: 0 }
         }
       }
     });
@@ -534,7 +534,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { display: false } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true }
+          y: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, beginAtZero: true }
         }
       }
     });
@@ -636,7 +636,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { display: false } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true }
+          y: { ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, beginAtZero: true }
         }
       }
     });
@@ -717,8 +717,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           }
         },
         scales: {
-          x: { title: { display: true, text: 'Effektivitet (%)', color: '#718096' }, ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, min: 0, max: 100 },
-          y: { title: { display: true, text: 'Produktivitet', color: '#718096' }, ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, beginAtZero: true }
+          x: { title: { display: true, text: 'Effektivitet (%)', color: '#8fa3b8' }, ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, min: 0, max: 100 },
+          y: { title: { display: true, text: 'Produktivitet', color: '#8fa3b8' }, ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, beginAtZero: true }
         }
       }
     });
@@ -881,15 +881,15 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         scales: {
           x: {
             stacked: true,
-            ticks: { color: '#718096', maxRotation: 45, font: { size: 9 } },
+            ticks: { color: '#8fa3b8', maxRotation: 45, font: { size: 9 } },
             grid: { color: '#2d3748' }
           },
           y: {
             stacked: true,
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' },
             beginAtZero: true,
-            title: { display: true, text: 'Stoppid (min)', color: '#718096', font: { size: 11 } }
+            title: { display: true, text: 'Stoppid (min)', color: '#8fa3b8', font: { size: 11 } }
           }
         }
       }
@@ -1048,9 +1048,9 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           }
         },
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
-          y: { position: 'left', ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true, title: { display: true, text: 'IBC OK', color: '#718096' } },
-          y1: { position: 'right', ticks: { color: '#718096', callback: (v: string | number) => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: 'Kvalitet %', color: '#718096' } }
+          x: { ticks: { color: '#8fa3b8', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { position: 'left', ticks: { color: '#8fa3b8' }, grid: { color: '#2d3748' }, beginAtZero: true, title: { display: true, text: 'IBC OK', color: '#8fa3b8' } },
+          y1: { position: 'right', ticks: { color: '#8fa3b8', callback: (v: string | number) => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: 'Kvalitet %', color: '#8fa3b8' } }
         }
       }
     });
@@ -1300,7 +1300,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         scales: {
           x: {
             ticks: {
-              color: '#718096',
+              color: '#8fa3b8',
               maxRotation: 45,
               font: { size: 10 }
             },
@@ -1309,9 +1309,9 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           y: {
             position: 'left',
             beginAtZero: true,
-            ticks: { color: '#718096' },
+            ticks: { color: '#8fa3b8' },
             grid: { color: '#2d3748' },
-            title: { display: true, text: 'Stopptid (min)', color: '#718096', font: { size: 11 } }
+            title: { display: true, text: 'Stopptid (min)', color: '#8fa3b8', font: { size: 11 } }
           },
           y1: {
             position: 'right',
@@ -1322,7 +1322,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
               callback: (v: string | number) => v + '%'
             },
             grid: { display: false },
-            title: { display: true, text: 'Kumulativt %', color: '#718096', font: { size: 11 } }
+            title: { display: true, text: 'Kumulativt %', color: '#8fa3b8', font: { size: 11 } }
           }
         }
       }

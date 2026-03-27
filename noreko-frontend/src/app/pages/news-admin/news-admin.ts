@@ -331,7 +331,7 @@ interface NewsItem {
                   </tr>
                   <tr *ngIf="filtreradeListan.length === 0 && !loading">
                     <td colspan="9" class="text-center py-5">
-                      <i class="fas fa-inbox d-block mb-2" style="font-size: 2rem; color: #4a5568;"></i>
+                      <i class="fas fa-inbox d-block mb-2" style="font-size: 2rem; color: #8fa3b8;"></i>
                       <span class="text-muted" *ngIf="newsSearchQuery">Inga nyheter matchar din sökning.</span>
                       <span class="text-muted" *ngIf="!newsSearchQuery">Inga nyheter att visa</span>
                     </td>
@@ -373,7 +373,7 @@ interface NewsItem {
       color: #e2e8f0;
       box-shadow: 0 0 0 2px rgba(99,179,237,0.2);
     }
-    .form-control-dark::placeholder { color: #718096; }
+    .form-control-dark::placeholder { color: #8fa3b8; }
     .form-check-label { color: #a0aec0; font-size: 0.875rem; }
     .form-check-input { background-color: #1a202c; border-color: #4a5568; }
     .form-check-input:checked { background-color: #4299e1; border-color: #4299e1; }
@@ -395,8 +395,8 @@ interface NewsItem {
     .kpi-aktiv .kpi-value    { color: #63b3ed; }
     .kpi-pinnad   { border-left: 3px solid #ecc94b; }
     .kpi-pinnad .kpi-value   { color: #ecc94b; }
-    .kpi-arkiverad { border-left: 3px solid #718096; }
-    .kpi-arkiverad .kpi-value { color: #718096; }
+    .kpi-arkiverad { border-left: 3px solid #8fa3b8; }
+    .kpi-arkiverad .kpi-value { color: #8fa3b8; }
     .search-wrapper { min-width: 220px; }
     .search-icon { background: #1a202c; border: 1px solid #4a5568; border-right: 0; }
     .table-dark {
@@ -420,7 +420,7 @@ interface NewsItem {
     .row-pinned td:first-child { border-left: 3px solid #ecc94b; }
     .row-urgent td:first-child { border-left: 3px solid #e53e3e; }
     .row-archived { opacity: 0.5; }
-    .row-archived td { color: #718096 !important; }
+    .row-archived td { color: #8fa3b8 !important; }
     .news-title { font-weight: 500; color: #e2e8f0; }
     .news-body-preview { margin-top: 2px; }
     .priority-range { flex: 1; accent-color: #4299e1; }

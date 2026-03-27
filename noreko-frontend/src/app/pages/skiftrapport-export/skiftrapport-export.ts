@@ -476,12 +476,12 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
 
   private pdfStilar(): any {
     return {
-      brandText:       { fontSize: 10, color: '#718096', margin: [0, 0, 0, 4] },
+      brandText:       { fontSize: 10, color: '#8fa3b8', margin: [0, 0, 0, 4] },
       rubrik:          { fontSize: 20, bold: true, color: '#2b6cb0', margin: [0, 0, 0, 8] },
       sektionRubrik:   { fontSize: 13, bold: true, color: '#2b6cb0', margin: [0, 8, 0, 4] },
       tabellHeader:    { bold: true, color: '#bee3f8', fontSize: 10 },
       normalText:      { fontSize: 11, color: '#4a5568' },
-      footer:          { fontSize: 9, color: '#718096', margin: [0, 8, 0, 0], alignment: 'center' },
+      footer:          { fontSize: 9, color: '#8fa3b8', margin: [0, 8, 0, 0], alignment: 'center' },
       sammanfattningKort: { fontSize: 11, bold: true, color: '#2b6cb0', margin: [0, 4, 0, 4] },
     };
   }

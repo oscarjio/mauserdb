@@ -238,7 +238,7 @@
 
         <!-- No data -->
         <div class="dark-card text-center py-5" *ngIf="!loading && logs.length === 0">
-          <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
           <p class="text-muted mt-2">Inga loggposter för vald period</p>
         </div>
       </div>
@@ -288,6 +288,7 @@
               </div>
               <div class="card-body p-0">
                 <div style="overflow-x: auto;">
+                <div class="table-responsive">
                 <table class="audit-stats-table">
                   <tbody>
                     <tr *ngFor="let item of stats.by_action; trackBy: trackByIndex">
@@ -302,6 +303,7 @@
                   </tbody>
                 </table>
                 </div>
+                </div>
               </div>
             </div>
           </div>
@@ -314,6 +316,7 @@
               </div>
               <div class="card-body p-0">
                 <div style="overflow-x: auto;">
+                <div class="table-responsive">
                 <table class="audit-stats-table">
                   <tbody>
                     <tr *ngFor="let item of stats.by_user; trackBy: trackByIndex">
@@ -322,6 +325,7 @@
                     </tr>
                   </tbody>
                 </table>
+                </div>
                 </div>
               </div>
             </div>

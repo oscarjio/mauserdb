@@ -149,7 +149,7 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
       font-weight: 700;
     }
 
-    .pw-na { color: #718096; }
+    .pw-na { color: #8fa3b8; }
 
     .pw-badge {
       background: #fc8181;

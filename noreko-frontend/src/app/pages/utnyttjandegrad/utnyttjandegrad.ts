@@ -209,7 +209,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
           {
             label: 'Okand tid (h)',
             data: okandTid,
-            backgroundColor: '#718096',
+            backgroundColor: '#8fa3b8',
             borderRadius: 2,
           },
         ],
@@ -261,7 +261,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
             title: {
               display: true,
               text: 'Timmar',
-              color: '#718096',
+              color: '#8fa3b8',
               font: { size: 11 },
             },
           },
@@ -412,7 +412,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
   }
 
   getProgressColor(pct: number | null): string {
-    if (pct === null) return '#718096';
+    if (pct === null) return '#8fa3b8';
     if (pct >= 80) return '#48bb78';
     if (pct >= 60) return '#ecc94b';
     return '#e53e3e';

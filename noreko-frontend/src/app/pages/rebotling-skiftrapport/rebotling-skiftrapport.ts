@@ -1237,8 +1237,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
     content.push({
       columns: [
-        { text: 'Genererad: ' + now, fontSize: 9, color: '#718096' },
-        { text: 'Noreko – Rebotling skiftöverlämning', fontSize: 9, color: '#718096', alignment: 'right' }
+        { text: 'Genererad: ' + now, fontSize: 9, color: '#8fa3b8' },
+        { text: 'Noreko – Rebotling skiftöverlämning', fontSize: 9, color: '#8fa3b8', alignment: 'right' }
       ]
     });
 
@@ -1265,7 +1265,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         },
         meta: {
           fontSize: 9,
-          color: '#718096'
+          color: '#8fa3b8'
         },
         logoText: {
           fontSize: 18,
@@ -1654,12 +1654,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           x: {
             ticks: { color: '#a0aec0' },
             grid:  { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Timme', color: '#718096' },
+            title: { display: true, text: 'Timme', color: '#8fa3b8' },
           },
           y: {
             ticks: { color: '#a0aec0' },
             grid:  { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'IBC / timme', color: '#718096' },
+            title: { display: true, text: 'IBC / timme', color: '#8fa3b8' },
             beginAtZero: true,
           },
         },
@@ -1746,12 +1746,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           x: {
             ticks: { color: '#a0aec0' },
             grid:  { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: '30-min intervall', color: '#718096' },
+            title: { display: true, text: '30-min intervall', color: '#8fa3b8' },
           },
           y: {
             ticks: { color: '#a0aec0' },
             grid:  { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'IBCer / timme', color: '#718096' },
+            title: { display: true, text: 'IBCer / timme', color: '#8fa3b8' },
             beginAtZero: true,
           },
         },
