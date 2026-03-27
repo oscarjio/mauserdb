@@ -1226,10 +1226,10 @@ class RebotlingAdminController {
             $stmt = $this->pdo->prepare(
                 "SELECT datum, justerat_mal, orsak
                  FROM produktionsmal_undantag
-                 WHERE (:month IS NULL OR DATE_FORMAT(datum, '%Y-%m') = :month)
+                 WHERE (:month_check IS NULL OR DATE_FORMAT(datum, '%Y-%m') = :month_val)
                  ORDER BY datum ASC"
             );
-            $stmt->execute([':month' => $month]);
+            $stmt->execute([':month_check' => $month, ':month_val' => $month]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $exceptions = array_map(function ($r) {
                 return [

@@ -247,6 +247,19 @@ class ProduktionsDashboardController {
     // ================================================================
 
     private function getOversikt(): void {
+        // Filcache 15s TTL — dashboardvy med manga sub-queries
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/produktionsdashboard_oversikt.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 15) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+
         $idag    = date('Y-m-d');
         $igar    = date('Y-m-d', strtotime('-1 day'));
         $fromSek7 = date('Y-m-d', strtotime('-7 days'));
@@ -362,7 +375,7 @@ class ProduktionsDashboardController {
         // --- Dagligt mal ---
         $dagligtMal = $this->getDagligtMal($idag);
 
-        $this->sendSuccess([
+        $responseData = [
             // Produktion
             'ibc_idag'              => $ibcIdag,
             'ibc_ok_idag'           => $ibcOkIdag,
@@ -402,7 +415,10 @@ class ProduktionsDashboardController {
             'skift_kvarvarande_min' => $skift['kvarvarande_min'],
 
             'datum'                 => $idag,
-        ]);
+        ];
+        // Skriv cache innan svar
+        @file_put_contents($cacheFile, json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE), LOCK_EX);
+        $this->sendSuccess($responseData);
     }
 
     // ================================================================

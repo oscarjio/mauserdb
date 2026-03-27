@@ -82,7 +82,7 @@ class BonusController {
      * Returnerar SQL-fragment som aggregerar en operatörs skift korrekt.
      * Kumulativa fält hämtas med MAX(), KPI-fält med sista cykelns värde.
      *
-     * @param string $opFilter   SQL-villkor för operatör, t.ex. "(op1=:op_id OR op2=:op_id OR op3=:op_id)"
+     * @param string $opFilter   SQL-villkor för operatör, t.ex. "(op1=:op_id1 OR op2=:op_id2 OR op3=:op_id3)"
      * @param string $dateFilter Returnerat av getDateFilter()
      */
     private function perShiftSubquery(string $opFilter, string $dateFilter): string {
@@ -156,7 +156,8 @@ class BonusController {
         }
 
         $dateFilter = $this->getDateFilter($period, $start_date, $end_date);
-        $opFilter   = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+        $opFilter   = "(op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)";
+        $opParams   = ['op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id];
 
         try {
             // Steg 1+2: per-skift MAX(), sedan aggregera över skift
@@ -179,7 +180,7 @@ class BonusController {
                     DATE(MAX(last_datum))      AS last_date
                 FROM ($inner) AS per_shift
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute($opParams);
             $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$stats || (int)($stats['total_shifts'] ?? 0) === 0) {
@@ -218,7 +219,7 @@ class BonusController {
                 ORDER BY date DESC
                 LIMIT 30
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute($opParams);
             $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Primärposition (den position operatören jobbat mest)
@@ -565,7 +566,8 @@ class BonusController {
         }
 
         $dateFilter = $this->getDateFilter($period);
-        $opFilter   = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+        $opFilter   = "(op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)";
+        $opParams   = ['op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id];
 
         try {
             // Per datum + skiftraknare → sedan per datum
@@ -600,7 +602,7 @@ class BonusController {
                 GROUP BY date
                 ORDER BY date ASC
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute($opParams);
             $daily_kpis = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $chart_data = [
@@ -663,16 +665,16 @@ class BonusController {
                     ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc,
                     effektivitet, produktivitet, kvalitet, bonus_poang,
                     CASE
-                        WHEN op1 = :op_id THEN 'Tvättplats'
-                        WHEN op2 = :op_id THEN 'Kontrollstation'
-                        WHEN op3 = :op_id THEN 'Truckförare'
+                        WHEN op1 = :op_id_c1 THEN 'Tvättplats'
+                        WHEN op2 = :op_id_c2 THEN 'Kontrollstation'
+                        WHEN op3 = :op_id_c3 THEN 'Truckförare'
                     END AS position
                 FROM rebotling_ibc
-                WHERE op1 = :op_id OR op2 = :op_id OR op3 = :op_id
+                WHERE op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3
                 ORDER BY datum DESC
                 LIMIT " . (int)$limit . "
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute(['op_id_c1' => $op_id, 'op_id_c2' => $op_id, 'op_id_c3' => $op_id, 'op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id]);
             $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $this->sendSuccess([
@@ -787,7 +789,8 @@ class BonusController {
 
         try {
             // --- Operatörens bonuspoäng per vecka (senaste 8 ISO-veckor) ---
-            $opFilter = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+            $opFilter = "(op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)";
+            $opParams = ['op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id];
             $stmt = $this->pdo->prepare("
                 SELECT
                     YEARWEEK(first_datum, 3) AS yearweek,
@@ -813,7 +816,7 @@ class BonusController {
                 GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute($opParams);
             $opWeeks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // --- Teamets snitt (alla operatörer, alla positioner) per vecka ---
@@ -1856,14 +1859,14 @@ class BonusController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    SUM(op1 = :op_id) AS count_1,
-                    SUM(op2 = :op_id) AS count_2,
-                    SUM(op3 = :op_id) AS count_3
+                    SUM(op1 = :op_id_s1) AS count_1,
+                    SUM(op2 = :op_id_s2) AS count_2,
+                    SUM(op3 = :op_id_s3) AS count_3
                 FROM rebotling_ibc
-                WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                   AND $dateFilter
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute(['op_id_s1' => $op_id, 'op_id_s2' => $op_id, 'op_id_s3' => $op_id, 'op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $c1 = (int)($row['count_1'] ?? 0);

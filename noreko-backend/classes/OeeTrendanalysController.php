@@ -327,6 +327,19 @@ class OeeTrendanalysController {
     // ================================================================
 
     private function sammanfattning(): void {
+        // Filcache 30s TTL — tung aggregering over flera perioder
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/oee_trendanalys_sammanfattning.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+
         try {
             $today = date('Y-m-d');
 
@@ -358,7 +371,7 @@ class OeeTrendanalysController {
                 if ($samsta === null || $s['oee'] < $samsta['oee']) $samsta = $s;
             }
 
-            $this->sendSuccess([
+            $responseData = [
                 'oee_idag_pct'  => round($idagOee['oee'] * 100, 1),
                 'oee_7d_pct'    => round($oee7d['oee'] * 100, 1),
                 'oee_30d_pct'   => round($oee30d['oee'] * 100, 1),
@@ -374,7 +387,11 @@ class OeeTrendanalysController {
                 'tillganglighet_idag_pct' => round($idagOee['tillganglighet'] * 100, 1),
                 'prestanda_idag_pct'      => round($idagOee['prestanda'] * 100, 1),
                 'kvalitet_idag_pct'       => round($idagOee['kvalitet'] * 100, 1),
-            ]);
+            ];
+            // Skriv cache innan svar
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('OeeTrendanalysController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);

@@ -346,10 +346,10 @@ class BonusAdminController {
                 )
                 VALUES (1, :foodgrade, :nonun, :tvattade, :updated_by)
                 ON DUPLICATE KEY UPDATE
-                productivity_target_foodgrade = :foodgrade,
-                productivity_target_nonun = :nonun,
-                productivity_target_tvattade = :tvattade,
-                updated_by = :updated_by
+                productivity_target_foodgrade = VALUES(productivity_target_foodgrade),
+                productivity_target_nonun = VALUES(productivity_target_nonun),
+                productivity_target_tvattade = VALUES(productivity_target_tvattade),
+                updated_by = VALUES(updated_by)
             ");
 
             $stmt->execute([
@@ -659,7 +659,7 @@ class BonusAdminController {
             $stmt = $this->pdo->prepare("
                 INSERT INTO bonus_config (id, weekly_bonus_goal)
                 VALUES (1, :goal)
-                ON DUPLICATE KEY UPDATE weekly_bonus_goal = :goal
+                ON DUPLICATE KEY UPDATE weekly_bonus_goal = VALUES(weekly_bonus_goal)
             ");
             $stmt->execute(['goal' => round($goal, 2)]);
 
@@ -701,13 +701,13 @@ class BonusAdminController {
                         SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_prod,
                         MAX(runtime_plc) AS shift_runtime
                     FROM rebotling_ibc
-                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                       AND skiftraknare IS NOT NULL
                       AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
-            $stmt->execute(['op_id' => $op_id]);
+            $stmt->execute(['op_id1' => $op_id, 'op_id2' => $op_id, 'op_id3' => $op_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $shifts = (int)($row['total_shifts'] ?? 0);
@@ -808,8 +808,8 @@ class BonusAdminController {
                 INSERT INTO bonus_level_amounts (level_name, amount_sek, updated_by)
                 VALUES (:level, :amount, :updated_by)
                 ON DUPLICATE KEY UPDATE
-                    amount_sek = :amount,
-                    updated_by = :updated_by
+                    amount_sek = VALUES(amount_sek),
+                    updated_by = VALUES(updated_by)
             ");
 
             $this->pdo->beginTransaction();

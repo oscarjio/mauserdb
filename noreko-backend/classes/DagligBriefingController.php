@@ -172,6 +172,20 @@ class DagligBriefingController {
     // ================================================================
 
     private function sammanfattning(): void {
+        // Filcache 30s TTL — tung aggregering med manga sub-queries
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $datumParam = trim($_GET['datum'] ?? date('Y-m-d'));
+        $cacheFile = $cacheDir . '/daglig_briefing_' . preg_replace('/[^0-9-]/', '', $datumParam) . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+
         try {
             $datum = $this->getDatum();
             $oee = $this->calcOeeForDay($datum);
@@ -334,7 +348,7 @@ class DagligBriefingController {
                 . ' Stopp: ' . $stoppMinuter . ' min'
                 . ($stoppMinuter > 0 ? ', framst pga ' . $framstaOrsak . '.' : '.');
 
-            $this->sendSuccess([
+            $responseData = [
                 'datum'           => $datum,
                 'total_ibc'       => $totalIbc,
                 'ok_ibc'          => $okIbc,
@@ -348,7 +362,10 @@ class DagligBriefingController {
                 'summering'       => $summering,
                 'oee_mal'         => self::OEE_MAL,
                 'kassation_troskel' => self::KASSATION_TROSKEL,
-            ]);
+            ];
+            // Skriv cache innan svar
+            @file_put_contents($cacheFile, json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE), LOCK_EX);
+            $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);

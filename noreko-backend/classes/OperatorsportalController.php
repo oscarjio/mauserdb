@@ -82,14 +82,16 @@ class OperatorsportalController {
                 FROM (
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
-                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                       AND skiftraknare IS NOT NULL
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
             $stmt->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
@@ -111,14 +113,16 @@ class OperatorsportalController {
                 FROM (
                     SELECT MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM rebotling_ibc
-                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                       AND skiftraknare IS NOT NULL
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
             $stmt->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
@@ -205,14 +209,14 @@ class OperatorsportalController {
                     MAX(COALESCE(runtime_plc, 0)) AS runtime_min,
                     MAX(datum)                    AS senaste_aktivitet
                 FROM rebotling_ibc
-                WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                   AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
                 ORDER BY MAX(datum) DESC
                 LIMIT 1
             ");
-            $stmt->execute([':op_id' => $opId, ':today' => $today, ':todayb' => $today]);
+            $stmt->execute([':op_id1' => $opId, ':op_id2' => $opId, ':op_id3' => $opId, ':today' => $today, ':todayb' => $today]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$row) {
@@ -438,7 +442,7 @@ class OperatorsportalController {
                     SELECT datum,
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
-                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                       AND skiftraknare IS NOT NULL
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
@@ -447,7 +451,9 @@ class OperatorsportalController {
                 ORDER BY DATE(datum)
             ");
             $stmtOp->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
@@ -576,12 +582,14 @@ class OperatorsportalController {
                     0
                 ) AS senaste_bonus
                 FROM rebotling_ibc
-                WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                   AND bonus_poang IS NOT NULL
                   AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ");
             $stmtBonus->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
@@ -596,7 +604,7 @@ class OperatorsportalController {
                                '|', 1
                            ) + 0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                       AND skiftraknare IS NOT NULL
                       AND bonus_poang IS NOT NULL
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
@@ -604,7 +612,9 @@ class OperatorsportalController {
                 ) AS per_skift
             ");
             $stmtAvgBonus->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);
@@ -617,12 +627,14 @@ class OperatorsportalController {
             $stmtSkift = $this->pdo->prepare("
                 SELECT COUNT(DISTINCT skiftraknare)
                 FROM rebotling_ibc
-                WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
                   AND skiftraknare IS NOT NULL
                   AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ");
             $stmtSkift->execute([
-                ':op_id'     => $opId,
+                ':op_id1'    => $opId,
+                ':op_id2'    => $opId,
+                ':op_id3'    => $opId,
                 ':from_date' => $fromDate,
                 ':to_date'   => $toDate,
             ]);

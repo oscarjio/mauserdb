@@ -1,5 +1,78 @@
 # MauserDB Dev Log
 
+## Session #356 — Worker A (2026-03-27)
+**Fokus: E2E regressionstest + HTTP interceptor audit + caching-strategi + endpoint-testning + PDO param-fix + deploy**
+
+### UPPGIFT 1: E2E Regressionstest — KLAR
+Korde alla 50 E2E-tester (tests/rebotling_e2e.sh) mot dev.mauserdb.com.
+**Resultat: 50/50 PASS, 0 FAIL, 0 SKIP**
+
+### UPPGIFT 2: HTTP Interceptor Audit — KLAR
+Granskade csrf.interceptor.ts och error.interceptor.ts i noreko-frontend/src/app/interceptors/:
+
+**csrf.interceptor.ts:**
+- Bifogar X-CSRF-Token for POST/PUT/DELETE/PATCH — korrekt
+- Token hamtas fran sessionStorage — korrekt
+- Felhantering vid otillganglig storage — korrekt
+
+**error.interceptor.ts:**
+- Retry: 1 gang for GET/HEAD/OPTIONS vid status 0/502/503/504 med 1s delay — korrekt
+- POST/PUT/DELETE retry:as ALDRIG — korrekt (forhindrar dubbletter)
+- 401: Rensar auth-state via AuthService.clearSession(), navigerar till /login med returnUrl — korrekt
+- 403/404/408/429/500+: Visar toast pa svenska — korrekt
+- Status polling (action=status) skippar toast — korrekt
+- X-Skip-Error-Toast header stods — korrekt
+- Inga minneslaeckor (inga subscriptions, pipe-baserat) — korrekt
+
+**AuthService:**
+- Polling med interval(60000) + switchMap + Subscription — korrekt
+- stopPolling/startPolling hanterar subscription — korrekt
+- clearSession() stoppar polling — korrekt
+- Ingen race condition hittad
+
+**Bedomning: Inga problem funna — interceptors ar valgransade och robusta.**
+
+### UPPGIFT 3: Caching-strategi — KLAR
+Identifierade och implementerade filcache for de 3 tyngsta endpoints:
+
+| Endpoint | Fore | Efter (cache hit) | TTL |
+|---|---|---|---|
+| oee-trendanalys&run=sammanfattning | 1.15s | 0.15s | 30s |
+| daglig-briefing&run=sammanfattning | 1.11s | 0.13s | 30s |
+| produktionsdashboard&run=oversikt | 0.93s | 0.18s | 15s |
+
+Cache-implementation foljer befintligt monster fran RebotlingController (file_put_contents med LOCK_EX).
+Befintlig getLiveStats-cache (5s TTL) orord.
+
+### UPPGIFT 4: Endpoint-testning + PDO-buggfix — KLAR
+Testade alla 108+ endpoints med curl mot dev.mauserdb.com med korrekta run-parametrar.
+**Resultat: 103 PASS, 4 FAIL (varav 3 forvaentade: kravde operator_id/line-param)**
+
+**KRITISK BUGG FIXAD: Duplicerade PDO named params**
+Med `PDO::ATTR_EMULATE_PREPARES => false` (satt i api.php) kan namngivna parametrar inte ateranvandas.
+Monstret `WHERE op1 = :op_id OR op2 = :op_id OR op3 = :op_id` med `execute(['op_id' => $val])` kraschar.
+
+**Fixade filer:**
+- `BonusController.php` — 6 queries fixade (`:op_id` -> `:op_id1/:op_id2/:op_id3`)
+- `OperatorsportalController.php` — 7 queries fixade
+- `BonusAdminController.php` — 1 query fixad + 3 INSERT...ON DUPLICATE KEY UPDATE (anvander nu `VALUES()`)
+- `RebotlingAdminController.php` — 1 query fixad (`:month` -> `:month_check/:month_val`)
+
+**Verifiering efter fix:**
+- bonus&run=kpis&id=1: OK (var "Databasfel")
+- bonus&run=history&id=1: OK (var "Databasfel")
+- Alla 50 E2E-tester: 50/50 PASS
+- Alla 58 comprehensive endpoints: 58/58 PASS
+
+### UPPGIFT 5: Deploy + verifiering — KLAR
+- Backend deployed med rsync (exkl. db_config.php) — 7 filer uppdaterade
+- dev.mauserdb.com svarar korrekt
+- Alla fixade endpoints verifierade
+
+### UPPGIFT 6: dev-log.md uppdaterad — KLAR
+
+---
+
 ## Session #356 — Worker B (2026-03-27)
 **Fokus: Lazy loading audit + curl-testning + Chart.js-granskning + auth-flode + deploy**
 
