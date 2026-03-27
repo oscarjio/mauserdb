@@ -61,6 +61,7 @@ Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
 Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
+Session #355: SQL-schema granskning + performance audit + WCAG.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -73,15 +74,18 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #355):
+### Nasta (session #356):
 - [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] SQL-query granskning mot prod_db_schema.sql — verifiera alla controllers
-- [ ] Error boundary/global error handler (Angular + backend)
-- [ ] Performance audit (Lighthouse, bundle-analys)
-- [ ] WCAG 2.1 AA kontrast + screen reader
-- [ ] Unused imports cleanup (HostListener i 4 komponenter)
+- [ ] E2E regressionstest efter #355 fixar
+- [ ] Lazy loading implementation
+- [ ] HTTP interceptor audit
+- [ ] Caching-strategi
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #355 (klar)
+Worker A: 113 controllers granskade mot prod_db_schema.sql — 0 kritiska SQL-mismatches. 52 endpoints testade — 0 st 500-fel. rebotling_kv_settings-tabell tillagd i schema. Deploy OK.
+Worker B: WCAG AA kontrast-fix 216 filer (#718096→#8fa3b8). Bundle: 67.8 KB initial load. 14 table-responsive fixar. Global ErrorHandler utokad. Build+deploy OK.
 
 ### 2026-03-27 — Session #354 (klar)
 Worker A: 191 DATE()-fixar i 52 controllers (0 kvarvarande). getLiveStats 310→147ms median (5s filcache + CTE-query-merge). E2E 50/50 PASS. Deploy OK.
@@ -90,7 +94,3 @@ Worker B: Keyboard a11y (skip-link, focus-visible, Escape i 5 komponenter). 8 to
 ### 2026-03-27 — Session #353 (klar)
 Worker A: getLiveStats 560→310ms (file-cache + query-merge). produktion_procent-BUGG FIXAD (ibcToday vs totalRuntimeMinutes skift-mismatch). 2 composite indexes + 13 DATE()-fixar for index-anvandning. E2E 50/50 PASS.
 Worker B: Formularvalidering i 7 templates (is-invalid/is-valid feedback). Responsiv 320px/768px/1024px fixar. Print-styling (@media print, doljer nav/knappar). Dark theme global CSS. Build+deploy OK.
-
-### 2026-03-27 — Session #352 (klar)
-Worker A: 115 controllers granskade — inga oskyddade divisioner. 85+ endpoints tidstestade. getLiveStats optimerad 700ms→560ms (8→4-5 queries). Alla POST/PUT-endpoints anvander prepared statements, ingen SQL injection-risk. E2E 50/50 PASS.
-Worker B: a11y-audit — 11 templates fixade (aria-labels, aria-pressed, role/tablist). Grafer och error states redan korrekta. Build+deploy OK.
