@@ -1,5 +1,54 @@
 # MauserDB Dev Log
 
+## Session #367 — Worker B (2026-03-27)
+**Fokus: Operatorsbonus-djupgranskning + frontend bundle-analys + UX-granskning + deploy dev**
+
+### UPPGIFT 1: Operatorsbonus-djupgranskning — KLAR
+- **3 bonuskontroller granskade**: OperatorsbonusController.php (699 rader), BonusController.php (~800 rader), BonusAdminController.php (1917 rader)
+- **3 frontend-services**: operatorsbonus.service.ts, bonus.service.ts, bonus-admin.service.ts
+- **2 frontend-sidor**: operatorsbonus.component (admin), my-bonus (operator)
+- **Bonusmodell OperatorsbonusController (kr-baserad)**:
+  - Formel: bonus_per_faktor = min(verkligt / mal, 1.0) x max_bonus_kr
+  - Faktorer: IBC/h (40%, mal 12, max 500 kr), Kvalitet (30%, mal 98%, max 400 kr), Narvaro (20%, mal 100%, max 200 kr), Team (10%, mal 95%, max 100 kr)
+  - Max total: 1200 kr
+  - Konfiguration i bonus_konfiguration-tabellen, sparbar av admin
+- **Bonusmodell BonusController (poangbaserad)**:
+  - Basbonus = eff*w_eff + prod_norm*w_prod + qual*w_qual (viktade per produkttyp)
+  - Tier-multiplikatorer: Outstanding 95+ (x2.0), Excellent 90+ (x1.5), God 80+ (x1.25), Bas 70+ (x1.0), Under <70 (x0.75)
+  - Max 200 poang
+- **Rattviseverifiering**:
+  - op1/op2/op3 i rebotling_ibc = operators.number (badgenummer), INTE operators.id
+  - OperatorsbonusController hamtar data med UNION ALL for op1, op2, op3 — alla tre positioner krediteras LIKA
+  - Batch-query med korrekt gruppering per skiftraknare (eliminerar N+1)
+  - Team-bonus ar gemensam for alla operatorer (linjemal)
+  - SLUTSATS: Bonus ar rattvis per operator — ingen position missgynnas
+- **Prod DB-verifiering**:
+  - 13 aktiva operatorer (id 1-13, number 1-168)
+  - 10 unika operator-nummer i rebotling_ibc denna manad (1, 11, 99, 151, 156, 157, 164, 165, 167, 168)
+  - Number 99 och 0 finns i data men inte i operators-tabellen — exkluderas korrekt fran bonusberakning
+  - bonus_konfiguration-tabellen bekraftad med korrekta varden
+
+### UPPGIFT 2: Frontend bundle-optimering — KLAR (inga andringar behoves)
+- **Alla routes ar redan lazy-loaded** (181+ lazy chunks)
+- Initial bundle: main.js 69.90 kB, styles 249.12 kB, polyfills 34.59 kB
+- Total initial: ~715 kB raw, ~151 kB transfer — UTMARKT
+- Inga ytterligare lazy loading-opporunieter
+- Stora lazy chunks: jspdf (411 kB), html2canvas (203 kB), canvg (158 kB) — alla redan lazy
+
+### UPPGIFT 3: UX-granskning — KLAR
+- Operatorsbonus-sida: Dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- All text pa svenska
+- Chart.js-grafer med korrekt datamappning (radar, bar, doughnut)
+- Responsiv CSS med @media queries for mobil
+- OnInit/OnDestroy lifecycle korrekt med destroy$ + takeUntil + clearInterval/clearTimeout
+- Min Bonus-sidan: Omfattande funktionalitet (KPI, historik, streak, achievements, peer ranking, feedback)
+- app.config.ts: @Injectable() dekorator tillagd pa GlobalErrorHandler (befintlig andring)
+
+### UPPGIFT 4: Build + Deploy — KLAR
+- Build: 0 errors, 0 warnings (bortsett fran CommonJS-varningar fran canvg/html2canvas)
+- Deploy: rsync till dev.mauserdb.com OK (8.7 MB, 193 filer)
+- Verifiering: dev.mauserdb.com returnerar HTTP 200, API svarar korrekt
+
 ## Session #366 — Worker A (2026-03-27)
 **Fokus: Fullstandig endpoint-stresstest 129 tester 0x500 + PHP controller-audit + integration test API vs DB + edge case-sakerhet + deploy dev**
 

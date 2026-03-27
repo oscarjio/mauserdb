@@ -1,4 +1,4 @@
-import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, Injector, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, Injectable, Injector, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withPreloading, PreloadAllModules, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
@@ -22,6 +22,7 @@ registerLocaleData(localeSv);
  * HTTP-fel (401/403/404/500) hanteras redan av errorInterceptor med toast.
  * Denna handler fångar allt övrigt (template-fel, null-referens, etc).
  */
+@Injectable()
 class GlobalErrorHandler implements ErrorHandler {
   private toastService: ToastService | null = null;
   /** Förhindra toast-spam: max 1 generiskt felmeddelande per 3 sekunder */
