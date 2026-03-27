@@ -1,5 +1,67 @@
 # MauserDB Dev Log
 
+## Session #353 — Worker A (2026-03-27)
+**Fokus: getLiveStats-optimering, produktion_procent-buggfix, EXPLAIN/index-audit, endpoint-test**
+
+### UPPGIFT 1: getLiveStats vidare optimering (560ms -> ~300ms) — KLAR
+Fortsatte optimering fran session #352 (700->560ms).
+
+**Andringar i RebotlingController.php getLiveStats():**
+- Slog ihop lopnummer-query till MEGA-QUERY 1 (sparar 1 DB-roundtrip ~120ms)
+- La till IBC-per-skift-rakning i MEGA-QUERY 2 (for korrekt produktion_procent)
+- Inforde file-based cache (30s TTL) for settings+vader-data via getCachedSettingsAndWeather()
+  - Sparar 1 DB-roundtrip (~120ms) for data som andras sjallan
+  - Cache-fil: /tmp/mauserdb_livestats_settings.json
+- **Resultat:** 560ms -> median ~310ms, basta 228ms (44% forbattring)
+- Totalt fran session #352: 700ms -> ~310ms (56% forbattring)
+
+### UPPGIFT 2: PHP error_log audit — DELVIS
+- Kan inte lasa Apache error logs (permission denied, sudo kraver losenord)
+- Loggsokvag identifierad: /var/log/apache2/mauserdb-dev-error.log
+- Testade alla 50 e2e-endpoints: 50/50 PASS, inga 500-fel
+- Testade 10 ytterligare endpoints manuellt: alla 200 (eller 401 for admin-skyddade)
+
+### UPPGIFT 3: EXPLAIN + index-audit — KLAR
+**Nya composite indexes (migration: 2026-03-27_session353_composite_indexes.sql):**
+- `rebotling_onoff(skiftraknare, datum, running)` — covering index, eliminerar filesort
+- `rebotling_ibc(skiftraknare, datum)` — optimerar ibc_hour-count
+
+**EXPLAIN-verifiering:**
+- Alla getLiveStats-queries visar nu "Using index" (covering index, inget filsystemaccess)
+- Eliminierade "Using filesort" fran runtime-berakningsqueryn
+
+**DATE(datum) BETWEEN-bugg fixad:**
+- 149 forekomster i 47 filer anvander `WHERE DATE(datum) BETWEEN ? AND ?` som forhindrar index
+- Fixade alla 11 i RebotlingAnalyticsController.php: `datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)`
+- Fixade 2 i RebotlingController.php (getProductionCycles on/off + rast queries)
+- Kvarstaende: 136 forekomster i ovriga 45 controllers (lagre prioritet, framtida session)
+
+### UPPGIFT 4: produktion_procent-berakning — KLAR (BUGG FUNNEN OCH FIXAD)
+**Problem:** getLiveStats anvande `ibcToday` (alla IBC for hela dagen, alla skift) men
+`totalRuntimeMinutes` (bara nuvarande skifts runtime). Vid fleraskift-dagar blev procenten
+felaktigt hog (mer IBC an runtime motiverar).
+
+**Fix:** Inforde `ibcCurrentShift` — rader IBC enbart for nuvarande skiftraknare.
+productionPercentage beraknas nu korrekt: (ibcCurrentShift * 60 / runtime) / hourlyTarget * 100.
+
+**Undersokning av PLC-skriven produktion_procent i rebotling_ibc:**
+- Varden ar INTE kumulativa i traditionell mening
+- De ar momentan takt-procent: (faktisk IBC/timme / mal IBC/timme) * 100
+- Tidiga cykler i skift ger extremt hoga varden (141%, 181%) pga kort runtime
+- Backend har redan korrekt cap: >200% -> 0, >100% -> 100
+- Varden stabiliseras kring 70-85% mitt i skiftet — beteendet ar korrekt
+
+### UPPGIFT 5: Endpoint-test — KLAR
+- Korde rebotling_e2e.sh: **50/50 PASS** (fore andringar)
+- Korde rebotling_e2e.sh: **50/50 PASS** (efter andringar)
+- Manuella curl-tester pa 10 ytterligare endpoints: alla returnerar 200 med korrekt JSON
+- Inga 500-fel eller felaktig data hittades
+
+### Andrade filer:
+- noreko-backend/classes/RebotlingController.php (getLiveStats-optimering + produktion_procent-fix + DATE()-index-fix)
+- noreko-backend/classes/RebotlingAnalyticsController.php (DATE(datum) BETWEEN -> datum >= ... index-fix, 11 queries)
+- noreko-backend/migrations/2026-03-27_session353_composite_indexes.sql (nya index)
+
 ## Session #352 — Worker A (2026-03-27)
 **Fokus: Felhantering vid nolldata, API-svarstider, datavalidering backend**
 

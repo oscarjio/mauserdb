@@ -2333,7 +2333,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1, skiftraknare
                         UNION ALL
@@ -2343,7 +2343,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2, skiftraknare
                         UNION ALL
@@ -2353,7 +2353,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3, skiftraknare
                     ) t
@@ -2408,7 +2408,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1, skiftraknare
                         UNION ALL
@@ -2418,7 +2418,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2, skiftraknare
                         UNION ALL
@@ -2428,7 +2428,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN ? AND ?
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3, skiftraknare
                     ) t
@@ -2957,7 +2957,7 @@ class RebotlingAnalyticsController {
                     DATE(datum)    AS event_date,
                     SUM(rasttime)  AS total_rast_min
                 FROM rebotling_skiftrapport
-                WHERE DATE(datum) BETWEEN :start AND :end
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 GROUP BY DATE(datum)
                 HAVING SUM(rasttime) > 120
                 ORDER BY event_date
@@ -2998,7 +2998,7 @@ class RebotlingAnalyticsController {
                     DATE(datum)   AS event_date,
                     SUM(ibc_ok)   AS total_ibc
                 FROM rebotling_skiftrapport
-                WHERE DATE(datum) BETWEEN :start AND :end
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 GROUP BY DATE(datum)
                 HAVING SUM(ibc_ok) < :half_goal AND SUM(ibc_ok) > 0
                 ORDER BY event_date
@@ -5892,7 +5892,7 @@ HTML;
                     MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
                     MAX(COALESCE(rasttime,   0)) AS shift_rast
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
             ) AS ps
@@ -5959,7 +5959,7 @@ HTML;
                     MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
                     MAX(COALESCE(rasttime,   0)) AS shift_rast
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY skiftraknare
             ) AS ps
@@ -6014,7 +6014,7 @@ HTML;
                     MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
                     MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND op1 IS NOT NULL AND op1 > 0
                   AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY op1, skiftraknare
@@ -6842,14 +6842,16 @@ HTML;
         $startDate = (clone $date)->modify('-364 days')->format('Y-m-d');
 
         // Hämta alla dagars antal i en enda query istället för en per dag
+        // OBS: Använd datum >= ? AND datum < ? (inte DATE(datum) BETWEEN) för att kunna nyttja index
+        $endDatePlusOne = (clone $date)->modify('+1 day')->format('Y-m-d');
         $stmt = $this->pdo->prepare(
             "SELECT DATE(datum) AS d, COUNT(*) AS cnt
              FROM rebotling_ibc
-             WHERE DATE(datum) BETWEEN ? AND ? AND produktion_procent > 0
+             WHERE datum >= ? AND datum < ? AND produktion_procent > 0
              GROUP BY DATE(datum)
              ORDER BY DATE(datum) DESC"
         );
-        $stmt->execute([$startDate, $date->format('Y-m-d')]);
+        $stmt->execute([$startDate, $endDatePlusOne]);
         $dayCounts = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $dayCounts[$row['d']] = (int)$row['cnt'];

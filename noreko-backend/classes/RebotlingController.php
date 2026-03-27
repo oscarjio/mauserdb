@@ -332,65 +332,110 @@ class RebotlingController {
     }
 
 
+    /**
+     * Hämtar cachad settings+väder-data (ändras sällan, 30s TTL).
+     * Sparar 1 DB-roundtrip (~120ms) per getLiveStats-anrop.
+     */
+    private function getCachedSettingsAndWeather(): array {
+        $cacheFile = sys_get_temp_dir() . '/mauserdb_livestats_settings.json';
+        $cacheTtl = 30; // sekunder
+
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
+            $cached = json_decode(file_get_contents($cacheFile), true);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $result = [
+            'rebotlingTarget' => 1000,
+            'utetemperatur' => null,
+        ];
+
+        try {
+            $stmt = $this->pdo->query("
+                SELECT
+                    (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS settings_target,
+                    (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal,
+                    (SELECT utetemperatur FROM vader_data ORDER BY datum DESC LIMIT 1) AS utetemperatur
+            ");
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                if ($row['undantag_mal'] !== null) {
+                    $result['rebotlingTarget'] = (int)$row['undantag_mal'];
+                } elseif ($row['settings_target'] !== null) {
+                    $result['rebotlingTarget'] = (int)$row['settings_target'];
+                }
+                if ($row['utetemperatur'] !== null) {
+                    $result['utetemperatur'] = (float)$row['utetemperatur'];
+                }
+            }
+        } catch (Exception $e) {
+            error_log('RebotlingController::getCachedSettingsAndWeather: ' . $e->getMessage());
+            try {
+                $this->ensureSettingsTable();
+                $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sRow) $result['rebotlingTarget'] = (int)$sRow['rebotling_target'];
+            } catch (Exception $e2) {
+                error_log('RebotlingController::getCachedSettingsAndWeather fallback: ' . $e2->getMessage());
+            }
+        }
+
+        file_put_contents($cacheFile, json_encode($result), LOCK_EX);
+        return $result;
+    }
+
     private function getLiveStats() {
         try {
-            // Kombinerad query: senaste skifträknare + IBC idag + löpnummer (minskar DB-roundtrips)
+            // MEGA-QUERY 1: Hämta skift + IBC idag + löpnummer + IBC för skiftet + onoff-data i EN roundtrip
+            // Detta sparar 3-4 DB-roundtrips jämfört med tidigare (varje ~120ms latens)
             $stmt = $this->pdo->prepare("
                 SELECT
                     (SELECT skiftraknare FROM rebotling_onoff WHERE skiftraknare IS NOT NULL ORDER BY datum DESC LIMIT 1) AS current_skift,
-                    (SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today
+                    (SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
+                    (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer
             ");
             $stmt->execute();
             $combo = $stmt->fetch(PDO::FETCH_ASSOC);
             $currentSkift = $combo && $combo['current_skift'] !== null ? (int)$combo['current_skift'] : null;
             $ibcToday = (int)($combo['ibc_today'] ?? 0);
+            $nextLopnummer = $combo['lopnummer'] !== null ? (int)$combo['lopnummer'] : null;
 
-            // Hämta aktuellt löpnummer från PLC-tabellen (en rad som uppdateras av PLC-backend)
-            $nextLopnummer = null;
-            try {
-                $stmt = $this->pdo->query('
-                    SELECT lopnummer
-                    FROM rebotling_lopnummer_current
-                    WHERE id = 1
-                    LIMIT 1
-                ');
-                $lopRow = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($lopRow && isset($lopRow['lopnummer'])) {
-                    $nextLopnummer = (int)$lopRow['lopnummer'];
-                }
-            } catch (Exception $e) {
-                error_log('RebotlingController::getLiveStats: kunde inte läsa rebotling_lopnummer_current: ' . $e->getMessage());
-            }
-
-            // Kombinerad query: IBC senaste timmen + produkt + cykeltid (sparar 2-3 DB-roundtrips)
+            // MEGA-QUERY 2: Hämta allt skift-relaterat i en enda roundtrip
+            // - IBC senaste timmen
+            // - IBC för nuvarande skift (för korrekt produktion_procent)
+            // - Cykeltid från produkt
+            // - On/off-data för runtime-beräkning
             $rebotlingThisHour = 0;
+            $ibcCurrentShift = 0;
             $hourlyTarget = 15; // Default
+            $totalRuntimeMinutes = 0;
+
             if ($currentSkift !== null) {
                 $stmt = $this->pdo->prepare("
                     SELECT
                         (SELECT COUNT(*) FROM rebotling_ibc
                          WHERE skiftraknare = :sk1 AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
+                        (SELECT COUNT(*) FROM rebotling_ibc
+                         WHERE skiftraknare = :sk1b) AS ibc_shift,
                         (SELECT p.cycle_time_minutes
                          FROM rebotling_onoff o
                          LEFT JOIN rebotling_products p ON p.id = o.produkt
                          WHERE o.skiftraknare = :sk2 AND o.produkt IS NOT NULL AND o.produkt > 0
                          ORDER BY o.datum DESC LIMIT 1) AS cycle_time
                 ");
-                $stmt->execute([':sk1' => $currentSkift, ':sk2' => $currentSkift]);
+                $stmt->execute([':sk1' => $currentSkift, ':sk1b' => $currentSkift, ':sk2' => $currentSkift]);
                 $comboRow = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($comboRow) {
                     $rebotlingThisHour = (int)($comboRow['ibc_hour'] ?? 0);
+                    $ibcCurrentShift = (int)($comboRow['ibc_shift'] ?? 0);
                     $ct = (float)($comboRow['cycle_time'] ?? 0);
                     if ($ct > 0) {
                         $hourlyTarget = round(60 / $ct, 1);
                     }
                 }
-            }
 
-            // Beräkna total runtime för nuvarande skift
-            // Runtime räknas som summan av alla perioder när maskinen var running
-            $totalRuntimeMinutes = 0;
-            if ($currentSkift !== null) {
+                // Hämta on/off-data för runtime-beräkning (samma roundtrip-kostnad oavsett)
                 $stmt = $this->pdo->prepare('
                     SELECT datum, running
                     FROM rebotling_onoff
@@ -428,55 +473,25 @@ class RebotlingController {
                 }
             }
 
-            // Beräkna produktionsprocent
-            // Produktion = (antal cykler / total runtime i timmar) / hourlyTarget * 100
-            // eller: (antal cykler * 60) / (total runtime i minuter) / hourlyTarget * 100
+            // Beräkna produktionsprocent — VIKTIGT: använd ibcCurrentShift (inte ibcToday)
+            // för att matcha runtime som bara gäller nuvarande skift.
+            // Tidigare bug: ibcToday inkluderade alla skift men runtime bara nuvarande skift
+            // vilket gav felaktig (kumulativ-liknande) procent vid fleraskifts-dagar.
             $productionPercentage = 0;
-            if ($totalRuntimeMinutes > 0 && $ibcToday > 0 && $hourlyTarget > 0) {
-                // Beräkna faktisk produktion per timme: (antal cykler * 60) / runtime i minuter
-                $actualProductionPerHour = ($ibcToday * 60) / $totalRuntimeMinutes;
-                // Jämför med mål per timme för att få procent
+            if ($totalRuntimeMinutes > 0 && $ibcCurrentShift > 0 && $hourlyTarget > 0) {
+                $actualProductionPerHour = ($ibcCurrentShift * 60) / $totalRuntimeMinutes;
                 $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
             }
 
-            // Kombinerad query: dagsmål + undantag + väderdata (sparar 3 DB-roundtrips)
-            $rebotlingToday = $ibcToday;
-            $rebotlingTarget = 1000; // fallback
-            $utetemperatur = null;
-            try {
-                $stmt = $this->pdo->query("
-                    SELECT
-                        (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS settings_target,
-                        (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal,
-                        (SELECT utetemperatur FROM vader_data ORDER BY datum DESC LIMIT 1) AS utetemperatur
-                ");
-                $comboSettings = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($comboSettings) {
-                    if ($comboSettings['undantag_mal'] !== null) {
-                        $rebotlingTarget = (int)$comboSettings['undantag_mal'];
-                    } elseif ($comboSettings['settings_target'] !== null) {
-                        $rebotlingTarget = (int)$comboSettings['settings_target'];
-                    }
-                    if ($comboSettings['utetemperatur'] !== null) {
-                        $utetemperatur = (float)$comboSettings['utetemperatur'];
-                    }
-                }
-            } catch (Exception $e) {
-                error_log('RebotlingController::getLiveStats settings/väder: ' . $e->getMessage());
-                // Fallback: skapa tabellen om den inte finns
-                try {
-                    $this->ensureSettingsTable();
-                    $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-                    if ($sRow) $rebotlingTarget = (int)$sRow['rebotling_target'];
-                } catch (Exception $e2) {
-                    error_log('RebotlingController::getLiveStats ensureSettings fallback: ' . $e2->getMessage());
-                }
-            }
+            // Settings + väder: hämta från filcache (30s TTL) — sparar 1 DB-roundtrip
+            $settingsCache = $this->getCachedSettingsAndWeather();
+            $rebotlingTarget = $settingsCache['rebotlingTarget'];
+            $utetemperatur = $settingsCache['utetemperatur'];
 
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'rebotlingToday' => $rebotlingToday,
+                    'rebotlingToday' => $ibcToday,
                     'rebotlingTarget' => $rebotlingTarget,
                     'rebotlingThisHour' => $rebotlingThisHour,
                     'hourlyTarget' => $hourlyTarget,
@@ -777,13 +792,14 @@ class RebotlingController {
             }
 
             // Hämta on/off events för perioden
+            // Använd datum >= / < istället för DATE(datum) BETWEEN för index-användning
             $stmt = $this->pdo->prepare('
-                SELECT 
+                SELECT
                     datum,
                     running,
                     runtime_today
-                FROM rebotling_onoff 
-                WHERE DATE(datum) BETWEEN :start AND :end
+                FROM rebotling_onoff
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);
@@ -795,7 +811,7 @@ class RebotlingController {
             try {
                 $rastStmt = $this->pdo->prepare(
                     'SELECT datum, rast_status FROM rebotling_runtime
-                     WHERE DATE(datum) BETWEEN :start AND :end
+                     WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                      ORDER BY datum ASC'
                 );
                 $rastStmt->execute(['start' => $start, 'end' => $end]);
