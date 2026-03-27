@@ -25,29 +25,29 @@
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rebotlingDropdown">
           <li *ngIf="ff.canAccess('rebotling/live')"><a class="dropdown-item" routerLink="/rebotling/live">Live</a></li>
-          <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-warning"></i>Topplista (live)</a></li>
           <li *ngIf="ff.canAccess('rebotling/skiftrapport')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport">Skiftrapport</a></li>
           <li *ngIf="ff.canAccess('rebotling/statistik')"><a class="dropdown-item" routerLink="/rebotling/statistik">Statistik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/historik')"><a class="dropdown-item" routerLink="/rebotling/historik"><i class="fas fa-history me-2"></i>Historisk jämförelse</a></li>
-          <li *ngIf="ff.canAccess('rebotling/andon')"><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-success"></i>Andon-tavla</a></li>
-          <li *ngIf="ff.canAccess('rebotling/andon-board')"><a class="dropdown-item" routerLink="/rebotling/andon-board"><i class="fas fa-desktop me-2 text-info"></i>Fabriksskärm</a></li>
-          <li *ngIf="ff.canAccess('rebotling/overlamning')"><hr class="dropdown-divider"></li>
-          <li *ngIf="ff.canAccess('rebotling/overlamning')">
-            <a class="dropdown-item" routerLink="/rebotling/overlamning">
-              <i class="fas fa-exchange-alt me-2"></i>Skiftöverlämning
-              <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
-            </a>
-          </li>
-          <li *ngIf="ff.canAccess('rebotling/skiftoverlamning')"><a class="dropdown-item" routerLink="/rebotling/skiftoverlamning"><i class="fas fa-clipboard-check me-2 text-info"></i>Skiftöverlämning v2</a></li>
-          <li *ngIf="ff.canAccess('rebotling/stopporsak-registrering')"><a class="dropdown-item" routerLink="/rebotling/stopporsak-registrering"><i class="fas fa-stop-circle me-2 text-danger"></i>Registrera stopp</a></li>
           <li *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus-admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus-admin"><i class="fas fa-sliders-h me-2"></i>Bonus Admin</a></li>
-          <li *ngIf="loggedIn"><hr class="dropdown-divider"></li>
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Alla funktioner</li>
+          <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-muted"></i>Topplista (live)</a></li>
+          <li *ngIf="ff.canAccess('rebotling/historik')"><a class="dropdown-item" routerLink="/rebotling/historik"><i class="fas fa-history me-2 text-muted"></i>Historisk jämförelse</a></li>
+          <li *ngIf="ff.canAccess('rebotling/andon')"><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-muted"></i>Andon-tavla</a></li>
+          <li *ngIf="ff.canAccess('rebotling/andon-board')"><a class="dropdown-item" routerLink="/rebotling/andon-board"><i class="fas fa-desktop me-2 text-muted"></i>Fabriksskärm</a></li>
+          <li *ngIf="ff.canAccess('rebotling/overlamning')">
+            <a class="dropdown-item" routerLink="/rebotling/overlamning">
+              <i class="fas fa-exchange-alt me-2 text-muted"></i>Skiftöverlämning
+              <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
+            </a>
+          </li>
+          <li *ngIf="ff.canAccess('rebotling/skiftoverlamning')"><a class="dropdown-item" routerLink="/rebotling/skiftoverlamning"><i class="fas fa-clipboard-check me-2 text-muted"></i>Skiftöverlämning v2</a></li>
+          <li *ngIf="ff.canAccess('rebotling/stopporsak-registrering')"><a class="dropdown-item" routerLink="/rebotling/stopporsak-registrering"><i class="fas fa-stop-circle me-2 text-muted"></i>Registrera stopp</a></li>
           <li *ngIf="loggedIn">
             <a class="dropdown-item text-info" routerLink="/funktioner">
-              <i class="fas fa-th-large me-2"></i>Alla funktioner &rarr;
+              <i class="fas fa-th-large me-2"></i>Visa alla &rarr;
             </a>
           </li>
         </ul>

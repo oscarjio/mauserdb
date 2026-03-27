@@ -1456,19 +1456,23 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               try {
                 const xPos = scales.x.getPixelForValue(pb.index);
                 ctx.save();
-                ctx.strokeStyle = '#ff8800';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([6, 4]);
-                ctx.beginPath();
-                ctx.moveTo(xPos, top);
-                ctx.lineTo(xPos, bottom);
-                ctx.stroke();
-                ctx.setLineDash([]);
+
+                // Visa vertikal linje bara vid produktbyten (inte vid index 0)
+                if (pb.index > 0) {
+                  ctx.strokeStyle = '#ff8800';
+                  ctx.lineWidth = 2;
+                  ctx.setLineDash([6, 4]);
+                  ctx.beginPath();
+                  ctx.moveTo(xPos, top);
+                  ctx.lineTo(xPos, bottom);
+                  ctx.stroke();
+                  ctx.setLineDash([]);
+                }
 
                 ctx.fillStyle = '#ff8800';
                 ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(pb.namn, xPos, top - 4);
+                ctx.textAlign = pb.index === 0 ? 'left' : 'center';
+                ctx.fillText(pb.namn, xPos + (pb.index === 0 ? 2 : 0), top - 4);
                 ctx.restore();
               } catch (e) {}
             });

@@ -393,7 +393,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   // ========== Summary KPIs (filtered set) ==========
   get summaryTotalIbc(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.totalt || 0), 0);
+    return this.filteredReports.reduce((s, r) => s + (r.ibc_ok || 0), 0);
   }
 
   get summaryAvgQuality(): number | null {
