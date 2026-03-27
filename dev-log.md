@@ -91,6 +91,54 @@
 
 ---
 
+## Session #369 — Worker B (2026-03-27)
+**Fokus: Frontend UX djupgranskning + data-verifiering + commit + deploy**
+
+### UPPGIFT 1: Granska och committa uncommitted frontend-andringar fran session #368 — KLAR
+- Last alla 4 andrade filer grundligt:
+  - **menu.html**: Rebotling-dropdown omstrukturerad — Live/Skiftrapport/Statistik hogst, admin-lankar samlade, sekundara funktioner under "Alla funktioner"-header med text-muted ikoner. GODKANT.
+  - **rebotling-skiftrapport.css**: 69 nya CSS-klasser for daggrupperad tabellvy (day-summary-row, day-expanded-panel, shift-detail-table). Dark theme farger korrekta. GODKANT.
+  - **rebotling-skiftrapport.ts**: summaryTotalIbc buggfix — andrad fran r.totalt till r.ibc_ok. Korrekt: KPI:n heter "Total IBC" och ska visa godkanda IBC. GODKANT.
+  - **rebotling-statistik.ts**: Produktbyte-vertikal-linje skippar index 0 (forsta produkten). Undviker ful linje vid grafens start. GODKANT.
+- **Bygg**: npx ng build OK — 0 fel
+- **Commit**: ba986ec1 — specifika filer (inte git add -A)
+- **Push**: OK
+
+### UPPGIFT 2: DJUP UX-granskning alla rebotling-sidor — KLAR
+- **rebotling-statistik.html** (567 rader): 5 flikar. Dark theme konsistent. Svenska overallt. @defer on viewport for lazy loading. Responsive grid. trackBy pa alla *ngFor. Klickbara element har cursor: pointer. Tabeller har hover.
+- **rebotling-skiftrapport.html** (500+ rader): Daggrupperad vy. Dark theme. Svenska. trackBy (trackByDate, trackByReportId, trackByIndex, trackByProductId). Alla ngIf har fallback (text-muted dash). Responsiv.
+- **rebotling-admin.html**: Dark theme. Snapshot-kort med PLC-varningsbanner. Responsiv. Svenska.
+
+### UPPGIFT 3: Angular TypeScript-granskning — KLAR
+- **rebotling-statistik.ts** (2462 rader): OnInit + AfterViewInit + OnDestroy. destroy$ + takeUntil. productionChart destroy + canvas cleanup. Timers rensas. timeout() + catchError pa alla HTTP. Berakningar korrekta (effektivitet = target/avg * 100).
+- **rebotling-skiftrapport.ts** (1000+ rader): OnInit + OnDestroy. destroy$ + takeUntil. clearInterval + 5x clearTimeout. Charts destroy med try/catch. fetchSub unsubscribe.
+
+### UPPGIFT 4: produktion_procent undersokningsrapport — EJ BUGG
+- Foljade dataflode fran PLC till frontend:
+  1. rebotling_ibc.produktion_procent ar momentan takt-procent (faktisk/mal * 100)
+  2. Backend: Filtrerar bort pct=0 och pct>200, cap till 100 for >100
+  3. Frontend: Beraknar medelvarde per period — INTE kumulativ
+  4. Frontend preparePerCycleChartData: Beraknar EGEN effektivitet (target/rolling_avg * 100) — oberoende av produktion_procent
+- Bekraftat EJ kumulativ (aven bekraftat i session #357, #358, #365)
+
+### UPPGIFT 5: Chart/graf-granskning — KLAR
+- Dag-vy linjechart: Effektivitet%, snitt, 100%-mal, kor/stopp/rast bakgrund, produktbyten. GODKANT.
+- Manad/ar-vy barchart: Fargkodade staplar, IBC-antal ovanfor, klickbar, 100%-linje. GODKANT.
+- Heatmap: 3 KPI-lagen (IBC/kvalitet/OEE), tooltips, CSV-export, custom datumintervall. GODKANT.
+
+### UPPGIFT 6: Data-verifiering mot prod DB — KLAR
+- statistics (2026-03-27): API 122 cykler = DB 122 cykler. MATCH.
+- exec-dashboard: today.ibc=122, rate_per_h=7.6. Konsistent.
+- skiftrapport DB: 4 rapporter for 2026-03-27, total ibc_ok=108.
+- **0 diskrepanser**
+
+### UPPGIFT 7: Bygg + Deploy + Slutverifiering — KLAR
+- npx ng build OK (0 fel)
+- rsync frontend + backend till dev OK
+- curl: HTTP 200, exec-dashboard OK, statistics OK (122 cykler)
+
+---
+
 ## Session #368 — Worker B (2026-03-27)
 **Fokus: Uncommitted changes granskning + heatmap UX + rebotling UX-granskning + chart-granskning + data-verifiering + deploy**
 
