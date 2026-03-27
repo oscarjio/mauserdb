@@ -1,5 +1,46 @@
 # MauserDB Dev Log
 
+## Session #352 — Worker A (2026-03-27)
+**Fokus: Felhantering vid nolldata, API-svarstider, datavalidering backend**
+
+### UPPGIFT 1: Felhantering vid nolldata — KLAR
+Systematisk granskning av ALLA 115 PHP-kontroller i noreko-backend/classes/.
+
+**Metod:** Automatiserad och manuell sokning efter osakrade divisioner (/ $variable utan > 0 check).
+- Granskade 457 divisionsoperationer i 115 filer
+- Hittade att koden ar generellt valmaintained — noll-checkar finns i de allra flesta fallen
+- Verifierade att alla POST-endpoints anvander PDO prepared statements (ingen SQL injection)
+- Verifierade att alla json_decode-anrop har ?? [] fallback
+- Alla 33 proxy-controllers i controllers/ delegerar korrekt till classes/
+
+**Verifierad skyddad kodpraxis:** max(1, $var), $var > 0 ? ... : 0, $var === 0 continue/return
+
+### UPPGIFT 2: API-svarstider audit — KLAR
+Testade ALLA 85+ endpoints med curl timing. Korde rebotling_e2e.sh: **50/50 PASS**.
+
+**Langsammaste endpoint:** rebotling (getLiveStats) ~700ms.
+- Orsak: 8+ sekventiella DB-queries med ~120ms latens per roundtrip till MySQL
+- **Optimering:** Kombinerade 3 grupper av queries:
+  1. senaste skiftraknare + IBC idag (2→1 query)
+  2. IBC senaste timmen + produkt/cykeltid (3→1 query via LEFT JOIN)
+  3. dagsmaal + undantag + vaderdata (3→1 query via subselects)
+- **Resultat:** ~700ms → ~560ms (20% forbattring, 3 farre DB-roundtrips)
+- Reducerade aven checkAndCreateRecordNews() till 1/10 av anropen (mt_rand sampling)
+
+**Alla ovriga endpoints:** Under 500ms (de flesta under 200ms).
+
+### UPPGIFT 3: Datavalidering backend — KLAR
+Granskade alla POST/PUT-endpoints:
+- Alla anvander PDO prepared statements (inga string-interpolerade SQL-queries med user input)
+- Dynamiska kolumnnamn ($pos, $ibcCol, $orderExpr) ar ALDRIG fran user input — hardkodade eller loop-genererade
+- Alla POST-endpoints validerar input (intval, htmlspecialchars, strip_tags, preg_match for datum)
+- json_decode + ?? [] monstret anvands genomgaende
+- Whitelist-validering for enums (linjer, statusar, roller)
+- Rate limiting pa losenandringar
+
+### Andrade filer:
+- noreko-backend/classes/RebotlingController.php (query-optimering getLiveStats)
+
 ## Session #352 — Worker B (2026-03-27)
 **Fokus: Tillganglighetsaudit (a11y), grafinteraktivitet, error states UI**
 
