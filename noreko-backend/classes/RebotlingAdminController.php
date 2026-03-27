@@ -821,37 +821,6 @@ class RebotlingAdminController {
         }
     }
 
-    /**
-     * Hämta admin-e-postadresser från rebotling_settings.
-     * Returnerar array med validerade e-postadresser.
-     * Används av ShiftHandoverController vid brådskande notiser.
-     */
-
-    public function getAdminEmailsPublic(): array {
-        try {
-            $this->ensureNotificationEmailsColumn();
-            $row = $this->pdo->query(
-                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
-            )->fetch(PDO::FETCH_ASSOC);
-
-            if (empty($row['notification_emails'])) {
-                return [];
-            }
-            $parts  = array_map('trim', explode(';', $row['notification_emails']));
-            $emails = [];
-            foreach ($parts as $email) {
-                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $emails[] = $email;
-                }
-            }
-            return $emails;
-        } catch (Exception $e) {
-            error_log('RebotlingAdminController::getAdminEmailsPublic: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-
     // =========================================================
     // Personbästa per operatör vs teamrekord
     // GET ?action=rebotling&run=personal-bests

@@ -1,5 +1,46 @@
 # MauserDB Dev Log
 
+## Session #370 — Worker A (2026-03-27)
+**Fokus: Backend dead code audit + error handling review + endpoint stresstest + SQL optimization + deploy**
+
+### UPPGIFT 1: Hantera uncommitted backend-andringar — KLAR
+- **Andring**: RebotlingController.php getStatistics() — lade till `driftstopp_events` fran `rebotling_driftstopp`-tabellen
+- **Vad andrades**: Ny query hamtar driftstopp-events for vald period, inkluderas i statistics-responsens data-objekt
+- **Verifierat**: Tabellen `rebotling_driftstopp` finns i prod_db_schema.sql, kolumnen `driftstopp_status` finns
+- **Korrekt try/catch och error_log** — committar som den ar
+
+### UPPGIFT 2: PHP Dead Code Audit — KLAR
+- **118 controller-filer granskade** (79 306 rader totalt)
+- **3 controllers ej i api.php classNameMap**: RebotlingAdminController, RebotlingAnalyticsController, VeckotrendController — alla anvands som sub-controllers av RebotlingController (require_once + instantiering) — EJ dead code
+- **1 dead method hittad och borttagen**: `RebotlingAdminController::getAdminEmailsPublic()` — aldrig anropad fran nagon routing eller controller
+- **18 filer med require_once AuditController.php granskade** — alla anvander `AuditLogger`-klassen som definieras i samma fil — EJ dead code
+- **Samtliga controllers handle()-metoder mappar till definierade metoder** — inga orphan-metoder
+
+### UPPGIFT 3: Error Handling & Logging Review — KLAR
+- **Alla controllers har try/catch** med error_log() i varje public metod
+- **API-responsformat konsekvent**: `{"success": true/false, ...}` anvands genomgaende
+- **Inga endpoints som svaljer fel tyst** — alla catch-block har error_log() + returnerar felmeddelande till klient
+- **api.php har global catch** (Throwable) som fangar TypeError, ValueError, Error — hindrar stacktrace-lackage
+
+### UPPGIFT 4: Full Endpoint Stresstest — KLAR
+- **115 endpoints testade** mot dev.mauserdb.com
+- **0 st 500-fel**
+- **Langsammast**: saglinje 0.63s, skiftrapport 0.46s, leveransplanering 0.45s
+- **Alla <1s** — inga prestandaproblem
+- **7 publika endpoints verifierade med data-respons**: status, all-lines, rebotling, saglinje, tvattlinje, klassificeringslinje, feature-flags
+
+### UPPGIFT 5: SQL Query Optimization Review — KLAR
+- **EXPLAIN pa month-compare**: `Using index` (index-only scan), 1060 rader — snabb
+- **EXPLAIN pa exec-dashboard**: `Using index`, 273 rader — snabb
+- **rebotling_ibc**: 14 index, inklusive 4 covering indexes — val optimerad
+- **rebotling_onoff**: 5 index inklusive compound (skiftraknare, datum, running)
+- **Observation**: 2 redundanta index pa rebotling_ibc (`idx_datum` och `idx_rebotling_ibc_datum` bada pa enbart `datum`). Rekommenderar borttagning av `idx_datum` i framtida session — laser saker i produktion
+
+### UPPGIFT 6: Deploy till dev + verifiering — KLAR
+- Backend deployad via rsync (2 filer: RebotlingController.php, RebotlingAdminController.php)
+- Post-deploy: 7 publika endpoints testade — alla 200 OK, alla <0.5s
+- `driftstopp_events` i statistics-endpoint verifierad: present=true, count=4
+
 ## Session #369 — Worker A (2026-03-27)
 **Fokus: Backend djupgranskning + endpoint stresstest + deploy**
 
