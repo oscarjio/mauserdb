@@ -1,5 +1,78 @@
 # MauserDB Dev Log
 
+## Session #360 — Worker A (2026-03-27)
+**Fokus: EXPLAIN-audit tunga queries + error-handling audit + stresstest + alla endpoints**
+
+### UPPGIFT 1: EXPLAIN-audit pa tunga queries — KLAR
+Korde EXPLAIN pa 15+ tunga queries mot prod DB. Identifierade 4 problematiska queries:
+
+**Problem hittat:**
+1. **rebotling_ibc GROUP BY skiftraknare, DATE(datum)** — Full table scan 5026 rader + Using temporary + Using filesort
+2. **rebotling_ibc operatorsranking** — Full derived table scan + Using temporary + Using filesort
+3. **rebotling_ibc MIN/MAX date** — Full index scan 5027 rader
+4. **maskin_oee_daglig datumintervall** — Full table scan 180 rader + Using filesort
+5. **stopporsak_registreringar aktiva stopp** — Suboptimal index utan covering
+
+**Index skapade (3 st):**
+- `idx_ibc_covering_datum_skift (datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, op1)` pa rebotling_ibc — covering index eliminerar full table scan, gick fran 5026 rader full scan till 996 rader covering index scan (Using index)
+- `idx_linje_start_end (linje, start_time, end_time, kategori_id)` pa stopporsak_registreringar — covering index for aktiva stopp + tidsintervall-queries
+- `idx_datum_maskin_oee (datum, maskin_id, oee_pct)` pa maskin_oee_daglig — fixar full table scan
+
+**Queries som redan var optimerade:**
+- rebotling_onoff datum range: idx_onoff_datum_running covering index, 15 rader
+- senaste rebotling_onoff: 1 rad via index
+- stoppage_log date+line: idx_line ref, 1 rad
+- kassationsregistrering datum: idx_datum range, 1 rad
+- rebotling_skiftrapport daglig drift: idx_datum range, 7 rader
+
+### UPPGIFT 2: Error-handling audit — KLAR
+Granskade alla catch-block i samtliga 115 controllers.
+
+**Problem hittat och fixat:**
+1. **AlarmHistorikController.php:38** — `tableExists()` catch saknade error_log. Fixat: lagt till error_log.
+2. **SaglinjeController.php:380** — catch for saglinje_ibc-fraga saknade error_log. Fixat.
+3. **SaglinjeController.php:422** — catch for getStatistics saknade error_log. Fixat.
+
+**Acceptabla patterns (ej andrade):**
+- BonusAdminController:847, MaintenanceController:691, ShiftPlanController:631 — catch som gor rollBack + re-throw (korrekt transaktionshantering)
+- NewsController:619 — catch for DateTime-parse i streak-logik (intentionell break)
+- TvattlinjeController:706,709 — ALTER TABLE "kolumn finns redan" catch (schema-migration pattern)
+- OperatorDashboardController:1068 — inner catch loggar + outer catch returnerar 500
+
+**Alla controllers returnerar korrekt HTTP-status (500) vid exceptions, ingen catch svaljer exceptions utan loggning.**
+
+### UPPGIFT 3: Stresstest — KLAR
+Testat 8 tunga endpoints med single + 5 parallella requests:
+
+| Endpoint | Single (ms) | Parallel avg (ms) | Parallel max (ms) |
+|---|---|---|---|
+| rebotling | 358 | 145 | 151 |
+| tvattlinje | 476 | 518 | 534 |
+| saglinje | 425 | 566 | 600 |
+| klassificeringslinje | 231 | 276 | 305 |
+| historik | 346 | 273 | 286 |
+| stoppage | 224 | 452 | 459 |
+| status | 151 | 150 | 157 |
+| feature-flags | 254 | 322 | 356 |
+
+**Alla under 600ms — inga endpoints over 2 sekunder.**
+
+### UPPGIFT 4: Testa ALLA endpoints — KLAR
+Korde curl mot alla 115 endpoints i classNameMap.
+- **115/115 OK** (0 x 500-fel)
+- Publika: 200 OK (rebotling, tvattlinje, saglinje, klassificeringslinje, historik, status, feature-flags, stoppage)
+- Auth-skyddade: korrekta 401/403
+- Endpoints med parameter-krav: korrekta 400/404
+
+### UPPGIFT 5: Deploy + E2E — KLAR
+- Deployat backend-fixes (AlarmHistorikController.php, SaglinjeController.php, migration) via rsync
+- E2E-test: **115/115 PASS**, 0 FAIL
+
+### UPPGIFT 6: Index-migration
+Migration sparad: `noreko-backend/migrations/2026-03-27_session360_covering_indexes.sql`
+
+---
+
 ## Session #359 — Worker B (2026-03-27)
 **Fokus: Djup data-kvalitetsgranskning + graf/statistik-verifiering + UX-audit + template-granskning**
 

@@ -378,7 +378,7 @@ class SaglinjeController {
                 $stmt->execute();
                 $ibcToday = (int)$stmt->fetchColumn();
             } catch (\Exception $tableErr) {
-                // Tabellen saknas, returnera 0
+                error_log('SaglinjeController::getLiveStats (saglinje_ibc): ' . $tableErr->getMessage());
             }
 
             // Hämta dagsmål från settings
@@ -420,7 +420,7 @@ class SaglinjeController {
                 $stmt->execute(['start' => $start, 'end' => $end]);
                 $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (\Exception $tableErr) {
-                // Tabellen saknas — returnera tom lista
+                error_log('SaglinjeController::getStatistics (saglinje_ibc): ' . $tableErr->getMessage());
             }
 
             echo json_encode([

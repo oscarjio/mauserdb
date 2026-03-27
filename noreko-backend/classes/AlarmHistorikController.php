@@ -36,6 +36,7 @@ class AlarmHistorikController {
             $check = $this->pdo->query("SHOW TABLES LIKE " . $this->pdo->quote($tableName));
             $this->tableCache[$tableName] = ($check && $check->rowCount() > 0);
         } catch (\PDOException $e) {
+            error_log('AlarmHistorikController::tableExists: ' . $e->getMessage());
             $this->tableCache[$tableName] = false;
         }
         return $this->tableCache[$tableName];
