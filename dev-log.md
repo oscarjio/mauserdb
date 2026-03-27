@@ -1,5 +1,51 @@
 # MauserDB Dev Log
 
+## Session #369 — Worker A (2026-03-27)
+**Fokus: Backend djupgranskning + endpoint stresstest + deploy**
+
+### UPPGIFT 1: Granska och committa uncommitted backend-andringar — KLAR
+- **Andring fran session #368**: RebotlingController.php getLiveStats() livestats-query
+- **Vad andrades**: ibc_today berakning bytte fran `SUM(MAX(ibc_ok))` per skiftraknare till `MAX(ibc_count)` over hela dagen
+- **Varfor**: ibc_count ar en sekventiell raknare (1,2,3...) som startar pa 1 varje dag. `MAX(ibc_count)` ger korrekt dagstotal. Det gamla `SUM(MAX(ibc_ok))` per skiftraknare gav overcounting (158 ist f 123) eftersom ibc_ok inte nollstalls korrekt vid nya skiftraknare
+- **ibc_hour**: Andrat fran `MAX(COALESCE(ibc_ok,0))` till `COUNT(*)` for senaste timmen — raknare antal rader (cykler)
+- **Verifierat**: API ibc_today=123 matchar DB `MAX(ibc_count)=123`
+- **Commit**: `45f24880` — pushad till main
+
+### UPPGIFT 2: DJUP PHP SQL-granskning mot prod_db_schema.sql — KLAR
+- **Alla 90+ tabeller i schemat granskade**
+- **Tabell-mismatches hittade (6 st)**: `klassificeringslinje_ibc`, `rebotling_data`, `rebotling_stopporsak`, `saglinje_ibc`, `saglinje_onoff`, `skift_log`
+  - Alla 6 ar **korrekt skyddade** med `tableExists()`, try/catch, eller `SHOW TABLES LIKE` — inga krascher
+- **Operator JOINs granskade**: Alla JOINs pa `operators.number` (ej `operators.id`) for rebotling_ibc op1/op2/op3 — korrekt
+- **BonusAdminController**: JOINar `operators.id = bonus_payouts.op_id` — korrekt (annan tabell, annat ID-system)
+- **Kolumnreferenser**: Alla SQL-queries matchar schemat for rebotling_ibc (33 kolumner), rebotling_onoff, rebotling_skiftrapport etc.
+- **Inga mismatches som kraver fix hittades**
+
+### UPPGIFT 3: Backend bugggranskning — KLAR
+- **SQL injection**: Alla `$_GET`-varden castas via `(int)`, `(float)`, `trim()`, eller `preg_match()` validation fore SQL-anvandning. PDO prepared statements anvands genomgaende
+- **Error handling**: Alla endpoints har try/catch med `error_log()` + korrekt JSON-fel + HTTP 500 statuscode
+- **Race conditions i caching**: Filcache anvander `LOCK_EX` for skrivning — OK
+- **Null-varden**: `COALESCE()` anvands konsekvent for PLC-varden (ibc_ok, runtime_plc, rasttime etc.)
+- **Inga nya buggar hittades**
+
+### UPPGIFT 4: Full endpoint stresstest — KLAR
+- **Rebotling endpoints: 55 testade** — 0 st 500-fel, 0 st over 2s
+  - Langsammast: exec-dashboard 0.93s, month-compare 0.84s
+- **Ovriga endpoints: 116 testade** — 0 st 500-fel, 0 st over 2s
+  - Manga returnerar 401 (kraver inloggning) — detta ar korrekt beteende
+- **Totalt: 171 endpoints, 0x500, alla <2s**
+
+### UPPGIFT 5: API-data vs prod DB verifiering — KLAR
+- **ibc_today**: API=123, DB=123 — MATCH
+- **lopnummer**: API=110, DB=110 — MATCH
+- **OEE total_ibc**: API=158, DB=158 — MATCH
+- **current_skift**: DB=84 — korrekt hamtat via CTE
+- **skiftrapport**: 28 poster i DB, API returnerar lista korrekt
+- **0 diskrepanser hittade**
+
+### UPPGIFT 6: Deploy till dev + slutverifiering — KLAR
+- Backend deployad via rsync till dev.mauserdb.com
+- Post-deploy: 19 kritiska endpoints testade — 0 errors, 0 slow, alla <1.1s
+
 ## Session #368 — Worker A (2026-03-27)
 **Fokus: Month-compare covering index + cache-invalidering + livestats buggfix + endpoint stresstest + deploy dev**
 
