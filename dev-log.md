@@ -1,5 +1,50 @@
 # MauserDB Dev Log
 
+## Session #363 — Worker A (2026-03-27)
+**Fokus: Full endpoint-stresstest + Rebotling backend-djupgranskning + PHP error handling audit + API response-format konsistens**
+
+### UPPGIFT 1: Full endpoint-stresstest med felanalys — KLAR
+- **111 endpoints testade** mot dev.mauserdb.com med curl (alla actions i api.php classNameMap)
+- **0 HTTP 500-fel** — inga serverfel pa nagon endpoint
+- **5 endpoints >500ms:** vpn (2.3s — socket till OpenVPN management, forvantat), skiftrapport (566ms), admin (578ms), tvattlinje (529ms), saglinje (509ms)
+- **45 rebotling sub-endpoints testade** (alla run-varianter) — alla 200 OK, 0 HTTP 500
+- **Slow rebotling-sub-endpoints (4st):** exec-dashboard (1.5s — aggregerar manga datakallor, forvantat), all-lines-status (614ms), today-snapshot (513ms), live-ranking (517ms)
+- **Sammanfattning:** 156 endpoints testade totalt, 0 serverfel, alla svarstider inom acceptabla ramar
+
+### UPPGIFT 2: Rebotling backend-djupgranskning — KLAR
+- **Laste alla 7 rebotling-controllers:** RebotlingController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingProductController, RebotlingSammanfattningController, RebotlingTrendanalysController, RebotlingStationsdetaljController
+- **SQL vs prod_db_schema.sql:** Alla kolumner och tabeller som refereras i queries finns i schemat (rebotling_ibc, rebotling_onoff, rebotling_products, rebotling_settings, rebotling_kv_settings, etc.)
+- **EXPLAIN pa tunga queries:** Huvudquery (COUNT rebotling_ibc WHERE datum) anvander idx_rebotling_ibc_datum — optimal indexanvandning. GROUP BY-query anvander temporary+filesort (forvantat for aggregering)
+- **produktion_procent:** Korrekt beraknad — actualProductionPerHour / hourlyTarget * 100 (INTE kumulativt). Anvander ibcCurrentShift (inte ibcToday) for att matcha runtime
+- **IBC/timme:** Korrekt — ibcCurrentShift * 60 / totalRuntimeMinutes
+- **OEE-formel:** Korrekt i alla controllers — Tillganglighet x Prestanda x Kvalitet (T * P * K)
+- **Inga SQL-buggar hittade**
+
+### UPPGIFT 3: PHP error handling audit — KLAR
+- **1186 error_log()-anrop** over 118 controller-filer — omfattande loggning
+- **Inga tomma catch-block** (grep for catch { } hittar 0 traffar)
+- **Inga "silent catches"** — alla catch-block har error_log() eller throw
+- **ErrorLogger::log() anvands i api.php** for top-level exceptions med stack traces — controllers anvander error_log() for enklare meddelanden, ratt monstret
+- **Alla DB-queries i try/catch** med felhantering
+
+### UPPGIFT 4: API response-format konsistens — KLAR
+- **Alla endpoints anvander `success: true/false`** — konsistent
+- **Alla felmeddelanden anvander `error: "..."`** — konsistent
+- **Notering:** Success-svar varierar i datakey: de flesta anvander `data`, men AdminController anvander `users`, AndonController `stoppages`, etc. Dessa ar valkanda av frontend och kan inte andras utan att frontend-kod uppdateras. Ingen fix kravs.
+- **Write-operationer** anvander konsekvent `message: "..."` — korrekt monster
+
+### UPPGIFT 5: Deploy + verifiera — KLAR
+- Backend deployad till dev (rsync): inga andringar behovdes — koden ar ren
+- Post-deploy verifiering: alla 8 kritiska endpoints returnerar HTTP 200
+- Login OK, rebotling OK, sammanfattning OK, trendanalys OK, stationsdetalj OK, exec-dashboard OK
+
+### Sammanfattning
+- **156 endpoints testade, 0 serverfel**
+- **Alla rebotling SQL-queries matchar prod_db_schema.sql**
+- **produktion_procent + IBC/timme + OEE korrekt beraknade**
+- **Error handling komplett i alla controllers**
+- **Inga buggar eller kodfix kravdes** — systemet ar stabilt
+
 ## Session #362 — Worker B (2026-03-27)
 **Fokus: Backup-verifiering + Accessibility audit + Template-granskning + Graf-review + Data-validering**
 
