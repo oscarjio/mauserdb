@@ -16,14 +16,15 @@
   <!-- ============================================================ -->
   <div class="filter-rad mb-4">
     <div class="filter-grupp">
-      <label class="filter-label">Period</label>
-      <div class="btn-group">
+      <label class="filter-label" id="period-label">Period</label>
+      <div class="btn-group" role="group" aria-labelledby="period-label">
         @for (alt of periodAlternativ; track alt.val) {
           <button
             class="btn btn-sm"
             [class.btn-primary]="period === alt.val"
             [class.btn-outline-secondary]="period !== alt.val"
-            (click)="onPeriodChange(alt.val)">
+            (click)="onPeriodChange(alt.val)"
+            [attr.aria-pressed]="period === alt.val">
             {{ alt.label }}
           </button>
         }

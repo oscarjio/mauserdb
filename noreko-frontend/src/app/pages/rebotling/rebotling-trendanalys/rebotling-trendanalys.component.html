@@ -143,18 +143,24 @@
         <button class="btn btn-sm dataset-toggle"
                 [class.active]="visaOee"
                 (click)="toggleDataset('oee')"
+                [attr.aria-pressed]="visaOee"
+                aria-label="Visa/dölj OEE-data"
                 style="border-color:#4299e1; color:#4299e1">
           <i class="fas fa-circle me-1" style="font-size:8px"></i>OEE
         </button>
         <button class="btn btn-sm dataset-toggle"
                 [class.active]="visaProduktion"
                 (click)="toggleDataset('produktion')"
+                [attr.aria-pressed]="visaProduktion"
+                aria-label="Visa/dölj produktionsdata"
                 style="border-color:#48bb78; color:#48bb78">
           <i class="fas fa-circle me-1" style="font-size:8px"></i>Produktion
         </button>
         <button class="btn btn-sm dataset-toggle"
                 [class.active]="visaKassation"
                 (click)="toggleDataset('kassation')"
+                [attr.aria-pressed]="visaKassation"
+                aria-label="Visa/dölj kassationsdata"
                 style="border-color:#fc8181; color:#fc8181">
           <i class="fas fa-circle me-1" style="font-size:8px"></i>Kassation
         </button>
@@ -167,7 +173,9 @@
                 class="btn btn-sm"
                 [class.btn-primary]="aktivPeriod === p.varde"
                 [class.btn-outline-secondary]="aktivPeriod !== p.varde"
-                (click)="byttPeriod(p.varde)">
+                (click)="byttPeriod(p.varde)"
+                [attr.aria-pressed]="aktivPeriod === p.varde"
+                [attr.aria-label]="'Visa period ' + p.etikett">
           {{ p.etikett }}
         </button>
       </div>

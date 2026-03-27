@@ -6,7 +6,7 @@
       <i class="fas fa-award me-2" style="color:#ecc94b;"></i>
       Operatörsbonus
     </h1>
-    <button class="btn btn-sm btn-outline-warning" (click)="toggleKonfig()">
+    <button class="btn btn-sm btn-outline-warning" (click)="toggleKonfig()" [attr.aria-expanded]="showKonfig">
       <i class="fas fa-cog me-1"></i>
       {{ showKonfig ? 'Stäng konfiguration' : 'Bonuskonfiguration' }}
     </button>
@@ -102,9 +102,9 @@
   <!-- Period-filter -->
   <div class="d-flex gap-2 mb-4 align-items-center">
     <span class="text-muted small me-1">Period:</span>
-    <button class="period-btn" [class.active]="period === 'dag'"   (click)="period='dag';   onPeriodChange()">Idag</button>
-    <button class="period-btn" [class.active]="period === 'vecka'" (click)="period='vecka'; onPeriodChange()">Vecka</button>
-    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()">Månad</button>
+    <button class="period-btn" [class.active]="period === 'dag'"   (click)="period='dag';   onPeriodChange()" [attr.aria-pressed]="period === 'dag'">Idag</button>
+    <button class="period-btn" [class.active]="period === 'vecka'" (click)="period='vecka'; onPeriodChange()" [attr.aria-pressed]="period === 'vecka'">Vecka</button>
+    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()" [attr.aria-pressed]="period === 'manad'">Månad</button>
   </div>
 
   <!-- KPI-kort (4 st) -->

@@ -7,30 +7,30 @@
       </h2>
       <p class="text-muted mb-0">Stopporsaks-mönsteranalys, MTBF och underhållsrekommendationer</p>
     </div>
-    <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" title="Uppdatera">
+    <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" title="Uppdatera" aria-label="Uppdatera all data">
       <i class="fas fa-sync-alt"></i> Uppdatera
     </button>
   </div>
 
   <!-- Flikar -->
-  <ul class="nav nav-tabs pu-tabs mb-4">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="aktivFlik === 'mtbf'" (click)="bytFlik('mtbf')">
+  <ul class="nav nav-tabs pu-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" [class.active]="aktivFlik === 'mtbf'" (click)="bytFlik('mtbf')" role="tab" [attr.aria-selected]="aktivFlik === 'mtbf'">
         <i class="fas fa-heartbeat me-1"></i>MTBF &amp; Risk
       </button>
     </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="aktivFlik === 'heatmap'" (click)="bytFlik('heatmap')">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" [class.active]="aktivFlik === 'heatmap'" (click)="bytFlik('heatmap')" role="tab" [attr.aria-selected]="aktivFlik === 'heatmap'">
         <i class="fas fa-th me-1"></i>Stopporsaks-heatmap
       </button>
     </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="aktivFlik === 'trender'" (click)="bytFlik('trender')">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" [class.active]="aktivFlik === 'trender'" (click)="bytFlik('trender')" role="tab" [attr.aria-selected]="aktivFlik === 'trender'">
         <i class="fas fa-chart-line me-1"></i>Historisk trend
       </button>
     </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="aktivFlik === 'rekom'" (click)="bytFlik('rekom')">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" [class.active]="aktivFlik === 'rekom'" (click)="bytFlik('rekom')" role="tab" [attr.aria-selected]="aktivFlik === 'rekom'">
         <i class="fas fa-clipboard-list me-1"></i>Rekommendationer
         <span class="badge bg-danger ms-1" *ngIf="antalVarningar > 0">{{ antalVarningar }}</span>
       </button>

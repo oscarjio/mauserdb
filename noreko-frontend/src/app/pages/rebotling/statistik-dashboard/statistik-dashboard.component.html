@@ -13,7 +13,7 @@
         <span class="text-muted small" *ngIf="lastUpdated">
           <i class="fas fa-sync-alt me-1"></i>Uppdaterad {{ lastUpdated }}
         </span>
-        <button class="btn btn-outline-info btn-sm" (click)="loadAll()">
+        <button class="btn btn-outline-info btn-sm" (click)="loadAll()" aria-label="Uppdatera all data">
           <i class="fas fa-redo me-1"></i>Uppdatera
         </button>
       </div>

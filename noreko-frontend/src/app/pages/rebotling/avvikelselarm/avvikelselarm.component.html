@@ -122,7 +122,8 @@
           </div>
           <button class="btn btn-sm btn-outline-success ms-2"
                   (click)="openKvittera(larm)"
-                  title="Kvittera larm">
+                  title="Kvittera larm"
+                  aria-label="Kvittera larm">
             <i class="fas fa-check"></i>
           </button>
         </div>
@@ -255,9 +256,11 @@
               </div>
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox"
+                       [id]="'regel_aktiv_' + regel.id"
                        [checked]="regel.aktiv"
-                       (change)="toggleRegel(regel)">
-                <label class="form-check-label small text-muted">{{ regel.aktiv ? 'Aktiv' : 'Inaktiv' }}</label>
+                       (change)="toggleRegel(regel)"
+                       [attr.aria-label]="'Aktivera/inaktivera regel ' + getTypLabel(regel.typ)">
+                <label class="form-check-label small text-muted" [attr.for]="'regel_aktiv_' + regel.id">{{ regel.aktiv ? 'Aktiv' : 'Inaktiv' }}</label>
               </div>
             </div>
             <div class="small text-muted mb-2">{{ regel.beskrivning }}</div>
@@ -293,8 +296,8 @@
         <span class="ms-2 small">{{ kvitteraLarm.meddelande }}</span>
       </div>
       <div class="mb-3">
-        <label class="form-label small text-muted">Ditt namn *</label>
-        <input type="text" class="form-control form-control-sm" [(ngModel)]="kvitteraNamn" name="kvitteraNamn" #kvitteraNamnCtrl="ngModel" placeholder="Förnamn Efternamn" required maxlength="200">
+        <label class="form-label small text-muted" for="kvitteraNamnInput">Ditt namn *</label>
+        <input type="text" class="form-control form-control-sm" id="kvitteraNamnInput" [(ngModel)]="kvitteraNamn" name="kvitteraNamn" #kvitteraNamnCtrl="ngModel" placeholder="Förnamn Efternamn" required maxlength="200" aria-required="true">
         <div class="text-danger small mt-1" *ngIf="kvitteraNamnCtrl.invalid && kvitteraNamnCtrl.touched">
           Namn krävs för att kvittera.
         </div>
