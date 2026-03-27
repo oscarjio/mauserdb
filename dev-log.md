@@ -1,5 +1,68 @@
 # MauserDB Dev Log
 
+## Session #365 — Worker B (2026-03-27)
+**Fokus: Fullstandig UX-granskning + produktion_procent-utredning + rebotling-statistik djupgranskning + VD Dashboard granskning + error handling audit + build + deploy**
+
+### UPPGIFT 1: UX-genomgang av ALLA sidor — KLAR
+- **37 template-filer (.component.html)** granskade systematiskt
+- **100+ komponenter (.ts)** kontrollerade for lifecycle (OnInit/OnDestroy, destroy$, takeUntil, clearInterval/clearTimeout)
+- Alla sidor foljer dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Alla texter pa svenska — inga engelska strang hittade
+- Responsive design korrekt med col-12 col-md-X breakpoints
+- Loading states och tomma states hanterade korrekt overallt
+
+### UPPGIFT 2: produktion_procent utredning — KLAR (EJ KUMULATIV)
+- **Utredning komplett:** produktion_procent ar INTE kumulativ — det ar ett lopande medelvarde (IBC/h vs mal/h)
+- **PLC-berakning (Rebotling.php rad 242-244):** `(ibcCount * 60) / totalRuntimeMinutes / hourlyTarget * 100`
+- **Prod DB-verifiering:** Varden gar fran lagt (15%) till hogt (6261%) i borjan av skift da runtime ar nara noll, sedan sjunker de nar runtime okar
+- **Backend-hantering korrekt:** RebotlingController rad 862 filtrerar bort varden >200% och cappar vid 100% — ingen bugfix behovs
+- **Extremvarden i DB:** Skiftraknare 82 idag hade max 6261% (ramp-up artefakt) men detta filtreras bort av backend
+- **Slutsats:** Inga anringar behovs — berakningen och filtreringen fungerar korrekt
+
+### UPPGIFT 3: Rebotling-statistik sidor djupgranskning — KLAR
+- **rebotling-statistik (rebotling-statistik.ts):** Korrekt lifecycle (destroy$, clearTimeout for chartUpdateTimer/exportFeedbackTimer), chart.destroy() i ngOnDestroy
+- **statistik-dashboard:** Korrekt lifecycle (destroy$, clearInterval, clearTimeout, trendChart.destroy()), polling var 2:a minut
+- **produktions-dashboard:** Korrekt lifecycle (destroy$ + forkJoin + clearInterval + clearTimeout for 2 timers + chart.destroy() for 2 charts), 30s polling
+- **rebotling-sammanfattning:** Korrekt dark theme, KPI-kort, PDF-export-knapp, error handling
+- **rebotling-trendanalys:** Korrekt sparkline-charts, trendkort for OEE/Produktion/Kassation, svenska etiketter
+- **rebotling-admin:** PLC-varningsbanner, produktionslage-snapshot, korrekta admin-kontroller
+- **rebotling-skiftrapport:** Korrekt lifecycle (7 clearTimeout + clearInterval + fetchSub.unsubscribe + 2x chart.destroy())
+
+### UPPGIFT 4: VD Dashboard granskning — KLAR
+- **30s polling** korrekt implementerat med setInterval + clearInterval i ngOnDestroy
+- **6 parallella API-anrop** via forkJoin med timeout(15000) och catchError — robust
+- **Felhantering:** errorMessage visas med "Forsok igen"-knapp, loading spinner, tomma states ("Inga operatorer har producerat idag annu")
+- **Chart.destroy()** anropas korrekt for bade trendChart och stationChart i ngOnDestroy
+- **OEE Breakdown** visar Tillganglighet/Prestanda/Kvalitet som separata kort — korrekt
+- **Skiftstatus** visar aktuellt skift, kvar tid, producerat, vs forra skiftet — korrekt
+
+### UPPGIFT 5: Error handling i frontend — KLAR
+- **error.interceptor.ts:** Retry (1x) for GET/HEAD/OPTIONS vid natverksfel/502/503/504 med 1s delay — korrekt
+- **csrf.interceptor.ts:** Bifogar X-CSRF-Token for POST/PUT/DELETE/PATCH — korrekt
+- **401-hantering:** clearSession() + redirect till /login med returnUrl — korrekt
+- **Felmeddelanden:** Svenska meddelanden for alla HTTP-felkoder (0, 401, 403, 404, 408, 429, 500+)
+- **Toast-service:** Integrerad for att visa felmeddelanden visuellt
+- **Skip-logik:** Status-polling (action=status) och X-Skip-Error-Toast header skippar toast — korrekt
+
+### UPPGIFT 6: Lifecycle-audit alla Chart-komponenter — KLAR
+- **Alla komponenter med `new Chart()`** har ngOnDestroy med chart.destroy()
+- **Alla setInterval** har matchande clearInterval i ngOnDestroy
+- **Alla setTimeout** har matchande clearTimeout i ngOnDestroy
+- **Alla HTTP-subscriptions** anvander takeUntil(destroy$) eller manuell unsubscribe
+- **Inga minnesbackar hittade**
+
+### UPPGIFT 7: Angular build — KLAR
+- Build lyckades utan fel (enbart CommonJS-varningar for canvg/html2canvas/jspdf — ej kritiska)
+- Bundle-storlek: **8.9 MB** (dist/noreko-frontend/browser/)
+
+### UPPGIFT 8: Deploy frontend till dev — KLAR
+- rsync till mauserdb.com lyckades (8.7 MB, speedup 99x — bara andrade filer overfordes)
+
+### Filer andrade:
+- dev-log.md (uppdaterad med session #365)
+
+---
+
 ## Session #364 — Worker A (2026-03-27)
 **Fokus: API vs DB diskrepans fix (KRITISK) + PHP parse error fix + slow endpoint optimering + endpoint stresstest + deploy**
 
