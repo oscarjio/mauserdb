@@ -117,9 +117,9 @@
     <!-- Produktion per vecka -->
     <div class="col-12">
       <div class="chart-card">
-        <h5 class="chart-title">
+        <h3 class="chart-title">
           <i class="fas fa-chart-bar me-2" style="color:#4299e1"></i>Produktion per vecka
-        </h5>
+        </h3>
         <div class="chart-wrapper" *ngIf="!loadingProduktion && !errorProduktion">
           <canvas id="produktionChart"></canvas>
         </div>
@@ -136,9 +136,9 @@
     <!-- OEE per vecka -->
     <div class="col-lg-6">
       <div class="chart-card">
-        <h5 class="chart-title">
+        <h3 class="chart-title">
           <i class="fas fa-tachometer-alt me-2" style="color:#48bb78"></i>OEE per vecka
-        </h5>
+        </h3>
         <div class="chart-wrapper" *ngIf="!loadingOee && !errorOee">
           <canvas id="oeeChart"></canvas>
         </div>
@@ -155,9 +155,9 @@
     <!-- Kassation per vecka -->
     <div class="col-lg-6">
       <div class="chart-card">
-        <h5 class="chart-title">
+        <h3 class="chart-title">
           <i class="fas fa-exclamation-triangle me-2" style="color:#ecc94b"></i>Kassation per vecka
-        </h5>
+        </h3>
         <div class="chart-wrapper" *ngIf="!loadingKassation && !errorKassation">
           <canvas id="kassationChart"></canvas>
         </div>

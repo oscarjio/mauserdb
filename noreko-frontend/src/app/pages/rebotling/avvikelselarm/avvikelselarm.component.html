@@ -100,9 +100,9 @@
 
     <!-- AKTIVA LARM-PANEL -->
     <div class="alarm-panel mb-4" *ngIf="aktivaLarm.length > 0">
-      <h5 class="card-title mb-3">
+      <h3 class="card-title mb-3">
         <i class="fas fa-bell me-2" style="color:#fc8181"></i>Aktiva larm ({{ aktivaLarm.length }})
-      </h5>
+      </h3>
       <div *ngFor="let larm of aktivaLarm; trackBy: trackById"
            class="alarm-item"
            [ngClass]="larm.allvarlighetsgrad">
@@ -136,15 +136,15 @@
 
     <div *ngIf="aktivaLarm.length === 0 && !loadingAktiva && !errorAktiva" class="alarm-panel mb-4 text-center py-4">
       <i class="fas fa-check-circle fa-3x mb-3" style="color:#68d391"></i>
-      <h5 style="color:#68d391">Inga aktiva larm</h5>
+      <h3 style="color:#68d391">Inga aktiva larm</h3>
       <p class="text-muted">Alla system går normalt</p>
     </div>
 
     <!-- LARMTREND (Chart.js) -->
     <div class="chart-card mb-4">
-      <h5 class="card-title mb-3">
+      <h3 class="card-title mb-3">
         <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>Larmtrend
-      </h5>
+      </h3>
       <div *ngIf="loadingTrend" class="text-center py-4">
         <div role="status" class="spinner-border text-info spinner-border-sm"><span class="visually-hidden">Laddar...</span></div>
       </div>
@@ -243,9 +243,9 @@
     </div>
 
     <div class="alarm-panel" *ngIf="!loadingRegler && !errorRegler">
-      <h5 class="card-title mb-3">
+      <h3 class="card-title mb-3">
         <i class="fas fa-sliders-h me-2" style="color:#63b3ed"></i>Larmregler — Tröskelvärden
-      </h5>
+      </h3>
       <div class="row g-3">
         <div class="col-12 col-md-6" *ngFor="let regel of regler; trackBy: trackById">
           <div class="regel-card">
@@ -288,7 +288,7 @@
   <!-- KVITTERA DIALOG -->
   <div class="kvittera-overlay" *ngIf="kvitteraLarm" (click)="closeKvittera()" role="dialog" aria-modal="true" aria-label="Kvittera larm">
     <div class="kvittera-dialog" (click)="$event.stopPropagation()">
-      <h5 class="mb-3"><i class="fas fa-check-circle me-2" style="color:#68d391"></i>Kvittera larm</h5>
+      <h3 class="mb-3"><i class="fas fa-check-circle me-2" style="color:#68d391"></i>Kvittera larm</h3>
       <div class="mb-2">
         <span class="badge" [ngClass]="getBadgeClass(kvitteraLarm.allvarlighetsgrad)">
           {{ kvitteraLarm.allvarlighetsgrad }}

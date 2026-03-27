@@ -124,6 +124,11 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.kapacitetsChart) { this.kapacitetsChart.destroy(); this.kapacitetsChart = null as any; }
+    if (this.stationChart) { this.stationChart.destroy(); this.stationChart = null as any; }
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
+    if (this.stopporsakChart) { this.stopporsakChart.destroy(); this.stopporsakChart = null as any; }
+    if (this.tidFordelningChart) { this.tidFordelningChart.destroy(); this.tidFordelningChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

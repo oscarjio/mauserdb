@@ -116,6 +116,9 @@ export class StopporsakerPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.paretoChart) { this.paretoChart.destroy(); this.paretoChart = null as any; }
+    if (this.stationChart) { this.stationChart.destroy(); this.stationChart = null as any; }
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

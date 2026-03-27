@@ -106,6 +106,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.refreshTimer) {

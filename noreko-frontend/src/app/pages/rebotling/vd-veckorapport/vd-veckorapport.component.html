@@ -230,7 +230,7 @@
       <div class="col-12">
         <div class="card bg-dark border-secondary">
           <div class="card-header border-secondary d-flex align-items-center justify-content-between">
-            <h5 class="mb-0 text-light">KPI — Denna vecka vs förra veckan</h5>
+            <h2 class="mb-0 text-light">KPI — Denna vecka vs förra veckan</h2>
             <span *ngIf="kpiData" class="text-muted small">
               {{ kpiData.denna_vecka_fran }} – {{ kpiData.denna_vecka_till }}
               &nbsp;vs&nbsp;
@@ -275,7 +275,7 @@
 
             <!-- Daglig produktionsgraf -->
             <div *ngIf="!loadingKpi && kpiData?.daglig_produktion?.length" class="mt-4">
-              <h6 class="text-muted mb-2">Daglig produktion — denna vecka</h6>
+              <h3 class="text-muted mb-2">Daglig produktion — denna vecka</h3>
               <div style="height:200px;">
                 <canvas id="dagligProduktionChart"></canvas>
               </div>
@@ -293,7 +293,7 @@
       <div class="col-12">
         <div class="card bg-dark border-secondary">
           <div class="card-header border-secondary">
-            <h5 class="mb-0 text-light">Trender &amp; Anomalier (14 dagar)</h5>
+            <h2 class="mb-0 text-light">Trender &amp; Anomalier (14 dagar)</h2>
           </div>
           <div class="card-body">
 
@@ -339,7 +339,7 @@
 
               <!-- Anomalilista -->
               <div *ngIf="trenderData.anomalier?.length">
-                <h6 class="text-muted mb-2">Identifierade avvikelser</h6>
+                <h3 class="text-muted mb-2">Identifierade avvikelser</h3>
                 <div *ngFor="let a of trenderData.anomalier; trackBy: trackByIndex"
                      class="anomali-rad mb-2 p-2 rounded d-flex align-items-center gap-3"
                      [style.border-left]="'4px solid ' + getAnomaliFarg(a.allvarlighet)">
@@ -377,10 +377,10 @@
       <div class="col-12 col-lg-6">
         <div class="card bg-dark border-secondary h-100">
           <div class="card-header border-secondary">
-            <h5 class="mb-0 text-light">
+            <h2 class="mb-0 text-light">
               Operatörer — Top &amp; Bottom
               <span class="text-muted small">({{ valdPeriod }}d)</span>
-            </h5>
+            </h2>
           </div>
           <div class="card-body">
 
@@ -440,10 +440,10 @@
       <div class="col-12 col-lg-6">
         <div class="card bg-dark border-secondary h-100">
           <div class="card-header border-secondary">
-            <h5 class="mb-0 text-light">
+            <h2 class="mb-0 text-light">
               Stopporsaker — Rangordning
               <span class="text-muted small">({{ valdPeriod }}d)</span>
-            </h5>
+            </h2>
           </div>
           <div class="card-body">
 

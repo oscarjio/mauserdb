@@ -96,12 +96,12 @@
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="chart-card">
-        <h6 class="mb-3">
+        <h2 class="mb-3">
           <i class="fas fa-chart-line me-2"></i>OEE-trend
           <span *ngIf="trendData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Snitt: {{ trendData.avg_oee }}% | Max: {{ trendData.max_oee }}% | Min: {{ trendData.min_oee }}%
           </span>
-        </h6>
+        </h2>
         <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorTrend && !loadingTrend" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda trenddata.
@@ -117,7 +117,7 @@
   <div class="row g-3 mb-4">
     <div class="col-lg-7">
       <div class="chart-card">
-        <h6 class="mb-3"><i class="fas fa-industry me-2"></i>OEE per station</h6>
+        <h2 class="mb-3"><i class="fas fa-industry me-2"></i>OEE per station</h2>
         <div *ngIf="loadingStationer" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorStationer && !loadingStationer" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda stationsdata.
@@ -192,7 +192,7 @@
     </div>
     <div class="col-lg-5">
       <div class="chart-card">
-        <h6 class="mb-3"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Flaskhalsar</h6>
+        <h2 class="mb-3"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Flaskhalsar</h2>
         <div *ngIf="loadingFlaskhalsar" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorFlaskhalsar && !loadingFlaskhalsar" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda flaskhalsar.
@@ -235,7 +235,7 @@
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="chart-card">
-        <h6 class="mb-3">
+        <h2 class="mb-3">
           <i class="fas fa-exchange-alt me-2"></i>Periodjämförelse
           <span *ngIf="jamforelseData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Total OEE: {{ jamforelseData.period1.oee_pct }}% vs {{ jamforelseData.period2.oee_pct }}%
@@ -245,7 +245,7 @@
               ({{ jamforelseData.total_delta > 0 ? '+' : '' }}{{ jamforelseData.total_delta }}%)
             </span>
           </span>
-        </h6>
+        </h2>
         <div *ngIf="loadingJamforelse" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorJamforelse && !loadingJamforelse" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda jämförelsedata.
@@ -295,12 +295,12 @@
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="chart-card">
-        <h6 class="mb-3">
+        <h2 class="mb-3">
           <i class="fas fa-crystal-ball me-2" style="color:#b794f4"></i>OEE-prediktion (kommande 7 dagar)
           <span *ngIf="prediktionData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
             — Trend: {{ getTrendText(prediktionData.trend) }} | R2: {{ prediktionData.r2 }}
           </span>
-        </h6>
+        </h2>
         <div *ngIf="loadingPrediktion" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div class="alert alert-danger py-2" *ngIf="errorPrediktion && !loadingPrediktion" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda prediktionsdata.

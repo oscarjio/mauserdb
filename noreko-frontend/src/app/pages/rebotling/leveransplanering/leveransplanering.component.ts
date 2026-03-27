@@ -92,6 +92,8 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
   }
 
   ngOnDestroy(): void {
+    if (this.ganttChart) { this.ganttChart.destroy(); this.ganttChart = null as any; }
+    if (this.kapacitetChart) { this.kapacitetChart.destroy(); this.kapacitetChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

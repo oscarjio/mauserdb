@@ -108,7 +108,7 @@
     <!-- Top 3 stopporsaker -->
     <div class="col-lg-4">
       <div class="section-card">
-        <h5 class="section-title"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Top 3 stopporsaker</h5>
+        <h3 class="section-title"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Top 3 stopporsaker</h3>
         <div *ngIf="loadingStopp" class="text-center py-3"><div role="status" class="spinner-border spinner-border-sm text-secondary"><span class="visually-hidden">Laddar...</span></div></div>
         <div *ngIf="errorStopp" class="text-danger small">Kunde inte ladda stopporsaker.</div>
         <div *ngIf="!loadingStopp && !errorStopp">
@@ -133,7 +133,7 @@
     <!-- Bemanning -->
     <div class="col-lg-4">
       <div class="section-card">
-        <h5 class="section-title"><i class="fas fa-users me-2" style="color:#63b3ed"></i>Dagens bemanning</h5>
+        <h3 class="section-title"><i class="fas fa-users me-2" style="color:#63b3ed"></i>Dagens bemanning</h3>
         <div *ngIf="loadingBemanning" class="text-center py-3"><div role="status" class="spinner-border spinner-border-sm text-secondary"><span class="visually-hidden">Laddar...</span></div></div>
         <div *ngIf="errorBemanning" class="text-danger small">Kunde inte ladda bemanning.</div>
         <div *ngIf="!loadingBemanning && !errorBemanning">
@@ -150,7 +150,7 @@
     <!-- Veckotrend sparkline -->
     <div class="col-lg-4">
       <div class="section-card">
-        <h5 class="section-title"><i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>Produktion senaste 7 dagar</h5>
+        <h3 class="section-title"><i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>Produktion senaste 7 dagar</h3>
         <div *ngIf="loadingTrend" class="text-center py-3"><div role="status" class="spinner-border spinner-border-sm text-secondary"><span class="visually-hidden">Laddar...</span></div></div>
         <div *ngIf="errorTrend" class="text-danger small">Kunde inte ladda veckotrend.</div>
         <div *ngIf="!loadingTrend && !errorTrend" class="trend-chart-wrapper">
@@ -162,7 +162,7 @@
 
   <!-- Stationsstatus -->
   <div class="section-card mb-4">
-    <h5 class="section-title"><i class="fas fa-industry me-2" style="color:#9f7aea"></i>Stationsstatus</h5>
+    <h3 class="section-title"><i class="fas fa-industry me-2" style="color:#9f7aea"></i>Stationsstatus</h3>
     <div *ngIf="loadingStationer" class="text-center py-3"><div role="status" class="spinner-border spinner-border-sm text-secondary"><span class="visually-hidden">Laddar...</span></div></div>
     <div *ngIf="errorStationer" class="text-danger small">Kunde inte ladda stationsstatus.</div>
     <div *ngIf="!loadingStationer && !errorStationer" class="table-responsive">

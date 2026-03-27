@@ -107,6 +107,9 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.barChart) { this.barChart.destroy(); this.barChart = null as any; }
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
+    if (this.doughnutChart) { this.doughnutChart.destroy(); this.doughnutChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.chartTimers.forEach(t => clearTimeout(t));

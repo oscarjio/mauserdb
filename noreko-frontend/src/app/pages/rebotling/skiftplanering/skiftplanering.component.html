@@ -74,7 +74,7 @@
 
   <!-- Veckoschema-tabell -->
   <div class="table-card mb-4" *ngIf="schema.length > 0 && !loadingSchedule">
-    <h5 class="section-title mb-3"><i class="fas fa-table me-2"></i>Veckoschema</h5>
+    <h3 class="section-title mb-3"><i class="fas fa-table me-2"></i>Veckoschema</h3>
     <div class="table-responsive">
       <table class="table table-bordered mb-0 schedule-table">
         <thead>
@@ -141,7 +141,7 @@
 
   <!-- Bemanningsgrad-diagram -->
   <div class="table-card mb-4" *ngIf="capacityData.length > 0 && !errorCapacity">
-    <h5 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Bemanningsgrad per dag</h5>
+    <h3 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Bemanningsgrad per dag</h3>
     <div style="height: 250px; position: relative;">
       <canvas id="capacityChart"></canvas>
     </div>
@@ -220,7 +220,7 @@
 
         <!-- Operatörer -->
         <div class="mb-3">
-          <h6 class="section-title"><i class="fas fa-users me-1"></i>Operatörer i skiftet</h6>
+          <h4 class="section-title"><i class="fas fa-users me-1"></i>Operatörer i skiftet</h4>
           <div *ngIf="shiftDetail.operatorer.length === 0" class="text-muted small">
             Inga operatörer tilldelade.
           </div>
@@ -251,7 +251,7 @@
   <div class="detail-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()" role="dialog" aria-modal="true" aria-label="Tilldela operator">
     <div class="detail-panel" style="max-width:450px" (click)="$event.stopPropagation()">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>Tilldela operatör</h5>
+        <h3 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>Tilldela operatör</h3>
         <button class="btn btn-sm btn-outline-secondary" (click)="closeAssignModal()" aria-label="Stäng dialog">
           <i class="fas fa-times"></i>
         </button>

@@ -77,7 +77,7 @@
 
   <!-- Filter -->
   <div class="d-flex gap-2 mb-4 align-items-center flex-wrap">
-    <span class="text-muted small me-1">Filter:</span>
+    <span class="text-muted small me-1">Filtrera:</span>
 
     <select class="filter-select" aria-label="Filtrera period" [(ngModel)]="filterPeriod" (change)="onFilterChange()">
       <option value="">Alla perioder</option>
@@ -213,7 +213,7 @@
           <button class="btn btn-sm btn-outline-light" (click)="printCertifikat()" title="Skriv ut" aria-label="Skriv ut certifikat">
             <i class="fas fa-print"></i>
           </button>
-          <button class="btn btn-sm btn-outline-light" (click)="closeModal()">
+          <button class="btn btn-sm btn-outline-light" (click)="closeModal()" aria-label="Stäng certifikat">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -392,7 +392,7 @@
           <i class="fas fa-plus-circle me-2" style="color:#48bb78;"></i>
           Skapa nytt certifikat
         </h2>
-        <button class="btn btn-sm btn-outline-light" (click)="closeGenerera()">
+        <button class="btn btn-sm btn-outline-light" (click)="closeGenerera()" aria-label="Stäng dialog">
           <i class="fas fa-times"></i>
         </button>
       </div>

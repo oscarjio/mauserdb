@@ -84,6 +84,7 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.huvudChart) { this.huvudChart.destroy(); this.huvudChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollingInterval !== null) {

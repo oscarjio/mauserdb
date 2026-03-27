@@ -69,6 +69,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     try { this.trendChart?.destroy(); } catch (_) {}

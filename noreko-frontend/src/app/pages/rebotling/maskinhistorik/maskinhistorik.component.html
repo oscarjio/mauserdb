@@ -44,10 +44,10 @@
 
   <!-- KPI-kort för vald station -->
   <div *ngIf="valdStation" class="mb-4">
-    <h5 class="section-title mb-3">
+    <h3 class="section-title mb-3">
       <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>KPI — {{ valdStation }}
       <span class="mh-badge ms-2">senaste {{ period }} dagar</span>
-    </h5>
+    </h3>
 
     <div *ngIf="loadingKpi" class="mh-loading py-4">
       <div role="status" class="spinner-border text-info spinner-border-sm me-2"><span class="visually-hidden">Laddar...</span></div>Laddar KPI...

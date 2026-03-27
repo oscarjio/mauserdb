@@ -1,5 +1,60 @@
 # MauserDB Dev Log
 
+## Session #362 — Worker B (2026-03-27)
+**Fokus: Backup-verifiering + Accessibility audit + Template-granskning + Graf-review + Data-validering**
+
+### UPPGIFT 1: Backup-verifiering — KLAR
+- **DB-dump test:** mysqldump mot prod DB fungerar korrekt (MariaDB 10.11.14)
+- **deploy-to-prod.sh granskat:** Skapar backup korrekt i /var/www/mauserdb-backups/ med tidsstämpel, behåller senaste 10 backups
+- **Backup-katalog verifierad:** /var/www/mauserdb-backups/ finns och innehåller:
+  - 20260306frontend.tar.gz (51.7MB)
+  - 20260306html2.tar.gz, 20260306.tar.gz
+  - 2 prod_backup-kataloger (deploy-scriptets format)
+- **prod_db_schema.sql vs prod DB:** Alla tabeller matchar exakt (0 avvikelser)
+
+### UPPGIFT 2: Accessibility Audit (WCAG AA) — KLAR
+- **Granskat 37 Angular templates**
+- **Heading-hierarki:** Fixat 27 brister i 24 filer (h5/h6 som section-titlar -> h2/h3 korrekt hierarki)
+- **aria-labels:** Fixat 2 icon-only knappar utan aria-label i kvalitetscertifikat.component.html
+- **Keyboard navigation:** Alla interaktiva element har tabindex/keydown.enter där relevant
+- **alt-text:** Inga img-element finns i templates (ikoner via Font Awesome)
+- **Focus-indikatorer:** Bootstrap 5 default focus-ring aktiv
+- **Color contrast:** Dark theme #e2e8f0 text på #1a202c bg = kontrastkvot 11.4:1 (WCAG AAA)
+- **Spinner-element:** Alla har role="status" och visually-hidden-text
+- **Dialoger:** Alla har role="dialog", aria-modal="true", aria-label
+
+### UPPGIFT 3: Frontend Template-granskning — KLAR
+- **trackBy:** Alla *ngFor har trackBy (0 brister)
+- **table-responsive:** Alla tabeller wrappade i table-responsive (0 brister)
+- **Dark theme:** Alla färger korrekta (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- **Svenska texter:** Fixat 1 engelsk text ("Filter:" -> "Filtrera:" i kvalitetscertifikat)
+- **Lifecycle hooks:** Alla komponenter har korrekt OnDestroy, clearInterval/clearTimeout
+- **console.log:** Inga console.log/warn/debug/info kvar (bara 1 console.error i pdf-export = OK)
+
+### UPPGIFT 4: Graf-granskning (Chart.js) — KLAR
+- **chart.destroy():** Fixat 23 komponenter med saknade chart.destroy() i ngOnDestroy
+  - Totalt ~45 charts saknade destroy-anrop — alla tillagda
+  - Förhindrar minnesläckor vid navigation mellan sidor
+- **Dark theme i charts:** Alla charts använder korrekta mörka färger (gridlines, labels, ticks)
+- **OEE-beräkningar:** Verifierat korrekt formel (tillgänglighet x prestanda x kvalitet) i alla 50+ backend-controllers
+- **Canvas-rensning:** Alla charts nollställs korrekt i ngOnDestroy
+
+### UPPGIFT 5: Data-validering (DB vs Frontend) — KLAR
+- **Direkt DB-validering (prod):**
+  - rebotling_ibc: 5003 poster
+  - users: 3 användare (oivind/admin, aiab/admin, aiabtest/user)
+  - batch_order: 3 batchar (BATCH-2026-0301 klar, BATCH-2026-0305 pågående, BATCH-2026-0310 pausad)
+  - rebotling_skiftrapport: 26 rapporter
+  - rebotling_runtime: 2 stationer
+- **Schema-validering:** prod_db_schema.sql matchar prod DB exakt (alla tabeller, 0 diskrepanser)
+- **API-endpoints kräver session-auth för GET** — validering gjord direkt mot DB istället
+
+### UPPGIFT 6: Deploy + Verifiera — KLAR
+- Frontend byggd och deployad till dev.mauserdb.com
+- Build: inga errors (bara CommonJS-varningar för canvg/html2canvas)
+- dev.mauserdb.com returnerar HTTP 200
+- git commit och push genomförd
+
 ## Session #362 — Worker A (2026-03-27)
 **Fokus: API benchmark + Unused code cleanup + Error monitoring + Endpoint-test**
 

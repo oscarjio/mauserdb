@@ -84,6 +84,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.timelineChart) { this.timelineChart.destroy(); this.timelineChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyChart();

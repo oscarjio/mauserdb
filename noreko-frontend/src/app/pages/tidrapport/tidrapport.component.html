@@ -101,9 +101,9 @@
     <div class="col-12">
       <div class="card-dark p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="section-title mb-0">
+          <h2 class="section-title mb-0">
             <i class="fas fa-users me-2" style="color:#63b3ed"></i>Per operatör
-          </h6>
+          </h2>
           <span style="color:#8fa3b8; font-size:0.8rem" *ngIf="operatorData">
             {{ operatorData.total }} operatörer
           </span>
@@ -165,9 +165,9 @@
   <div class="row g-3 mb-4">
     <div class="col-12">
       <div class="card-dark p-3">
-        <h6 class="section-title mb-3">
+        <h2 class="section-title mb-3">
           <i class="fas fa-chart-bar me-2" style="color:#48bb78"></i>Arbetstid per dag (senaste 4 veckorna)
-        </h6>
+        </h2>
         <div *ngIf="veckoLoading" class="text-center py-4"><span class="loading-spinner" role="status"><span class="visually-hidden">Laddar...</span></span></div>
         <div *ngIf="veckoError && !veckoLoading" class="alert alert-danger py-2">
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda veckodata.
@@ -187,12 +187,12 @@
     <div class="col-12">
       <div class="card-dark p-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-          <h6 class="section-title mb-0">
+          <h2 class="section-title mb-0">
             <i class="fas fa-list me-2" style="color:#4fd1c5"></i>Detaljerade skiftregistreringar
             <span *ngIf="detaljerData" style="color:#8fa3b8; font-weight:400; font-size:0.8rem">
               ({{ detaljerData.total }} st)
             </span>
-          </h6>
+          </h2>
           <div class="d-flex gap-2 align-items-center">
             <select aria-label="Välj operator id" class="form-select form-select-sm form-select-dark"
                     [(ngModel)]="filterOperatorId"

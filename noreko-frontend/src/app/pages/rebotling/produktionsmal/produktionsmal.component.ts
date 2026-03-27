@@ -71,6 +71,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.veckoChart) { this.veckoChart.destroy(); this.veckoChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }

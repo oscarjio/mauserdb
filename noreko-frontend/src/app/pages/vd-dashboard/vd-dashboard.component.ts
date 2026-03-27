@@ -55,6 +55,8 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
+    if (this.stationChart) { this.stationChart.destroy(); this.stationChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.refreshInterval) { clearInterval(this.refreshInterval); this.refreshInterval = null; }

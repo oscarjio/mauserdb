@@ -120,9 +120,9 @@
     <div class="col-lg-6">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
-          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+          <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="fas fa-exclamation-triangle me-1"></i>Stoppstatus
-          </h6>
+          </h2>
 
           <!-- Allt kör -->
           <div *ngIf="stoppNu?.allt_kor" class="text-center py-4">
@@ -167,9 +167,9 @@
     <div class="col-lg-6">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
-          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+          <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="fas fa-trophy me-1"></i>Top 3 operatörer idag
-          </h6>
+          </h2>
 
           <div *ngIf="topOperatorer?.top_operatorer?.length; else noOperators">
             <div *ngFor="let op of topOperatorer?.top_operatorer; trackBy: trackById" class="d-flex align-items-center py-2"
@@ -210,9 +210,9 @@
     <div class="col-lg-5">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
-          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+          <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="fas fa-chart-bar me-1"></i>OEE per station
-          </h6>
+          </h2>
           <div *ngIf="stationOee?.stationer?.length" style="height:220px; position:relative;">
             <canvas id="vdStationChart"></canvas>
           </div>
@@ -228,9 +228,9 @@
     <div class="col-lg-7">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
-          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+          <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
             <i class="fas fa-chart-line me-1"></i>Senaste 7 dagar
-          </h6>
+          </h2>
           <div *ngIf="veckotrend?.trend?.length" style="height:220px; position:relative;">
             <canvas id="vdTrendChart"></canvas>
           </div>

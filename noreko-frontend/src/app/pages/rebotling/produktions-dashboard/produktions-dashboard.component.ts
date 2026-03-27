@@ -72,6 +72,8 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.prodChart) { this.prodChart.destroy(); this.prodChart = null as any; }
+    if (this.oeeChart) { this.oeeChart.destroy(); this.oeeChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollInterval !== null) {

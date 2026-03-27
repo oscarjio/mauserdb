@@ -73,6 +73,8 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.drifttidChart) { this.drifttidChart.destroy(); this.drifttidChart = null as any; }
+    if (this.oeeChart) { this.oeeChart.destroy(); this.oeeChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.drifttidChartTimer !== null) { clearTimeout(this.drifttidChartTimer); this.drifttidChartTimer = null; }

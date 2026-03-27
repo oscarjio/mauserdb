@@ -82,6 +82,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null as any; }
+    if (this.prediktionChart) { this.prediktionChart.destroy(); this.prediktionChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

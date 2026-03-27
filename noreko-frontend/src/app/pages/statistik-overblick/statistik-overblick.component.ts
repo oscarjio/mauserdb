@@ -59,6 +59,9 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.produktionChart) { this.produktionChart.destroy(); this.produktionChart = null as any; }
+    if (this.oeeChart) { this.oeeChart.destroy(); this.oeeChart = null as any; }
+    if (this.kassationChart) { this.kassationChart.destroy(); this.kassationChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

@@ -58,15 +58,15 @@
       <div class="rapport-text-box mb-4">
         <div class="d-flex align-items-center mb-2">
           <i class="fas fa-book me-2" style="color:#4fd1c5; font-size:1.3rem"></i>
-          <h5 class="mb-0">Sammanfattning</h5>
+          <h3 class="mb-0">Sammanfattning</h3>
         </div>
         <p class="rapport-text mb-0">{{ rapport.rapport_text }}</p>
       </div>
 
       <!-- KPI-jamforelse -->
-      <h5 class="section-title mb-3">
+      <h3 class="section-title mb-3">
         <i class="fas fa-chart-bar me-2"></i>KPI-jämförelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
-      </h5>
+      </h3>
       <div class="row g-3 mb-4">
         <!-- OEE -->
         <div class="col-lg col-md-4 col-sm-6">
@@ -133,7 +133,7 @@
       <!-- Trenddiagram -->
       <div class="card dark-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>OEE & IBC per dag</h5>
+          <h3 class="mb-0"><i class="fas fa-chart-line me-2"></i>OEE & IBC per dag</h3>
         </div>
         <div class="card-body">
           <div *ngIf="loadingTrend" class="text-center py-4">
@@ -157,7 +157,7 @@
         <div class="col-lg-6">
           <div class="card dark-card h-100">
             <div class="card-header">
-              <h5 class="mb-0"><i class="fas fa-users me-2"></i>Top 5 operatörer</h5>
+              <h3 class="mb-0"><i class="fas fa-users me-2"></i>Top 5 operatörer</h3>
             </div>
             <div class="card-body p-0">
               <div *ngIf="loadingOperatorer" class="text-center py-4">
@@ -208,7 +208,7 @@
         <div class="col-lg-6">
           <div class="card dark-card h-100">
             <div class="card-header">
-              <h5 class="mb-0"><i class="fas fa-building me-2"></i>Stationsöversikt</h5>
+              <h3 class="mb-0"><i class="fas fa-building me-2"></i>Stationsöversikt</h3>
             </div>
             <div class="card-body p-0">
               <div *ngIf="loadingStationer" class="text-center py-4">
@@ -259,7 +259,7 @@
       <!-- Stopporsaker Pareto -->
       <div class="card dark-card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker (Pareto)</h5>
+          <h3 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker (Pareto)</h3>
           <span class="badge bg-secondary" *ngIf="stopporsakerTotalH > 0">Totalt: {{ stopporsakerTotalH }} h</span>
         </div>
         <div class="card-body">

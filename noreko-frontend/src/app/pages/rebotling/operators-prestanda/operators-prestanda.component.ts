@@ -106,6 +106,9 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.scatterChart) { this.scatterChart.destroy(); this.scatterChart = null as any; }
+    if (this.detaljChart) { this.detaljChart.destroy(); this.detaljChart = null as any; }
+    if (this.utvecklingChart) { this.utvecklingChart.destroy(); this.utvecklingChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     if (this.scatterChartTimer !== null) { clearTimeout(this.scatterChartTimer); this.scatterChartTimer = null; }
