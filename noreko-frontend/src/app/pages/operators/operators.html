@@ -39,12 +39,18 @@
         <div class="col-md-4">
           <label class="form-label">Namn</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
-                 name="add-name" placeholder="Operatörens namn" required maxlength="100" />
+                 name="add-name" placeholder="Operatörens namn" required maxlength="100"
+                 #addNameField="ngModel"
+                 [class.is-invalid]="addNameField.invalid && addNameField.touched" />
+          <div class="invalid-feedback" *ngIf="addNameField.invalid && addNameField.touched">Namn krävs</div>
         </div>
         <div class="col-md-2">
           <label class="form-label">PLC-nummer</label>
           <input class="form-control form-control-sm" [(ngModel)]="addForm.number"
-                 name="add-number" placeholder="T.ex. 101" type="number" min="1" required  max="99999" />
+                 name="add-number" placeholder="T.ex. 101" type="number" min="1" required max="99999"
+                 #addNumberField="ngModel"
+                 [class.is-invalid]="addNumberField.invalid && addNumberField.touched" />
+          <div class="invalid-feedback" *ngIf="addNumberField.invalid && addNumberField.touched">PLC-nummer krävs (minst 1)</div>
         </div>
         <div class="col-auto">
           <button class="btn btn-success btn-sm" type="submit" [disabled]="!addForm.name.trim() || !addForm.number || addForm.number <= 0">
@@ -412,12 +418,16 @@
                     <div class="col-md-4">
                       <label class="form-label">Namn</label>
                       <input type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
-                             [name]="'name-' + op.id" placeholder="Namn" required maxlength="100" />
+                             [name]="'name-' + op.id" placeholder="Namn" required maxlength="100"
+                             #editNameField="ngModel"
+                             [class.is-invalid]="editNameField.invalid && editNameField.touched" />
                     </div>
                     <div class="col-md-2">
                       <label class="form-label">PLC-nummer</label>
                       <input class="form-control form-control-sm" [(ngModel)]="op.number"
-                             [name]="'number-' + op.id" type="number" min="1" required  max="99999" />
+                             [name]="'number-' + op.id" type="number" min="1" required max="99999"
+                             #editNumberField="ngModel"
+                             [class.is-invalid]="editNumberField.invalid && editNumberField.touched" />
                     </div>
                     <div class="col-auto">
                       <button class="btn btn-success btn-sm" type="submit" [disabled]="!op.name?.trim() || !op.number || op.number <= 0">

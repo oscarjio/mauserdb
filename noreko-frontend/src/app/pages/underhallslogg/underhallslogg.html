@@ -89,7 +89,8 @@
             <!-- Station -->
             <div class="col-12 col-md-4">
               <label class="form-label-dark">Station</label>
-              <select aria-label="Välj station" class="form-control-dark" [(ngModel)]="formStationId">
+              <select aria-label="Välj station" class="form-control-dark" [(ngModel)]="formStationId" required
+                      [class.is-invalid]="!formStationId && formSubmitAttempted">
                 <option [ngValue]="0">-- Välj station --</option>
                 <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
               </select>
@@ -113,13 +114,15 @@
             <!-- Datum -->
             <div class="col-12 col-md-4">
               <label class="form-label-dark">Datum</label>
-              <input type="date" class="form-control-dark" [(ngModel)]="formDatum">
+              <input type="date" class="form-control-dark" [(ngModel)]="formDatum" required
+                     [class.is-invalid]="!formDatum && formSubmitAttempted">
             </div>
 
             <!-- Varaktighet -->
             <div class="col-12 col-md-3">
               <label class="form-label-dark">Varaktighet (minuter)</label>
-              <input type="number" class="form-control-dark" [(ngModel)]="formVaraktighet" placeholder="T.ex. 30" min="1" max="9999">
+              <input type="number" class="form-control-dark" [(ngModel)]="formVaraktighet" placeholder="T.ex. 30" min="1" max="9999" required
+                     [class.is-invalid]="(!formVaraktighet || formVaraktighet <= 0) && formSubmitAttempted">
             </div>
 
             <!-- Stopporsak -->

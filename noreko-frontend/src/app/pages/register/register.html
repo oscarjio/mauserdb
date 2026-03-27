@@ -9,14 +9,24 @@
       <div class="mb-3">
         <label class="form-label" for="reg-username">Användarnamn</label>
         <input type="text" class="form-control" placeholder="Välj ett användarnamn"
-               [(ngModel)]="user.username" id="reg-username" name="username" required minlength="3" maxlength="50" [disabled]="isLoading" />
+               [(ngModel)]="user.username" id="reg-username" name="username" required minlength="3" maxlength="50" [disabled]="isLoading"
+               #regUsername="ngModel"
+               [class.is-invalid]="regUsername.invalid && regUsername.touched"
+               [class.is-valid]="regUsername.valid && regUsername.touched" />
+        <div class="invalid-feedback" *ngIf="regUsername.invalid && regUsername.touched">
+          <span *ngIf="regUsername.errors?.['required']">Användarnamn krävs</span>
+          <span *ngIf="regUsername.errors?.['minlength']">Minst 3 tecken</span>
+        </div>
       </div>
 
       <div class="mb-3">
         <label class="form-label" for="reg-password">Lösenord</label>
         <input type="password" class="form-control" placeholder="Minst 8 tecken, bokstav + siffra"
                [(ngModel)]="user.password" id="reg-password" name="password" required minlength="8" maxlength="128" [disabled]="isLoading"
-               (ngModelChange)="checkPasswordStrength()" />
+               (ngModelChange)="checkPasswordStrength()"
+               #regPassword="ngModel"
+               [class.is-invalid]="regPassword.touched && !isAcceptable && user.password.length > 0"
+               [class.is-valid]="regPassword.touched && isAcceptable" />
         <div class="feedback-row" *ngIf="showFeedback">
           <small *ngIf="!isAcceptable" class="text-danger">
             <i class="fas fa-times me-1"></i>Minst 8 tecken, bokstav och siffra
@@ -31,7 +41,10 @@
         <label class="form-label" for="reg-password2">Upprepa lösenord</label>
         <input type="password" class="form-control" placeholder="Skriv lösenordet igen"
                [(ngModel)]="user.password2" id="reg-password2" name="password2" required minlength="8" maxlength="128" [disabled]="isLoading"
-               (ngModelChange)="checkPasswordStrength()" />
+               (ngModelChange)="checkPasswordStrength()"
+               #regPassword2="ngModel"
+               [class.is-invalid]="regPassword2.touched && !passwordsMatch && user.password2.length > 0"
+               [class.is-valid]="regPassword2.touched && passwordsMatch && user.password2.length > 0" />
         <div class="feedback-row" *ngIf="showFeedback && user.password2.length > 0">
           <small *ngIf="!passwordsMatch" class="text-warning">
             <i class="fas fa-exclamation-triangle me-1"></i>Lösenorden matchar inte
@@ -46,7 +59,10 @@
         <label class="form-label" for="reg-email">E-post</label>
         <input type="email" class="form-control" placeholder="din@email.com"
                [(ngModel)]="user.email" id="reg-email" name="email" required maxlength="255" [disabled]="isLoading"
-               (ngModelChange)="checkEmail()" />
+               (ngModelChange)="checkEmail()"
+               #regEmail="ngModel"
+               [class.is-invalid]="regEmail.touched && !isEmailValid && user.email.length > 0"
+               [class.is-valid]="regEmail.touched && isEmailValid && user.email.length > 0" />
         <div class="feedback-row" *ngIf="user.email.length > 0 && !isEmailValid">
           <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>
         </div>
@@ -55,13 +71,25 @@
       <div class="mb-3">
         <label class="form-label" for="reg-phone">Telefonnummer</label>
         <input type="tel" class="form-control" placeholder="070-123 45 67"
-               [(ngModel)]="user.phone" id="reg-phone" name="phone" required maxlength="20" [disabled]="isLoading" />
+               [(ngModel)]="user.phone" id="reg-phone" name="phone" required maxlength="20" [disabled]="isLoading"
+               #regPhone="ngModel"
+               [class.is-invalid]="regPhone.invalid && regPhone.touched"
+               [class.is-valid]="regPhone.valid && regPhone.touched" />
+        <div class="invalid-feedback" *ngIf="regPhone.invalid && regPhone.touched">
+          Telefonnummer krävs
+        </div>
       </div>
 
       <div class="mb-3">
         <label class="form-label" for="reg-code">Kontrollkod</label>
         <input type="text" class="form-control" placeholder="Kod från din arbetsgivare"
-               [(ngModel)]="user.code" id="reg-code" name="code" required maxlength="50" [disabled]="isLoading" />
+               [(ngModel)]="user.code" id="reg-code" name="code" required maxlength="50" [disabled]="isLoading"
+               #regCode="ngModel"
+               [class.is-invalid]="regCode.invalid && regCode.touched"
+               [class.is-valid]="regCode.valid && regCode.touched" />
+        <div class="invalid-feedback" *ngIf="regCode.invalid && regCode.touched">
+          Kontrollkod krävs
+        </div>
       </div>
 
       <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading || !user.username.trim() || !isAcceptable || !passwordsMatch || !isEmailValid || !user.phone.trim() || !user.code.trim()">

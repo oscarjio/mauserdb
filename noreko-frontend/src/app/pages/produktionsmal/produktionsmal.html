@@ -36,12 +36,18 @@
         <div class="col-12 col-md-3">
           <label class="form-label text-muted small">Antal IBC</label>
           <input type="number" class="form-control form-control-dark"
-                 [(ngModel)]="formAntal" placeholder="t.ex. 500" min="1" max="99999">
+                 [(ngModel)]="formAntal" placeholder="t.ex. 500" min="1" max="99999" required
+                 #malAntal="ngModel"
+                 [class.is-invalid]="malAntal.touched && (!formAntal || formAntal <= 0)">
+          <div class="invalid-feedback" *ngIf="malAntal.touched && (!formAntal || formAntal <= 0)">Ange antal IBC (minst 1)</div>
         </div>
         <div class="col-12 col-md-3">
           <label class="form-label text-muted small">Startdatum</label>
           <input type="date" class="form-control form-control-dark"
-                 [(ngModel)]="formStartdatum" required>
+                 [(ngModel)]="formStartdatum" required
+                 #malDatum="ngModel"
+                 [class.is-invalid]="malDatum.touched && !formStartdatum">
+          <div class="invalid-feedback" *ngIf="malDatum.touched && !formStartdatum">Startdatum krävs</div>
         </div>
         <div class="col-12 col-md-3">
           <button class="btn btn-success w-100"

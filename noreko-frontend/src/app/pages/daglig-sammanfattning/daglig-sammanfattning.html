@@ -27,6 +27,11 @@
             [disabled]="isToday()">
             <i class="fas fa-calendar-day me-1"></i>Idag
           </button>
+          <button
+            class="btn btn-sm btn-outline-light no-print"
+            (click)="printPage()">
+            <i class="fas fa-print me-1"></i>Skriv ut
+          </button>
           <span class="text-muted small">
             <i class="fas fa-sync-alt me-1" [class.fa-spin]="summaryLoading"></i>
             <span *ngIf="!summaryLoading">Uppdateras om {{ nextRefreshIn }}s</span>

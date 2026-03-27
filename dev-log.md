@@ -62,6 +62,76 @@ productionPercentage beraknas nu korrekt: (ibcCurrentShift * 60 / runtime) / hou
 - noreko-backend/classes/RebotlingAnalyticsController.php (DATE(datum) BETWEEN -> datum >= ... index-fix, 11 queries)
 - noreko-backend/migrations/2026-03-27_session353_composite_indexes.sql (nya index)
 
+## Session #353 — Worker B (2026-03-27)
+**Fokus: Formularvalidering, responsivitet, print-styling, UX/data-granskning**
+
+### UPPGIFT 1: Formularvalidering frontend — KLAR
+Systematisk granskning av ALLA Angular-templates med formular.
+- Lade till `#field="ngModel"` + `[class.is-invalid]` + `[class.is-valid]` visuell feedback i:
+  - **create-user**: anvandarnamn, losenord, e-post (is-invalid/is-valid vid touched)
+  - **register**: alla 5 falt (anvandarnamn, losenord, upprepa losenord, e-post, telefon, kontrollkod)
+  - **operators**: lagg-till-formular (namn + PLC-nummer) + inline-redigering
+  - **produktionsmal**: antal IBC + startdatum (invalid-feedback vid tomma falt)
+  - **users**: redigera anvandarnamn + e-post med is-invalid
+  - **certifications**: operator-select, linje-select, certifierat datum
+  - **underhallslogg**: station, datum, varaktighet (formSubmitAttempted-flagga tillagd i TS)
+- Alla formularelement behaller befintlig HTML5-validering (required, min, max, minlength, maxlength)
+- Bootstrap `is-invalid` / `is-valid` klasser ger roda/grona ramar + felmeddelanden
+- Inga live-sidor rorda (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live)
+
+### UPPGIFT 2: Responsiv granskning 2.0 — KLAR
+Granskade alla templates for responsivitet vid 320px, 768px, 1024px.
+- **Global styles.css**: Lade till responsive-fixar:
+  - 320px: container-fluid padding minskat, rubriker nedskalade, td/th max-width + word-break
+  - 768px: nav-pills horizontal scroll (flex-wrap: nowrap, overflow-x: auto, scrollbar-width: none)
+  - filter-pills/filter-row/filter-sort-row: flex-wrap pa mobil
+- **bonus-admin**: nav-pills (10 flikar!) far horisontell scroll pa mobil
+- Alla tabeller sitter redan i `table-responsive` wrappers (veriferat)
+- Alla card-layouts anvander col-12 col-md-* (responsiva)
+- Inga overflow-x-problem hittades pa desktop (html,body overflow-x:hidden redan satt)
+
+### UPPGIFT 3: Print-styling — KLAR
+Lade till omfattande `@media print` CSS i globala styles.css:
+- **Doljer vid utskrift**: header, meny, submeny, sidebar, knappar, filter, sok, toast, spinners
+- **Overrider dark theme**: vit bakgrund, svart text for tabeller, kort, badges
+- **Sidbrytningar**: page-break-inside: avoid pa kort, page-break-after: avoid pa rubriker
+- **Tabell-styling**: svart text, vita bakgrunder, synliga ramar
+- **KPI-kort**: vit bakgrund med synliga borders
+- **Progress bars**: print-color-adjust: exact
+- **.btn-print** utility-klass tillagd (med hover-effekt + doljs vid print)
+- **daglig-sammanfattning**: print-knapp tillagd ("Skriv ut") + printPage()-metod i TS
+- Verifierade att morgonrapport, veckorapport, executive-dashboard, monthly-report,
+  rebotling-skiftrapport, stoppage-log redan har print-funktionalitet
+
+### UPPGIFT 4: Granska ALLA sidor — data och UX — KLAR
+Gick igenom alla Angular-komponenter/sidor:
+- **Dark theme**: Lade till globala form-control/form-select dark theme-stilar i styles.css
+  (bakgrund #2d3748, border #4a5568, text #e2e8f0, focus-farg #63b3ed)
+- **Card theme**: Globala card/card-header dark theme-stilar
+- **Table theme**: Globala table dark + hover-stilar
+- **NaN/null/undefined-skydd**: Verifierade att alla nyckelsidor anvander
+  null-checks (!=null, ?? 0, || '-', *ngIf-guards)
+- **produktion_procent-utredning**: Bekraftar Worker A:s fynd — momentan takt-procent,
+  ej kumulativ. Frontend anvander korrekt medelvardesbildning (reduce + / length).
+  Worker A fixade root cause i getLiveStats (ibcCurrentShift vs ibcToday).
+- **Navigering**: Alla routerLink och href-lankar verifierade i admin-sidorna
+- Inga tomma tabeller utan fallback hittades (alla har *ngIf-guard + "Inga data"-meddelanden)
+
+### Andrade filer:
+- `noreko-frontend/src/styles.css` — formularvalidering CSS, responsiv CSS, print CSS, dark theme
+- `noreko-frontend/src/app/pages/create-user/create-user.html` — is-invalid/is-valid + feedback
+- `noreko-frontend/src/app/pages/register/register.html` — is-invalid/is-valid alla falt
+- `noreko-frontend/src/app/pages/operators/operators.html` — is-invalid pa add + edit formular
+- `noreko-frontend/src/app/pages/produktionsmal/produktionsmal.html` — is-invalid + feedback
+- `noreko-frontend/src/app/pages/users/users.html` — is-invalid pa anvandarnamn/e-post
+- `noreko-frontend/src/app/pages/certifications/certifications.html` — is-invalid pa 3 falt
+- `noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html` — nav-pills scroll
+- `noreko-frontend/src/app/pages/underhallslogg/underhallslogg.html` — is-invalid 3 falt
+- `noreko-frontend/src/app/pages/underhallslogg/underhallslogg.ts` — formSubmitAttempted
+- `noreko-frontend/src/app/pages/daglig-sammanfattning/daglig-sammanfattning.html` — print-knapp
+- `noreko-frontend/src/app/pages/daglig-sammanfattning/daglig-sammanfattning.ts` — printPage()
+- `dev-log.md` — denna session
+
 ## Session #352 — Worker A (2026-03-27)
 **Fokus: Felhantering vid nolldata, API-svarstider, datavalidering backend**
 

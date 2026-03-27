@@ -55,9 +55,16 @@
                 minlength="3"
                 maxlength="50"
                 [(ngModel)]="user.username"
+                #usernameField="ngModel"
                 [disabled]="isLoading"
                 placeholder="Ange användarnamn"
+                [class.is-invalid]="usernameField.invalid && usernameField.touched"
+                [class.is-valid]="usernameField.valid && usernameField.touched"
               />
+              <div class="invalid-feedback" *ngIf="usernameField.invalid && usernameField.touched">
+                <span *ngIf="usernameField.errors?.['required']">Användarnamn krävs</span>
+                <span *ngIf="usernameField.errors?.['minlength']">Minst 3 tecken</span>
+              </div>
             </div>
 
             <div class="mb-3">
@@ -74,8 +81,11 @@
                 minlength="8"
                 maxlength="128"
                 [(ngModel)]="user.password"
+                #passwordField="ngModel"
                 [disabled]="isLoading"
                 placeholder="Minst 8 tecken, bokstav + siffra"
+                [class.is-invalid]="passwordField.invalid && passwordField.touched && !isPasswordValid"
+                [class.is-valid]="passwordField.valid && passwordField.touched && isPasswordValid"
               />
               <div class="mt-1" *ngIf="user.password.length > 0">
                 <small *ngIf="!isPasswordValid" class="text-danger">
@@ -100,8 +110,11 @@
                 required
                 maxlength="255"
                 [(ngModel)]="user.email"
+                #emailField="ngModel"
                 [disabled]="isLoading"
                 placeholder="Ange e-postadress"
+                [class.is-invalid]="emailField.touched && !isEmailValid && user.email.length > 0"
+                [class.is-valid]="emailField.touched && isEmailValid && user.email.length > 0"
               />
               <div class="mt-1" *ngIf="user.email.length > 0 && !isEmailValid">
                 <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>

@@ -72,6 +72,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   formUtfordAv = '';
   formDatum = '';
   submitting = false;
+  formSubmitAttempted = false;
 
   // ---- Legacy (general tab) ----
   kategorier: UnderhallKategori[] = [];
@@ -290,6 +291,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   spara(): void {
+    this.formSubmitAttempted = true;
     if (this.submitting) return;
     this.errorMessage = '';
 
