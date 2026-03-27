@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #367)*
+*Senast uppdaterad: 2026-03-27 (session #368)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -74,6 +74,7 @@ Session #364: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL filter bortta
 Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237ms + month-compare 984ms->627ms (CTE-optimering) + getOtherLineStatus dead code borttagen + covering index + 97 endpoints 0x500 + UX alla sidor OK + produktion_procent EJ kumulativ (bekraftad) + rebotling-statistik djupgranskning + VD Dashboard OK + error handling audit + lifecycle-audit alla Chart-komponenter + build + deploy dev OK.
 Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k rader 0 problem + integration test API vs DB perfekt match + error/404-hantering OK + data-korrekthet 0 diskrepanser + Angular kodgranskning 92 services OK + 115 chart-filer OK + build 0 fel + deploy dev OK.
 Session #367: month-compare 1032ms→540ms + operatorsbonus RATTVIS + admin CRUD OK + caching 6 controllers OK + bundle 151 kB (redan optimerad) + 111 endpoints 0x500 + $cutoff dead code borttagen + deploy dev OK.
+Session #368: KRITISK buggfix livestats COUNT→SUM(MAX) + month-compare 600ms→100ms (covering index+cache) + cache-invalidering 9 admin-endpoints + heatmap UX (gradient+klickbar+summor) + 145 endpoints 0x500 + 0 DB diskrepanser + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -86,23 +87,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #368):
-- [ ] Month-compare vidare optimering (540ms, covering index)
-- [ ] Write-through cache invalidering vid admin-CRUD
-- [ ] Rebotling heatmap UX — interaktivitet + tooltips
-- [ ] Error monitoring — centraliserad loggning
-- [ ] E2E regressionstest — automatiserat
+### Nasta (session #369):
+- Error monitoring — centraliserad loggning
+- E2E regressionstest — automatiserat
+- PHP dead code audit
+- Frontend accessibility WCAG AA
+- API response-format standardisering
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-27 — Session #366 (klar)
-Worker A: 129 endpoints stresstest — 0x500, alla <2s. PHP controller-audit 112 filer (~79k rader) — 0 SQL injection, 0 tomma catches, 531 $_GET/$_POST validerade. Integration test API vs DB: ibc_today=122, mars total=650 — perfekt match. Error/404: okand action→404, SQLi→400, XSS→404, konsistent JSON. Deploy dev OK.
-Worker B: Data-korrekthet 9 nyckel-endpoints verifierade mot prod DB — 0 diskrepanser. 92 Angular services + guards + interceptors granskade — inga problem. Interaktivitetstest (filter, pagination, edge cases) — allt OK. Build 0 fel. 115 chart-filer stickprovsgranskade — korrekt mappning. Deploy dev OK.
-
-### 2026-03-27 — Session #365 (klar)
-Worker A: Diskrepans-fix verifierad mot prod DB — API 1058 cykler (matchar DB). Benchmarking 926ms→237ms, month-compare 984ms→627ms. Dead code + covering index. 97 endpoints 0x500.
-Worker B: 37 templates + 100+ komponenter OK. produktion_procent EJ kumulativ (bekraftad). Rebotling-statistik 7 sidor OK. VD Dashboard robust. Error handling audit OK.
 
 ### 2026-03-27 — Session #367 (klar)
 Worker A: month-compare optimerad 1032ms→540ms (DATE_FORMAT→range scan + query-konsolidering). Admin CRUD OK (operatorer+skift). Caching 6 controllers TTL 5-30s OK. 111 endpoints 0x500 alla <2s. Deploy dev OK.
 Worker B: Operatorsbonus RATTVIS (op1/op2/op3 identiskt via UNION ALL, team-bonus gemensam). Bundle redan 151 kB (8.8MB var gammal matning). UX+dark theme OK. Build 0 fel. Deploy dev OK.
+
+### 2026-03-27 — Session #366 (klar)
+Worker A: 129 endpoints 0x500 alla <2s. PHP audit 112 filer 0 problem. Integration test API vs DB perfekt. Deploy dev OK.
+Worker B: 9 endpoints vs prod DB 0 diskrepanser. 92 services OK. 115 charts OK. Build 0 fel. Deploy dev OK.
+
+### 2026-03-27 — Session #368 (klar)
+Worker A: KRITISK buggfix livestats ibcToday (COUNT→SUM MAX ibc_ok). Month-compare covering index op2/op3 + 30s filcache (600ms→100ms HIT). Cache-invalidering 9 admin-CRUD-endpoints. 145 endpoints 0x500 alla <2s. Deploy dev OK.
+Worker B: Uncommitted changes (skiftrapport+statistik) granskade OK. Heatmap UX: gradient-farger, IBC-siffror, klickbar detaljpanel, dag/tim-summor, hover-effekt. Alla rebotling-sidor dark theme OK. Data-verifiering 0 diskrepanser. Build 0 fel. Deploy dev OK.

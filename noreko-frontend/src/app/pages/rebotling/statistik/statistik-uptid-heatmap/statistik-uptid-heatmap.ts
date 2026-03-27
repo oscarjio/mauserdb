@@ -61,7 +61,6 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
-  private readonly SWEDISH_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   private readonly SWEDISH_DAY_NAMES: Record<string, string> = {
     Mon: 'Mån',
     Tue: 'Tis',
