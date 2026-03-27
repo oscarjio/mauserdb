@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-26 (session #350)*
+*Senast uppdaterad: 2026-03-27 (session #351)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#350: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#351: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,26 +74,25 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
 ### Nasta:
-- [x] station_id-referens fix (session #350 — COALESCE borttagen, hardkodad fallback)
-- [x] Responsiv design-sweep (session #350 — 31 tabeller fixade i 16 filer)
-- [x] Prestandaoptimering (session #350 — 11 queries optimerade, composite index, 77% snabbare)
-- [x] Felhantering UI (session #350 — redan komplett, inget att fixa)
-- [x] Chart.js enhetlig styling (session #350 — redan konsekvent, inget att fixa)
-- [x] Endpoint-svarstider (session #350 — alla under 1s, 3 optimerade)
-- [ ] Oanvanda variabler/funktioner (HistoriskSammanfattning + Skiftjamforelse)
-- [ ] Rebotling E2E regressionstest
-- [ ] Operatorsbonus-berakning verifiering
+- [x] Oanvanda variabler/funktioner (session #351 — 3 borttagna, 62 rader sparade)
+- [x] Rebotling E2E regressionstest (session #351 — 50/50 PASS)
+- [x] Operatorsbonus-berakning verifiering (session #351 — verifierad mot prod-data)
+- [x] Mobil UX-test 375px (session #351 — alla sidor OK)
+- [x] Laddningstider/bundle size (session #351 — 362kB initial, lazy loading korrekt)
+- [x] Navigationsmenyn (session #351 — 120+ routes, alla narbara, inga trasiga lankar)
+- [x] 20 Bootstrap Icons bi→fa fixade (session #351 — missade fran #349)
+- [x] Dark theme submenu-fix (session #351 — vit bakgrund→korrekt)
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #351 (klar)
+Worker A: Kodrensning (3 oanvanda element borttagna, 62 rader sparade). E2E-testskript skapat (50 endpoints, 50/50 PASS). Operatorsbonus verifierad mot prod-data. 7 controllers djupgranskade — inga buggar.
+Worker B: Mobil UX OK (alla sidor). Navigation OK (120+ routes, 53 menylänkar). Bundle 362kB, lazy loading korrekt. 20 bi→fa ikonfixar + 1 dark theme submenu-fix. Build+deploy OK.
+
 ### 2026-03-26 — Session #350 (klar)
-Worker A: station_id-bugg fixad i 2 controllers (COALESCE borttagen). 11 queries optimerade (DATE()→range). Batch-queries: 12→4 for sammanfattning. Composite index tillagd (datum,skiftraknare). Svarstider: 77% snabbare (1.42s→0.33s), 65% snabbare (1.07s→0.38s).
-Worker B: 31 tabeller responsiv-fixade i 16 filer (table-responsive wrappers). Felhantering+Chart.js redan komplett. 2 diakritikfixar. Build+deploy OK.
+Worker A: station_id-bugg fixad i 2 controllers. 11 queries optimerade (77% snabbare). Composite index tillagd.
+Worker B: 31 tabeller responsiv-fixade. 2 diakritikfixar. Build+deploy OK.
 
 ### 2026-03-26 — Session #349 (klar)
-Worker A: 15 controllers djupgranskade. 1 bugg fixad: MinDagController duplicerade PDO-params. 60+ endpoints curl-testade. Rebotling E2E verifierat (4908 rader).
-Worker B: 30+ frontend-sidor granskade. 18 trasiga ikoner fixade (bi→fa). produktion_procent bekraftat EJ kumulativt. Build+deploy OK.
-
-### 2026-03-26 — Session #348 (klar)
-Worker A: 18 controllers djupgranskade. 3 buggar fixade (YEARWEEK-alias, station_id, reason/operator_name). 70+ endpoints curl-testade.
-Worker B: 23+ frontend-sidor granskade. 7 diakritikfixar. Dark theme/lifecycle/svenska OK.
+Worker A: 15 controllers granskade. 1 PDO-bugg fixad. 60+ endpoints testade.
+Worker B: 30+ sidor granskade. 18 bi→fa ikonfixar. Build+deploy OK.
