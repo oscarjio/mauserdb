@@ -297,6 +297,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.label}: ${ctx.parsed.r.toFixed(1)}%`,
             },
@@ -349,6 +350,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${this.formatKr(ctx.parsed.y)}`,
             },
@@ -400,6 +402,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', padding: 12, font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.label}: ${this.formatKr(ctx.parsed)}`,
             },

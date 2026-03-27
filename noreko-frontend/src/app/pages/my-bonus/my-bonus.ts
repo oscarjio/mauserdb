@@ -1112,6 +1112,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
             }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(20,20,30,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
@@ -1180,6 +1181,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
           }
         },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0' } }
         }
       }
@@ -1218,6 +1220,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { display: false }
         },
         scales: {
@@ -1277,6 +1280,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } }
         },
         scales: {

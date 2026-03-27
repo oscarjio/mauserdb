@@ -146,7 +146,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
-          tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#4299e1', borderWidth: 1 },
+          tooltip: { intersect: false, mode: 'nearest', backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#4299e1', borderWidth: 1 },
           verticalAnnotations: { annotations: combinedAnnotations }
         } as any,
         scales: {

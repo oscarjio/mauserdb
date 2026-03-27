@@ -227,6 +227,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => `${item.raw} IBC`,
             },
@@ -290,6 +291,7 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => `${item.raw} IBC`,
             },

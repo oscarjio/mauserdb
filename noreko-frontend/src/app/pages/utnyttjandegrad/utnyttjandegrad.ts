@@ -223,6 +223,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 11 }, usePointStyle: true },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -313,6 +314,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
             },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',

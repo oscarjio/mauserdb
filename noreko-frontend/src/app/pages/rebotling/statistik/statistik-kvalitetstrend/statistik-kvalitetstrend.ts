@@ -78,6 +78,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#ecc94b', borderWidth: 1,
+            intersect: false, mode: 'nearest',
             callbacks: { label: (ctx: any) => { const v = ctx.parsed.y; return v !== null ? `${ctx.dataset.label}: ${v}%` : ''; } }
           }
         },

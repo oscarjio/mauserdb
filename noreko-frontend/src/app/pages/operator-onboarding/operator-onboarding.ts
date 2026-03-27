@@ -202,6 +202,7 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const val = ctx.parsed.y as number;

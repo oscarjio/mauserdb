@@ -265,6 +265,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } },
         },
         scales: {
@@ -335,6 +336,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } },
         },
         scales: {

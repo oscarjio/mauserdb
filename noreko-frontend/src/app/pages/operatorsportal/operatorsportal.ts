@@ -159,6 +159,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',

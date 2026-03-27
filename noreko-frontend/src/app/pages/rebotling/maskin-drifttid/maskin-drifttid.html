@@ -137,6 +137,11 @@
       <div *ngIf="errorHeatmap && !loadingHeatmap" class="mdt-error p-4">
         <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda heatmap-data
       </div>
+
+  <!-- Tom-state -->
+  <div class="text-center text-muted my-4" *ngIf="!loadingHeatmap && !errorHeatmap && !heatmapData">
+    <i class="fas fa-info-circle me-2"></i>Inga data att visa
+  </div>
       <!-- Heatmap Grid -->
       <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapData" class="mdt-heatmap-container">
         <!-- Header (timmar) -->

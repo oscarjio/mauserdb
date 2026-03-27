@@ -861,6 +861,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => { const v = ctx.parsed.y; return v != null ? ` ${ctx.dataset.label}: ${v} IBC` : ''; }
             }

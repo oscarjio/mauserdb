@@ -304,6 +304,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               title: (items) => {
                 const idx = items[0].dataIndex;

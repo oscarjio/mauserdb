@@ -319,6 +319,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 const v = ctx.parsed.y;

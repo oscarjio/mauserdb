@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -261,6 +261,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 if (ctx.datasetIndex === 2) {
@@ -393,6 +394,11 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   // ================================================================
 
   tooltipItem: ProductionTrendItem | null = null;
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.tooltipItem) { this.closeTrendTooltip(); }
+  }
 
   showTrendTooltip(item: ProductionTrendItem): void {
     this.tooltipItem = item;

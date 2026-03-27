@@ -118,6 +118,11 @@
       </button>
     </div>
 
+    <!-- Tom-state -->
+    <div class="text-center text-muted my-4" *ngIf="!loading && !error && weekDays.length === 0">
+      <i class="fas fa-info-circle me-2"></i>Inga data att visa
+    </div>
+
     <!-- Kalendergrid -->
     <div *ngIf="!loading" class="sp-grid-wrapper">
       <div class="table-responsive">

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -126,6 +126,11 @@ export class FavoriterPage implements OnInit, OnDestroy {
   openAddDialog(): void {
     this.showAddDialog = true;
     this.searchQuery = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showAddDialog) { this.closeAddDialog(); }
   }
 
   closeAddDialog(): void {

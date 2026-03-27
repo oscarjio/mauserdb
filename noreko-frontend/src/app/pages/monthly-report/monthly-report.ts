@@ -477,6 +477,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (items) => {
                 const idx = items[0]?.dataIndex;
@@ -566,6 +567,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => { const v = item.parsed.y; return v != null ? `${item.dataset.label}: ${v}%` : ''; }
             }

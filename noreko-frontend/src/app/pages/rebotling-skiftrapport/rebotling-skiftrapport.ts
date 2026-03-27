@@ -1631,6 +1631,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#1a202c',
             titleColor: '#e2e8f0',
             bodyColor: '#e2e8f0',
@@ -1720,6 +1721,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             display: false,
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#1a202c',
             titleColor: '#e2e8f0',
             bodyColor: '#e2e8f0',

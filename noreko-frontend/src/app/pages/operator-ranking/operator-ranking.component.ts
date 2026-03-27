@@ -303,6 +303,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.x} poang`,
             },
@@ -361,6 +362,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} poang`,
             },

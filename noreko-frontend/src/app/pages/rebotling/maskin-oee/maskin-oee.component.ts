@@ -325,6 +325,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (ctx: any) => {
                 const idx = ctx[0]?.dataIndex;
@@ -401,6 +402,7 @@ export class MaskinOeePage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(1) + '%' : '-'}`,
             },

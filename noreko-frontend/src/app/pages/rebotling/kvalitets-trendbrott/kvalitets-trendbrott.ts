@@ -231,6 +231,7 @@ export class KvalitetsTrendbrottPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (items: any) => {
                 const idx = items[0]?.dataIndex;

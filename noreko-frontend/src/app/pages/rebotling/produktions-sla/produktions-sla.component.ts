@@ -235,6 +235,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.label}: ${ctx.parsed}%`,
             }
@@ -282,6 +283,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } },
         },
         scales: {
@@ -356,6 +358,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } },
         },
         scales: {

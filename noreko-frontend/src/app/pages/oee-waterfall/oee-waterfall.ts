@@ -162,6 +162,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => {
                 const seg = this.segments[item.dataIndex];

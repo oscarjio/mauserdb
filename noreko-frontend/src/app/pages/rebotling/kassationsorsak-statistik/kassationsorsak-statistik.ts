@@ -295,6 +295,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
           }
         },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0', font: { size: 12 } } },
         },
         scales: {
@@ -352,6 +353,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
         },
         scales: {
@@ -397,6 +399,7 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
         },
         scales: {

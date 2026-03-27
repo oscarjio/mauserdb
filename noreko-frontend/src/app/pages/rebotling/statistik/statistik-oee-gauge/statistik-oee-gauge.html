@@ -32,6 +32,11 @@
         <button class="btn btn-sm btn-outline-success" (click)="loadOee()">Försök igen</button>
       </div>
 
+  <!-- Tom-state -->
+  <div class="text-center text-muted my-4" *ngIf="!loading && !error && !data">
+    <i class="fas fa-info-circle me-2"></i>Inga data att visa
+  </div>
+
       <!-- OEE Gauge Content -->
       <div *ngIf="data">
         <div class="row align-items-center">

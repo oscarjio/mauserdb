@@ -114,7 +114,7 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
         cutout: '78%',
         plugins: {
           legend: { display: false },
-          tooltip: { enabled: false }
+          tooltip: { intersect: false, mode: 'nearest', enabled: false }
         }
       },
       plugins: [{

@@ -19,6 +19,29 @@ body {
   box-sizing: border-box;
 }
 
+/* ============================
+   KEYBOARD FOCUS — focus-visible for dark theme
+   ============================ */
+*:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
+}
+
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #63b3ed;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 179, 237, 0.3);
+}
+
+/* Remove default outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Allow horizontal scrolling for table-responsive elements */
 .table-responsive {
   overflow-x: auto !important;

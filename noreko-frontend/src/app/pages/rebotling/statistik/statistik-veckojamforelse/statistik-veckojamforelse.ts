@@ -107,6 +107,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 12 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(20,20,30,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',

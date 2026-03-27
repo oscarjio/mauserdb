@@ -168,7 +168,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
         cutout: '78%',
         plugins: {
           legend:  { display: false },
-          tooltip: { enabled: false }
+          tooltip: { intersect: false, mode: 'nearest', enabled: false }
         }
       },
       plugins: [{

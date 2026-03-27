@@ -374,6 +374,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
             labels: { color: '#e2e8f0', font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterLabel: (ctx: any) => {
                 const idx = ctx.dataIndex;
@@ -450,6 +451,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy, ComponentCanDea
             labels: { color: '#e2e8f0', font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               title: (ctx: any) => {
                 const idx = ctx[0]?.dataIndex;

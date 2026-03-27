@@ -771,6 +771,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => { const v = ctx.parsed.y; return v != null ? `${ctx.dataset.label}: ${v} min/IBC` : ''; }
             }
@@ -1043,6 +1044,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const v = ctx.parsed.y;
@@ -1405,6 +1407,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => { const v = ctx.parsed.y; return v != null ? `${ctx.dataset.label}: ${v}` : ''; }
             }

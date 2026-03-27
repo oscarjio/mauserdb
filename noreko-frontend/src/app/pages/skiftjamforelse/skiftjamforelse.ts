@@ -193,6 +193,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } },
         },
         scales: {
@@ -272,6 +273,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y ?? '-'}% OEE`,
             },

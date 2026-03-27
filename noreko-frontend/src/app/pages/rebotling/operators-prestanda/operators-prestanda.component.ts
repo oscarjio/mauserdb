@@ -422,6 +422,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const d = ctx.raw;
@@ -563,6 +564,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
         },
         scales: {
@@ -635,6 +637,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
         },
         scales: {

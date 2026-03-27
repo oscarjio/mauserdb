@@ -675,6 +675,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
             labels: { color: '#a0aec0', font: { size: 12 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: ctx => {
                 const v = ctx.raw as number;
@@ -749,6 +750,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
             labels: { color: '#a0aec0', font: { size: 12 }, usePointStyle: true }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: ctx => {
                 const v = ctx.raw as number | null;

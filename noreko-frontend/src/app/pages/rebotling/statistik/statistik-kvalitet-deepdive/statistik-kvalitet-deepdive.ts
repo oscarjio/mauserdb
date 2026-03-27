@@ -272,6 +272,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 11 }, padding: 12 }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
@@ -342,6 +343,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 if (ctx.datasetIndex === 0) {
@@ -434,6 +436,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 11 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0'

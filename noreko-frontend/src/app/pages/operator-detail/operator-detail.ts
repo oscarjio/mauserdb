@@ -576,6 +576,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => ` ${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(1)} IBC/h`
             }

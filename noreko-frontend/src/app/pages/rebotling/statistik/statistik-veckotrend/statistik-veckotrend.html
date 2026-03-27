@@ -20,6 +20,11 @@
     <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
   </div>
 
+  <!-- Tom-state -->
+  <div class="text-center text-muted my-4" *ngIf="!loading && !error && kpis.length === 0">
+    <i class="fas fa-info-circle me-2"></i>Inga data att visa
+  </div>
+
   <!-- KPI-kort rad -->
   <div class="kpi-row" *ngIf="kpis.length > 0">
     <div class="kpi-card" *ngFor="let kpi of kpis; let i = index; trackBy: trackByIndex">

@@ -706,6 +706,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: TooltipItem<'bubble'>) => {
                 const s = shifts[ctx.dataIndex];
@@ -868,6 +869,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.97)',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1037,6 +1039,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(20,20,30,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
@@ -1269,6 +1272,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 11 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.97)',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',

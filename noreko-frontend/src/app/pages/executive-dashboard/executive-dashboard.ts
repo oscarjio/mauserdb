@@ -496,6 +496,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (items: any[]) => {
                 const idx = items[0]?.dataIndex ?? 0;
@@ -629,6 +630,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { display: false }
         },
         scales: {

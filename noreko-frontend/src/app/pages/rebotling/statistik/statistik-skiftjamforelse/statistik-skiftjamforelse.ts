@@ -148,6 +148,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 }, boxWidth: 14, padding: 14 }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
@@ -251,6 +252,7 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 }, boxWidth: 14, padding: 14 }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',

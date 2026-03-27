@@ -291,6 +291,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             labels: { color: '#e2e8f0' },
           },

@@ -208,6 +208,7 @@ export class ParetoPage implements OnInit, OnDestroy {
             },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => {
                 if (item.dataset.label === 'Stopptid (min)') {

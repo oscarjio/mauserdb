@@ -276,6 +276,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             labels: { color: '#a0aec0', font: { size: 12 } },
           },

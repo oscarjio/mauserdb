@@ -308,6 +308,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 12 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const val = ctx.parsed.y;
@@ -388,6 +389,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 12 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.r}`,
             },

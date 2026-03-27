@@ -337,7 +337,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
-          tooltip: { backgroundColor: 'rgba(20,20,20,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0' }
+          tooltip: { intersect: false, mode: 'nearest', backgroundColor: 'rgba(20,20,20,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0' }
         },
         scales: {
           y: { min: 0, max: 100, ticks: { color: '#a0aec0', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
@@ -380,7 +380,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
-          tooltip: { backgroundColor: 'rgba(20,20,20,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0' }
+          tooltip: { intersect: false, mode: 'nearest', backgroundColor: 'rgba(20,20,20,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0' }
         },
         scales: {
           y: { beginAtZero: true, ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.05)' } },

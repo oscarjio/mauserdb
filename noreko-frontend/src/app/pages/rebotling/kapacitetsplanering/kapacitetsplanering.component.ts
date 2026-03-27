@@ -329,6 +329,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => ` ${item.dataset.label}: ${item.raw} IBC`,
             },
@@ -430,6 +431,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterLabel: (item) => {
                 const idx = item.dataIndex;
@@ -534,6 +536,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => ` ${item.dataset.label}: ${item.raw}%`,
             },
@@ -634,6 +637,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => ` ${item.label}: ${item.raw}%`,
             },
@@ -723,6 +727,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => ` ${item.dataset.label}: ${item.raw}h`,
             },

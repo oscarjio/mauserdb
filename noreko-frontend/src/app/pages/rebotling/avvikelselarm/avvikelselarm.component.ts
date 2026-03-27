@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -232,6 +232,7 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y} larm`,
             },
@@ -261,6 +262,11 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.kvitteraLarm = larm;
     this.kvitteraNamn = '';
     this.kvitteraKommentar = '';
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.kvitteraLarm) { this.closeKvittera(); }
   }
 
   closeKvittera(): void {

@@ -385,6 +385,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const idx = ctx.dataIndex;

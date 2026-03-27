@@ -187,6 +187,7 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               title: (items) => {
                 // Visa fullt datum om tillgangligt

@@ -216,6 +216,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             display: true,
             labels: { color: '#e2e8f0', font: { size: 11 } },
@@ -278,6 +279,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { display: false },
         },
         scales: {

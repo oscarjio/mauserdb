@@ -7,6 +7,9 @@
       </div>
       <div class="card-body">
         <div class="text-center py-3" *ngIf="prediktionLoading"><div class="spinner-border text-warning" role="status"></div></div>
+        <div class="text-center text-muted my-4" *ngIf="!prediktionLoading && !prediktionLoaded">
+          <i class="fas fa-info-circle me-2"></i>Inga data att visa
+        </div>
         <ng-container *ngIf="prediktionLoaded && !prediktionLoading">
         <div class="row align-items-center g-4">
           <div class="col-md-4 text-center">

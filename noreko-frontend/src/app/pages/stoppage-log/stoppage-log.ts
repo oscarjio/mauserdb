@@ -808,6 +808,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -945,6 +946,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1005,6 +1007,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           legend: { display: false },
           title: { display: true, text: 'Stopptid per orsak (Pareto)', color: '#e2e8f0' },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1075,6 +1078,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           legend: { display: false },
           title: { display: true, text: 'Antal stopp per dag — senaste 14 dagar', color: '#e2e8f0' },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1150,6 +1154,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           title: { display: true, text: 'Stopptid per dag', color: '#e2e8f0' },
           legend: { labels: { color: '#a0aec0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1257,6 +1262,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 const v = ctx.parsed.y;

@@ -182,6 +182,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => ` IBC: ${(item.raw as number).toFixed(2)} snitt`,
             },
@@ -275,6 +276,7 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => ` ${item.dataset.label}: ${item.raw} min`,
             },

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -156,6 +156,11 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   }
 
   /** Close drill-down modal */
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.drilldownOpen) { this.closeDrilldown(); }
+  }
+
   closeDrilldown(): void {
     this.drilldownOpen = false;
     this.drilldownCause = '';
@@ -280,6 +285,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
             }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(26, 32, 44, 0.95)',
             titleColor: '#e2e8f0',
             bodyColor: '#e2e8f0',

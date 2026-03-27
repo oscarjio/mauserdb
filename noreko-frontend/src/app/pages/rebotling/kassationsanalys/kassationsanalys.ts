@@ -281,6 +281,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => {
                 if (item.dataset.yAxisID === 'yPct') return ` Kumulativ: ${item.raw}%`;
@@ -359,6 +360,7 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
         interaction: { mode: 'index', intersect: false },
         animation: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             display: true,
             position: 'bottom',

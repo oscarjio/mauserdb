@@ -254,6 +254,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             labels: { color: '#a0aec0' },
           },

@@ -284,6 +284,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
             },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 const total = (ctx.dataset.data as number[]).reduce((a, b) => a + b, 0);
@@ -340,6 +341,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${this.formatKr(ctx.parsed.y)}`,
             },
@@ -393,6 +395,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `Kostnad/IBC: ${this.formatKr(ctx.parsed.y)}`,
             },

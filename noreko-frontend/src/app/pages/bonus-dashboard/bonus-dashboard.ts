@@ -454,6 +454,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0' } }
         },
         scales: {
@@ -565,6 +566,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', boxWidth: 14, font: { size: 11 } }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 const val = ctx.parsed.y;
@@ -713,6 +715,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0' } }
         },
         scales: {

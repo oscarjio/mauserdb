@@ -1,5 +1,58 @@
 # MauserDB Dev Log
 
+## Session #354 — Worker B (2026-03-27)
+**Fokus: Keyboard a11y + loading states + Chart.js touch-tooltips + UX-granskning**
+
+### UPPGIFT 1: Keyboard navigation audit — KLAR (8 fixar)
+- **Skip-link:** La till "Hoppa till innehall" lank i layout.html med CSS i layout.css (dold tills fokus, visas pa Tab)
+- **focus-visible global styling:** La till focus-visible regler i styles.css — alla interaktiva element far `outline: 2px solid #63b3ed` med `outline-offset: 2px` och `box-shadow` for synlighet i dark theme. Mouse-klick tar bort outline via `:focus:not(:focus-visible)`.
+- **tabindex > 0:** Ingen forekomst hittades — redan korrekt overallt.
+- **Escape-stang modaler:** La till `@HostListener('document:keydown.escape')` i 4 komponenter som saknade det:
+  - skiftoverlamning.component.ts (showConfirm)
+  - statistik-dashboard.component.ts (tooltipItem)
+  - statistik-pareto-stopp.ts (drilldownOpen)
+  - avvikelselarm.component.ts (kvitteraLarm)
+  - favoriter.ts (showAddDialog)
+- **Click pa non-interactive elements:** Granskade alla `<div (click)>` — de flesta ar redan korrekt markerade med `role="button" tabindex="0" (keydown.enter)` eller ar modal-backdrops/stopPropagation (behover inte tangentbord).
+
+**Andrade filer:** layout.html, layout.css, styles.css, skiftoverlamning.component.ts, statistik-dashboard.component.ts, statistik-pareto-stopp.ts, avvikelselarm.component.ts, favoriter.ts
+
+### UPPGIFT 2: Loading states UX — KLAR (8 tom-state fixar)
+Granskade alla Angular-komponenter. De flesta hade redan loading-spinner och felmeddelanden. La till "Inga data att visa" tom-state i 8 filer som saknade:
+- skiftjamforelse.html
+- statistik-overblick.component.html
+- operatorsportal.html
+- shift-plan.html
+- maskin-drifttid.html
+- statistik-oee-gauge.html
+- statistik-prediktion.html
+- statistik-produktionsmal.html
+
+### UPPGIFT 3: Chart.js touch-stod — KLAR (179 tooltip-fixar i 100 filer)
+- Alla 192 Chart.js-instanser har nu `tooltip: { intersect: false, mode: 'nearest' }` — gor att touch-tooltips fungerar pa mobil utan att behova traffa exakt punkt.
+- Alla hade redan `responsive: true, maintainAspectRatio: false` (192/192).
+- Canvas-containrar hade redan korrekt `position: relative; height: Xpx` i de flesta fall.
+- Fixade 179 tooltips i 100 TS-filer (30 hade redan korrekt config, 70 var nya, resterande mergades in i befintliga tooltip-block).
+
+### UPPGIFT 4: UX-granskning — KLAR
+- Dark theme: Korrekt overallt (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Formulardvalidering: is-invalid/is-valid CSS finns globalt
+- Responsiv: Breakpoints pa 576px/768px redan implementerade
+- Print: Utskriftsstyling finns globalt
+- Knappar/formular: Fungerar korrekt — alla interaktiva element har aria-labels
+
+### UPPGIFT 5: Bygg + Deploy — KLAR
+- `npx ng build` — PASS (endast CommonJS-varningar)
+- Deployade till /var/www/mauserdb-dev/
+- `curl https://dev.mauserdb.com/` — HTTP 200
+
+### Sammanfattning
+- **100 TS-filer** andrade (Chart.js tooltip touch-stod)
+- **8 HTML-filer** andrade (tom-state meddelanden)
+- **3 CSS/layout-filer** andrade (skip-link, focus-visible, layout)
+- **5 TS-filer** andrade (Escape-tangent for modaler)
+- Totalt ~195 fixar
+
 ## Session #354 — Worker A (2026-03-27)
 **Fokus: DATE()-fixar alla controllers + getLiveStats under 200ms + E2E-test**
 

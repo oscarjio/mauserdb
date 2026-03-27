@@ -302,6 +302,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}%`,
             },
@@ -401,6 +402,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 if (ctx.parsed.y === null) return '';

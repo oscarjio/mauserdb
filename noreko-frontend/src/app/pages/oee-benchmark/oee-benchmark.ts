@@ -196,7 +196,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
         circumference: 180,
         plugins: {
           legend:  { display: false },
-          tooltip: { enabled: false },
+          tooltip: { intersect: false, mode: 'nearest', enabled: false },
         },
       },
     });
@@ -266,6 +266,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
             labels: { color: '#a0aec0', font: { size: 12 }, boxWidth: 16, padding: 16 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',

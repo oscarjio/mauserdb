@@ -406,6 +406,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
           legend: { display: false },
           title: { display: true, text: 'Aktivitet per dag', color: '#e2e8f0' },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',

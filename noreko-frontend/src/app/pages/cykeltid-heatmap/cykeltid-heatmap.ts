@@ -364,6 +364,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
             labels: { color: '#a0aec0', font: { size: 12 }, boxWidth: 16, padding: 16 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',

@@ -177,6 +177,7 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', padding: 12 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} IBC`,
             },

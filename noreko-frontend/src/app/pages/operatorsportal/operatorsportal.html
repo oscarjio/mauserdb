@@ -25,6 +25,11 @@
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorStats }}
   </div>
 
+  <!-- Tom-state -->
+  <div class="text-center text-muted my-4" *ngIf="!loadingStats && !errorStats && !stats">
+    <i class="fas fa-info-circle me-2"></i>Inga data att visa
+  </div>
+
   <!-- ---- KPI-kort ---- -->
   <div *ngIf="!loadingStats && stats" class="kpi-grid">
 

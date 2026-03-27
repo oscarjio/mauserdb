@@ -172,6 +172,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0' }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y} IBC`
             }

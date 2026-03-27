@@ -1344,6 +1344,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               labels: { color: '#e0e0e0', font: { size: 13, weight: 'bold' } }
             },
             tooltip: {
+              intersect: false, mode: 'nearest',
               backgroundColor: 'rgba(20, 20, 20, 0.95)',
               titleColor: '#fff',
               bodyColor: '#e0e0e0',

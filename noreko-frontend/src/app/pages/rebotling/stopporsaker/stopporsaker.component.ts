@@ -305,6 +305,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => {
                 if (ctx.datasetIndex === 0) return `${ctx.parsed.y} stopp`;
@@ -368,6 +369,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.parsed.x} min`,
             },
@@ -438,6 +440,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
         },
         scales: {

@@ -96,6 +96,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (items: any[]) => {
                 const d = sorted[items[0].dataIndex];

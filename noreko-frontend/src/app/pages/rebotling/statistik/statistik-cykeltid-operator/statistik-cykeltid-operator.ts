@@ -175,6 +175,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 11 }, boxWidth: 14, padding: 16 }
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(15,17,23,0.96)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',

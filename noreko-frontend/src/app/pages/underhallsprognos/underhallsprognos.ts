@@ -199,6 +199,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: ctx => {
                 const val = ctx.parsed.x ?? 0;

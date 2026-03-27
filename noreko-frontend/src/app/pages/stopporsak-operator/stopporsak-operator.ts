@@ -248,6 +248,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const val = ctx.parsed.x as number;
@@ -314,6 +315,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 11 }, padding: 12 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const val = ctx.parsed as number;
@@ -365,6 +367,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
             labels: { color: '#a0aec0', font: { size: 11 }, padding: 10 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const o = orsaker[ctx.dataIndex];

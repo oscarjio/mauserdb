@@ -90,6 +90,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: 'rgba(20,20,30,0.95)',
             titleColor: '#fff',
             bodyColor: '#e2e8f0',

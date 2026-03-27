@@ -225,6 +225,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               title: (items: any) => {
                 const idx = items[0]?.dataIndex;

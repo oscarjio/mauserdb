@@ -259,6 +259,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: {
             display: true,
             position: 'bottom',
@@ -317,6 +318,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => ` ${item.raw} st (${orsaker[item.dataIndex]?.procent ?? 0}%)`,
             },
@@ -383,6 +385,7 @@ export class KassationsorsakPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item) => {
                 const v = item.raw as number | null;

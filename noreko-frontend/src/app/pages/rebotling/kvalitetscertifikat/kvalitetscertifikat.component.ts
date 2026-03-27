@@ -378,6 +378,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`,
             },

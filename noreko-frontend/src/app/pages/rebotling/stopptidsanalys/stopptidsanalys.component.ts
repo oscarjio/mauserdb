@@ -315,6 +315,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const min = ctx.parsed.x;
@@ -379,6 +380,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} min`,
             },
@@ -435,6 +437,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 }, padding: 16 },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (ctx: any) => {
                 const item = items[ctx.dataIndex];

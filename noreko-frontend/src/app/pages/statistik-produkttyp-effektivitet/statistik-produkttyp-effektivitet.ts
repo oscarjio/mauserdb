@@ -209,6 +209,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
         },
         scales: {
@@ -253,6 +254,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { display: false },
         },
         scales: {
@@ -281,6 +283,7 @@ export class StatistikProduktTypEffektivitetComponent implements OnInit, OnDestr
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+          tooltip: { intersect: false, mode: 'nearest' },
           legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
         },
         scales: {

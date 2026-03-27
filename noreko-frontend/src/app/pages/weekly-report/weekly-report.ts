@@ -1334,6 +1334,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               afterBody: (items) => {
                 const idx = items[0]?.dataIndex;

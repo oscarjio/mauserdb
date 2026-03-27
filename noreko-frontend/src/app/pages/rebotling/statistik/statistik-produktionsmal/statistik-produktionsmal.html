@@ -29,6 +29,11 @@
         <button class="btn btn-sm btn-outline-warning" (click)="loadToday(); loadWeek()">Försök igen</button>
       </div>
 
+      <!-- Tom-state -->
+      <div class="text-center text-muted my-4" *ngIf="!loadingToday && !loadingWeek && !error && !todayData && !weekData">
+        <i class="fas fa-info-circle me-2"></i>Inga data att visa
+      </div>
+
       <!-- Sparmeddelande -->
       <div class="alert alert-info py-2 px-3 mb-3" *ngIf="saveMsg">
         <i class="fas fa-info-circle me-2"></i>{{ saveMsg }}

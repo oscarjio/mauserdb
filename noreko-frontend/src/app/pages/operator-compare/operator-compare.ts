@@ -1201,6 +1201,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
@@ -1288,6 +1289,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             backgroundColor: '#2d3748',
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',

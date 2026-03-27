@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -26,6 +26,11 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy, Compone
   isSubmitting = false;
   showConfirm = false;
   errorSkiftdata = false;
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.showConfirm) { this.cancelSubmit(); }
+  }
 
   // Skiftsammanfattning (auto-populerad)
   skiftdata: SkiftdataResponse | null = null;

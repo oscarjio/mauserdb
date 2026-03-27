@@ -225,6 +225,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => ` Antal: ${item.raw}`,
             },
@@ -313,6 +314,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: (item: any) => {
                 if (item.dataset.label === 'Kasserade IBC') {

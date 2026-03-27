@@ -179,6 +179,7 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
+            intersect: false, mode: 'nearest',
             callbacks: {
               label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} IBC/h`,
             },
