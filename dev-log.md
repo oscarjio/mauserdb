@@ -1,5 +1,88 @@
 # MauserDB Dev Log
 
+## Session #358 — Worker B (2026-03-27)
+**Fokus: Icke-rebotling komponentgranskning + Admin/Operator/Bonus-sidor + Rapport-sidor + Build + Deploy**
+
+### UPPGIFT 1: Granska ALLA icke-rebotling Angular-komponenter — KLAR
+Systematiskt granskade alla ~80 icke-rebotling Angular-sidor/komponenter.
+
+**Granskningsresultat:**
+
+1. **Dark theme** — Korrekt i alla komponenter. #1a202c bg, #2d3748 cards, #e2e8f0 text. Alla #fff/#000-forekomster ar i @media print-block, PDF-export, Chart.js tooltips eller badge-bakgrunder (korrekt anvandning).
+
+2. **Responsivt** — Alla sidor anvander Bootstrap 5 grid med col-md/col-lg breakpoints. Tabeller har table-responsive. Toolbar-rader kollapsar korrekt.
+
+3. **Svensk text** — Inga engelska UI-strangar hittade i nagon template. Alla formularlabels, felmeddelanden, knappar, tom-states och laddningsmeddelanden ar pa svenska.
+
+4. **Loading states** — Alla datahantare har loading-flaggor med spinner. Enda undantagen ar statiska sidor (about, contact, 404) som inte hamtar data.
+
+5. **Tom-state** — Alla listor/tabeller har "Ingen data"/"Inga ... hittades" meddelanden vid tom data.
+
+6. **OnDestroy** — Alla komponenter med setInterval/setTimeout/Chart.js har korrekt ngOnDestroy med clearInterval, clearTimeout och chart.destroy(). Verifierat via grep pa samtliga filer.
+
+7. **Formularvalidering** — create-user har isPasswordValid, isEmailValid, canSubmit guards + visuell feedback. users har required + minlength + touched-validering. operators har namn/nummer-validering. bonus-admin har stigande ordning-validering + max 100k SEK per niva. Utbetalningsformularet har period/belopp/operator-validering.
+
+**Komponenter granskade (80+ st) inkl:**
+- users, create-user, operators (admin-CRUD)
+- bonus-admin (viktningar, mal, simulator, utbetalningar, rattviseaudit)
+- bonus-dashboard (ranking, team, KPI-radar, veckotrend)
+- operator-dashboard (idag/vecka/teamstamning)
+- operator-personal-dashboard (min produktion, tempo, bonus, stopp, veckotrend)
+- my-bonus (KPI, historik, achievements, peer ranking, feedback, kalender)
+- vd-dashboard (hero KPI, stopp, top operatorer, station OEE, veckotrend, skiftstatus)
+- executive-dashboard, weekly-report, monthly-report, morgonrapport
+- maintenance-log (form, list, equipment-stats, kpi-analysis, service-intervals)
+- stoppage-log, audit-log, underhallslogg, underhallsprognos
+- heatmap, cykeltid-heatmap, pareto, oee-trendanalys, oee-benchmark, oee-waterfall
+- live-ranking, andon, andon-board, shift-handover, skiftoverlamning
+- operator-ranking, operator-compare, operator-detail, operator-trend, operator-onboarding
+- statistik-overblick, statistik-produkttyp-effektivitet, effektivitet
+- login, register, not-found, about, contact, funktionshub, favoriter
+- news-admin, feature-flag-admin, vpn-admin
+- pdf-export-button (shared component)
+
+### UPPGIFT 2: Admin-sidor djupgranskning — KLAR
+- **users.ts**: CRUD fullt fungerande. Sok med debounce, sortering (4 kolumner), statusfilter (alla/aktiva/admin/inaktiva). Inline redigering med validering. Admin-toggle, aktiv-toggle, radering med confirm(). Alla operationer har timeout(8000) + catchError + takeUntil.
+- **create-user.ts**: Formularvalidering (username 3+ tecken, password 8+ tecken med bokstav+siffra, email-regex). ComponentCanDeactivate guard. Visuell validering med is-valid/is-invalid klasser.
+- **operators.ts**: CRUD + ranking + korrelationsanalys (operatorspar) + kompatibilitetsmatris (operator x produkt). Trenddiagram per operator. CSV-export. Aktivitetsstatus (active/recent/inactive/never).
+- **bonus-admin.ts**: 7 flikar (oversikt, config, simulator, utbetalningar, historik, rattviseaudit). What-if simulator med preset-scenarios + scenario-jamforelse + historisk simulering. Utbetalningsregistrering med validering. Rattviseaudit med Canvas2D-diagram.
+
+**API-test:**
+- `operators&run=list` -> auth required (korrekt)
+- `operator-dashboard&run=today` -> 200 OK, returnerar operatorsdata
+- `operator-dashboard&run=weekly` -> 200 OK, 8 operatorer
+- `operator-dashboard&run=summary` -> 200 OK, vecka_total_ibc=694
+
+### UPPGIFT 3: Bonus/operator-sidor — KLAR
+- **bonus-dashboard**: Polling var 30s. Ranking med trend-pilar (jamfor med foregaende period). Team-vy med skiftjamforelse. Veckotrend-graf. Hall of Fame. Loneprognos. CSV-export.
+- **operator-dashboard**: 3 flikar (idag/vecka/stamning). Automatisk uppdatering var 60s. Chart.js linjegraf for top 3 operatorer. Teamstamning med feedback-snittvarde + dagslista.
+- **operator-personal-dashboard**: Operatorsval (auto fran inloggad anvandare). 5 datakort (produktion, tempo, bonus, stopp, veckotrend). Auto-refresh var 60s. Alla chart.destroy() i ngOnDestroy.
+- **my-bonus**: Extremt omfattande sida. KPI-radar, historikgraf, IBC-trend, veckohistorik, achievements/badges, streak, peer ranking, navarvo-kalender, feedback. PDF/CSV-export. Alla 4 Charts + 3 timers korrekt rensade i ngOnDestroy.
+
+### UPPGIFT 4: Rapport-sidor och PDF-export — KLAR
+- **weekly-report**: Veckorapport med KPI, daglig uppdelning, operatorsranking, best/worst dag. Chart.js grafer. PDF-export via print-styles.
+- **monthly-report**: Manadsrapport med sammanfattning, daglig graf, veckovis uppdelning. forkJoin for parallell datahantning.
+- **pdf-export-button**: Shared component med PdfExportService. Loading state + felhantering.
+- **my-bonus PDF**: Dynamisk PDF-generering via pdfmake med lazy loading. Inkluderar KPI-tabeller, prognos, daglig uppdelning.
+- **skiftrapport-export**: Print-optimerade CSS styles med @media print.
+
+### UPPGIFT 5: Bygg + Deploy + Test — KLAR
+- `npx ng build` PASS (inga fel, bara CommonJS-varningar fran canvg/html2canvas)
+- Frontend deployed till dev.mauserdb.com
+- Backend deployed till dev.mauserdb.com
+- Site returnerar HTTP 200 med korrekt dark theme (#1a202c bakgrund)
+- API-endpoints svarar korrekt (operator-dashboard returnerar live produktionsdata)
+
+### Sammanfattning
+**Inga buggar eller problem hittade.** Alla 80+ icke-rebotling komponenter foljer projektets regler:
+- Dark theme korrekt i alla komponenter
+- Svensk text overallt
+- Loading states overallt (utom statiska sidor)
+- Tom-states overallt
+- OnDestroy med chart.destroy() + clearInterval/clearTimeout overallt
+- Formularvalidering i alla CRUD-formuler
+- Responsiv design med Bootstrap 5 grid
+
 ## Session #357 — Worker B (2026-03-27)
 **Fokus: Rebotling-sidor UX-djupgranskning + Dashboard-genomgang + Statistik/grafer + Navigation + Formular + Build + Deploy**
 
