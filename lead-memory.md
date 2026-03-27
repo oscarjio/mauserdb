@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #369)*
+*Senast uppdaterad: 2026-03-27 (session #370)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -76,6 +76,7 @@ Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k 
 Session #367: month-compare 1032ms→540ms + operatorsbonus RATTVIS + admin CRUD OK + caching 6 controllers OK + bundle 151 kB (redan optimerad) + 111 endpoints 0x500 + $cutoff dead code borttagen + deploy dev OK.
 Session #368: KRITISK buggfix livestats COUNT→SUM(MAX) + month-compare 600ms→100ms (covering index+cache) + cache-invalidering 9 admin-endpoints + heatmap UX (gradient+klickbar+summor) + 145 endpoints 0x500 + 0 DB diskrepanser + deploy dev OK.
 Session #369: Livestats ibc_today fix (overcounting) + summaryTotalIbc buggfix + SQL-audit 0 mismatches + 171 endpoints 0x500 + produktion_procent EJ kumulativ (bekraftad) + 0 DB diskrepanser + deploy dev OK.
+Session #370: PHP dead code cleanup + error handling OK + 115 endpoints 0x500 alla <1s + driftstopp-timeline + effektivitet cap 150% + lifecycle audit 0 leaks + WCAG AA OK + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -88,23 +89,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #369):
-- Error monitoring — centraliserad loggning
+### Nasta (session #371):
+- Ta bort redundant index idx_datum pa rebotling_ibc
 - E2E regressionstest — automatiserat
-- PHP dead code audit
-- Frontend accessibility WCAG AA
 - API response-format standardisering
+- Rebotling skiftrapport UX-forbattring
+- Admin-sidor CRUD djuptest
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #370 (klar)
+Worker A: PHP dead code audit (1 dead method borttagen). Error handling review OK. 115 endpoints 0x500 alla <1s. SQL optimization: covering indexes OK, 1 redundant index noterad (idx_datum). Deploy dev OK.
+Worker B: Driftstopp-timeline + effektivitet cap 150%. Icke-rebotling UX 6 sidor OK. Lifecycle audit 0 memory leaks. WCAG AA OK. Build + deploy dev OK.
 
 ### 2026-03-27 — Session #369 (klar)
 Worker A: Livestats ibc_today fix (SUM MAX→MAX ibc_count, overcounting fixad). SQL-audit 90+ tabeller 0 mismatches. 171 endpoints 0x500 alla <2s. API vs prod DB 0 diskrepanser. Deploy dev OK.
 Worker B: summaryTotalIbc buggfix (totalt→ibc_ok). produktion_procent bekraftad EJ kumulativ (4:e gangen). UX djupgranskning alla rebotling-sidor OK. Data-verifiering 0 diskrepanser. Build + deploy dev OK.
 
-### 2026-03-27 — Session #367 (klar)
-Worker A: month-compare optimerad 1032ms→540ms (DATE_FORMAT→range scan + query-konsolidering). Admin CRUD OK (operatorer+skift). Caching 6 controllers TTL 5-30s OK. 111 endpoints 0x500 alla <2s. Deploy dev OK.
-Worker B: Operatorsbonus RATTVIS (op1/op2/op3 identiskt via UNION ALL, team-bonus gemensam). Bundle redan 151 kB (8.8MB var gammal matning). UX+dark theme OK. Build 0 fel. Deploy dev OK.
-
 ### 2026-03-27 — Session #368 (klar)
 Worker A: KRITISK buggfix livestats ibcToday (COUNT→SUM MAX ibc_ok). Month-compare covering index op2/op3 + 30s filcache (600ms→100ms HIT). Cache-invalidering 9 admin-CRUD-endpoints. 145 endpoints 0x500 alla <2s. Deploy dev OK.
-Worker B: Uncommitted changes (skiftrapport+statistik) granskade OK. Heatmap UX: gradient-farger, IBC-siffror, klickbar detaljpanel, dag/tim-summor, hover-effekt. Alla rebotling-sidor dark theme OK. Data-verifiering 0 diskrepanser. Build 0 fel. Deploy dev OK.
+Worker B: Heatmap UX (gradient+klickbar+summor). Alla rebotling-sidor dark theme OK. Data-verifiering 0 diskrepanser. Build 0 fel. Deploy dev OK.
