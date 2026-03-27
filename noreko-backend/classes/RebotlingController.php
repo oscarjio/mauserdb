@@ -402,28 +402,23 @@ class RebotlingController {
         try {
             // ULTRA MEGA-QUERY: Allt i EN ENDA roundtrip med CTE
             // Sparar 2 DB-roundtrips (~240ms) jämfört med 3 separata queries
-            // FIX session #368: ibc_today använder nu SUM(MAX(ibc_ok)) per skift
-            // istället för COUNT(*) som räknade data-snapshots, inte IBC-enheter
+            // FIX: Använd MAX(ibc_count) för ibc_today.
+            // ibc_count är en sekventiell räknare (1,2,3...) som startar på 1 varje dag.
+            // Tidigare bugg: SUM(MAX(ibc_ok)) per skifträknare gav fel (158 ist f 123)
+            // eftersom ibc_ok inte nollställs korrekt vid nya skifträknare.
             $stmt = $this->pdo->prepare("
                 WITH skift AS (
                     SELECT skiftraknare AS sk FROM rebotling_onoff
                     WHERE skiftraknare IS NOT NULL ORDER BY datum DESC LIMIT 1
-                ),
-                today_ibc AS (
-                    SELECT COALESCE(SUM(max_ok), 0) AS total
-                    FROM (
-                        SELECT MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                        GROUP BY skiftraknare
-                    ) t
                 )
                 SELECT
                     (SELECT sk FROM skift) AS current_skift,
-                    (SELECT total FROM today_ibc) AS ibc_today,
+                    (SELECT COALESCE(MAX(ibc_count), 0) FROM rebotling_ibc
+                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
                     (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer,
-                    (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
-                     WHERE skiftraknare = (SELECT sk FROM skift) AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE skiftraknare = (SELECT sk FROM skift)
+                       AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
                     (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
                     (SELECT p.cycle_time_minutes
