@@ -134,7 +134,8 @@ try {
         PDO::ATTR_PERSISTENT => true   // Återanvänd DB-anslutningar mellan requests (~5-10ms besparing per request)
     ]);
 } catch (\Throwable $e) {
-    error_log('api.php: Databasanslutning misslyckades: ' . get_class($e) . ': ' . $e->getMessage());
+    require_once __DIR__ . '/classes/ErrorLogger.php';
+    ErrorLogger::log($e, 'api.php: Databasanslutning misslyckades');
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
     exit;
@@ -319,7 +320,8 @@ if (class_exists($className)) {
             'success' => false,
             'error' => 'Internt serverfel'
         ], JSON_UNESCAPED_UNICODE);
-        error_log("API Error [{$action}]: " . get_class($e) . ': ' . $e->getMessage());
+        require_once __DIR__ . '/classes/ErrorLogger.php';
+        ErrorLogger::log($e, "API Error [{$action}]");
     }
 } else {
     http_response_code(404);

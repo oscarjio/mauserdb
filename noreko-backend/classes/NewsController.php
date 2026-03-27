@@ -616,7 +616,8 @@ class NewsController {
                 foreach ($dates as $ds) {
                     try {
                         $d = new \DateTime(trim($ds));
-                    } catch (\Exception) {
+                    } catch (\Exception $dateEx) {
+                        error_log('NewsController::getEvents: ogiltigt datum i streak-beräkning: ' . $dateEx->getMessage());
                         break;
                     }
                     if ($prevDate !== null) {

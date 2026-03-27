@@ -1,5 +1,53 @@
 # MauserDB Dev Log
 
+## Session #362 — Worker A (2026-03-27)
+**Fokus: API benchmark + Unused code cleanup + Error monitoring + Endpoint-test**
+
+### UPPGIFT 1: API Response-tid Benchmark — KLAR
+- Testat ALLA 103 endpoints med curl mot dev.mauserdb.com
+- Mätt response-tid för varje endpoint
+- **Resultat: 0 endpoints >500ms** (tvattlinje var 551ms i första körningen, 385ms i andra)
+- Snabbast: cykeltid-heatmap 79ms, produktionsflode 80ms
+- Långsammast (under 500ms): maskin-oee 433ms, leveransplanering 371ms, kassationskvotalarm 358ms
+- Ingen SQL-optimering krävdes — alla under threshold
+
+### UPPGIFT 2: Unused Code Cleanup — KLAR
+- **Borttaget: noreko-backend/controllers/ (32 proxy-stubbar)**
+  - Alla 32 filer var identiska/proxy-kopior av filer i classes/
+  - api.php laddar enbart från classes/ — controllers/ refererades aldrig
+- **Undersökta men behållna:**
+  - RebotlingAdminController.php — används internt av RebotlingController (delegation)
+  - RebotlingAnalyticsController.php — används internt av RebotlingController (delegation)
+  - VeckotrendController.php — används internt av RebotlingController (delegation)
+- Inga oanvända PHP use-statements hittade
+- Inga oanvända require_once hittade
+
+### UPPGIFT 3: Error Monitoring Förbättring — KLAR
+- **Ny klass: noreko-backend/classes/ErrorLogger.php**
+  - Loggar till noreko-backend/logs/error.log (kräver ej root)
+  - Inkluderar timestamp + exception-klass + meddelande + fil:rad + stack trace
+  - Faller tillbaka till PHP standard error_log för kompatibilitet
+- **Ny katalog: noreko-backend/logs/**
+  - .htaccess med "Deny from all" för säkerhet
+  - .gitkeep för att spåra katalogen i git
+- **Integrerat i api.php:**
+  - Databasanslutnings-catch: ErrorLogger::log() med context
+  - Controller-catch: ErrorLogger::log() med action-context och full stack trace
+- **Fixad silent catch i NewsController.php** (rad 619) — lade till error_log för ogiltigt datum i streak-beräkning
+
+### UPPGIFT 4: Full Endpoint Regressionstest — KLAR
+- **103 endpoints testade**
+- **0 HTTP 500-fel**
+- **Alla svar valid JSON**
+- Fördelning: 8x200, 82x401 (auth required), 8x400 (bad request), 8x403 (forbidden), 3x404 (missing run), 2x405 (method not allowed)
+- Alla 200-endpoints returnerar `{"success": true, ...}` med korrekt data
+
+### UPPGIFT 5: Deploy + Verifiera — KLAR
+- Backend deployat till dev via rsync
+- controllers/-katalogen borttagen från servern
+- ErrorLogger + logs/ verifierat på servern
+- Post-deploy: 0 endpoints med 500-fel, alla svarar korrekt
+
 ## Session #361 — Worker A (2026-03-27)
 **Fokus: Cache-strategi review + DB Connection Pooling + PHP Error Logging + Full Endpoint Regressionstest**
 
