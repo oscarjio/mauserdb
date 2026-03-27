@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #351)*
+*Senast uppdaterad: 2026-03-27 (session #352)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#351: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#352: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -73,17 +73,19 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta:
-- [x] Oanvanda variabler/funktioner (session #351 — 3 borttagna, 62 rader sparade)
-- [x] Rebotling E2E regressionstest (session #351 — 50/50 PASS)
-- [x] Operatorsbonus-berakning verifiering (session #351 — verifierad mot prod-data)
-- [x] Mobil UX-test 375px (session #351 — alla sidor OK)
-- [x] Laddningstider/bundle size (session #351 — 362kB initial, lazy loading korrekt)
-- [x] Navigationsmenyn (session #351 — 120+ routes, alla narbara, inga trasiga lankar)
-- [x] 20 Bootstrap Icons bi→fa fixade (session #351 — missade fran #349)
-- [x] Dark theme submenu-fix (session #351 — vit bakgrund→korrekt)
+### Nasta (session #353):
+- [ ] Rebotling getLiveStats vidare optimering (560ms→mål <300ms)
+- [ ] PHP error_log audit — varningar/notices i dev
+- [ ] Saknade DB-index — EXPLAIN pa tunga queries
+- [ ] Formularvalidering frontend — required, min/max, feedback
+- [ ] Responsiv granskning 320px/768px/1024px
+- [ ] Print-styling for rapporter
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #352 (klar)
+Worker A: 115 controllers granskade — inga oskyddade divisioner. 85+ endpoints tidstestade. getLiveStats optimerad 700ms→560ms (8→4-5 queries). Alla POST/PUT-endpoints anvander prepared statements, ingen SQL injection-risk. E2E 50/50 PASS.
+Worker B: a11y-audit — 11 templates fixade (aria-labels, aria-pressed, role/tablist). Grafer och error states redan korrekta. Build+deploy OK.
 
 ### 2026-03-27 — Session #351 (klar)
 Worker A: Kodrensning (3 oanvanda element borttagna, 62 rader sparade). E2E-testskript skapat (50 endpoints, 50/50 PASS). Operatorsbonus verifierad mot prod-data. 7 controllers djupgranskade — inga buggar.
@@ -92,7 +94,3 @@ Worker B: Mobil UX OK (alla sidor). Navigation OK (120+ routes, 53 menylänkar).
 ### 2026-03-26 — Session #350 (klar)
 Worker A: station_id-bugg fixad i 2 controllers. 11 queries optimerade (77% snabbare). Composite index tillagd.
 Worker B: 31 tabeller responsiv-fixade. 2 diakritikfixar. Build+deploy OK.
-
-### 2026-03-26 — Session #349 (klar)
-Worker A: 15 controllers granskade. 1 PDO-bugg fixad. 60+ endpoints testade.
-Worker B: 30+ sidor granskade. 18 bi→fa ikonfixar. Build+deploy OK.
