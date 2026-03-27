@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #353)*
+*Senast uppdaterad: 2026-03-27 (session #354)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -60,7 +60,7 @@ Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
 Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
-Session #256-#353: BUGGJAKT — Se dev-log.md for detaljer.
+Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -73,15 +73,19 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #354):
-- [ ] DATE()-fixar i ovriga controllers (136 kvarstaende)
-- [ ] getLiveStats → <200ms (opcache, persistent connections)
+### Nasta (session #355):
 - [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] Keyboard navigation audit (tab-ordning, focus-visible)
-- [ ] Loading states UX (skeleton loaders, spinners)
-- [ ] Chart.js touch-stod (mobil-tooltips)
+- [ ] SQL-query granskning mot prod_db_schema.sql — verifiera alla controllers
+- [ ] Error boundary/global error handler (Angular + backend)
+- [ ] Performance audit (Lighthouse, bundle-analys)
+- [ ] WCAG 2.1 AA kontrast + screen reader
+- [ ] Unused imports cleanup (HostListener i 4 komponenter)
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #354 (klar)
+Worker A: 191 DATE()-fixar i 52 controllers (0 kvarvarande). getLiveStats 310→147ms median (5s filcache + CTE-query-merge). E2E 50/50 PASS. Deploy OK.
+Worker B: Keyboard a11y (skip-link, focus-visible, Escape i 5 komponenter). 8 tom-state meddelanden. 179 Chart.js tooltip touch-fixar i 100 filer. Build+deploy OK.
 
 ### 2026-03-27 — Session #353 (klar)
 Worker A: getLiveStats 560→310ms (file-cache + query-merge). produktion_procent-BUGG FIXAD (ibcToday vs totalRuntimeMinutes skift-mismatch). 2 composite indexes + 13 DATE()-fixar for index-anvandning. E2E 50/50 PASS.
@@ -90,7 +94,3 @@ Worker B: Formularvalidering i 7 templates (is-invalid/is-valid feedback). Respo
 ### 2026-03-27 — Session #352 (klar)
 Worker A: 115 controllers granskade — inga oskyddade divisioner. 85+ endpoints tidstestade. getLiveStats optimerad 700ms→560ms (8→4-5 queries). Alla POST/PUT-endpoints anvander prepared statements, ingen SQL injection-risk. E2E 50/50 PASS.
 Worker B: a11y-audit — 11 templates fixade (aria-labels, aria-pressed, role/tablist). Grafer och error states redan korrekta. Build+deploy OK.
-
-### 2026-03-27 — Session #351 (klar)
-Worker A: Kodrensning (3 oanvanda element borttagna, 62 rader sparade). E2E-testskript skapat (50 endpoints, 50/50 PASS). Operatorsbonus verifierad mot prod-data. 7 controllers djupgranskade — inga buggar.
-Worker B: Mobil UX OK (alla sidor). Navigation OK (120+ routes, 53 menylänkar). Bundle 362kB, lazy loading korrekt. 20 bi→fa ikonfixar + 1 dark theme submenu-fix. Build+deploy OK.
