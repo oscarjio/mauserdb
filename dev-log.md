@@ -40,6 +40,61 @@
 
 ---
 
+## Session #371 — Worker B (2026-03-27)
+**Fokus: Frontend UX-audit + data-verifiering + uncommitted change granskning + deploy**
+
+### UPPGIFT 1: Granska uncommitted rebotling-statistik.ts — KLAR (REVERTERAD)
+- **Andringen tog bort 150% effektivitets-cap** pa 3 stallen + andrade rolling average fran 5-cykel till 10-minuters tidsfonstret + andrade chart y-axis fran `max: 150` till `suggestedMax: 150`
+- **Session #370 inforde cappen medvetet** for att undvika outliers (t.ex. 6261% effektivitet)
+- **Beslut: REVERT** — andringen bryter mot deliberat designbeslut fran session #370
+- Aterstallde med `git checkout noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+
+### UPPGIFT 2: Rebotling skiftrapport UX-granskning — KLAR (OK)
+- **Daggruppering fran session #368**: fungerar korrekt — varje dag ar expanderbar med skift-detaljer
+- **Dark theme**: Fullstandig compliance (#1a202c bg, #2d3748 cards, #e2e8f0 text, korrekt form-styling)
+- **Responsivitet**: table-responsive wrapping, flex-wrap pa filter/knappar, col-6/col-md-3 for KPI-kort
+- **Datavisning**: Summering (Total IBC, Snitt IBC/h, Effektivitet, Drifttid), operatorsfilter, CSV/Excel/PDF-export
+- **Lifecycle**: destroy$ + takeUntil + clearInterval (10s refresh) + clearTimeout (6 timers) + Chart.destroy()
+- **Jamfor-skift-funktionalitet** med KPI-diff-kort — korrekt implementerad
+- **Inga problem hittade**
+
+### UPPGIFT 3: Grundlig UX-granskning av ALLA rebotling-sidor — KLAR (OK)
+- **69 rebotling-komponenter granskade** (alla implementerar OnInit+OnDestroy)
+- **56 komponenter anvander Chart.js** — alla 56 har matchande .destroy() i ngOnDestroy
+- **64 komponenter anvander setInterval/setTimeout** — alla har matchande clearInterval/clearTimeout
+- **Lifecycle-audit**: 0 leaks — destroy$ + takeUntil + clearInterval/clearTimeout + Chart.destroy() konsekvent
+- **Nyckelkomponenter detaljgranskade**:
+  - rebotling-sammanfattning: KPI-kort + 7d produktionsgraf + maskinstatus + snabblankar — OK
+  - rebotling-trendanalys: Sparklines + huvudgraf med OEE/produktion/kassation + prognos + linjar regression — OK
+  - rebotling-statistik (reverterad): Effektivitets-cap 150% bevarad, driftstopp-timeline OK
+- **Dark theme**: Konsekvent over alla sidor — #1a202c bg, #2d3748 cards, #e2e8f0 text
+- **Svenska texter**: Alla UI-texter pa svenska, inga engelska strangars hittade
+
+### UPPGIFT 4: Data-verifiering rebotling — KLAR (OK)
+- **rebotling_skiftrapport** (mars 2026): 19 rader, 857 total IBC OK — stammer med daglig fordelning
+  - 27 mars: 4 skift, 108 IBC | 25 mars: 1 skift, 52 IBC | 23 mars: 1 skift, 170 IBC
+- **rebotling_ibc** (mars 2026): 1060 cykler, 23890 total IBC OK
+  - 27 mars: 122 cykler, 3734 IBC OK, avg eff 258.1% (capped till 150% i frontend)
+  - 25 mars: 52 cykler, 728 IBC OK, avg eff 77.1%
+- **API-svar**: `rebotling&run=statistics` svarar korrekt (200), `rebotling&run=heatmap-data` svarar korrekt
+- **Inga diskrepanser** mellan DB och API-data
+- **rebotling_ibc schema**: 26 kolumner inklusive ibc_ok, produktion_procent, effektivitet, bonus_poang — matchar frontend-anvandning
+
+### UPPGIFT 5: Granska icke-rebotling sidor — KLAR (OK)
+- **Login-sida**: Dark theme (#2d3748 card, #1a202c inputs, #e2e8f0 text), svenska texter, returnUrl-validering mot open redirect, destroy$ lifecycle
+- **VD-dashboard**: forkJoin for parallella API-anrop, isFetching-guard, 2 charts med destroy(), clearInterval (30s), dark theme korrekt
+- **Operator-dashboard**: OnInit+OnDestroy, Chart.js med destroy(), korrekt interface-typning
+- **Users-sida (admin)**: Auth-guard med switchMap, clearTimeout for sokfield, dark theme
+- **Inga engelska strangars i HTML** — alla user-facing texter pa svenska
+- **Inga problem hittade**
+
+### UPPGIFT 6: Bygg + Deploy — KLAR
+- Frontend build: OK (0 errors, enbart ESM-varningar fran tredjepartsbibliotek)
+- Deploy frontend med rsync: OK
+- dev.mauserdb.com svarar HTTP 200 efter deploy
+
+---
+
 ## Session #370 — Worker A (2026-03-27)
 **Fokus: Backend dead code audit + error handling review + endpoint stresstest + SQL optimization + deploy**
 
