@@ -105,7 +105,7 @@ class UtnyttjandegradController {
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
              ) sub
              GROUP BY dag

@@ -849,7 +849,7 @@ class KapacitetsplaneringController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :monday AND datum < DATE_ADD(:friday, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) per_skift
                 GROUP BY dag

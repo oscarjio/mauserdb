@@ -148,7 +148,7 @@ class KassationskvotAlarmController {
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE $where
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ";
@@ -275,7 +275,7 @@ class KassationskvotAlarmController {
                     MAX(datum)       AS skift_slut
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag DESC, skiftraknare DESC
             ");
@@ -395,7 +395,7 @@ class KassationskvotAlarmController {
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= NOW() - INTERVAL 24 HOUR
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H'), skiftraknare
                 ) AS per_timme_skift
                 GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00')
@@ -450,7 +450,7 @@ class KassationskvotAlarmController {
                     MIN(datum)       AS skift_start
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag ASC, skiftraknare ASC
             ");
@@ -518,7 +518,7 @@ class KassationskvotAlarmController {
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 WHERE (shift_ej_ok / NULLIF(shift_ok + shift_ej_ok, 0) * 100) >= :troskel

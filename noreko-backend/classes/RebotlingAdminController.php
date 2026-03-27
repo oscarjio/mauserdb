@@ -320,72 +320,38 @@ class RebotlingAdminController {
         try {
             $tz  = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
+            $iso = (int)$now->format('N');
 
-            // IBC idag
-            $ibcToday = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
-            )->fetchColumn();
+            // Konsoliderad query: IBC idag + takt + running + settings i en enda fråga
+            $this->ensureSettingsTable();
+            $combo = $this->pdo->prepare("
+                SELECT
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)) AS ibc_2h,
+                    (SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1) AS is_running,
+                    (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS rebotling_target,
+                    (SELECT shift_hours FROM rebotling_settings WHERE id = 1) AS shift_hours,
+                    (SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = ? LIMIT 1) AS weekday_goal,
+                    (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal
+            ");
+            $combo->execute([$iso]);
+            $row = $combo->fetch(PDO::FETCH_ASSOC);
 
-            // Dagsmål — försök veckodagsmål annars settings
-            $dailyTarget = 1000;
-            try {
-                $this->ensureSettingsTable();
-                $sr = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
-                )->fetch(PDO::FETCH_ASSOC);
-                if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
+            $ibcToday = (int)($row['ibc_today'] ?? 0);
+            $ratePerHour = round((int)($row['ibc_2h'] ?? 0) / 2.0, 1);
+            $isRunning = (bool)($row['is_running'] ?? false);
+            $shiftHours = (float)($row['shift_hours'] ?? 8.0);
 
-                // Veckodagsmål: ISO weekday 1=Måndag
-                $iso = (int)$now->format('N');
-                try {
-                    $wg = $this->pdo->prepare(
-                        "SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = ?"
-                    );
-                    $wg->execute([$iso]);
-                    $wgRow = $wg->fetch(PDO::FETCH_ASSOC);
-                    if ($wgRow && (int)$wgRow['daily_goal'] > 0) {
-                        $dailyTarget = (int)$wgRow['daily_goal'];
-                    }
-                } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
-
-                // Kolla om undantag finns för idag
-                try {
-                    $stmtEx = $this->pdo->prepare('SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE()');
-                    $stmtEx->execute();
-                    $exceptionRow = $stmtEx->fetch(PDO::FETCH_ASSOC);
-                    if ($exceptionRow) {
-                        $dailyTarget = (int)$exceptionRow['justerat_mal'];
-                    }
-                } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot undantag: ' . $e->getMessage()); }
-            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot settings: ' . $e->getMessage()); }
-
-            // Linjen kör?
-            $isRunning = false;
-            try {
-                $row = $this->pdo->query(
-                    "SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1"
-                )->fetch(PDO::FETCH_ASSOC);
-                $isRunning = $row ? (bool)$row['running'] : false;
-            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
-
-            // Takt: IBC per timme baserat på produktion senaste 2 timmar
-            $ratePerHour = 0.0;
-            try {
-                $cnt = (int)$this->pdo->query(
-                    "SELECT COUNT(*) FROM rebotling_ibc
-                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
-                )->fetchColumn();
-                $ratePerHour = round($cnt / 2.0, 1);
-            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot ratePerHour: ' . $e->getMessage()); }
-
-            // Skiftlängd från settings
-            $shiftHours = 8.0;
-            try {
-                $sh = $this->pdo->query(
-                    "SELECT shift_hours FROM rebotling_settings WHERE id = 1"
-                )->fetch(PDO::FETCH_ASSOC);
-                if ($sh) $shiftHours = (float)$sh['shift_hours'];
-            } catch (Exception $e) { error_log('RebotlingAdminController::getTodaySnapshot shiftHours: ' . $e->getMessage()); }
+            // Dagsmål: undantag > veckodagsmål > settings
+            $dailyTarget = (int)($row['rebotling_target'] ?? 1000);
+            if ($row['weekday_goal'] !== null && (int)$row['weekday_goal'] > 0) {
+                $dailyTarget = (int)$row['weekday_goal'];
+            }
+            if ($row['undantag_mal'] !== null) {
+                $dailyTarget = (int)$row['undantag_mal'];
+            }
 
             // Prognos: skiftstart 06:00 lokal tid
             $shiftStart = new DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
@@ -583,81 +549,63 @@ class RebotlingAdminController {
 
         $lines = [];
 
-        // --- Rebotling ---
+        // --- Rebotling (konsoliderad till 1 query) ---
         try {
             $tz  = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
 
-            // Senaste raden i rebotling_ibc
-            $stmt = $this->pdo->query(
-                "SELECT datum FROM rebotling_ibc ORDER BY datum DESC LIMIT 1"
-            );
-            $latestRow = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $senaste_data_min = null;
-            $kor = false;
-            if ($latestRow && !empty($latestRow['datum'])) {
-                $latestDt = new DateTime($latestRow['datum'], $tz);
-                $diffSec  = $now->getTimestamp() - $latestDt->getTimestamp();
-                $senaste_data_min = round($diffSec / 60, 1);
-                $kor = ($diffSec < 600); // kör om senaste data < 10 min
-            }
-
-            // IBC idag
-            $ibcIdag = (int)$this->pdo->query(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
-            )->fetchColumn();
-
-            // OEE idag (om tabellen stödjer det) — hämta via befintlig logik
-            $oeePct   = null;
-            $malPct   = null;
-            $dagsMal  = 1000;
-            try {
-                $sr = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
-                )->fetch(PDO::FETCH_ASSOC);
-                if ($sr) $dagsMal = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAdminController::getAllLinesStatus dagsMal: ' . $e->getMessage()); }
-
-            if ($dagsMal > 0) {
-                $malPct = round($ibcIdag / $dagsMal * 100, 1);
-            }
-
-            // OEE idag: hämta senaste skiftets aggregat
-            try {
-                $oeeRow = $this->pdo->query(
-                    "SELECT
-                        SUM(max_ibc_ok)      AS ibc_ok,
-                        SUM(max_runtime_plc) AS runtime,
-                        SUM(max_rasttime)    AS rasttime
-                     FROM (
+            $comboRow = $this->pdo->query("
+                SELECT
+                    (SELECT datum FROM rebotling_ibc ORDER BY datum DESC LIMIT 1) AS senaste_datum,
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_idag,
+                    (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS dagsMal,
+                    agg.ibc_ok, agg.runtime, agg.rasttime
+                FROM (
+                    SELECT
+                        COALESCE(SUM(max_ibc_ok), 0)      AS ibc_ok,
+                        COALESCE(SUM(max_runtime_plc), 0)  AS runtime,
+                        COALESCE(SUM(max_rasttime), 0)     AS rasttime
+                    FROM (
                         SELECT
-                            skiftraknare,
+                            COALESCE(skiftraknare, 0) AS sk,
                             MAX(ibc_ok)      AS max_ibc_ok,
                             MAX(runtime_plc) AS max_runtime_plc,
                             MAX(rasttime)    AS max_rasttime
                         FROM rebotling_ibc
                         WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                        GROUP BY skiftraknare
-                     ) agg"
-                )->fetch(PDO::FETCH_ASSOC);
+                        GROUP BY sk
+                    ) per_shift
+                ) agg
+            ")->fetch(PDO::FETCH_ASSOC);
 
-                if ($oeeRow && $oeeRow['runtime'] > 0) {
-                    $ibcOk      = (float)$oeeRow['ibc_ok'];
-                    $runtimeSek = (float)$oeeRow['runtime'];
-                    $rastSek    = (float)$oeeRow['rasttime'];
-                    $prodTid    = $runtimeSek - $rastSek;
-                    if ($prodTid > 0) {
-                        // rebotling_ibc har ingen 'cykel_tid'-kolumn.
-                        // Anvand ideal cykeltid (120 sekunder per IBC) som standard.
-                        $idealCykelSek = 120;
-                        $maxMojlig = $prodTid / $idealCykelSek;
-                        if ($maxMojlig > 0) {
-                            $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
-                        }
+            $senaste_data_min = null;
+            $kor = false;
+            if ($comboRow && !empty($comboRow['senaste_datum'])) {
+                $latestDt = new DateTime($comboRow['senaste_datum'], $tz);
+                $diffSec  = $now->getTimestamp() - $latestDt->getTimestamp();
+                $senaste_data_min = round($diffSec / 60, 1);
+                $kor = ($diffSec < 600);
+            }
+
+            $ibcIdag = (int)($comboRow['ibc_idag'] ?? 0);
+            $dagsMal = (int)($comboRow['dagsMal'] ?? 1000);
+            $malPct  = $dagsMal > 0 ? round($ibcIdag / $dagsMal * 100, 1) : null;
+
+            $oeePct = null;
+            if ($comboRow && $comboRow['runtime'] > 0) {
+                $ibcOk      = (float)$comboRow['ibc_ok'];
+                $runtimeSek = (float)$comboRow['runtime'];
+                $rastSek    = (float)$comboRow['rasttime'];
+                $prodTid    = $runtimeSek - $rastSek;
+                if ($prodTid > 0) {
+                    $idealCykelSek = 120;
+                    $maxMojlig = $prodTid / $idealCykelSek;
+                    if ($maxMojlig > 0) {
+                        $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                     }
                 }
-            } catch (Exception $e) { error_log('RebotlingAdminController::getAllLinesStatus OEE: ' . $e->getMessage()); }
+            }
 
             $lines[] = [
                 'id'              => 'rebotling',
@@ -679,14 +627,10 @@ class RebotlingAdminController {
             ];
         }
 
-        // --- Tvättlinje ---
-        $lines[] = $this->getOtherLineStatus('tvattlinje', 'Tvättlinje', 'tvattlinje_settings');
-
-        // --- Såglinje ---
-        $lines[] = $this->getOtherLineStatus('saglinje', 'Såglinje', 'saglinje_settings');
-
-        // --- Klassificeringslinje ---
-        $lines[] = $this->getOtherLineStatus('klassificeringslinje', 'Klassificeringslinje', 'klassificeringslinje_settings');
+        // --- Övriga linjer (ej i drift, statisk respons — undvik information_schema) ---
+        $lines[] = ['id' => 'tvattlinje', 'namn' => 'Tvättlinje', 'kor' => false, 'ej_i_drift' => true];
+        $lines[] = ['id' => 'saglinje', 'namn' => 'Såglinje', 'kor' => false, 'ej_i_drift' => true];
+        $lines[] = ['id' => 'klassificeringslinje', 'namn' => 'Klassificeringslinje', 'kor' => false, 'ej_i_drift' => true];
 
         echo json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
     }
@@ -1111,7 +1055,7 @@ class RebotlingAdminController {
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
                     FROM rebotling_ibc
                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -1134,7 +1078,7 @@ class RebotlingAdminController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE datum < CURDATE()
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_shift
                     GROUP BY datum_rekord
@@ -1344,7 +1288,7 @@ class RebotlingAdminController {
                 "SELECT COALESCE(SUM(shift_max), 0) AS total FROM (
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_max
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                     GROUP BY skiftraknare
                 ) t"
             );
@@ -1396,7 +1340,7 @@ class RebotlingAdminController {
                 "SELECT COALESCE(SUM(shift_max), 0) AS total FROM (
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_max
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                     GROUP BY skiftraknare
                 ) t"
             );

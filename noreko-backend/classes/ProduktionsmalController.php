@@ -541,7 +541,7 @@ class ProduktionsmalController {
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
                 WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY skiftraknare
             ");
             $stmt->execute([':today' => $today, ':todayb' => $today]);
@@ -1115,7 +1115,7 @@ class ProduktionsmalController {
                     SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                  ) sub
                  GROUP BY dag ORDER BY dag ASC"

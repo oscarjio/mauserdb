@@ -394,7 +394,7 @@ class AndonController {
                     SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(?, INTERVAL 1 DAY) AND datum < ?
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -414,7 +414,7 @@ class AndonController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(?, INTERVAL 7 DAY)
                       AND datum < ?
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -432,7 +432,7 @@ class AndonController {
                     SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(?, INTERVAL 30 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -452,7 +452,7 @@ class AndonController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(?, INTERVAL 7 DAY)
                       AND datum < ?
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -549,7 +549,7 @@ class AndonController {
                                MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS ej
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY skiftraknare
                         HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                     ) x

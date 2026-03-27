@@ -120,7 +120,7 @@ class HeatmapController {
                         MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                 ) AS per_hour_shift
                 GROUP BY DATE(datum), HOUR(datum)
@@ -201,7 +201,7 @@ class HeatmapController {
                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
@@ -224,7 +224,7 @@ class HeatmapController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), HOUR(datum), skiftraknare
                     ) AS hs
                     GROUP BY DATE(datum), HOUR(datum)
@@ -265,7 +265,7 @@ class HeatmapController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ds
                     GROUP BY DATE(datum)

@@ -365,7 +365,7 @@ class OperatorController {
                            MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -399,7 +399,7 @@ class OperatorController {
                            MIN(datum)       AS first_datum
                     FROM rebotling_ibc
                     WHERE (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -415,7 +415,7 @@ class OperatorController {
                       SELECT skiftraknare
                       FROM rebotling_ibc
                       WHERE (op1 = ? OR op2 = ? OR op3 = ?)
-                        AND skiftraknare IS NOT NULL
+
                       GROUP BY skiftraknare
                       ORDER BY MAX(ibc_ok) DESC
                       LIMIT 1
@@ -506,7 +506,7 @@ class OperatorController {
                     MAX(runtime_plc) AS runtime_min_plc
                 FROM rebotling_ibc
                 WHERE (op1 = ? OR op2 = ? OR op3 = ?)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY skiftraknare
                 ORDER BY skiftraknare DESC
                 LIMIT 5
@@ -864,7 +864,7 @@ class OperatorController {
                            MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op1 IS NOT NULL AND produkt IS NOT NULL AND produkt > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
                     GROUP BY op1, produkt, skiftraknare
 
@@ -876,7 +876,7 @@ class OperatorController {
                            MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op2 IS NOT NULL AND op2 > 0 AND produkt IS NOT NULL AND produkt > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
                     GROUP BY op2, produkt, skiftraknare
 
@@ -888,7 +888,7 @@ class OperatorController {
                            MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op3 IS NOT NULL AND op3 > 0 AND produkt IS NOT NULL AND produkt > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
                     GROUP BY op3, produkt, skiftraknare
                 ) sub

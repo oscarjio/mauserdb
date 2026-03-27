@@ -102,7 +102,7 @@ class BonusController {
                 MAX(datum) AS last_datum
             FROM rebotling_ibc
             WHERE $opFilter
-              AND skiftraknare IS NOT NULL
+
               AND $dateFilter
             GROUP BY skiftraknare
         ";
@@ -125,7 +125,7 @@ class BonusController {
                 SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kval
             FROM rebotling_ibc
             WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
-              AND skiftraknare IS NOT NULL
+
               AND $dateFilter
             GROUP BY op{$pos}, skiftraknare
         ";
@@ -211,7 +211,7 @@ class BonusController {
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
                     WHERE $opFilter
-                      AND skiftraknare IS NOT NULL
+
                       AND $dateFilter
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -459,7 +459,7 @@ class BonusController {
                     GROUP_CONCAT(DISTINCT op2) AS operators_2,
                     GROUP_CONCAT(DISTINCT op3) AS operators_3
                 FROM rebotling_ibc
-                WHERE skiftraknare IS NOT NULL
+                WHERE 1=1
                   AND $dateFilter
                 GROUP BY skiftraknare
                 ORDER BY skiftraknare DESC
@@ -508,7 +508,7 @@ class BonusController {
                         MAX(ibc_ok) AS shift_ibc_ok,
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL AND $dateFilter
+                    WHERE 1=1 AND $dateFilter
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -595,7 +595,7 @@ class BonusController {
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
                     WHERE $opFilter
-                      AND skiftraknare IS NOT NULL
+
                       AND $dateFilter
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -730,7 +730,7 @@ class BonusController {
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -809,7 +809,7 @@ class BonusController {
                         SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
                     FROM rebotling_ibc
                     WHERE $opFilter
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -834,7 +834,7 @@ class BonusController {
                         SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_produktivitet,
                         SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                       AND datum >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -919,21 +919,21 @@ class BonusController {
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op1
                         UNION ALL
                         SELECT op2, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/60.0
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op2
                         UNION ALL
                         SELECT op3, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/60.0
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op3
                     ) AS per_shift
                     GROUP BY op_id, datum_day
@@ -956,21 +956,21 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op1 IS NOT NULL AND op1 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare, op1
                     UNION ALL
                     SELECT op2, MAX(ibc_ok), MAX(ibc_ej_ok)
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op2 IS NOT NULL AND op2 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare, op2
                     UNION ALL
                     SELECT op3, MAX(ibc_ok), MAX(ibc_ej_ok)
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op3 IS NOT NULL AND op3 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare, op3
                 ) AS per_shift
                 GROUP BY op_id
@@ -987,21 +987,21 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op1 IS NOT NULL AND op1 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY op1, skiftraknare
                     UNION ALL
                     SELECT op2, skiftraknare
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op2 IS NOT NULL AND op2 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY op2, skiftraknare
                     UNION ALL
                     SELECT op3, skiftraknare
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                       AND op3 IS NOT NULL AND op3 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY op3, skiftraknare
                 ) AS per_shift
                 GROUP BY op_id
@@ -1200,7 +1200,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) AS per_shift
@@ -1229,7 +1229,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                        AND (MAX(ibc_ok) + MAX(ibc_ej_ok) - MIN(ibc_ok) - MIN(ibc_ej_ok)) > 0
@@ -1254,7 +1254,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) AS per_shift
@@ -1302,7 +1302,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) x
                 GROUP BY DATE(datum)
@@ -1398,7 +1398,7 @@ class BonusController {
                     SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
                     FROM rebotling_ibc
                     WHERE (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -1441,7 +1441,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -1472,7 +1472,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) x
                 GROUP BY DATE(datum)
@@ -1538,7 +1538,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -1575,7 +1575,7 @@ class BonusController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                     HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
                 ) x
@@ -2123,7 +2123,7 @@ class BonusController {
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op1 IS NOT NULL AND op1 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare, op1
 
                     UNION ALL
@@ -2136,7 +2136,7 @@ class BonusController {
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op2 IS NOT NULL AND op2 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare, op2
 
                     UNION ALL
@@ -2149,7 +2149,7 @@ class BonusController {
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND datum < CURDATE() + INTERVAL 1 DAY
                       AND op3 IS NOT NULL AND op3 > 0
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare, op3
                 ) AS t
                 GROUP BY dag, op_id

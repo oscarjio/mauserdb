@@ -474,7 +474,7 @@ class AlertsController {
                     MAX(ibc_ej_ok) AS ibc_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-                  AND skiftraknare IS NOT NULL
+
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) return null;
@@ -529,7 +529,7 @@ class AlertsController {
                     MAX(ibc_ej_ok) AS ibc_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-                  AND skiftraknare IS NOT NULL
+
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) return null;

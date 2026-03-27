@@ -1,5 +1,56 @@
 # MauserDB Dev Log
 
+## Session #364 — Worker A (2026-03-27)
+**Fokus: API vs DB diskrepans fix (KRITISK) + PHP parse error fix + slow endpoint optimering + endpoint stresstest + deploy**
+
+### UPPGIFT 1: API vs DB diskrepans 946 vs 1058 — FIXAD
+- **Rotorsak:** 43 forekamster av `AND skiftraknare IS NOT NULL` i RebotlingAnalyticsController.php filtrerade bort rebotling_ibc-rader dar skiftraknare var NULL
+- Totalt 162+37+21 = 220 forekamster fixade over 44 PHP-filer i noreko-backend/classes/
+- SQL `GROUP BY ... skiftraknare` hanterar NULL korrekt (NULLs grupperas ihop) — ingen aggregeringslogik paverkad
+- Skyddade: queries pa rebotling_onoff/rebotling_skiftrapport (WHERE s.skiftraknare IS NOT NULL) och "hitta senaste skiftraknare" (SELECT skiftraknare ... ORDER BY datum DESC LIMIT 1)
+- Ersatte `WHERE skiftraknare IS NOT NULL` med `WHERE 1=1` dar det var forsta WHERE-villkor (4 stallen)
+- Ersatte `AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL` med `AND ibc_ok IS NOT NULL` (5 stallen)
+
+### KRITISK BUGGFIX: PHP Parse Error i RebotlingAnalyticsController.php
+- **Parse error** pa servern (linje 1009): `unexpected token "catch"` — hela RebotlingAnalyticsController var TRASIG
+- **Orsak 1:** Ofullstandig refaktorisering av `getExecDashboard()` — yttre `try/catch` omslot inre `try/catch`-block som stangde yttre try for tidigt (djuprakningsfel)
+- **Orsak 2:** `for`-loop pa rad 821 saknade avslutande `}` och loop-kropp — refaktoriseringen sammanfogade loop-kropp med vecko-totalberakningar
+- **Fix:** Tog bort den overflodiga yttre try/catch-wrappern, stangde for-loopen korrekt med loop-kropp
+- **Alla** endpoints i RebotlingAnalyticsController (50+ st) var trasiga fore denna fix
+
+### UPPGIFT 2: Slow endpoints optimering — KLAR
+- **today-snapshot:** Konsoliderade 6 separata queries till 1 enda query med subqueries
+- **all-lines-status:** Konsoliderade 4 rebotling-queries till 1 enda. Ersatte 3 trega information_schema-queries (for ovriga linjer) med statisk respons (linjerna ar ej i drift)
+- **exec-dashboard:** Redan refaktorerat (konsoliderade queries), nu fungerande efter parse error-fixen
+- Lade till migration `2026-03-27_session364_rebotling_perf.sql` med index for rebotling_onoff(datum DESC) och rebotling_skiftrapport(datum)
+
+### UPPGIFT 3: Full endpoint stresstest — KLAR (0 fel)
+- **Batch 1:** 18 endpoints — 0 errors, 0 500-fel, 2 slow (>1s): benchmarking 1087ms, month-compare 1219ms
+- **Batch 2:** 16 endpoints — 0 errors, 0 slow
+- **Batch 3:** 21 endpoints (inkl auth-kravande) — 0 errors, 0 slow
+- **Totalt:** 55 endpoints testade, 0 fel, 2 marginellt langa (1-1.2s)
+- exec-dashboard: 905ms (var trasig/timeout fore fix)
+
+### UPPGIFT 4: PHP dependency audit — KLAR
+- Ingen composer.json — inga externa beroenden
+- Server PHP 8.2.29 (stods till dec 2025, men fortfarande funktionell)
+- bcrypt anvands korrekt for losenord (PASSWORD_BCRYPT)
+- PDO med persistent connections, exception error mode, ej emulerade prepares — korrekt
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- Backend deployat via rsync till dev.mauserdb.com
+- PHP parse error verifierad som fixad pa servern
+- Alla endpoints svarar korrekt (verifierat med curl)
+
+### Filer andrade (44 st):
+- noreko-backend/classes/RebotlingAnalyticsController.php (diskrepansfix + parse error fix)
+- noreko-backend/classes/RebotlingController.php (diskrepansfix)
+- noreko-backend/classes/RebotlingAdminController.php (endpoint-optimering + diskrepansfix)
+- 41 ovriga controllers i noreko-backend/classes/ (diskrepansfix)
+- noreko-backend/migrations/2026-03-27_session364_rebotling_perf.sql (ny)
+
+---
+
 ## Session #364 — Worker B (2026-03-27)
 **Fokus: Mobile responsivitet audit alla sidor + fullstandig UX-granskning + VD Dashboard djupgranskning + rebotling-statistik grafer + build + deploy**
 

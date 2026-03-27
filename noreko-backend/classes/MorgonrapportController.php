@@ -226,7 +226,7 @@ class MorgonrapportController {
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                       AND skiftraknare IS NOT NULL
+
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
@@ -250,7 +250,7 @@ class MorgonrapportController {
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                       AND skiftraknare IS NOT NULL
+
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
@@ -272,7 +272,7 @@ class MorgonrapportController {
                          SELECT datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                          FROM rebotling_ibc
                          WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                           AND skiftraknare IS NOT NULL
+
                          GROUP BY DATE(datum), skiftraknare
                          HAVING COUNT(*) > 1
                      ) sub_inner
@@ -323,7 +323,7 @@ class MorgonrapportController {
                      SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                       AND skiftraknare IS NOT NULL
+
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
@@ -508,7 +508,7 @@ class MorgonrapportController {
                             MAX(COALESCE(ibc_ok, 0))    AS max_ok
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                       AND skiftraknare IS NOT NULL
+
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
@@ -602,7 +602,7 @@ class MorgonrapportController {
                             MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                       AND skiftraknare IS NOT NULL
+
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub
@@ -653,7 +653,7 @@ class MorgonrapportController {
                            MAX(COALESCE(ibc_ok, 0)) AS max_ok
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                     HAVING COUNT(*) > 1
                 ) sub
@@ -683,21 +683,21 @@ class MorgonrapportController {
                         SELECT op1 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op1
                         HAVING COUNT(*) > 1
                         UNION ALL
                         SELECT op2 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op2
                         HAVING COUNT(*) > 1
                         UNION ALL
                         SELECT op3 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare, op3
                         HAVING COUNT(*) > 1
                     ) AS sub

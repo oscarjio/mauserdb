@@ -58,7 +58,7 @@ class VeckotrendController {
                     FROM rebotling_ibc
                     WHERE datum >= ?
                       AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag

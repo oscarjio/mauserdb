@@ -814,12 +814,6 @@ class RebotlingAnalyticsController {
                 $days7[] = ['date' => $d, 'ibc' => (int)($map14[$d]['ibc_ok'] ?? 0), 'target' => $dailyTarget];
             }
 
-            // Fyll i tomma dagar (inga produktionsdagar ger 0)
-            $map7 = [];
-            foreach ($rows7 as $r) { $map7[$r['dag']] = (int)$r['ibc_ok']; }
-            $days7 = [];
-            for ($i = 6; $i >= 0; $i--) {
-                $d = date('Y-m-d', strtotime("-{$i} days"));
             // ---- Vecko-totaler och OEE beräknas från samma 14-dagars data ----
             $thisWeekIbc = 0; $prevWeekIbc = 0;
             $thisWeekOkSum = 0; $thisWeekEjSum = 0;

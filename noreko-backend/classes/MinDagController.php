@@ -124,7 +124,7 @@ class MinDagController {
                                MAX(ibc_ok)             AS shift_ibc_ok
                         FROM rebotling_ibc
                         WHERE datum >= :since
-                          AND skiftraknare IS NOT NULL
+
                           AND runtime_plc IS NOT NULL
                         GROUP BY skiftraknare
                     ) AS ps
@@ -194,7 +194,7 @@ class MinDagController {
                 FROM rebotling_ibc
                 WHERE $opFilter
                   AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY skiftraknare
             ");
             $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
@@ -260,7 +260,7 @@ class MinDagController {
                         WHERE $opFilter
                           AND datum >= :since30
                           AND datum < :today
-                          AND skiftraknare IS NOT NULL
+
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps
                     GROUP BY dag
@@ -321,7 +321,7 @@ class MinDagController {
                 FROM rebotling_ibc
                 WHERE $opFilter
                   AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY HOUR(datum)
                 ORDER BY timme ASC
             ");
@@ -395,7 +395,7 @@ class MinDagController {
                     FROM rebotling_ibc
                     WHERE $opFilter
                       AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) AS ps
             ");

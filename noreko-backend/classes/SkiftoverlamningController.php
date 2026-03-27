@@ -265,7 +265,7 @@ class SkiftoverlamningController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum BETWEEN :from_dt AND :to_dt
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");
@@ -373,7 +373,7 @@ class SkiftoverlamningController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum BETWEEN :from_dt AND :to_dt
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");
@@ -1087,7 +1087,7 @@ class SkiftoverlamningController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum BETWEEN :from_dt AND :to_dt
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");

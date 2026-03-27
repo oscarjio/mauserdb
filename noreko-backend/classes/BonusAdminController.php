@@ -702,7 +702,7 @@ class BonusAdminController {
                         MAX(runtime_plc) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
@@ -1287,7 +1287,7 @@ class BonusAdminController {
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
                     WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                     GROUP BY op{$pos}, skiftraknare
                 ");

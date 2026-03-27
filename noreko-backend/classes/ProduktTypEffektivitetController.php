@@ -123,7 +123,7 @@ class ProduktTypEffektivitetController {
                     FROM rebotling_ibc
                     WHERE produkt IS NOT NULL
                       AND produkt > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY produkt, skiftraknare
                 ) AS agg
@@ -195,7 +195,7 @@ class ProduktTypEffektivitetController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
                     FROM rebotling_ibc
                     WHERE produkt IS NOT NULL AND produkt > 0
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY produkt, skiftraknare
                 ) AS sub
@@ -244,7 +244,7 @@ class ProduktTypEffektivitetController {
                         MAX(COALESCE(runtime_plc, 0))  AS shift_runtime
                     FROM rebotling_ibc
                     WHERE produkt IN ({$placeholders})
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), produkt, skiftraknare
                 ) AS per_shift
@@ -388,7 +388,7 @@ class ProduktTypEffektivitetController {
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus
                     FROM rebotling_ibc
                     WHERE produkt = :produkt_id
-                      AND skiftraknare IS NOT NULL
+
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS agg

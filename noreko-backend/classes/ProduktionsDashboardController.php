@@ -207,7 +207,7 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from AND datum < :to
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");
@@ -275,7 +275,7 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :idag AND datum < DATE_ADD(:idag2, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");
@@ -299,7 +299,7 @@ class ProduktionsDashboardController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :igar AND datum < DATE_ADD(:igar2, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
+
                     GROUP BY skiftraknare
                 ) sub
             ");
@@ -437,7 +437,7 @@ class ProduktionsDashboardController {
                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= :dag AND datum < DATE_ADD(:dag2, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY skiftraknare
             ) sub
         ");

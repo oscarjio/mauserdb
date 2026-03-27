@@ -311,19 +311,19 @@ class OperatorDashboardController {
                             FROM rebotling_ibc
                             WHERE op1 IS NOT NULL AND op1 > 0
                               AND datum >= :from_1 AND datum < DATE_ADD(:to_1, INTERVAL 1 DAY)
-                              AND skiftraknare IS NOT NULL
+
                             UNION ALL
                             SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op2 IS NOT NULL AND op2 > 0
                               AND datum >= :from_2 AND datum < DATE_ADD(:to_2, INTERVAL 1 DAY)
-                              AND skiftraknare IS NOT NULL
+
                             UNION ALL
                             SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op3 IS NOT NULL AND op3 > 0
                               AND datum >= :from_3 AND datum < DATE_ADD(:to_3, INTERVAL 1 DAY)
-                              AND skiftraknare IS NOT NULL
+
                         ) AS union_rows
                         GROUP BY op_num, DATE(datum), skiftraknare
                     ) AS per_shift
@@ -440,19 +440,19 @@ class OperatorDashboardController {
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND op1 > 0
                           AND datum >= :from_1 AND datum < DATE_ADD(:to_1, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare, ibc_ok
                         FROM rebotling_ibc
                         WHERE op2 IS NOT NULL AND op2 > 0
                           AND datum >= :from_2 AND datum < DATE_ADD(:to_2, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare, ibc_ok
                         FROM rebotling_ibc
                         WHERE op3 IS NOT NULL AND op3 > 0
                           AND datum >= :from_3 AND datum < DATE_ADD(:to_3, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                     ) AS union_rows
                     GROUP BY op_num, DATE(datum), skiftraknare
                 ) AS per_shift
@@ -546,19 +546,19 @@ class OperatorDashboardController {
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND op1 > 0
                           AND datum >= $p1a AND datum < DATE_ADD($p1b, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                         FROM rebotling_ibc
                         WHERE op2 IS NOT NULL AND op2 > 0
                           AND datum >= $p2a AND datum < DATE_ADD($p2b, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                         FROM rebotling_ibc
                         WHERE op3 IS NOT NULL AND op3 > 0
                           AND datum >= $p3a AND datum < DATE_ADD($p3b, INTERVAL 1 DAY)
-                          AND skiftraknare IS NOT NULL
+
                     ) AS u
                     GROUP BY op_num, skiftraknare
                 ";

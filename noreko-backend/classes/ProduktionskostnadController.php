@@ -178,7 +178,7 @@ class ProduktionskostnadController {
                     MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
             ) AS per_shift
             GROUP BY dag
@@ -204,7 +204,7 @@ class ProduktionskostnadController {
                     MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
             ) AS per_shift
         ");
@@ -605,7 +605,7 @@ class ProduktionskostnadController {
                     MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                 FROM rebotling_ibc
                 WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
+
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag ASC, skiftraknare ASC
             ");
