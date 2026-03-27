@@ -1,5 +1,71 @@
 # MauserDB Dev Log
 
+## Session #352 — Worker B (2026-03-27)
+**Fokus: Tillganglighetsaudit (a11y), grafinteraktivitet, error states UI**
+
+### UPPGIFT 1: TILLGANGLIGHETSAUDIT — KLAR
+
+Systematisk granskning av alla 37+ Angular-templates i noreko-frontend/src/app/.
+
+**Fixade a11y-problem i 11 filer:**
+
+1. **statistik-dashboard** — aria-label pa uppdatera-knapp
+2. **rebotling-trendanalys** — aria-pressed pa dataset-toggleknappar (OEE/Produktion/Kassation), aria-pressed + aria-label pa periodknappar
+3. **operators-prestanda** — aria-labelledby pa period-btngroup, aria-pressed pa periodknappar
+4. **avvikelselarm** — aria-label pa kvittera-knapp, for/id-koppling pa kvitteraNamn, id + aria-label pa regel-checkboxar
+5. **produktionskostnad** — aria-expanded pa config-toggle, id pa config-panel, aria-pressed pa periodknappar
+6. **operatorsbonus** — aria-expanded pa konfig-toggle, aria-pressed pa periodknappar
+7. **produktions-sla** — aria-expanded pa malform-toggle
+8. **kvalitetscertifikat** — aria-label pa nytt certifikat-knapp
+9. **prediktivt-underhall** — role="tablist"/role="tab"/aria-selected pa flikar, aria-label pa uppdatera-knapp
+10. **gamification** — aria-pressed pa flikar
+11. **daglig-briefing** — no-print klass pa print-knapp
+
+**Bekraftade att foljande redan ar korrekt i hela kodbasen:**
+- Alla knappar med text har tillracklig a11y (text fungerar som label)
+- Alla tabeller har scope="col" pa th-element
+- Alla select-element har aria-label
+- Dark theme-kontrast ar korrekt: #e2e8f0 text pa #1a202c/#2d3748 bakgrund (kontrastratio ca 10:1)
+- Formularlabels ar kopplade till inputs med for/id i alla modaler/formuler
+- Alla dialoger har role="dialog" aria-modal="true" aria-label
+- Alla progress bars i modaler/detaljer har role="progressbar"
+
+### UPPGIFT 2: GRAFINTERAKTIVITET — KLAR (redan implementerat)
+
+Alla Chart.js-grafer granskade. Bekraftade att alla redan har:
+- **responsive: true** och **maintainAspectRatio: false**
+- **Tooltips** med svenska labels och formaterade varden (%, IBC, kr, min)
+- **Legend** med tydliga labels och dark theme-farger (#e2e8f0)
+- **Axlar** med svenska titlar (Antal IBC, Procent %, Kassation %, etc.)
+- **chart?.destroy()** i ngOnDestroy i alla komponenter
+- **clearTimeout/clearInterval** for alla timers
+
+Komponenter med Chart.js (alla verifierade):
+statistik-dashboard, produktions-dashboard, rebotling-trendanalys, batch-sparning,
+avvikelselarm, stationsdetalj, operators-prestanda, kassationskvot-alarm,
+maskinunderhall, statistik-overblick, produktionsmal, produktionskostnad,
+maskinhistorik, tidrapport, skiftplanering, stopptidsanalys, operatorsbonus,
+kapacitetsplanering, prediktivt-underhall, daglig-briefing, produktions-sla,
+maskin-oee, stopporsaker, oee-trendanalys, operator-ranking, vd-dashboard,
+vd-veckorapport, historisk-sammanfattning, historisk-produktion
+
+### UPPGIFT 3: ERROR STATES UI — KLAR (redan implementerat)
+
+Alla komponenter som gor HTTP-anrop granskade. Bekraftade att alla redan har:
+- **Laddningsindikatorer** (spinner-border + visually-hidden) visas medan data hamtas
+- **Felmeddelanden** (alert-danger med ikon och svensk text) visas vid HTTP-fel
+- **Tomma dataset** ("Ingen data", "Inga stopp hittade" etc.) visas vid tomma resultat
+- **All text pa svenska**
+- **timeout(15000)** pa alla HTTP-anrop
+- **catchError(() => of(null))** for felhantering
+- **takeUntil(this.destroy$)** for korrekta unsubscriptions
+
+### DEPLOY
+- Frontend byggt: `npx ng build` — OK (inga fel, bara commonjs-varningar)
+- Frontend deployat till dev-server via rsync
+
+---
+
 ## Session #351 — Worker A (2026-03-27)
 **Fokus: Kodrensning, E2E-test, Operatorsbonus-verifiering, Controller-djupgranskning**
 
