@@ -6,6 +6,32 @@ class RebotlingAdminController {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Rensa relevanta filcacher efter admin-CRUD-operationer.
+     * Tar bort livestats-cache, settings-cache och month-compare-cache
+     * så att nästa anrop hämtar färsk data.
+     */
+    private function invalidateCache(array $patterns = ['*']): void {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        $tmpSettingsCache = sys_get_temp_dir() . '/mauserdb_livestats_settings.json';
+
+        // Rensa temp-settings-cache (livestats)
+        if (file_exists($tmpSettingsCache)) {
+            @unlink($tmpSettingsCache);
+        }
+
+        if (!is_dir($cacheDir)) return;
+
+        foreach ($patterns as $pattern) {
+            $files = glob($cacheDir . '/' . $pattern . '.json');
+            if ($files) {
+                foreach ($files as $f) {
+                    @unlink($f);
+                }
+            }
+        }
+    }
+
     private function ensureSettingsTable() {
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS `rebotling_settings` (
@@ -118,6 +144,9 @@ class RebotlingAdminController {
                 }
             }
 
+            // Invalidera cache: settings påverkar livestats, month-compare, dashboards
+            $this->invalidateCache(['livestats_result', 'month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
+
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::saveAdminSettings: ' . $e->getMessage());
@@ -201,6 +230,9 @@ class RebotlingAdminController {
                 }
                 throw $txEx;
             }
+            // Invalidera cache: veckodagsmål påverkar month-compare och dashboards
+            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
+
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::saveWeekdayGoals: ' . $e->getMessage());
@@ -302,6 +334,9 @@ class RebotlingAdminController {
                 "UPDATE rebotling_settings SET alert_thresholds = ? WHERE id = 1"
             );
             $stmt->execute([$json]);
+
+            // Invalidera cache: trösklar påverkar livestats och alarm
+            $this->invalidateCache(['livestats_result', 'alarm_historik_*']);
 
             echo json_encode(['success' => true, 'message' => 'Trösklar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
@@ -453,6 +488,9 @@ class RebotlingAdminController {
                 }
             }
             $this->pdo->commit();
+            // Invalidera cache: skifttider påverkar livestats och dashboards
+            $this->invalidateCache(['livestats_result', 'month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
+
             echo json_encode(['success' => true, 'message' => 'Skifttider sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             if ($this->pdo->inTransaction()) {
@@ -772,6 +810,9 @@ class RebotlingAdminController {
             );
             $stmt->execute([$normalized, $configJson]);
 
+            // Invalidera settings-cache
+            $this->invalidateCache(['livestats_result']);
+
             echo json_encode(['success' => true, 'message' => 'Notifikationsinställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::saveNotificationSettings: ' . $e->getMessage());
@@ -928,6 +969,9 @@ class RebotlingAdminController {
                 $stmt->execute([$k, $v]);
             }
             $this->pdo->commit();
+            // Invalidera cache: ranking-settings påverkar livestats
+            $this->invalidateCache(['livestats_result']);
+
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             if ($this->pdo->inTransaction()) {
@@ -1015,6 +1059,9 @@ class RebotlingAdminController {
                 $stmt->execute([$k, $v]);
             }
             $this->pdo->commit();
+            // Invalidera cache: ranking-config påverkar livestats
+            $this->invalidateCache(['livestats_result']);
+
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             if ($this->pdo->inTransaction()) {
@@ -1212,6 +1259,9 @@ class RebotlingAdminController {
                 ':orsak' => $orsak,
                 ':uid'   => $userId,
             ]);
+            // Invalidera cache: mål-undantag påverkar dashboards och month-compare
+            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
+
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::saveGoalException: ' . $e->getMessage());
@@ -1236,6 +1286,9 @@ class RebotlingAdminController {
         try {
             $stmt = $this->pdo->prepare('DELETE FROM produktionsmal_undantag WHERE datum = :datum');
             $stmt->execute([':datum' => $datum]);
+            // Invalidera cache: mål-undantag påverkar dashboards och month-compare
+            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
+
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::deleteGoalException: ' . $e->getMessage());
@@ -1369,6 +1422,9 @@ class RebotlingAdminController {
                 "INSERT INTO rebotling_kv_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
             );
             $stmt->execute(['service_interval_ibc', strval($interval)]);
+            // Invalidera cache: service-intervall påverkar livestats
+            $this->invalidateCache(['livestats_result']);
+
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingAdminController::saveServiceInterval: ' . $e->getMessage());

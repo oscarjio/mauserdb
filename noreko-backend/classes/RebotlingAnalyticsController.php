@@ -2031,6 +2031,19 @@ class RebotlingAnalyticsController {
                 $monthParam = date('Y-m');
             }
 
+            // Filcache 30s TTL — month-compare är tung analytics-query
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/month_compare_' . $monthParam . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('X-Cache: HIT');
+                    echo $cached;
+                    return;
+                }
+            }
+
             [$year, $mon] = explode('-', $monthParam);
             $year = (int)$year;
             $mon  = (int)$mon;
@@ -2271,15 +2284,16 @@ class RebotlingAnalyticsController {
             $bestDayData = $thisMonthData['best_day'];
             try {
                 if ($bestDayData) {
+                    $bdDate = $bestDayData['datum'];
+                    $bdNextDay = date('Y-m-d', strtotime($bdDate . ' +1 day'));
                     $bdStmt = $this->pdo->prepare("
                         SELECT COUNT(DISTINCT op_id) AS op_count FROM (
-                            SELECT DISTINCT op1 AS op_id FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                            UNION SELECT DISTINCT op2 FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                            UNION SELECT DISTINCT op3 FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
+                            SELECT DISTINCT op1 AS op_id FROM rebotling_ibc WHERE datum >= ? AND datum < ? AND op1 IS NOT NULL AND op1 > 0
+                            UNION SELECT DISTINCT op2 FROM rebotling_ibc WHERE datum >= ? AND datum < ? AND op2 IS NOT NULL AND op2 > 0
+                            UNION SELECT DISTINCT op3 FROM rebotling_ibc WHERE datum >= ? AND datum < ? AND op3 IS NOT NULL AND op3 > 0
                         ) ops
                     ");
-                    $bdDate = $bestDayData['datum'];
-                    $bdStmt->execute([$bdDate, $bdDate, $bdDate, $bdDate, $bdDate, $bdDate]);
+                    $bdStmt->execute([$bdDate, $bdNextDay, $bdDate, $bdNextDay, $bdDate, $bdNextDay]);
                     $bdRow = $bdStmt->fetch(PDO::FETCH_ASSOC);
                     $bestDayData['operator_count'] = (int)($bdRow['op_count'] ?? 0);
                 }
@@ -2287,7 +2301,7 @@ class RebotlingAnalyticsController {
                 error_log('RebotlingAnalyticsController::getMonthCompare: best day operators fel: ' . $e->getMessage());
             }
 
-            echo json_encode([
+            $jsonResult = json_encode([
                 'success'            => true,
                 'month'              => $monthParam,
                 'prev_month'         => $prevMonth,
@@ -2304,6 +2318,11 @@ class RebotlingAnalyticsController {
                 'best_day'           => $bestDayData,
                 'worst_day'          => $thisMonthData['worst_day'],
             ], JSON_UNESCAPED_UNICODE);
+
+            // Spara till filcache (30s TTL)
+            file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            header('X-Cache: MISS');
+            echo $jsonResult;
 
         } catch (Exception $e) {
             error_log('RebotlingAnalyticsController::getMonthCompare: ' . $e->getMessage());

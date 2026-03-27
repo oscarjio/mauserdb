@@ -1,5 +1,50 @@
 # MauserDB Dev Log
 
+## Session #368 — Worker A (2026-03-27)
+**Fokus: Month-compare covering index + cache-invalidering + livestats buggfix + endpoint stresstest + deploy dev**
+
+### UPPGIFT 1: Month-compare covering index optimering — KLAR
+- **Problem**: op2/op3 subqueries i operator-ranking gjorde FULL TABLE SCAN (5187 rader, typ=ALL)
+- **Fix**: Skapade covering index `idx_ibc_op2_covering` och `idx_ibc_op3_covering` pa `(datum, op2/op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc)`
+- **EXPLAIN bekraftar**: range scan med "Using index" (1060 rader) istf full table scan (5187 rader)
+- **Fix 2**: Lade till filcache 30s TTL pa month-compare — analytics-data andras sjallan
+- **Fix 3**: Fixade best-day-queryn: bytte DATE_ADD(?, INTERVAL 1 DAY) till forberaknat PHP-datum
+- **Resultat**: Cache MISS ~600ms, Cache HIT ~100-180ms (mal <300ms uppnatt)
+- **Migration**: `2026-03-27_session368_op_covering_indexes.sql`
+
+### UPPGIFT 2: Write-through cache-invalidering — KLAR
+- **Problem**: Admin-CRUD-operationer andrade data utan att rensa filcache
+- **Ny metod**: `invalidateCache()` i RebotlingAdminController — rensar relevanta cache-filer + tmp settings-cache
+- **9 save/delete-endpoints instrumenterade**:
+  - saveAdminSettings → livestats + month-compare + dashboards
+  - saveWeekdayGoals → month-compare + dashboards
+  - saveAlertThresholds → livestats + alarm
+  - saveShiftTimes → livestats + month-compare + dashboards
+  - saveNotificationSettings → livestats
+  - saveLiveRankingSettings → livestats
+  - setLiveRankingConfig → livestats
+  - saveGoalException / deleteGoalException → month-compare + dashboards
+  - saveServiceInterval → livestats
+
+### UPPGIFT 3: Full endpoint stresstest — KLAR
+- **145 endpoints testade** mot dev.mauserdb.com
+- **0 x 500-fel**
+- **0 endpoints >2s**
+
+### UPPGIFT 4: PHP backend djupgranskning — KLAR
+- **BUGG HITTAD OCH FIXAD**: Livestats `ibcToday` anvande `COUNT(*)` (antal data-snapshots = 122) istallet for `SUM(MAX(ibc_ok))` per skift (faktiska IBC-enheter = 158)
+  - Rotorsak: Varje rad i rebotling_ibc ar en periodisk PLC-snapshot, inte en IBC-enhet. `ibc_ok` ar en lopande raknare per skift.
+  - Fix: Bytte till CTE med `SUM(MAX(ibc_ok))` per skiftraknare — nu korrekt
+  - Samma fix for `ibc_hour` och `ibc_shift` (COUNT→MAX)
+- **Data-korrekthet verifierad**: month-compare API (793) = DB (793), livestats (158) = DB (158)
+- **Schema-granskning**: Alla kolumnreferenser i rebotling-kontroller matchar prod_db_schema.sql
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- 3 deploy-rundor: index + cache-invalidering → livestats-fix → slutverifiering
+- Alla endpoints 200 OK
+
+---
+
 ## Session #368 — Worker B (2026-03-27)
 **Fokus: Uncommitted changes granskning + heatmap UX + rebotling UX-granskning + chart-granskning + data-verifiering + deploy**
 
