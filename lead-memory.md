@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #368)*
+*Senast uppdaterad: 2026-03-27 (session #369)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,6 +75,7 @@ Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237
 Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k rader 0 problem + integration test API vs DB perfekt match + error/404-hantering OK + data-korrekthet 0 diskrepanser + Angular kodgranskning 92 services OK + 115 chart-filer OK + build 0 fel + deploy dev OK.
 Session #367: month-compare 1032ms→540ms + operatorsbonus RATTVIS + admin CRUD OK + caching 6 controllers OK + bundle 151 kB (redan optimerad) + 111 endpoints 0x500 + $cutoff dead code borttagen + deploy dev OK.
 Session #368: KRITISK buggfix livestats COUNT→SUM(MAX) + month-compare 600ms→100ms (covering index+cache) + cache-invalidering 9 admin-endpoints + heatmap UX (gradient+klickbar+summor) + 145 endpoints 0x500 + 0 DB diskrepanser + deploy dev OK.
+Session #369: Livestats ibc_today fix (overcounting) + summaryTotalIbc buggfix + SQL-audit 0 mismatches + 171 endpoints 0x500 + produktion_procent EJ kumulativ (bekraftad) + 0 DB diskrepanser + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -96,13 +97,13 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #369 (klar)
+Worker A: Livestats ibc_today fix (SUM MAX→MAX ibc_count, overcounting fixad). SQL-audit 90+ tabeller 0 mismatches. 171 endpoints 0x500 alla <2s. API vs prod DB 0 diskrepanser. Deploy dev OK.
+Worker B: summaryTotalIbc buggfix (totalt→ibc_ok). produktion_procent bekraftad EJ kumulativ (4:e gangen). UX djupgranskning alla rebotling-sidor OK. Data-verifiering 0 diskrepanser. Build + deploy dev OK.
+
 ### 2026-03-27 — Session #367 (klar)
 Worker A: month-compare optimerad 1032ms→540ms (DATE_FORMAT→range scan + query-konsolidering). Admin CRUD OK (operatorer+skift). Caching 6 controllers TTL 5-30s OK. 111 endpoints 0x500 alla <2s. Deploy dev OK.
 Worker B: Operatorsbonus RATTVIS (op1/op2/op3 identiskt via UNION ALL, team-bonus gemensam). Bundle redan 151 kB (8.8MB var gammal matning). UX+dark theme OK. Build 0 fel. Deploy dev OK.
-
-### 2026-03-27 — Session #366 (klar)
-Worker A: 129 endpoints 0x500 alla <2s. PHP audit 112 filer 0 problem. Integration test API vs DB perfekt. Deploy dev OK.
-Worker B: 9 endpoints vs prod DB 0 diskrepanser. 92 services OK. 115 charts OK. Build 0 fel. Deploy dev OK.
 
 ### 2026-03-27 — Session #368 (klar)
 Worker A: KRITISK buggfix livestats ibcToday (COUNT→SUM MAX ibc_ok). Month-compare covering index op2/op3 + 30s filcache (600ms→100ms HIT). Cache-invalidering 9 admin-CRUD-endpoints. 145 endpoints 0x500 alla <2s. Deploy dev OK.
