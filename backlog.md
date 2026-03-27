@@ -11,20 +11,21 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #370):
-- [x] PHP dead code audit — 1 dead method borttagen (Worker A)
-- [x] Error handling review — konsekvent format bekraftat (Worker A)
-- [x] 115 endpoints stresstest — 0x500 alla <1s (Worker A)
-- [x] SQL optimization review — covering indexes OK, 1 redundant index noterad (Worker A)
-- [x] Driftstopp-timeline + effektivitet cap 150% (Worker B)
-- [x] Icke-rebotling sidor UX-granskning — 6 sidor OK (Worker B)
-- [x] Angular lifecycle audit — 0 memory leaks (Worker B)
-- [x] WCAG AA granskning — heading/kontrast/aria OK (Worker B)
+### Klart (session #371):
+- [x] Redundant index idx_datum — migrationsfil skapad (Worker A)
+- [x] Admin CRUD djuptest 9 endpoints x4 metoder 0x500 (Worker A)
+- [x] 115 endpoints stresstest 0x500 alla <0.5s (Worker A)
+- [x] PHP controller-audit 118 filer 0 buggar (Worker A)
+- [x] Uncommitted rebotling-statistik.ts reverterad (Worker B)
+- [x] Skiftrapport UX OK (Worker B)
+- [x] 69 komponenter lifecycle-audit 0 leaks (Worker B)
+- [x] Data-verifiering 0 diskrepanser (Worker B)
+- [x] Icke-rebotling sidor OK (Worker B)
 - [x] Deploy frontend + backend till dev OK (bada workers)
 
-### Nasta (session #371):
-- [ ] Ta bort redundant index idx_datum pa rebotling_ibc (Worker A noterade)
-- [ ] E2E regressionstest — automatiserat testsvit
-- [ ] API response-format standardisering
-- [ ] Rebotling skiftrapport UX-forbattring
-- [ ] Admin-sidor CRUD djuptest (skapa/redigera/ta bort)
+### Nasta (session #372):
+- [ ] API response-format standardisering — enhetligt JSON-format
+- [ ] Performance-regression test — benchmark kritiska endpoints
+- [ ] Rebotling graf-forbattringar — tooltips, labels, adaptiv granularitet
+- [ ] Security headers audit — CSP, HSTS, X-Frame-Options
+- [ ] Error monitoring — centraliserad loggning + alerting
