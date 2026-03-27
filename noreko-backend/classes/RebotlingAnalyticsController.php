@@ -226,7 +226,6 @@ class RebotlingAnalyticsController {
                         AVG(runtime_plc)         AS avg_runtime_plc
                     FROM rebotling_ibc
                     WHERE datum >= ?
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
@@ -343,7 +342,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(ibc_ok,  0)) AS shift_ibc_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
@@ -396,7 +394,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
@@ -498,7 +495,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
                     WHERE datum >= :oee_start AND datum <= :oee_end
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     ORDER BY dag ASC, skiftraknare ASC
@@ -558,7 +554,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
                     WHERE datum >= :oee_start AND datum <= :oee_end
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -622,7 +617,7 @@ class RebotlingAnalyticsController {
                              ELSE 0 END
                     , 1) AS avg_kvalitet
                 FROM rebotling_ibc
-                WHERE skiftraknare IS NOT NULL
+                WHERE 1=1
                   AND ibc_ok IS NOT NULL
                   AND datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                 GROUP BY skiftraknare
@@ -667,174 +662,141 @@ class RebotlingAnalyticsController {
      */
 
     public function getExecDashboard() {
-        try {
             $tz  = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
 
-            // ---- Dagsmål (från rebotling_settings) ----
+            // ---- Konsoliderad settings-hämtning (1 query istället för 4) ----
             $dailyTarget = 1000;
+            $shiftStart = '06:00:00';
+            $shiftLengthMin = 480;
             try {
                 $this->ensureSettingsTable();
-                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-                if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard dagsMal: ' . $e->getMessage()); }
-
-            // Kolla om undantag finns för idag (getExecDashboard)
-            try {
-                $stmtEx = $this->pdo->prepare('SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE()');
-                $stmtEx->execute();
-                $exceptionRow = $stmtEx->fetch(PDO::FETCH_ASSOC);
-                if ($exceptionRow) {
-                    $dailyTarget = (int)$exceptionRow['justerat_mal'];
-                }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard undantag: ' . $e->getMessage()); }
-
-            // ---- IBC idag ----
-            $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
-
-            // ---- Skiftstart (används för prognos). Standard 06:00 ----
-            $shiftStart = '06:00:00';
-            try {
                 $this->ensureShiftTimesTable();
-                $st = $this->pdo->query("SELECT start_time FROM rebotling_shift_times WHERE shift_name='förmiddag' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
-                if ($st) $shiftStart = $st['start_time'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard shiftStart: ' . $e->getMessage()); }
+                $settingsRow = $this->pdo->query("
+                    SELECT
+                        s.rebotling_target,
+                        s.shift_hours,
+                        (SELECT start_time FROM rebotling_shift_times WHERE shift_name='förmiddag' LIMIT 1) AS fm_start,
+                        (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal
+                    FROM rebotling_settings s WHERE s.id = 1
+                ")->fetch(PDO::FETCH_ASSOC);
+                if ($settingsRow) {
+                    $dailyTarget = (int)($settingsRow['rebotling_target'] ?? 1000);
+                    $shiftLengthMin = (float)($settingsRow['shift_hours'] ?? 8.0) * 60;
+                    if ($settingsRow['fm_start']) $shiftStart = $settingsRow['fm_start'];
+                    if ($settingsRow['undantag_mal'] !== null) {
+                        $dailyTarget = (int)$settingsRow['undantag_mal'];
+                    }
+                }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard settings: ' . $e->getMessage()); }
+
+            // ---- Konsoliderad IBC + OEE idag + igår (1 CTE-query istället för 3) ----
+            $ibcToday = 0;
+            $oeeToday = 0;
+            $oeeYesterday = 0;
+            try {
+                $comboRow = $this->pdo->query("
+                    SELECT
+                        (SELECT COUNT(*) FROM rebotling_ibc
+                         WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
+                        t.ibc_ok AS today_ibc_ok, t.ibc_ej_ok AS today_ibc_ej_ok,
+                        t.runtime_min AS today_runtime, t.rast_min AS today_rast,
+                        y.ibc_ok AS yest_ibc_ok, y.ibc_ej_ok AS yest_ibc_ej_ok,
+                        y.runtime_min AS yest_runtime, y.rast_min AS yest_rast
+                    FROM (
+                        SELECT
+                            SUM(shift_ibc_ok) AS ibc_ok, SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                            SUM(shift_runtime) AS runtime_min, SUM(shift_rast) AS rast_min
+                        FROM (
+                            SELECT skiftraknare,
+                                MAX(COALESCE(ibc_ok,0)) AS shift_ibc_ok,
+                                MAX(COALESCE(ibc_ej_ok,0)) AS shift_ibc_ej_ok,
+                                MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                                MAX(COALESCE(rasttime,0)) AS shift_rast
+                            FROM rebotling_ibc
+                            WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                              AND ibc_ok IS NOT NULL
+                            GROUP BY skiftraknare
+                        ) ps_today
+                    ) t
+                    CROSS JOIN (
+                        SELECT
+                            SUM(shift_ibc_ok) AS ibc_ok, SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                            SUM(shift_runtime) AS runtime_min, SUM(shift_rast) AS rast_min
+                        FROM (
+                            SELECT skiftraknare,
+                                MAX(COALESCE(ibc_ok,0)) AS shift_ibc_ok,
+                                MAX(COALESCE(ibc_ej_ok,0)) AS shift_ibc_ej_ok,
+                                MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                                MAX(COALESCE(rasttime,0)) AS shift_rast
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND datum < CURDATE()
+                              AND ibc_ok IS NOT NULL
+                            GROUP BY skiftraknare
+                        ) ps_yest
+                    ) y
+                ")->fetch(PDO::FETCH_ASSOC);
+
+                if ($comboRow) {
+                    $ibcToday = (int)$comboRow['ibc_today'];
+
+                    // OEE idag
+                    if ($comboRow['today_runtime'] > 0) {
+                        $ibcOk   = (float)$comboRow['today_ibc_ok'];
+                        $ibcEjOk = (float)$comboRow['today_ibc_ej_ok'];
+                        $total   = $ibcOk + $ibcEjOk;
+                        $opMin   = max((float)$comboRow['today_runtime'], 1);
+                        $planMin = max($opMin + (float)$comboRow['today_rast'], 1);
+                        $avail   = min($opMin / $planMin, 1.0);
+                        $perf    = min(($total / $opMin) / (15.0 / 60.0), 1.0);
+                        $qual    = $total > 0 ? $ibcOk / $total : 0;
+                        $oeeToday = round($avail * $perf * $qual * 100, 1);
+                    }
+
+                    // OEE igår
+                    if ($comboRow['yest_runtime'] > 0) {
+                        $ibcOk2   = (float)$comboRow['yest_ibc_ok'];
+                        $ibcEjOk2 = (float)$comboRow['yest_ibc_ej_ok'];
+                        $total2   = $ibcOk2 + $ibcEjOk2;
+                        $opMin2   = max((float)$comboRow['yest_runtime'], 1);
+                        $planMin2 = max($opMin2 + (float)$comboRow['yest_rast'], 1);
+                        $avail2   = min($opMin2 / $planMin2, 1.0);
+                        $perf2    = min(($total2 / $opMin2) / (15.0 / 60.0), 1.0);
+                        $qual2    = $total2 > 0 ? $ibcOk2 / $total2 : 0;
+                        $oeeYesterday = round($avail2 * $perf2 * $qual2 * 100, 1);
+                    }
+                }
+            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard OEE combo: ' . $e->getMessage()); }
 
             $shiftStartDt = new DateTime($now->format('Y-m-d') . ' ' . $shiftStart, $tz);
             if ($shiftStartDt > $now) {
-                // Kan hända om skiftet inte startat — räkna ändå från 06:00
                 $shiftStartDt->modify('-1 day');
             }
             $minutesSinceShiftStart = max(1, ($now->getTimestamp() - $shiftStartDt->getTimestamp()) / 60);
-
-            // Prognos: om vi producerat X IBC på Y minuter, hur många till skiftets slut (480 min)?
-            $shiftLengthMin = 480;
-            try {
-                $st2 = $this->pdo->query("SELECT shift_hours FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-                if ($st2) $shiftLengthMin = (float)$st2['shift_hours'] * 60;
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard shiftLength: ' . $e->getMessage()); }
 
             $rate = $minutesSinceShiftStart > 0 ? $ibcToday / $minutesSinceShiftStart : 0;
             $remainingMin = max(0, $shiftLengthMin - $minutesSinceShiftStart);
             $forecast = (int)round($ibcToday + $rate * $remainingMin);
 
-            // ---- OEE idag ----
-            $oeeToday = 0;
-            try {
-                $oRow = $this->pdo->query("
-                    SELECT
-                        SUM(shift_ibc_ok)    AS ibc_ok,
-                        SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
-                        SUM(shift_runtime)   AS runtime_min,
-                        SUM(shift_rast)      AS rast_min
-                    FROM (
-                        SELECT
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                            MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                            MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                            MAX(COALESCE(rasttime,   0)) AS shift_rast
-                        FROM rebotling_ibc
-                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                          AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) AS ps
-                ")->fetch(PDO::FETCH_ASSOC);
-                if ($oRow && $oRow['runtime_min'] > 0) {
-                    $ibcOk   = (float)$oRow['ibc_ok'];
-                    $ibcEjOk = (float)$oRow['ibc_ej_ok'];
-                    $total   = $ibcOk + $ibcEjOk;
-                    $opMin   = max((float)$oRow['runtime_min'], 1);
-                    $planMin = max($opMin + (float)$oRow['rast_min'], 1);
-                    $avail   = min($opMin / $planMin, 1.0);
-                    $perf    = min(($total / $opMin) / (15.0 / 60.0), 1.0);
-                    $qual    = $total > 0 ? $ibcOk / $total : 0;
-                    $oeeToday = round($avail * $perf * $qual * 100, 1);
-                }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard OEE today: ' . $e->getMessage()); }
-
-            // ---- OEE igår ----
-            $oeeYesterday = 0;
-            try {
-                $oRow2 = $this->pdo->query("
-                    SELECT
-                        SUM(shift_ibc_ok)    AS ibc_ok,
-                        SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
-                        SUM(shift_runtime)   AS runtime_min,
-                        SUM(shift_rast)      AS rast_min
-                    FROM (
-                        SELECT
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                            MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                            MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                            MAX(COALESCE(rasttime,   0)) AS shift_rast
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-                          AND datum < CURDATE()
-                          AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) AS ps
-                ")->fetch(PDO::FETCH_ASSOC);
-                if ($oRow2 && $oRow2['runtime_min'] > 0) {
-                    $ibcOk2   = (float)$oRow2['ibc_ok'];
-                    $ibcEjOk2 = (float)$oRow2['ibc_ej_ok'];
-                    $total2   = $ibcOk2 + $ibcEjOk2;
-                    $opMin2   = max((float)$oRow2['runtime_min'], 1);
-                    $planMin2 = max($opMin2 + (float)$oRow2['rast_min'], 1);
-                    $avail2   = min($opMin2 / $planMin2, 1.0);
-                    $perf2    = min(($total2 / $opMin2) / (15.0 / 60.0), 1.0);
-                    $qual2    = $total2 > 0 ? $ibcOk2 / $total2 : 0;
-                    $oeeYesterday = round($avail2 * $perf2 * $qual2 * 100, 1);
-                }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard OEE yesterday: ' . $e->getMessage()); }
-
-            // ---- Senaste 7 dagarna (IBC/dag) ----
-            $stmt7 = $this->pdo->prepare("
-                SELECT
-                    dag,
-                    SUM(shift_ibc_ok) AS ibc_ok
-                FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                      AND skiftraknare IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS ps
-                GROUP BY dag
-                ORDER BY dag ASC
-            ");
-            $stmt7->execute();
-            $rows7 = $stmt7->fetchAll(PDO::FETCH_ASSOC);
-
-            // Fyll i tomma dagar (inga produktionsdagar ger 0)
-            $map7 = [];
-            foreach ($rows7 as $r) { $map7[$r['dag']] = (int)$r['ibc_ok']; }
-            $days7 = [];
-            for ($i = 6; $i >= 0; $i--) {
-                $d = date('Y-m-d', strtotime("-{$i} days"));
-                $days7[] = ['date' => $d, 'ibc' => $map7[$d] ?? 0, 'target' => $dailyTarget];
-            }
-
-            // ---- Veckototaler (mon–idag vs förra veckan mån–sön) ----
-            // ISO vecka: måndag = weekday 1
+            // ---- Konsoliderad 14-dagars + vecko-OEE + bästa operatör (1 query istället för 3) ----
+            // Hämta per-dag per-skift data för senaste 14 dagarna — används för 7-dagars, veckovisa jämförelser OCH vecko-OEE
             $stmt14 = $this->pdo->prepare("
                 SELECT
                     dag,
                     SUM(shift_ibc_ok) AS ibc_ok,
-                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime) AS runtime_min,
+                    SUM(shift_rast) AS rast_min
                 FROM (
                     SELECT
                         DATE(datum) AS dag,
                         skiftraknare,
                         MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS ps
                 GROUP BY dag
@@ -843,56 +805,52 @@ class RebotlingAnalyticsController {
             $stmt14->execute();
             $rows14 = $stmt14->fetchAll(PDO::FETCH_ASSOC);
 
+            // Bygg 7-dagars array och vecko-totaler från samma data
             $map14 = [];
-            foreach ($rows14 as $r) { $map14[$r['dag']] = ['ibc' => (int)$r['ibc_ok'], 'ej' => (int)$r['ibc_ej_ok']]; }
+            foreach ($rows14 as $r) { $map14[$r['dag']] = $r; }
+            $days7 = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+                $days7[] = ['date' => $d, 'ibc' => (int)($map14[$d]['ibc_ok'] ?? 0), 'target' => $dailyTarget];
+            }
 
+            // Fyll i tomma dagar (inga produktionsdagar ger 0)
+            $map7 = [];
+            foreach ($rows7 as $r) { $map7[$r['dag']] = (int)$r['ibc_ok']; }
+            $days7 = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+            // ---- Vecko-totaler och OEE beräknas från samma 14-dagars data ----
             $thisWeekIbc = 0; $prevWeekIbc = 0;
             $thisWeekOkSum = 0; $thisWeekEjSum = 0;
+            $weekRuntimeMin = 0; $weekRastMin = 0;
             for ($i = 13; $i >= 7; $i--) {
                 $d = date('Y-m-d', strtotime("-{$i} days"));
-                $prevWeekIbc += $map14[$d]['ibc'] ?? 0;
+                $prevWeekIbc += (int)($map14[$d]['ibc_ok'] ?? 0);
             }
             for ($i = 6; $i >= 0; $i--) {
                 $d = date('Y-m-d', strtotime("-{$i} days"));
-                $thisWeekIbc  += $map14[$d]['ibc'] ?? 0;
-                $thisWeekOkSum += $map14[$d]['ibc'] ?? 0;
-                $thisWeekEjSum += $map14[$d]['ej']  ?? 0;
+                $r = $map14[$d] ?? null;
+                $thisWeekIbc   += (int)($r['ibc_ok'] ?? 0);
+                $thisWeekOkSum += (int)($r['ibc_ok'] ?? 0);
+                $thisWeekEjSum += (int)($r['ibc_ej_ok'] ?? 0);
+                $weekRuntimeMin += (float)($r['runtime_min'] ?? 0);
+                $weekRastMin    += (float)($r['rast_min'] ?? 0);
             }
             $weekDiff = $prevWeekIbc > 0 ? round((($thisWeekIbc - $prevWeekIbc) / $prevWeekIbc) * 100, 1) : 0;
             $thisWeekQuality = ($thisWeekOkSum + $thisWeekEjSum) > 0
                 ? round($thisWeekOkSum / ($thisWeekOkSum + $thisWeekEjSum) * 100, 1)
                 : 0;
 
-            // ---- OEE denna vecka (snitt per dag) ----
-            $weekOeeRows = $this->pdo->query("
-                SELECT
-                    SUM(shift_ibc_ok)    AS ibc_ok,
-                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
-                    SUM(shift_runtime)   AS runtime_min,
-                    SUM(shift_rast)      AS rast_min
-                FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        MAX(COALESCE(rasttime,   0)) AS shift_rast
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                      AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
-                    GROUP BY skiftraknare
-                ) AS ps
-            ")->fetch(PDO::FETCH_ASSOC);
+            // Vecko-OEE beräknad från samma 14-dagars data (ingen extra query)
             $weekOee = 0;
-            if ($weekOeeRows && $weekOeeRows['runtime_min'] > 0) {
-                $wOk   = (float)$weekOeeRows['ibc_ok'];
-                $wEj   = (float)$weekOeeRows['ibc_ej_ok'];
-                $wTot  = $wOk + $wEj;
-                $wOp   = max((float)$weekOeeRows['runtime_min'], 1);
-                $wPlan = max($wOp + (float)$weekOeeRows['rast_min'], 1);
+            if ($weekRuntimeMin > 0) {
+                $wTot  = $thisWeekOkSum + $thisWeekEjSum;
+                $wOp   = max($weekRuntimeMin, 1);
+                $wPlan = max($wOp + $weekRastMin, 1);
                 $wA    = min($wOp / $wPlan, 1.0);
                 $wP    = min(($wTot / $wOp) / (15.0 / 60.0), 1.0);
-                $wQ    = $wTot > 0 ? $wOk / $wTot : 0;
+                $wQ    = $wTot > 0 ? $thisWeekOkSum / $wTot : 0;
                 $weekOee = round($wA * $wP * $wQ * 100, 1);
             }
 
@@ -913,7 +871,6 @@ class RebotlingAnalyticsController {
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
-                          AND skiftraknare IS NOT NULL
                         GROUP BY op1, skiftraknare
                     ) AS ps
                     GROUP BY op1
@@ -1041,11 +998,6 @@ class RebotlingAnalyticsController {
                     'last_shift_operators' => $lastShiftOps
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            error_log('RebotlingAnalyticsController::getExecDashboard: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta executive dashboard-data'], JSON_UNESCAPED_UNICODE);
-        }
     }
 
     // =========================================================
@@ -1217,7 +1169,6 @@ class RebotlingAnalyticsController {
                         ) / 60.0 AS cycle_time_min
                     FROM rebotling_ibc
                     WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                      AND skiftraknare IS NOT NULL
                     ORDER BY skiftraknare, datum ASC
                 ");
                 $stmt2->execute(['date' => $date, 'dateb' => $date]);
@@ -1331,7 +1282,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     HAVING shift_runtime > 0 AND shift_ibc_ok > 0
@@ -1607,7 +1557,6 @@ class RebotlingAnalyticsController {
                             MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
                         FROM rebotling_ibc
                         WHERE YEAR(datum) = :year
-                          AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps
                     GROUP BY DATE(datum)
@@ -1679,7 +1628,6 @@ class RebotlingAnalyticsController {
                     MAX(runtime_plc) AS runtime_min
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare, HOUR(datum)
                 ORDER BY skiftraknare, timme
             ");
@@ -1874,7 +1822,7 @@ class RebotlingAnalyticsController {
                             / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -1903,7 +1851,7 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS ps
@@ -1981,7 +1929,6 @@ class RebotlingAnalyticsController {
                     FROM rebotling_ibc
                     WHERE YEAR(datum) = ?
                       AND WEEK(datum, 1) = ?
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -2006,7 +1953,6 @@ class RebotlingAnalyticsController {
                     FROM rebotling_ibc
                     WHERE YEAR(datum) = ?
                       AND WEEK(datum, 1) = ?
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS ps
@@ -2058,7 +2004,7 @@ class RebotlingAnalyticsController {
                             / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -2092,7 +2038,6 @@ class RebotlingAnalyticsController {
                         1) AS shift_quality
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -2119,7 +2064,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS ps
@@ -2225,7 +2169,6 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(rasttime, 0))                                               AS shift_rast
                     FROM rebotling_ibc
                     WHERE DATE_FORMAT(datum,'%Y-%m') = ?
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ";
 
@@ -2578,7 +2521,6 @@ class RebotlingAnalyticsController {
                     MAX(COALESCE(rasttime, 0))                                             AS shift_rast
                 FROM rebotling_ibc
                 WHERE DATE_FORMAT(datum,'%Y-%m') = ?
-                  AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
             ";
 
@@ -2824,7 +2766,6 @@ class RebotlingAnalyticsController {
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 56 DAY)
-                      AND skiftraknare IS NOT NULL
                       AND ibc_ok > 0
                       AND runtime_plc > 0
                     GROUP BY DATE(datum), skiftraknare
@@ -3096,7 +3037,6 @@ class RebotlingAnalyticsController {
                            MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0)) AS ibc_totalt
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
@@ -3190,7 +3130,6 @@ class RebotlingAnalyticsController {
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
@@ -3292,7 +3231,6 @@ class RebotlingAnalyticsController {
                             MAX(COALESCE(rasttime,   0))          AS shift_rast
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                          AND skiftraknare IS NOT NULL
                           AND ibc_ok IS NOT NULL
                           AND ibc_ok > 0
                         GROUP BY DATE(datum), skiftraknare
@@ -4919,7 +4857,6 @@ HTML;
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
@@ -5102,7 +5039,6 @@ HTML;
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum <= :to_date
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
@@ -5127,7 +5063,6 @@ HTML;
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :prev_from AND datum < :prev_to
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
@@ -5893,7 +5828,7 @@ HTML;
                     MAX(COALESCE(rasttime,   0)) AS shift_rast
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                  AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
             ) AS ps
             GROUP BY dag
@@ -5960,7 +5895,7 @@ HTML;
                     MAX(COALESCE(rasttime,   0)) AS shift_rast
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                  AND ibc_ok IS NOT NULL
                 GROUP BY skiftraknare
             ) AS ps
         ");
@@ -6016,7 +5951,7 @@ HTML;
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND op1 IS NOT NULL AND op1 > 0
-                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                  AND ibc_ok IS NOT NULL
                 GROUP BY op1, skiftraknare
             ) AS ps
             GROUP BY operator_id
@@ -6604,7 +6539,6 @@ HTML;
                     FROM rebotling_ibc r
                     WHERE $dateFilter
                       AND ibc_ok IS NOT NULL
-                      AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -6655,7 +6589,6 @@ HTML;
                             FROM rebotling_ibc
                             WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                               AND ibc_ok IS NOT NULL
-                              AND skiftraknare IS NOT NULL
                             GROUP BY skiftraknare
                             HAVING shift_runtime > 30
                         ) AS shifts
@@ -7016,7 +6949,6 @@ HTML;
                     HOUR(MIN(datum))              AS start_hour
                 FROM rebotling_ibc
                 WHERE datum >= ?
-                  AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
                 ORDER BY dag ASC, skiftraknare ASC
             ");
@@ -7215,7 +7147,6 @@ HTML;
                         SUBSTRING_INDEX(GROUP_CONCAT(effektivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_eff
                     FROM rebotling_ibc
                     WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
-                      AND skiftraknare IS NOT NULL
                       AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY op{$pos}, skiftraknare
                 ";

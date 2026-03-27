@@ -1,5 +1,62 @@
 # MauserDB Dev Log
 
+## Session #364 — Worker B (2026-03-27)
+**Fokus: Mobile responsivitet audit alla sidor + fullstandig UX-granskning + VD Dashboard djupgranskning + rebotling-statistik grafer + build + deploy**
+
+### UPPGIFT 1: Mobile responsivitet — ALLA sidor — KLAR
+- **94 siddirectories** granskade i noreko-frontend/src/app/pages/
+- **Prioritetssidor:** vd-dashboard, executive-dashboard, operator-dashboard, rebotling/statistik-dashboard — alla har korrekta responsive breakpoints
+- **VD Dashboard:** Worker A (session #364) la till responsive CSS (vd-hero-value, vd-oee-breakdown-value med media queries for 768px/575px), col-12 col-md-4 kolumner, flex-wrap gap-2 pa header, col-6 col-md-3 pa skiftstatus — validerat
+- **Executive Dashboard:** Har @media (max-width: 768px) med anpassade storlekar for ibc-big, circle-progress, kpi-value, forecast-value + flex-direction: column for detail-card-header. Linjestatus-kort far min-width: calc(50% - 0.375rem) pa <576px
+- **Operator Dashboard:** Inline template med Bootstrap grid (col-6 col-md-3), table-responsive pa alla tabeller, flex-wrap gap-2 pa header
+- **Statistik Dashboard:** @media (max-width: 576px) med anpassad padding, title-storlek, chart-wrapper height, status-card flex-direction column
+- **Tabeller:** Skannade ALLA sidor — alla <table> har antingen table-responsive wrapper eller overflow-x:auto pa parent container. Enda undantaget weekly-report.ts dar .daily-table-panel och .operators-table-wrap redan har overflow-x: auto
+- **Fasta bredder:** Inga problematiska fasta bredder >400px hittade. Alla breda element anvander max-width (inte width) eller ar redan responsive
+- **Slutsats:** Kodbasen ar redan i utmarkt skick for mobil. Inga kritiska fixar behovdes.
+
+### UPPGIFT 2: Fullstandig UX-granskning — KLAR
+- **Dark theme konsistens:** Alla granskade sidor anvander korrekt #1a202c bg, #2d3748 cards, #e2e8f0 text
+- **Lifecycle korrekthet:**
+  - Alla komponenter med setInterval har matchande clearInterval — 0 lackor
+  - Alla Chart.js-instanser har .destroy() i ngOnDestroy — 0 lackor
+  - Alla HTTP-subscriptions anvander takeUntil(destroy$) — 0 lackor
+  - Funktionshub ar enda sidan med OnInit utan OnDestroy — korrekt, den har inga intervals/timers/charts
+- **Grafer:** Alla chart-konfigurationer har responsive: true, maintainAspectRatio: false, dark theme farger (#a0aec0 ticks, rgba(255,255,255,0.05) grid)
+- **Tabeller:** Alla har table-responsive wrappers, tomma states visas, loading spinners finns
+- **Svenska texter:** All UI-text pa svenska over alla sidor
+
+### UPPGIFT 3: VD Dashboard djupgranskning — KLAR
+- **KPI:er:** total_ibc, oee_pct, aktiva_operatorer — visas korrekt med enheter (%, st, IBC)
+- **Mal vs Faktiskt:** Progress bar med total_ibc/dagsmal, mal_procent visas korrekt, fargkodad (gron >=90%, gul >=70%, rod <70%)
+- **Grafer:**
+  - vdStationChart: Horisontell bar chart for OEE per station med fargkodning (gron >=80%, gul >=60%, rod <60%)
+  - vdTrendChart: Dual-axis line chart (OEE % vAnster, IBC hOger) for senaste 7 dagar
+  - Bada charts har korrekt destroy() + setTimeout-baserad rendering med destroy$-check
+- **Stoppstatus:** Visar aktiva stopp med varaktighet_min, orsak, station_namn — korrekt
+- **Top 3 operatorer:** Podium med guld/silver/brons ikoner + IBC-antal
+- **Skiftstatus:** FM/EM/Natt med kvar_timmar/minuter, jamforelse vs forra skiftet
+- **OEE Breakdown:** Tillganglighet/Prestanda/Kvalitet mini-cards (col-4 for alltid 3 bred)
+- **Datahantning:** forkJoin for parallella API-anrop, timeout(15000), catchError -> of(null), 30-sekunders polling
+- **Lifecycle:** destroy$, refreshInterval, stationChartTimer, trendChartTimer — alla rensar korrekt
+
+### UPPGIFT 4: Granska rebotling-statistik grafer — KLAR
+- **produktion_procent:** Bekraftad INTE kumulativ — momentan taktprocent fran PLC (sessions #357, #358, #362, #363 har alla verifierat detta)
+- **statistik-dashboard charts:** Trendgraf med dual-axis (IBC vanster, Kassation % hoger) + adaptiv granularitet (dag/vecka baserat pa period)
+- **rebotling-trendanalys:** 3 sparkline-charts (OEE, Produktion, Kassation) + huvudgraf med 90d historik + prognos. Dataset-toggles och period-valjare. Alla med dark theme farger
+- **Tooltips/legends:** Korrekt konfigurerade med sv-SE format, #e2e8f0 text, intersect: false for battre UX
+- **Chart.js konfigurationer:** responsive: true, maintainAspectRatio: false, korrekt destroy() overallt
+
+### UPPGIFT 5: Build + Deploy — KLAR
+- **Build:** `npx ng build` — lyckades utan fel (bara CommonJS warnings for canvg/html2canvas)
+- **Frontend deploy:** rsync till /var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/browser/ — 8.7MB
+- **Backend deploy:** rsync (exkl db_config.php) till /var/www/mauserdb-dev/noreko-backend/ — RebotlingAnalyticsController.php uppdaterad
+- **Verifiering:** curl https://dev.mauserdb.com/ returnerar index.html med lang="sv", title "Mauserdb - Produktionsanalys"
+- **API test:** Endpoints returnerar korrekt (401 "Inloggning kravs" for autentiserade endpoints — korrekt beteende)
+
+### UPPGIFT 6: Dev-log uppdaterad
+
+---
+
 ## Session #363 — Worker B (2026-03-27)
 **Fokus: Rebotling-statistik nya features granskning + fullstandig UX-granskning alla sidor + DB-validering + deploy**
 

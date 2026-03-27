@@ -1134,7 +1134,6 @@ class RebotlingController {
                     FROM rebotling_ibc r
                     WHERE $dateFilter
                       AND ibc_ok IS NOT NULL
-                      AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -1247,7 +1246,6 @@ class RebotlingController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE datum >= :cycle_start AND datum <= :cycle_end
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
@@ -1313,7 +1311,6 @@ class RebotlingController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE datum >= :cycle_start AND datum <= :cycle_end
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
@@ -1860,15 +1857,15 @@ class RebotlingController {
                         SELECT sub.op_num, DATE(sub.datum) AS dag, SUM(sub.shift_ibc) AS day_ibc
                         FROM (
                             SELECT r.op1 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
                             GROUP BY r.op1, DATE(r.datum), r.skiftraknare
                             UNION ALL
                             SELECT r.op2 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
                             GROUP BY r.op2, DATE(r.datum), r.skiftraknare
                             UNION ALL
                             SELECT r.op3 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                            FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
                             GROUP BY r.op3, DATE(r.datum), r.skiftraknare
                         ) sub
                         GROUP BY sub.op_num, DATE(sub.datum)
@@ -1892,15 +1889,15 @@ class RebotlingController {
                     SELECT sub.op_num, YEAR(sub.datum) AS yr, WEEK(sub.datum, 1) AS wk, SUM(sub.shift_ibc) AS week_ibc
                     FROM (
                         SELECT r.op1 AS op_num, DATE(r.datum) AS datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op1, DATE(r.datum), r.skiftraknare
                         UNION ALL
                         SELECT r.op2, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op2, DATE(r.datum), r.skiftraknare
                         UNION ALL
                         SELECT r.op3, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op3, DATE(r.datum), r.skiftraknare
                     ) sub
                     GROUP BY sub.op_num, YEAR(sub.datum), WEEK(sub.datum, 1)
@@ -1920,15 +1917,15 @@ class RebotlingController {
                     SELECT sub.op_num, DATE_FORMAT(sub.datum, '%Y-%m') AS mon, SUM(sub.shift_ibc) AS month_ibc
                     FROM (
                         SELECT r.op1 AS op_num, DATE(r.datum) AS datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op1, DATE(r.datum), r.skiftraknare
                         UNION ALL
                         SELECT r.op2, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op2, DATE(r.datum), r.skiftraknare
                         UNION ALL
                         SELECT r.op3, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL AND r.skiftraknare IS NOT NULL
+                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
                         GROUP BY r.op3, DATE(r.datum), r.skiftraknare
                     ) sub
                     GROUP BY sub.op_num, DATE_FORMAT(sub.datum, '%Y-%m')
@@ -1947,21 +1944,21 @@ class RebotlingController {
                     (SELECT MAX(day_ibc) FROM (
                         SELECT SUM(shift_ibc) AS day_ibc FROM (
                             SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
                             GROUP BY DATE(datum), skiftraknare
                         ) ps GROUP BY DATE(datum)
                     ) td) AS best_day,
                     (SELECT MAX(week_ibc) FROM (
                         SELECT SUM(shift_ibc) AS week_ibc FROM (
                             SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
                             GROUP BY DATE(datum), skiftraknare
                         ) ps GROUP BY YEAR(datum), WEEK(datum,1)
                     ) tw) AS best_week,
                     (SELECT MAX(month_ibc) FROM (
                         SELECT SUM(shift_ibc) AS month_ibc FROM (
                             SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
                             GROUP BY DATE(datum), skiftraknare
                         ) ps GROUP BY DATE_FORMAT(datum, '%Y-%m')
                     ) tm) AS best_month
@@ -2032,7 +2029,7 @@ class RebotlingController {
                             / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
-                    WHERE skiftraknare IS NOT NULL
+                    WHERE 1=1
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS ps
@@ -2261,7 +2258,6 @@ class RebotlingController {
                     CASE WHEN (ibc_ok + ibc_ej_ok) > 0 THEN ibc_ok * 100.0 / (ibc_ok + ibc_ej_ok) ELSE NULL END AS kvalitet_pct
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                  AND skiftraknare IS NOT NULL
             ) sub
             WHERE ibc_delta BETWEEN 0 AND 20
             GROUP BY timme
@@ -2523,7 +2519,6 @@ class RebotlingController {
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
                     FROM rebotling_ibc
                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                      AND skiftraknare IS NOT NULL
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -2545,7 +2540,6 @@ class RebotlingController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE datum < CURDATE()
-                          AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_shift
                     GROUP BY datum_rekord
@@ -2670,7 +2664,7 @@ class RebotlingController {
                         MAX(COALESCE(r.ibc_ok, 0)) + MAX(COALESCE(r.ibc_ej_ok, 0)) + MAX(COALESCE(r.bur_ej_ok, 0)) AS shift_total
                     FROM rebotling_ibc r
                     WHERE r.datum >= :from_date AND r.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                      AND r.skiftraknare IS NOT NULL
+                     
                     GROUP BY DATE(r.datum), r.skiftraknare
                 ) AS per_shift
             ");
@@ -2987,7 +2981,6 @@ class RebotlingController {
                         COALESCE(MAX(rasttime), 0)          AS shift_rast
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                      AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) per_shift
                 GROUP BY datum_day

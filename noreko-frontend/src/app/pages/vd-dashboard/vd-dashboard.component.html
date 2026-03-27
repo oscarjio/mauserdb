@@ -1,9 +1,9 @@
 <div class="vd-dashboard" style="background:#1a202c; min-height:100vh; padding:1.5rem; color:#e2e8f0;">
 
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-      <h1 class="mb-0" style="font-size:1.8rem; font-weight:700; color:#fff;">
+      <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#fff;">
         <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>VD-översikt
       </h1>
       <small style="color:#a0aec0;">Realtidsvy av produktionen</small>
@@ -41,11 +41,11 @@
   <div class="row g-3 mb-4" *ngIf="oversikt">
 
     <!-- Total IBC idag -->
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
-        <div class="card-body text-center py-4">
+        <div class="card-body text-center py-3 py-md-4">
           <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Produktion idag</div>
-          <div style="font-size:3.5rem; font-weight:800; color:#fff; line-height:1.1;" class="mt-2">
+          <div class="vd-hero-value mt-2" style="font-weight:800; color:#fff; line-height:1.1;">
             {{ oversikt.total_ibc }}
           </div>
           <div style="color:#a0aec0; font-size:0.9rem;">IBC producerade</div>
@@ -54,11 +54,11 @@
     </div>
 
     <!-- OEE idag -->
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
-        <div class="card-body text-center py-4">
+        <div class="card-body text-center py-3 py-md-4">
           <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">OEE idag</div>
-          <div class="mt-2" [style.color]="getOeeColor(oversikt.oee_pct)" style="font-size:3.5rem; font-weight:800; line-height:1.1;">
+          <div class="vd-hero-value mt-2" [style.color]="getOeeColor(oversikt.oee_pct)" style="font-weight:800; line-height:1.1;">
             {{ oversikt.oee_pct }}%
           </div>
           <span class="badge mt-1" [style.background]="getOeeColor(oversikt.oee_pct)" style="font-size:0.75rem;">
@@ -69,11 +69,11 @@
     </div>
 
     <!-- Aktiva operatörer -->
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
-        <div class="card-body text-center py-4">
+        <div class="card-body text-center py-3 py-md-4">
           <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Aktiva operatörer</div>
-          <div style="font-size:3.5rem; font-weight:800; color:#63b3ed; line-height:1.1;" class="mt-2">
+          <div class="vd-hero-value mt-2" style="font-weight:800; color:#63b3ed; line-height:1.1;">
             {{ oversikt.aktiva_operatorer }}
           </div>
           <div style="color:#a0aec0; font-size:0.9rem;">just nu</div>
@@ -207,7 +207,7 @@
   <div class="row g-3 mb-4">
 
     <!-- OEE per station -->
-    <div class="col-lg-5">
+    <div class="col-12 col-lg-5">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
@@ -225,7 +225,7 @@
     </div>
 
     <!-- Veckotrend -->
-    <div class="col-lg-7">
+    <div class="col-12 col-lg-7">
       <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body">
           <h2 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
@@ -248,29 +248,29 @@
   <!-- ============================================================ -->
   <div class="card mb-4" style="background:#2d3748; border:none; border-radius:12px;" *ngIf="skiftstatus">
     <div class="card-body">
-      <div class="row align-items-center">
-        <div class="col-md-3 text-center">
-          <i [class]="getSkiftIcon()" style="font-size:2.5rem; color:#4fd1c5;"></i>
-          <div style="font-size:1.5rem; font-weight:700; color:#fff;" class="mt-1">
+      <div class="row align-items-center g-3">
+        <div class="col-6 col-md-3 text-center">
+          <i [class]="getSkiftIcon()" style="font-size:2rem; color:#4fd1c5;"></i>
+          <div style="font-size:1.3rem; font-weight:700; color:#fff;" class="mt-1">
             {{ skiftstatus.skift }}-skiftet
           </div>
           <small style="color:#a0aec0;">{{ skiftstatus.skift_start }} - {{ skiftstatus.skift_slut }}</small>
         </div>
-        <div class="col-md-3 text-center">
+        <div class="col-6 col-md-3 text-center">
           <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">Kvar</div>
-          <div style="font-size:1.8rem; font-weight:700; color:#ecc94b;">
+          <div style="font-size:1.5rem; font-weight:700; color:#ecc94b;">
             {{ skiftstatus.kvar_timmar }}h {{ skiftstatus.kvar_minuter }}min
           </div>
         </div>
-        <div class="col-md-3 text-center">
+        <div class="col-6 col-md-3 text-center">
           <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">Producerat</div>
-          <div style="font-size:1.8rem; font-weight:700; color:#fff;">
+          <div style="font-size:1.5rem; font-weight:700; color:#fff;">
             {{ skiftstatus.ibc_aktuellt }} <small style="color:#a0aec0; font-size:0.7rem;">IBC</small>
           </div>
         </div>
-        <div class="col-md-3 text-center">
+        <div class="col-6 col-md-3 text-center">
           <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">vs förra skiftet</div>
-          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getJamforelseColor()">
+          <div style="font-size:1.5rem; font-weight:700;" [style.color]="getJamforelseColor()">
             {{ getJamforelseText() }}
           </div>
           <small style="color:#a0aec0;">{{ skiftstatus.ibc_forra }} IBC förra</small>
@@ -281,31 +281,31 @@
 
   <!-- OEE Breakdown mini-cards -->
   <div class="row g-3 mb-4" *ngIf="oversikt">
-    <div class="col-md-4">
+    <div class="col-4">
       <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body text-center py-3">
-          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Tillgänglighet</small>
-          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.tillganglighet_pct)">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.7rem;">Tillgänglighet</small>
+          <div class="vd-oee-breakdown-value" [style.color]="getOeeColor(oversikt.tillganglighet_pct)">
             {{ oversikt.tillganglighet_pct }}%
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4">
       <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body text-center py-3">
-          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Prestanda</small>
-          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.prestanda_pct)">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.7rem;">Prestanda</small>
+          <div class="vd-oee-breakdown-value" [style.color]="getOeeColor(oversikt.prestanda_pct)">
             {{ oversikt.prestanda_pct }}%
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4">
       <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
         <div class="card-body text-center py-3">
-          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Kvalitet</small>
-          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.kvalitet_pct)">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.7rem;">Kvalitet</small>
+          <div class="vd-oee-breakdown-value" [style.color]="getOeeColor(oversikt.kvalitet_pct)">
             {{ oversikt.kvalitet_pct }}%
           </div>
         </div>
@@ -322,5 +322,31 @@
   }
   .vd-dashboard .card:hover {
     transform: translateY(-2px);
+  }
+  .vd-hero-value {
+    font-size: 2.5rem;
+  }
+  .vd-oee-breakdown-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  @media (min-width: 768px) {
+    .vd-hero-value {
+      font-size: 3.5rem;
+    }
+    .vd-oee-breakdown-value {
+      font-size: 1.8rem;
+    }
+  }
+  @media (max-width: 575px) {
+    .vd-dashboard {
+      padding: 0.75rem !important;
+    }
+    .vd-hero-value {
+      font-size: 2rem;
+    }
+    .vd-oee-breakdown-value {
+      font-size: 1.2rem;
+    }
   }
 </style>

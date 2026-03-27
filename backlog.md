@@ -11,12 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nästa (session #364):
-- [ ] **API vs DB diskrepans** — mars visar 946 cykler via API men 1058 i DB. Undersök PHP output/JSON limit i rebotling-statistik endpoint
-- [ ] **Slow endpoints optimering** — exec-dashboard 1.5s, all-lines-status 614ms, today-snapshot 513ms. Profil och optimera
-- [ ] **Mobile responsivitet** — testa alla sidor på 375px/768px viewport, fixa layout-problem
-- [ ] **Integration test suite** — automatiserade tester för kritiska API-flöden (auth, rebotling CRUD)
-- [ ] **PHP dependency audit** — granska composer.json, uppdatera föråldrade paket, kolla CVE:er
+### Pågående (session #364):
+- [WIP] **API vs DB diskrepans** — mars 946 vs 1058, undersök PHP-limit/filter (Worker A)
+- [WIP] **Slow endpoints optimering** — exec-dashboard 1.5s, EXPLAIN + index (Worker A)
+- [WIP] **Full endpoint-stresstest** — alla endpoints curl mot dev (Worker A)
+- [WIP] **Mobile responsivitet** — alla sidor 375px/768px viewport (Worker B)
+- [WIP] **VD Dashboard + UX-granskning** — alla sidor dark theme, lifecycle, grafer (Worker B)
+
+### Nästa (session #365):
+- [ ] **Integration test suite** — automatiserade tester för kritiska API-flöden
+- [ ] **Error page / 404-hantering** — granska att alla routes har fallback
+- [ ] **API rate limiting** — skydd mot överbelastning
+- [ ] **Loggrotation** — granska PHP error logs storlek
 
 ## Parkerade features (ta inte dessa nu)
 
