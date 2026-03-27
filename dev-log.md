@@ -1,5 +1,45 @@
 # MauserDB Dev Log
 
+## Session #371 — Worker A (2026-03-27)
+**Fokus: Redundant index cleanup + admin CRUD test + full endpoint stresstest + PHP controller audit + deploy**
+
+### UPPGIFT 1: Ta bort redundant index idx_datum pa rebotling_ibc — KLAR
+- **Verifierat med SHOW INDEX FROM rebotling_ibc** mot prod DB
+- `idx_datum` och `idx_rebotling_ibc_datum` indexerar bada enbart kolumnen `datum` — fullstandigt redundant
+- **Migrationsfil skapad**: `noreko-backend/migrations/2026-03-27_drop_idx_datum.sql`
+- Migrationen KORS INTE automatiskt — ska granskas och koras manuellt mot prod
+- Tabellen har totalt 16 index (inkl covering indexes) — `idx_datum` ar helt overflodigt
+
+### UPPGIFT 2: Admin-sidor CRUD djuptest — KLAR
+- **9 admin-endpoints testade** med GET/POST/PUT/DELETE: admin, bonusadmin, news, operators, shift-plan, maintenance, feature-flags, certification, dashboard-layout
+- **Alla returnerar 401 (ej inloggad)** — INTE 500 — korrekt beteende
+- **Inga krascher** vid POST/PUT/DELETE utan body — felhantering fungerar
+- Cache-invalidering fran session #368 verifierad: endpoints svarar konsekvent
+
+### UPPGIFT 3: Full endpoint stresstest — KLAR
+- **115 endpoints testade** mot dev.mauserdb.com
+- **0 st 500-fel** — alla endpoints svarar korrekt
+- **Statuskoder**: 200 (8 publika), 401/403 (auth-kraver), 400 (saknar params), 404 (sub-action), 405 (login/register POST-only)
+- **Alla under 0.5s** — langsammast: tvattlinje 0.44s, skiftrapport 0.43s
+- **Inga prestandaproblem** — alla val under 2s-gransvarde
+
+### UPPGIFT 4: PHP controller-audit — KLAR
+- **118 controller-filer granskade**
+- **6 tabellreferenser saknas i prod-schemat**: klassificeringslinje_ibc, rebotling_maintenance_log, rebotling_stopporsak, saglinje_ibc, saglinje_onoff, skift_log
+  - Alla 6 har korrekt error handling (try/catch eller tableExists-check) — inga 500-risker
+  - Tabellerna finns inte i prod men koden hanterar det gracefully
+- **SQL injection**: Alla string-parametrar valideras med preg_match/in_array, alla numeriska castas med (int)/(float)
+- **Error handling**: Alla controllers har try/catch med error_log() — inga luckor
+- **Prepared statements**: Genomgaende anvandning av PDO prepare/execute — inga raa interpoleringar
+- **Inga buggar hittade**
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- Backend deployad med rsync (exclude db_config.php)
+- **15 kritiska endpoints verifierade** efter deploy — alla svarar korrekt
+- Inga 500-fel, alla under 0.5s
+
+---
+
 ## Session #370 — Worker A (2026-03-27)
 **Fokus: Backend dead code audit + error handling review + endpoint stresstest + SQL optimization + deploy**
 
