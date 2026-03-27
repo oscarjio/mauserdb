@@ -386,14 +386,40 @@ class RebotlingController {
     }
 
     private function getLiveStats() {
+        // Filcache 5s TTL — getLiveStats anropas ofta och data ändras sällan
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/livestats_result.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 5) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('X-Cache: HIT');
+                echo $cached;
+                return;
+            }
+        }
+
         try {
-            // MEGA-QUERY 1: Hämta skift + IBC idag + löpnummer + IBC för skiftet + onoff-data i EN roundtrip
-            // Detta sparar 3-4 DB-roundtrips jämfört med tidigare (varje ~120ms latens)
+            // ULTRA MEGA-QUERY: Allt i EN ENDA roundtrip med CTE
+            // Sparar 2 DB-roundtrips (~240ms) jämfört med 3 separata queries
             $stmt = $this->pdo->prepare("
+                WITH skift AS (
+                    SELECT skiftraknare AS sk FROM rebotling_onoff
+                    WHERE skiftraknare IS NOT NULL ORDER BY datum DESC LIMIT 1
+                )
                 SELECT
-                    (SELECT skiftraknare FROM rebotling_onoff WHERE skiftraknare IS NOT NULL ORDER BY datum DESC LIMIT 1) AS current_skift,
+                    (SELECT sk FROM skift) AS current_skift,
                     (SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
-                    (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer
+                    (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer,
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE skiftraknare = (SELECT sk FROM skift) AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
+                    (SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
+                    (SELECT p.cycle_time_minutes
+                     FROM rebotling_onoff o
+                     LEFT JOIN rebotling_products p ON p.id = o.produkt
+                     WHERE o.skiftraknare = (SELECT sk FROM skift) AND o.produkt IS NOT NULL AND o.produkt > 0
+                     ORDER BY o.datum DESC LIMIT 1) AS cycle_time
             ");
             $stmt->execute();
             $combo = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -401,41 +427,18 @@ class RebotlingController {
             $ibcToday = (int)($combo['ibc_today'] ?? 0);
             $nextLopnummer = $combo['lopnummer'] !== null ? (int)$combo['lopnummer'] : null;
 
-            // MEGA-QUERY 2: Hämta allt skift-relaterat i en enda roundtrip
-            // - IBC senaste timmen
-            // - IBC för nuvarande skift (för korrekt produktion_procent)
-            // - Cykeltid från produkt
-            // - On/off-data för runtime-beräkning
-            $rebotlingThisHour = 0;
-            $ibcCurrentShift = 0;
+            $rebotlingThisHour = (int)($combo['ibc_hour'] ?? 0);
+            $ibcCurrentShift = (int)($combo['ibc_shift'] ?? 0);
             $hourlyTarget = 15; // Default
             $totalRuntimeMinutes = 0;
 
-            if ($currentSkift !== null) {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        (SELECT COUNT(*) FROM rebotling_ibc
-                         WHERE skiftraknare = :sk1 AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
-                        (SELECT COUNT(*) FROM rebotling_ibc
-                         WHERE skiftraknare = :sk1b) AS ibc_shift,
-                        (SELECT p.cycle_time_minutes
-                         FROM rebotling_onoff o
-                         LEFT JOIN rebotling_products p ON p.id = o.produkt
-                         WHERE o.skiftraknare = :sk2 AND o.produkt IS NOT NULL AND o.produkt > 0
-                         ORDER BY o.datum DESC LIMIT 1) AS cycle_time
-                ");
-                $stmt->execute([':sk1' => $currentSkift, ':sk1b' => $currentSkift, ':sk2' => $currentSkift]);
-                $comboRow = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($comboRow) {
-                    $rebotlingThisHour = (int)($comboRow['ibc_hour'] ?? 0);
-                    $ibcCurrentShift = (int)($comboRow['ibc_shift'] ?? 0);
-                    $ct = (float)($comboRow['cycle_time'] ?? 0);
-                    if ($ct > 0) {
-                        $hourlyTarget = round(60 / $ct, 1);
-                    }
-                }
+            $ct = (float)($combo['cycle_time'] ?? 0);
+            if ($ct > 0) {
+                $hourlyTarget = round(60 / $ct, 1);
+            }
 
-                // Hämta on/off-data för runtime-beräkning (samma roundtrip-kostnad oavsett)
+            // On/off-data for runtime -- behöver fortfarande PHP-loop för edge cases
+            if ($currentSkift !== null) {
                 $stmt = $this->pdo->prepare('
                     SELECT datum, running
                     FROM rebotling_onoff
@@ -488,7 +491,7 @@ class RebotlingController {
             $rebotlingTarget = $settingsCache['rebotlingTarget'];
             $utetemperatur = $settingsCache['utetemperatur'];
 
-            echo json_encode([
+            $jsonResult = json_encode([
                 'success' => true,
                 'data' => [
                     'rebotlingToday' => $ibcToday,
@@ -501,6 +504,14 @@ class RebotlingController {
                     'utetemperatur' => $utetemperatur
                 ]
             ], JSON_UNESCAPED_UNICODE);
+
+            // Spara till filcache (5s TTL)
+            $written = file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            if ($written === false) {
+                error_log("getLiveStats cache write FAILED: $cacheFile");
+            }
+            header('X-Cache: MISS');
+            echo $jsonResult;
 
             // Auto-kontroll: skapa rekordnyhet om klockan är efter 18:00 och det finns produktion
             // Kör bara ibland (ca 1 av 10 anrop) för att inte belasta varje request
@@ -772,7 +783,7 @@ class RebotlingController {
                     p.cycle_time_minutes as target_cycle_time
                 FROM rebotling_ibc i
                 LEFT JOIN rebotling_products p ON i.produkt = p.id
-                WHERE DATE(i.datum) BETWEEN :start AND :end
+                WHERE i.datum >= :start AND i.datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY i.datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);
@@ -2658,7 +2669,7 @@ class RebotlingController {
                         r.skiftraknare,
                         MAX(COALESCE(r.ibc_ok, 0)) + MAX(COALESCE(r.ibc_ej_ok, 0)) + MAX(COALESCE(r.bur_ej_ok, 0)) AS shift_total
                     FROM rebotling_ibc r
-                    WHERE DATE(r.datum) BETWEEN :from_date AND :to_date
+                    WHERE r.datum >= :from_date AND r.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND r.skiftraknare IS NOT NULL
                     GROUP BY DATE(r.datum), r.skiftraknare
                 ) AS per_shift

@@ -84,7 +84,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -113,7 +113,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -141,7 +141,7 @@ class OperatorsportalController {
                     SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -166,15 +166,15 @@ class OperatorsportalController {
                 FROM (
                     SELECT op1 AS op_id FROM rebotling_ibc
                     WHERE op1 IS NOT NULL AND op1 > 0
-                      AND DATE(datum) BETWEEN :from_date1 AND :to_date1
+                      AND datum >= :from_date1 AND datum < DATE_ADD(:to_date1, INTERVAL 1 DAY)
                     UNION
                     SELECT op2 FROM rebotling_ibc
                     WHERE op2 IS NOT NULL AND op2 > 0
-                      AND DATE(datum) BETWEEN :from_date2 AND :to_date2
+                      AND datum >= :from_date2 AND datum < DATE_ADD(:to_date2, INTERVAL 1 DAY)
                     UNION
                     SELECT op3 FROM rebotling_ibc
                     WHERE op3 IS NOT NULL AND op3 > 0
-                      AND DATE(datum) BETWEEN :from_date3 AND :to_date3
+                      AND datum >= :from_date3 AND datum < DATE_ADD(:to_date3, INTERVAL 1 DAY)
                 ) AS all_ops
             ");
             $stmt->execute([
@@ -256,21 +256,21 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE op1 IS NOT NULL AND op1 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from1 AND :to1
+                      AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
                     GROUP BY op1, skiftraknare
                     UNION ALL
                     SELECT op2, MAX(COALESCE(ibc_ok, 0))
                     FROM rebotling_ibc
                     WHERE op2 IS NOT NULL AND op2 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from2 AND :to2
+                      AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
                     GROUP BY op2, skiftraknare
                     UNION ALL
                     SELECT op3, MAX(COALESCE(ibc_ok, 0))
                     FROM rebotling_ibc
                     WHERE op3 IS NOT NULL AND op3 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from3 AND :to3
+                      AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
                     GROUP BY op3, skiftraknare
                 ) AS all_shifts
                 GROUP BY op_id
@@ -405,7 +405,7 @@ class OperatorsportalController {
                     SELECT MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -440,7 +440,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY DATE(datum)
@@ -462,7 +462,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE op1 IS NOT NULL AND op1 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from1 AND :to1
+                      AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), op1, skiftraknare
                     UNION ALL
                     SELECT DATE(datum), op2,
@@ -470,7 +470,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE op2 IS NOT NULL AND op2 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from2 AND :to2
+                      AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), op2, skiftraknare
                     UNION ALL
                     SELECT DATE(datum), op3,
@@ -478,7 +478,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE op3 IS NOT NULL AND op3 > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from3 AND :to3
+                      AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), op3, skiftraknare
                 ) AS alla_skift
                 GROUP BY dag
@@ -578,7 +578,7 @@ class OperatorsportalController {
                 FROM rebotling_ibc
                 WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                   AND bonus_poang IS NOT NULL
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ");
             $stmtBonus->execute([
                 ':op_id'     => $opId,
@@ -599,7 +599,7 @@ class OperatorsportalController {
                     WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                       AND skiftraknare IS NOT NULL
                       AND bonus_poang IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS per_skift
             ");
@@ -619,7 +619,7 @@ class OperatorsportalController {
                 FROM rebotling_ibc
                 WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
                   AND skiftraknare IS NOT NULL
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ");
             $stmtSkift->execute([
                 ':op_id'     => $opId,

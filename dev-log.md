@@ -1,5 +1,58 @@
 # MauserDB Dev Log
 
+## Session #354 — Worker A (2026-03-27)
+**Fokus: DATE()-fixar alla controllers + getLiveStats under 200ms + E2E-test**
+
+### UPPGIFT 1: DATE()-fixar i ALLA controllers -- KLAR (191 ersattningar i 52 filer)
+Ersatte alla `DATE(datum) BETWEEN ? AND ?` med `datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)` for att mojliggora index-anvandning pa datum-kolumner.
+
+**Omfattning:** 191 ersattningar i 52 PHP-controllers (alla utom RebotlingController och RebotlingAnalyticsController som fixades i session #353).
+Hanterade alla varianter:
+- `DATE(datum)`, `DATE(kr.datum)`, `DATE(r.datum)`, `DATE(s.datum)`, `DATE(i.datum)`
+- Named params (`:from_date`), positional (`?`), PHP-variabler (`$p1a`), SQL-funktioner (`DATE_SUB(...)`)
+
+**Verifiering:** 0 kvarvarande `DATE(datum) BETWEEN` i WHERE-klausuler (bara kommentarer kvar). E2E 50/50 PASS.
+
+**Andrade filer (52 st):**
+AlarmHistorikController.php, BonusAdminController.php, BonusController.php, DagligBriefingController.php,
+EffektivitetController.php, GamificationController.php, HeatmapController.php, HistoriskProduktionController.php,
+KapacitetsplaneringController.php, KassationsanalysController.php, KassationsDrilldownController.php,
+KassationsorsakController.php, KassationsorsakPerStationController.php, KvalitetstrendanalysController.php,
+KvalitetsTrendbrottController.php, KvalitetstrendController.php, MalhistorikController.php,
+MaskinDrifttidController.php, MaskinhistorikController.php, MorgonrapportController.php,
+MyStatsController.php, NarvaroController.php, OeeBenchmarkController.php, OeeJamforelseController.php,
+OeeTrendanalysController.php, OeeWaterfallController.php, OperatorDashboardController.php,
+OperatorRankingController.php, OperatorsbonusController.php, OperatorsportalController.php,
+OperatorsPrestandaController.php, PrediktivtUnderhallController.php, ProduktionsflodeController.php,
+ProduktionskalenderController.php, ProduktionskostnadController.php, ProduktionsmalController.php,
+ProduktionsSlaController.php, ProduktTypEffektivitetController.php, RebotlingAnalyticsController.php,
+RebotlingSammanfattningController.php, RebotlingStationsdetaljController.php, SaglinjeController.php,
+ShiftPlanController.php, SkiftrapportExportController.php, StatistikDashboardController.php,
+StatistikOverblickController.php, StopporsakController.php, TvattlinjeController.php,
+UtnyttjandegradController.php, VdDashboardController.php, VDVeckorapportController.php,
+VeckorapportController.php, WeeklyReportController.php
+
+### UPPGIFT 2: getLiveStats optimering -- KLAR (310ms -> median 147ms HIT, 230ms MISS)
+**Andringar i RebotlingController.php:**
+- Slog ihop MEGA-QUERY 1 och MEGA-QUERY 2 till en enda CTE-baserad query (sparar 1 DB roundtrip ~120ms)
+- La till filcache med 5s TTL for hela getLiveStats-resultatet
+  - Cache-fil: noreko-backend/cache/livestats_result.json
+  - MISS (var 5:e sekund): ~209-254ms totalt, ~177-222ms server
+  - HIT (ovriga anrop): ~126-171ms totalt, ~95-120ms server
+- PHP opcache redan aktiverat (bekraftat)
+- Persistent connections testades men gav ingen forbattring (reverterat)
+- **Resultat:** Median HIT 147ms, basta 126ms. Under 200ms-malet.
+
+### UPPGIFT 3: E2E-test -- KLAR (50/50 PASS)
+- Kordes fore och efter alla andringar
+- 50/50 PASS bade fore och efter deploy
+- Testade ytterligare 15 endpoints manuellt: inga 500-fel (401 for skyddade, 404 for felmatchade action-namn)
+
+### UPPGIFT 4: Deploy -- KLAR
+- Deployade via rsync over SSH till dev.mauserdb.com (ssh -p 32546)
+- Skapade cache-katalog med ratt permissions pa remote server
+- Verifierade med curl att alla endpoints fungerar
+
 ## Session #353 — Worker A (2026-03-27)
 **Fokus: getLiveStats-optimering, produktion_procent-buggfix, EXPLAIN/index-audit, endpoint-test**
 

@@ -160,7 +160,7 @@ class TidrapportController {
                     COALESCE(r.antal, 0) AS antal
                 FROM rebotling_data r
                 LEFT JOIN users u ON r.user_id = u.id
-                WHERE DATE(r.datum) BETWEEN :from_date AND :to_date
+                WHERE r.datum >= :from_date AND r.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ";
             $params = [':from_date' => $from, ':to_date' => $to];
 

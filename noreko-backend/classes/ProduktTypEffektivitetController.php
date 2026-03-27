@@ -124,7 +124,7 @@ class ProduktTypEffektivitetController {
                     WHERE produkt IS NOT NULL
                       AND produkt > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY produkt, skiftraknare
                 ) AS agg
                 LEFT JOIN rebotling_products p ON p.id = agg.produkt_id
@@ -196,7 +196,7 @@ class ProduktTypEffektivitetController {
                     FROM rebotling_ibc
                     WHERE produkt IS NOT NULL AND produkt > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY produkt, skiftraknare
                 ) AS sub
                 LEFT JOIN rebotling_products p ON p.id = sub.produkt
@@ -245,7 +245,7 @@ class ProduktTypEffektivitetController {
                     FROM rebotling_ibc
                     WHERE produkt IN ({$placeholders})
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN ? AND ?
+                      AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), produkt, skiftraknare
                 ) AS per_shift
                 GROUP BY DATE(datum), produkt
@@ -389,7 +389,7 @@ class ProduktTypEffektivitetController {
                     FROM rebotling_ibc
                     WHERE produkt = :produkt_id
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY skiftraknare
                 ) AS agg
             ");

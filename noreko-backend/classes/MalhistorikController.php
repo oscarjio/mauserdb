@@ -83,7 +83,7 @@ class MalhistorikController {
                     MAX(ibc_ok) AS max_ibc,
                     MAX(runtime_plc) AS runtime_min
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from AND :to
+                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), skiftraknare
                 HAVING COUNT(*) > 1
              ) skiften

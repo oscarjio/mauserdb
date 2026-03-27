@@ -99,7 +99,7 @@ class KassationsorsakController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -150,7 +150,7 @@ class KassationsorsakController {
             $stmt = $this->pdo->prepare("
                 SELECT COALESCE(SUM(antal), 0) AS total_kasserade
                 FROM kassationsregistrering
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $totalKasserade = (int)$stmt->fetchColumn();
@@ -193,7 +193,7 @@ class KassationsorsakController {
                     SUM(kr.antal) AS total_antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY kt.id, kt.namn
                 ORDER BY total_antal DESC
             ");
@@ -239,7 +239,7 @@ class KassationsorsakController {
                     SUM(kr.antal) AS antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY kt.id, kt.namn
                 ORDER BY antal DESC
             ");
@@ -293,7 +293,7 @@ class KassationsorsakController {
                     COALESCE(kt.namn, 'Okänd') AS orsak
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 ORDER BY orsak
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -308,7 +308,7 @@ class KassationsorsakController {
                     SUM(kr.antal) AS antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY DATE(kr.datum), kr.orsak_id, kt.namn
                 ORDER BY dag ASC, antal DESC
             ");
@@ -380,7 +380,7 @@ class KassationsorsakController {
                     SUM(kr.antal) AS antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND kr.registrerad_av IS NOT NULL
                 GROUP BY kr.registrerad_av, kr.orsak_id, kt.namn
                 ORDER BY kr.registrerad_av, antal DESC
@@ -492,7 +492,7 @@ class KassationsorsakController {
                     SUM(kr.antal) AS antal
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY skift, kr.orsak_id, kt.namn
                 ORDER BY skift, antal DESC
             ");
@@ -582,7 +582,7 @@ class KassationsorsakController {
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
                 WHERE kr.orsak_id = :orsak_id
-                  AND DATE(kr.datum) BETWEEN :from_date AND :to_date
+                  AND kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 ORDER BY kr.datum DESC, kr.created_at DESC
             ");
             $stmt->execute([

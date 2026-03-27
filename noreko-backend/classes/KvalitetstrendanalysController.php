@@ -120,7 +120,7 @@ class KvalitetstrendanalysController {
                     COUNT(*) AS total,
                     SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY DATE(datum)
                 ORDER BY dag ASC
             ");
@@ -153,19 +153,19 @@ class KvalitetstrendanalysController {
                     SELECT op1 AS op_num, COUNT(*) AS total,
                            SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :f1 AND :t1 AND op1 IS NOT NULL
+                    WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY) AND op1 IS NOT NULL
                     GROUP BY op1
                     UNION ALL
                     SELECT op2 AS op_num, COUNT(*) AS total,
                            SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :f2 AND :t2 AND op2 IS NOT NULL
+                    WHERE datum >= :f2 AND datum < DATE_ADD(:t2, INTERVAL 1 DAY) AND op2 IS NOT NULL
                     GROUP BY op2
                     UNION ALL
                     SELECT op3 AS op_num, COUNT(*) AS total,
                            SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :f3 AND :t3 AND op3 IS NOT NULL
+                    WHERE datum >= :f3 AND datum < DATE_ADD(:t3, INTERVAL 1 DAY) AND op3 IS NOT NULL
                     GROUP BY op3
                 ) AS combined
                 GROUP BY op_num
@@ -499,7 +499,7 @@ class KvalitetstrendanalysController {
                     COUNT(*) AS total,
                     SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY YEARWEEK(datum, 1)
                 ORDER BY yearweek ASC
             ");

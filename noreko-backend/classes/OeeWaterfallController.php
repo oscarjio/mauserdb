@@ -179,7 +179,7 @@ class OeeWaterfallController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from AND :to
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) sub
@@ -200,7 +200,7 @@ class OeeWaterfallController {
                 $stmt = $this->pdo->prepare("
                     SELECT SUM(COALESCE(antal, 1)) AS kasserade
                     FROM kassationsregistrering
-                    WHERE DATE(datum) BETWEEN :from AND :to
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
                 ");
                 $stmt->execute([':from' => $fromDate, ':to' => $toDate]);
                 $row      = $stmt->fetch(PDO::FETCH_ASSOC);

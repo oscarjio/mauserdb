@@ -131,7 +131,7 @@ class RebotlingStationsdetaljController {
                         MAX(ibc_ok) AS max_ibc_ok,
                         MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");

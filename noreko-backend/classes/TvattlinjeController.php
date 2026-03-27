@@ -788,7 +788,7 @@ class TvattlinjeController {
                     ) as cycle_time,
                     3 as target_cycle_time
                 FROM tvattlinje_ibc i
-                WHERE DATE(i.datum) BETWEEN :start AND :end
+                WHERE i.datum >= :start AND i.datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY i.datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);
@@ -810,7 +810,7 @@ class TvattlinjeController {
                     running,
                     runtime_today
                 FROM tvattlinje_onoff 
-                WHERE DATE(datum) BETWEEN :start AND :end
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);

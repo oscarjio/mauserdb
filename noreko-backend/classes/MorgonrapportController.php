@@ -271,7 +271,7 @@ class MorgonrapportController {
                      FROM (
                          SELECT datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
                          FROM rebotling_ibc
-                         WHERE DATE(datum) BETWEEN ? AND ?
+                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                            AND skiftraknare IS NOT NULL
                          GROUP BY DATE(datum), skiftraknare
                          HAVING COUNT(*) > 1
@@ -601,7 +601,7 @@ class MorgonrapportController {
                      SELECT DATE(datum) AS dag, skiftraknare,
                             MAX(COALESCE(ibc_ok, 0)) AS max_ok
                      FROM rebotling_ibc
-                     WHERE DATE(datum) BETWEEN ? AND ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                        AND skiftraknare IS NOT NULL
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1

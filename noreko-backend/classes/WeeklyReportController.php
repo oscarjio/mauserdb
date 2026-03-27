@@ -130,7 +130,7 @@ class WeeklyReportController {
                        MAX(ibc_ej_ok)   - MIN(ibc_ej_ok)   AS delta_ej,
                        MAX(runtime_plc)                     AS runtime_min
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), skiftraknare
             ) x
             GROUP BY DATE(datum)
@@ -210,7 +210,7 @@ class WeeklyReportController {
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
                        MAX(runtime_plc)/60.0        AS runtime_h
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op1
                 UNION ALL
                 SELECT op2, DATE(datum), skiftraknare,
@@ -218,7 +218,7 @@ class WeeklyReportController {
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
                        MAX(runtime_plc)/60.0
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op2
                 UNION ALL
                 SELECT op3, DATE(datum), skiftraknare,
@@ -226,7 +226,7 @@ class WeeklyReportController {
                        MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
                        MAX(runtime_plc)/60.0
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op3
             ) raw
             JOIN operators o ON o.number = raw.op_id
@@ -315,7 +315,7 @@ class WeeklyReportController {
                            MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS delta_ej,
                            MAX(runtime_plc) / 60.0 AS runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) x
                 GROUP BY DATE(datum)
@@ -398,7 +398,7 @@ class WeeklyReportController {
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
                            MAX(runtime_plc)/60.0 AS runtime_h
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op1
                     UNION ALL
                     SELECT op2, DATE(datum), skiftraknare,
@@ -406,7 +406,7 @@ class WeeklyReportController {
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
                            MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op2
                     UNION ALL
                     SELECT op3, DATE(datum), skiftraknare,
@@ -414,7 +414,7 @@ class WeeklyReportController {
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
                            MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3
                 ) raw
                 JOIN operators o ON o.number = raw.op_id

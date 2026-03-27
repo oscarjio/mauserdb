@@ -275,7 +275,7 @@ class StopporsakController {
                         COUNT(*) AS antal,
                         COALESCE(SUM(varaktighet_min), 0) AS total_min
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     GROUP BY station_id
                     ORDER BY total_min DESC
@@ -529,7 +529,7 @@ class StopporsakController {
                     $uStmt = $this->pdo->prepare("
                         SELECT id, station_id, stopporsak, datum, varaktighet_min, beskrivning
                         FROM rebotling_underhallslogg
-                        WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                         ORDER BY datum DESC
                         LIMIT 500
                     ");

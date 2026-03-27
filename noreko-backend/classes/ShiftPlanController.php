@@ -230,15 +230,15 @@ class ShiftPlanController {
                         op_val AS op_num
                     FROM (
                         SELECT datum, op1 AS op_val FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :start1 AND :end1
+                        WHERE datum >= :start1 AND datum < DATE_ADD(:end1, INTERVAL 1 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
                         UNION ALL
                         SELECT datum, op2 FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :start2 AND :end2
+                        WHERE datum >= :start2 AND datum < DATE_ADD(:end2, INTERVAL 1 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
                         UNION ALL
                         SELECT datum, op3 FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :start3 AND :end3
+                        WHERE datum >= :start3 AND datum < DATE_ADD(:end3, INTERVAL 1 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
                     ) raw
                 ) distinct_ops

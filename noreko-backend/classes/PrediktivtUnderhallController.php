@@ -121,7 +121,7 @@ class PrediktivtUnderhallController {
                         COUNT(*) AS antal,
                         COALESCE(SUM(varaktighet_min), 0) AS total_min
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     GROUP BY station_id, orsak
                     ORDER BY station_id, antal DESC
@@ -253,7 +253,7 @@ class PrediktivtUnderhallController {
                 $stmt = $this->pdo->prepare("
                     SELECT station_id, DATE(datum) AS stopp_datum
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     ORDER BY station_id, datum ASC
                 ");
@@ -443,7 +443,7 @@ class PrediktivtUnderhallController {
                         CONCAT(YEAR(datum), '-W', LPAD(WEEK(datum, 3), 2, '0')) AS vecka,
                         COUNT(*) AS antal
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     GROUP BY station_id, vecka
                     ORDER BY station_id, vecka
@@ -535,7 +535,7 @@ class PrediktivtUnderhallController {
                            COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okand orsak') AS orsak,
                            COUNT(*) AS antal
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     GROUP BY station_id, orsak
                     ORDER BY antal DESC
@@ -588,7 +588,7 @@ class PrediktivtUnderhallController {
                 $stmt = $this->pdo->prepare("
                     SELECT DISTINCT station_id
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                 ");
                 $stmt->execute([':from_date' => $fromDateRecent, ':to_date' => $toDate]);
@@ -619,7 +619,7 @@ class PrediktivtUnderhallController {
                         COALESCE(SUM(varaktighet_min), 0) AS total_min,
                         COUNT(*) AS antal
                     FROM rebotling_underhallslogg
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND typ = 'oplanerat'
                     GROUP BY station_id, orsak
                     ORDER BY total_min DESC

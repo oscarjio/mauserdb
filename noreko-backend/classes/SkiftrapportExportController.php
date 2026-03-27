@@ -448,7 +448,7 @@ class SkiftrapportExportController {
                         MAX(ibc_ej_ok)      AS max_ibc_ej_ok,
                         MAX(runtime_plc)    AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                     HAVING COUNT(*) > 1
                  ) s

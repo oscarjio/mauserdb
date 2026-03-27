@@ -93,7 +93,7 @@ class MaskinDrifttidController {
                     HOUR(datum) AS timme,
                     COUNT(*) AS antal
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND datum IS NOT NULL
                 GROUP BY DATE(datum), HOUR(datum)
                 ORDER BY dag ASC, timme ASC

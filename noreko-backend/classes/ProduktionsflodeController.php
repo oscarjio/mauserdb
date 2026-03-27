@@ -106,7 +106,7 @@ class ProduktionsflodeController {
                     MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                     MAX(COALESCE(runtime_plc, 0))  AS shift_runtime
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
             ) AS per_shift

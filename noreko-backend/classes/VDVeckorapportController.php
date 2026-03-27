@@ -167,7 +167,7 @@ class VDVeckorapportController {
                 MIN(datum) AS forsta,
                 MAX(datum) AS sista
             FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :fran AND :till
+            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':fran' => $fran, ':till' => $till]);
@@ -207,7 +207,7 @@ class VDVeckorapportController {
                 MAX(datum) AS sista,
                 COUNT(DISTINCT DATE(datum)) AS dagar
             FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :fran AND :till
+            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':fran' => $fran, ':till' => $till]);
@@ -224,7 +224,7 @@ class VDVeckorapportController {
         $sql = "
             SELECT COUNT(DISTINCT DATE(datum)) AS dagar
             FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :fran AND :till
+            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':fran' => $fran, ':till' => $till]);
@@ -239,7 +239,7 @@ class VDVeckorapportController {
                 COUNT(*) AS total_ibc,
                 SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
             FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :fran AND :till
+            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
             GROUP BY DATE(datum)
             ORDER BY dag ASC
         ";
@@ -390,15 +390,15 @@ class VDVeckorapportController {
                 FROM (
                     SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :fran1 AND :till1 AND op1 IS NOT NULL AND op1 > 0
+                    WHERE datum >= :fran1 AND datum < DATE_ADD(:till1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                     UNION ALL
                     SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :fran2 AND :till2 AND op2 IS NOT NULL AND op2 > 0
+                    WHERE datum >= :fran2 AND datum < DATE_ADD(:till2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                     UNION ALL
                     SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :fran3 AND :till3 AND op3 IS NOT NULL AND op3 > 0
+                    WHERE datum >= :fran3 AND datum < DATE_ADD(:till3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                 ) raw
                 GROUP BY op_num, skiftraknare
             ) sub
@@ -666,15 +666,15 @@ class VDVeckorapportController {
                     FROM (
                         SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :fran1 AND :till1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE datum >= :fran1 AND datum < DATE_ADD(:till1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                         UNION ALL
                         SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :fran2 AND :till2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE datum >= :fran2 AND datum < DATE_ADD(:till2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                         UNION ALL
                         SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :fran3 AND :till3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE datum >= :fran3 AND datum < DATE_ADD(:till3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                     ) raw
                     GROUP BY op_num, skiftraknare
                 ) sub
@@ -727,7 +727,7 @@ class VDVeckorapportController {
                     COUNT(*) AS total_ibc,
                     SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :fran AND :till
+                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
                 GROUP BY DATE(datum)
                 ORDER BY dag ASC
             ";

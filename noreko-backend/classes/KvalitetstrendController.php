@@ -159,7 +159,7 @@ class KvalitetstrendController {
                     MAX(ibc_ok)    AS ibc_ok,
                     MAX(ibc_ej_ok) AS ibc_ej_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND op1 IS NOT NULL AND op1 > 0
                 GROUP BY op1, DATE(datum), skiftraknare
 
@@ -169,7 +169,7 @@ class KvalitetstrendController {
                     MAX(ibc_ok)    AS ibc_ok,
                     MAX(ibc_ej_ok) AS ibc_ej_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND op2 IS NOT NULL AND op2 > 0
                 GROUP BY op2, DATE(datum), skiftraknare
 
@@ -179,7 +179,7 @@ class KvalitetstrendController {
                     MAX(ibc_ok)    AS ibc_ok,
                     MAX(ibc_ej_ok) AS ibc_ej_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                   AND op3 IS NOT NULL AND op3 > 0
                 GROUP BY op3, DATE(datum), skiftraknare
              ) combined
@@ -570,7 +570,7 @@ class KvalitetstrendController {
                         MAX(ibc_ok)    AS ibc_ok,
                         MAX(ibc_ej_ok) AS ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND op1 = ?
                     GROUP BY DATE(datum), skiftraknare
 
@@ -580,7 +580,7 @@ class KvalitetstrendController {
                         MAX(ibc_ok)    AS ibc_ok,
                         MAX(ibc_ej_ok) AS ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND op2 = ?
                     GROUP BY DATE(datum), skiftraknare
 
@@ -590,7 +590,7 @@ class KvalitetstrendController {
                         MAX(ibc_ok)    AS ibc_ok,
                         MAX(ibc_ej_ok) AS ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND op3 = ?
                     GROUP BY DATE(datum), skiftraknare
                  ) combined

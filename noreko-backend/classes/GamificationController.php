@@ -126,15 +126,15 @@ class GamificationController {
                        SUM(cnt) AS total_ibc
                 FROM (
                     SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND op1 > 0
+                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
                     GROUP BY op1
                     UNION ALL
                     SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND op2 > 0
+                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
                     GROUP BY op2
                     UNION ALL
                     SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND op3 > 0
+                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
                     GROUP BY op3
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
@@ -171,7 +171,7 @@ class GamificationController {
                         SUM(COALESCE(r.antal, 1)) AS ok_ibc
                     FROM rebotling_data r
                     LEFT JOIN users u ON r.user_id = u.id
-                    WHERE DATE(r.datum) BETWEEN :from AND :to
+                    WHERE r.datum >= :from AND r.datum < DATE_ADD(:to, INTERVAL 1 DAY)
                       AND r.user_id IS NOT NULL
                       AND r.user_id > 0
                     GROUP BY r.user_id, u.username
@@ -561,13 +561,13 @@ class GamificationController {
             $sql = "
                 SELECT op_id, SUM(cnt) AS total_ibc FROM (
                     SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1
+                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1
                     UNION ALL
                     SELECT op2, COUNT(*) FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2
+                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2
                     UNION ALL
                     SELECT op3, COUNT(*) FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3
+                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3
                 ) AS sub
                 GROUP BY op_id ORDER BY total_ibc DESC LIMIT 1
             ";

@@ -60,7 +60,7 @@ class NarvaroController {
                     s.op2,
                     s.op3
                 FROM rebotling_skiftrapport s
-                WHERE DATE(s.datum) BETWEEN :start AND :end
+                WHERE s.datum >= :start AND s.datum < DATE_ADD(:end, INTERVAL 1 DAY)
                   AND s.ibc_ok IS NOT NULL
                 ORDER BY s.datum ASC
             ";

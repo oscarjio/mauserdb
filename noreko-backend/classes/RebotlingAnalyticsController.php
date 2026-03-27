@@ -7216,7 +7216,7 @@ HTML;
                     FROM rebotling_ibc
                     WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN ? AND ?
+                      AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY op{$pos}, skiftraknare
                 ";
             };

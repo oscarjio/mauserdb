@@ -206,7 +206,7 @@ class VeckorapportController {
         $stmt = $this->pdo->prepare(
             "SELECT DATE(datum) AS dag, COUNT(*) AS cnt
              FROM rebotling_ibc
-             WHERE DATE(datum) BETWEEN ? AND ?
+             WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
              GROUP BY DATE(datum)
              ORDER BY dag ASC"
         );
@@ -247,7 +247,7 @@ class VeckorapportController {
 
         // Foregaende vecka for jamforelse
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) BETWEEN ? AND ?"
+            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
         );
         $stmt->execute([$prevStart, $prevEnd]);
         $prevWeekTotal = (int)($stmt->fetchColumn() ?: 0);
@@ -280,7 +280,7 @@ class VeckorapportController {
 
         // Antal producerade IBC
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) BETWEEN ? AND ?"
+            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
         );
         $stmt->execute([$start, $end]);
         $totalIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -290,7 +290,7 @@ class VeckorapportController {
 
         // Antal produktionsdagar (dagar med IBC)
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(DISTINCT DATE(datum)) AS cnt FROM rebotling_ibc WHERE DATE(datum) BETWEEN ? AND ?"
+            "SELECT COUNT(DISTINCT DATE(datum)) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
         );
         $stmt->execute([$start, $end]);
         $prodDays = max(1, (int)($stmt->fetchColumn() ?: 1));
@@ -330,7 +330,7 @@ class VeckorapportController {
                      SELECT DATE(datum) AS dag, skiftraknare,
                             MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
-                     WHERE DATE(datum) BETWEEN ? AND ?
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                      GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
@@ -493,7 +493,7 @@ class VeckorapportController {
                 "SELECT COALESCE(SUM(ibc_ej_ok), 0) AS kasserade,
                         COUNT(*) AS total
                  FROM rebotling_ibc
-                 WHERE DATE(datum) BETWEEN ? AND ?"
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
             );
             $stmt->execute([$start, $end]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -516,7 +516,7 @@ class VeckorapportController {
                 $stmt = $this->pdo->prepare(
                     "SELECT COALESCE(SUM(antal), 0) AS kasserade
                      FROM kassationsregistrering
-                     WHERE DATE(datum) BETWEEN ? AND ?"
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
                 );
                 $stmt->execute([$start, $end]);
                 $extraKasserade = (int)($stmt->fetchColumn() ?: 0);
@@ -531,7 +531,7 @@ class VeckorapportController {
                     "SELECT COALESCE(t.namn, 'Okänd') AS namn, SUM(r.antal) AS total_antal
                      FROM kassationsregistrering r
                      LEFT JOIN kassationsorsak_typer t ON r.orsak_id = t.id
-                     WHERE DATE(r.datum) BETWEEN ? AND ?
+                     WHERE r.datum >= ? AND r.datum < DATE_ADD(?, INTERVAL 1 DAY)
                      GROUP BY t.id, t.namn
                      ORDER BY total_antal DESC
                      LIMIT 1"

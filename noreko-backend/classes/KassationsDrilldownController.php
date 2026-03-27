@@ -81,7 +81,7 @@ class KassationsDrilldownController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -144,7 +144,7 @@ class KassationsDrilldownController {
                     COUNT(*) AS registreringar
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
-                WHERE DATE(kr.datum) BETWEEN :from_date AND :to_date
+                WHERE kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 GROUP BY kt.id, kt.namn
                 ORDER BY total_antal DESC
             ");
@@ -213,7 +213,7 @@ class KassationsDrilldownController {
                 FROM kassationsregistrering kr
                 LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
                 WHERE kr.orsak_id = :reason_id
-                  AND DATE(kr.datum) BETWEEN :from_date AND :to_date
+                  AND kr.datum >= :from_date AND kr.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 ORDER BY kr.datum DESC, kr.created_at DESC
                 LIMIT 500
             ");
@@ -275,7 +275,7 @@ class KassationsDrilldownController {
                         MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                         MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift

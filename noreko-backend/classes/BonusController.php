@@ -1668,7 +1668,7 @@ class BonusController {
         // Sortera tiers fallande efter min_ibc_per_hour så vi matchar bästa tier först
         usort($cleanTiers, fn($a, $b) => $b['min_ibc_per_hour'] <=> $a['min_ibc_per_hour']);
 
-        $dateFilter = "DATE(datum) BETWEEN :sim_from AND :sim_to";
+        $dateFilter = "datum >= :sim_from AND datum < DATE_ADD(:sim_to, INTERVAL 1 DAY)";
 
         try {
             // Hämta operatörsnamn för lookup

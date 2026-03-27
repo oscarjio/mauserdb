@@ -178,7 +178,7 @@ class ProduktionskalenderController {
                         MIN(datum) AS forsta,
                         MAX(datum) AS sista
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
@@ -321,7 +321,7 @@ class ProduktionskalenderController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND lopnummer > 0 AND lopnummer < 998
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift

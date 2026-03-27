@@ -414,7 +414,7 @@ class SaglinjeController {
                 $stmt = $this->pdo->prepare('
                     SELECT datum, ibc_count
                     FROM saglinje_ibc
-                    WHERE DATE(datum) BETWEEN :start AND :end
+                    WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                     ORDER BY datum ASC
                 ');
                 $stmt->execute(['start' => $start, 'end' => $end]);

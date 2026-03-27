@@ -1288,7 +1288,7 @@ class BonusAdminController {
                     FROM rebotling_ibc
                     WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
                       AND skiftraknare IS NOT NULL
-                      AND DATE(datum) BETWEEN :start AND :end
+                      AND datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                     GROUP BY op{$pos}, skiftraknare
                 ");
                 $stmt->execute(['start' => $startDate, 'end' => $endDate]);
@@ -1563,17 +1563,17 @@ class BonusAdminController {
                 FROM (
                     SELECT op1 AS op_id, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from1 AND :to1
+                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
                       AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from2 AND :to2
+                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
                       AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from3 AND :to3
+                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
                       AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
                 ) AS all_ops
                 GROUP BY op_id, skiftraknare

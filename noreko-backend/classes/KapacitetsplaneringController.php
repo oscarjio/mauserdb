@@ -223,7 +223,7 @@ class KapacitetsplaneringController {
                         datum
                     ) AS diff_sek
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                 ) t
                 WHERE diff_sek > 0 AND diff_sek < 3600
             ");
@@ -293,7 +293,7 @@ class KapacitetsplaneringController {
                         MAX(ibc_ok) AS max_ibc_ok,
                         MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -347,7 +347,7 @@ class KapacitetsplaneringController {
                 SELECT AVG(dag_total) AS snitt FROM (
                     SELECT DATE(datum) AS dag, COUNT(*) AS dag_total
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum)
                 ) t
             ");
@@ -456,7 +456,7 @@ class KapacitetsplaneringController {
                 SELECT AVG(dag_total) AS snitt FROM (
                     SELECT DATE(datum) AS dag, COUNT(*) AS dag_total
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum)
                 ) t
             ");
@@ -479,7 +479,7 @@ class KapacitetsplaneringController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY dag
@@ -599,7 +599,7 @@ class KapacitetsplaneringController {
                         MAX(ibc_ok) AS max_ibc_ok,
                         MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -769,7 +769,7 @@ class KapacitetsplaneringController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY dag
@@ -848,7 +848,7 @@ class KapacitetsplaneringController {
                            MAX(COALESCE(ibc_ok, 0)) AS max_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :monday AND :friday
+                    WHERE datum >= :monday AND datum < DATE_ADD(:friday, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) per_skift
@@ -958,7 +958,7 @@ class KapacitetsplaneringController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY dag
@@ -1036,7 +1036,7 @@ class KapacitetsplaneringController {
                         MAX(ibc_ok) AS max_ibc_ok,
                         MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -1067,7 +1067,7 @@ class KapacitetsplaneringController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :half_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:half_date, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");

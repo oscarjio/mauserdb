@@ -117,19 +117,19 @@ class MyStatsController {
                 SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op1 IS NOT NULL AND op1 > 0
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 UNION ALL
                 SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op2 IS NOT NULL AND op2 > 0
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 UNION ALL
                 SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op3 IS NOT NULL AND op3 > 0
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
             ) AS u
             WHERE 1=1 {$opFilter}
@@ -540,21 +540,21 @@ class MyStatsController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from_date AND :to_date
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                     ) AS u
                     GROUP BY DATE(datum)
@@ -610,17 +610,17 @@ class MyStatsController {
                             SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                             UNION ALL
                             SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                             UNION ALL
                             SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                              AND DATE(datum) BETWEEN :from_date AND :to_date
+                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                         ) AS u
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps

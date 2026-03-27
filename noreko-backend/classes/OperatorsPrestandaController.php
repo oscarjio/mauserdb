@@ -630,13 +630,13 @@ class OperatorsPrestandaController {
                 COALESCE(SUM(drifttid), 0)          AS total_drifttid
             FROM (
                 SELECT ibc_ok, ibc_ej_ok, drifttid
-                FROM rebotling_skiftrapport WHERE op1 = ? AND DATE(datum) BETWEEN ? AND ?
+                FROM rebotling_skiftrapport WHERE op1 = ? AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 UNION ALL
                 SELECT ibc_ok, ibc_ej_ok, drifttid
-                FROM rebotling_skiftrapport WHERE op2 = ? AND DATE(datum) BETWEEN ? AND ?
+                FROM rebotling_skiftrapport WHERE op2 = ? AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                 UNION ALL
                 SELECT ibc_ok, ibc_ej_ok, drifttid
-                FROM rebotling_skiftrapport WHERE op3 = ? AND DATE(datum) BETWEEN ? AND ?
+                FROM rebotling_skiftrapport WHERE op3 = ? AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
             ) sub
         ");
         for ($i = 11; $i >= 0; $i--) {

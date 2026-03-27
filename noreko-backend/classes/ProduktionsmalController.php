@@ -150,7 +150,7 @@ class ProduktionsmalController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -225,7 +225,7 @@ class ProduktionsmalController {
                 FROM (
                     SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
                 GROUP BY dag
@@ -390,7 +390,7 @@ class ProduktionsmalController {
                 FROM (
                     SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
@@ -1114,7 +1114,7 @@ class ProduktionsmalController {
                  FROM (
                     SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ?
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                  ) sub

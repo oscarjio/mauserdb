@@ -154,7 +154,7 @@ class OeeBenchmarkController {
                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                 FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from AND :to
+                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ) sub

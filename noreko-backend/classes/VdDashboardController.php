@@ -261,7 +261,7 @@ class VdDashboardController {
                         SELECT ROUND(AVG(cnt)) AS avg_ibc FROM (
                             SELECT COUNT(*) AS cnt
                             FROM rebotling_ibc
-                            WHERE DATE(datum) BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND datum < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 1 DAY), INTERVAL 1 DAY)
                             GROUP BY DATE(datum)
                             HAVING cnt > 0
                         ) AS sub

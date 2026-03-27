@@ -231,19 +231,19 @@ class OperatorsbonusController {
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND op1 > 0
                           AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from1 AND :to1
+                          AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
                         UNION ALL
                         SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
                         FROM rebotling_ibc
                         WHERE op2 IS NOT NULL AND op2 > 0
                           AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from2 AND :to2
+                          AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
                         UNION ALL
                         SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
                         FROM rebotling_ibc
                         WHERE op3 IS NOT NULL AND op3 > 0
                           AND skiftraknare IS NOT NULL
-                          AND DATE(datum) BETWEEN :from3 AND :to3
+                          AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
                     ) AS all_ops
                     GROUP BY op_id, skiftraknare
                 ) AS per_shift
@@ -338,7 +338,7 @@ class OperatorsbonusController {
                 FROM (
                     SELECT DATE(datum) AS datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift

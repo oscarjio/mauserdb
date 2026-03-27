@@ -119,7 +119,7 @@ class HeatmapController {
                         skiftraknare,
                         MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                 ) AS per_hour_shift
@@ -200,7 +200,7 @@ class HeatmapController {
                 FROM (
                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -223,7 +223,7 @@ class HeatmapController {
                         SELECT datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), HOUR(datum), skiftraknare
                     ) AS hs
@@ -264,7 +264,7 @@ class HeatmapController {
                         SELECT datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ds
