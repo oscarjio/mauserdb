@@ -377,15 +377,15 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
 
   deltaIcon(val: number | undefined | null): string {
     const v = val ?? 0;
-    if (v > 0) return 'bi bi-arrow-up-short';
-    if (v < 0) return 'bi bi-arrow-down-short';
-    return 'bi bi-dash';
+    if (v > 0) return 'fas fa-arrow-up';
+    if (v < 0) return 'fas fa-arrow-down';
+    return 'fas fa-minus';
   }
 
   trendIcon(trend: string): string {
-    if (trend === 'up') return 'bi bi-arrow-up-short';
-    if (trend === 'down') return 'bi bi-arrow-down-short';
-    return 'bi bi-dash';
+    if (trend === 'up') return 'fas fa-arrow-up';
+    if (trend === 'down') return 'fas fa-arrow-down';
+    return 'fas fa-minus';
   }
 
   trendClass(trend: string): string {

@@ -123,7 +123,7 @@ interface ProfileResponse {
 
       <!-- Empty-state: ingen operatörsdata -->
       <div *ngIf="!laddar && !felmeddelande && !profil" class="text-center py-5">
-        <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+        <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
         <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen operatörsdata hittades.</p>
         <a routerLink="/admin/operator-dashboard"
            style="color:#63b3ed;font-size:14px;">Tillbaka</a>

@@ -38,7 +38,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/produktions-sla', label: 'Måluppfyllnad', icon: 'fas fa-bullseye', featureKey: 'rebotling/produktions-sla', description: 'SLA och måluppfyllnad över tid' },
       { route: '/rebotling/kapacitetsplanering', label: 'Kapacitetsplanering', icon: 'fas fa-chart-area', featureKey: 'rebotling/kapacitetsplanering', description: 'Planera kapacitet och beläggning' },
       { route: '/rebotling/historisk-produktion', label: 'Historisk produktion', icon: 'fas fa-chart-line', featureKey: 'rebotling/historisk-produktion', description: 'Produktion över längre tidsperioder' },
-      { route: '/rebotling/historisk-sammanfattning', label: 'Historisk sammanfattning', icon: 'bi bi-file-earmark-bar-graph', featureKey: 'rebotling/historisk-sammanfattning', description: 'Sammanfattning av historisk data' },
+      { route: '/rebotling/historisk-sammanfattning', label: 'Historisk sammanfattning', icon: 'fas fa-chart-bar', featureKey: 'rebotling/historisk-sammanfattning', description: 'Sammanfattning av historisk data' },
       { route: '/rebotling/rebotling-trendanalys', label: 'Trendanalys', icon: 'fas fa-chart-line', featureKey: 'rebotling/rebotling-trendanalys', description: 'Identifiera trender i produktionsdata' },
       { route: '/rebotling/benchmarking', label: 'Benchmarking', icon: 'fas fa-trophy', featureKey: 'rebotling/benchmarking', description: 'Jämför perioder och skift' },
     ]
@@ -113,7 +113,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/morgonrapport', label: 'Morgonrapport', icon: 'fas fa-sun', featureKey: 'rebotling/morgonrapport', description: 'Rapport för morgonmöte' },
       { route: '/rebotling/veckorapport', label: 'Veckorapport', icon: 'fas fa-file-alt', featureKey: 'rebotling/veckorapport', description: 'Veckovis sammanställning' },
       { route: '/rebotling/vd-veckorapport', label: 'VD Veckorapport', icon: 'fas fa-file-invoice', featureKey: 'rebotling/vd-veckorapport', description: 'Ledningsrapport per vecka' },
-      { route: '/rebotling/vd-dashboard', label: 'VD Dashboard', icon: 'bi bi-speedometer2', featureKey: 'rebotling/vd-dashboard', description: 'Översikts-dashboard för VD' },
+      { route: '/rebotling/vd-dashboard', label: 'VD Dashboard', icon: 'fas fa-tachometer-alt', featureKey: 'rebotling/vd-dashboard', description: 'Översikts-dashboard för VD' },
       { route: '/rebotling/skiftrapport-export', label: 'Skiftrapport PDF', icon: 'fas fa-file-pdf', featureKey: 'rebotling/skiftrapport-export', description: 'Exportera skiftrapport som PDF' },
       { route: '/rebotling/skiftrapport-sammanstallning', label: 'Skiftsammanställning', icon: 'fas fa-clipboard-list', featureKey: 'rebotling/skiftrapport-sammanstallning', description: 'Sammanställ flera skiftrapporter' },
       { route: '/rebotling/skiftjamforelse', label: 'Skiftjämförelse', icon: 'fas fa-people-arrows', featureKey: 'rebotling/skiftjamforelse', description: 'Jämför prestanda mellan skift' },

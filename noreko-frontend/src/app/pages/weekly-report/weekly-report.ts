@@ -790,7 +790,7 @@ interface WeekCompare {
       <div class="daily-table-panel">
         <h4><i class="fas fa-table me-2" style="color:#63b3ed"></i>Daglig produktion</h4>
         <div class="empty-state" *ngIf="!data.daily || data.daily.length === 0" style="text-align:center;padding:2rem 0;">
-          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
           <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen data för vald vecka.</p>
         </div>
         <table class="daily-table" *ngIf="data.daily && data.daily.length > 0">

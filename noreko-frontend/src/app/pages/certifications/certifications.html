@@ -175,7 +175,7 @@
 
     <!-- Tom vy -->
     <div class="text-center py-5" *ngIf="!error && filteredOperators.length === 0">
-      <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+      <i class="fas fa-inbox" style="font-size: 2rem; color: #4a5568;"></i>
       <p class="text-muted mt-2" *ngIf="statusFilter !== 'all'">Inga certifikat matchar valt statusfilter.</p>
       <p class="text-muted mt-2" *ngIf="statusFilter === 'all' && activeLineFilter === 'alla'">Inga certifieringar registrerade</p>
       <p class="text-muted mt-2" *ngIf="statusFilter === 'all' && activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
