@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #356)*
+*Senast uppdaterad: 2026-03-27 (session #358)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -64,6 +64,7 @@ Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
 Session #355: SQL-schema granskning + performance audit + WCAG.
 Session #356: E2E regressionstest + HTTP interceptor audit + caching + lazy loading + Chart.js granskning + auth-flode.
 Session #357: Rebotling-djupgranskning — 0 SQL-mismatches, produktion_procent OK (inte kumulativ), 3 schema-fixes, heatmap CSS-fix, E2E 50/50 PASS.
+Session #358: Pagaende — icke-rebotling genomgang (alla ovriga controllers, komponenter, admin, bonus, rapporter).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -76,11 +77,16 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #358):
+### Nasta (session #359):
 - [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] Fortsatt forbattring baserat pa session #357 fynd
+- [ ] oee-trendanalys + alarm-historik performance-optimering
+- [ ] Integrationstest CRUD-floden end-to-end
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #358 (klar)
+Worker A: 100+ icke-rebotling endpoints testade — 0x500. Schema-audit 20+ controllers — 0 mismatches. 2 indexes pa kundordrar (status + onskat_leveransdatum). produktion_procent cap bekraftad OK (varden upp till 72000% i DB, backend cap:ar korrekt). E2E 50/50 PASS.
+Worker B: 80+ icke-rebotling komponenter granskade — dark theme/responsivt/destroy()/validering OK overallt. Admin-sidor (users, operators, bonus-admin) OK. Bonus/operator-dashboards OK. Rapporter+PDF OK. Build+deploy OK. 0 buggar.
 
 ### 2026-03-27 — Session #357 (klar)
 Worker A: 7 rebotling-controllers djupgranskade — 0 SQL-mismatches. produktion_procent bekraftad INTE kumulativ (momentan PLC-takt, edge case vid kort runtime). 3 schema-fixes (has_lopnummer + 3 indexes). Alla endpoints testade OK. E2E 50/50 PASS.
@@ -89,7 +95,3 @@ Worker B: 12 rebotling-komponenter granskade — dark theme/responsivt/destroy()
 ### 2026-03-27 — Session #356 (klar)
 Worker A: E2E 50/50 PASS. HTTP interceptor audit — inga problem. Filcache 3 tunga endpoints (1.1s→0.15s). PDO duplicate param fix 4 controllers. 108 endpoints testade.
 Worker B: Lazy loading audit OK. Chart.js granskning OK. Route guards + auth-flode OK. PdfExportService dynamic import. Build+deploy OK.
-
-### 2026-03-27 — Session #355 (klar)
-Worker A: 113 controllers granskade mot prod_db_schema.sql — 0 kritiska SQL-mismatches. 52 endpoints testade — 0 st 500-fel.
-Worker B: WCAG AA kontrast-fix 216 filer. Bundle 67.8 KB. 14 table-responsive. Global ErrorHandler. Build+deploy OK.
