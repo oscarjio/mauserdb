@@ -1,5 +1,49 @@
 # MauserDB Dev Log
 
+## Session #366 — Worker A (2026-03-27)
+**Fokus: Fullstandig endpoint-stresstest 129 tester 0x500 + PHP controller-audit + integration test API vs DB + edge case-sakerhet + deploy dev**
+
+### UPPGIFT 1: Fullstandig endpoint-stresstest — KLAR
+- **115 unika endpoints** identifierade fran api.php classNameMap
+- **129 tester totalt** (115 endpoints + 14 sub-action-tester)
+- **Resultat: 0 st 500-fel, alla <2s svarstid**
+- Langsammaste endpoint: `rebotling&run=month-compare` 1032ms
+- Alla publika endpoints (rebotling, tvattlinje, saglinje, klassificeringslinje, status, historik, feature-flags) returnerar korrekt JSON
+- Alla skyddade endpoints returnerar 401/403 korrekt utan inloggning
+
+### UPPGIFT 2: PHP Controller-audit — KLAR
+- **112 controller-filer** (~79 000 rader) granskade systematiskt
+- **SQL injection**: Inga sarbarheter hittade — alla queries anvander prepared statements
+  - `->query()` med `->quote()` (1 stalle, AlarmHistorikController) — sakert
+  - `->exec()` anvands enbart for DDL (CREATE TABLE, ALTER TABLE) med statisk SQL
+  - Ingen stranginterpolation i SQL-queries
+- **Tomma catch-block**: Inga hittade — alla catch-block loggar error_log() + returnerar JSON-fel
+- **Parameter-validering**: 531 anvandningar av $_GET/$_POST, alla validerade med intval/trim/htmlspecialchars/regex
+- **Schema-overensstammelse**: Verifierade att SQL-queries i RebotlingController, HistorikController matchar prod_db_schema.sql kolumnnamn och tabellnamn
+
+### UPPGIFT 3: Integration test API vs DB — KLAR
+- **rebotling ibc_today**: API=122, DB COUNT(*)=122 — KORREKT
+  - Klargjort: `ibc_count` ar lopande raknare (SUM=7505), `COUNT(*)` ar antal rader (=antal IBC)
+- **historik manad mars**: API total_ibc=650, DB SUM(MAX(ibc_ok) per dag)=650 — KORREKT
+  - Verifierade: 190+25+56+125+2+1+170+14+67 = 650
+- **week-comparison, oee-trend, best-shifts, benchmarking, month-compare**: Alla returnerar giltig JSON med rimliga varden
+- **shift-plan, shift-handover, news**: Sub-actions fungerar korrekt (kräver `run`-parameter)
+
+### UPPGIFT 4: Error/404-hantering — KLAR
+- **Okand action**: Returnerar HTTP 404 + `{"success":false,"error":"Endpoint hittades inte"}`
+- **Tom action**: Returnerar HTTP 404 korrekt
+- **SQL injection-forsok**: Returnerar HTTP 400 (ogiltig parameter)
+- **XSS i action-param**: Returnerar HTTP 404 (ej i vitlistan)
+- **Langa action-namn**: Returnerar HTTP 414 (server-niva)
+- **Ogiltigt datum**: Returnerar `{"success":false,"error":"Ogiltigt datum"}`
+- **POST till GET-only**: Returnerar HTTP 401 (session-kontroll i api.php)
+- Alla error-responses ar konsistent JSON med `success:false` och `error`-nyckel
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- Backend deployad med rsync (--exclude='db_config.php')
+- Post-deploy verifiering: 129 tester, 0x500, alla <2s
+- Prod DB-data visas korrekt via dev-servern
+
 ## Session #366 — Worker B (2026-03-27)
 **Fokus: Data-korrekthet UI vs DB + fullstandig Angular-kodgranskning + interaktivitetstest + chart-granskning + build + deploy dev**
 
