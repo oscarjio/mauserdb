@@ -63,6 +63,56 @@
 
 ---
 
+## Session #365 — Worker A (2026-03-27)
+**Fokus: Diskrepans-verifiering mot prod DB + slow endpoint optimering (benchmarking+month-compare) + dead code cleanup + full stresstest 97 endpoints + SQL-schema-granskning + deploy**
+
+### UPPGIFT 1: Verifiera diskrepans-fix mot prod DB — VERIFIERAD OK
+- Prod DB: `SELECT COUNT(*) FROM rebotling_ibc WHERE MONTH(datum)=3 AND YEAR(datum)=2026` = **1060 rader**
+- Prod DB aggregerat (MAX per skift per dag, summerat): **793 IBC** — matchar API:et exakt
+- API month-compare total_ibc: **793** — korrekt
+- Daglig breakdown fran DB (12 produktionsdagar) summerar till 1060 rader — konsistent
+- Per-skift breakdown (19 unika skiftraknare) stammer
+- **Ingen diskrepans kvar** — session #364 fix verifierad fungerande
+
+### UPPGIFT 2: Optimera slow endpoints — KLAR
+- **benchmarking:** 926ms -> **237ms** (74% snabbare) — konsoliderade 6 queries till 2 med CTE
+- **month-compare:** 984ms -> **627ms** (36% snabbare) — fetchMonthData 2 queries -> 1 CTE per manad
+- Lade till covering index `idx_ibc_bench_covering` (datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, rasttime)
+- OEE-berakningslogik extraherad till closures for att undvika kodupprepning
+- Bada endpoints under 1s, benchmarking under 500ms-malet
+
+### UPPGIFT 3: Dead code cleanup — KLAR
+- Borttagen: `getOtherLineStatus()` i RebotlingAdminController.php (privat metod, aldrig anropad)
+- Metoden anvande information_schema-query som var trag — redan ersatt med statisk respons i session #364
+
+### UPPGIFT 4: Full endpoint stresstest — KLAR (0 fel av 97 endpoints)
+- **Batch 1** (18 rebotling analytics): 0 fel, alla <1s (benchmarking 237ms, month-compare 627ms)
+- **Batch 2** (17 rebotling + cross-controller): 0 fel, alla <500ms
+- **Batch 3** (20 standalone controllers): 0 fel, alla <200ms
+- **Batch 4** (20 controllers): 0 fel, alla <400ms
+- **Batch 5** (20 controllers): 0 fel, alla <400ms (kassationsorsakstatistik 141ms efter re-test)
+- **Batch 6** (22 controllers): 0 fel, alla <200ms
+- **Totalt:** 97 endpoints, 0x500, 0 timeouts
+
+### UPPGIFT 5: SQL-granskning mot prod_db_schema.sql — KLAR
+- 8 tabeller refereras i PHP men finns ej i schema eller prod DB:
+  - rebotling_maintenance_log, rebotling_stopporsak, rebotling_data, klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff, skift_log, weekly_bonus_goal
+  - Alla hanteras sakert med try/catch eller SHOW TABLES/CREATE IF NOT EXISTS — inga runtime-fel
+- Nytt covering index skapat for benchmarking/month-compare (rasttime saknades i befintligt index)
+
+### UPPGIFT 6: Deploy till dev — KLAR
+- Backend deployat via rsync (RebotlingAnalyticsController.php, RebotlingAdminController.php, migration)
+- Covering index kord mot prod DB
+- Alla endpoints verifierade post-deploy
+
+### Filer andrade:
+- noreko-backend/classes/RebotlingAnalyticsController.php (benchmarking + month-compare CTE-optimering)
+- noreko-backend/classes/RebotlingAdminController.php (getOtherLineStatus borttagen)
+- noreko-backend/migrations/2026-03-27_session365_benchmarking_covering_index.sql (ny)
+- dev-log.md (uppdaterad)
+
+---
+
 ## Session #364 — Worker A (2026-03-27)
 **Fokus: API vs DB diskrepans fix (KRITISK) + PHP parse error fix + slow endpoint optimering + endpoint stresstest + deploy**
 

@@ -636,25 +636,6 @@ class RebotlingAdminController {
     }
 
 
-    private function getOtherLineStatus(string $id, string $namn, string $settingsTable): array {
-        try {
-            $tables = $this->pdo->query(
-                "SELECT COUNT(*) FROM information_schema.tables
-                 WHERE table_schema = DATABASE()
-                   AND table_name = " . $this->pdo->quote($settingsTable)
-            )->fetchColumn();
-
-            if ((int)$tables === 0) {
-                return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
-            }
-            // Tabell finns — försök hämta aktiv-status
-            return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
-        } catch (Exception $e) {
-            error_log("RebotlingAdminController::getAllLinesStatus $id: " . $e->getMessage());
-            return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
-        }
-    }
-
     // =========================================================
     // E-postnotifikationer — inställningar
     // =========================================================
