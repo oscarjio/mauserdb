@@ -2068,6 +2068,10 @@ class RebotlingAnalyticsController {
                 }
                 $monthGoal = $dailyGoal * $workdays;
 
+                // Beräkna datum-intervall för range scan (undviker DATE_FORMAT som blockerar index)
+                $firstDay = $m . '-01';
+                $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
+
                 // En enda query med CTE: hämtar daglig aggregering (summary + OEE per dag)
                 $stmt = $this->pdo->prepare("
                     WITH per_shift AS (
@@ -2081,7 +2085,7 @@ class RebotlingAnalyticsController {
                             COALESCE(MAX(runtime_plc), 0) AS shift_runtime,
                             COALESCE(MAX(rasttime), 0)    AS shift_rast
                         FROM rebotling_ibc
-                        WHERE DATE_FORMAT(datum,'%Y-%m') = ?
+                        WHERE datum >= ? AND datum < ?
                         GROUP BY DATE(datum), skiftraknare
                     )
                     SELECT
@@ -2094,7 +2098,7 @@ class RebotlingAnalyticsController {
                     FROM per_shift
                     GROUP BY dag
                 ");
-                $stmt->execute([$m]);
+                $stmt->execute([$firstDay, $nextMonth]);
                 $dayRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 $idealRatePerMin = 15.0 / 60.0;
@@ -2162,84 +2166,13 @@ class RebotlingAnalyticsController {
             $diffOee     = round($thisMonthData['avg_oee_pct'] - $prevMonthData['avg_oee_pct'], 1);
             $diffQuality = round($thisMonthData['avg_quality_pct'] - $prevMonthData['avg_quality_pct'], 1);
 
-            // Operatör av månaden — använder rebotling_ibc
+            // Operatörsranking (topp 10) + operatör av månaden (= #1)
+            // Konsoliderat till EN query istället för två separata UNION ALL-queries
             $opOfMonth = null;
-            try {
-                $firstDay = $monthParam . '-01';
-                $lastDay  = date('Y-m-t', strtotime($firstDay));
-                $opSQL = "
-                    SELECT op_id, SUM(shift_ibc) AS total_ibc,
-                           SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
-                           SUM(shift_ok * 100.0) / NULLIF(SUM(shift_total), 0) AS avg_quality_pct
-                    FROM (
-                        SELECT op1 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1, skiftraknare
-                        UNION ALL
-                        SELECT op2 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2, skiftraknare
-                        UNION ALL
-                        SELECT op3 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3, skiftraknare
-                    ) t
-                    GROUP BY op_id
-                    ORDER BY (SUM(shift_ibc) * 0.6 + SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
-                    LIMIT 1
-                ";
-                $stmtOp = $this->pdo->prepare($opSQL);
-                $stmtOp->execute([$firstDay, $lastDay, $firstDay, $lastDay, $firstDay, $lastDay]);
-                $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
-                if ($opRow && $opRow['op_id']) {
-                    // Hämta operatörens namn
-                    $nameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
-                    $nameStmt->execute([$opRow['op_id']]);
-                    $nameRow = $nameStmt->fetch(PDO::FETCH_ASSOC);
-                    $namn = $nameRow ? $nameRow['name'] : 'Okänd';
-                    // Generera initialer från namn
-                    $parts = explode(' ', trim($namn));
-                    $initialer = '';
-                    foreach ($parts as $p) {
-                        if ($p !== '') $initialer .= mb_strtoupper(mb_substr($p, 0, 1));
-                    }
-                    $initialer = mb_substr($initialer, 0, 3);
-                    $opOfMonth = [
-                        'op_id'           => (int)$opRow['op_id'],
-                        'namn'            => $namn,
-                        'initialer'       => $initialer,
-                        'total_ibc'       => (int)($opRow['total_ibc'] ?? 0),
-                        'avg_ibc_per_h'   => round((float)($opRow['avg_ibc_per_h'] ?? 0), 1),
-                        'avg_quality_pct' => round((float)($opRow['avg_quality_pct'] ?? 0), 1),
-                    ];
-                }
-            } catch (Exception $e) {
-                error_log('RebotlingAnalyticsController::getMonthCompare: operatör av månaden fel: ' . $e->getMessage());
-            }
-
-            // Full operatörsranking (topp 10) med poäng
             $operatorRanking = [];
             try {
                 $firstDay = $monthParam . '-01';
-                $lastDay  = date('Y-m-t', strtotime($firstDay));
+                $nextMonthOp = date('Y-m-01', strtotime($firstDay . ' +1 month'));
                 $rankSQL = "
                     SELECT op_id,
                            COUNT(DISTINCT skiftraknare) AS shifts,
@@ -2253,7 +2186,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        WHERE datum >= ? AND datum < ?
                           AND op1 IS NOT NULL AND op1 > 0
                         GROUP BY op1, skiftraknare
                         UNION ALL
@@ -2263,7 +2196,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        WHERE datum >= ? AND datum < ?
                           AND op2 IS NOT NULL AND op2 > 0
                         GROUP BY op2, skiftraknare
                         UNION ALL
@@ -2273,7 +2206,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        WHERE datum >= ? AND datum < ?
                           AND op3 IS NOT NULL AND op3 > 0
                         GROUP BY op3, skiftraknare
                     ) t
@@ -2282,9 +2215,9 @@ class RebotlingAnalyticsController {
                     LIMIT 10
                 ";
                 $stmtRank = $this->pdo->prepare($rankSQL);
-                $stmtRank->execute([$firstDay, $lastDay, $firstDay, $lastDay, $firstDay, $lastDay]);
+                $stmtRank->execute([$firstDay, $nextMonthOp, $firstDay, $nextMonthOp, $firstDay, $nextMonthOp]);
                 $rankRows = $stmtRank->fetchAll(PDO::FETCH_ASSOC);
-                // Batch-hämta operatörsnamn istället för en query per rad
+                // Batch-hämta operatörsnamn
                 $opIds2 = array_column($rankRows, 'op_id');
                 $opNameMap2 = [];
                 if (!empty($opIds2)) {
@@ -2295,7 +2228,7 @@ class RebotlingAnalyticsController {
                         $opNameMap2[(int)$nr['number']] = $nr['name'];
                     }
                 }
-                foreach ($rankRows as $rr) {
+                foreach ($rankRows as $idx => $rr) {
                     $opNamn = $opNameMap2[(int)$rr['op_id']] ?? 'Okänd';
                     $parts2 = explode(' ', trim($opNamn));
                     $init2 = '';
@@ -2306,7 +2239,8 @@ class RebotlingAnalyticsController {
                     $qualP = (float)($rr['avg_quality_pct'] ?? 0);
                     $totalIbc = (int)($rr['total_ibc'] ?? 0);
                     $score = round($totalIbc * 0.6 + $ibcH * 100 * 0.25 + $qualP * 0.15, 1);
-                    $operatorRanking[] = [
+
+                    $entry = [
                         'op_id'           => (int)$rr['op_id'],
                         'namn'            => $opNamn,
                         'initialer'       => mb_substr($init2, 0, 3),
@@ -2316,6 +2250,19 @@ class RebotlingAnalyticsController {
                         'avg_quality_pct' => round($qualP, 1),
                         'score'           => $score,
                     ];
+                    $operatorRanking[] = $entry;
+
+                    // Första raden = operatör av månaden
+                    if ($idx === 0) {
+                        $opOfMonth = [
+                            'op_id'           => $entry['op_id'],
+                            'namn'            => $entry['namn'],
+                            'initialer'       => $entry['initialer'],
+                            'total_ibc'       => $entry['total_ibc'],
+                            'avg_ibc_per_h'   => $entry['avg_ibc_per_h'],
+                            'avg_quality_pct' => $entry['avg_quality_pct'],
+                        ];
+                    }
                 }
             } catch (Exception $e) {
                 error_log('RebotlingAnalyticsController::getMonthCompare: operatörsranking fel: ' . $e->getMessage());
@@ -2410,7 +2357,9 @@ class RebotlingAnalyticsController {
             }
             $monthGoal = $dailyGoal * $workdays;
 
-            // ---- Per-skift-subquery som bas ----
+            // ---- Per-skift-subquery som bas (range scan istf DATE_FORMAT) ----
+            $firstDay = $month . '-01';
+            $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
             $perShiftSQL = "
                 SELECT
                     DATE(datum)                                                             AS dag,
@@ -2422,7 +2371,7 @@ class RebotlingAnalyticsController {
                     MAX(COALESCE(runtime_plc, 0))                                          AS shift_runtime,
                     MAX(COALESCE(rasttime, 0))                                             AS shift_rast
                 FROM rebotling_ibc
-                WHERE DATE_FORMAT(datum,'%Y-%m') = ?
+                WHERE datum >= ? AND datum < ?
                 GROUP BY DATE(datum), skiftraknare
             ";
 
@@ -2439,7 +2388,7 @@ class RebotlingAnalyticsController {
                 FROM ({$perShiftSQL}) AS per_shift
             ";
             $stmt = $this->pdo->prepare($summarySQL);
-            $stmt->execute([$month]);
+            $stmt->execute([$firstDay, $nextMonth]);
             $sumRow = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcTotal          = (int)($sumRow['ibc_total'] ?? 0);
@@ -2463,7 +2412,7 @@ class RebotlingAnalyticsController {
                 ORDER BY dag ASC
             ";
             $stmt = $this->pdo->prepare($oeeSQL);
-            $stmt->execute([$month]);
+            $stmt->execute([$firstDay, $nextMonth]);
             $oeeRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $idealRatePerMin = 15.0 / 60.0;

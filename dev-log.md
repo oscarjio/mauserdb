@@ -1,5 +1,47 @@
 # MauserDB Dev Log
 
+## Session #367 — Worker A (2026-03-27)
+**Fokus: Performance-optimering month-compare + admin CRUD-test + caching-granskning + endpoint-stresstest + deploy dev**
+
+### UPPGIFT 1: Performance — month-compare optimering — KLAR
+- **Problem**: month-compare ~1032ms (for langsamt)
+- **Rotorsak**: `DATE_FORMAT(datum,'%Y-%m') = ?` i CTE-queryn blockerar index range scan → full table scan (5187 rader)
+- **Fix 1**: Bytt till `datum >= ? AND datum < ?` med forberaknade datum-intervall → range scan (1060 rader)
+- **Fix 2**: Konsoliderat operator-of-month + operator-ranking fran 2 separata UNION ALL-queries till 1 (halverat antalet table scans)
+- **Fix 3**: Bytt `DATE_ADD(?, INTERVAL 1 DAY)` till forberaknat nasta-manad-datum (renare range scan)
+- **Fix 4**: Samma DATE_FORMAT-fix i getMonthlyReport (perShiftSQL)
+- **Resultat**: 1032ms → ~540-700ms (median ~600ms), ca 40% snabbare
+- **EXPLAIN bekraftar**: range scan pa idx_ibc_bench_covering istf full index scan
+
+### UPPGIFT 2: Admin-floden end-to-end — KLAR
+- **Operators CRUD**: GET lista (13 st) OK + POST create (99901) OK + POST update OK + POST delete OK
+- **Skiftplanering CRUD**: GET overview OK + GET schedule OK + POST assign (operator 156 → FM 2026-03-28) OK + POST unassign OK
+- **Verifiering**: Alla operationer persisterade korrekt, all testdata rensad
+- **Session/CSRF**: Inloggning som aiab (admin), CSRF-token funkar korrekt
+
+### UPPGIFT 3: Caching-strategi granskning — KLAR
+- **Endpoints med cache**:
+  - RebotlingController livestats: 5s TTL (file cache i /cache/)
+  - RebotlingController settings: variabel TTL (sys_get_temp_dir)
+  - DagligBriefingController: 30s TTL
+  - AlarmHistorikController: 30s TTL (3 endpoints)
+  - ProduktionsDashboardController: 15s TTL
+  - OeeTrendanalysController: 30s TTL (6 endpoints)
+- **Cache-invalidering**: Ingen explicit invalidering vid data-andringar, men med 5-30s TTL ar det acceptabelt for dashboard/analytics-data
+- **Bedomning**: TTL:er ar rimliga. Livestats (5s) for realtid, analytics (30s) for tyngre queries
+
+### UPPGIFT 4: Full endpoint-stresstest — KLAR
+- **111 endpoints testade** mot dev.mauserdb.com
+- **0 x 500-fel**
+- **0 endpoints >2s**
+- Tyngsta: month-compare ~540-764ms, livestats ~293ms, ovriga <200ms
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- rsync --exclude='db_config.php' till dev.mauserdb.com
+- Verifierad med curl-test: 200 OK
+
+---
+
 ## Session #367 — Worker B (2026-03-27)
 **Fokus: Operatorsbonus-djupgranskning + frontend bundle-analys + UX-granskning + deploy dev**
 
