@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #361):
-- [ ] **PHP error_log access** — behover sudo eller alternativ loggvag
-- [ ] **Cache-strategi review** — granska alla filcache TTL:er for optimala varden
-- [ ] **DB connection pooling** — undersok persistent connections
-- [ ] **Frontend bundle-size audit** — analysera lazy loading effektivitet
+### Nasta (session #362):
 - [ ] **Backup-verifiering** — verifiera att DB-backups fungerar korrekt
+- [ ] **API response-tid benchmark** — mät och dokumentera alla endpoints response-tider, identifiera >500ms
+- [ ] **Unused code cleanup** — hitta och ta bort oanvänd PHP/Angular-kod (dead code)
+- [ ] **Accessibility audit** — WCAG AA keyboard navigation + screen reader pa alla sidor
+- [ ] **Error monitoring** — implementera custom error_log till skrivbar sökväg (alt till /var/log)
 
 ## Parkerade features (ta inte dessa nu)
 

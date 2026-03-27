@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #359)*
+*Senast uppdaterad: 2026-03-27 (session #361)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -67,6 +67,7 @@ Session #357: Rebotling-djupgranskning — 0 SQL-mismatches, produktion_procent 
 Session #358: Icke-rebotling genomgang — 100+ endpoints 0x500, 80+ komponenter 0 buggar, 2 indexes, produktion_procent cap OK, E2E 50/50 PASS.
 Session #359: Performance-optimering oee-trendanalys 988ms→124ms + alarm-historik 931ms→130ms (filcache+2 index). CRUD-integrationstest OK. 109 endpoints 0x500. Data-kvalitet DB vs API 0 diskrepanser. 118 grafer OK. E2E 50/50 PASS.
 Session #360: EXPLAIN-audit 3 covering indexes + error-handling 3 fixes + stresstest <600ms + security audit 0 SQLi/XSS + API-docs 117 endpoints + 115 endpoints 0x500 + E2E 115/115 PASS.
+Session #361: Cache review 13 filer OK + DB persistent connections + PHP error_log (kraver root) + 130+128 endpoints 0x500 + bundle 8.8MB/72K main + admin guards OK + 50+ grafer OK + 0 DB diskrepanser + E2E 128/128 PASS.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -79,13 +80,18 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #361):
-- [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] Cache-strategi review
-- [ ] DB connection pooling
-- [ ] Frontend bundle-size audit
+### Nasta (session #362):
+- [ ] Backup-verifiering
+- [ ] API response-tid benchmark
+- [ ] Unused code cleanup
+- [ ] Accessibility audit (keyboard nav + screen reader)
+- [ ] Error monitoring (custom loggvag)
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-27 — Session #361 (klar)
+Worker A: Cache-strategi review 13 cache-filer (TTL 5-30s optimal). DB persistent connections aktiverat. PHP error_log kraver root — inga andringar. 130+128 endpoints 0x500. E2E 128/128 PASS.
+Worker B: Bundle-size 8.8MB/72K main — lazy loading perfekt. 28 admin-routes alla med adminGuard. 50+ grafer korrekt OEE+destroy. 0 DB-diskrepanser. 516 trackBy i 133 templates. Inga fixes behovdes.
 
 ### 2026-03-27 — Session #360 (klar)
 Worker A: EXPLAIN-audit 15+ queries — 3 covering indexes (rebotling_ibc, stopporsak_registreringar, maskin_oee_daglig). Error-handling audit — 3 tysta catch-block fixade. Stresstest alla <600ms. 115 endpoints 0x500. E2E 115/115 PASS.
@@ -94,7 +100,3 @@ Worker B: Security audit — 0 SQL injection, 0 XSS, CORS+headers OK. API-docs g
 ### 2026-03-27 — Session #359 (klar)
 Worker A: oee-trendanalys 988ms→124ms, alarm-historik 931ms→130ms (filcache 30s TTL + 2 index). CRUD-integrationstest operators/produkttyper/underhallslogg/bonusmal — alla OK. 109 endpoints 0x500. E2E 50/50 PASS. Deploy+index applicerade.
 Worker B: Data-kvalitet prod DB vs API — 0 diskrepanser (IBC-count, historik, operatorer alla stammer). 118 graf-filer granskade — dark theme/lifecycle/OEE OK. WCAG AA alla PASS. Template-granskning trackBy+table-responsive OK.
-
-### 2026-03-27 — Session #358 (klar)
-Worker A: 100+ icke-rebotling endpoints testade — 0x500. Schema-audit 20+ controllers — 0 mismatches. 2 indexes pa kundordrar. E2E 50/50 PASS.
-Worker B: 80+ icke-rebotling komponenter granskade — 0 buggar. Build+deploy OK.
