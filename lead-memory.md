@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #354)*
+*Senast uppdaterad: 2026-03-27 (session #356)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -62,6 +62,8 @@ Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
 Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
 Session #355: SQL-schema granskning + performance audit + WCAG.
+Session #356: E2E regressionstest + HTTP interceptor audit + caching + lazy loading + Chart.js granskning + auth-flode.
+Session #357: Rebotling-djupgranskning — 0 SQL-mismatches, produktion_procent OK (inte kumulativ), 3 schema-fixes, heatmap CSS-fix, E2E 50/50 PASS.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -74,23 +76,20 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #356):
+### Nasta (session #358):
 - [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] E2E regressionstest efter #355 fixar
-- [ ] Lazy loading implementation
-- [ ] HTTP interceptor audit
-- [ ] Caching-strategi
+- [ ] Fortsatt forbattring baserat pa session #357 fynd
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #357 (klar)
+Worker A: 7 rebotling-controllers djupgranskade — 0 SQL-mismatches. produktion_procent bekraftad INTE kumulativ (momentan PLC-takt, edge case vid kort runtime). 3 schema-fixes (has_lopnummer + 3 indexes). Alla endpoints testade OK. E2E 50/50 PASS.
+Worker B: 12 rebotling-komponenter granskade — dark theme/responsivt/destroy() OK. 7 dashboards granskade — inga NaN/tomma kort. Heatmap CSS-fix (dynamisk --hm-cols). OEE-berakning verifierad. 161 rutter lazy-loaded. Build+deploy OK.
+
+### 2026-03-27 — Session #356 (klar)
+Worker A: E2E 50/50 PASS. HTTP interceptor audit — inga problem. Filcache 3 tunga endpoints (1.1s→0.15s). PDO duplicate param fix 4 controllers. 108 endpoints testade.
+Worker B: Lazy loading audit OK. Chart.js granskning OK. Route guards + auth-flode OK. PdfExportService dynamic import. Build+deploy OK.
+
 ### 2026-03-27 — Session #355 (klar)
-Worker A: 113 controllers granskade mot prod_db_schema.sql — 0 kritiska SQL-mismatches. 52 endpoints testade — 0 st 500-fel. rebotling_kv_settings-tabell tillagd i schema. Deploy OK.
-Worker B: WCAG AA kontrast-fix 216 filer (#718096→#8fa3b8). Bundle: 67.8 KB initial load. 14 table-responsive fixar. Global ErrorHandler utokad. Build+deploy OK.
-
-### 2026-03-27 — Session #354 (klar)
-Worker A: 191 DATE()-fixar i 52 controllers (0 kvarvarande). getLiveStats 310→147ms median (5s filcache + CTE-query-merge). E2E 50/50 PASS. Deploy OK.
-Worker B: Keyboard a11y (skip-link, focus-visible, Escape i 5 komponenter). 8 tom-state meddelanden. 179 Chart.js tooltip touch-fixar i 100 filer. Build+deploy OK.
-
-### 2026-03-27 — Session #353 (klar)
-Worker A: getLiveStats 560→310ms (file-cache + query-merge). produktion_procent-BUGG FIXAD (ibcToday vs totalRuntimeMinutes skift-mismatch). 2 composite indexes + 13 DATE()-fixar for index-anvandning. E2E 50/50 PASS.
-Worker B: Formularvalidering i 7 templates (is-invalid/is-valid feedback). Responsiv 320px/768px/1024px fixar. Print-styling (@media print, doljer nav/knappar). Dark theme global CSS. Build+deploy OK.
+Worker A: 113 controllers granskade mot prod_db_schema.sql — 0 kritiska SQL-mismatches. 52 endpoints testade — 0 st 500-fel.
+Worker B: WCAG AA kontrast-fix 216 filer. Bundle 67.8 KB. 14 table-responsive. Global ErrorHandler. Build+deploy OK.
