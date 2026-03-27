@@ -11,12 +11,12 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #359):
+### Nasta (session #360):
 - [ ] **PHP error_log access** — behover sudo eller alternativ loggvag
-- [ ] **oee-trendanalys optimering** — 988ms, nasta performance-flaskhals
-- [ ] **alarm-historik optimering** — 931ms, tung query
-- [ ] **Integrationstest** — testa CRUD-floden end-to-end (skapa/redigera/radera)
-- [ ] **Fordjupad data-kvalitet** — granska PLC-data anomalier utanfor rebotling
+- [ ] **Stresstest** — testa med manga samtidiga requests mot alla endpoints
+- [ ] **API-dokumentation** — generera endpoint-oversikt fran classNameMap
+- [ ] **EXPLAIN-audit** — kor EXPLAIN pa alla tunga queries, hitta saknade index
+- [ ] **Error-handling audit** — granska alla catch-block for korrekt loggning
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #358)*
+*Senast uppdaterad: 2026-03-27 (session #359)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -64,7 +64,8 @@ Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
 Session #355: SQL-schema granskning + performance audit + WCAG.
 Session #356: E2E regressionstest + HTTP interceptor audit + caching + lazy loading + Chart.js granskning + auth-flode.
 Session #357: Rebotling-djupgranskning — 0 SQL-mismatches, produktion_procent OK (inte kumulativ), 3 schema-fixes, heatmap CSS-fix, E2E 50/50 PASS.
-Session #358: Pagaende — icke-rebotling genomgang (alla ovriga controllers, komponenter, admin, bonus, rapporter).
+Session #358: Icke-rebotling genomgang — 100+ endpoints 0x500, 80+ komponenter 0 buggar, 2 indexes, produktion_procent cap OK, E2E 50/50 PASS.
+Session #359: Performance-optimering oee-trendanalys 988ms→124ms + alarm-historik 931ms→130ms (filcache+2 index). CRUD-integrationstest OK. 109 endpoints 0x500. Data-kvalitet DB vs API 0 diskrepanser. 118 grafer OK. E2E 50/50 PASS.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -77,21 +78,21 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #359):
+### Nasta (session #360):
 - [ ] PHP error_log access (behover sudo eller alt loggvag)
-- [ ] oee-trendanalys + alarm-historik performance-optimering
-- [ ] Integrationstest CRUD-floden end-to-end
+- [ ] Stresstest — manga samtidiga requests
+- [ ] EXPLAIN-audit pa tunga queries
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-27 — Session #359 (klar)
+Worker A: oee-trendanalys 988ms→124ms, alarm-historik 931ms→130ms (filcache 30s TTL + 2 index). CRUD-integrationstest operators/produkttyper/underhallslogg/bonusmal — alla OK. 109 endpoints 0x500. E2E 50/50 PASS. Deploy+index applicerade.
+Worker B: Data-kvalitet prod DB vs API — 0 diskrepanser (IBC-count, historik, operatorer alla stammer). 118 graf-filer granskade — dark theme/lifecycle/OEE OK. WCAG AA alla PASS. Template-granskning trackBy+table-responsive OK.
+
 ### 2026-03-27 — Session #358 (klar)
-Worker A: 100+ icke-rebotling endpoints testade — 0x500. Schema-audit 20+ controllers — 0 mismatches. 2 indexes pa kundordrar (status + onskat_leveransdatum). produktion_procent cap bekraftad OK (varden upp till 72000% i DB, backend cap:ar korrekt). E2E 50/50 PASS.
-Worker B: 80+ icke-rebotling komponenter granskade — dark theme/responsivt/destroy()/validering OK overallt. Admin-sidor (users, operators, bonus-admin) OK. Bonus/operator-dashboards OK. Rapporter+PDF OK. Build+deploy OK. 0 buggar.
+Worker A: 100+ icke-rebotling endpoints testade — 0x500. Schema-audit 20+ controllers — 0 mismatches. 2 indexes pa kundordrar (status + onskat_leveransdatum). produktion_procent cap bekraftad OK. E2E 50/50 PASS.
+Worker B: 80+ icke-rebotling komponenter granskade — 0 buggar. Admin/bonus/operator/rapport-sidor OK. Build+deploy OK.
 
 ### 2026-03-27 — Session #357 (klar)
-Worker A: 7 rebotling-controllers djupgranskade — 0 SQL-mismatches. produktion_procent bekraftad INTE kumulativ (momentan PLC-takt, edge case vid kort runtime). 3 schema-fixes (has_lopnummer + 3 indexes). Alla endpoints testade OK. E2E 50/50 PASS.
-Worker B: 12 rebotling-komponenter granskade — dark theme/responsivt/destroy() OK. 7 dashboards granskade — inga NaN/tomma kort. Heatmap CSS-fix (dynamisk --hm-cols). OEE-berakning verifierad. 161 rutter lazy-loaded. Build+deploy OK.
-
-### 2026-03-27 — Session #356 (klar)
-Worker A: E2E 50/50 PASS. HTTP interceptor audit — inga problem. Filcache 3 tunga endpoints (1.1s→0.15s). PDO duplicate param fix 4 controllers. 108 endpoints testade.
-Worker B: Lazy loading audit OK. Chart.js granskning OK. Route guards + auth-flode OK. PdfExportService dynamic import. Build+deploy OK.
+Worker A: 7 rebotling-controllers djupgranskade — 0 SQL-mismatches. produktion_procent bekraftad INTE kumulativ. 3 schema-fixes. E2E 50/50 PASS.
+Worker B: 12 rebotling-komponenter granskade — OK. Heatmap CSS-fix. OEE-berakning verifierad. Build+deploy OK.
