@@ -1,5 +1,88 @@
 # MauserDB Dev Log
 
+## Session #357 — Worker B (2026-03-27)
+**Fokus: Rebotling-sidor UX-djupgranskning + Dashboard-genomgang + Statistik/grafer + Navigation + Formular + Build + Deploy**
+
+### UPPGIFT 1: Rebotling-sidor UX-djupgranskning — KLAR
+Granskade ALLA rebotling-relaterade Angular-komponenter (exkl. rebotling-live per regel):
+
+**Komponenter granskade (12 st):**
+- rebotling-statistik (huvudsida med 5 flikar: Oversikt, Produktion, Kvalitet & OEE, Operatorer, Analys)
+- rebotling-trendanalys (sparklines + huvudgraf + veckosammanfattning + anomalier)
+- rebotling-sammanfattning (KPI-kort + produktionsgraf + maskinstatus + snabblankar)
+- rebotling-prognos (leveransprognos-planering)
+- rebotling-admin (produkthantering + veckodagsmal + skifttider + systemstatus + underhall)
+- rebotling-skiftrapport (skiftrapporter)
+- produktions-dashboard (6 KPI-kort + 2 grafer + alarm + stationer + senaste IBC)
+- statistik-dashboard (periodselektor + trendgraf + dagstabell + statusindikator)
+- 27 statistik-sub-widgets (histogram, SPC, cykeltid-operator, kvalitetstrend, etc.)
+
+**Resultat per granskningspunkt:**
+1. **Data visas korrekt** — Alla KPI-kort, tabeller och grafer visar data korrekt. Labels och enheter stammer (IBC, %, min, h).
+2. **Dark theme** — Korrekt genomfort i alla komponenter (#1a202c bg, #2d3748 cards, #e2e8f0 text). Rebotling-statistik anvander en custom gradient-variant (#1a1a2e -> #16213e) som passar.
+3. **Responsivt** — Alla sidor har media queries for 768px/576px/992px. Tabs doljer text pa mobil, grid kollapsar korrekt.
+4. **Chart.js destroy()** — ALLA 27 sub-widgets + 5 huvudkomponenter har korrekt chart.destroy() i ngOnDestroy. Verifierat med grep (211 forekomster av destroy/clearInterval/clearTimeout i /statistik/).
+5. **Svensk text** — Alla UI-texter ar pa svenska. Inga engelska strangkonstanter hittade i templates.
+6. **Loading states** — Alla datahantare har loadingX + errorX flags med spinner + felmeddelande.
+7. **Tom-state** — Alla listor/tabeller har "Ingen data"-meddelanden.
+
+**produktion_procent-analys (bekreftad med prod DB):**
+Verifierade med ratt DB-data (rebotling_ibc, skift 75-78):
+- produktion_procent ar en MOMENTAN taktprocent fran PLC, INTE kumulativ
+- Tidiga cykler i skiftet ger laga varden (6%, 12%) da runtime ar kort
+- Senare cykler kan ge extrema varden (490%, 1000%) som backend korrekt cap:ar (>200% -> 0, >100% -> 100)
+- Slutsats: Visningen ar korrekt. "Effektivitet" och "Prod%" i tabellen visar samma varde (bada fran produktion_procent) — detta ar designat sa.
+
+### UPPGIFT 2: Dashboard-genomgang — KLAR
+Granskade ALLA dashboard-komponenter:
+- **produktions-dashboard**: 6 KPI-kort (prod, OEE, kassation, drifttid, stationer, skift) + 2 grafer + alarm + stationer + senaste IBC. Alla null-hanteringar OK. Polling var 30s med guard.
+- **statistik-dashboard**: Periodselektor (1d/7d/14d/30d/90d) + trendgraf + dagstabell + statusindikator. Adaptiv granularitet (per dag vs per vecka). Korrekt.
+- **vd-dashboard**: forkJoin for parallell data-laddning. Alla charts har destroy(). Korrekt.
+- **executive-dashboard**: Overblick + certifikat + service + multi-line status + nyheter + underhall + feedback + bemanning + veckorapport. Korrekt.
+- **operator-dashboard**: Inline template med operatorslista. Korrekt.
+- **bonus-dashboard**: Granskad. Korrekt.
+- **operator-personal-dashboard**: Granskad. Korrekt.
+
+Inga tomma kort, NaN-varden eller dark theme-inkonsistenser funna.
+
+### UPPGIFT 3: Statistik och grafer — KLAR
+Verifierade berakningar mot prod DB:
+- **OEE = T x P x K**: Korrekt implementerat i produktions-dashboard (visar T/P/K separat + OEE).
+- **produktion_procent**: Per-cykel momentant taktmatt (bekraftad, se ovan).
+- **Genomsnitt**: Korrekt anvandning av array_sum/count i backend, Math.round i frontend.
+- **Trendanalys**: Linjar regression med slope/intercept korrekt implementerad. 7d MA-berakning fran backend.
+- **Anomali-detektion**: +-2 standardavvikelser, korrekt implementerat.
+
+API-endpoints testade mot dev (alla returnerade success):
+- rebotlingtrendanalys&run=trender — OK (OEE 20.83%, prod 52 IBC, kassation data)
+- rebotling-sammanfattning&run=overview — OK (dagens produktion, kassation, OEE)
+- produktionsdashboard&run=oversikt — OK (ibc, OEE, drifttid, stationer)
+- statistikdashboard&run=summary — OK (idag vs igar vs vecka-jamforelser)
+- rebotling&run=exec-dashboard — OK (VD-vy med 7-dagars data)
+- vd-dashboard&run=oversikt — OK (OEE, tillganglighet, dagsmal)
+- rebotling&run=statistics&start=2026-03-24&end=2026-03-24 — OK (193 cykler)
+
+### UPPGIFT 4: Navigation och routing — KLAR
+- **app.routes.ts**: 161 rutter totalt. Alla anvander lazy loading (loadComponent).
+- **Route guards**: authGuard och adminGuard korrekt implementerade med initialized$-wait (forhindrar race condition).
+- **pendingChangesGuard**: Korrekt implementerad for admin-sidor med osparade andringar.
+- **404-sida**: Wildcard-route `**` pekar pa not-found-komponent. Korrekt.
+- **Breadcrumbs**: Implementerade i rebotling-statistik med ar -> manad -> dag-navigering. Korrekt.
+
+### UPPGIFT 5: Formular och input-validering — KLAR
+- **rebotling-admin**: Validering for dagsmalalinstellningar (min 1), timmtakt (min 1), skiftlangd (1-24h). Korrekt.
+- **rebotling-prognos**: Mal-IBC (min 1, max 99999), startdatum, arbetsdagar/vecka. Korrekt.
+- **Produkthantering**: Namn + cykeltid required-validering. Korrekt.
+- **Alert-trosklar, notifikationer, kassationsregistrering**: Alla har validering + felmeddelanden pa svenska.
+- **ComponentCanDeactivate**: rebotling-admin implementerar formDirty-guard for osparade andringar.
+
+### UPPGIFT 6: Fix — Heatmap CSS-variabel
+Fixade ett problem dar heatmap-griddens CSS-variabel `--hm-cols` inte sattes dynamiskt fran data. Lade till `[style.--hm-cols]="heatmapRows.length"` pa heatmap-grid-elementet sa att antalet kolumner matchar faktiskt antal dagar (7/14/30/60/90 beroende pa val). Tidigare anvandes ett fast fallback pa 30 kolumner oavsett period.
+
+### UPPGIFT 7: Build + Deploy — KLAR
+- Build: `npx ng build` — OK (inga errors, endast CommonJS-varningar fran tredjepartsbibliotek)
+- Deploy: rsync till dev.mauserdb.com — OK
+
 ## Session #357 — Worker A (2026-03-27)
 **Fokus: Rebotling-endpoints djupgranskning + SQL-schema verifiering + Prod DB-analys + E2E 50/50 PASS**
 
