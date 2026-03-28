@@ -88,11 +88,7 @@ class SkiftplaneringController {
 
     private function ensureTables(): void {
         try {
-            $check = $this->pdo->query(
-                "SELECT COUNT(*) FROM information_schema.tables
-                 WHERE table_schema = DATABASE()
-                   AND table_name = 'skift_konfiguration'"
-            )->fetchColumn();
+            $check = $this->pdo->query("SHOW TABLES LIKE 'skift_konfiguration'")->rowCount();
             if (!$check) {
                 $migrationPath = __DIR__ . '/../migrations/2026-03-12_skiftplanering.sql';
                 $sql = file_get_contents($migrationPath);

@@ -52,6 +52,10 @@ class SkiftrapportController {
                 $this->getSkiftjamforelse();
                 return;
             }
+            if ($run === 'operator-kpi-jamforelse') {
+                $this->getOperatorKpiJamforelse();
+                return;
+            }
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
@@ -804,14 +808,18 @@ class SkiftrapportController {
                     s.totalt,
                     s.drifttid,
                     s.rasttime,
+                    s.driftstopptime,
+                    s.lopnummer,
                     s.op1, s.op2, s.op3,
                     o1.name AS op1_name,
                     o2.name AS op2_name,
-                    o3.name AS op3_name
+                    o3.name AS op3_name,
+                    p.name AS product_name
                 FROM rebotling_skiftrapport s
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
+                LEFT JOIN rebotling_products p ON p.id = s.product_id
                 WHERE s.datum >= :from_date AND s.datum <= :to_date
                   AND (s.op1 = :op1 OR s.op2 = :op2 OR s.op3 = :op3)
                 ORDER BY s.datum DESC, s.skiftraknare DESC
@@ -827,57 +835,225 @@ class SkiftrapportController {
 
             // Bygg resultat med beräknade KPI:er
             $data = [];
+            $summaryIbcOk = 0;
+            $summaryKasserade = 0;
+            $summaryTotalt = 0;
+            $summaryDrifttid = 0;
+            $summaryStopptid = 0;
+            $summarySkift = 0;
+            $summaryOeeSum = 0.0;
+            $summaryOeeCount = 0;
+
             foreach ($rows as $r) {
                 $ibcOk     = intval($r['ibc_ok'] ?? 0);
                 $ibcEjOk   = intval($r['ibc_ej_ok'] ?? 0);
                 $burEjOk   = intval($r['bur_ej_ok'] ?? 0);
                 $totalt    = intval($r['totalt'] ?? 0);
-                $drifttid  = intval($r['drifttid'] ?? 0);   // minuter
-                $rasttime  = intval($r['rasttime'] ?? 0);    // minuter
+                $drifttid  = intval($r['drifttid'] ?? 0);       // minuter
+                $rasttime  = intval($r['rasttime'] ?? 0);        // minuter
+                $driftstopptime = intval($r['driftstopptime'] ?? 0); // minuter
                 $kasserade = $ibcEjOk + $burEjOk;
 
                 // Cykeltid i minuter (drifttid / antal IBC)
                 $cykeltid = ($ibcOk > 0 && $drifttid > 0) ? round($drifttid / $ibcOk, 2) : null;
 
-                // OEE = (ibc_ok / totalt) * 100 (kvalitetsbaserad approx)
-                $oee = ($totalt > 0) ? round($ibcOk / $totalt * 100, 1) : null;
+                // IBC per timme (godkanda / drifttid i timmar)
+                $ibcPerTimme = ($drifttid > 0 && $ibcOk > 0) ? round($ibcOk / ($drifttid / 60), 1) : null;
 
-                // Stopptid = total tillgänglig tid - drifttid - rasttime (uppskattning)
-                // Skift = ca 480 min (8h). Om drifttid finns, beräkna stopptid
-                $stopptid = ($drifttid > 0) ? max(0, 480 - $drifttid - $rasttime) : null;
+                // OEE = Tillganglighet x Prestanda x Kvalitet
+                // Tillganglighet = drifttid / (drifttid + stopptid), alternativ drifttid / 480
+                // Prestanda = (totalt * ideal_cykeltid) / drifttid
+                // Kvalitet = ibc_ok / totalt
+                $stopptid = $driftstopptime > 0
+                    ? $driftstopptime
+                    : (($drifttid > 0) ? max(0, 480 - $drifttid - $rasttime) : null);
+
+                $tillganglighet = ($drifttid > 0) ? min(1.0, $drifttid / 480) : 0.0;
+                $prestanda = ($drifttid > 0 && $totalt > 0) ? min(1.0, ($totalt * 2) / $drifttid) : 0.0; // 2 min = ideal cykeltid
+                $kvalitet = ($totalt > 0) ? ($ibcOk / $totalt) : 0.0;
+                $oee = round($tillganglighet * $prestanda * $kvalitet * 100, 1);
 
                 // Skiftnamn baserat på skifträknare
                 $skiftNr = intval($r['skiftraknare'] ?? 0);
                 $skiftNamn = $skiftNr > 0 ? 'Skift ' . $skiftNr : '-';
 
                 $data[] = [
-                    'id'           => intval($r['id']),
-                    'datum'        => $r['datum'],
-                    'skift'        => $skiftNamn,
-                    'skiftraknare' => $skiftNr,
-                    'ibc_ok'       => $ibcOk,
-                    'kasserade'    => $kasserade,
-                    'totalt'       => $totalt,
-                    'cykeltid'     => $cykeltid,
-                    'oee'          => $oee,
-                    'drifttid'     => $drifttid,
-                    'stopptid'     => $stopptid,
-                    'rasttime'     => $rasttime,
-                    'op1_name'     => $r['op1_name'],
-                    'op2_name'     => $r['op2_name'],
-                    'op3_name'     => $r['op3_name'],
+                    'id'              => intval($r['id']),
+                    'datum'           => $r['datum'],
+                    'skift'           => $skiftNamn,
+                    'skiftraknare'    => $skiftNr,
+                    'ibc_ok'          => $ibcOk,
+                    'kasserade'       => $kasserade,
+                    'totalt'          => $totalt,
+                    'cykeltid'        => $cykeltid,
+                    'ibc_per_timme'   => $ibcPerTimme,
+                    'oee'             => $oee > 0 ? $oee : null,
+                    'tillganglighet'  => round($tillganglighet * 100, 1),
+                    'prestanda'       => round($prestanda * 100, 1),
+                    'kvalitet_pct'    => round($kvalitet * 100, 1),
+                    'drifttid'        => $drifttid,
+                    'stopptid'        => $stopptid,
+                    'driftstopptime'  => $driftstopptime,
+                    'rasttime'        => $rasttime,
+                    'lopnummer'       => intval($r['lopnummer'] ?? 0),
+                    'product_name'    => $r['product_name'],
+                    'op1_name'        => $r['op1_name'],
+                    'op2_name'        => $r['op2_name'],
+                    'op3_name'        => $r['op3_name'],
                 ];
+
+                // Ackumulera for sammanfattning
+                $summaryIbcOk += $ibcOk;
+                $summaryKasserade += $kasserade;
+                $summaryTotalt += $totalt;
+                $summaryDrifttid += $drifttid;
+                if ($stopptid !== null) $summaryStopptid += $stopptid;
+                $summarySkift++;
+                if ($oee > 0) {
+                    $summaryOeeSum += $oee;
+                    $summaryOeeCount++;
+                }
             }
+
+            // Sammanfattning for operatoren over perioden
+            $summary = [
+                'antal_skift'        => $summarySkift,
+                'totalt_ibc_ok'      => $summaryIbcOk,
+                'totalt_kasserade'   => $summaryKasserade,
+                'totalt_producerade' => $summaryTotalt,
+                'snitt_ibc_per_skift' => $summarySkift > 0 ? round($summaryIbcOk / $summarySkift, 1) : 0,
+                'snitt_ibc_per_timme' => $summaryDrifttid > 0 ? round($summaryIbcOk / ($summaryDrifttid / 60), 1) : 0,
+                'snitt_oee_pct'      => $summaryOeeCount > 0 ? round($summaryOeeSum / $summaryOeeCount, 1) : 0,
+                'snitt_kassation_pct' => $summaryTotalt > 0 ? round(($summaryKasserade / $summaryTotalt) * 100, 1) : 0,
+                'total_drifttid_h'   => round($summaryDrifttid / 60, 1),
+                'total_stopptid_h'   => round($summaryStopptid / 60, 1),
+            ];
 
             echo json_encode([
                 'success'       => true,
                 'operator_name' => $operator['name'],
+                'summary'       => $summary,
                 'data'          => $data,
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('SkiftrapportController::getShiftReportByOperator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapport per operatör'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=skiftrapport&run=operator-kpi-jamforelse&from=YYYY-MM-DD&to=YYYY-MM-DD
+     * Jamfor alla operatorer under en period — snitt IBC/h, OEE, kassation, antal skift.
+     * For graf: operatorsjamforelse, ranking, trender.
+     */
+    private function getOperatorKpiJamforelse(): void {
+        $from = trim($_GET['from'] ?? date('Y-m-d', strtotime('-30 days')));
+        $to   = trim($_GET['to'] ?? date('Y-m-d'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-d', strtotime('-30 days'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
+        if ($from > $to) [$from, $to] = [$to, $from];
+
+        try {
+            // Hamta alla skiftrapporter i perioden med operatorsinfo
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    s.id, s.datum, s.skiftraknare,
+                    s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
+                    s.drifttid, s.rasttime, s.driftstopptime,
+                    s.op1, s.op2, s.op3
+                FROM rebotling_skiftrapport s
+                WHERE s.datum >= :from_date AND s.datum <= :to_date
+                ORDER BY s.datum ASC
+            ");
+            $stmt->execute(['from_date' => $from, 'to_date' => $to]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Samla data per operator (op_number)
+            $opData = []; // [opNumber => {ibc_ok, kasserade, totalt, drifttid, skift, oee_sum, oee_count}]
+
+            foreach ($rows as $r) {
+                $ibcOk     = intval($r['ibc_ok'] ?? 0);
+                $ibcEjOk   = intval($r['ibc_ej_ok'] ?? 0);
+                $burEjOk   = intval($r['bur_ej_ok'] ?? 0);
+                $totalt    = intval($r['totalt'] ?? 0);
+                $drifttid  = intval($r['drifttid'] ?? 0);
+                $kasserade = $ibcEjOk + $burEjOk;
+
+                // OEE for detta skift
+                $tillg = ($drifttid > 0) ? min(1.0, $drifttid / 480) : 0.0;
+                $prest = ($drifttid > 0 && $totalt > 0) ? min(1.0, ($totalt * 2) / $drifttid) : 0.0;
+                $kval  = ($totalt > 0) ? ($ibcOk / $totalt) : 0.0;
+                $oee   = $tillg * $prest * $kval * 100;
+
+                // Tilldela data till varje operatorsposition
+                $ops = [];
+                if (intval($r['op1'] ?? 0) > 0) $ops[] = intval($r['op1']);
+                if (intval($r['op2'] ?? 0) > 0) $ops[] = intval($r['op2']);
+                if (intval($r['op3'] ?? 0) > 0) $ops[] = intval($r['op3']);
+
+                foreach ($ops as $opNum) {
+                    if (!isset($opData[$opNum])) {
+                        $opData[$opNum] = [
+                            'ibc_ok' => 0, 'kasserade' => 0, 'totalt' => 0,
+                            'drifttid' => 0, 'skift' => 0, 'oee_sum' => 0.0, 'oee_count' => 0,
+                        ];
+                    }
+                    $opData[$opNum]['ibc_ok'] += $ibcOk;
+                    $opData[$opNum]['kasserade'] += $kasserade;
+                    $opData[$opNum]['totalt'] += $totalt;
+                    $opData[$opNum]['drifttid'] += $drifttid;
+                    $opData[$opNum]['skift']++;
+                    if ($oee > 0) {
+                        $opData[$opNum]['oee_sum'] += $oee;
+                        $opData[$opNum]['oee_count']++;
+                    }
+                }
+            }
+
+            // Hamta operatorsnamn
+            $opNumbers = array_keys($opData);
+            $opNames = [];
+            if (!empty($opNumbers)) {
+                $placeholders = implode(',', array_fill(0, count($opNumbers), '?'));
+                $nameStmt = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($placeholders)");
+                $nameStmt->execute($opNumbers);
+                foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $opNames[intval($r['number'])] = $r['name'];
+                }
+            }
+
+            // Bygg resultat
+            $result = [];
+            foreach ($opData as $opNum => $d) {
+                $snittIbcPerH = $d['drifttid'] > 0 ? round($d['ibc_ok'] / ($d['drifttid'] / 60), 1) : 0;
+                $result[] = [
+                    'operator_number'    => $opNum,
+                    'operator_name'      => $opNames[$opNum] ?? 'Operator ' . $opNum,
+                    'antal_skift'        => $d['skift'],
+                    'totalt_ibc_ok'      => $d['ibc_ok'],
+                    'totalt_kasserade'   => $d['kasserade'],
+                    'snitt_ibc_per_skift' => $d['skift'] > 0 ? round($d['ibc_ok'] / $d['skift'], 1) : 0,
+                    'snitt_ibc_per_timme' => $snittIbcPerH,
+                    'snitt_oee_pct'      => $d['oee_count'] > 0 ? round($d['oee_sum'] / $d['oee_count'], 1) : 0,
+                    'kassation_pct'      => $d['totalt'] > 0 ? round(($d['kasserade'] / $d['totalt']) * 100, 1) : 0,
+                    'total_drifttid_h'   => round($d['drifttid'] / 60, 1),
+                ];
+            }
+
+            // Sortera pa snitt OEE fallande
+            usort($result, fn($a, $b) => $b['snitt_oee_pct'] <=> $a['snitt_oee_pct']);
+
+            echo json_encode([
+                'success' => true,
+                'from'    => $from,
+                'to'      => $to,
+                'data'    => $result,
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            error_log('SkiftrapportController::getOperatorKpiJamforelse: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta operatorsjamforelse'], JSON_UNESCAPED_UNICODE);
         }
     }
 

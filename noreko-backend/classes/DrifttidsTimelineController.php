@@ -37,8 +37,10 @@ class DrifttidsTimelineController {
         $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
-            case 'timeline-data': $this->getTimelineData(); break;
-            case 'summary':       $this->getSummary();      break;
+            case 'timeline-data':    $this->getTimelineData();    break;
+            case 'summary':          $this->getSummary();         break;
+            case 'orsaksfordelning': $this->getOrsaksfordelning(); break;
+            case 'veckotrend':       $this->getVeckotrend();      break;
             default:
                 $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
@@ -480,6 +482,7 @@ class DrifttidsTimelineController {
             $stoppedMin      = 0;
             $antalStopp      = 0;
             $langstaKorning  = 0;
+            $langstaStopp    = 0;
 
             foreach ($segments as $seg) {
                 if ($seg['type'] === 'running') {
@@ -491,6 +494,9 @@ class DrifttidsTimelineController {
                 if ($seg['type'] === 'stopped') {
                     $stoppedMin += $seg['duration_min'];
                     $antalStopp++;
+                    if ($seg['duration_min'] > $langstaStopp) {
+                        $langstaStopp = $seg['duration_min'];
+                    }
                 }
             }
 
@@ -498,18 +504,149 @@ class DrifttidsTimelineController {
                 ? round(($runningMin / $plannadTidMin) * 100, 1)
                 : 0.0;
 
+            $snittStoppMin = $antalStopp > 0 ? round($stoppedMin / $antalStopp, 1) : 0.0;
+
             $this->sendSuccess([
-                'date'              => $date,
-                'drifttid_min'      => round($runningMin, 1),
-                'stopptid_min'      => round($stoppedMin, 1),
-                'antal_stopp'       => $antalStopp,
+                'date'                => $date,
+                'drifttid_min'        => round($runningMin, 1),
+                'stopptid_min'        => round($stoppedMin, 1),
+                'antal_stopp'         => $antalStopp,
                 'langsta_korning_min' => round($langstaKorning, 1),
+                'langsta_stopp_min'   => round($langstaStopp, 1),
+                'snitt_stopp_min'     => $snittStoppMin,
                 'utnyttjandegrad_pct' => $utnyttjandegrad,
-                'plannad_tid_min'   => $plannadTidMin,
+                'plannad_tid_min'     => $plannadTidMin,
             ]);
         } catch (\Exception $e) {
             error_log('DrifttidsTimelineController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna summary', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: orsaksfordelning
+    // ================================================================
+
+    /**
+     * GET ?action=drifttids-timeline&run=orsaksfordelning&date=YYYY-MM-DD
+     * Fordelning av stopporsaker for en dag — for doughnut/pie-diagram.
+     * Returnerar: [{orsak, total_min, andel_pct, antal_stopp, kalla}]
+     */
+    private function getOrsaksfordelning(): void {
+        $date = $this->getDate();
+
+        try {
+            $stopReasons = $this->getStopReasons($date);
+
+            // Aggregera per orsak
+            $orsakMap = []; // [orsak => {total_min, antal, kalla}]
+            foreach ($stopReasons as $stop) {
+                $orsak = $stop['reason'] ?? 'Okand orsak';
+                $durationMin = ($stop['end_ts'] - $stop['start_ts']) / 60;
+                if ($durationMin <= 0) continue;
+
+                if (!isset($orsakMap[$orsak])) {
+                    $orsakMap[$orsak] = ['total_min' => 0, 'antal' => 0, 'kalla' => $stop['source'] ?? '-'];
+                }
+                $orsakMap[$orsak]['total_min'] += $durationMin;
+                $orsakMap[$orsak]['antal']++;
+            }
+
+            // Sortera storst forst
+            arsort($orsakMap);
+            $totalMin = array_sum(array_column(array_values($orsakMap), 'total_min'));
+
+            $result = [];
+            foreach ($orsakMap as $orsak => $d) {
+                $result[] = [
+                    'orsak'      => $orsak,
+                    'total_min'  => round($d['total_min'], 1),
+                    'andel_pct'  => $totalMin > 0 ? round(($d['total_min'] / $totalMin) * 100, 1) : 0,
+                    'antal_stopp' => $d['antal'],
+                    'kalla'      => $d['kalla'],
+                ];
+            }
+
+            // Lagg till segment utan orsak fran timeline
+            $onOffPeriods = $this->getOnOffPeriods($date);
+            $segments     = $this->buildSegments($date, $onOffPeriods, $stopReasons);
+            $okandStoppMin = 0;
+            $okandAntal = 0;
+            foreach ($segments as $seg) {
+                if ($seg['type'] === 'stopped' && empty($seg['stop_reason'])) {
+                    $okandStoppMin += $seg['duration_min'];
+                    $okandAntal++;
+                }
+            }
+
+            $this->sendSuccess([
+                'date'             => $date,
+                'total_stopp_min'  => round($totalMin, 1),
+                'orsaker'          => $result,
+                'okand_stopp_min'  => round($okandStoppMin, 1),
+                'okand_stopp_antal' => $okandAntal,
+            ]);
+        } catch (\Exception $e) {
+            error_log('DrifttidsTimelineController::getOrsaksfordelning: ' . $e->getMessage());
+            $this->sendError('Kunde inte berakna orsaksfordelning', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: veckotrend
+    // ================================================================
+
+    /**
+     * GET ?action=drifttids-timeline&run=veckotrend&days=7
+     * Drifttid/stopptid/utnyttjandegrad per dag, senaste N dagar (default 7).
+     * For linjediagram med trender.
+     */
+    private function getVeckotrend(): void {
+        $days = max(1, min(90, intval($_GET['days'] ?? 7)));
+
+        try {
+            $result = [];
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-{$i} days"));
+
+                $onOffPeriods = $this->getOnOffPeriods($date);
+                $segments     = $this->buildSegments($date, $onOffPeriods, []);
+
+                $skiftStartTs  = strtotime($date . ' ' . self::SKIFT_START);
+                $skiftSlutTs   = strtotime($date . ' ' . self::SKIFT_SLUT);
+                $plannadTidMin = ($skiftSlutTs - $skiftStartTs) / 60;
+
+                $runningMin = 0;
+                $stoppedMin = 0;
+                $antalStopp = 0;
+                foreach ($segments as $seg) {
+                    if ($seg['type'] === 'running')  $runningMin += $seg['duration_min'];
+                    if ($seg['type'] === 'stopped') {
+                        $stoppedMin += $seg['duration_min'];
+                        $antalStopp++;
+                    }
+                }
+
+                $utnyttjandegrad = $plannadTidMin > 0
+                    ? round(($runningMin / $plannadTidMin) * 100, 1)
+                    : 0.0;
+
+                $result[] = [
+                    'datum'               => $date,
+                    'drifttid_min'        => round($runningMin, 1),
+                    'stopptid_min'        => round($stoppedMin, 1),
+                    'antal_stopp'         => $antalStopp,
+                    'utnyttjandegrad_pct' => $utnyttjandegrad,
+                ];
+            }
+
+            $this->sendSuccess([
+                'days' => $days,
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            error_log('DrifttidsTimelineController::getVeckotrend: ' . $e->getMessage());
+            $this->sendError('Kunde inte berakna veckotrend', 500);
         }
     }
 }

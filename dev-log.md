@@ -1,5 +1,53 @@
 # MauserDB Dev Log
 
+## Session #375 — Worker A (2026-03-28)
+**Fokus: Rebotling skiftrapport KPI-forbattringar + Driftstopp-analys + Endpoint-test + SQL-audit + Deploy**
+
+### UPPGIFT 1: Rebotling Skiftrapport KPI-forbattringar — KLAR
+- **SkiftrapportController.php**: Forbattrat `getShiftReportByOperator`:
+  - Lagt till `driftstopptime` (fran schema) och `lopnummer` i SQL-query
+  - Forbattrad OEE-berakning: Tillganglighet x Prestanda x Kvalitet (istallet for enbart kvalitetsbaserad approx)
+  - Ny KPI: `ibc_per_timme` (godkanda per timme baserat pa drifttid)
+  - Ny KPI: `tillganglighet`, `prestanda`, `kvalitet_pct` (OEE-komponenterna separat)
+  - Ny: `summary`-objekt med ackumulerade KPI:er over perioden (snitt IBC/skift, snitt IBC/h, snitt OEE, kassation%, total drifttid/stopptid)
+  - Joinat `rebotling_products` for produktnamn
+- **Nytt endpoint**: `run=operator-kpi-jamforelse` — jamfor alla operatorer over en period:
+  - Snitt IBC/skift, snitt IBC/h, snitt OEE, kassation% per operator
+  - Sorterat pa OEE fallande (for ranking)
+  - For graf: operatorsjamforelse, ranking
+
+### UPPGIFT 2: Driftstopp-analys — KLAR
+- **DrifttidsTimelineController.php**: Forbattrad `getSummary`:
+  - Nya KPI:er: `langsta_stopp_min`, `snitt_stopp_min`
+- **Nytt endpoint**: `run=orsaksfordelning` — stopporsaksfordelning per dag:
+  - Aggregerar stopporsaker fran `stoppage_log` + `stopporsak_registreringar`
+  - Returnerar per orsak: total_min, andel_pct, antal_stopp, kalla
+  - Plus okanda stopp (utan registrerad orsak) fran on/off-data
+  - For doughnut/pie-diagram
+- **Nytt endpoint**: `run=veckotrend` — drifttid/stopptid/utnyttjandegrad per dag, senaste N dagar:
+  - For linjediagram med trender
+
+### UPPGIFT 3: Endpoint-test — KLAR
+- **115 endpoints testade** mot https://dev.mauserdb.com/noreko-backend/api.php
+- **0 x 500-fel**
+- **1 x >1s**: `skiftplanering` 2.39s (fixat, se nedan)
+- Resterande alla <1s, merparten <300ms
+
+### UPPGIFT 4: SQL-audit — KLAR
+- Granskat alla PHP-filer med SQL-queries mot `prod_db_schema.sql`
+- **0 kolumn-mismatches** hittade for `rebotling_skiftrapport` (inkl nya `driftstopptime`)
+- Saknade tabeller (`klassificeringslinje_ibc`, `saglinje_ibc`, etc) ar PLC-tabeller som populeras fran plcbackend — korrekt guardade med try/catch och SHOW TABLES-kontroller
+- `rebotling_maintenance_log` finns i schema (fixat session #373)
+
+### Prestandafix
+- **SkiftplaneringController.php**: `ensureTables()` anvande `information_schema.tables`-query (slog) — bytt till `SHOW TABLES LIKE` (2.39s -> 0.13s)
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- rsync backend till dev: 3 filer uppdaterade (DrifttidsTimelineController.php, SkiftplaneringController.php, SkiftrapportController.php)
+- Verifierat med curl: alla endpoints OK, 0x500, 0x>1s
+
+---
+
 ## Session #374 — Worker B (2026-03-28)
 **Fokus: Error Recovery UX + Accessibility Audit + Data-verifiering + Frontend UX + Build + Deploy**
 
