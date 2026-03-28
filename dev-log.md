@@ -1,5 +1,67 @@
 # MauserDB Dev Log
 
+## Session #391 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: 96 endpoints testat 0x500 0x404(ogiltig) + VeckorapportController SQL-fix (COUNT(*)->MAX/GROUP BY) + driftstopp/skiftrapport/VD-dashboard/morgonrapport/veckorapport verifierat mot prod DB + SQL-audit 6 controllers OK + deploy dev OK**
+
+### UPPGIFT 1: Driftstopp — backend-verifiering mot prod DB
+- DrifttidsTimelineController: 6 endpoints testat (timeline-data, summary, orsaksfordelning, veckotrend, vecko-aggregat, manads-aggregat)
+  - Alla 200 OK, data korrekt
+  - SQL: rebotling_onoff (datum, running), stoppage_log, stopporsak_registreringar — alla kolumner matchar prod_db_schema.sql
+  - manads-aggregat langsamaste (12.8s) — itererar dag for dag, men fungerar korrekt
+- StopptidsanalysController: 6 endpoints (overview, per-maskin, trend, fordelning, detaljtabell, maskiner) — alla 200 OK
+  - SQL: maskin_stopptid, maskin_register — matchar schema
+- StoppageController: 6 endpoints (reasons, stats, weekly_summary, pareto, pattern-analysis, lista) — alla 200 OK
+  - SQL: stoppage_log, stoppage_reasons, users — matchar schema
+- Prod DB: 27 maskin_stopptid, 1153 rebotling_onoff, 0 stoppage_log, 0 stopporsak_registreringar
+
+### UPPGIFT 2: Skiftrapport — end-to-end test
+- SkiftrapportController: 7 endpoints testat (lista, lopnummer, operator-list, daglig-sammanstallning, veckosammanstallning, skiftjamforelse, operator-kpi-jamforelse)
+  - Alla 200 OK, 28 skiftrapporter matchar prod DB
+  - Operator-join korrekt: operators.number = rebotling_skiftrapport.op1/op2/op3
+  - OEE-berakning: Tillganglighet x Prestanda x Kvalitet — korrekt
+- SkiftrapportExportController: 2 endpoints (report-data, multi-day) — 200 OK
+  - Cykeltider via LAG() window function, lopnummer-aggregering korrekt
+
+### UPPGIFT 3: VD-dashboard + executive-dashboard — KPI-verifiering
+- VdDashboardController: 6 endpoints (oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus)
+  - Alla 200 OK, admin-gated (403 for icke-admin)
+  - OEE-berakning korrekt: drifttid fran rebotling_onoff, IBC fran kumulativa MAX/GROUP BY
+  - Operatorer: korrekt JOIN operators.number = rebotling_ibc.op1/op2/op3
+- VDVeckorapportController: 5 endpoints (kpi-jamforelse, trender-anomalier, top-bottom-operatorer, stopporsaker, vecka-sammanfattning) — alla 200 OK
+
+### UPPGIFT 4: Morgonrapport + veckorapport — verifiering
+- MorgonrapportController: rapport endpoint 200 OK
+  - Verifierat: 158 IBC OK for 2026-03-27 matchar exakt prod DB
+  - Korrekt MAX/GROUP BY-aggregering for kumulativa PLC-rakneverk
+  - Varningar korrekt genererade (produktion under mal, lag utnyttjandegrad)
+- VeckorapportController: FIX — 3 SQL-queries anvande COUNT(*) istallet for MAX/GROUP BY
+  - getProductionData: COUNT(*) -> SUM(MAX(ibc_ok)) per skiftraknare
+  - getEfficiencyData: COUNT(*) -> SUM(MAX(ibc_ok)) per skiftraknare
+  - getQualityData: SUM(ibc_ej_ok)/COUNT(*) -> MAX/GROUP BY per skiftraknare
+  - Verifierat efter fix: 210 IBC (56+154) matchar exakt prod DB
+
+### UPPGIFT 5: Testa ALLA endpoints — 96 endpoints testat
+- 0 x 500-fel
+- 0 x ogiltig 404 (3 st 404 ar korrekta — saknar run-param)
+- Alla auth-gated endpoints returnerar 401 utan session (korrekt)
+- VD-dashboard returnerar 403 for icke-admin (korrekt)
+- Langsammaste: manads-aggregat 12.8s, morgonrapport 1.3s, veckotrend 1.1s — acceptabelt
+
+### UPPGIFT 6: SQL-audit
+- DrifttidsTimelineController: rebotling_onoff, stoppage_log, stopporsak_registreringar — OK
+- StopptidsanalysController: maskin_stopptid, maskin_register — OK
+- StoppageController: stoppage_log, stoppage_reasons, users — OK
+- SkiftrapportController: rebotling_skiftrapport, rebotling_ibc, operators, rebotling_products, rebotling_onoff — OK
+- VdDashboardController: rebotling_onoff, rebotling_ibc, operators, maskin_register, produktions_mal — OK
+- MorgonrapportController: rebotling_ibc, rebotling_weekday_goals, stoppage_log, stopporsak_registreringar, kassationsregistrering, operators — OK
+- VeckorapportController: rebotling_ibc, rebotling_weekday_goals, stoppage_log, stopporsak_registreringar, kassationsregistrering — OK (FIXAD)
+- VDVeckorapportController: rebotling_ibc, operators, stoppage_log, stopporsak_registreringar — OK
+- 0 kolumnmismatches mot prod_db_schema.sql
+
+### Deploy
+- Backend deploy dev OK: rsync --exclude='db_config.php'
+- Alla endpoints verifierade efter deploy
+
 ## Session #391 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: Grundlig UX-granskning av driftstopp, skiftrapport, VD/executive-dashboard, morgonrapport, veckorapport, operatorsportal — 0 buggar hittade, alla lifecycle/charts/dark-theme/responsiv/svenska korrekt, build+deploy dev OK**
 

@@ -202,12 +202,18 @@ class VeckorapportController {
     // ================================================================
 
     private function getProductionData(string $start, string $end, string $prevStart, string $prevEnd): array {
-        // Dagvis produktion for aktuell vecka
+        // Dagvis produktion for aktuell vecka — korrekt aggregering for kumulativa PLC-rakneverk
         $stmt = $this->pdo->prepare(
-            "SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-             FROM rebotling_ibc
-             WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-             GROUP BY DATE(datum)
+            "SELECT dag, SUM(max_ok) AS cnt
+             FROM (
+                 SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+                 HAVING COUNT(*) > 1
+             ) sub
+             GROUP BY dag
              ORDER BY dag ASC"
         );
         $stmt->execute([$start, $end]);
@@ -245,9 +251,16 @@ class VeckorapportController {
         $numDays = count($dailyMap) ?: 1;
         $avgPerDay = round($totalIbc / $numDays, 1);
 
-        // Foregaende vecka for jamforelse
+        // Foregaende vecka for jamforelse — korrekt aggregering
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+            "SELECT COALESCE(SUM(max_ok), 0) AS cnt
+             FROM (
+                 SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+                 HAVING COUNT(*) > 1
+             ) sub"
         );
         $stmt->execute([$prevStart, $prevEnd]);
         $prevWeekTotal = (int)($stmt->fetchColumn() ?: 0);
@@ -278,9 +291,16 @@ class VeckorapportController {
         $runtimeCurrent = $this->getTotalRuntimeHours($start, $end);
         $runtimePrev    = $this->getTotalRuntimeHours($prevStart, $prevEnd);
 
-        // Antal producerade IBC
+        // Antal producerade IBC — korrekt aggregering for kumulativa PLC-rakneverk
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+            "SELECT COALESCE(SUM(max_ok), 0) AS cnt
+             FROM (
+                 SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+                 HAVING COUNT(*) > 1
+             ) sub"
         );
         $stmt->execute([$start, $end]);
         $totalIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -487,22 +507,29 @@ class VeckorapportController {
         $prevScrappedCount = 0;
         $prevTotalProduced = 0;
 
-        // rebotling_ibc: ibc_ej_ok for kassationer
+        // rebotling_ibc: ibc_ej_ok for kassationer — korrekt aggregering for kumulativa PLC-rakneverk
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(ibc_ej_ok), 0) AS kasserade,
-                        COUNT(*) AS total
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+            $stmtKval = $this->pdo->prepare(
+                "SELECT COALESCE(SUM(max_ej_ok), 0) AS kasserade,
+                        COALESCE(SUM(max_ok), 0)    AS total
+                 FROM (
+                     SELECT skiftraknare,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok,
+                            MAX(COALESCE(ibc_ok, 0))    AS max_ok
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), skiftraknare
+                     HAVING COUNT(*) > 1
+                 ) sub"
             );
-            $stmt->execute([$start, $end]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmtKval->execute([$start, $end]);
+            $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $scrappedCount = (int)($row['kasserade'] ?? 0);
             $totalProduced = (int)($row['total'] ?? 0);
 
             // Foregaende vecka
-            $stmt->execute([$prevStart, $prevEnd]);
-            $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmtKval->execute([$prevStart, $prevEnd]);
+            $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $prevScrappedCount = (int)($prevRow['kasserade'] ?? 0);
             $prevTotalProduced = (int)($prevRow['total'] ?? 0);
         } catch (\Exception $e) {
