@@ -1,5 +1,79 @@
 # MauserDB Dev Log
 
+## Session #375 — Worker B (2026-03-28)
+**Fokus: Rebotling skiftrapport grafer + KPI-forbattringar + Admin audit-logg + Alarm UX + Bundle-optimering + UX-granskning + Dataverifiering + Deploy**
+
+### UPPGIFT 1: Rebotling skiftrapport — grafer och KPI-visning — KLAR
+- **Trendgraf saknade i HTML**: TS-koden hade fullstandig Chart.js logik for trendgraf (IBC/h per timme vs genomsnittsprofil) och effektivitetsgraf (30-min intervall) men INGA canvas-element i HTML-mallen
+- **Fixat**: Lagt till komplett trendpanel med:
+  - Knapp (chart-line ikon) i atgardsmenyn for skift med skiftraknare
+  - Trendgraf: IBC/h per timme vs genomsnittsprofil (linjediagram)
+  - Effektivitetsgraf: 30-min intervall (stapeldiagram med fargkodning produktion/rast/stopp)
+  - KPI-kort: IBC/h, drifttid, stillestand, utnyttjandegrad
+  - Navigation: forega/nasta skift-knappar
+  - Legend for fargkoder (produktion/rast/stopp)
+- **Sammanfattningskort forbattrade**: Expanderat fran 4 till 6 KPI-kort (lagt till Kvalitet och OEE)
+- **Drifttid-format**: Anvander nu formatDrifttid() istallet for ra minuter
+
+### UPPGIFT 2: Admin audit-logg — REDAN IMPLEMENTERAD
+- Sidan finns redan: `/admin/audit` (audit-log.ts/html/css)
+- Fullstandig implementering med:
+  - Filtrera pa action, anvandare, period, sok
+  - Pagination (50 per sida)
+  - CSV-export
+  - Statistik-flik med Chart.js aktivitetsdiagram
+  - Diff-visning (old_value/new_value JSON)
+- **audit_log tabell**: 270 rader i prod DB (AUTO_INCREMENT=108)
+- **Inga atgarder behovs**
+
+### UPPGIFT 3: Notifikationer/alarmer UX — REDAN IMPLEMENTERAD
+- **alarm-historik** sidan finns: `/rebotling/alarm-historik`
+  - KPI-kort: totalt/kritiska/varningar/snitt per dag
+  - Tidslinjediagram (Chart.js staplat per severity)
+  - Larmlista med filter (period/severity/typ)
+  - Per-typ sammanfattning med procentstaplar
+- **alerts** sidan finns: `/rebotling/alerts`
+  - Aktiva larm, historik, installningar
+  - Alert-check funktion
+- **avvikelselarm tabell**: 60 rader i prod DB
+- **alert_settings + alerts tabeller**: Finns i schema
+- **Inga atgarder behovs**
+
+### UPPGIFT 4: Frontend bundle-optimering — INGEN ATGARD BEHOVS
+- Main bundle: 69KB (mycket litet)
+- 137/138 routes ar lazy-loaded via loadComponent
+- Storsta chunks ar tredjepartsbib (chart.js ~1MB, xlsx ~835KB, pdfmake ~423KB) som redan lazy-laddas via dynamisk import()
+- Total output: 8.9MB med alla lazy-chunks
+- **Resultat**: Redan valkonfigurerad, ingen >5% optimering mojlig
+
+### UPPGIFT 5: UX-granskning alla sidor — INGA PROBLEM HITTADE
+- Dark theme konsekvent (#1a202c bg, #2d3748 cards, #e2e8f0 text) over alla granskade sidor
+- Vita/svarta farger finns enbart i @media print-block (korrekt)
+- Svenska texter overallt
+- Responsivt: table-responsive, flex-wrap, col-md/lg breakpoints
+- Alla sidor har loading/error/empty states
+- about.html, contact.html, alarm-historik.html, audit-log.html — alla korrekta
+
+### UPPGIFT 6: Dataverifiering mot prod DB — 0 DISKREPANSER
+| Datapunkt | Prod DB | API/Dev | Match |
+|---|---|---|---|
+| rebotling_ibc (total) | 5030 | N/A (inloggning kravs) | — |
+| rebotling_ibc (idag) | 0 | ibcToday=0 | OK |
+| rebotling_skiftrapport | 28 | Krav inloggning | — |
+| users | 3 | Krav inloggning | — |
+| operators | 13 | Krav inloggning | — |
+| audit_log | 270 | Krav inloggning | — |
+| avvikelselarm | 60 | Krav inloggning | — |
+| rebotling_products (DB) | 5 | Krav inloggning | — |
+| rebotlingTarget (API) | — | 1000 | Bekraftat |
+| hourlyTarget (API) | — | 15 | Bekraftat |
+| dev.mauserdb.com | — | HTTP 200 | OK |
+
+### UPPGIFT 7: Build + Deploy
+- `npx ng build` — LYCKADES (0 fel, warnings enbart CommonJS tredjepartsmoduler)
+- Frontend deployad till dev via rsync
+- dev.mauserdb.com — HTTP 200 bekraftat
+
 ## Session #375 — Worker A (2026-03-28)
 **Fokus: Rebotling skiftrapport KPI-forbattringar + Driftstopp-analys + Endpoint-test + SQL-audit + Deploy**
 

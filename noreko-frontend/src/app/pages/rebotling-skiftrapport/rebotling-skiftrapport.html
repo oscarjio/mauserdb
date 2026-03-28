@@ -116,13 +116,13 @@
 
       <!-- ======== SAMMANFATTNINGSKORT ======== -->
       <div class="summary-bar row g-2 mb-4" *ngIf="filteredReports.length > 0">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
           <div class="summary-card">
             <div class="summary-label">Total IBC</div>
             <div class="summary-value text-info">{{ summaryTotalIbc }}</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
           <div class="summary-card">
             <div class="summary-label">Snitt IBC/h</div>
             <div class="summary-value text-warning">
@@ -130,7 +130,19 @@
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
+          <div class="summary-card">
+            <div class="summary-label">Kvalitet</div>
+            <div class="summary-value"
+              [class.text-success]="(summaryAvgQuality ?? 0) >= 90"
+              [class.text-warning]="(summaryAvgQuality ?? 101) >= 70 && (summaryAvgQuality ?? 101) < 90"
+              [class.text-danger]="(summaryAvgQuality ?? 101) < 70 && summaryAvgQuality != null"
+              [class.text-muted]="summaryAvgQuality == null">
+              {{ summaryAvgQuality != null ? (summaryAvgQuality + '%') : '–' }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
           <div class="summary-card">
             <div class="summary-label">Effektivitet</div>
             <div class="summary-value"
@@ -142,11 +154,23 @@
             </div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
+          <div class="summary-card">
+            <div class="summary-label">OEE</div>
+            <div class="summary-value"
+              [class.text-success]="(summaryAvgOee ?? 0) >= 75"
+              [class.text-warning]="(summaryAvgOee ?? 101) >= 50 && (summaryAvgOee ?? 101) < 75"
+              [class.text-danger]="(summaryAvgOee ?? 101) < 50 && summaryAvgOee != null"
+              [class.text-muted]="summaryAvgOee == null">
+              {{ summaryAvgOee != null ? (summaryAvgOee + '%') : '–' }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
           <div class="summary-card">
             <div class="summary-label">Drifttid</div>
             <div class="summary-value text-success">
-              {{ summaryTotalDrift > 0 ? (summaryTotalDrift + ' min') : '–' }}
+              {{ summaryTotalDrift > 0 ? formatDrifttid(summaryTotalDrift) : '–' }}
             </div>
           </div>
         </div>
@@ -427,6 +451,11 @@
                                       </button>
                                       <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
                                         <i class="fas fa-file-pdf"></i>
+                                      </button>
+                                      <button class="btn btn-outline-primary" (click)="toggleTrend(report)"
+                                        [title]="selectedTrendReportId === report.id ? 'Dölj trendgraf' : 'Visa produktionstrend och effektivitet'"
+                                        *ngIf="report.skiftraknare">
+                                        <i class="fas fa-chart-line"></i>
                                       </button>
                                       <button class="btn btn-outline-success" (click)="toggleShiftSummary(report)"
                                         [title]="shiftSummaryReportId === report.id ? 'Dölj skiftsammanfattning' : 'Visa skiftsammanfattning (utskrift)'">
@@ -779,6 +808,117 @@
                       </div>
                     </td>
                   </tr>
+
+                                <!-- ======== PRODUKTIONSTRENDGRAF ======== -->
+                                <tr *ngIf="selectedTrendReportId === report.id" class="expand-row">
+                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
+                                    <div class="trend-panel p-3">
+                                      <!-- Header med navigation -->
+                                      <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                          <i class="fas fa-chart-line text-info me-2"></i>
+                                          <span class="text-info fw-semibold">Produktionstrend</span>
+                                          <span class="text-muted small ms-2">Skifträknare #{{ report.skiftraknare }}</span>
+                                        </div>
+                                        <div class="d-flex gap-2 align-items-center">
+                                          <button class="btn btn-sm btn-outline-secondary" (click)="prevSkift()" [disabled]="!canGoPrev" title="Föregående skift">
+                                            <i class="fas fa-chevron-left"></i>
+                                          </button>
+                                          <button class="btn btn-sm btn-outline-secondary" (click)="nextSkift()" [disabled]="!canGoNext" title="Nästa skift">
+                                            <i class="fas fa-chevron-right"></i>
+                                          </button>
+                                          <button class="btn btn-sm btn-outline-secondary" (click)="toggleTrend(report)" title="Stäng">
+                                            <i class="fas fa-times"></i>
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      <!-- Laddningsindikator -->
+                                      <div *ngIf="trendLoading" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Hämtar trenddata...
+                                      </div>
+
+                                      <!-- Felmeddelande -->
+                                      <div *ngIf="trendError && !trendLoading" class="alert alert-secondary py-2">
+                                        <i class="fas fa-info-circle me-2"></i>{{ trendError }}
+                                      </div>
+
+                                      <!-- Grafer -->
+                                      <div *ngIf="trendData && !trendLoading">
+                                        <!-- Trend-KPI kort -->
+                                        <div class="row g-2 mb-3" *ngIf="trendData.efficiency">
+                                          <div class="col-6 col-md-3">
+                                            <div class="eff-kpi-card text-center">
+                                              <div class="eff-kpi-label">IBC/h (skift)</div>
+                                              <div class="eff-kpi-value text-warning">
+                                                {{ trendData.efficiency.ibc_per_h != null ? trendData.efficiency.ibc_per_h : '–' }}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="eff-kpi-card text-center">
+                                              <div class="eff-kpi-label">Total drifttid</div>
+                                              <div class="eff-kpi-value text-success">
+                                                {{ formatMinToHHMM(trendData.efficiency.drifttid_min) }}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="eff-kpi-card text-center">
+                                              <div class="eff-kpi-label">Stillestånd</div>
+                                              <div class="eff-kpi-value text-danger">
+                                                {{ formatMinToHHMM(trendData.efficiency.stopp_min) }}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="eff-kpi-card text-center">
+                                              <div class="eff-kpi-label">Utnyttjandegrad</div>
+                                              <div class="eff-kpi-value"
+                                                [class.text-success]="(trendData.efficiency.utnyttjandegrad ?? 0) >= 80"
+                                                [class.text-warning]="(trendData.efficiency.utnyttjandegrad ?? 101) >= 60 && (trendData.efficiency.utnyttjandegrad ?? 101) < 80"
+                                                [class.text-danger]="(trendData.efficiency.utnyttjandegrad ?? 101) < 60 && trendData.efficiency.utnyttjandegrad != null">
+                                                {{ trendData.efficiency.utnyttjandegrad != null ? (trendData.efficiency.utnyttjandegrad + '%') : '–' }}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <!-- Trendgraf: IBC/h per timme -->
+                                        <div class="mb-3" *ngIf="trendData.trend?.length > 0 || trendData.avg_profile?.length > 0">
+                                          <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-chart-area text-info me-2"></i>
+                                            <span class="fw-semibold" style="color:#e2e8f0;">IBC/h per timme vs genomsnittsprofil</span>
+                                          </div>
+                                          <div class="trend-chart-wrapper">
+                                            <canvas [id]="'trendCanvas-' + report.id"></canvas>
+                                          </div>
+                                        </div>
+
+                                        <!-- Effektivitetsgraf: 30-min intervall -->
+                                        <div *ngIf="trendData.efficiency_timeline?.length > 0">
+                                          <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-tachometer-alt text-success me-2"></i>
+                                            <span class="fw-semibold" style="color:#e2e8f0;">Effektivitet per 30-minutersintervall</span>
+                                          </div>
+                                          <div class="eff-chart-wrapper">
+                                            <canvas [id]="'effCanvas-' + report.id"></canvas>
+                                          </div>
+                                          <div class="d-flex gap-3 mt-2">
+                                            <span class="small"><i class="fas fa-square me-1" style="color:#48bb78;"></i>Produktion</span>
+                                            <span class="small"><i class="fas fa-square me-1" style="color:#ecc94b;"></i>Rast</span>
+                                            <span class="small"><i class="fas fa-square me-1" style="color:#fc8181;"></i>Stopp</span>
+                                          </div>
+                                        </div>
+
+                                        <!-- Ingen data -->
+                                        <div *ngIf="!trendData.trend?.length && !trendData.avg_profile?.length && !trendData.efficiency_timeline?.length" class="text-center text-muted py-3">
+                                          <i class="fas fa-info-circle me-2"></i>Ingen detaljerad trenddata tillgänglig för detta skift.
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
 
                                 <!-- ======== SKIFTSAMMANFATTNING (PRINT-VY) ======== -->
                                 <tr *ngIf="shiftSummaryReportId === report.id" class="expand-row">
