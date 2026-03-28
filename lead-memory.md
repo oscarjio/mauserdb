@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-28 (session #384)*
+*Senast uppdaterad: 2026-03-28 (session #385)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -80,6 +80,7 @@ Session #381: day-raw-data endpoint granskad + endpoint-test 123 0x500 <1.5s + S
 Session #382: Rebotling live-data verifierad mot prod DB (exakt matchning) + operatorsbonus berakningar verifierade + 115 endpoints 0x500 <364ms + SQL-audit 0 mismatches + driftstopp UX-fix (svenska tecken) + historisk produktion UX-fix + 42 komp 0 lackor + deploy dev OK.
 Session #383: Skiftrapport berakningar OK + statistik backend OK + admin CRUD OK + 115 endpoints 0x500 + SQL-audit 0 mismatches + SkiftrapportController CREATE TABLE buggfix + gamification UX OK + operatorsbonus 4 grafer OK + 7 svenska textfixar (Mal->Mål) + 170 komp 0 lackor + build+deploy dev OK.
 Session #384: Dashboard UX OK + driftstopp UX OK + historisk produktion OK + navigering 80+ routes OK + error handling 606 catchError OK + 115 endpoints 0x500 + SQL-audit 0 mismatches + admin CRUD auth OK + 180 komp 0 lackor + build+deploy dev OK.
+Session #385: Operatorsbonus end-to-end verifierad mot prod DB + skiftrapport OK + gamification OK + 92 endpoints 0x500 + SQL-audit 0 mismatches + mobilanpassning 11 sidor fixade + statistik grafer OK + 180+ komp 0 lackor + PLC-diagnostik endpoint + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -92,18 +93,14 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #385):
-- Operatorsbonus — verifiera bonusberakningar end-to-end mot prod DB
-- Skiftrapport — testa rapportgenerering + email + KPI-data
-- Statistik — granska alla grafer for korrekt data
-- Gamification — verifiera poang/utmarkelser/leaderboard mot prod
-- Mobilanpassning — testa alla sidor pa mobil-viewport
+### Nasta (session #386):
+- PLC-diagnostik — ny sida, granska och testa mot dev
+- Driftstopp — verifiera orsaksfordelning + veckotrend mot prod DB
+- Admin CRUD — fullstandig test av alla admin-sidor
+- Prestandaoptimering — langsammare endpoints (vpn 2.3s, maskin-oee 2.7s)
+- Sakerhet — granska CSRF + rate limiting + input-validering end-to-end
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #382 (klar)
-Worker A: Rebotling live-data verifierad mot prod DB (exakt matchning). Operatorsbonus berakningar OK. 115 endpoints 0x500 <364ms. SQL-audit 0 mismatches. Deploy dev OK.
-Worker B: Driftstopp UX-fix (svenska tecken 6 filer). Historisk produktion UX-fix. Dashboard granskad OK. 42 komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #383 (klar)
 Worker A: Skiftrapport berakningar verifierade mot prod. Statistik backend OK. Admin CRUD+auth OK. 115 endpoints 0x500 (max 5.8s). SQL-audit 0 mismatches. SkiftrapportController CREATE TABLE buggfix. Deploy dev OK.
@@ -112,3 +109,7 @@ Worker B: Gamification UX OK. Operatorsbonus 4 grafer OK. Skiftrapport UX OK. St
 ### 2026-03-28 — Session #384 (klar)
 Worker A: 115 endpoints 0x500 (max 5.1s morgonrapport). SQL-audit 0 mismatches (6 tabeller med tableExists-guard). Dashboard backend verifierad. Admin CRUD auth OK (401/403). Error handling 114 controllers OK. Deploy dev OK.
 Worker B: Dashboard UX OK (executive+VD). Driftstopp UX OK (1300 rader, 6 charts). Historisk produktion OK. Navigering 80+ routes OK. Error handling 606 catchError+516 pipe. 180 komp 0 lackor. Build+deploy dev OK.
+
+### 2026-03-28 — Session #385 (klar)
+Worker A: Operatorsbonus end-to-end verifierad mot prod DB (exakt matchning op 156). Skiftrapport 10 endpoints OK. Gamification 4 endpoints OK. 92 endpoints 0x500 (max 2.7s maskin-oee). SQL-audit 0 mismatches. PLC-diagnostik endpoint+developer-roll. Deploy dev OK.
+Worker B: Statistik grafer OK (adaptiv granularitet korrekt). Mobilanpassning 11 sidor fixade (col-fallbacks). Operatorsbonus UX OK. Skiftrapport UX OK. Gamification UX OK. 180+ komp 0 lackor. Build+deploy dev OK.

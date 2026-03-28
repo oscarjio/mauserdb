@@ -11,9 +11,9 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #385):
-- [ ] Operatorsbonus — verifiera bonusberakningar end-to-end mot prod DB
-- [ ] Skiftrapport — testa rapportgenerering + email-funktion + KPI-data
-- [ ] Statistik — granska alla grafer for korrekt data + adaptiv granularitet
-- [ ] Gamification — verifiera poang/utmarkelser/leaderboard mot prod data
-- [ ] Mobilanpassning — testa alla sidor pa mobil-viewport (< 768px)
+### Nasta (session #386):
+- [ ] PLC-diagnostik — ny sida, granska och testa mot dev
+- [ ] Driftstopp — verifiera orsaksfordelning + veckotrend mot prod DB
+- [ ] Admin CRUD — fullstandig test av alla admin-sidor (skapa/redigera/ta bort)
+- [ ] Prestandaoptimering — langsammare endpoints (vpn 2.3s, maskin-oee 2.7s)
+- [ ] Sakerhet — granska CSRF + rate limiting + input-validering end-to-end
