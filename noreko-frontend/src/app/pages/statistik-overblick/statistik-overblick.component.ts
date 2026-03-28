@@ -247,7 +247,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
             spanGaps: true,
           },
           {
-            label: `Mal ${malValue}%`,
+            label: `Mål ${malValue}%`,
             data: malLine,
             borderColor: '#fc8181',
             borderWidth: 2,
@@ -316,7 +316,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
             spanGaps: true,
           },
           {
-            label: `Troskel ${troskelValue}%`,
+            label: `Tröskel ${troskelValue}%`,
             data: troskelLine,
             borderColor: '#fc8181',
             borderWidth: 2,

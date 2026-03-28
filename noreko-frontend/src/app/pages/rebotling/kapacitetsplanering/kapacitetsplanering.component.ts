@@ -519,7 +519,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
             pointHoverRadius: 4,
           },
           {
-            label: `Mal (${this.trendMalPct}%)`,
+            label: `Mål (${this.trendMalPct}%)`,
             data: malLinje,
             borderColor: '#f6ad55',
             backgroundColor: 'transparent',

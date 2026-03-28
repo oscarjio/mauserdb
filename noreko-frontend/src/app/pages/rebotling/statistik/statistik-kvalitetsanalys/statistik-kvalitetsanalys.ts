@@ -73,7 +73,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
     this.rejectionTrendChart = new Chart(canvas, { type: 'line', data: { labels, datasets: [
       { label: 'Daglig kvalitet %', data: dailyData, borderColor: 'rgba(66,153,225,0.9)', backgroundColor: 'rgba(66,153,225,0.08)', tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true, spanGaps: true, yAxisID: 'y' },
       { label: '7-dagars glidande snitt', data: rollingData, borderColor: 'rgba(72,187,120,1)', backgroundColor: 'transparent', tension: 0.4, pointRadius: 1, borderWidth: 3, borderDash: [8,4], fill: false, spanGaps: true, yAxisID: 'y' },
-      { label: 'Mal 95%', data: this.rejectionTrendData.map(() => 95), borderColor: 'rgba(72,187,120,0.6)', backgroundColor: 'transparent', borderDash: [6,4], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y' },
+      { label: 'Mål 95%', data: this.rejectionTrendData.map(() => 95), borderColor: 'rgba(72,187,120,0.6)', backgroundColor: 'transparent', borderDash: [6,4], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y' },
       { label: 'Minimum 90%', data: this.rejectionTrendData.map(() => 90), borderColor: 'rgba(237,137,54,0.7)', backgroundColor: 'transparent', borderDash: [4,4], borderWidth: 1.5, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y' }
     ] }, options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#a0aec0', font: { size: 11 } } }, tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#4299e1', borderWidth: 1,

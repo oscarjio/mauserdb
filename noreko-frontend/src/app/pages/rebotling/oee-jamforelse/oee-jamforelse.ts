@@ -151,7 +151,7 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
             order: 4,
           },
           {
-            label: `Mal (${mal_oee}%)`,
+            label: `Mål (${mal_oee}%)`,
             data: malArr,
             borderColor: '#fc8181',
             borderWidth: 2,

@@ -378,10 +378,10 @@ export class MaskinOeePage implements OnInit, OnDestroy {
         spanGaps: true,
       }));
 
-    // Mal-linje
+    // Mål-linje
     const malValue = this.trendData.oee_mal || this.oeeMal;
     datasets.push({
-      label: `Mal (${malValue}%)`,
+      label: `Mål (${malValue}%)`,
       data: dates.map(() => malValue),
       borderColor: '#9f7aea',
       backgroundColor: 'transparent',

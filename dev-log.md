@@ -1,5 +1,66 @@
 # MauserDB Dev Log
 
+## Session #383 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: Gamification UX-granskning OK + Operatorsbonus frontend granskad OK + Skiftrapport UX OK + Statistik grafer granskade OK + Lifecycle audit 170 komp 0 lackor + 7 svenska textfixar + build OK + deploy dev OK**
+
+### UPPGIFT 1: Gamification — fullstandig UX-granskning
+- Granskade gamification.component.ts/.html/.css + gamification.service.ts
+- Dark theme korrekt: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Svenska texter korrekt: Topplista, Min profil, VD-vy, Utmarkelser, Milstolpar
+- Responsiv layout: col-12/col-md-4/col-lg-3 podium, col-6/col-md-4/col-lg-2 badges, media queries for mobil
+- Data fran API: leaderboard, min-profil, overview — alla med loading/error/empty states
+- Lifecycle: OnInit/OnDestroy, destroy$, takeUntil, clearInterval — OK
+
+### UPPGIFT 2: Operatorsbonus — verifiera bonusdata i alla vyer
+- Granskade operatorsbonus.component.ts/.html (700+ rader TS, 500+ rader HTML)
+- KPI-kort: Snittbonus, Hogsta bonus, Total utbetald, Kvalificerade operatorer — OK
+- Chart.js-grafer: Stacked bar (4 datasets), Radar (4 axlar), Doughnut (simulator), Trend (5 datasets) — alla med dark theme
+- Tooltips: korrekta labels, dark bg (#1a202c), svenska format (kr, %)
+- Drilldown (session #378): KPI-jamforelse mot snitt med pilar — OK
+- Trendgraf (session #379): dual y-axis, snittlinje, 30/90/365d period — OK
+- Statusoversikt: 4-niva fargkodning (utmarkt/bra/medel/lag) — OK
+- Lifecycle: 4 charts destroyas, 4 timers clearas, takeUntil pa alla subscriptions — OK
+
+### UPPGIFT 3: Skiftrapport — fullstandig UX-granskning
+- Granskade rebotling-skiftrapport.ts/.html (800+ rader TS)
+- Email-dialog, add-report-form, operatorsfilter, sort, lopnummer, trendgraf — OK
+- Lifecycle: destroy$, clearInterval (updateInterval), clearTimeout x6, chart.destroy x3 — OK
+- Mobilanpassning: responsive table, col-md breakpoints — OK
+
+### UPPGIFT 4: Statistik-sidan — granska alla grafer och UX
+- Granskade statistik-dashboard.component.ts/.html (580 rader TS, 487 rader HTML)
+  - KPI-kort (6 st): IBC idag, IBC vecka, kassation, drifttid, operator, snitt IBC/h — OK
+  - Manads/kvartalsjamforelse-kort — OK
+  - Produktionstrend: dual y-axis, adaptiv granularitet, klickbar tooltip-modal — OK
+  - CSV-export med BOM och semikolon — OK
+  - PDF-export-knapp — OK
+- Granskade statistik-overblick.component.ts/.html (380 rader TS, 175 rader HTML)
+  - KPI-kort (4 st): Produktion, OEE, Kassation, Trend — OK
+  - 3 Chart.js-grafer: bar (produktion), line (OEE), line (kassation) — alla dark theme
+  - **FIX**: `Mal` -> `Mål` (svenska a-ring) i OEE-graf legend
+  - **FIX**: `Troskel` -> `Tröskel` (svenska o-umlaut) i kassation-graf legend
+
+### UPPGIFT 5: Lifecycle audit — alla komponenter
+- Totalt granskade: 170 komponenter med OnDestroy (+ FunktionshubPage med bara OnInit, inga subscriptions)
+- FunktionshubPage: OnInit utan OnDestroy — OK (inga subscriptions/timers)
+- Alla komponenter med setInterval/setTimeout har matchande clear — 0 lackor
+- Alla subscribe()-anrop i granskade komponenter anvander takeUntil(destroy$) — 0 lackor
+- **Resultat: 170+ komponenter granskade, 0 lifecycle-lackor**
+
+### UPPGIFT 6: Build + Deploy
+- `npx ng build` — OK (0 errors, warnings ar canvg/html2canvas ESM + NG8102 nullish coalescing)
+- Deploy till dev via deploy-dev.sh — OK
+- curl https://dev.mauserdb.com/ -> HTTP 200
+
+### Svenska textfixar (7 st)
+1. statistik-overblick: `Mal` -> `Mål` i OEE-graf legend
+2. statistik-overblick: `Troskel` -> `Tröskel` i kassation-graf legend
+3. produktions-sla: `Mal sparat!` -> `Mål sparat!` + `Kunde inte spara mal` -> `Kunde inte spara mål`
+4. kapacitetsplanering: `Mal (${pct}%)` -> `Mål (${pct}%)`
+5. maskin-oee: `Mal (${val}%)` -> `Mål (${val}%)`
+6. oee-jamforelse: `Mal (${mal_oee}%)` -> `Mål (${mal_oee}%)`
+7. statistik-kvalitetsanalys: `Mal 95%` -> `Mål 95%`
+
 ## Session #383 — Worker A (Backend) (2026-03-28)
 **Fokus: Skiftrapport berakningar verifierade + statistik backend granskad + admin CRUD-test + endpoint-test 115 0x500 <5.9s + SQL-audit 0 mismatches + 1 buggfix + deploy dev OK**
 

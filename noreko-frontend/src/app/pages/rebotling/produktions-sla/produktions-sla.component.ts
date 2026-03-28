@@ -196,11 +196,11 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     this.svc.setGoal(this.goalForm).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
         this.savingGoal = false;
         if (res?.success) {
-          this.goalMessage = 'Mal sparat!';
+          this.goalMessage = 'Mål sparat!';
           this.loadGoals();
           this.loadAll();
         } else {
-          this.goalError = res?.error || 'Kunde inte spara mal';
+          this.goalError = res?.error || 'Kunde inte spara mål';
         }
     });
   }
