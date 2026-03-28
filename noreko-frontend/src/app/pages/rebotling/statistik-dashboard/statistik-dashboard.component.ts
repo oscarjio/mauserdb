@@ -526,18 +526,22 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     if (!this.tableData?.rows?.length) return;
 
     const sep = ';';
-    const headers = ['Datum', 'IBC OK', 'IBC ej OK', 'Kassation %', 'Drifttid (h)', 'IBC/h', 'Bästa operatör'];
+    const headers = ['Datum', 'IBC totalt', 'IBC OK', 'IBC ej OK', 'Kassation %', 'Drifttid (h)', 'Drifttid %', 'IBC/h', 'Färgklass', 'Bästa operatör', 'Bästa op. IBC'];
     const lines: string[] = [headers.join(sep)];
 
     for (const row of this.tableData.rows) {
       lines.push([
         row.datum,
+        row.total,
         row.ibc_ok,
         row.ibc_ej_ok,
         row.kassation_pct,
         row.drifttid_h,
+        row.drifttid_h && this.summary ? ((row.drifttid_h / this.summary.planerad_drift_h) * 100).toFixed(1) : '',
         row.ibc_per_h,
+        row.fargklass,
         row.basta_operator?.operator_name ?? '',
+        row.basta_operator?.ibc_ok ?? '',
       ].join(sep));
     }
 
@@ -545,11 +549,15 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
       const vs = this.tableData.veckosnitt;
       lines.push([
         'Veckosnitt/Total',
+        vs.total,
         vs.ibc_ok,
         vs.ibc_ej_ok,
         vs.kassation_pct,
         vs.drifttid_h,
+        '',
         vs.ibc_per_h,
+        '',
+        '',
         '',
       ].join(sep));
     }
@@ -559,10 +567,68 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
       lines.push('');
       lines.push('KPI-sammanfattning');
       lines.push(`IBC idag${sep}${this.summary.idag.total}`);
+      lines.push(`IBC OK idag${sep}${this.summary.idag.ibc_ok}`);
+      lines.push(`IBC ej OK idag${sep}${this.summary.idag.ibc_ej_ok}`);
       lines.push(`IBC denna vecka${sep}${this.summary.denna_vecka.total}`);
+      lines.push(`IBC förra veckan${sep}${this.summary.forra_veckan.total}`);
       lines.push(`Kassationsgrad idag${sep}${this.summary.idag.kassation_pct}%`);
+      lines.push(`Kassationsgrad igår${sep}${this.summary.igar.kassation_pct}%`);
+      lines.push(`Mål kassation${sep}<${this.summary.mal_kassation}%`);
       lines.push(`Drifttid idag${sep}${this.summary.idag.drifttid_h}h`);
+      lines.push(`Planerad drifttid${sep}${this.summary.planerad_drift_h}h`);
       lines.push(`Snitt IBC/h (7d)${sep}${this.summary.snitt_ibc_per_h}`);
+      lines.push(`Mål IBC/h${sep}${this.summary.mal_ibc_per_h}`);
+      if (this.summary.aktiv_operator) {
+        lines.push(`Aktiv operatör${sep}${this.summary.aktiv_operator.operator_name}`);
+      }
+    }
+
+    // Statusindikator
+    if (this.status) {
+      lines.push('');
+      lines.push('Statusindikator');
+      lines.push(`Status${sep}${this.status.status_text}`);
+      lines.push(`Kassation idag${sep}${this.status.kassation_idag}%`);
+      lines.push(`IBC/h idag${sep}${this.status.ibc_per_h_idag}`);
+      lines.push(`Stopptid idag${sep}${this.status.stopp_min_idag} min`);
+      if (this.status.problem.length > 0) {
+        lines.push(`Problem${sep}${this.status.problem.join(', ')}`);
+      }
+      if (this.status.varning.length > 0) {
+        lines.push(`Varningar${sep}${this.status.varning.join(', ')}`);
+      }
+    }
+
+    // Månads-/kvartalsjämförelse
+    if (this.summary?.denna_manad && this.summary?.forra_manaden) {
+      lines.push('');
+      lines.push('Månadsjämförelse');
+      lines.push(`Denna månad IBC${sep}${this.summary.denna_manad.total}`);
+      lines.push(`Förra månaden IBC${sep}${this.summary.forra_manaden.total}`);
+      lines.push(`Denna månad kassation${sep}${this.summary.denna_manad.kassation_pct}%`);
+      lines.push(`Denna månad drifttid${sep}${this.summary.denna_manad.drifttid_h}h`);
+    }
+
+    if (this.summary?.detta_kvartal && this.summary?.forra_kvartalet) {
+      lines.push('');
+      lines.push('Kvartalsjämförelse');
+      lines.push(`Detta kvartal IBC${sep}${this.summary.detta_kvartal.total}`);
+      lines.push(`Förra kvartalet IBC${sep}${this.summary.forra_kvartalet.total}`);
+      lines.push(`Detta kvartal kassation${sep}${this.summary.detta_kvartal.kassation_pct}%`);
+      lines.push(`Detta kvartal drifttid${sep}${this.summary.detta_kvartal.drifttid_h}h`);
+    }
+
+    // Trenddata
+    if (this.trendData?.daily?.length) {
+      lines.push('');
+      lines.push(`Produktionstrend (${this.trendPeriod} dagar)`);
+      lines.push(['Datum', 'IBC totalt', 'IBC OK', 'IBC ej OK', 'Kassation %', 'Drifttid (h)', 'IBC/h'].join(sep));
+      for (const d of this.trendData.daily) {
+        lines.push([d.datum, d.total, d.ibc_ok, d.ibc_ej_ok, d.kassation_pct, d.drifttid_h, d.ibc_per_h].join(sep));
+      }
+      lines.push(`Snitt IBC/dag${sep}${this.trendData.snitt_ibc_dag}`);
+      lines.push(`Snitt IBC/h${sep}${this.trendData.snitt_ibc_h}`);
+      lines.push(`Mål IBC/h${sep}${this.trendData.mal_ibc_per_h}`);
     }
 
     const bom = '\uFEFF';

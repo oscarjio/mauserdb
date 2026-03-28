@@ -374,6 +374,57 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     if (val < -0.01) return 'fas fa-arrow-down';
     return 'fas fa-minus';
   }
+  // ---- CSV-export ----
+
+  exportCsv(): void {
+    if (!this.kpi) return;
+
+    const sep = ';';
+    const lines: string[] = [];
+
+    lines.push('Statistik-överblick — KPI-sammanfattning');
+    lines.push(`Period${sep}${this.months} månader`);
+    lines.push(`Exportdatum${sep}${new Date().toISOString().slice(0, 10)}`);
+    lines.push('');
+    lines.push(['Nyckeltal', 'Värde', 'Trend', 'Jämförelse'].join(sep));
+    lines.push([
+      'Produktion (30d)',
+      this.kpi.total_produktion,
+      this.kpi.produktion_trend + '%',
+      'vs föreg. 30d',
+    ].join(sep));
+    lines.push([
+      'Snitt-OEE (30d)',
+      this.kpi.snitt_oee + '%',
+      this.kpi.oee_trend + ' pp',
+      'vs föreg. 30d',
+    ].join(sep));
+    lines.push([
+      'Kassation (30d)',
+      this.kpi.kassationsrate + '%',
+      this.kpi.kassation_trend + ' pp',
+      'vs föreg. 30d',
+    ].join(sep));
+    lines.push([
+      'Föreg. periodens produktion',
+      this.kpi.prev_total,
+      '',
+      '',
+    ].join(sep));
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const datum = new Date().toISOString().slice(0, 10);
+    a.download = `statistik-overblick-${datum}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
 }

@@ -14,6 +14,11 @@
         <option [ngValue]="6">6 månader</option>
         <option [ngValue]="12">12 månader</option>
       </select>
+      <button class="btn btn-outline-success btn-sm" (click)="exportCsv()"
+              [disabled]="!kpi"
+              aria-label="Exportera KPI-data som CSV">
+        <i class="fas fa-file-csv me-1"></i>CSV
+      </button>
     </div>
   </div>
 

@@ -504,7 +504,7 @@ export class OperatorsPrestandaPage implements OnInit, OnDestroy {
             }
             if (xMed < xScale.right - 60 && yMed > yScale.top + 20) {
               ctx2.textAlign = 'right';
-              ctx2.fillText('Langsamm & Noggrann', xScale.right - pad, yScale.top + 20);
+              ctx2.fillText('Långsam & Noggrann', xScale.right - pad, yScale.top + 20);
             }
             if (xMed > xScale.left + 60 && yMed < yScale.bottom - 10) {
               ctx2.textAlign = 'left';

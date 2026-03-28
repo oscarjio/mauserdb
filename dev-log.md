@@ -1,5 +1,45 @@
 # MauserDB Dev Log
 
+## Session #389 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: CSV-export forbattrad i 3 sidor + driftstopp utokad historik 90d + 42 komp granskade 0 lackor + stavfix + build+deploy dev OK**
+
+### UPPGIFT 1: Statistik — forbattrade exportfunktioner (CSV/PDF)
+- Statistik-dashboard CSV: utokad fran 7 kolumner till 11 (la till IBC totalt, Drifttid %, Fargklass, Basta op IBC)
+- La till statusindikator-data i CSV (problem, varningar, kassation/IBC-h/stopptid idag)
+- La till manads- och kvartalsjamforelse i CSV-exporten
+- La till komplett trenddata (alla dagliga datapunkter) i CSV
+- Statistik-overblick: la till ny CSV-exportknapp (fanns ej tidigare)
+- Stopptidsanalys: la till ny CSV-exportknapp med KPI, per-maskin och detaljerad logg
+
+### UPPGIFT 2: Driftstopp — forlangd historik och trendanalys
+- Drifttids-timeline veckotrend: utokad fran max 30 dagar till 60 och 90 dagar
+- Stopptidsanalys: la till period "90 dagar" (kvartal) utover dag/vecka/manad
+- PeriodKey-typ utokad till att inkludera 'kvartal'
+
+### UPPGIFT 3: GRUNDLIG frontend-granskning (42 komponenter)
+- Dark theme: samtliga sidor har korrekt #1a202c/#2d3748/#e2e8f0 farger — inga avvikelser
+- Svenska: alla templates granskade — inga engelska labels hittades
+- Charts: alla chart-builders har korrekt destroy() innan ateruppbyggnad
+- Fix: stavfel "Langsamm" -> "Langsam" i operators-prestanda scatter-diagrammet
+
+### UPPGIFT 4: Granska ALLA Angular-komponenter (42 st)
+- Samtliga 42 komponenter implementerar OnInit + OnDestroy
+- Alla anvander destroy$ + takeUntil for korrekt unsubscribe
+- Alla setInterval har matchande clearInterval i ngOnDestroy
+- Alla setTimeout har matchande clearTimeout i ngOnDestroy
+- Alla Chart-instanser har destroy() i ngOnDestroy
+- pdf-export-button saknar OnDestroy — korrekt da den ej har subscriptions/timers
+
+### UPPGIFT 5: Template-granskning
+- Alla *ngFor har trackBy i samtliga templates
+- Loading spinners, error states och tom-states finns i alla data-sidor
+- Tabeller har table-responsive for mobilanpassning
+- Inga overflow-problem identifierade
+
+### UPPGIFT 6: Build + Deploy
+- ng build: framgangsrik (varningar om CommonJS deps — ej kritiska)
+- Deployment via rsync till dev.mauserdb.com: 200 OK verifierad
+
 ## Session #388 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: Skiftrapport verifierad mot prod DB + operatorsbonus 13 operatorer OK + admin CRUD edge cases OK + 88 endpoints 0x500 + prestandaoptimering daglig-sammanstallning 3x snabbare + SQL-audit OK + deploy dev OK**
 

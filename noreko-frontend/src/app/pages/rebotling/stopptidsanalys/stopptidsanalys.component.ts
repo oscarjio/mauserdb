@@ -22,7 +22,7 @@ const MASKIN_COLORS = [
   '#4fd1c5', '#fbd38d', '#b794f4', '#fc8181', '#a0aec0',
 ];
 
-type PeriodKey = 'dag' | 'vecka' | 'manad';
+type PeriodKey = 'dag' | 'vecka' | 'manad' | 'kvartal';
 
 @Component({
   standalone: true,
@@ -39,6 +39,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     { key: 'dag',   label: 'Idag' },
     { key: 'vecka', label: 'Vecka' },
     { key: 'manad', label: 'Månad (30d)' },
+    { key: 'kvartal', label: '90 dagar' },
   ];
 
   // Maskin-filter (för tabell & trend)
@@ -515,6 +516,69 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   formatPct(val: number | null | undefined): string {
     return (val ?? 0).toFixed(1);
   }
+
+  // ---- CSV-export ----
+
+  exportCsv(): void {
+    const sep = ';';
+    const lines: string[] = [];
+
+    // KPI-sammanfattning
+    if (this.overview) {
+      lines.push('Stopptidsanalys — KPI-sammanfattning');
+      lines.push(`Period${sep}${this.getPeriodLabel()}`);
+      lines.push(`Total stopptid idag${sep}${this.formatMin(this.overview.total_idag_min)}`);
+      lines.push(`Antal stopp idag${sep}${this.overview.antal_stopp_idag}`);
+      lines.push(`Flaskhals-maskin${sep}${this.overview.flaskhals_maskin || '-'}`);
+      lines.push(`Flaskhals stopptid${sep}${this.formatMin(this.overview.flaskhals_maskin_min)}`);
+      lines.push(`Snitt per stopp${sep}${this.formatMin(this.overview.snitt_per_stopp_min)}`);
+      lines.push(`Totalt under perioden${sep}${this.formatMin(this.overview.period_total_min)}`);
+      lines.push(`Trend${sep}${this.getTrendText()}`);
+      lines.push('');
+    }
+
+    // Per maskin
+    if (this.perMaskinData?.maskiner?.length) {
+      lines.push('Stopptid per maskin');
+      lines.push(['Maskin', 'Total stopptid (min)', 'Antal stopp', 'Snitt/stopp (min)', 'Längsta stopp (min)', 'Andel %'].join(sep));
+      for (const m of this.perMaskinData.maskiner) {
+        lines.push([m.maskin_namn, m.total_min.toFixed(1), m.antal_stopp, m.snitt_min.toFixed(1), m.max_stopp_min.toFixed(1), this.formatPct(m.andel_pct) + '%'].join(sep));
+      }
+      lines.push(`Totalt${sep}${(this.perMaskinData.total_min ?? 0).toFixed(1)}${sep}${this.cachedTotalAntalStopp}`);
+      lines.push('');
+    }
+
+    // Detaljerad stopptids-log
+    if (this.cachedSortedStopp.length) {
+      lines.push('Detaljerad stopptids-log');
+      lines.push(['Tidpunkt', 'Maskin', 'Varaktighet (min)', 'Orsak', 'Kategori', 'Operatör'].join(sep));
+      for (const s of this.cachedSortedStopp) {
+        lines.push([
+          s.startad_at ?? '',
+          s.maskin_namn,
+          s.duration_min.toFixed(1),
+          s.orsak,
+          s.orsak_kategori,
+          s.operator_namn,
+        ].join(sep));
+      }
+    }
+
+    if (lines.length === 0) return;
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const datum = new Date().toISOString().slice(0, 10);
+    a.download = `stopptidsanalys-${datum}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByMaskinId(index: number, item: any): any { return item?.maskin_id ?? item?.id ?? index; }
