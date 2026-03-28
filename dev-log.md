@@ -1,5 +1,43 @@
 # MauserDB Dev Log
 
+## Session #382 — Worker A (Backend) (2026-03-28)
+**Fokus: Rebotling live-data verifiering + operatorsbonus granskning + endpoint-test 115 endpoints + SQL-audit + deploy dev**
+
+### UPPGIFT 1: Rebotling live-dashboard — verifiera realtidsdata mot prod DB
+- Granskade RebotlingController.php: getLiveStats(), getRunningStatus(), getRastStatus(), getDriftstoppStatus(), getOEE(), getCycleTrend(), getHeatmap(), getLiveRanking(), getDayStats(), getDayRawData()
+- Alla SQL-queries matchar prod_db_schema.sql exakt: rebotling_ibc, rebotling_onoff, rebotling_runtime, rebotling_driftstopp, rebotling_settings, rebotling_lopnummer_current, rebotling_products, rebotling_skiftrapport, rebotling_skift_kommentar, production_events, vader_data, produktionsmal_undantag
+- Verifierade live-data mot prod DB: ibc_today=0, lopnummer=110, rebotlingTarget=1000 — EXAKT matchning
+- OEE veckodata: API: good_ibc=366, rejected=2, runtime_hours=24.6; Prod DB: ibc_ok=366, ibc_ej_ok=2, runtime_min=1476 — EXAKT matchning
+- 0 mismatches, inga fixar behovda
+
+### UPPGIFT 2: Operatorsbonus — verifiera bonusberakningar mot prod data
+- Granskade OperatorsbonusController.php: 6 endpoints (overview, per-operator, konfiguration, spara-konfiguration, historik, simulering, trend)
+- Bonusformel: bonus = min(verkligt / mal, 1.0) x max_bonus_kr — korrekt med cap vid 100%
+- Konfig fran prod DB: ibc_per_timme (mal=12, max=500kr), kvalitet (mal=98%, max=400kr), narvaro (mal=100%, max=200kr), team_bonus (mal=95%, max=100kr)
+- Verifierade operator-data med prod SQL: 8 operatorer med produktionsdata senaste veckan
+- Manuell bonusberakning for operator 156: IBC/h=36.57 -> capped -> 500kr; kvalitet=99.6% -> 400kr — KORREKT
+- Tabeller matchar schema: bonus_konfiguration, bonus_utbetalning, operators, rebotling_ibc, rebotling_settings
+- 0 mismatches, inga fixar behovda
+
+### UPPGIFT 3: Endpoint-test — 115 endpoints mot dev.mauserdb.com
+- Testat ALLA 115 action-varden fran api.php
+- Totalt: 115 endpoints, 0 st 500-fel, langsta svarstid 364ms (tvattlinje)
+- Alla endpoints < 1.5s
+- Auth-skyddade endpoints returnerar korrekt 401/403
+
+### UPPGIFT 4: SQL-audit — ALLA PHP-queries mot prod_db_schema.sql
+- Granskade alla 119 PHP-controllers i noreko-backend/classes/
+- 92 tabeller i schemat, ~80+ unika tabeller refererade i PHP
+- 5 tabeller refererade i PHP men ej i schema-dump: klassificeringslinje_ibc, rebotling_data, rebotling_stopporsak, saglinje_ibc, saglinje_onoff — alla gardade med tableExists()/SHOW TABLES/try-catch (fallback-logik)
+- 5 tabeller i schema men ej refererade i PHP: gamification_badges, gamification_milstolpar, rebotling_rast, skiftoverlamning_notes, tvattlinje_rast
+- Resultat: 0 kritiska mismatches
+
+### UPPGIFT 5: Deploy
+- Backend deployad till dev.mauserdb.com via rsync (exkluderat db_config.php)
+- Inga kodandringar behovdes — allt korrekt
+
+---
+
 ## Session #381 — Worker A (Backend) (2026-03-28)
 **Fokus: getDayRawData endpoint-granskning + endpoint-test 123 endpoints + SQL-audit + skiftrapport KPI-verifiering + admin CRUD-test + performance-audit + deploy dev**
 
