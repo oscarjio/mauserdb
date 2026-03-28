@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-28 (session #391)*
+*Senast uppdaterad: 2026-03-28 (session #392)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -87,6 +87,7 @@ Session #388: Skiftrapport verifierad mot prod DB 0 diskrepanser + operatorsbonu
 Session #389: 404-endpoints fixade (3 controllers default GET) + unused code borttaget (93 rader PHP + 2 TS vars) + produktion_procent EJ kumulativ bekraftad + CSV-export 3 sidor forbattrad + driftstopp 90d historik + 115 endpoints 0x500 + 42 komp 0 lackor + build+deploy dev OK.
 Session #390: 115 endpoints 0x500 <600ms + rebotling 0 diskrepanser + operatorsbonus 3 op OK + SQL-audit 10 controllers 0 mismatches + 187 frontend-filer granskade + dark theme fix + build+deploy dev OK.
 Session #391: VeckorapportController SQL-fix (COUNT→MAX/GROUP BY) + 96 endpoints 0x500 + driftstopp/skiftrapport/dashboard/rapport verifierade mot prod DB + 0 frontend-buggar + build+deploy dev OK.
+Session #392: KRITISK prestandafix manads-aggregat 12.8s→0.34s + HistorikController SQL-fix (GROUP BY skiftraknare, 650→793 IBC) + GamificationController SQL-fix (COUNT→MAX) + 107 endpoints 0x500 + 18 frontend-komp granskade 0 buggar + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -99,23 +100,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #392):
-- manads-aggregat prestanda: 12.8s — optimera
-- Rebotling historik-sidor: verifiera all historisk data mot prod DB
-- Admin-sidor: grundlig CRUD-test med edge cases
-- Statistik-sidor: verifiera berakningar (OEE, trender) mot prod DB
-- Gamification/achievements: granska poangberakningar mot prod DB
+### Nasta (session #393):
+- Operatorsbonus: verifiera berakningar efter GamificationController-fix
+- Skiftrapport: end-to-end test med nya HistorikController-siffror
+- Dashboard KPI: verifiera att nya korrekta IBC-siffror propagerar till VD-vy
+- Lasttest: parallella anrop mot optimerade endpoints
+- Rebotling cykeltider: granska berakningar mot prod DB
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-28 — Session #389 (klar)
-Worker A: 404-endpoints fixade (shift-plan, shift-handover, news — default GET-handler). Unused code borttaget (SkiftrapportController calcSkiftData 93 rader, plc-diagnostik.ts 2 unused vars). produktion_procent bekraftad EJ kumulativ (momentan takt-%). 115 endpoints 0x500 0x404. SQL-audit 0 mismatches. Deploy dev OK.
-Worker B: CSV-export forbattrad i 3 sidor (statistik-dashboard 7->11 kolumner, statistik-overblick ny export, stopptidsanalys ny export). Driftstopp utokad till 90 dagar. 42 komp 0 lifecycle-lackor. Dark theme+svenska OK. Stavfel fixat. Build+deploy dev OK.
-
 ### 2026-03-28 — Session #390 (klar)
-Worker A: 115 endpoints 0x500 0x404 alla <600ms. Rebotling datakvalitet 0 diskrepanser (API vs prod DB). Admin CRUD auth+edge cases OK. Operatorsbonus 3 op verifierade 0 diskrepanser. SQL-audit 10 controllers 0 mismatches. Deploy dev OK.
-Worker B: 187 filer granskade. 90 Chart.js rebotling OK. 9 admin-sidor OK. 10 statistik-sidor 22 charts OK. Mobilanpassning 0 nya problem. rebotling-admin dark theme fix (bg-light→#1a202c). Build+deploy dev OK.
+Worker A: 115 endpoints 0x500 0x404 alla <600ms. Rebotling datakvalitet 0 diskrepanser. Admin CRUD auth OK. Operatorsbonus 3 op verifierade. SQL-audit 10 controllers 0 mismatches. Deploy dev OK.
+Worker B: 187 filer granskade. 90 Chart.js OK. 9 admin OK. 10 statistik 22 charts OK. rebotling-admin dark theme fix. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #391 (klar)
-Worker A: VeckorapportController SQL-fix (COUNT(*)→MAX/GROUP BY, 210 IBC matchar prod DB). 96 endpoints 0x500. Driftstopp+skiftrapport+dashboard+morgon/veckorapport verifierade. SQL-audit 8 controllers 0 mismatches. Deploy dev OK.
-Worker B: 0 buggar hittade. Driftstopp timeline+charts OK. Skiftrapport UX OK. VD/executive dashboard OK. Morgon/veckorapport OK. Operatorsportal komplett (my-bonus 1428 rader, alla charts+lifecycle OK). 120+ routes OK. Build+deploy dev OK.
+Worker A: VeckorapportController SQL-fix (COUNT→MAX/GROUP BY, 210 IBC matchar prod DB). 96 endpoints 0x500. SQL-audit 8 controllers 0 mismatches. Deploy dev OK.
+Worker B: 0 buggar. Driftstopp+skiftrapport+dashboard+rapport+operatorsportal OK. 120+ routes OK. Build+deploy dev OK.
+
+### 2026-03-28 — Session #392 (klar)
+Worker A: KRITISK prestandafix manads-aggregat 12.8s→0.34s (33x, batch-query). veckotrend 1.2s→0.27s, vecko-aggregat 2.6s→0.49s. HistorikController SQL-fix getMonthly/getYearly GROUP BY skiftraknare (650→793 IBC matchar prod DB). GamificationController SQL-fix COUNT→MAX(ibc_ok) + op-tilldelning utan dubbelrakning. 107 endpoints 0x500. SQL-audit 0 mismatches. Deploy dev OK.
+Worker B: 18 komp granskade 0 buggar. 10 admin-sidor (bonus-admin, news, vpn, feature-flag, rebotling, skapa-user, users). 3 rebotling-historik. 4 statistik. 1 gamification. Alla lifecycle+dark theme+svenska OK. Build+deploy dev OK.
