@@ -11,10 +11,9 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Pagaende (session #389):
-- [x] Diagnostik-fixar: plc-diagnostik.ts unused vars (Worker A)
-- [x] SkiftrapportController.php — unused calcSkiftData funktion (Worker A)
-- [x] 404-endpoints: shift-plan, shift-handover, news — default GET-handler tillagd (Worker A)
-- [x] Rebotling — djupare analys av produktion_procent: EJ kumulativ, momentan takt-%, graferna korrekt (Worker A)
-- [~] Statistik — forbattra exportfunktioner (CSV/PDF) (Worker B)
-- [~] Driftstopp — forlangd historik och trendanalys (Worker B)
+### Nasta (session #390):
+- [ ] Endpoint-test: verifiera att 115 endpoints fortfarande ar 0x500 efter alla andringar
+- [ ] Granska rebotling-sidor: live-data vs historik — stammer allt?
+- [ ] Admin CRUD: testa alla edit/delete/create floden pa dev
+- [ ] Operatorsbonus: verifiera berakningar mot prod DB for aktuell vecka
+- [ ] Mobilanpassning: granska alla tabeller/grafer pa smal skarm
