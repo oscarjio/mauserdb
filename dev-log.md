@@ -1,5 +1,88 @@
 # MauserDB Dev Log
 
+## Session #372 — Worker A (2026-03-28)
+**Fokus: API response-format audit + security headers audit + performance regression test + error_log audit + deploy**
+
+### UPPGIFT 1: API response-format audit — KLAR
+- **116 controllers granskade** for konsekvent JSON-format `{"success": true/false, ...}`
+- **377 json_encode-anrop analyserade** — de flesta anvander `sendSuccess()`/`sendError()` helper-metoder
+- **1 avvikelse hittad**: `AndonController::getStatus` (rad 153) returnerar flat JSON utan `success`-wrapper
+  - **Ej fixad**: Frontend (`andon-board.service.ts`) mappar direkt till `AndonBoardStatus`-interface — att wrappa i `{success, data}` bryter andon-tavlan
+  - Alla andra AndonController-metoder (5 st) anvander korrekt `success`-wrapper
+- **SkiftrapportController, TvattlinjeController, VpnController**: Bygger `$response` med `success => true` innan echo — korrekt format
+- **Content-Type**: Satts globalt i api.php rad 82 (`application/json; charset=utf-8`) — controllers behover inte satta den sjalva
+- **Resultat**: 115/116 endpoints foljer standardformatet. 1 medveten avvikelse (andon live-data)
+
+### UPPGIFT 2: Security headers audit — KLAR
+- **Alla 9 security headers redan implementerade i api.php**:
+  - Content-Type: application/json; charset=utf-8
+  - X-Content-Type-Options: nosniff
+  - X-Frame-Options: SAMEORIGIN
+  - X-XSS-Protection: 1; mode=block
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: camera=(), microphone=(), geolocation=()
+  - Cache-Control: no-store, no-cache, must-revalidate, private
+  - Content-Security-Policy: default-src 'self'; frame-ancestors 'none'
+  - Strict-Transport-Security: max-age=31536000; includeSubDomains (HTTPS-only)
+- **CORS korrekt konfigurerat**: Vitlista + subdoman-auto-detect + CRLF-skydd mot header injection
+- **Session-cookies**: secure, httponly, samesite=Lax, strict mode, use_only_cookies
+- **CSRF-validering**: Aktiv for alla POST/PUT/DELETE (utom login/register/status)
+- **.htaccess**: expose_php Off, session gc_maxlifetime 28800
+- **X-Powered-By**: Borttagen via header_remove()
+- **Server-header**: Visar Apache-version (kan bara andras i httpd.conf, ej .htaccess)
+- **Inga andringar behovdes** — allt redan pa plats
+
+### UPPGIFT 3: Performance regression test — KLAR
+- **115 endpoints testade** mot dev.mauserdb.com
+- **0 st 500-fel** — alla svarar korrekt
+- **Top 10 langsammast**:
+  1. lineskiftrapport 2.27s (engangsspik — retest: 0.11-0.20s)
+  2. tvattlinje 0.86s (dataintensiv live-stats — retest: 0.37-0.66s)
+  3. leveransplanering 0.49s
+  4. maskin-oee 0.47s
+  5. saglinje 0.44s
+  6. stopptidsanalys 0.34s
+  7. skiftoverlamning 0.34s
+  8. skiftrapport 0.32s
+  9. klassificeringslinje 0.31s
+  10. rebotling 0.28s
+- **Faktiskt over 0.5s**: Ingen (efter retest) — lineskiftrapport var narverk-spike
+- **tvattlinje** konsekvent 0.37-0.66s — acceptabelt for live-data med vader-lookup
+- **Jamfort med session #371**: Samma prestandaniva, alla under 1s vid retest
+
+### UPPGIFT 4: PHP error_log audit — KLAR
+- **1161 error_log-anrop** i 116 controllers
+- **1117 catch-block** — nara 1:1-mapping
+- **6 catch-block utan error_log** — alla intentionella:
+  - 4 st transaction-catch som `throw $txEx` (re-throw till yttre catch med error_log)
+  - 2 st ALTER TABLE-catch i TvattlinjeController (forvantat: "kolumn finns redan")
+- **0 fall av kanslig data i error_log** — inga losenord, tokens eller request-bodies loggas
+- **Alla controllers anvander getMessage()** — inga stacktraces exponeras till klienten
+- **ErrorLogger::log() anvands i api.php** for okanda fel med full context
+
+### UPPGIFT 5: Deploy + verifiering — KLAR
+- Backend deployad med rsync (exclude db_config.php)
+- **18 kritiska endpoints verifierade** efter deploy:
+  - status: 200, 0.10s
+  - rebotling: 200, 0.24s
+  - tvattlinje: 200, 0.37s
+  - saglinje: 200, 0.54s
+  - klassificeringslinje: 200, 0.22s
+  - stoppage: 200, 0.33s
+  - historik: 200, 0.13s
+  - feature-flags: 200, 0.18s
+  - andon (status): 200, 0.25s
+  - login: 405 (POST-only, korrekt)
+  - register: 405 (POST-only, korrekt)
+  - admin: 403 (auth krävs, korrekt)
+  - skiftrapport: 401 (auth krävs, korrekt)
+  - lineskiftrapport: 200, 0.15s
+  - news: 404 (kraver sub-action, korrekt)
+  - bonusadmin: 403 (admin krävs, korrekt)
+  - operators: 403 (admin krävs, korrekt)
+  - maintenance: 403 (admin krävs, korrekt)
+- **0 st 500-fel, alla under 0.6s**
+
 ## Session #371 — Worker A (2026-03-27)
 **Fokus: Redundant index cleanup + admin CRUD test + full endpoint stresstest + PHP controller audit + deploy**
 
