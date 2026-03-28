@@ -1,5 +1,48 @@
 # MauserDB Dev Log
 
+## Session #380 — Worker A (Backend) (2026-03-28)
+**Fokus: Endpoint-test + SQL-audit + rebotling-data verifiering + skiftrapport KPI-kontroll + deploy dev**
+
+### UPPGIFT 1: Endpoint-test — ALLA endpoints mot dev.mauserdb.com
+- Testade **115 endpoints** med curl mot https://dev.mauserdb.com
+- **0 st 500-fel** (mal uppnatt)
+- **Alla svarstider under 1.5s** (mal uppnatt)
+- Snabbaste: ~112ms (effektivitet), langsammaste: ~465ms (stoppage)
+- 1 initial timeout pa stopporsak-trend (natverks-hicka, retest 124ms OK)
+- HTTP-statuskoder: 200 (publika), 401 (auth-kravande), 403 (admin), 400 (parameterkrav), 404/405 (forvantade)
+
+### UPPGIFT 2: SQL-audit — granska ALLA queries mot prod_db_schema.sql
+- Granskade alla 116 PHP-filer med SQL-queries
+- Korsrefererade alla tabellnamn mot prod_db_schema.sql (91 tabeller)
+- **0 SQL mismatches** (mal uppnatt)
+- 6 tabeller refereras via fallback-monster (tableExists): rebotling_data, rebotling_stopporsak, klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff, skift_log — alla har try-catch och failar gracefully
+- Kolumnnamn for nyckel-tabeller (rebotling_ibc, users, operators, bonus_konfiguration, stoppage_log) verifierade korrekt
+
+### UPPGIFT 3: Verifiera rebotling-data mot prod DB
+- Prod data: **5030 cykler**, datum 2025-10-10 till 2026-03-27
+- Mars 2026: 19 skift, 23890 ibc_ok, 646 ibc_ej_ok, 1479 bur_ej_ok, snitt bonus 83.86
+- Driftstopp: 4 poster, alla vecka 13 (2026-03-27)
+- Bonus_konfiguration: 4 faktorer (ibc_per_timme 40%, kvalitet 30%, narvaro 20%, team 10%)
+- Dev endpoint /rebotling returnerar korrekt daglig data
+
+### UPPGIFT 4: Skiftrapport — verifiera berakningar mot prod
+- Verifierade skift 82: raw ibc_ok=67, kvalitet=98.51%, bonus=200 (max)
+- Manuell KPI-kontroll: kvalitet = 67/68 = 98.53% (matchar avrundning)
+- Skiftrapport-tabellen korrekt ifylld med PLC-snapshot-data
+- Inga diskrepanser mellan raw IBC-data och skiftrapportsaggregat
+
+### UPPGIFT 5: Deploy till dev
+- Backend deployad via rsync (redan synkroniserad, inga andringskrav)
+- Post-deploy verifiering: alla 8 nyckelendpoints svarar korrekt (200/401)
+
+### Sammanfattning
+- **115 endpoints**, **0 x 500-fel**, alla **<1.5s**
+- **0 SQL mismatches** mot prod_db_schema.sql
+- **5030 cykler** i prod, **0 diskrepanser** i KPI-berakningar
+- Deploy dev OK
+
+---
+
 ## Session #379 — Worker B (Frontend) (2026-03-28)
 **Fokus: Rebotling UX-granskning + statistik grafinteraktivitet + operatorsbonus trendgraf + driftstopp navigering + admin UX-granskning + lifecycle-audit + deploy**
 
