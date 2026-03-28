@@ -1,5 +1,51 @@
 # MauserDB Dev Log
 
+## Session #386 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: PLC-diagnostik granskad OK + driftstopp endpoints verifierade + admin CRUD auth OK + 114 endpoints 0x500 + SQL-audit 0 mismatches + deploy dev OK**
+
+### UPPGIFT 1: PLC-diagnostik — granskad och verifierad
+- Granskade getPlcDiagnostik() i RebotlingController.php (rad 3245-3387)
+- SQL-queries mot 4 tabeller: rebotling_onoff, rebotling_ibc, rebotling_runtime, rebotling_driftstopp
+- Alla kolumnnamn verifierade mot prod_db_schema.sql — 0 mismatches
+- Admin-skydd korrekt (403 utan admin-session)
+- Verifierade mot prod DB: 2 onoff-events, 2 runtime-events idag — matchar
+
+### UPPGIFT 2: Driftstopp — orsaksfordelning + veckotrend verifierad
+- Testade 6 stoppage-endpoints: lista, reasons, stats, weekly_summary, pareto, pattern-analysis — alla 200 OK
+- Orsaksfordelning-query mot prod DB — korrekt (tomma tabeller, matchar API-svar)
+- Veckotrend-query mot prod DB — korrekt (inga stopp registrerade, matchar API-svar)
+- StoppageController SQL matchar prod_db_schema.sql perfekt
+
+### UPPGIFT 3: Admin CRUD — fullstandig test
+- GET utan session: 403 "Endast admin har behorighet" — korrekt
+- POST utan session: 401 "Sessionen har gatt ut" — korrekt (session timeout check)
+- CSRF-validering aktiv for POST/PUT/DELETE i api.php
+- Admin-skydd: role-check, self-delete prevention, self-admin-toggle prevention — korrekt
+
+### UPPGIFT 4: Prestandaoptimering
+- Testade alla 114 endpoints med svarstidsmatning
+- 0 endpoints over 2s (rebotling initialt 5.4s pga kall cache, sedan 0.2s)
+- getLiveStats() har 5s filcache — fungerar korrekt
+- Inga index-optimeringar kravdes
+
+### UPPGIFT 5: Endpoint-test — 114 endpoints 0x500
+- Testade ALLA 114 endpoints systematiskt med curl mot dev.mauserdb.com
+- Resultat: 114 OK, 0 x500
+- Kor om efter deploy — fortfarande 114 OK, 0 x500
+
+### UPPGIFT 6: SQL-audit mot prod_db_schema.sql
+- Extraherade alla tabellreferenser fran PHP-controllers (570+ FROM-satser)
+- 6 tabeller saknas i prod DB men hanteras defensivt:
+  - klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff: framtida PLC-tabeller, try/catch
+  - rebotling_data, skift_log: legacy fallback-tabeller, tableExists() guard
+  - rebotling_stopporsak: SHOW TABLES LIKE check innan query
+- 0 riktiga SQL-mismatches
+
+### UPPGIFT 7: Deploy till dev
+- Backend deployad med rsync (--exclude='db_config.php')
+- Verifierat: dev.mauserdb.com status endpoint 200 OK (0.11s)
+- Re-test alla endpoints efter deploy: 114 OK, 0 x500
+
 ## Session #385 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: mobilanpassning 11 sidor fixade + statistik grafer OK + operatorsbonus UX OK + skiftrapport UX OK + gamification UX OK + lifecycle-audit 180+ komp 0 lackor + build OK + deploy dev OK**
 
