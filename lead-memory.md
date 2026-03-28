@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-28 (session #385)*
+*Senast uppdaterad: 2026-03-28 (session #386)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -81,6 +81,7 @@ Session #382: Rebotling live-data verifierad mot prod DB (exakt matchning) + ope
 Session #383: Skiftrapport berakningar OK + statistik backend OK + admin CRUD OK + 115 endpoints 0x500 + SQL-audit 0 mismatches + SkiftrapportController CREATE TABLE buggfix + gamification UX OK + operatorsbonus 4 grafer OK + 7 svenska textfixar (Mal->Mål) + 170 komp 0 lackor + build+deploy dev OK.
 Session #384: Dashboard UX OK + driftstopp UX OK + historisk produktion OK + navigering 80+ routes OK + error handling 606 catchError OK + 115 endpoints 0x500 + SQL-audit 0 mismatches + admin CRUD auth OK + 180 komp 0 lackor + build+deploy dev OK.
 Session #385: Operatorsbonus end-to-end verifierad mot prod DB + skiftrapport OK + gamification OK + 92 endpoints 0x500 + SQL-audit 0 mismatches + mobilanpassning 11 sidor fixade + statistik grafer OK + 180+ komp 0 lackor + PLC-diagnostik endpoint + build+deploy dev OK.
+Session #386: PLC-diagnostik verifierad mot prod DB + driftstopp 6 endpoints OK + admin CRUD auth+CSRF OK + 114 endpoints 0x500 + SQL-audit 570+ FROM 0 mismatches + sakerhet OK (CSRF+rate limiting+prepared statements) + rebotling-admin mobilfix + 180 komp 0 lackor + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -93,18 +94,14 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #386):
-- PLC-diagnostik — ny sida, granska och testa mot dev
-- Driftstopp — verifiera orsaksfordelning + veckotrend mot prod DB
-- Admin CRUD — fullstandig test av alla admin-sidor
-- Prestandaoptimering — langsammare endpoints (vpn 2.3s, maskin-oee 2.7s)
-- Sakerhet — granska CSRF + rate limiting + input-validering end-to-end
+### Nasta (session #387):
+- Verifiera PLC-diagnostik end-to-end mot prod DB
+- Rebotling — fordjupad datakvalitetstest mot prod DB
+- Alla sidor — mobilanpassning slutkontroll
+- Edge cases — tomma datasets, ogiltiga datum, saknade operatorer
+- Lasttestning — simulera samtidiga anrop
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #383 (klar)
-Worker A: Skiftrapport berakningar verifierade mot prod. Statistik backend OK. Admin CRUD+auth OK. 115 endpoints 0x500 (max 5.8s). SQL-audit 0 mismatches. SkiftrapportController CREATE TABLE buggfix. Deploy dev OK.
-Worker B: Gamification UX OK. Operatorsbonus 4 grafer OK. Skiftrapport UX OK. Statistik UX OK. 7 svenska textfixar (Mal->Mål). 170 komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #384 (klar)
 Worker A: 115 endpoints 0x500 (max 5.1s morgonrapport). SQL-audit 0 mismatches (6 tabeller med tableExists-guard). Dashboard backend verifierad. Admin CRUD auth OK (401/403). Error handling 114 controllers OK. Deploy dev OK.
@@ -113,3 +110,7 @@ Worker B: Dashboard UX OK (executive+VD). Driftstopp UX OK (1300 rader, 6 charts
 ### 2026-03-28 — Session #385 (klar)
 Worker A: Operatorsbonus end-to-end verifierad mot prod DB (exakt matchning op 156). Skiftrapport 10 endpoints OK. Gamification 4 endpoints OK. 92 endpoints 0x500 (max 2.7s maskin-oee). SQL-audit 0 mismatches. PLC-diagnostik endpoint+developer-roll. Deploy dev OK.
 Worker B: Statistik grafer OK (adaptiv granularitet korrekt). Mobilanpassning 11 sidor fixade (col-fallbacks). Operatorsbonus UX OK. Skiftrapport UX OK. Gamification UX OK. 180+ komp 0 lackor. Build+deploy dev OK.
+
+### 2026-03-28 — Session #386 (klar)
+Worker A: PLC-diagnostik verifierad mot prod DB (4 tabeller 0 mismatches). Driftstopp 6 endpoints OK. Admin CRUD auth+CSRF OK. 0 endpoints over 2s. 114 endpoints 0x500. SQL-audit 570+ FROM-satser 0 mismatches. Deploy dev OK.
+Worker B: PLC-diagnostik frontend granskad OK (lifecycle+dark theme+svenska). Sakerhetsgranskning OK (CSRF+rate limiting 120/min+1220 prepared statements). Rebotling-admin mobilfix. 180 komp 0 lackor. Build+deploy dev OK.
