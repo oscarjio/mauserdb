@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-28 (session #390)*
+*Senast uppdaterad: 2026-03-28 (session #391)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -86,6 +86,7 @@ Session #387: 114 endpoints 0x500 + edge cases 9 scenarier OK + lasttest 30 para
 Session #388: Skiftrapport verifierad mot prod DB 0 diskrepanser + operatorsbonus 13 op stresstestade OK + admin CRUD 12 edge cases OK + daglig-sammanstallning 3x snabbare + 88 endpoints 0x500 + 162 routes OK + dark theme 0 avvikelser + 161 komp 0 lackor + 195 charts OK + svenska textfix + build+deploy dev OK.
 Session #389: 404-endpoints fixade (3 controllers default GET) + unused code borttaget (93 rader PHP + 2 TS vars) + produktion_procent EJ kumulativ bekraftad + CSV-export 3 sidor forbattrad + driftstopp 90d historik + 115 endpoints 0x500 + 42 komp 0 lackor + build+deploy dev OK.
 Session #390: 115 endpoints 0x500 <600ms + rebotling 0 diskrepanser + operatorsbonus 3 op OK + SQL-audit 10 controllers 0 mismatches + 187 frontend-filer granskade + dark theme fix + build+deploy dev OK.
+Session #391: VeckorapportController SQL-fix (COUNT→MAX/GROUP BY) + 96 endpoints 0x500 + driftstopp/skiftrapport/dashboard/rapport verifierade mot prod DB + 0 frontend-buggar + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -98,18 +99,14 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #391):
-- Driftstopp-sidor: verifiera timeline, orsaksfordelning, veckotrend mot prod DB
-- Skiftrapport: end-to-end test — generera rapport, verifiera data, exportera CSV/PDF
-- VD-dashboard + executive-dashboard: granska KPI-berakningar mot prod DB
-- Morgonrapport + veckorapport: verifiera att alla siffror stammer
-- Operatorsportal: granska alla sidor ur operators perspektiv
+### Nasta (session #392):
+- manads-aggregat prestanda: 12.8s — optimera
+- Rebotling historik-sidor: verifiera all historisk data mot prod DB
+- Admin-sidor: grundlig CRUD-test med edge cases
+- Statistik-sidor: verifiera berakningar (OEE, trender) mot prod DB
+- Gamification/achievements: granska poangberakningar mot prod DB
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #388 (klar)
-Worker A: Skiftrapport verifierad mot prod DB (158 IBC OK, 0 diskrepanser). Operatorsbonus 13 operatorer stresstestade (20 parallella OK <1.17s). Admin CRUD 12 edge cases alla hanterade (0x500). daglig-sammanstallning 9 queries->3 (3x snabbare). 88 endpoints 0x500. SQL-audit 0 mismatches. Deploy dev OK.
-Worker B: 162 routes verifierade OK. 153 HTML-templates granskade. Dark theme 100+ CSS 0 avvikelser. Svenska text fixad (PLC-diagnostik). 161 komp 0 lifecycle-lackor. 195 chart-instanser OK. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #389 (klar)
 Worker A: 404-endpoints fixade (shift-plan, shift-handover, news — default GET-handler). Unused code borttaget (SkiftrapportController calcSkiftData 93 rader, plc-diagnostik.ts 2 unused vars). produktion_procent bekraftad EJ kumulativ (momentan takt-%). 115 endpoints 0x500 0x404. SQL-audit 0 mismatches. Deploy dev OK.
@@ -118,3 +115,7 @@ Worker B: CSV-export forbattrad i 3 sidor (statistik-dashboard 7->11 kolumner, s
 ### 2026-03-28 — Session #390 (klar)
 Worker A: 115 endpoints 0x500 0x404 alla <600ms. Rebotling datakvalitet 0 diskrepanser (API vs prod DB). Admin CRUD auth+edge cases OK. Operatorsbonus 3 op verifierade 0 diskrepanser. SQL-audit 10 controllers 0 mismatches. Deploy dev OK.
 Worker B: 187 filer granskade. 90 Chart.js rebotling OK. 9 admin-sidor OK. 10 statistik-sidor 22 charts OK. Mobilanpassning 0 nya problem. rebotling-admin dark theme fix (bg-light→#1a202c). Build+deploy dev OK.
+
+### 2026-03-28 — Session #391 (klar)
+Worker A: VeckorapportController SQL-fix (COUNT(*)→MAX/GROUP BY, 210 IBC matchar prod DB). 96 endpoints 0x500. Driftstopp+skiftrapport+dashboard+morgon/veckorapport verifierade. SQL-audit 8 controllers 0 mismatches. Deploy dev OK.
+Worker B: 0 buggar hittade. Driftstopp timeline+charts OK. Skiftrapport UX OK. VD/executive dashboard OK. Morgon/veckorapport OK. Operatorsportal komplett (my-bonus 1428 rader, alla charts+lifecycle OK). 120+ routes OK. Build+deploy dev OK.
