@@ -1,5 +1,49 @@
 # MauserDB Dev Log
 
+## Session #376 — Worker A (2026-03-28)
+**Fokus: Operatorsbonus granskning + Admin-controllers CRUD-audit + Full endpoint-test + SQL-audit + Deploy**
+
+### UPPGIFT 1: Operatorsbonus — berakningar mot prod-data — KORREKT
+- Granskade OperatorsbonusController.php mot prod DB-data
+- Verifierade att bonus-queryn korrekt matchar `op1/op2/op3` (= `operators.number`) via `$batchData[$opNumber]`
+- Kontrollerade aggregering: `GROUP BY op_id, skiftraknare` med `MAX()` deduplicerar korrekt aven nar en operator star i flera positioner (t.ex. op2=151 OCH op3=151 pa samma skift)
+- IBC/h-berakning: `total_ibc / (total_runtime_min / 60)` — korrekt
+- Kvalitetsberakning: `ok / (ok + ej_ok) * 100` — korrekt
+- Narvaroberakning: `unika_dagar / arbetsdagar * 100` — korrekt, cap vid 100%
+- Team-mal: hamtar `rebotling_target` fran `rebotling_settings` (1000 IBC/dag i prod), jamfor per dag — korrekt
+- bonus_konfiguration-tabell i prod: 4 rader (ibc_per_timme 40%, kvalitet 30%, narvaro 20%, team_bonus 10%)
+- **Inga berakningsfel hittade**
+
+### UPPGIFT 2: Admin-controllers CRUD-granskning — INGA PROBLEM
+- **AdminController**: Fullstandig validering (username 3-50 tecken, losenord 8-255 med bokstav+siffra, email FILTER_VALIDATE_EMAIL, phone max 50). Transaktioner med FOR UPDATE for race condition-skydd. Self-protection (kan inte ta bort/inaktivera sig sjalv). bcrypt via AuthHelper.
+- **OperatorController**: Validering (namn max 100 tecken, nummer max 99999, strip_tags). Transaktioner med FOR UPDATE. Duplicate key-hantering (23000).
+- **BonusAdminController**: Validering (vikter 0-1 summerar till 1.0, mal 1-100, period YYYY-MM regex). Audit-loggning. Transaktioner.
+- **OperatorsbonusController**: Admin-check for POST, auth-check for GET. Input-validering (capped ranges). Date-validering med regex.
+- **Alla controllers** har try/catch med error_log + generisk felrespons (lacker inte interna detaljer)
+
+### UPPGIFT 3: Full endpoint-test mot dev — 113 endpoints, 0x500, 2 >1s
+- Testade alla 113 registrerade endpoints med curl mot https://dev.mauserdb.com
+- **0 st 500-fel**
+- **2 st >1s**: `shift-handover` 5118ms (vid saknad run-param = 404-path, ej reellt problem), `statistikdashboard` 1302ms (401 utan session, ej reellt problem). Bada endpoints ar snabba (<300ms) vid korrekt anrop.
+- Genomsnittlig svarstid for alla endpoints: <200ms
+
+### UPPGIFT 4: SQL-audit mot prod_db_schema.sql — 0 kritiska mismatches
+- 92 tabeller i prod_db_schema.sql
+- 6 tabeller refererade i PHP men ej i schema: `klassificeringslinje_ibc`, `saglinje_ibc`, `saglinje_onoff`, `rebotling_data`, `rebotling_stopporsak`, `skift_log`
+- **Alla 6 har tableExists()-kontroller eller try/catch** — inga 500-fel. Dessa ar PLC-tabeller som skapas nar fysiska linjer kopplas in, eller aldre fallback-tabeller.
+- Alla JOIN-villkor korrekt matchar: `operators.number = rebotling_ibc.op1/op2/op3`, `users.id`, etc.
+- **0 kritiska SQL-mismatches**
+
+### UPPGIFT 5: Deploy till dev — OK
+- rsync backend till dev.mauserdb.com
+- Verifierat med curl: `?action=status` returnerar `{"success":true}`
+
+### UPPGIFT 6: Commit och push
+- Inga PHP-kodfiler andrades denna session (alla granskade och befanns korrekta)
+- Dev-log uppdaterad
+
+---
+
 ## Session #375 — Worker B (2026-03-28)
 **Fokus: Rebotling skiftrapport grafer + KPI-forbattringar + Admin audit-logg + Alarm UX + Bundle-optimering + UX-granskning + Dataverifiering + Deploy**
 
