@@ -1,5 +1,50 @@
 # MauserDB Dev Log
 
+## Session #385 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: operatorsbonus end-to-end verifierad + skiftrapport OK + gamification OK + endpoint-test 92 0x500 + SQL-audit 0 mismatches + deploy dev OK**
+
+### UPPGIFT 1: Operatorsbonus — bonusberakningar end-to-end verifierade mot prod DB
+- Last alla 3 bonuscontrollers: OperatorsbonusController, BonusController, BonusAdminController
+- Hamtade prod-data fran operators, bonus_konfiguration, bonus_config, bonus_level_amounts, rebotling_ibc
+- Verifierade bonusberakning for operator Biniam (nr 156):
+  - Prod DB: 474 IBC, 602 min runtime, 6 skift, 3 dagar, 474 ok, 4 ej ok
+  - API: total_ibc=474, drifttid_h=10.03, ibc_per_timme=47.24, kvalitet=99.2% — STAMMER
+  - Bonusformeln korrekt: min(verkligt/mal, 1.0) x max_bonus_kr
+  - bonus_ibc=500 (47.24/12 capped), bonus_kvalitet=400 (99.2/98 capped), total=930kr
+- Testade alla 6 operatorsbonus-endpoints: overview, per-operator, konfiguration, historik, simulering, trend — alla 200 OK
+- Testade alla 18 bonus-endpoints: operator, ranking, team, summary, weekly_history, hall-of-fame, loneprognos, week-trend — alla OK
+- Testade alla 11 bonusadmin-endpoints: get_config, get_stats, get_periods, getAmounts, list-payouts, payout-summary, list-operators, fairness, bonus-simulator — alla 200 OK
+
+### UPPGIFT 2: Skiftrapport — rapportgenerering + KPI-data verifierat
+- Last SkiftrapportController.php, LineSkiftrapportController.php, SkiftrapportExportController.php
+- Testade alla 8 skiftrapport-endpoints: list, daglig-sammanstallning, veckosammanstallning, skiftjamforelse, operator-list, shift-report-by-operator, operator-kpi-jamforelse, lopnummer — alla 200 OK
+- Testade 2 skiftrapport-export-endpoints: report-data, multi-day — alla 200 OK
+- KPI-data (OEE, tillganglighet, prestanda, kvalitet) beraknas korrekt
+- Email-funktion saknas i backend (ingen SMTP-konfiguration)
+
+### UPPGIFT 3: Gamification — poang/utmarkelser/leaderboard verifierat
+- Last GamificationController.php — 4 endpoints: leaderboard, badges, min-profil, overview
+- Testade alla 4 med auth — alla 200 OK
+- Poangberakning: IBC x kvalitetsfaktor x stoppbonus-multiplikator — korrekt
+- Badges: centurion, perfektionist, maratonlopare, stoppjagare, teamspelare — fungerar
+- Streaks beraknas korrekt med batch-query
+
+### UPPGIFT 4: Endpoint-test — 92 endpoints mot dev.mauserdb.com
+- Testade 92 endpoints med curl mot dev.mauserdb.com
+- Resultat: **0 st 500-fel**
+- 2 trogare endpoints: vpn (2.3s), maskin-oee (2.7s) — nara gransen, ej kritiska
+- PLC-diagnostik (ny endpoint): 200 OK, data korrekt
+
+### UPPGIFT 5: SQL-audit — controllers mot prod_db_schema.sql
+- Granskade alla bonus-relaterade controllers mot schemat
+- Alla tabeller (bonus_config, bonus_konfiguration, bonus_level_amounts, bonus_payouts, bonus_utbetalning, bonus_audit_log, rebotling_ibc, operators, rebotling_settings, stoppage_log, stoppage_reasons, stopporsak_registreringar, rebotling_runtime, rebotling_driftstopp) finns i schemat
+- Alla kolumnreferenser i SQL-queries stammer med schemat
+- Resultat: **0 mismatches**
+
+### UPPGIFT 6: Deploy till dev
+- Deployade RebotlingController.php (PLC-diagnostik + developer role) till dev
+- Verifierade efter deploy: plc-diagnostik endpoint 200 OK
+
 ## Session #384 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: endpoint-test 115 0x500 + SQL-audit 0 mismatches + dashboard verifierat + admin CRUD auth OK + error handling granskat OK + deploy dev OK**
 

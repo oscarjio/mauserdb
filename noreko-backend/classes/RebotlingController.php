@@ -28,7 +28,7 @@ class RebotlingController {
                 'alert-thresholds', 'today-snapshot', 'notification-settings',
                 'all-lines-status', 'goal-exceptions', 'weekly-summary-email',
                 'live-ranking-settings', 'live-ranking-config', 'goal-history',
-                'service-status',
+                'service-status', 'plc-diagnostik',
             ];
             if (in_array($action, $adminOnlyActions, true)) {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
@@ -218,6 +218,8 @@ class RebotlingController {
                 $this->getDayRawData();
             } elseif ($action === 'weekly-kpis') {
                 $this->veckotrendController->handle();
+            } elseif ($action === 'plc-diagnostik') {
+                $this->getPlcDiagnostik();
             } else {
                 $this->getLiveStats();
             }
@@ -254,9 +256,15 @@ class RebotlingController {
                 $this->registerKassation();
                 return;
             }
-            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'developer')) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // --- PLC Simulering (admin/developer) ---
+            if ($action === 'plc-simulate') {
+                $this->plcSimulate();
                 return;
             }
 
@@ -3229,5 +3237,215 @@ class RebotlingController {
     // Skiftrapport-lista — med valfritt operatörsfilter
     // GET ?action=rebotling&run=skiftrapport-list[&operator=X][&limit=50][&offset=0]
     // =========================================================
+
+    // =========================================================
+    // PLC Diagnostik — combined event feed from all rebotling tables
+    // GET ?action=rebotling&run=plc-diagnostik[&date=YYYY-MM-DD][&since_id=N][&limit=100]
+    // =========================================================
+    private function getPlcDiagnostik(): void {
+        try {
+            $date = $_GET['date'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $date = date('Y-m-d');
+            }
+            $sinceId = isset($_GET['since_id']) ? intval($_GET['since_id']) : 0;
+            $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 500) : 100;
+            $typeFilter = $_GET['type'] ?? ''; // onoff, ibc, rast, driftstopp or empty for all
+
+            $events = [];
+
+            // --- rebotling_onoff ---
+            if (!$typeFilter || $typeFilter === 'onoff') {
+                $sql = "SELECT id, s_count_h, s_count_l, datum, running, runtime_today, program, op1, op2, op3, produkt, antal, runtime_plc, skiftraknare
+                        FROM rebotling_onoff
+                        WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) {
+                    $sql .= " AND id > :since_id";
+                    $params[':since_id'] = $sinceId;
+                }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $row['source'] = 'onoff';
+                    $row['event_type'] = intval($row['running']) === 1 ? 'ON' : 'OFF';
+                    $events[] = $row;
+                }
+            }
+
+            // --- rebotling_ibc ---
+            if (!$typeFilter || $typeFilter === 'ibc') {
+                $sql = "SELECT id, s_count, ibc_count, datum, other, skiftraknare, produktion_procent, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, rasttime, op1, op2, op3, effektivitet, produktivitet, kvalitet, bonus_poang, produkt, lopnummer, runtime, nyttlopnummer
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) {
+                    $sql .= " AND id > :since_id";
+                    $params[':since_id'] = $sinceId;
+                }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $row['source'] = 'ibc';
+                    $row['event_type'] = 'IBC';
+                    $events[] = $row;
+                }
+            }
+
+            // --- rebotling_runtime (rast) ---
+            if (!$typeFilter || $typeFilter === 'rast') {
+                $sql = "SELECT id, datum, rast_status
+                        FROM rebotling_runtime
+                        WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) {
+                    $sql .= " AND id > :since_id";
+                    $params[':since_id'] = $sinceId;
+                }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $row['source'] = 'rast';
+                    $row['event_type'] = intval($row['rast_status']) === 1 ? 'RAST_START' : 'RAST_END';
+                    $events[] = $row;
+                }
+            }
+
+            // --- rebotling_driftstopp ---
+            if (!$typeFilter || $typeFilter === 'driftstopp') {
+                $sql = "SELECT id, datum, driftstopp_status, skiftraknare
+                        FROM rebotling_driftstopp
+                        WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) {
+                    $sql .= " AND id > :since_id";
+                    $params[':since_id'] = $sinceId;
+                }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $row['source'] = 'driftstopp';
+                    $row['event_type'] = intval($row['driftstopp_status']) === 1 ? 'STOPP_START' : 'STOPP_END';
+                    $events[] = $row;
+                }
+            }
+
+            // Sort all events by datum descending, then by id descending
+            usort($events, function ($a, $b) {
+                $cmp = strcmp($b['datum'], $a['datum']);
+                if ($cmp !== 0) return $cmp;
+                return intval($b['id']) - intval($a['id']);
+            });
+
+            // Trim to limit
+            $events = array_slice($events, 0, $limit);
+
+            // Compute max_id for polling
+            $maxId = 0;
+            foreach ($events as $e) {
+                $eid = intval($e['id']);
+                if ($eid > $maxId) $maxId = $eid;
+            }
+
+            // Quick stats: line status, ibc count today, last event
+            $stmtStatus = $this->pdo->prepare("SELECT running, skiftraknare, datum FROM rebotling_onoff WHERE DATE(datum) = :date ORDER BY id DESC LIMIT 1");
+            $stmtStatus->execute([':date' => $date]);
+            $latestOnoff = $stmtStatus->fetch(\PDO::FETCH_ASSOC);
+
+            $stmtIbc = $this->pdo->prepare("SELECT MAX(ibc_ok) as ibc_ok_total FROM rebotling_ibc WHERE DATE(datum) = :date");
+            $stmtIbc->execute([':date' => $date]);
+            $ibcRow = $stmtIbc->fetch(\PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'events' => $events,
+                    'max_id' => $maxId,
+                    'stats' => [
+                        'running' => $latestOnoff ? intval($latestOnoff['running']) === 1 : false,
+                        'skiftraknare' => $latestOnoff ? intval($latestOnoff['skiftraknare']) : 0,
+                        'last_event' => $latestOnoff['datum'] ?? null,
+                        'ibc_today' => intval($ibcRow['ibc_ok_total'] ?? 0),
+                    ],
+                    'date' => $date,
+                    'event_count' => count($events),
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            error_log("RebotlingController::getPlcDiagnostik: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av PLC-diagnostik.'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=plc-simulate
+     * Simulerar PLC-signaler för testning.
+     * Body JSON: { "command": "onoff", "value": "on"|"off" }
+     *            { "command": "rast", "value": "on"|"off" }
+     *            { "command": "driftstopp", "value": "on"|"off" }
+     */
+    private function plcSimulate(): void {
+        try {
+            $body = json_decode(file_get_contents('php://input'), true);
+            $command = $body['command'] ?? '';
+            $value = $body['value'] ?? '';
+
+            if (!in_array($command, ['onoff', 'rast', 'driftstopp'])) {
+                echo json_encode(['success' => false, 'error' => "Okänt kommando: $command. Tillgängliga: onoff, rast, driftstopp"], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            if (!in_array($value, ['on', 'off'])) {
+                echo json_encode(['success' => false, 'error' => "Ogiltigt värde: $value. Ange on eller off"], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $isOn = $value === 'on';
+
+            switch ($command) {
+                case 'onoff':
+                    // Hämta senaste skifträknare
+                    $lastRow = $this->pdo->query("SELECT skiftraknare, runtime_today FROM rebotling_onoff ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+                    $sk = $lastRow ? intval($lastRow['skiftraknare']) : 1;
+                    $rt = $lastRow ? intval($lastRow['runtime_today']) : 0;
+                    if ($isOn && $lastRow) $sk++; // nytt skift vid start
+
+                    $stmt = $this->pdo->prepare("INSERT INTO rebotling_onoff (s_count_h, s_count_l, datum, running, runtime_today, program, op1, op2, op3, produkt, antal, runtime_plc, skiftraknare) VALUES (0, 0, NOW(), :running, :rt, 0, 0, 0, 0, 0, 0, 0, :sk)");
+                    $stmt->execute(['running' => $isOn ? 1 : 0, 'rt' => $rt, 'sk' => $sk]);
+                    $msg = $isOn ? "Linje STARTAD (skift $sk)" : "Linje STOPPAD (skift $sk)";
+                    break;
+
+                case 'rast':
+                    $stmt = $this->pdo->prepare("INSERT INTO rebotling_runtime (datum, rast_status) VALUES (NOW(), :status)");
+                    $stmt->execute(['status' => $isOn ? 1 : 0]);
+                    $msg = $isOn ? "Rast STARTAD" : "Rast AVSLUTAD";
+                    break;
+
+                case 'driftstopp':
+                    $lastSk = $this->pdo->query("SELECT skiftraknare FROM rebotling_onoff ORDER BY datum DESC LIMIT 1")->fetchColumn();
+                    $stmt = $this->pdo->prepare("INSERT INTO rebotling_driftstopp (datum, driftstopp_status, skiftraknare) VALUES (NOW(), :status, :sk)");
+                    $stmt->execute(['status' => $isOn ? 1 : 0, 'sk' => intval($lastSk ?: 0)]);
+                    $msg = $isOn ? "Driftstopp AKTIVERAT" : "Driftstopp AVSLUTAT";
+                    break;
+
+                default:
+                    $msg = '';
+            }
+
+            echo json_encode(['success' => true, 'message' => $msg], JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            error_log("RebotlingController::plcSimulate: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Simulering misslyckades: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+    }
 
 }
