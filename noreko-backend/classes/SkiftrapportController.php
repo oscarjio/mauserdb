@@ -162,6 +162,13 @@ class SkiftrapportController {
                     `skiftraknare` int DEFAULT NULL,
                     `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    `drifttid` int NOT NULL DEFAULT 0,
+                    `op1` int DEFAULT NULL COMMENT 'D4000 - Operatör Tvättplats',
+                    `op2` int DEFAULT NULL COMMENT 'D4001 - Operatör Kontrollstation',
+                    `op3` int DEFAULT NULL COMMENT 'D4002 - Operatör Truckförare',
+                    `rasttime` int DEFAULT NULL COMMENT 'D4008 - Rasttid PLC (minuter)',
+                    `driftstopptime` int DEFAULT NULL,
+                    `lopnummer` int DEFAULT NULL COMMENT 'D4009 - Högsta löpnummer i skiftet',
                     PRIMARY KEY (`id`),
                     KEY `idx_datum` (`datum`),
                     KEY `idx_product_id` (`product_id`),
@@ -192,12 +199,13 @@ class SkiftrapportController {
 
                 // Migration 007 – PLC-fält från FX5
                 $plcCols = [
-                    'op1'       => 'INT DEFAULT NULL',
-                    'op2'       => 'INT DEFAULT NULL',
-                    'op3'       => 'INT DEFAULT NULL',
-                    'drifttid'  => 'INT DEFAULT NULL',
-                    'rasttime'  => 'INT DEFAULT NULL',
-                    'lopnummer' => 'INT DEFAULT NULL',
+                    'op1'            => 'INT DEFAULT NULL',
+                    'op2'            => 'INT DEFAULT NULL',
+                    'op3'            => 'INT DEFAULT NULL',
+                    'drifttid'       => 'INT NOT NULL DEFAULT 0',
+                    'rasttime'       => 'INT DEFAULT NULL',
+                    'lopnummer'      => 'INT DEFAULT NULL',
+                    'driftstopptime' => 'INT DEFAULT NULL',
                 ];
                 $existingCols = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport")->fetchAll(PDO::FETCH_COLUMN);
                 foreach ($plcCols as $col => $def) {

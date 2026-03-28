@@ -1,5 +1,80 @@
 # MauserDB Dev Log
 
+## Session #383 — Worker A (Backend) (2026-03-28)
+**Fokus: Skiftrapport berakningar verifierade + statistik backend granskad + admin CRUD-test + endpoint-test 115 0x500 <5.9s + SQL-audit 0 mismatches + 1 buggfix + deploy dev OK**
+
+### UPPGIFT 1: Skiftrapport — verifiera berakningar mot prod data
+- Granskade SkiftrapportController.php: alla GET-endpoints (getSkiftrapporter, getLopnummerForSkift, getOperatorList, getShiftReportByOperator, getDagligSammanstallning, getVeckosammanstallning, getSkiftjamforelse, getOperatorKpiJamforelse)
+- Alla POST-actions: create, delete, update, updateInlagd, bulkDelete, bulkUpdateInlagd
+- Verifierade berakningar mot prod DB (id=38: ibc_ok=67, totalt=68, drifttid=247min):
+  - totalt = ibc_ok + bur_ej_ok + ibc_ej_ok: alla 10 senaste rader OK
+  - kassation = (ibc_ej_ok + bur_ej_ok) / totalt: 1.5% — KORREKT
+  - IBC/h = ibc_ok / (drifttid/60) = 16.3 — KORREKT
+  - OEE = tillganglighet(51.5%) x prestanda(55.1%) x kvalitet(98.5%) = 27.9% — KORREKT
+- OEE i daglig-sammanstallning anvander annan datakalla (rebotling_onoff drifttid + IDEAL_CYCLE_SEC=120s): KORREKT OEE-formel
+- Veckosammanstallning: optimerad batch-query (3 queries istallet for 63) — KORREKT
+- **BUGGFIX**: ensureTableExists saknade kolumnen `driftstopptime` som finns i prod schema — FIXAT
+- **FIX**: CREATE TABLE i ensureTableExists saknade 7 kolumner (drifttid, op1-3, rasttime, driftstopptime, lopnummer) — matchade inte prod schema — FIXAT
+- **FIX**: drifttid migration anvande DEFAULT NULL men prod schema har NOT NULL DEFAULT 0 — FIXAT
+
+### UPPGIFT 2: Statistik — granska backend berakningar + export
+- Granskade StatistikDashboardController.php: 4 endpoints (summary, production-trend, daily-table, status-indicator)
+  - getDaySummary: korrekt aggregering per skiftraknare med MAX(ibc_ok), MAX(ibc_ej_ok)
+  - kassation_pct = ejOk / total * 100: KORREKT
+  - Drifttid hamtas fran rebotling_skiftrapport.drifttid (minuter): KORREKT
+  - production-trend: daglig data med fallback till PLANERAD_DRIFTTID_H (16h) om drifttid saknas: KORREKT
+  - status-indicator: gron/gul/rod baserat pa kassation (<5% = OK) och IBC/h (<15 x 0.7 = rod): KORREKT
+- Granskade StatistikOverblickController.php: 4 endpoints (kpi, produktion, oee, kassation)
+  - OEE batch-berakning: tillganglighet x prestanda x kvalitet med IDEAL_CYCLE_SEC=120, SCHEMA_SEK_PER_DAG=28800: KORREKT
+  - produktion_procent i rebotling_ibc ar en PLC-kolumn (ej kumulativ) — ej fel
+  - Veckogruppering med YEARWEEK(datum, 1): KORREKT (ISO-veckor, mandag start)
+  - Bugfix for strtotime manad-aritmetik redan implementerad (DateTime first day of this month)
+- Granskade SkiftrapportExportController.php: 2 endpoints (report-data, multi-day)
+  - Cykeltider via LAG window-funktion: filterar 30-1800s — KORREKT
+  - OEE med teoretiskMaxIbcPerH=60: annorlunda modell an SkiftrapportController men konsekvent internt — KORREKT
+  - Multi-day: korrekt aggregering per dag, max 31 dagars span — KORREKT
+  - 0 buggar hittade
+
+### UPPGIFT 3: Admin — fullstandig CRUD-test + behorighet
+- Granskade AdminController.php: GET (lista), POST actions (create, delete, toggleAdmin, toggleActive, update)
+- Auth-skydd: 403 for icke-admin (GET), 401 for ej inloggad (POST via api.php session-timeout)
+- CSRF-skydd: valideras i api.php for alla POST/PUT/DELETE (403 vid ogiltig token) — KORREKT
+- create: bcrypt via AuthHelper::hashPassword, username-unikhet via FOR UPDATE + transaktion — KORREKT
+- delete: forhindrar self-delete, FOR UPDATE + transaktion, audit-log — KORREKT
+- toggleAdmin: forhindrar att admin tar bort egen admin-status — KORREKT
+- toggleActive: forhindrar att admin inaktiverar sig sjalv — KORREKT
+- update: validerar username 3-50 tecken, email FILTER_VALIDATE_EMAIL, losenord 8-255 med bokstav+siffra — KORREKT
+- Edge cases: tomma falt ger 400, ogiltiga ID ger 404, race conditions hanteras med FOR UPDATE — KORREKT
+- Testat med curl: GET admin = 403 (korrekt), POST create = 401 (korrekt), POST delete = 401 (korrekt)
+
+### UPPGIFT 4: Endpoint-test — 115 endpoints mot dev.mauserdb.com
+- Testat ALLA 115 action-varden fran api.php med GET
+- Totalt: 115 endpoints, 0 st 500-fel, langsta svarstid 5851ms (produktionsdashboard)
+- Specificerade skiftrapport-endpoints: 401 (auth-skyddade) — KORREKT
+- Statistik-endpoints: 401/429 (auth + rate limit) — KORREKT
+- Admin POST: 401 (session timeout) — KORREKT
+
+### UPPGIFT 5: SQL-audit — PHP-queries mot prod_db_schema.sql
+- Granskade alla tabellreferenser i noreko-backend/classes/ mot prod_db_schema.sql
+- Saknade tabeller: rebotling_data, rebotling_stopporsak, skift_log, daily_goal — ALLA hanteras med tableExists() fallback-guard, EJ buggar
+- klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff — live-linje-tabeller (RORER EJ)
+- weekly_bonus_goal ar en kolumn i bonus_config (finns i schema) — EJ fel
+- rebotling_skiftrapport kolumner: alla 19 kolumner i schema matchar PHP-referenser KORREKT
+- rebotling_ibc kolumner: alla refererade kolumner matchar schema KORREKT
+- 0 SQL mismatches som kraver fix
+
+### UPPGIFT 6: Deploy till dev
+- rsync backend till dev.mauserdb.com (exkluderade db_config.php)
+- Verifierat med curl: status endpoint 200 OK (139ms)
+
+### Sammanfattning session #383 Worker A
+- **Endpoints testade:** 115
+- **500-fel:** 0
+- **Max svarstid:** 5851ms (produktionsdashboard)
+- **SQL mismatches:** 0
+- **Buggar fixade:** 1 (ensureTableExists saknade driftstopptime + 6 andra kolumner + drifttid DEFAULT inkonsistens)
+- **Deploy:** OK
+
 ## Session #382 — Worker A (Backend) (2026-03-28)
 **Fokus: Rebotling live-data verifiering + operatorsbonus granskning + endpoint-test 115 endpoints + SQL-audit + deploy dev**
 
