@@ -1575,6 +1575,87 @@
         </div>
       </div>
 
+      <!-- ======== OPERATÖR KPI-JÄMFÖRELSE (session #376) ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users-cog me-2 text-info"></i>
+            Operatörsjämförelse — KPI
+          </h5>
+          <button class="btn btn-sm btn-outline-info" (click)="loadOpKpiJamforelse()" [disabled]="opKpiLoading">
+            <i class="fas" [class.fa-sync-alt]="!opKpiLoading" [class.fa-spinner]="opKpiLoading" [class.fa-spin]="opKpiLoading" class="me-1"></i>
+            {{ opKpiLoading ? 'Laddar...' : 'Uppdatera' }}
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Visar snitt IBC/h, OEE och kassation per operatör för den valda perioden (senaste 30 dagarna om inget filter).
+          </p>
+
+          <div *ngIf="opKpiLoading" class="text-center py-4 text-muted">
+            <i class="fas fa-spinner fa-spin me-2"></i>Hämtar operatörsjämförelse...
+          </div>
+
+          <div *ngIf="opKpiError && !opKpiLoading" class="alert alert-secondary py-2">
+            <i class="fas fa-info-circle me-2"></i>{{ opKpiError }}
+          </div>
+
+          <div *ngIf="!opKpiLoading && !opKpiError && opKpiData.length > 0">
+            <!-- Diagram -->
+            <div style="position:relative; height:320px; width:100%;" class="mb-3">
+              <canvas id="opKpiCanvas"></canvas>
+            </div>
+
+            <!-- Tabell -->
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Operatör</th>
+                    <th scope="col" class="text-center">Antal skift</th>
+                    <th scope="col" class="text-center">Totalt IBC OK</th>
+                    <th scope="col" class="text-center">Snitt IBC/skift</th>
+                    <th scope="col" class="text-center">Snitt IBC/h</th>
+                    <th scope="col" class="text-center">OEE</th>
+                    <th scope="col" class="text-center">Kassation</th>
+                    <th scope="col" class="text-center">Drifttid (h)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let op of opKpiData; trackBy: trackByIndex">
+                    <td><span class="badge bg-secondary">{{ op.operator_name }}</span></td>
+                    <td class="text-center">{{ op.antal_skift }}</td>
+                    <td class="text-center text-info fw-semibold">{{ op.totalt_ibc_ok }}</td>
+                    <td class="text-center">{{ op.snitt_ibc_per_skift }}</td>
+                    <td class="text-center text-warning fw-semibold">{{ op.snitt_ibc_per_timme }}</td>
+                    <td class="text-center">
+                      <span class="badge"
+                        [class.bg-success]="op.snitt_oee_pct >= 75"
+                        [class.bg-warning]="op.snitt_oee_pct >= 50 && op.snitt_oee_pct < 75"
+                        [class.bg-danger]="op.snitt_oee_pct < 50">
+                        {{ op.snitt_oee_pct }}%
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <span [class.text-danger]="op.kassation_pct > 10"
+                            [class.text-success]="op.kassation_pct <= 10">
+                        {{ op.kassation_pct }}%
+                      </span>
+                    </td>
+                    <td class="text-center text-muted">{{ op.total_drifttid_h }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div *ngIf="!opKpiLoading && !opKpiError && opKpiData.length === 0" class="text-center py-3 text-muted">
+            <i class="fas fa-info-circle me-2"></i>Ingen operatörsdata tillgänglig för vald period.
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

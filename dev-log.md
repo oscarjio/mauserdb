@@ -1,5 +1,60 @@
 # MauserDB Dev Log
 
+## Session #376 — Worker B (Frontend) (2026-03-28)
+**Fokus: Operator-KPI-jamforelse integration + driftstopp-analys frontend + lifecycle-audit + deploy**
+
+### UPPGIFT 1: Rebotling skiftrapport — operator-kpi-jamforelse endpoint integrerad
+- Lagt till `getOperatorKpiJamforelse(from, to)` i `SkiftrapportService`
+- Ny sektion "Operatorsjamforelse — KPI" langst ner i skiftrapport-sidan
+- Stapeldiagram (Chart.js) visar snitt IBC/h, OEE% och kassation% per operator
+- Dubbel Y-axel: vanster = IBC/h, hoger = %
+- Tooltip visar antal skift, totalt IBC OK, total drifttid
+- Tabell under diagrammet med alla detaljerade KPI:er per operator
+- Laddar automatiskt vid sidladdning, anvander filterdatum om satta (default 30 dagar)
+- Chart destroyas korrekt i ngOnDestroy, timer rensas
+
+### UPPGIFT 2: Driftstopp-analys frontend — orsaksfordelning + veckotrend
+- Lagt till `getOrsaksfordelning(date)` och `getVeckotrend(days)` i `DrifttidsTimelineService`
+- Nya interfaces: `OrsaksfordelningData`, `VeckotrendData` etc.
+- Drifttids-timeline-sidan: tva nya sektioner i 2-kolumns layout
+  - Orsaksfordelning: doughnut-diagram som visar stopporsaker for vald dag med andel och total tid
+  - Veckotrend: linjediagram med drifttid/stopptid (min) och utnyttjandegrad (%) de senaste 7/14/30 dagarna
+- Valjbar period (7/14/30 dagar) via select-element
+- Alla charts destroyas i ngOnDestroy, timers rensas
+
+### UPPGIFT 3: Statistik dashboard — granskning
+- Verifierat KPI-kort: IBC idag, vecka, kassation, drifttid, aktiv operator, snitt IBC/h — alla korrekt
+- Adaptiv granularitet redan implementerad (per dag <= 30d, per vecka > 30d) — ser korrekt ut
+- Trendgraf har dubbel Y-axel med tooltips, kassation ej kumulativ (korrekt)
+- Dagstabell visar senaste 7 dagar med fargklassning och veckosnitt
+- Inga anmarkningar
+
+### UPPGIFT 4: Frontend-sidor granskning + lifecycle-audit
+- Samtliga nyckelkomponenter kontrollerade: skiftrapport, statistik-dashboard, stopptidsanalys, drifttids-timeline
+- Alla har: destroy$ + takeUntil, clearInterval/clearTimeout, Chart.destroy() i ngOnDestroy
+- Dark theme korrekt: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- All UI-text pa svenska
+- Inga laskande subscriptions hittade
+
+### UPPGIFT 5: Data-verifiering mot prod
+- Prod DB: 5030 cykler, 28 skiftrapporter, 13 operatorer, 1151 on/off-entries
+- Overensstammer med session #375 rapport (5030 cykler, 0 diskrepanser)
+- 0 diskrepanser hittade
+
+### UPPGIFT 6: Build + Deploy
+- `npx ng build` — 0 kompileringsfel, enbart CommonJS-warnings (canvg, html2canvas)
+- Deploy via rsync till dev.mauserdb.com — OK
+
+### Andrade filer:
+- `noreko-frontend/src/app/services/skiftrapport.service.ts` — ny metod `getOperatorKpiJamforelse`
+- `noreko-frontend/src/app/services/drifttids-timeline.service.ts` — nya metoder + interfaces for orsaksfordelning, veckotrend
+- `noreko-frontend/src/app/pages/rebotling-skiftrapport/rebotling-skiftrapport.ts` — operator-KPI-jamforelse: data, chart, lifecycle
+- `noreko-frontend/src/app/pages/rebotling-skiftrapport/rebotling-skiftrapport.html` — ny sektion for operator-KPI-diagram+tabell
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts` — orsaksfordelning + veckotrend: data, charts, lifecycle
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.html` — nya sektioner for orsak-doughnut + veckotrend-linje
+
+---
+
 ## Session #376 — Worker A (2026-03-28)
 **Fokus: Operatorsbonus granskning + Admin-controllers CRUD-audit + Full endpoint-test + SQL-audit + Deploy**
 

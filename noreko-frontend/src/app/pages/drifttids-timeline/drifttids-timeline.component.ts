@@ -3,13 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { Chart, registerables } from 'chart.js';
 import {
   DrifttidsTimelineService,
   TimelineSegment,
   TimelineData,
   TimelineSummaryData,
+  OrsaksfordelningData,
+  VeckotrendData,
 } from '../../services/drifttids-timeline.service';
 import { localDateStr, parseLocalDate } from '../../utils/date-utils';
+
+Chart.register(...registerables);
 
 @Component({
   standalone: true,
@@ -47,6 +52,22 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   readonly TIMELINE_END_H   = 22;  // 22:00
   readonly TIMELINE_DURATION_MIN = (22 - 6) * 60; // 960 min
 
+  // -- Orsaksfordelning (session #376) --
+  orsaksfordelning: OrsaksfordelningData | null = null;
+  loadingOrsak = false;
+  errorOrsak = false;
+
+  // -- Veckotrend (session #376) --
+  veckotrend: VeckotrendData | null = null;
+  loadingVeckotrend = false;
+  errorVeckotrend = false;
+  veckotrendDagar = 7;
+
+  // -- Charts (session #376) --
+  private orsakChart: Chart | null = null;
+  private veckotrendChart: Chart | null = null;
+  private chartTimers: ReturnType<typeof setTimeout>[] = [];
+
   // -- Cached computed properties (rebuilt on data change) --
   cachedTimelineHours: number[] = [];
   cachedVisibleSegments: TimelineSegment[] = [];
@@ -64,6 +85,12 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    try { this.orsakChart?.destroy(); } catch (_) {}
+    this.orsakChart = null;
+    try { this.veckotrendChart?.destroy(); } catch (_) {}
+    this.veckotrendChart = null;
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -120,8 +147,12 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   // =================================================================
 
   loadAll(): void {
+    this.chartTimers.forEach(t => clearTimeout(t));
+    this.chartTimers = [];
     this.loadSummary();
     this.loadTimeline();
+    this.loadOrsaksfordelning();
+    this.loadVeckotrend();
   }
 
   loadSummary(): void {
@@ -297,6 +328,224 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
 
   drifttidTimmar(min: number): string {
     return this.formatDuration(min);
+  }
+
+  // =================================================================
+  // Orsaksfordelning (session #376)
+  // =================================================================
+
+  loadOrsaksfordelning(): void {
+    this.loadingOrsak = true;
+    this.errorOrsak   = false;
+    this.svc.getOrsaksfordelning(this.selectedDate)
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingOrsak = false;
+        if (res?.success) {
+          this.orsaksfordelning = res.data;
+          this.chartTimers.push(setTimeout(() => {
+            if (!this.destroy$.closed) this.buildOrsakChart();
+          }, 80));
+        } else {
+          this.errorOrsak = true;
+          this.orsaksfordelning = null;
+        }
+      });
+  }
+
+  private buildOrsakChart(): void {
+    try { this.orsakChart?.destroy(); } catch (_) {}
+    this.orsakChart = null;
+
+    if (!this.orsaksfordelning?.orsaker?.length) return;
+    const canvas = document.getElementById('orsakChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const data = this.orsaksfordelning.orsaker;
+    const colors = [
+      '#fc8181', '#f6ad55', '#68d391', '#63b3ed', '#9f7aea',
+      '#4fd1c5', '#fbd38d', '#b794f4', '#ed8936', '#a0aec0',
+    ];
+
+    // Lagg till okanda stopp om de finns
+    const labels = data.map(d => d.orsak);
+    const values = data.map(d => d.total_min);
+    if (this.orsaksfordelning.okand_stopp_min > 0) {
+      labels.push('Okand orsak');
+      values.push(this.orsaksfordelning.okand_stopp_min);
+    }
+
+    this.orsakChart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: labels.map((_, i) => colors[i % colors.length]),
+          borderColor: '#1a202c',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: '#e2e8f0', font: { size: 12 }, padding: 12 },
+          },
+          tooltip: {
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx: any) => {
+                const min = ctx.parsed;
+                const total = values.reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((min / total) * 100) : 0;
+                return ` ${ctx.label}: ${min.toFixed(1)} min (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // =================================================================
+  // Veckotrend (session #376)
+  // =================================================================
+
+  loadVeckotrend(): void {
+    this.loadingVeckotrend = true;
+    this.errorVeckotrend   = false;
+    this.svc.getVeckotrend(this.veckotrendDagar)
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingVeckotrend = false;
+        if (res?.success) {
+          this.veckotrend = res.data;
+          this.chartTimers.push(setTimeout(() => {
+            if (!this.destroy$.closed) this.buildVeckotrendChart();
+          }, 80));
+        } else {
+          this.errorVeckotrend = true;
+          this.veckotrend = null;
+        }
+      });
+  }
+
+  onVeckotrendDaysChange(): void {
+    this.loadVeckotrend();
+  }
+
+  private buildVeckotrendChart(): void {
+    try { this.veckotrendChart?.destroy(); } catch (_) {}
+    this.veckotrendChart = null;
+
+    if (!this.veckotrend?.trend?.length) return;
+    const canvas = document.getElementById('veckotrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const trend = this.veckotrend.trend;
+    const labels   = trend.map(d => d.datum);
+    const drifttid = trend.map(d => d.drifttid_min);
+    const stopptid = trend.map(d => d.stopptid_min);
+    const utnyttj  = trend.map(d => d.utnyttjandegrad_pct);
+
+    this.veckotrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Drifttid (min)',
+            data: drifttid,
+            borderColor: '#48bb78',
+            backgroundColor: 'rgba(72, 187, 120, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 4,
+            tension: 0.3,
+            yAxisID: 'yLeft',
+          },
+          {
+            label: 'Stopptid (min)',
+            data: stopptid,
+            borderColor: '#fc8181',
+            backgroundColor: 'rgba(252, 129, 129, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 4,
+            tension: 0.3,
+            yAxisID: 'yLeft',
+          },
+          {
+            label: 'Utnyttjandegrad %',
+            data: utnyttj,
+            borderColor: '#63b3ed',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 3,
+            tension: 0.3,
+            fill: false,
+            yAxisID: 'yRight',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 12 } } },
+          tooltip: {
+            intersect: false,
+            mode: 'nearest',
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx >= 0 && idx < trend.length) {
+                  return [`Antal stopp: ${trend[idx].antal_stopp}`];
+                }
+                return [];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 45 },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+          },
+          yLeft: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Minuter', color: '#a0aec0' },
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            beginAtZero: true,
+          },
+          yRight: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Utnyttjandegrad %', color: '#63b3ed' },
+            ticks: { color: '#63b3ed', callback: (val: any) => `${val}%` },
+            grid:  { drawOnChartArea: false },
+            beginAtZero: true,
+            max: 100,
+          },
+        },
+      },
+    });
   }
 
   // runningCount och stoppedCount ar nu cachedRunningCount / cachedStoppedCount (beraknas i rebuildCachedSegments)

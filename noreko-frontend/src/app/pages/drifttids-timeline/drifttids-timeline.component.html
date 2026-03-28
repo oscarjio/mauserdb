@@ -303,4 +303,85 @@
     </div>
   </div>
 
+  <!-- ======== ORSAKSFORDELNING — Doughnut-diagram (session #376) ======== -->
+  <div class="row g-3 mt-2">
+    <div class="col-lg-6">
+      <div class="table-card">
+        <h2 class="section-title">
+          <i class="fas fa-chart-pie me-2" style="color:#f6ad55"></i>Stopporsaker — fördelning
+          <small class="text-muted ms-2">{{ selectedDate }}</small>
+        </h2>
+
+        <div *ngIf="loadingOrsak" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
+          <span class="ms-2 text-muted">Laddar orsaksfördelning...</span>
+        </div>
+
+        <div *ngIf="!loadingOrsak && errorOrsak" class="text-center text-muted py-3">
+          <i class="fas fa-info-circle me-1"></i>Kunde inte hämta orsaksfördelning.
+        </div>
+
+        <div *ngIf="!loadingOrsak && !errorOrsak && orsaksfordelning">
+          <div *ngIf="orsaksfordelning.orsaker.length === 0 && orsaksfordelning.okand_stopp_min === 0" class="text-center text-muted py-3">
+            <i class="fas fa-check-circle me-1" style="color:#48bb78"></i>Inga registrerade stopporsaker denna dag.
+          </div>
+          <div *ngIf="orsaksfordelning.orsaker.length > 0 || orsaksfordelning.okand_stopp_min > 0">
+            <div style="position:relative; height:280px; width:100%;">
+              <canvas id="orsakChart"></canvas>
+            </div>
+            <div class="mt-2 d-flex flex-wrap gap-3">
+              <span class="text-muted small">
+                <i class="fas fa-clock me-1"></i>Total stopptid: {{ orsaksfordelning.total_stopp_min | number:'1.1-1' }} min
+              </span>
+              <span *ngIf="orsaksfordelning.okand_stopp_min > 0" class="text-muted small">
+                <i class="fas fa-question-circle me-1"></i>Okända: {{ orsaksfordelning.okand_stopp_min | number:'1.1-1' }} min ({{ orsaksfordelning.okand_stopp_antal }} st)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== VECKOTREND — Linjediagram (session #376) ======== -->
+    <div class="col-lg-6">
+      <div class="table-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="section-title mb-0">
+            <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Driftstopp veckotrend
+          </h2>
+          <select aria-label="Antal dagar" class="form-select form-select-sm" style="width:auto; background:#4a5568; color:#e2e8f0; border-color:#8fa3b8;"
+                  [(ngModel)]="veckotrendDagar" (change)="onVeckotrendDaysChange()">
+            <option [ngValue]="7">7 dagar</option>
+            <option [ngValue]="14">14 dagar</option>
+            <option [ngValue]="30">30 dagar</option>
+          </select>
+        </div>
+
+        <div *ngIf="loadingVeckotrend" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
+          <span class="ms-2 text-muted">Laddar veckotrend...</span>
+        </div>
+
+        <div *ngIf="!loadingVeckotrend && errorVeckotrend" class="text-center text-muted py-3">
+          <i class="fas fa-info-circle me-1"></i>Kunde inte hämta veckotrend.
+        </div>
+
+        <div *ngIf="!loadingVeckotrend && !errorVeckotrend && veckotrend">
+          <div *ngIf="!veckotrend.trend?.length" class="text-center text-muted py-3">
+            Ingen trenddata tillgänglig.
+          </div>
+          <div *ngIf="veckotrend.trend?.length">
+            <div style="position:relative; height:280px; width:100%;">
+              <canvas id="veckotrendChart"></canvas>
+            </div>
+            <p class="text-muted small mt-2 mb-0">
+              <i class="fas fa-info-circle me-1"></i>Grön = drifttid, röd = stopptid, blå streckad = utnyttjandegrad (%).
+              Vänster axel = minuter. Höger axel = %.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

@@ -81,6 +81,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   compareError   = '';
   compareResult: { a: any; b: any } | null = null;
 
+  // ---- Operatör-KPI-jämförelse (session #376) ----
+  opKpiData: any[] = [];
+  opKpiLoading = false;
+  opKpiError = '';
+  private opKpiChart: Chart | null = null;
+  private opKpiBuildTimer: any = null;
+
   // ---- Skiftkommentar ----
   kommentarMap: { [reportId: number]: string } = {};
   kommentarLoading: { [reportId: number]: boolean } = {};
@@ -148,6 +155,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.fetchProducts();
     this.loadSettings();
     this.loadOperators();
+    this.loadOpKpiJamforelse();
 
     // Uppdatera tabellen var 10:e sekund
     this.updateInterval = setInterval(() => {
@@ -162,11 +170,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     clearTimeout(this.trendBuildTimer);
     clearTimeout(this.effBuildTimer);
     clearTimeout(this.scrollRestoreTimer);
+    clearTimeout(this.opKpiBuildTimer);
     this.fetchSub?.unsubscribe();
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
     try { this.efficiencyChart?.destroy(); } catch (e) {}
     this.efficiencyChart = null;
+    try { this.opKpiChart?.destroy(); } catch (e) {}
+    this.opKpiChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1564,6 +1575,134 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       defaultStyle: { fontSize: 11 },
       pageMargins: [40, 50, 40, 50]
     };
+  }
+
+  // ========== Operatör-KPI-jämförelse ==========
+  loadOpKpiJamforelse() {
+    const from = this.filterFrom || new Date(Date.now() - 30 * 86400000).toISOString().substring(0, 10);
+    const to   = this.filterTo   || new Date().toISOString().substring(0, 10);
+    this.opKpiLoading = true;
+    this.opKpiError = '';
+    this.skiftrapportService.getOperatorKpiJamforelse(from, to)
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.opKpiLoading = false;
+        if (res?.success && res.data?.length) {
+          this.opKpiData = res.data;
+          clearTimeout(this.opKpiBuildTimer);
+          this.opKpiBuildTimer = setTimeout(() => {
+            if (!this.destroy$.closed) this.buildOpKpiChart();
+          }, 100);
+        } else if (res && !res.success) {
+          this.opKpiError = res.error || 'Kunde inte hamta operatorsjamforelse';
+        } else {
+          this.opKpiData = [];
+        }
+      });
+  }
+
+  private buildOpKpiChart() {
+    try { this.opKpiChart?.destroy(); } catch (e) {}
+    this.opKpiChart = null;
+
+    if (!this.opKpiData?.length) return;
+    const canvas = document.getElementById('opKpiCanvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    const sorted = [...this.opKpiData].sort((a, b) => b.snitt_ibc_per_timme - a.snitt_ibc_per_timme);
+    const labels   = sorted.map(d => d.operator_name);
+    const ibcPerH  = sorted.map(d => d.snitt_ibc_per_timme);
+    const oeePct   = sorted.map(d => d.snitt_oee_pct);
+    const kassPct  = sorted.map(d => d.kassation_pct);
+
+    this.opKpiChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Snitt IBC/h',
+            data: ibcPerH,
+            backgroundColor: 'rgba(99, 179, 237, 0.7)',
+            borderColor: '#63b3ed',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'yLeft',
+          },
+          {
+            label: 'OEE %',
+            data: oeePct,
+            backgroundColor: 'rgba(104, 211, 145, 0.7)',
+            borderColor: '#68d391',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'yRight',
+          },
+          {
+            label: 'Kassation %',
+            data: kassPct,
+            backgroundColor: 'rgba(252, 129, 129, 0.7)',
+            borderColor: '#fc8181',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'yRight',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 12 } } },
+          tooltip: {
+            intersect: false,
+            mode: 'nearest',
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx >= 0 && idx < sorted.length) {
+                  const d = sorted[idx];
+                  return [
+                    `Antal skift: ${d.antal_skift}`,
+                    `Totalt IBC OK: ${d.totalt_ibc_ok}`,
+                    `Total drifttid: ${d.total_drifttid_h}h`,
+                  ];
+                }
+                return [];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 45 },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+          },
+          yLeft: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'IBC/h', color: '#63b3ed' },
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            beginAtZero: true,
+          },
+          yRight: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: '%', color: '#68d391' },
+            ticks: { color: '#a0aec0', callback: (val: any) => `${val}%` },
+            grid:  { drawOnChartArea: false },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
   }
 
   // ========== Skiftjämförelse ==========

@@ -51,6 +51,49 @@ export interface TimelineSummaryResponse {
   timestamp: string;
 }
 
+// ---- Orsaksfordelning ----
+
+export interface OrsaksfordelningItem {
+  orsak: string;
+  total_min: number;
+  andel_pct: number;
+  antal_stopp: number;
+  kalla: string;
+}
+
+export interface OrsaksfordelningData {
+  date: string;
+  total_stopp_min: number;
+  orsaker: OrsaksfordelningItem[];
+  okand_stopp_min: number;
+  okand_stopp_antal: number;
+}
+
+export interface OrsaksfordelningResponse {
+  success: boolean;
+  data: OrsaksfordelningData;
+}
+
+// ---- Veckotrend ----
+
+export interface VeckotrendItem {
+  datum: string;
+  drifttid_min: number;
+  stopptid_min: number;
+  antal_stopp: number;
+  utnyttjandegrad_pct: number;
+}
+
+export interface VeckotrendData {
+  days: number;
+  trend: VeckotrendItem[];
+}
+
+export interface VeckotrendResponse {
+  success: boolean;
+  data: VeckotrendData;
+}
+
 // ---- Service ----
 
 @Injectable({ providedIn: 'root' })
@@ -73,6 +116,28 @@ export class DrifttidsTimelineService {
   getDaySummary(date: string): Observable<TimelineSummaryResponse | null> {
     return this.http.get<TimelineSummaryResponse>(
       `${this.api}&run=summary&date=${date}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(15000),
+      retry(1),
+      catchError(() => of(null))
+    );
+  }
+
+  getOrsaksfordelning(date: string): Observable<OrsaksfordelningResponse | null> {
+    return this.http.get<OrsaksfordelningResponse>(
+      `${this.api}&run=orsaksfordelning&date=${date}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(15000),
+      retry(1),
+      catchError(() => of(null))
+    );
+  }
+
+  getVeckotrend(days: number = 7): Observable<VeckotrendResponse | null> {
+    return this.http.get<VeckotrendResponse>(
+      `${this.api}&run=veckotrend&days=${days}`,
       { withCredentials: true }
     ).pipe(
       timeout(15000),

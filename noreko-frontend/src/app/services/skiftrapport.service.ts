@@ -86,4 +86,13 @@ export class SkiftrapportService {
       timeout(10000), retry(1), catchError(() => of(null))
     );
   }
+
+  getOperatorKpiJamforelse(from: string, to: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.api}&run=operator-kpi-jamforelse&from=${from}&to=${to}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(15000), retry(1), catchError(() => of(null))
+    );
+  }
 }
