@@ -467,6 +467,61 @@
 .legend-dot.status-medium    { background: #f6e05e; }
 .legend-dot.status-low       { background: #fc8181; }
 
+/* ---- KPI-mini i statusöversikt ---- */
+.status-op-kpi-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.kpi-mini {
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.kpi-mini i {
+  font-size: 0.6rem;
+}
+
+/* ---- Radar KPI-detaljer ---- */
+.radar-kpi-details {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+}
+
+.radar-kpi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #4a556830;
+  font-size: 0.82rem;
+}
+
+.radar-kpi-row:last-child {
+  border-bottom: none;
+}
+
+.radar-kpi-total {
+  padding-top: 0.45rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid #4a5568;
+}
+
+.radar-kpi-label {
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+.radar-kpi-val {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
 @media (max-width: 768px) {
   .sim-result-grid {
     grid-template-columns: 1fr;

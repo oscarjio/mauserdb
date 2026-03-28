@@ -217,6 +217,41 @@
         <div *ngIf="selectedOperator" class="chart-container-sm">
           <canvas id="bonusRadarChart"></canvas>
         </div>
+        <!-- KPI-detaljer under radar -->
+        <div *ngIf="selectedOperator" class="radar-kpi-details mt-3">
+          <div class="radar-kpi-row">
+            <span class="radar-kpi-label">
+              <i class="fas fa-industry me-1" style="color:#4299e1;"></i>IBC/h snitt
+            </span>
+            <span class="radar-kpi-val" [style.color]="progressBarColor(selectedOperator.pct_ibc)">
+              {{ selectedOperator.ibc_per_timme.toFixed(1) }}
+            </span>
+          </div>
+          <div class="radar-kpi-row">
+            <span class="radar-kpi-label">
+              <i class="fas fa-check-circle me-1" style="color:#48bb78;"></i>Kvalitet
+            </span>
+            <span class="radar-kpi-val" [style.color]="progressBarColor(selectedOperator.pct_kvalitet)">
+              {{ selectedOperator.kvalitet.toFixed(1) }}%
+            </span>
+          </div>
+          <div class="radar-kpi-row">
+            <span class="radar-kpi-label">
+              <i class="fas fa-calendar-check me-1" style="color:#ecc94b;"></i>Närvaro
+            </span>
+            <span class="radar-kpi-val" [style.color]="progressBarColor(selectedOperator.pct_narvaro)">
+              {{ selectedOperator.narvaro.toFixed(1) }}%
+            </span>
+          </div>
+          <div class="radar-kpi-row radar-kpi-total">
+            <span class="radar-kpi-label">
+              <i class="fas fa-coins me-1" style="color:#ecc94b;"></i>Total bonus
+            </span>
+            <span class="radar-kpi-val text-bonus-high">
+              {{ formatKr(selectedOperator.total_bonus) }}
+            </span>
+          </div>
+        </div>
         <div *ngIf="!selectedOperator" class="text-muted small py-3 text-center">
           Välj en operatör.
         </div>
@@ -240,11 +275,19 @@
         <div class="status-op-icon"><i [class]="bonusStatusIcon(op.total_bonus)"></i></div>
         <div class="status-op-name">{{ op.operator_namn }}</div>
         <div class="status-op-bonus">{{ formatKr(op.total_bonus) }}</div>
+        <div class="status-op-kpi-row">
+          <span class="kpi-mini" [style.color]="progressBarColor(op.pct_ibc)" title="IBC/h uppfyllnad">
+            <i class="fas fa-industry"></i> {{ op.ibc_per_timme.toFixed(1) }}
+          </span>
+          <span class="kpi-mini" [style.color]="progressBarColor(op.pct_kvalitet)" title="Kvalitet %">
+            <i class="fas fa-check-circle"></i> {{ op.kvalitet.toFixed(0) }}%
+          </span>
+        </div>
         <div class="status-op-pct">{{ bonusPctOfMax(op.total_bonus) }}</div>
       </div>
     </div>
     <div class="status-legend mt-2">
-      <span class="legend-item"><span class="legend-dot status-excellent"></span>Utmärkt (≥85%)</span>
+      <span class="legend-item"><span class="legend-dot status-excellent"></span>Utmärkt (&ge;85%)</span>
       <span class="legend-item"><span class="legend-dot status-good"></span>Bra (65–84%)</span>
       <span class="legend-item"><span class="legend-dot status-medium"></span>Medel (40–64%)</span>
       <span class="legend-item"><span class="legend-dot status-low"></span>Låg (&lt;40%)</span>

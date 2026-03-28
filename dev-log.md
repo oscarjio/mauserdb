@@ -1,5 +1,74 @@
 # MauserDB Dev Log
 
+## Session #377 — Worker B (Frontend) (2026-03-28)
+**Fokus: Operatorsbonus UX-forbattringar + lifecycle-fix + navigationsfix + data-verifiering + deploy**
+
+### UPPGIFT 1: Operatorsbonus-sidan UX — tydligare KPI-detaljer
+- Lagt till KPI-mini-indikatorer (IBC/h, Kvalitet%) med fargkodning i statusoversiktens tiles
+- Ny radar-KPI-detaljsektion under radardiagrammet visar IBC/h snitt, Kvalitet%, Narvaro% och Total bonus for vald operator
+- Fargkodning (gront/gult/rott) baserat pa pct_ibc/pct_kvalitet/pct_narvaro med progressBarColor-metoden
+- Nya CSS-klasser: .status-op-kpi-row, .kpi-mini, .radar-kpi-details, .radar-kpi-row etc.
+- Tabellen var redan komplett med sortering, mini-progressbars, status-badges och tooltips
+
+### UPPGIFT 2: Rebotling historik — granskning
+- Granskade historisk-produktion-komponenten (rebotling/historik och rebotling/historisk-produktion)
+- Filter: periodval (7/30/90/365 dagar + anpassat datumintervall) — fungerar
+- Sortering: kolumner (datum, total, etc.) med ASC/DESC — fungerar
+- Pagination: goPage med total_pages — fungerar
+- Jamforelse: trendikon + diff mot foregaende manad — fungerar
+- Inga UX-problem hittade
+
+### UPPGIFT 3: Statistik dashboard — periodval och jamforelser
+- Fixat periodval-bug: andrat fran [value] till [ngValue] i select-element sa att trendPeriod behaller sin number-typ (undviker strikt typjamforelse-problem)
+- Fixat dubbel chart.destroy() i ngOnDestroy (raderat redundant trendChart.destroy() fore destroyChart()-anropet)
+- Periodval (1/7/14/30/90 dagar) fungerar med adaptiv granularitet
+- Jamforelser: getDiffClass/getDiffIcon/getDiffPct-helpers finns och fungerar korrekt
+- Trendgraf med dubbel Y-axel (IBC vänster, Kassation% höger)
+
+### UPPGIFT 4: Navigationsmenyn — granskning + fix
+- Fixat: routerLinkActive="active" med [routerLinkActiveOptions]="{exact:true}" pa Hem-lanken (var hardkodad "active" tidigare)
+- Alla sidor narbara via dropdown-menyer (Rebotling, Tvattlinje, Saglinje, Klassificeringslinje, Rapporter, Admin)
+- Responsive: navbar-toggler + collapse fungerar pa mobil
+- Notifikationscentral fungerar med urgentNoteCount + certExpiryCount + activeAlertsCount
+
+### UPPGIFT 5: Rebotling live-dashboard — data-verifiering (TITTA BARA)
+- Verifierat API:er via curl:
+  - `rebotling&run=live-summary`: OK, returnerar rebotlingToday=0, target=1000, temp=4.6 (korrekt, linjen ar stoppad)
+  - `rebotling&run=status`: OK, running=false, lastUpdate=2026-03-27 22:59:04
+  - `rebotling&run=oee&period=dag`: OK, alla varden 0 (linjen ar stoppad — korrekt)
+  - `rebotling&run=rast`: OK, on_rast=false
+  - `rebotling&run=driftstopp`: OK, on_driftstopp=false
+- Alla API:er returnerar valid JSON med success=true
+- **INGEN KOD ANDRAD i rebotling-live**
+
+### UPPGIFT 6: Lifecycle-audit
+- Kontrollerat alla 40+ Angular-komponenter
+- Alla implementerar OnInit/OnDestroy med destroy$ + takeUntil
+- Alla setInterval/setTimeout rensas i ngOnDestroy
+- Alla Chart-instanser destroyas i ngOnDestroy
+- Fixat: statistik-dashboard hade redundant trendChart.destroy() fore destroyChart() — borttaget
+- Inga laskande subscriptions hittade
+
+### UPPGIFT 7: Data-verifiering mot prod
+- Prod DB: 5030 cykler i rebotling_ibc (overensstammer med session #376)
+- Prod DB: 28 skiftrapporter (overensstammer)
+- Prod DB: 13 operatorer i operators-tabellen, 11 unika i rebotling_ibc (op1)
+- 0 diskrepanser hittade
+
+### UPPGIFT 8: Build + Deploy
+- `npx ng build` — 0 kompileringsfel, enbart CommonJS-warnings
+- Deploy via rsync till dev.mauserdb.com — OK
+
+### Andrade filer:
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html` — KPI-detaljer i statusoversikt + radar-panel
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.css` — nya CSS-klasser for KPI-mini + radar-detaljer
+- `noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.ts` — borttagen redundant chart.destroy()
+- `noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.html` — [value] till [ngValue] fix
+- `noreko-frontend/src/app/menu/menu.html` — routerLinkActive fix for Hem-lanken
+- `dev-log.md` — denna logg
+
+---
+
 ## Session #376 — Worker B (Frontend) (2026-03-28)
 **Fokus: Operator-KPI-jamforelse integration + driftstopp-analys frontend + lifecycle-audit + deploy**
 
