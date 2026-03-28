@@ -214,6 +214,8 @@ class RebotlingController {
                 $this->getOeeComponents();
             } elseif ($action === 'production-rate') {
                 $this->getProductionRate();
+            } elseif ($action === 'day-raw-data') {
+                $this->getDayRawData();
             } elseif ($action === 'weekly-kpis') {
                 $this->veckotrendController->handle();
             } else {
@@ -1113,6 +1115,123 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta dagsstatistik'
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=day-raw-data&date=YYYY-MM-DD
+     *
+     * Returnerar rådata för ett specifikt datum:
+     *   - on/off events (rebotling_onoff)
+     *   - rast events (rebotling_runtime)
+     *   - driftstopp events (rebotling_driftstopp)
+     *   - skiftrapportdata (rebotling_ibc aggregerad per skifträknare)
+     */
+    private function getDayRawData() {
+        try {
+            $date = $_GET['date'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $date = date('Y-m-d');
+            }
+
+            // 1. On/Off events
+            $stmt = $this->pdo->prepare('
+                SELECT datum, running, skiftraknare
+                FROM rebotling_onoff
+                WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                ORDER BY datum ASC
+            ');
+            $stmt->execute(['date' => $date, 'dateb' => $date]);
+            $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // 2. Rast events
+            $rast_events = [];
+            try {
+                $stmt = $this->pdo->prepare('
+                    SELECT datum, rast_status
+                    FROM rebotling_runtime
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                    ORDER BY datum ASC
+                ');
+                $stmt->execute(['date' => $date, 'dateb' => $date]);
+                $rast_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {
+                error_log('getDayRawData rast: ' . $e->getMessage());
+            }
+
+            // 3. Driftstopp events
+            $driftstopp_events = [];
+            try {
+                $check = $this->pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.tables
+                     WHERE table_schema = DATABASE()
+                       AND table_name = 'rebotling_driftstopp'"
+                )->fetchColumn();
+                if ($check) {
+                    $stmt = $this->pdo->prepare('
+                        SELECT datum, driftstopp_status, skiftraknare
+                        FROM rebotling_driftstopp
+                        WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                        ORDER BY datum ASC
+                    ');
+                    $stmt->execute(['date' => $date, 'dateb' => $date]);
+                    $driftstopp_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+            } catch (Exception $e) {
+                error_log('getDayRawData driftstopp: ' . $e->getMessage());
+            }
+
+            // 4. Skiftrapport data (IBC per skifträknare)
+            $stmt = $this->pdo->prepare('
+                SELECT
+                    skiftraknare,
+                    MIN(datum) AS first_datum,
+                    MAX(datum) AS last_datum,
+                    MAX(ibc_ok) AS ibc_ok,
+                    MAX(ibc_ej_ok) AS ibc_ej_ok,
+                    MAX(bur_ej_ok) AS bur_ej_ok,
+                    MAX(ibc_count) AS ibc_count,
+                    MAX(runtime_plc) AS runtime_plc,
+                    MAX(rasttime) AS rasttime,
+                    MAX(produktion_procent) AS produktion_procent,
+                    MAX(effektivitet) AS effektivitet,
+                    MAX(produkt) AS produkt
+                FROM rebotling_ibc
+                WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                GROUP BY skiftraknare
+                ORDER BY skiftraknare ASC
+            ');
+            $stmt->execute(['date' => $date, 'dateb' => $date]);
+            $skiftrapport_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'date' => $date,
+                    'onoff_events' => array_map(fn($e) => [
+                        'datum' => $e['datum'],
+                        'running' => (int)$e['running'],
+                        'skiftraknare' => $e['skiftraknare'] !== null ? (int)$e['skiftraknare'] : null
+                    ], $onoff_events),
+                    'rast_events' => array_map(fn($e) => [
+                        'datum' => $e['datum'],
+                        'rast_status' => (int)$e['rast_status']
+                    ], $rast_events),
+                    'driftstopp_events' => array_map(fn($e) => [
+                        'datum' => $e['datum'],
+                        'driftstopp_status' => (int)$e['driftstopp_status'],
+                        'skiftraknare' => $e['skiftraknare'] !== null ? (int)$e['skiftraknare'] : null
+                    ], $driftstopp_events),
+                    'skiftrapport_data' => $skiftrapport_data
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (Exception $e) {
+            error_log('RebotlingController::getDayRawData: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta rådata för dagen'
             ], JSON_UNESCAPED_UNICODE);
         }
     }

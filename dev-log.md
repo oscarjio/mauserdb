@@ -1,5 +1,50 @@
 # MauserDB Dev Log
 
+## Session #381 — Worker A (Backend) (2026-03-28)
+**Fokus: getDayRawData endpoint-granskning + endpoint-test 123 endpoints + SQL-audit + skiftrapport KPI-verifiering + admin CRUD-test + performance-audit + deploy dev**
+
+### UPPGIFT 1: Granska och testa uncommitted backend-andringar
+- Granskade RebotlingController.php diff: ny getDayRawData() metod (+119 rader)
+- SQL-validering mot prod_db_schema.sql: alla 4 tabeller (rebotling_onoff, rebotling_runtime, rebotling_driftstopp, rebotling_ibc) och alla kolumner existerar i schemat
+- Deployade backend till dev.mauserdb.com
+- Testat med curl: 200 OK, 0.74s svarstid, korrekt JSON-respons med on/off, rast, driftstopp, skiftrapportdata
+
+### UPPGIFT 2: Endpoint-test — 123 endpoints mot dev.mauserdb.com
+- Testat ALLA 115 action-varden fran api.php + 8 rebotling sub-endpoints (historik, statistik, oee, skiftrapport, day-raw-data, weekly-kpis, production-rate, oee-components)
+- Totalt: 123 endpoints, 0 st 500-fel, langsta svarstid 0.714s (tvattlinje)
+- Alla endpoints < 1.5s
+- Auth-skyddade endpoints returnerar korrekt 401/403
+- POST-only endpoints (login, register) returnerar 405 vid GET
+
+### UPPGIFT 3: SQL-audit — ALLA PHP-queries mot prod_db_schema.sql
+- Granskade alla 115+ PHP-controllers i noreko-backend/classes/
+- Extraherade alla tabellreferenser fran FROM/JOIN/INTO/UPDATE
+- 92 tabeller i schemat, ~80 unika tabeller refererade i PHP
+- 6 tabeller refererade i PHP men ej i schema-dump: alla gardade med tableExists(), SHOW TABLES, eller try-catch
+- Resultat: 0 mismatches
+
+### UPPGIFT 4: Skiftrapport — verifiera berakningar mot prod data
+- Hamtade data fran prod DB for 2026-03-27: 4 skift (80, 81, 82, 83)
+- Jamforde med day-raw-data API-svar: EXAKT matchning pa alla varden
+- KPI-verifiering for skift 82: kvalitet 98.5%, kassation 1.47%, IBC/h 66.1 — alla korrekta
+
+### UPPGIFT 5: Admin-sidor — CRUD-test mot dev
+- GET utan auth: 403 (admin, operators) — korrekt
+- POST/PUT/DELETE utan session: 401 "Sessionen har gatt ut" — korrekt
+- POST/PUT/DELETE utan CSRF-token: blockeras av session-check forst — korrekt
+- Felhantering: ogiltiga creds vid login ger "Felaktigt anvandarnamn eller losenord" — korrekt
+
+### UPPGIFT 6: Performance-audit
+- Alla testade endpoints under 1.5s (mal uppfyllt)
+- Snabbaste: gamification 0.098s, status 0.154s
+- Langsammaste: tvattlinje 0.714s
+- Inga optimeringar behovdes
+
+### UPPGIFT 7: Deploy + commit
+- Backend deployad till dev.mauserdb.com via rsync
+- Committade RebotlingController.php med ny getDayRawData() endpoint
+- Uppdaterade dev-log.md
+
 ## Session #381 — Worker B (Frontend) (2026-03-28)
 **Fokus: Uncommitted-granskning + Skiftrapport UX + Statistik UX + Admin UX + Mobilanpassning + Lifecycle-audit + deploy dev**
 
