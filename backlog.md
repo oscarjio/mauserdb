@@ -11,18 +11,21 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #376):
-- [x] Operator-KPI-jamforelse stapeldiagram i skiftrapport (Worker B)
-- [x] Driftstopp orsaksfordelning doughnut + veckotrend linjediagram (Worker B)
-- [x] Operatorsbonus berakningar verifierade mot prod — OK (Worker A)
-- [x] Admin CRUD-audit — alla controllers OK (Worker A)
-- [x] Endpoint-test 113 endpoints 0x500 <1s (Worker A)
+### Klart (session #377):
+- [x] Operatorsbonus UX — KPI-detaljer+radar+fargkodning (Worker B) + backend 7 nya falt per operator (Worker A)
+- [x] Rebotling historik — daglig endpoint med filter/sortering/pagination (Worker A)
+- [x] Statistik dashboard — periodval fix [ngValue] + manads/kvartalsjamforelser backend (Worker A+B)
+- [x] Navigationsmenyn — routerLinkActive fix (Worker B)
+- [x] Rebotling live-dashboard — data verifierad OK, 5 API:er valid JSON (Worker B)
+- [x] Endpoint-test 169 endpoints 0x500 <1s (Worker A)
 - [x] SQL-audit 0 mismatches (Worker A)
-- [x] Lifecycle-audit 0 leaks + data-verifiering 5030 cykler 0 diskrepanser (Worker B)
+- [x] Lifecycle-audit 40+ komponenter 0 lackor (Worker B)
+- [x] Prestandafix driftstopp table-check 1.6s->0.23s (Worker A)
+- [x] Data-verifiering 5030 cykler 0 diskrepanser (Worker B)
 
-### Nasta (session #377):
-- [ ] Granska operatorsbonus-sidan UX — visa KPI-detaljer per operator tydligare
-- [ ] Rebotling historik — forbattra filterfunktioner och sortering
-- [ ] Statistik dashboard — forbattra periodval och jamnforelser
-- [ ] Granska navigationsmenyn — alla sidor narbara, korrekt ordning
-- [ ] Rebotling live-dashboard — verifiera att data uppdateras korrekt (TITTA BARA, ror ej koden)
+### Nasta (session #378):
+- [ ] Rebotling historik frontend — integrera daglig-endpoint med filter/sortering UI
+- [ ] Statistik dashboard frontend — integrera manads/kvartalsjamforelser fran backend
+- [ ] Operatorsbonus — detaljvy per operator (klickbar rad -> drilldown)
+- [ ] Skiftrapport — granska och forbattra UX, verifiera berakningar
+- [ ] Driftstopp-analys — forbattra timeline UX och filterfunktioner
