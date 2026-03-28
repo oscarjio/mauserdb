@@ -11,19 +11,10 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #378):
-- [x] Rebotling historik frontend — daglig-endpoint med filter/sortering/pagination (Worker B)
-- [x] Statistik dashboard — manads/kvartalsjamforelser med pilar+fargkodning + 180d/365d (Worker B)
-- [x] Operatorsbonus — klickbar drilldown per operator med KPI+historik (Worker B)
-- [x] Driftstopp-analys — typ-filter och min-langd-filter (Worker B)
-- [x] Endpoint-test 115 endpoints 0x500 <1s (Worker A)
-- [x] SQL-audit 0 mismatches (Worker A)
-- [x] Backend controller-granskning — berakningar OK, 5030 cykler 0 diskrepanser (Worker A)
-- [x] Lifecycle-audit alla komponenter 0 lackor (Worker B)
-
-### Nasta (session #379):
-- [ ] Rebotling live-dashboard — granska UX, verifiera realtidsdata mot prod
-- [ ] Operatorsbonus — trendgraf per operator (daglig/veckovis utveckling)
-- [ ] Statistik dashboard — forbattra grafernas interaktivitet (hover, zoom, export)
-- [ ] Admin-sidor — granska alla CRUD-operationer, UX-forbattringar
-- [ ] Driftstopp-analys — timeline forbattring, barre datumnavigering
+### Nasta (session #380):
+- [ ] Rebotling live-dashboard — verifiera realtidsdata mot prod DB, UX-granskning (rör EJ live-komponenterna)
+- [ ] Statistik dashboard — exportfunktion (PDF/CSV) for grafer och tabeller
+- [ ] Operatorsbonus trendgraf — verifiera data mot prod, finjustera grafvy
+- [ ] Skiftrapport — granska berakningar, verifiera mot prod data
+- [ ] Driftstopp — verifiera nya vecko/manadsaggregat-endpoints mot prod data
+- [ ] Historik — granska daglig historik-fliken, pagination + filter UX
