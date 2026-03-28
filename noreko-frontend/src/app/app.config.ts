@@ -59,8 +59,14 @@ class GlobalErrorHandler implements ErrorHandler {
       return;
     }
 
-    // Logga alltid till konsolen
-    console.error(error);
+    // Logga alltid till konsolen med kontext
+    const errorInfo = {
+      timestamp: new Date().toISOString(),
+      message: msg || 'Okant fel',
+      stack: innerError?.stack?.split('\n').slice(0, 5).join('\n') || '',
+      component: innerError?.ngDebugContext?.component || innerError?.ngOriginalError?.ngDebugContext?.component || 'okand',
+    };
+    console.error('[GlobalErrorHandler]', errorInfo.message, errorInfo);
 
     // Visa toast för okontrollerade fel (med rate-limiting)
     const now = Date.now();

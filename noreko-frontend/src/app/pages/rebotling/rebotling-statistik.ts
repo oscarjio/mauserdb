@@ -1370,11 +1370,25 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               padding: 12,
               displayColors: true,
               callbacks: {
+                title: (items: any[]) => {
+                  if (!items.length) return '';
+                  return `Tid: ${items[0].label}`;
+                },
+                label: (ctx: any) => {
+                  const val = ctx.parsed.y;
+                  if (ctx.dataset.label === 'Effektivitet %') return `Effektivitet: ${val != null ? val.toFixed(1) : '—'}%`;
+                  if (ctx.dataset.label === 'Snitt') return `Genomsnitt: ${val != null ? val.toFixed(1) : '—'}%`;
+                  return `${ctx.dataset.label}: ${val != null ? val.toFixed(1) : '—'}`;
+                },
                 afterBody: (tooltipItems: any[]) => {
                   if (!tooltipItems.length || !chartData.produktNamn) return '';
                   const idx = tooltipItems[0].dataIndex;
+                  const lines: string[] = [];
                   const namn = chartData.produktNamn[idx];
-                  return namn ? `Produkt: ${namn}` : '';
+                  if (namn) lines.push(`Produkt: ${namn}`);
+                  if (chartData.targetCycleTime?.[idx]) lines.push(`Målcykeltid: ${chartData.targetCycleTime[idx].toFixed(1)} min`);
+                  if (chartData.cycleTime?.[idx]) lines.push(`Cykeltid: ${chartData.cycleTime[idx].toFixed(1)} min`);
+                  return lines.length ? lines.join('\n') : '';
                 }
               }
             }
@@ -1571,11 +1585,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             borderWidth: 1,
             padding: 12,
             callbacks: {
+              title: (items: any[]) => {
+                if (!items.length) return '';
+                const label = items[0].label;
+                return this.viewMode === 'year' ? `Månad: ${label}` : `Dag: ${label}`;
+              },
               label: (context: any) => {
                 const idx = context.dataIndex;
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
-                return [`Effektivitet: ${eff}%`, `IBC: ${count}`];
+                const effStatus = eff >= 100 ? ' (over mal)' : eff >= 90 ? ' (nara mal)' : ' (under mal)';
+                return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
               }
             }
           }

@@ -146,7 +146,19 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
-          tooltip: { intersect: false, mode: 'nearest', backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#4299e1', borderWidth: 1 },
+          tooltip: {
+            intersect: false, mode: 'nearest',
+            backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0',
+            borderColor: '#4299e1', borderWidth: 1, padding: 12,
+            callbacks: {
+              title: (items: any[]) => items.length ? `Datum: ${items[0].label}` : '',
+              label: (ctx: any) => {
+                const val = ctx.parsed.y;
+                if (val == null) return `${ctx.dataset.label}: —`;
+                return `${ctx.dataset.label}: ${val.toFixed(1)}%`;
+              }
+            }
+          },
           verticalAnnotations: { annotations: combinedAnnotations }
         } as any,
         scales: {

@@ -153,7 +153,17 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
             borderColor: '#ed8936',
-            borderWidth: 1
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              label: (ctx: any) => {
+                const val = ctx.parsed.y;
+                const label = ctx.dataset.label;
+                const cat = (ctx.chart.data.labels as string[])?.[ctx.dataIndex] || '';
+                const unit = cat.includes('%') ? '%' : cat.includes('IBC/h') ? ' IBC/h' : ' st';
+                return `${label}: ${val != null ? val.toFixed(1) : '—'}${unit}`;
+              }
+            }
           }
         },
         scales: {
@@ -257,7 +267,16 @@ export class StatistikSkiftjamforelseComponent implements OnInit, OnDestroy {
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
             borderColor: '#6366f1',
-            borderWidth: 1
+            borderWidth: 1,
+            padding: 12,
+            callbacks: {
+              title: (items: any[]) => items.length ? `Datum: ${items[0].label}` : '',
+              label: (ctx: any) => {
+                const val = ctx.parsed.y;
+                const unit = this.activeChart === 'kvalitet' ? '%' : this.activeChart === 'cykeltid' ? ' min' : ' IBC';
+                return `${ctx.dataset.label}: ${val != null ? val.toFixed(1) : '—'}${unit}`;
+              }
+            }
           }
         },
         scales: {

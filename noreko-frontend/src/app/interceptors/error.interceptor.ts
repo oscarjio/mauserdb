@@ -30,6 +30,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       },
     }),
     catchError((error: HttpErrorResponse) => {
+      // Centraliserad loggning med kontext — logga ALLA HTTP-fel for diagnostik
+      const method = req.method;
+      const url = req.url.replace(/^https?:\/\/[^/]+/, ''); // Strip host for readability
+      const status = error.status;
+      console.error(
+        `[HTTP ${status}] ${method} ${url}`,
+        { status, statusText: error.statusText, timestamp: new Date().toISOString(), errorBody: error.error }
+      );
+
       // Skip toast for status check (polling) and requests with custom skip header
       if (req.url.includes('action=status') || req.headers.has('X-Skip-Error-Toast')) {
         return throwError(() => error);

@@ -173,20 +173,45 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
           },
           tooltip: {
             intersect: false, mode: 'nearest',
+            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1,
+            padding: 12,
             callbacks: {
-              label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y} IBC`
+              title: (items: any[]) => {
+                if (!items.length) return '';
+                return `Tidpunkt: ${items[0].label}`;
+              },
+              label: (ctx: any) => {
+                const val = ctx.parsed.y;
+                if (ctx.dataset.label === 'Maltal') return `Måltal: ${val} IBC/h`;
+                return `Produktion: ${val} IBC/h`;
+              },
+              afterBody: (items: any[]) => {
+                if (!items.length) return '';
+                const idx = items[0].dataIndex;
+                const entry = this.hourlyHistory[idx];
+                if (!entry) return '';
+                const diff = entry.ibc_count - entry.target;
+                const sign = diff >= 0 ? '+' : '';
+                return `Avvikelse: ${sign}${diff} IBC`;
+              }
             }
           }
         },
         scales: {
           x: {
             ticks: { color: '#a0aec0', maxRotation: 45 },
-            grid: { color: 'rgba(255,255,255,0.05)' }
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Tidpunkt', color: '#a0aec0', font: { size: 12 } }
           },
           y: {
             beginAtZero: true,
-            ticks: { color: '#a0aec0' },
-            grid: { color: 'rgba(255,255,255,0.08)' }
+            ticks: { color: '#a0aec0', callback: (v: any) => v + ' IBC' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            title: { display: true, text: 'IBC per timme', color: '#a0aec0', font: { size: 12 } }
           }
         }
       }

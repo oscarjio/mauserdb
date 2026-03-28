@@ -83,6 +83,95 @@
   - maintenance: 403 (admin krävs, korrekt)
 - **0 st 500-fel, alla under 0.6s**
 
+---
+
+## Session #372 — Worker B (2026-03-28)
+**Fokus: Rebotling graf-forbattringar + error monitoring + data-verifiering + UX-walkthrough + deploy**
+
+### UPPGIFT 1: Rebotling graf-forbattringar — KLAR
+- **65 Chart.js-grafer granskade** over alla rebotling-sidor
+- **Tooltip-forbattringar implementerade** i 6 nyckelkomponenter:
+  - `rebotling-statistik.ts` (dag-vy): Lagt till tid i title, detaljerad label med enhet, afterBody med produkt/malcykeltid/cykeltid
+  - `rebotling-statistik.ts` (bar chart manads/arsvy): Lagt till period-label i title, effektivitetsstatus (over/nara/under mal)
+  - `produktionseffektivitet.ts`: Forbattrad tooltip med klockan-prefix, enhet IBC/timme, konsekvent dark theme-styling
+  - `produktionstakt.ts`: Lagt till tidpunkt i title, avvikelse fran maltal i afterBody, axel-labels med enheter
+  - `statistik-oee-deepdive.ts`: Lagt till datum-prefix i title, formaterat alla varden med 1 decimal + %-enhet
+  - `statistik-oee-komponenter.ts`: Lagt till datum i title, dark theme tooltip-styling
+  - `statistik-skiftjamforelse.ts` (bar + linje): Enhetskorrekt label baserat pa KPI-typ (%, min, IBC)
+- **Axel-labels forbattrade**: Produktionstakt-grafen har nu tydliga enheter pa bada axlarna (IBC per timme, Tidpunkt)
+- **Dark theme**: Alla tooltip-bakgrunder rgba(15-20,17-20,20-23,0.95), kantfarger som matchar dataset, padding 12px
+- **150% effektivitets-cap BEVARAD**: Verifierat pa 3 stallen i rebotling-statistik.ts (rad 827, 1098, 1182) + y-axis max: 150 (rad 1385)
+
+### UPPGIFT 2: Error monitoring — centraliserad loggning — KLAR
+- **Global ErrorHandler redan implementerad** i app.config.ts (GlobalErrorHandler-klass):
+  - Fangar ChunkLoadError med reload + loop-skydd + overlay pa svenska
+  - Rate-limiting: max 1 generiskt felmeddelande per 3 sekunder
+  - Toast-meddelande for okontrollerade fel
+  - **Forbattring**: Lagt till strukturerad loggning med timestamp, message, stack (5 rader), komponent-kontext
+- **HttpInterceptor (error.interceptor.ts)** redan robust:
+  - Retry 1x for idempotenta metoder (GET/HEAD/OPTIONS) vid natverksfel/502/503/504
+  - Specifika felmeddelanden pa svenska for 401, 403, 404, 408, 429, 500+
+  - Auth-hantering: clearSession() + redirect till login med returnUrl
+  - Skip-logik for polling (action=status) och X-Skip-Error-Toast
+  - **Forbattring**: Lagt till centraliserad console.error-loggning for ALLA HTTP-fel med method, URL, status, timestamp, errorBody
+- **Alla API-anrop i rebotling-komponenter** har catchError med of(null) + timeout(8000-15000ms) + takeUntil(destroy$)
+- **Inga nya sidor skapade** — enbart forbattring av befintlig error handling
+
+### UPPGIFT 3: Data-verifiering mot prod DB — KLAR (0 diskrepanser)
+- **Prod DB (senaste 7 dagar)**:
+  - rebotling_ibc: 394 rader totalt
+  - Dagfordelning: 23 mars: 182, 24 mars: 38, 25 mars: 52, 27 mars: 122
+  - Effektivitet: snitt 100.0% (23/3), 97.6% (24/3), 100.0% (25/3), 100.0% (27/3)
+  - Kvalitet: snitt 100.0% (23/3), 98.6% (24/3), 92.9% (25/3), 99.5% (27/3)
+  - Operatorer: op1=164 (182 st), op1=157 (72 st), op1=168 (66 st), op1=0 (52 st)
+  - Skift: 9 unika skiftraknare (74-83)
+- **API-svar (dev.mauserdb.com)**:
+  - `rebotling&run=oee&period=week`: 394 cycles, 368 total_ibc, OEE 99.2% — matchar DB
+  - `rebotling&run=dashboard`: 200 OK, korrekt struktur
+  - `rebotling&run=skiftrapport`: 200 OK
+- **Jamforelse**: DB visar 394 cykler, API visar 394 cycles — **0 diskrepanser**
+
+### UPPGIFT 4: Full UX-walkthrough — KLAR
+- **Alla rebotling API-endpoints testade**:
+  - dashboard: 200, oee: 200, skiftrapport: 200, hourly-heatmap: 200, oee-trend: 200
+  - hourly-summary: 200, peak-analysis: 200, kassation-pareto: 200
+  - stopporsaker: 200, maskin-drifttid: 200, kassation-orsaker: 200
+  - annotations: 200, production-events: 200, exec-dashboard: 200
+  - weekly-kpis: 401 (auth kravs — korrekt)
+- **Export-endpoints**:
+  - skiftrapport-export CSV: 200
+  - skiftrapport-export Excel: 200
+  - skiftrapport-export PDF: 200
+- **Ovriga actions**: tvattlinje: 200, saglinje: 200, klassificeringslinje: 200, status: 200, feature-flags: 200
+- **Dark theme**: Inga bg-white/bg-light/text-dark i rebotling HTML-templates — fullstandig compliance
+- **Responsivitet**: Alla tabeller wrappade i table-responsive (88 forekomster over 53 filer)
+- **Svenska texter**: Konsekvent — inga engelska UI-strangars hittade
+- **0 problem hittade**
+
+### UPPGIFT 5: Build + Deploy + verifiering — KLAR
+- **Frontend build**: OK (0 errors, enbart ESM-varningar fran tredjepartsbibliotek)
+- **Frontend deploy**: rsync till dev — OK
+- **Backend deploy**: rsync till dev (exclude db_config.php) — OK
+- **Post-deploy verifiering**:
+  - dev.mauserdb.com: HTTP 200, 6876 bytes, 0.089s
+  - status API: 200, 0.182s
+  - rebotling dashboard: 200
+  - rebotling oee: 200
+  - rebotling skiftrapport: 200
+- **0 st 500-fel**
+
+### Andrade filer
+- `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — tooltip-forbattringar (dag-vy + bar chart)
+- `noreko-frontend/src/app/pages/rebotling/produktionseffektivitet/produktionseffektivitet.ts` — tooltip dark theme + detaljer
+- `noreko-frontend/src/app/pages/rebotling/produktionstakt/produktionstakt.ts` — tooltip + axel-labels med enheter
+- `noreko-frontend/src/app/pages/rebotling/statistik/statistik-oee-deepdive/statistik-oee-deepdive.ts` — tooltip med datum + enhet
+- `noreko-frontend/src/app/pages/rebotling/statistik/statistik-oee-komponenter/statistik-oee-komponenter.ts` — tooltip dark theme
+- `noreko-frontend/src/app/pages/rebotling/statistik/statistik-skiftjamforelse/statistik-skiftjamforelse.ts` — tooltip med enheter
+- `noreko-frontend/src/app/interceptors/error.interceptor.ts` — centraliserad HTTP-fellogning
+- `noreko-frontend/src/app/app.config.ts` — forbattrad GlobalErrorHandler-loggning
+
+---
+
 ## Session #371 — Worker A (2026-03-27)
 **Fokus: Redundant index cleanup + admin CRUD test + full endpoint stresstest + PHP controller audit + deploy**
 

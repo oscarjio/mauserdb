@@ -282,10 +282,28 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
           },
           tooltip: {
             intersect: false, mode: 'nearest',
+            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1,
+            padding: 12,
             callbacks: {
+              title: (items: any[]) => {
+                if (!items.length) return '';
+                return `Klockan ${items[0].label}`;
+              },
               label: (ctx: any) => {
                 const v = ctx.parsed.y;
-                return v !== null ? ` ${v.toFixed(1)} IBC` : ' Ingen data';
+                return v !== null ? `Snitt: ${v.toFixed(1)} IBC/timme` : 'Ingen data';
+              },
+              afterLabel: (ctx: any) => {
+                const idx = ctx.dataIndex;
+                const row = this.summaryTimmar.find(t => t.timme === idx);
+                if (!row) return '';
+                const lines: string[] = [];
+                if ((row as any).antal_dagar != null) lines.push(`Baserat på ${(row as any).antal_dagar} dagar`);
+                return lines.join('\n');
               },
             },
           },

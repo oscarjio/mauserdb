@@ -48,7 +48,8 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
       { label: 'Kvalitet %', data: this.oeeComponentsData.map(d => d.kvalitet), borderColor: 'rgba(99,179,237,1)', backgroundColor: 'rgba(99,179,237,0.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, spanGaps: true },
       { label: 'WCM 85%', data: this.oeeComponentsData.map(() => 85), borderColor: 'rgba(246,224,94,0.6)', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false, tension: 0 }
     ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e2e8f0' } },
-      tooltip: { callbacks: { label: (item) => item.dataset.label+': '+(item.parsed.y != null ? item.parsed.y.toFixed(1) : '\u2014')+'%' } } },
+      tooltip: { backgroundColor: 'rgba(15,17,23,0.95)', titleColor: '#fff', bodyColor: '#e0e0e0', borderColor: '#48bb78', borderWidth: 1, padding: 12,
+        callbacks: { title: (items: any[]) => items.length ? `Datum: ${items[0].label}` : '', label: (item: any) => item.dataset.label+': '+(item.parsed.y != null ? item.parsed.y.toFixed(1) : '\u2014')+'%' } } },
       scales: { x: { ticks: { color: '#a0aec0', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } },
         y: { min: 0, max: 100, ticks: { color: '#a0aec0', callback: (v) => v+'%' }, grid: { color: 'rgba(255,255,255,0.08)' } } } } });
   }
