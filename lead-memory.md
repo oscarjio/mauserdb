@@ -77,6 +77,7 @@ Session #378: Rebotling daglig historik frontend. Statistik manads/kvartalsjamfo
 Session #379: Operatorsbonus trendgraf backend+frontend. Driftstopp vecko/manadsaggregat+datumnavigering. Statistik grafinteraktivitet. Admin granskning OK. 115 endpoints 0x500. 0 SQL mismatches. 41 komp 0 leaks. Deploy dev OK.
 Session #380: Statistik export CSV/PDF + endpoint-test 115 0x500 + SQL-audit 0 mismatches + 5030 cykler 0 diskrepanser + skiftrapport KPI verifierad + 163 komp 0 lackor + bootstrap modal-fix + deploy dev OK.
 Session #381: day-raw-data endpoint granskad + endpoint-test 123 0x500 <1.5s + SQL-audit 0 mismatches + skiftrapport KPI verifierad + admin CRUD OK + mobilanpassning skiftrapport + 179 komp 0 lackor + deploy dev OK.
+Session #382: Rebotling live-data verifierad mot prod DB (exakt matchning) + operatorsbonus berakningar verifierade + 115 endpoints 0x500 <364ms + SQL-audit 0 mismatches + driftstopp UX-fix (svenska tecken) + historisk produktion UX-fix + 42 komp 0 lackor + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -89,18 +90,14 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #382):
-- Rebotling live-dashboard — verifiera realtidsdata mot prod DB
-- Operatorsbonus — verifiera bonusberakningar mot prod data
-- Driftstopp-sidan — fullstandig UX-granskning + dataverifiering
-- Historisk produktion — verifiera grafer och data mot prod
-- Dashboard/oversikt — granska KPI-widgets, realtidsuppdatering
+### Nasta (session #383):
+- Skiftrapport — fullstandig UX-granskning + verifiera berakningar mot prod data
+- Statistik-sidan — granska alla grafer, berakningar, CSV/PDF-export mot prod data
+- Admin-sidor — fullstandig CRUD-test + UX-granskning + behorighet
+- Gamification-sidan — UX-granskning + dataverifiering
+- Operatorsbonus frontend — verifiera att bonusdata visas korrekt i alla vyer
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #379 (klar)
-Worker A: Operatorsbonus trendgraf-endpoint. Driftstopp vecko/manadsaggregat-endpoints. Admin CRUD OK. 115 endpoints 0x500 <1.5s. 0 SQL mismatches. Deploy dev OK.
-Worker B: Operatorsbonus trendgraf frontend. Statistik grafinteraktivitet. Driftstopp datumnavigering. Admin UX OK. Lifecycle 41 komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #380 (klar)
 Worker A: 115 endpoints 0x500 <1.5s. 0 SQL mismatches. 5030 cykler 0 diskrepanser. Skiftrapport KPI verifierad. Deploy dev OK.
@@ -109,3 +106,7 @@ Worker B: Statistik export CSV/PDF. Rebotling dashboard UX OK. 163 komp 0 lackor
 ### 2026-03-28 — Session #381 (klar)
 Worker A: getDayRawData endpoint granskad+deployad (0.74s). 123 endpoints 0x500 <1.5s. SQL-audit 0 mismatches. Skiftrapport KPI verifierad (kvalitet 98.5%, kassation 1.47%, IBC/h 66.1). Admin CRUD OK (auth+CSRF). Deploy dev OK.
 Worker B: Skiftrapport mobilanpassning (120+ rader media queries). HTML-nesting fix. Statistik UX OK. Admin UX OK. 179 komp 0 lackor. Build+deploy dev OK.
+
+### 2026-03-28 — Session #382 (klar)
+Worker A: Rebotling live-data verifierad mot prod DB (exakt matchning). Operatorsbonus berakningar verifierade (formel+konfig OK). 115 endpoints 0x500 <364ms. SQL-audit 0 mismatches. Deploy dev OK.
+Worker B: Driftstopp UX-fix (svenska tecken 6 filer). Historisk produktion UX-fix. Dashboard/oversikt granskad OK. 42 komp 0 lackor. Build+deploy dev OK.
