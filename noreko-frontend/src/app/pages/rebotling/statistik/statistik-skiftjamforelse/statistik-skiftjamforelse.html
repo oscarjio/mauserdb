@@ -45,21 +45,21 @@
               <span class="sj-badge-shift">06:00 – 22:00</span>
             </div>
             <div class="row g-2 mt-2">
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">IBC godkända</div>
                   <div class="sj-kpi-val sj-dag-text">{{ dag.ibc_ok }}</div>
                   <div class="sj-kpi-sub">{{ dag.skift_count }} skift</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Snitt IBC/skift</div>
                   <div class="sj-kpi-val sj-dag-text">{{ dag.avg_ibc_per_skift | number:'1.0-1' }}</div>
                   <div class="sj-kpi-sub">per skift</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Kvalitet</div>
                   <div class="sj-kpi-val"
@@ -69,7 +69,7 @@
                   <div class="sj-kpi-sub">godkänt</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">OEE</div>
                   <div class="sj-kpi-val"
@@ -79,7 +79,7 @@
                   <div class="sj-kpi-sub">effektivitet</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Cykeltid (snitt)</div>
                   <div class="sj-kpi-val sj-dag-text">
@@ -88,7 +88,7 @@
                   <div class="sj-kpi-sub">per IBC</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Takt</div>
                   <div class="sj-kpi-val sj-dag-text">
@@ -97,14 +97,14 @@
                   <div class="sj-kpi-sub">IBC/h</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Körtid</div>
                   <div class="sj-kpi-val" style="color:#a0aec0;">{{ formatMin(dag.runtime_min) }}</div>
                   <div class="sj-kpi-sub">totalt</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Kasserade</div>
                   <div class="sj-kpi-val text-danger">{{ dag.ibc_ej_ok + dag.bur_ej_ok }}</div>
@@ -172,21 +172,21 @@
               <span class="sj-badge-shift">22:00 – 06:00</span>
             </div>
             <div class="row g-2 mt-2">
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">IBC godkända</div>
                   <div class="sj-kpi-val sj-natt-text">{{ natt.ibc_ok }}</div>
                   <div class="sj-kpi-sub">{{ natt.skift_count }} skift</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Snitt IBC/skift</div>
                   <div class="sj-kpi-val sj-natt-text">{{ natt.avg_ibc_per_skift | number:'1.0-1' }}</div>
                   <div class="sj-kpi-sub">per skift</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Kvalitet</div>
                   <div class="sj-kpi-val"
@@ -196,7 +196,7 @@
                   <div class="sj-kpi-sub">godkänt</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">OEE</div>
                   <div class="sj-kpi-val"
@@ -206,7 +206,7 @@
                   <div class="sj-kpi-sub">effektivitet</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Cykeltid (snitt)</div>
                   <div class="sj-kpi-val sj-natt-text">
@@ -215,7 +215,7 @@
                   <div class="sj-kpi-sub">per IBC</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Takt</div>
                   <div class="sj-kpi-val sj-natt-text">
@@ -224,14 +224,14 @@
                   <div class="sj-kpi-sub">IBC/h</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Körtid</div>
                   <div class="sj-kpi-val" style="color:#a0aec0;">{{ formatMin(natt.runtime_min) }}</div>
                   <div class="sj-kpi-sub">totalt</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="sj-kpi-card">
                   <div class="sj-kpi-label">Kasserade</div>
                   <div class="sj-kpi-val text-danger">{{ natt.ibc_ej_ok + natt.bur_ej_ok }}</div>

@@ -154,12 +154,12 @@
         </h5>
         <div class="threshold-config mb-3">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small text-muted mb-1">Varning vid (%)</label>
               <input type="number" class="form-control form-control-sm threshold-input"
                      [(ngModel)]="warningThreshold" (change)="loadAlarm()" min="0" max="100" step="0.5">
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small text-muted mb-1">Kritisk vid (%)</label>
               <input type="number" class="form-control form-control-sm threshold-input"
                      [(ngModel)]="criticalThreshold" (change)="loadAlarm()" min="0" max="100" step="0.5">

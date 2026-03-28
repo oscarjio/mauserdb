@@ -281,15 +281,15 @@
           <div class="mt-4 p-3 impact-summary-box"
                *ngIf="(impactData?.impact?.length ?? 0) > 0">
             <div class="row text-center g-2">
-              <div class="col-4">
+              <div class="col-12 col-md-4">
                 <div class="text-success fw-bold fs-5">{{ getAntalForbattringar() }}</div>
                 <div class="text-muted small">Förbättringar</div>
               </div>
-              <div class="col-4">
+              <div class="col-12 col-md-4">
                 <div class="text-danger fw-bold fs-5">{{ getAntalForsamringar() }}</div>
                 <div class="text-muted small">Försämringar</div>
               </div>
-              <div class="col-4">
+              <div class="col-12 col-md-4">
                 <div class="fw-bold fs-5"
                      [class.text-success]="(getSnittImpact() ?? 0) > 0"
                      [class.text-danger]="(getSnittImpact() ?? 0) < 0"

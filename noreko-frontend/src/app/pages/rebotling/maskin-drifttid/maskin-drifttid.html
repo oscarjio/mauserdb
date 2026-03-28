@@ -205,19 +205,19 @@
       <div *ngIf="!loadingDetalj && !errorDetalj && dagDetalj">
         <!-- Mini KPIs -->
         <div class="row g-3 mb-3">
-          <div class="col-4">
+          <div class="col-12 col-md-4">
             <div class="mdt-mini-kpi">
               <div class="mdt-mini-kpi-label">Total IBC</div>
               <div class="mdt-mini-kpi-value">{{ dagDetalj.total_ibc }}</div>
             </div>
           </div>
-          <div class="col-4">
+          <div class="col-12 col-md-4">
             <div class="mdt-mini-kpi">
               <div class="mdt-mini-kpi-label">Aktiva timmar</div>
               <div class="mdt-mini-kpi-value">{{ dagDetalj.aktiva_timmar }} / {{ dagDetalj.max_timmar }}</div>
             </div>
           </div>
-          <div class="col-4">
+          <div class="col-12 col-md-4">
             <div class="mdt-mini-kpi">
               <div class="mdt-mini-kpi-label">Drifttid%</div>
               <div class="mdt-mini-kpi-value" [style.color]="drifttidFarg(dagDetalj.drifttid_pct)">

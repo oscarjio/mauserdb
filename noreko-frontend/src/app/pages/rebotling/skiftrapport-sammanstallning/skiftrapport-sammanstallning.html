@@ -32,37 +32,37 @@
           </div>
           <div class="skift-card-body">
             <div class="row g-2">
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">Producerade</div>
                   <div class="skift-metric-value">{{ s.producerade }}</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">Kasserade</div>
                   <div class="skift-metric-value" style="color:#fc8181">{{ s.kasserade }}</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">Kassationsgrad</div>
                   <div class="skift-metric-value">{{ s.kassationsgrad_pct }}%</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">OEE</div>
                   <div class="skift-metric-value" [style.color]="oeeFarg(s.oee_pct)">{{ s.oee_pct }}%</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">Stopptid</div>
                   <div class="skift-metric-value">{{ s.stopptid_h }}h</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="skift-metric">
                   <div class="skift-metric-label">Drifttid</div>
                   <div class="skift-metric-value">{{ s.drifttid_h }}h</div>
@@ -252,13 +252,13 @@
         </div>
         <div class="skift-card-body">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="skift-metric">
                 <div class="skift-metric-label">Totalt producerade</div>
                 <div class="skift-metric-value">{{ getSnitt(entry.key).totalt_producerade }}</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="skift-metric">
                 <div class="skift-metric-label">Snitt OEE</div>
                 <div class="skift-metric-value" [style.color]="oeeFarg(getSnitt(entry.key).snitt_oee_pct)">
@@ -266,13 +266,13 @@
                 </div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="skift-metric">
                 <div class="skift-metric-label">Kasserade</div>
                 <div class="skift-metric-value" style="color:#fc8181">{{ getSnitt(entry.key).totalt_kasserade }}</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="skift-metric">
                 <div class="skift-metric-label">Snitt/dag</div>
                 <div class="skift-metric-value">{{ getSnitt(entry.key).snitt_producerade_per_dag }}</div>

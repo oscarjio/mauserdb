@@ -170,19 +170,19 @@
 
       <!-- Sammanfattning -->
       <div class="row g-2 mb-3" *ngIf="operatorer.length">
-        <div class="col-4">
+        <div class="col-12 col-md-4">
           <div class="summary-card">
             <div class="summary-label">Operatörer i period</div>
             <div class="summary-value">{{ operatorer.length }}</div>
           </div>
         </div>
-        <div class="col-4">
+        <div class="col-12 col-md-4">
           <div class="summary-card" [class.pos]="snitBonusDiff > 0" [class.neg]="snitBonusDiff < 0">
             <div class="summary-label">Snitt bonusändring</div>
             <div class="summary-value">{{ diffPrefix(snitBonusDiff) }}{{ snitBonusDiff }} p</div>
           </div>
         </div>
-        <div class="col-4">
+        <div class="col-12 col-md-4">
           <div class="summary-card">
             <div class="summary-label">Fler / Färre poäng</div>
             <div class="summary-value text-success">+{{ totalPositivaDiff }}</div>

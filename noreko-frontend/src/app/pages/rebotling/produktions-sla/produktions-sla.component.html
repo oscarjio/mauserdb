@@ -171,17 +171,17 @@
             </div>
           </div>
           <div class="row mt-3 text-center">
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="kpi-mini-label">Kassation</div>
               <div class="kpi-mini-value" [class.text-danger]="daily.kassation_pct > 5">
                 {{ daily.kassation_pct }}%
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="kpi-mini-label">Takt/timme</div>
               <div class="kpi-mini-value">{{ daily.target_per_hour }}</div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="kpi-mini-label">Datum</div>
               <div class="kpi-mini-value">{{ daily.date }}</div>
             </div>

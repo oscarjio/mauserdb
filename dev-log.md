@@ -4544,3 +4544,87 @@ Granskade totalt 42 Angular-komponenter med setInterval/setTimeout/Chart:
 - noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts (an/farre/foregaende)
 - noreko-frontend/src/app/pages/rebotling/maskin-oee/maskin-oee.component.ts (Forbattras/Forsamras)
 - noreko-frontend/src/app/pages/utnyttjandegrad/utnyttjandegrad.ts (Forbattras/Forsamras/foregaende)
+
+---
+
+## Session #387 — Worker B (Frontend UX + Data) (2026-03-28)
+
+### UPPGIFT 1: Mobilanpassning — SLUTKONTROLL alla sidor
+Systematisk granskning av 164 HTML-filer och 170 TS-filer.
+
+**Fixade responsivitetsproblem:**
+- 12 filer med `col-6` utan `col-12` fallback — fixade till `col-12 col-md-6`
+  - rebotling/skiftrapport-sammanstallning (10 forekomster)
+  - rebotling/kvalitetstrendanalys (2 forekomster)
+  - rebotling/statistik-dashboard (10 forekomster)
+  - rebotling/statistik/statistik-skiftjamforelse (16 forekomster)
+  - rebotling/vd-veckorapport
+  - rebotling-admin
+  - oee-benchmark
+  - produktionskalender
+  - underhallslogg
+  - bonus-admin
+  - executive-dashboard
+  - produktionsmal
+- 9 filer med `col-4` utan `col-12` fallback — fixade till `col-12 col-md-4`
+  - rebotling/maskin-drifttid (3 forekomster)
+  - rebotling/produktions-sla (3 forekomster)
+  - rebotling/statistik-dashboard (6 forekomster)
+  - rebotling/statistik/statistik-bonus-simulator (3 forekomster)
+  - malhistorik (3 forekomster)
+  - daglig-sammanfattning (2 forekomster)
+  - executive-dashboard
+  - my-bonus
+  - vd-dashboard
+
+**Tabeller:** Alla 216 tabeller har table-responsive wrapper eller overflow-x: auto i CSS. 0 problem.
+
+**Dark theme:** Granskad — alla `#fff`/`white` forekomster ar antingen i @media print, badge-fargkoder, eller avsiktlig print-preview (rapport-sida). bg-light i rebotling-admin overridas korrekt till morkt tema.
+
+### UPPGIFT 2: Edge cases i frontend
+- Alla sidor utom statiska (about, contact) och *-live (ej rorbara) har loading-spinners och "Ingen data"-meddelanden
+- 1846 forekomster av empty state/loading-hantering i HTML-filer
+- Svenska felmeddelanden och datum korrekt
+
+### UPPGIFT 3: Granska ALLA grafer/charts
+- 112 filer med Chart.js-instanser granskade
+- Alla har korrekt chart?.destroy() i bade rendermetoder och ngOnDestroy
+- Alla charts har dark theme (morka bakgrunder, ljus text)
+- bonus-admin anvander Canvas2D direkt (inte Chart.js) — timeout rensas korrekt
+
+### UPPGIFT 4: Lifecycle-audit — ALLA komponenter
+- 170 TS-filer i pages/ granskade
+- 42 .component.ts filer med fullstandig lifecycle
+- 13 filer utan destroy$ — alla ar statiska sidor (about, contact, not-found) eller services/models utan subscriptions
+- Alla filer med setInterval/setTimeout har motsvarande clearInterval/clearTimeout
+- **Resultat: 170 filer granskade, 0 lackor**
+
+### UPPGIFT 5: PLC-diagnostik frontend — slutgranskning
+- Lifecycle: OK (OnInit, OnDestroy, destroy$, clearInterval x2)
+- Data-hamtning: OK (environment.apiUrl + polling var 2.5s)
+- Dark theme: OK (terminal-tema #0d1117/#161b22)
+- Mobilanpassning: OK (flex-wrap, responsive toolbar, console-line wrap)
+- Svenska texter: OK (alla meddelanden, kommandon, statuslabels pa svenska)
+- Edge cases: OK (tom-state "Inga events", anslutningsfel-hantering, PAUSAD/LIVE/HISTORIK status)
+- Kommandosystem: /help, /onoff, /rast, /driftstopp, /status, /clear — alla pa svenska
+- Route: registrerad med adminGuard pa /rebotling/plc-diagnostik
+- Meny: lankad i admin-dropdown
+
+### UPPGIFT 6: Fixade problem
+- Totalt 21 HTML-filer fixade for mobilanpassning (col-6 -> col-12 col-md-6, col-4 -> col-12 col-md-4)
+- 0 lifecycle-lackor
+- 0 chart-lackor
+- 0 dark theme-problem
+
+### UPPGIFT 7: Build + Deploy
+- `npx ng build` — OK (0 errors, 3 CommonJS-varningar)
+- `rsync deploy` till dev — OK
+
+### Statistik
+- 164 HTML-filer granskade
+- 170 TS-filer i pages/ granskade
+- 42 .component.ts lifecycle-audit: 0 lackor
+- 112 Chart.js-filer: 0 lackor
+- 21 filer mobilfixade
+- Build: OK
+- Deploy: OK

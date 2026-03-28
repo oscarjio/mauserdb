@@ -163,19 +163,19 @@
 
             <!-- KPI-kort -->
             <div class="row g-2 mb-3">
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde text-success">{{ dagDetalj.ibc_ok }}</div>
                   <div class="kpi-etikett">IBC OK</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde text-danger">{{ dagDetalj.ibc_ej_ok }}</div>
                   <div class="kpi-etikett">IBC Ej OK</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde" [class.text-success]="dagDetalj.kvalitet >= 90" [class.text-warning]="dagDetalj.kvalitet >= 70 && dagDetalj.kvalitet < 90" [class.text-danger]="dagDetalj.kvalitet < 70">
                     {{ dagDetalj.kvalitet }}%
@@ -183,19 +183,19 @@
                   <div class="kpi-etikett">Kvalitet</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde text-info">{{ dagDetalj.ibc_h !== null ? dagDetalj.ibc_h : '—' }}</div>
                   <div class="kpi-etikett">IBC/h</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde text-primary">{{ formateraTid(dagDetalj.drifttid) }}</div>
                   <div class="kpi-etikett">Drifttid</div>
                 </div>
               </div>
-              <div class="col-6">
+              <div class="col-12 col-md-6">
                 <div class="kpi-kort text-center">
                   <div class="kpi-varde text-warning">{{ formateraTid(dagDetalj.stopptid) }}</div>
                   <div class="kpi-etikett">Stopptid</div>

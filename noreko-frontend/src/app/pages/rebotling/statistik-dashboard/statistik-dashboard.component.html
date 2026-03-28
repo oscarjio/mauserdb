@@ -196,19 +196,19 @@
         </div>
         <div class="card-body">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Denna månad</div>
                 <div class="detail-kpi-val text-info">{{ summary.denna_manad.total }} IBC</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Förra månaden</div>
                 <div class="detail-kpi-val text-muted">{{ summary.forra_manaden.total }} IBC</div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Produktion</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.total, summary.forra_manaden.total)">
@@ -217,7 +217,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Kassation</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.kassation_pct, summary.forra_manaden.kassation_pct, true)">
@@ -226,7 +226,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Drifttid</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.drifttid_h, summary.forra_manaden.drifttid_h)">
@@ -250,19 +250,19 @@
         </div>
         <div class="card-body">
           <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Detta kvartal</div>
                 <div class="detail-kpi-val text-warning">{{ summary.detta_kvartal.total }} IBC</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Förra kvartalet</div>
                 <div class="detail-kpi-val text-muted">{{ summary.forra_kvartalet.total }} IBC</div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Produktion</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.total, summary.forra_kvartalet.total)">
@@ -271,7 +271,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Kassation</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.kassation_pct, summary.forra_kvartalet.kassation_pct, true)">
@@ -280,7 +280,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <div class="detail-kpi">
                 <div class="detail-kpi-label">Drifttid</div>
                 <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.drifttid_h, summary.forra_kvartalet.drifttid_h)">
@@ -362,25 +362,25 @@
         <button class="btn-close btn-close-white" aria-label="Stäng" (click)="closeTrendTooltip()"></button>
       </div>
       <div class="row g-2">
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">IBC totalt</div>
             <div class="detail-kpi-val text-info">{{ tooltipItem.total }}</div>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">IBC OK</div>
             <div class="detail-kpi-val text-success">{{ tooltipItem.ibc_ok }}</div>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">IBC ej OK</div>
             <div class="detail-kpi-val text-danger">{{ tooltipItem.ibc_ej_ok }}</div>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Kassation %</div>
             <div class="detail-kpi-val" [ngClass]="getKassationBadgeClass(tooltipItem.kassation_pct)">
@@ -388,13 +388,13 @@
             </div>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Drifttid</div>
             <div class="detail-kpi-val text-warning">{{ tooltipItem.drifttid_h }}h</div>
           </div>
         </div>
-        <div class="col-6">
+        <div class="col-12 col-md-6">
           <div class="detail-kpi">
             <div class="detail-kpi-label">IBC/h</div>
             <div class="detail-kpi-val text-info">{{ tooltipItem.ibc_per_h }}</div>

@@ -356,7 +356,7 @@
         <!-- Legacy stats -->
         <div class="col-12 col-lg-6">
           <div class="row g-3">
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="stat-card">
                 <div class="stat-icon text-info"><i class="fas fa-clipboard-list"></i></div>
                 <div class="stat-value">{{ stats?.totalt_antal ?? 0 }}</div>
@@ -364,7 +364,7 @@
                 <div class="stat-period">senaste {{ legacyFilterDays }} dagarna</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="stat-card">
                 <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
                 <div class="stat-value">{{ stats ? formatTid(stats.total_tid_min) : '0 min' }}</div>
@@ -372,14 +372,14 @@
                 <div class="stat-period">senaste {{ legacyFilterDays }} dagarna</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="stat-card">
                 <div class="stat-icon text-success"><i class="fas fa-chart-bar"></i></div>
                 <div class="stat-value">{{ stats?.snitt_per_vecka ?? 0 }}</div>
                 <div class="stat-label">Snitt per vecka</div>
               </div>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <div class="stat-card">
                 <div class="stat-icon text-purple"><i class="fas fa-balance-scale"></i></div>
                 <div class="stat-value">

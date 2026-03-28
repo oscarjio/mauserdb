@@ -334,17 +334,17 @@
 
             <ng-container *ngIf="summary.senaste_skift.har_data">
               <div class="row g-3 text-center">
-                <div class="col-4">
+                <div class="col-12 col-md-4">
                   <div class="skift-kpi-val text-success">{{ summary.senaste_skift.ibc_ok }}</div>
                   <div class="skift-kpi-label text-muted small">IBC OK</div>
                 </div>
-                <div class="col-4">
+                <div class="col-12 col-md-4">
                   <div class="skift-kpi-val" [ngClass]="getKvalitetKlass(summary.senaste_skift.kvalitet_pct ?? 0)">
                     {{ summary.senaste_skift.kvalitet_pct }}%
                   </div>
                   <div class="skift-kpi-label text-muted small">Kvalitet</div>
                 </div>
-                <div class="col-4">
+                <div class="col-12 col-md-4">
                   <div class="skift-kpi-val"
                        [ngClass]="getIbcPerHKlass(
                          summary.senaste_skift.ibc_per_timme ?? 0,
