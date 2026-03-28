@@ -83,6 +83,7 @@ Session #384: Dashboard UX OK + driftstopp UX OK + historisk produktion OK + nav
 Session #385: Operatorsbonus end-to-end verifierad mot prod DB + skiftrapport OK + gamification OK + 92 endpoints 0x500 + SQL-audit 0 mismatches + mobilanpassning 11 sidor fixade + statistik grafer OK + 180+ komp 0 lackor + PLC-diagnostik endpoint + build+deploy dev OK.
 Session #386: PLC-diagnostik verifierad mot prod DB + driftstopp 6 endpoints OK + admin CRUD auth+CSRF OK + 114 endpoints 0x500 + SQL-audit 570+ FROM 0 mismatches + sakerhet OK (CSRF+rate limiting+prepared statements) + rebotling-admin mobilfix + 180 komp 0 lackor + build+deploy dev OK.
 Session #387: 114 endpoints 0x500 + edge cases 9 scenarier OK + lasttest 30 parallella 0x500 + rebotling datakvalitet verifierad + 21 HTML mobilfixar + 170 komp 0 lackor + 112 charts OK + PLC-diagnostik fix + build+deploy dev OK.
+Session #388: Skiftrapport verifierad mot prod DB 0 diskrepanser + operatorsbonus 13 op stresstestade OK + admin CRUD 12 edge cases OK + daglig-sammanstallning 3x snabbare + 88 endpoints 0x500 + 162 routes OK + dark theme 0 avvikelser + 161 komp 0 lackor + 195 charts OK + svenska textfix + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -95,23 +96,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #387):
-- Verifiera PLC-diagnostik end-to-end mot prod DB
-- Rebotling — fordjupad datakvalitetstest mot prod DB
-- Alla sidor — mobilanpassning slutkontroll
-- Edge cases — tomma datasets, ogiltiga datum, saknade operatorer
-- Lasttestning — simulera samtidiga anrop
+### Nasta (session #389):
+- Diagnostik-fixar: plc-diagnostik.ts unused vars + SkiftrapportController.php unused function
+- 404-endpoints: shift-plan, shift-handover, news — saknar class-filer
+- Rebotling — djupare analys produktion_procent (kumulativ?)
+- Statistik exportfunktioner forbattring
+- Driftstopp forlangd historik och trendanalys
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #385 (klar)
-Worker A: Operatorsbonus end-to-end verifierad mot prod DB (exakt matchning op 156). Skiftrapport 10 endpoints OK. Gamification 4 endpoints OK. 92 endpoints 0x500 (max 2.7s maskin-oee). SQL-audit 0 mismatches. PLC-diagnostik endpoint+developer-roll. Deploy dev OK.
-Worker B: Statistik grafer OK (adaptiv granularitet korrekt). Mobilanpassning 11 sidor fixade (col-fallbacks). Operatorsbonus UX OK. Skiftrapport UX OK. Gamification UX OK. 180+ komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #386 (klar)
 Worker A: PLC-diagnostik verifierad mot prod DB (4 tabeller 0 mismatches). Driftstopp 6 endpoints OK. Admin CRUD auth+CSRF OK. 0 endpoints over 2s. 114 endpoints 0x500. SQL-audit 570+ FROM-satser 0 mismatches. Deploy dev OK.
 Worker B: PLC-diagnostik frontend granskad OK (lifecycle+dark theme+svenska). Sakerhetsgranskning OK (CSRF+rate limiting 120/min+1220 prepared statements). Rebotling-admin mobilfix. 180 komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #387 (klar)
-Worker A: 114 endpoints 0x500. Edge cases 9 scenarier OK (ogiltiga datum, SQL injection, XSS, tomma parametrar). Lasttest 30 parallella anrop 0x500 alla <1.8s. Rebotling datakvalitet verifierad mot prod DB (5 tabeller, operatorsnummer korrekt). SQL-audit 0 buggar. PLC-diagnostik quick stats fix. Deploy dev OK.
-Worker B: 21 HTML-filer mobilfix (col-12 fallbacks). 170 komp 0 lackor. 112 chart-filer OK (destroy korrekt). Edge cases OK (1846 empty state/loading). Build+deploy dev OK.
+Worker A: 114 endpoints 0x500. Edge cases 9 scenarier OK. Lasttest 30 parallella 0x500 alla <1.8s. Rebotling datakvalitet verifierad mot prod DB. SQL-audit 0 buggar. PLC-diagnostik quick stats fix. Deploy dev OK.
+Worker B: 21 HTML-filer mobilfix. 170 komp 0 lackor. 112 chart-filer OK. Edge cases OK (1846 empty state/loading). Build+deploy dev OK.
+
+### 2026-03-28 — Session #388 (klar)
+Worker A: Skiftrapport verifierad mot prod DB (158 IBC OK, 0 diskrepanser). Operatorsbonus 13 operatorer stresstestade (20 parallella OK <1.17s). Admin CRUD 12 edge cases alla hanterade (0x500). daglig-sammanstallning 9 queries->3 (3x snabbare). 88 endpoints 0x500. SQL-audit 0 mismatches. Deploy dev OK.
+Worker B: 162 routes verifierade OK. 153 HTML-templates granskade. Dark theme 100+ CSS 0 avvikelser. Svenska text fixad (PLC-diagnostik). 161 komp 0 lifecycle-lackor. 195 chart-instanser OK. Build+deploy dev OK.
