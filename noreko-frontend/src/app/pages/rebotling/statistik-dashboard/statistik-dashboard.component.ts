@@ -30,11 +30,13 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   // ---- Period ----
   trendPeriod = 30;
   readonly periodOptions = [
-    { val: 1,  label: '1 dag'    },
-    { val: 7,  label: '7 dagar'  },
-    { val: 14, label: '14 dagar' },
-    { val: 30, label: '30 dagar' },
-    { val: 90, label: '90 dagar' },
+    { val: 1,   label: '1 dag'     },
+    { val: 7,   label: '7 dagar'   },
+    { val: 14,  label: '14 dagar'  },
+    { val: 30,  label: '30 dagar'  },
+    { val: 90,  label: '90 dagar'  },
+    { val: 180, label: '180 dagar' },
+    { val: 365, label: '365 dagar' },
   ];
 
   // ---- Laddning ----
@@ -315,7 +317,9 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     if (this.trendPeriod <= 7) return 7;
     if (this.trendPeriod <= 14) return 14;
     if (this.trendPeriod <= 30) return 15;
-    return 12; // 90 dagar -> visa 12 etiketter (veckovis)
+    if (this.trendPeriod <= 90) return 12;
+    if (this.trendPeriod <= 180) return 12;
+    return 12; // 365 dagar -> visa 12 etiketter (manadsvis)
   }
 
   /** Granularitetsetikett for UI */
@@ -323,6 +327,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
     if (this.trendPeriod <= 1) return 'per timme';
     if (this.trendPeriod <= 14) return 'per dag';
     if (this.trendPeriod <= 30) return 'per dag';
+    if (this.trendPeriod <= 90) return 'per vecka';
     return 'per vecka';
   }
 

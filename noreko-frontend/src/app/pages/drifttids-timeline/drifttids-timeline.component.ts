@@ -68,9 +68,14 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   private veckotrendChart: Chart | null = null;
   private chartTimers: ReturnType<typeof setTimeout>[] = [];
 
+  // -- Filter (session #378) --
+  filterType = 'all'; // 'all' | 'running' | 'stopped' | 'unplanned'
+  filterMinDuration = 0; // min minuter
+
   // -- Cached computed properties (rebuilt on data change) --
   cachedTimelineHours: number[] = [];
   cachedVisibleSegments: TimelineSegment[] = [];
+  cachedFilteredSegments: TimelineSegment[] = [];
   cachedRunningCount = 0;
   cachedStoppedCount = 0;
 
@@ -243,6 +248,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   private rebuildCachedSegments(): void {
     if (!this.timelineData?.segments) {
       this.cachedVisibleSegments = [];
+      this.cachedFilteredSegments = [];
       this.cachedRunningCount = 0;
       this.cachedStoppedCount = 0;
       return;
@@ -250,6 +256,22 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     this.cachedVisibleSegments = this.timelineData.segments.filter(seg => this.segmentWidth(seg) > 0);
     this.cachedRunningCount = this.timelineData.segments.filter(s => s.type === 'running').length;
     this.cachedStoppedCount = this.timelineData.segments.filter(s => s.type === 'stopped').length;
+    this.rebuildFilteredSegments();
+  }
+
+  rebuildFilteredSegments(): void {
+    let segs = this.cachedVisibleSegments;
+    if (this.filterType !== 'all') {
+      segs = segs.filter(s => s.type === this.filterType);
+    }
+    if (this.filterMinDuration > 0) {
+      segs = segs.filter(s => s.duration_min >= this.filterMinDuration);
+    }
+    this.cachedFilteredSegments = segs;
+  }
+
+  onFilterChange(): void {
+    this.rebuildFilteredSegments();
   }
 
   // =================================================================

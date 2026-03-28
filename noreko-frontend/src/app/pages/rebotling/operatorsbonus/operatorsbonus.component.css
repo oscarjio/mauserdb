@@ -522,6 +522,39 @@
   color: #e2e8f0;
 }
 
+/* ---- Drilldown (session #378) ---- */
+.drilldown-row td {
+  background: transparent !important;
+}
+
+.drilldown-kpi {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.drilldown-kpi-label {
+  font-size: 0.68rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drilldown-kpi-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.drilldown-kpi-sub {
+  font-size: 0.68rem;
+  color: #718096;
+}
+
 @media (max-width: 768px) {
   .sim-result-grid {
     grid-template-columns: 1fr;

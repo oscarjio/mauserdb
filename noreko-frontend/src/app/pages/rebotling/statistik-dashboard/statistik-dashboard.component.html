@@ -170,6 +170,121 @@
   </div>
 
   <!-- ============================================================ -->
+  <!-- MÅNADS- OCH KVARTALSJÄMFÖRELSER (session #378)               -->
+  <!-- ============================================================ -->
+  <div *ngIf="!loadingSummary && !errorSummary && summary && (summary.denna_manad || summary.detta_kvartal)" class="row g-3 mb-4">
+
+    <!-- Denna månad vs förra -->
+    <div class="col-12 col-lg-6" *ngIf="summary.denna_manad && summary.forra_manaden">
+      <div class="card dashboard-card">
+        <div class="card-header">
+          <h2 class="mb-0" style="font-size:1rem;">
+            <i class="fas fa-calendar-alt me-2 text-info"></i>Månadsjämförelse
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Denna månad</div>
+                <div class="detail-kpi-val text-info">{{ summary.denna_manad.total }} IBC</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Förra månaden</div>
+                <div class="detail-kpi-val text-muted">{{ summary.forra_manaden.total }} IBC</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Produktion</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.total, summary.forra_manaden.total)">
+                  <i [class]="getDiffIcon(summary.denna_manad.total, summary.forra_manaden.total) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ getDiffPct(summary.denna_manad.total, summary.forra_manaden.total) }}
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Kassation</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.kassation_pct, summary.forra_manaden.kassation_pct, true)">
+                  <i [class]="getDiffIcon(summary.denna_manad.kassation_pct, summary.forra_manaden.kassation_pct, true) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ summary.denna_manad.kassation_pct }}%
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Drifttid</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.denna_manad.drifttid_h, summary.forra_manaden.drifttid_h)">
+                  <i [class]="getDiffIcon(summary.denna_manad.drifttid_h, summary.forra_manaden.drifttid_h) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ getDiffPct(summary.denna_manad.drifttid_h, summary.forra_manaden.drifttid_h) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detta kvartal vs förra -->
+    <div class="col-12 col-lg-6" *ngIf="summary.detta_kvartal && summary.forra_kvartalet">
+      <div class="card dashboard-card">
+        <div class="card-header">
+          <h2 class="mb-0" style="font-size:1rem;">
+            <i class="fas fa-chart-pie me-2 text-warning"></i>Kvartalsjämförelse
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Detta kvartal</div>
+                <div class="detail-kpi-val text-warning">{{ summary.detta_kvartal.total }} IBC</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Förra kvartalet</div>
+                <div class="detail-kpi-val text-muted">{{ summary.forra_kvartalet.total }} IBC</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Produktion</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.total, summary.forra_kvartalet.total)">
+                  <i [class]="getDiffIcon(summary.detta_kvartal.total, summary.forra_kvartalet.total) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ getDiffPct(summary.detta_kvartal.total, summary.forra_kvartalet.total) }}
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Kassation</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.kassation_pct, summary.forra_kvartalet.kassation_pct, true)">
+                  <i [class]="getDiffIcon(summary.detta_kvartal.kassation_pct, summary.forra_kvartalet.kassation_pct, true) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ summary.detta_kvartal.kassation_pct }}%
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="detail-kpi">
+                <div class="detail-kpi-label">Drifttid</div>
+                <div class="detail-kpi-val" [ngClass]="getDiffClass(summary.detta_kvartal.drifttid_h, summary.forra_kvartalet.drifttid_h)">
+                  <i [class]="getDiffIcon(summary.detta_kvartal.drifttid_h, summary.forra_kvartalet.drifttid_h) + ' me-1'" style="font-size:0.8rem;"></i>
+                  {{ getDiffPct(summary.detta_kvartal.drifttid_h, summary.forra_kvartalet.drifttid_h) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================ -->
   <!-- TRENDGRAF                                                     -->
   <!-- ============================================================ -->
   <div class="card dashboard-card mb-4">

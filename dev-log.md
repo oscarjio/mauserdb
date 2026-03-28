@@ -1,5 +1,81 @@
 # MauserDB Dev Log
 
+## Session #378 — Worker B (Frontend) (2026-03-28)
+**Fokus: Rebotling daglig historik + statistik manads/kvartalsjamforelser + operatorsbonus drilldown + driftstopp filter + lifecycle-audit + deploy**
+
+### UPPGIFT 1: Rebotling historik — daglig-endpoint integration
+- Lagt till ny flik "Daglig historik" i historisk-produktion-komponenten
+- Integrerat backend-endpoint `?action=historik&run=daglig` med:
+  - Datumvaljare (from/to)
+  - Operatorsfilter (dropdown med alla operatorer fran OperatorsService)
+  - Sortering pa kolumner (dag, ibc, kassation) med klickbara headers
+  - Pagination med forra/nasta/forsta/sista
+- Visar data i tabell: dag, total_ibc, kassation_pct, antal_skift
+- Dark theme, svenska labels
+- Ny service-metod `getDagligHistorik()` med alla filter-parametrar
+- Nya interfaces: `DagligHistorikRow`, `DagligHistorikData`, `DagligHistorikResponse`
+
+### UPPGIFT 2: Statistik dashboard — manads/kvartalsjamforelser
+- Lagt till manads- och kvartalsjamforelser-sektion med pilar (upp/ned) och fargkodning (gront=battre, rott=samre)
+- Visar: denna manad vs forra manaden, detta kvartal vs forra kvartalet
+- Jamforelse av produktion, kassation, drifttid med procentuell forandring
+- Utokat `DashboardSummary` interface med `MonthSummary` och `QuarterSummary`
+- Lagt till 180d och 365d periodval i trendgrafen
+- Uppdaterad adaptiv granularitet for langre perioder
+
+### UPPGIFT 3: Operatorsbonus — drilldown per operator
+- Gjort operatorsraderna klickbara med expanderbar detaljvy
+- Vid klick visas:
+  - Operatorens KPI:er (IBC/h, kvalitet, narvaro) med jamforelse mot genomsnitt
+  - Uppfyllnadsgrader med visuella progressbars per faktor (IBC/h, Kvalitet, Narvaro, Team)
+  - Bonus-detaljer per faktor med fargkodning
+  - Pil-ikoner for battre/samre an genomsnittet
+  - Bonushistorik (senaste 10 utbetalningar) fran historik-endpoint
+- Chevron-ikon (hoger/ner) for att visa expanderat tillstand
+- Ny CSS: `.drilldown-panel`, `.drilldown-kpi`, `.drilldown-kpi-val` etc.
+
+### UPPGIFT 4: Skiftrapport — UX-granskning
+- Granskade rebotling-skiftrapport-komponenten
+- Alla timers (searchTimer, trendBuildTimer, effBuildTimer, scrollRestoreTimer, opKpiBuildTimer, updateInterval, successTimerId) rensas i ngOnDestroy
+- Alla charts (trendChart, efficiencyChart, opKpiChart) forstors korrekt
+- Ingen UX-forandring behovdes — layout och KPI:er ar tydliga med befintlig design
+
+### UPPGIFT 5: Driftstopp-analys — filter och UX
+- Lagt till filterfunktioner for segmentlistan:
+  - Typ-filter (alla/korning/stopp/ej planerat) via dropdown
+  - Min langd-filter (i minuter) for att filtrera bort korta segment
+- Visar antal filtrerade segment av totalt
+- Orsaksfordelning doughnut + veckotrend linje verifierade (session #376)
+- Ny metod `rebuildFilteredSegments()` + `onFilterChange()`
+
+### UPPGIFT 6: Lifecycle-audit
+- Granskade alla andrade komponenter (historisk-produktion, statistik-dashboard, operatorsbonus, drifttids-timeline, skiftoverlamning)
+- Alla implementerar OnInit/OnDestroy med destroy$ + takeUntil
+- Alla setInterval/setTimeout rensas i ngOnDestroy
+- Alla Chart-instanser forstors korrekt
+- Inga lacker hittade
+
+### UPPGIFT 7: Bygg, deploy, commit
+- `npx ng build` — LYCKAS utan fel (0 errors, bara CommonJS-varningar)
+- rsync till dev.mauserdb.com — OK
+- dev-log.md uppdaterad
+
+### Andrade filer:
+- `noreko-frontend/src/app/services/historisk-produktion.service.ts` — nya interfaces + getDagligHistorik()
+- `noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts` — daglig-flik + operatorsfilter
+- `noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.html` — daglig-flik UI
+- `noreko-frontend/src/app/services/statistik-dashboard.service.ts` — MonthSummary/QuarterSummary interfaces
+- `noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.ts` — 180d/365d perioder
+- `noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.html` — manads/kvartalsjamforelser
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.ts` — drilldown logik
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html` — expanderbar detaljrad
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.css` — drilldown-stilar
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts` — filter + filteredSegments
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.html` — filterkontroller
+- `dev-log.md` — denna logg
+
+---
+
 ## Session #378 — Worker A (Backend) (2026-03-28)
 **Fokus: Fullstandig endpoint-test + SQL-audit + backend-granskning + deploy**
 

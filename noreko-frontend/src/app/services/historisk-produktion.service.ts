@@ -110,6 +110,41 @@ export interface DetaljTabellResponse {
   data: DetaljTabell;
 }
 
+// ---- Daglig historik (session #377 backend) ----
+
+export interface DagligHistorikRow {
+  dag: string;
+  total_ibc: number;
+  total_ej_ok: number;
+  total_all: number;
+  kassation_pct: number;
+  antal_skift: number;
+}
+
+export interface DagligHistorikPagination {
+  page: number;
+  per_page: number;
+  total_rows: number;
+  total_pages: number;
+}
+
+export interface DagligHistorikData {
+  rows: DagligHistorikRow[];
+  pagination: DagligHistorikPagination;
+  filter: {
+    from: string;
+    to: string;
+    operator: string | null;
+    sort: string;
+    order: string;
+  };
+}
+
+export interface DagligHistorikResponse {
+  success: boolean;
+  data: DagligHistorikData;
+}
+
 // ---- Service ----
 
 @Injectable({ providedIn: 'root' })
@@ -171,6 +206,27 @@ export class HistoriskProduktionService {
     if (params.sort) url += `&sort=${params.sort}`;
     if (params.order) url += `&order=${params.order}`;
     return this.http.get<DetaljTabellResponse>(url, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getDagligHistorik(params: {
+    from?: string;
+    to?: string;
+    operator?: string;
+    sort?: string;
+    order?: string;
+    page?: number;
+    per_page?: number;
+  }): Observable<DagligHistorikResponse | null> {
+    let url = `${environment.apiUrl}?action=historik&run=daglig`;
+    if (params.from) url += `&from=${params.from}`;
+    if (params.to) url += `&to=${params.to}`;
+    if (params.operator) url += `&operator=${params.operator}`;
+    if (params.sort) url += `&sort=${params.sort}`;
+    if (params.order) url += `&order=${params.order}`;
+    if (params.page) url += `&page=${params.page}`;
+    if (params.per_page) url += `&per_page=${params.per_page}`;
+    return this.http.get<DagligHistorikResponse>(url, { withCredentials: true })
       .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

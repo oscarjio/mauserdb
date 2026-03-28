@@ -15,11 +15,141 @@
 
   <div id="historisk-produktion-content">
 
+  <!-- Flikar -->
+  <ul class="nav nav-tabs mb-3" style="border-bottom-color:#4a5568;">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')"
+         style="cursor:pointer; background:transparent; border-color:transparent;"
+         [style.color]="activeTab === 'overview' ? '#63b3ed' : '#a0aec0'"
+         [style.border-bottom-color]="activeTab === 'overview' ? '#63b3ed' : 'transparent'">
+        <i class="fas fa-chart-line me-1"></i>Översikt
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'daglig'" (click)="switchTab('daglig')"
+         style="cursor:pointer; background:transparent; border-color:transparent;"
+         [style.color]="activeTab === 'daglig' ? '#63b3ed' : '#a0aec0'"
+         [style.border-bottom-color]="activeTab === 'daglig' ? '#63b3ed' : 'transparent'">
+        <i class="fas fa-calendar-day me-1"></i>Daglig historik
+      </a>
+    </li>
+  </ul>
+
   <!-- Felmeddelande -->
   <div *ngIf="errorData" class="alert alert-danger d-flex align-items-center mb-3" role="alert" style="background:#742a2a; border-color:#fc8181; color:#fed7d7;">
     <i class="fas fa-exclamation-triangle me-2"></i>
     Kunde inte hämta produktionsdata. Kontrollera anslutningen och försök igen.
   </div>
+
+  <!-- ========== DAGLIG HISTORIK TAB (session #378) ========== -->
+  <div *ngIf="activeTab === 'daglig'">
+    <!-- Filter -->
+    <div class="period-selector mb-4">
+      <div class="d-flex flex-wrap align-items-end gap-3">
+        <div>
+          <label class="form-label text-muted small mb-1">Från</label>
+          <input type="date" class="form-control form-control-sm custom-date"
+                 [(ngModel)]="dagligFrom" aria-label="Från datum" />
+        </div>
+        <div>
+          <label class="form-label text-muted small mb-1">Till</label>
+          <input type="date" class="form-control form-control-sm custom-date"
+                 [(ngModel)]="dagligTo" aria-label="Till datum" />
+        </div>
+        <div>
+          <label class="form-label text-muted small mb-1">Operatör</label>
+          <select class="form-select form-select-sm custom-date" [(ngModel)]="dagligOperator"
+                  aria-label="Välj operatör" style="min-width:160px;">
+            <option value="">Alla operatörer</option>
+            <option *ngFor="let op of operatorer; trackBy: trackByIndex"
+                    [value]="op.operator_number">{{ op.name }}</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-info" (click)="applyDagligFilter()">
+            <i class="fas fa-search me-1"></i>Sök
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="loadingDaglig" class="text-center py-4">
+      <div role="status" class="spinner-border text-info"><span class="visually-hidden">Laddar...</span></div>
+      <div class="text-muted mt-2">Laddar daglig historik...</div>
+    </div>
+
+    <!-- Tabell -->
+    <div class="table-card" *ngIf="!loadingDaglig && dagligData && dagligData.rows.length > 0">
+      <div class="section-title mb-3">
+        <i class="fas fa-calendar-day me-2 text-info"></i>
+        Daglig produktionshistorik
+        <span class="text-muted ms-2 small">
+          ({{ dagligData.pagination.total_rows }} dagar)
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th scope="col" class="sortable" (click)="dagligSortBy('datum')" tabindex="0" (keydown.enter)="dagligSortBy('datum')">
+                Dag <i [class]="dagligSortIcon('datum')"></i>
+              </th>
+              <th scope="col" class="sortable text-end" (click)="dagligSortBy('ibc')" tabindex="0" (keydown.enter)="dagligSortBy('ibc')">
+                Total IBC <i [class]="dagligSortIcon('ibc')"></i>
+              </th>
+              <th scope="col" class="sortable text-end" (click)="dagligSortBy('kassation')" tabindex="0" (keydown.enter)="dagligSortBy('kassation')">
+                Kassation % <i [class]="dagligSortIcon('kassation')"></i>
+              </th>
+              <th scope="col" class="text-end">Antal skift</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of dagligData.rows; trackBy: trackByIndex">
+              <td>{{ formatDate(row.dag) }}</td>
+              <td class="text-end fw-bold">{{ row.total_ibc }}</td>
+              <td class="text-end">
+                <span [class]="row.kassation_pct > 5 ? 'text-danger' : row.kassation_pct > 2 ? 'text-warning' : 'text-success'">
+                  {{ formatPct(row.kassation_pct) }}
+                </span>
+              </td>
+              <td class="text-end text-muted">{{ row.antal_skift }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="dagligData.pagination.total_pages > 1">
+        <span class="text-muted small">
+          Sida {{ dagligData.pagination.page }} av {{ dagligData.pagination.total_pages }}
+        </span>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-info" (click)="goDagligPage(1)" [disabled]="dagligData.pagination.page <= 1" aria-label="Första sidan">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goDagligPage(dagligData.pagination.page - 1)" [disabled]="dagligData.pagination.page <= 1" aria-label="Föregående sida">
+            <i class="fas fa-angle-left"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goDagligPage(dagligData.pagination.page + 1)" [disabled]="dagligData.pagination.page >= dagligData.pagination.total_pages" aria-label="Nästa sida">
+            <i class="fas fa-angle-right"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goDagligPage(dagligData.pagination.total_pages)" [disabled]="dagligData.pagination.page >= dagligData.pagination.total_pages" aria-label="Sista sidan">
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tom data -->
+    <div *ngIf="!loadingDaglig && (!dagligData || dagligData.rows.length === 0)" class="text-center text-muted py-4">
+      <i class="fas fa-info-circle me-1"></i>Ingen daglig data för vald period och filter.
+    </div>
+  </div>
+
+  <!-- ========== OVERVIEW TAB ========== -->
+  <div *ngIf="activeTab === 'overview'">
 
   <!-- Periodselektor -->
   <div class="period-selector mb-4">
@@ -343,5 +473,7 @@
       <i class="fas fa-info-circle me-1"></i>Ingen data för vald period
     </div>
   </div>
+  </div><!-- /overview tab -->
+
   </div><!-- /#historisk-produktion-content -->
 </div>

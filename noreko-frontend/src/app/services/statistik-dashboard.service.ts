@@ -33,11 +33,33 @@ export interface ActiveOperator {
   senaste_datum: string;
 }
 
+export interface MonthSummary {
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  total: number;
+  kassation_pct: number;
+  drifttid_h: number;
+  manad_start?: string;
+}
+
+export interface QuarterSummary {
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  total: number;
+  kassation_pct: number;
+  drifttid_h: number;
+  kvartal_start?: string;
+}
+
 export interface DashboardSummary {
   idag: DashboardDaySummary;
   igar: DashboardDaySummary;
   denna_vecka: DashboardWeekSummary;
   forra_veckan: DashboardWeekSummary;
+  denna_manad?: MonthSummary;
+  forra_manaden?: MonthSummary;
+  detta_kvartal?: QuarterSummary;
+  forra_kvartalet?: QuarterSummary;
   aktiv_operator: ActiveOperator | null;
   snitt_ibc_per_h: number;
   mal_ibc_per_h: number;

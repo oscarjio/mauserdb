@@ -10,7 +10,10 @@ import {
   ProduktionPerPeriod,
   Jamforelse,
   DetaljTabell,
+  DagligHistorikData,
+  DagligHistorikRow,
 } from '../../../services/historisk-produktion.service';
+import { OperatorsService } from '../../../services/operators.service';
 import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 import { localToday, localDateStr } from '../../../utils/date-utils';
 
@@ -51,6 +54,18 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   tableOrder = 'DESC';
   tablePage  = 1;
 
+  // Daglig historik (session #378)
+  activeTab: 'overview' | 'daglig' = 'overview';
+  dagligData: DagligHistorikData | null = null;
+  loadingDaglig = false;
+  dagligFrom = '';
+  dagligTo = '';
+  dagligOperator = '';
+  dagligSort = 'datum';
+  dagligOrder = 'desc';
+  dagligPage = 1;
+  operatorer: { operator_number: number; name: string }[] = [];
+
   // Charts
   private productionChart: Chart | null = null;
 
@@ -59,14 +74,17 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   private productionChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
-  constructor(private svc: HistoriskProduktionService) {}
+  constructor(private svc: HistoriskProduktionService, private opSvc: OperatorsService) {}
 
   ngOnInit(): void {
     const today = new Date();
     this.customTo   = localToday();
     this.customFrom = localDateStr(new Date(today.getTime() - 29 * 86400000));
+    this.dagligTo   = localToday();
+    this.dagligFrom = localDateStr(new Date(today.getTime() - 29 * 86400000));
 
     this.loadAll();
+    this.loadOperatorer();
     this.refreshInterval = setInterval(() => this.loadOverview(), 120000);
   }
 
@@ -198,6 +216,76 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     if (page < 1 || (this.tabell && page > this.tabell.total_pages)) return;
     this.tablePage = page;
     this.loadTable();
+  }
+
+  // ---- Tab ----
+
+  switchTab(tab: 'overview' | 'daglig'): void {
+    this.activeTab = tab;
+    if (tab === 'daglig' && !this.dagligData) {
+      this.loadDaglig();
+    }
+  }
+
+  // ---- Daglig historik (session #378) ----
+
+  loadOperatorer(): void {
+    this.opSvc.getOperators().pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe((res: any) => {
+        if (res?.success && res.operators) {
+          this.operatorer = res.operators.map((o: any) => ({
+            operator_number: o.operator_number ?? o.number,
+            name: o.name ?? o.operator_name ?? `Op ${o.operator_number ?? o.number}`,
+          }));
+        }
+      });
+  }
+
+  loadDaglig(): void {
+    this.loadingDaglig = true;
+    this.svc.getDagligHistorik({
+      from: this.dagligFrom || undefined,
+      to: this.dagligTo || undefined,
+      operator: this.dagligOperator || undefined,
+      sort: this.dagligSort,
+      order: this.dagligOrder,
+      page: this.dagligPage,
+      per_page: 25,
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingDaglig = false;
+        if (res?.success) {
+          this.dagligData = res.data;
+        }
+      });
+  }
+
+  applyDagligFilter(): void {
+    this.dagligPage = 1;
+    this.loadDaglig();
+  }
+
+  dagligSortBy(col: string): void {
+    if (this.dagligSort === col) {
+      this.dagligOrder = this.dagligOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.dagligSort = col;
+      this.dagligOrder = 'desc';
+    }
+    this.dagligPage = 1;
+    this.loadDaglig();
+  }
+
+  dagligSortIcon(col: string): string {
+    if (this.dagligSort !== col) return 'fas fa-sort text-muted';
+    return this.dagligOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+  }
+
+  goDagligPage(page: number): void {
+    if (!this.dagligData) return;
+    if (page < 1 || page > this.dagligData.pagination.total_pages) return;
+    this.dagligPage = page;
+    this.loadDaglig();
   }
 
   // ---- Chart ----

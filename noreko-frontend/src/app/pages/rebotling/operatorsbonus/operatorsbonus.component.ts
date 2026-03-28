@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   OperatorsbonusService,
@@ -62,6 +62,11 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   // Selected operator for radar
   selectedOperator: OperatorBonus | null = null;
+
+  // Drilldown (session #378)
+  expandedOperatorId: number | null = null;
+  drilldownLoading = false;
+  drilldownData: any = null;
 
   // Charts
   private radarChart: Chart | null     = null;
@@ -267,6 +272,51 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
         },
         error: () => { this.loadingSimulering = false; this.errorSimulering = true; }
       });
+  }
+
+  // ---- Drilldown (session #378) ----
+
+  toggleDrilldown(op: OperatorBonus): void {
+    if (this.expandedOperatorId === op.operator_id) {
+      this.expandedOperatorId = null;
+      this.drilldownData = null;
+      return;
+    }
+    this.expandedOperatorId = op.operator_id;
+    this.selectedOperator = op;
+    this.drilldownData = null;
+    this.drilldownLoading = true;
+    // Build drilldown from existing operator data + historik
+    this.svc.getHistorik(op.operator_id, undefined, undefined, 30)
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.drilldownLoading = false;
+        this.drilldownData = {
+          operator: op,
+          historik: res?.success ? res.data?.utbetalningar ?? [] : [],
+        };
+        // Refresh radar
+        if (this.radarChartTimer !== null) { clearTimeout(this.radarChartTimer); }
+        this.radarChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 100);
+      });
+  }
+
+  getDrilldownAvg(field: string): number {
+    if (!this.operatorer.length) return 0;
+    const sum = this.operatorer.reduce((s, o: any) => s + (o[field] ?? 0), 0);
+    return +(sum / this.operatorer.length).toFixed(1);
+  }
+
+  getDrilldownCompareClass(val: number, avg: number, invertiert = false): string {
+    if (val === avg) return 'text-muted';
+    const better = invertiert ? val < avg : val > avg;
+    return better ? 'text-success' : 'text-danger';
+  }
+
+  getDrilldownCompareIcon(val: number, avg: number, invertiert = false): string {
+    if (val === avg) return 'fas fa-minus';
+    const better = invertiert ? val < avg : val > avg;
+    return better ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
   }
 
   // ---- Charts ----
