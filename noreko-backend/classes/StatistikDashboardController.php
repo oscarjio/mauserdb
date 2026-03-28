@@ -300,6 +300,22 @@ class StatistikDashboardController {
                     'drifttid_h'     => $lastWeekData['drifttid_h'],
                     'vecko_start'    => $lastMonday,
                 ],
+                // Månadsdata: denna månad vs förra månaden
+                'denna_manad' => $this->getDaySummary(date('Y-m-01'), $today),
+                'forra_manaden' => $this->getDaySummary(
+                    date('Y-m-01', strtotime('first day of last month')),
+                    date('Y-m-t', strtotime('last month'))
+                ),
+                // Kvartalsdata: detta kvartal vs förra kvartalet
+                'detta_kvartal' => $this->getDaySummary(
+                    $this->getQuarterStart($today),
+                    $today
+                ),
+                'forra_kvartalet' => $this->getDaySummary(
+                    $this->getQuarterStart(date('Y-m-d', strtotime($this->getQuarterStart($today) . ' -1 day'))),
+                    date('Y-m-d', strtotime($this->getQuarterStart($today) . ' -1 day'))
+                ),
+
                 'aktiv_operator'  => $aktivOp,
                 'snitt_ibc_per_h' => $snittIbcH7,
                 'mal_ibc_per_h'   => self::IBC_PER_H_MAL,
@@ -312,13 +328,23 @@ class StatistikDashboardController {
         }
     }
 
+    /**
+     * Beräkna kvartalets startdatum.
+     */
+    private function getQuarterStart(string $date): string {
+        $month = (int)date('m', strtotime($date));
+        $year  = (int)date('Y', strtotime($date));
+        $quarterMonth = ((int)ceil($month / 3) - 1) * 3 + 1;
+        return sprintf('%04d-%02d-01', $year, $quarterMonth);
+    }
+
     // ================================================================
     // ENDPOINT: production-trend
     // ================================================================
 
     private function getProductionTrend(): void {
         $period = (int)($_GET['period'] ?? 30);
-        if (!in_array($period, [7, 14, 30, 60, 90], true)) {
+        if (!in_array($period, [7, 14, 30, 60, 90, 180, 365], true)) {
             $period = 30;
         }
 

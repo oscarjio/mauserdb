@@ -215,8 +215,10 @@ class OperatorsbonusController {
                     COALESCE(SUM(shift_ibc), 0) AS total_ibc,
                     COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
                     COALESCE(SUM(shift_ok), 0) AS total_ok,
+                    COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
                     COALESCE(SUM(shift_ok), 0) + COALESCE(SUM(shift_ej_ok), 0) AS total_all,
-                    COUNT(DISTINCT dag) AS unika_dagar
+                    COUNT(DISTINCT dag) AS unika_dagar,
+                    COUNT(*) AS antal_skift
                 FROM (
                     SELECT
                         op_id,
@@ -277,17 +279,28 @@ class OperatorsbonusController {
                 $ibcPerTimme = $timmar > 0 ? round($totalIbc / $timmar, 2) : 0;
 
                 $ok    = (int)$data['total_ok'];
+                $ejOk  = (int)$data['total_ej_ok'];
                 $total = (int)$data['total_all'];
                 $kvalitet = $total > 0 ? round(($ok / $total) * 100, 1) : 0;
+                $kassationPct = $total > 0 ? round(($ejOk / $total) * 100, 1) : 0;
 
                 $dagar  = (int)$data['unika_dagar'];
                 $narvaro = ($arbetsDagar > 0 && $dagar > 0)
                     ? round(min(($dagar / $arbetsDagar) * 100, 100), 1)
                     : 0;
+
+                $antalSkift = (int)$data['antal_skift'];
             } else {
+                $totalIbc    = 0;
+                $runtimeMin  = 0;
+                $timmar      = 0;
                 $ibcPerTimme = 0;
+                $ok          = 0;
+                $ejOk        = 0;
                 $kvalitet    = 0;
+                $kassationPct = 0;
                 $narvaro     = 0;
+                $antalSkift  = 0;
             }
 
             $operators[] = [
@@ -296,6 +309,13 @@ class OperatorsbonusController {
                 'ibc_per_timme'  => $ibcPerTimme,
                 'kvalitet'       => $kvalitet,
                 'narvaro'        => $narvaro,
+                'total_ibc'      => $totalIbc,
+                'drifttid_h'     => round($timmar, 2),
+                'kassation_pct'  => $kassationPct,
+                'antal_skift'    => $antalSkift,
+                'antal_dagar'    => (int)($data['unika_dagar'] ?? 0),
+                'ibc_ok'         => $ok,
+                'ibc_ej_ok'      => $ejOk,
             ];
         }
 
@@ -388,6 +408,15 @@ class OperatorsbonusController {
                 'kvalitet'        => $op['kvalitet'],
                 'narvaro'         => $op['narvaro'],
                 'team_mal'        => $teamMal,
+                // KPI-detaljer per operatör
+                'total_ibc'       => $op['total_ibc'] ?? 0,
+                'drifttid_h'      => $op['drifttid_h'] ?? 0,
+                'kassation_pct'   => $op['kassation_pct'] ?? 0,
+                'antal_skift'     => $op['antal_skift'] ?? 0,
+                'antal_dagar'     => $op['antal_dagar'] ?? 0,
+                'ibc_ok'          => $op['ibc_ok'] ?? 0,
+                'ibc_ej_ok'       => $op['ibc_ej_ok'] ?? 0,
+                // Bonusberäkningar
                 'bonus_ibc'       => $ibcBonus,
                 'bonus_kvalitet'  => $kvalitetBonus,
                 'bonus_narvaro'   => $narvaroBonus,

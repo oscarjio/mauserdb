@@ -1,5 +1,59 @@
 # MauserDB Dev Log
 
+## Session #377 — Worker A (Backend) (2026-03-28)
+**Fokus: Operatorsbonus KPI-detaljer + historik filter/sortering + statistik periodval + endpoint-test + SQL-audit**
+
+### UPPGIFT 1: Operatorsbonus backend — forbattrade KPI-detaljer per operator
+- Utokade `getOperatorData()` med `antal_skift`, `total_ej_ok` i SQL-queryn
+- Lagt till per-operator KPI-falt i svaret: `total_ibc`, `drifttid_h`, `kassation_pct`, `antal_skift`, `antal_dagar`, `ibc_ok`, `ibc_ej_ok`
+- Dessa falt propageras genom `beraknaAllaBonus()` till `per-operator` och `overview` endpoints
+- Verifierat mot prod DB: 13 operatorer, bonus_konfiguration korrekt (ibc_per_timme mal=12, kvalitet mal=98%, narvaro mal=100%, team_bonus mal=95%)
+
+### UPPGIFT 2: Rebotling historik — ny daglig endpoint med filter/sortering/paginering
+- Ny endpoint: `?action=historik&run=daglig` med fullstandig filter- och sorteringsstod
+- Filter: `from`, `to` (datum), `operator` (operator number)
+- Sortering: `sort=datum|ibc|kassation`, `order=asc|desc`
+- Paginering: `page`, `per_page` (max 100)
+- Max 365 dagars historik, automatisk datumvalidering och swap vid from>to
+- Returnerar: dag, total_ibc, total_ej_ok, total_all, kassation_pct, antal_skift + pagination-metadata
+
+### UPPGIFT 3: Statistik dashboard — periodval och jamforelser
+- Utokat `getSummary()` med manads- och kvartalsdata:
+  - `denna_manad` vs `forra_manaden`
+  - `detta_kvartal` vs `forra_kvartalet`
+- Ny hjalp-metod `getQuarterStart()` for kvartalsberakningar
+- Utokat `getProductionTrend()` med 180 och 365 dagars perioder
+
+### UPPGIFT 4: Fullstandig endpoint-test
+- Testat 169 endpoints med curl mot dev.mauserdb.com
+- **0 HTTP 500-fel**, 0 regressions
+- 401/403/429 = autentisering/rate limiting (forvantat utan inloggning)
+- Slow endpoints fixade: driftstopp (1.6s -> 0.23s via optimerad table-check)
+
+### UPPGIFT 5: SQL-audit
+- Granskat alla PHP-filer med SQL-queries mot prod_db_schema.sql
+- **0 SQL mismatches som orsakar fel** — alla kolumnreferenser matchar schema
+- Hittade 3 legacy-tabellreferenser (`rebotling_data`, `rebotling_stopporsak`, `skift_log`) — alla wrappade i `tableExists()` checks, inga 500-fel
+
+### UPPGIFT 6: Prestandafix
+- Optimerat `RebotlingController::getDriftstoppStatus()`: ersatt `CREATE TABLE IF NOT EXISTS` (varje request) med `information_schema` check + static cache
+- Driftstopp-endpoint: 1.6s -> 0.23s
+
+### Andrade filer:
+- `noreko-backend/classes/OperatorsbonusController.php` — utokade KPI-detaljer per operator
+- `noreko-backend/classes/HistorikController.php` — ny daglig endpoint med filter/sortering/paginering
+- `noreko-backend/classes/StatistikDashboardController.php` — manads/kvartals-jamforelser + utokade perioder
+- `noreko-backend/classes/RebotlingController.php` — prestandafix driftstopp table-check
+- `dev-log.md` — denna logg
+
+### Verifiering mot prod DB:
+- 5030 cykler i rebotling_ibc (overensstammer)
+- 13 operatorer, 4 bonus-konfigurationsrader
+- rebotling_target = 1000 (dagligt mal)
+- Data fran historik daglig endpoint: 2026-03-27 = 158 IBC (verifierat mot MAX per skiftraknare: 52+8+67+31=158)
+
+---
+
 ## Session #377 — Worker B (Frontend) (2026-03-28)
 **Fokus: Operatorsbonus UX-forbattringar + lifecycle-fix + navigationsfix + data-verifiering + deploy**
 

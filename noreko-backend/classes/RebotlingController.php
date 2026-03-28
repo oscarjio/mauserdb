@@ -682,17 +682,29 @@ class RebotlingController {
      */
     private function getDriftstoppStatus() {
         try {
-            $this->pdo->exec("
-                CREATE TABLE IF NOT EXISTS `rebotling_driftstopp` (
-                    `id` INT NOT NULL AUTO_INCREMENT,
-                    `datum` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    `driftstopp_status` TINYINT(1) NOT NULL DEFAULT 0,
-                    `skiftraknare` INT DEFAULT NULL,
-                    PRIMARY KEY (`id`),
-                    KEY `idx_datum` (`datum`),
-                    KEY `idx_skiftraknare` (`skiftraknare`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            ");
+            // Kontrollera att tabellen finns (snabb information_schema-check istället för CREATE TABLE IF NOT EXISTS varje gång)
+            static $driftstoppTableChecked = false;
+            if (!$driftstoppTableChecked) {
+                $check = $this->pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.tables
+                     WHERE table_schema = DATABASE()
+                       AND table_name = 'rebotling_driftstopp'"
+                )->fetchColumn();
+                if (!$check) {
+                    $this->pdo->exec("
+                        CREATE TABLE IF NOT EXISTS `rebotling_driftstopp` (
+                            `id` INT NOT NULL AUTO_INCREMENT,
+                            `datum` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            `driftstopp_status` TINYINT(1) NOT NULL DEFAULT 0,
+                            `skiftraknare` INT DEFAULT NULL,
+                            PRIMARY KEY (`id`),
+                            KEY `idx_datum` (`datum`),
+                            KEY `idx_skiftraknare` (`skiftraknare`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                }
+                $driftstoppTableChecked = true;
+            }
 
             $tz = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
