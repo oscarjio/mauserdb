@@ -11,9 +11,9 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #390):
-- [ ] Endpoint-test: verifiera att 115 endpoints fortfarande ar 0x500 efter alla andringar
-- [ ] Granska rebotling-sidor: live-data vs historik — stammer allt?
-- [ ] Admin CRUD: testa alla edit/delete/create floden pa dev
-- [ ] Operatorsbonus: verifiera berakningar mot prod DB for aktuell vecka
-- [ ] Mobilanpassning: granska alla tabeller/grafer pa smal skarm
+### Nasta (session #391):
+- [ ] Driftstopp-sidor: verifiera timeline, orsaksfordelning, veckotrend mot prod DB
+- [ ] Skiftrapport: end-to-end test — generera rapport, verifiera data, exportera CSV/PDF
+- [ ] VD-dashboard + executive-dashboard: granska KPI-berakningar mot prod DB
+- [ ] Morgonrapport + veckorapport: verifiera att alla siffror stammer
+- [ ] Operatorsportal: granska alla sidor ur operators perspektiv (my-bonus, ranking, dashboard)
