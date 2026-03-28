@@ -1,5 +1,56 @@
 # MauserDB Dev Log
 
+## Session #380 — Worker B (Frontend) (2026-03-28)
+**Fokus: Statistik export CSV/PDF + Rebotling UX-granskning + Daglig historik UX + Operatorsbonus trendgraf UX + Lifecycle-audit + deploy dev**
+
+### UPPGIFT 1: Statistik dashboard — Exportfunktion (CSV/PDF)
+- Lade till "Exportera CSV"-knapp i statistik-dashboard header
+- CSV-export inkluderar: 7-dagars tabelldata + KPI-sammanfattning med BOM for korrekt Excel-hantering
+- Lade till PDF-export via befintlig PdfExportButtonComponent med targetElementId
+- Dark theme-styling pa exportknappar (grona CSV-knapp, info-fargad PDF)
+- All text pa svenska
+
+### UPPGIFT 2: Rebotling dashboard — UX-granskning
+- Granskade statistik-dashboard: dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text), grafer lasbara med dubbelaxel, tabeller med fargkodade rader
+- Granskade operatorsbonus: sorterbara kolumner, radardiagram, stapeldiagram, drilldown-expandering, trendgraf — allt korrekt
+- Granskade historisk-produktion: periodval, graf, jamforelse, tabell med sortering + pagination
+- Alla komponenter foljer dark theme-standarden
+- Inga UX-problem hittade — komponenterna ar valkonstruerade
+
+### UPPGIFT 3: Historik — Daglig historik UX-granskning
+- Pagination: fungerar korrekt med forsta/foregaende/nasta/sista-knappar, disabled-state vid grans
+- Filter: datumfilter (fran/till) + operatorsfilter med dropdown, "Sok"-knapp
+- Sortering: klickbara kolumnrubriker (datum, IBC, kassation) med sort-ikoner
+- 25 rader per sida, totalt antal visas
+- Inga UX-problem — valkonstruerad flik fran session #378
+
+### UPPGIFT 4: Operatorsbonus trendgraf — UX-granskning
+- Periodval (30d/90d/365d): korrekt implementerat med knappar och period-styling
+- Tooltips: visar datum, bonus (kr), snittbonus, IBC/h, kvalitet %, narvaro %
+- Dubbelaxel: vanster = Bonus (kr) med gul farg, hoger = KPI-varden med bla farg
+- Adaptiv punktstorlek (0 vid >60 datapunkter, 3 vid farre)
+- Snittbonus-linje (streckad) for referens
+- Info-text under grafen forklarar axlarna
+- Inga UX-problem — valkonstruerad fran session #379
+
+### UPPGIFT 5: Lifecycle-audit
+- **163 komponenter granskade**
+- 162 av 163 har OnInit + OnDestroy (funktionshub har bara OnInit men behovs ej — inga subscriptions/intervals/charts)
+- Alla 70 komponenter med setInterval har matchande clearInterval i ngOnDestroy
+- Alla komponenter med setTimeout har matchande clearTimeout
+- Alla Chart.js-instanser har .destroy() i cleanup
+- **0 lackor hittade** — kodbasen ar val underhallen
+
+### UPPGIFT 6: Bootstrap modal-deklaration fix
+- Lade till `declare module 'bootstrap/js/dist/modal'` i bootstrap-modules.d.ts
+- Fixade build-error i rebotling-statistik.ts
+
+### UPPGIFT 7: Bygg + Deploy
+- `npx ng build` — lyckat (0 errors, warnings only)
+- Frontend deployad till dev.mauserdb.com via rsync
+- curl https://dev.mauserdb.com/ → 200 OK
+- API-endpoints (statistikdashboard, operatorsbonus) svarar korrekt (401 = auth kravs = forvantad)
+
 ## Session #380 — Worker A (Backend) (2026-03-28)
 **Fokus: Endpoint-test + SQL-audit + rebotling-data verifiering + skiftrapport KPI-kontroll + deploy dev**
 

@@ -301,6 +301,18 @@
 .legend-gul  { background: #ed8936; }
 .legend-röd  { background: #f56565; }
 
+/* ---- Export-knappar ---- */
+:host ::ng-deep .btn-outline-success {
+  border-color: #48bb78;
+  color: #48bb78;
+}
+
+:host ::ng-deep .btn-outline-success:hover {
+  background: rgba(72, 187, 120, 0.15);
+  border-color: #68d391;
+  color: #68d391;
+}
+
 /* ---- Responsiv ---- */
 @media (max-width: 576px) {
   :host {

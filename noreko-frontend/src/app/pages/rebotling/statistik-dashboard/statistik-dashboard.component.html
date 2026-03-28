@@ -9,16 +9,28 @@
         </h1>
         <p class="dashboard-subtitle text-muted mb-0">Komplett produktionsöverblick — IBC-tvätteri</p>
       </div>
-      <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
         <span class="text-muted small" *ngIf="lastUpdated">
           <i class="fas fa-sync-alt me-1"></i>Uppdaterad {{ lastUpdated }}
         </span>
+        <button class="btn btn-outline-success btn-sm" (click)="exportCsv()"
+                [disabled]="!tableData?.rows?.length"
+                aria-label="Exportera data som CSV">
+          <i class="fas fa-file-csv me-1"></i>Exportera CSV
+        </button>
+        <app-pdf-export-button
+          targetElementId="statistik-dashboard-content"
+          filename="statistik-dashboard"
+          title="Statistik-dashboard">
+        </app-pdf-export-button>
         <button class="btn btn-outline-info btn-sm" (click)="loadAll()" aria-label="Uppdatera all data">
           <i class="fas fa-redo me-1"></i>Uppdatera
         </button>
       </div>
     </div>
   </div>
+
+  <div id="statistik-dashboard-content">
 
   <!-- ============================================================ -->
   <!-- STATUSINDIKATOR                                               -->
@@ -470,4 +482,5 @@
     </div>
   </div>
 
+  </div><!-- /#statistik-dashboard-content -->
 </div>

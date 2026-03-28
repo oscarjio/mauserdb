@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { parseLocalDate } from '../../../utils/date-utils';
+import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 
 import {
   StatistikDashboardService,
@@ -23,7 +24,7 @@ Chart.register(...registerables);
   selector: 'app-statistik-dashboard',
   templateUrl: './statistik-dashboard.component.html',
   styleUrls: ['./statistik-dashboard.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
 export class StatistikDashboardPage implements OnInit, OnDestroy {
 
@@ -516,4 +517,64 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByDatum(index: number, item: any): any { return item?.datum ?? index; }
+
+  // ================================================================
+  // CSV-EXPORT
+  // ================================================================
+
+  exportCsv(): void {
+    if (!this.tableData?.rows?.length) return;
+
+    const sep = ';';
+    const headers = ['Datum', 'IBC OK', 'IBC ej OK', 'Kassation %', 'Drifttid (h)', 'IBC/h', 'Bästa operatör'];
+    const lines: string[] = [headers.join(sep)];
+
+    for (const row of this.tableData.rows) {
+      lines.push([
+        row.datum,
+        row.ibc_ok,
+        row.ibc_ej_ok,
+        row.kassation_pct,
+        row.drifttid_h,
+        row.ibc_per_h,
+        row.basta_operator?.operator_name ?? '',
+      ].join(sep));
+    }
+
+    if (this.tableData.veckosnitt) {
+      const vs = this.tableData.veckosnitt;
+      lines.push([
+        'Veckosnitt/Total',
+        vs.ibc_ok,
+        vs.ibc_ej_ok,
+        vs.kassation_pct,
+        vs.drifttid_h,
+        vs.ibc_per_h,
+        '',
+      ].join(sep));
+    }
+
+    // KPI-sammanfattning
+    if (this.summary) {
+      lines.push('');
+      lines.push('KPI-sammanfattning');
+      lines.push(`IBC idag${sep}${this.summary.idag.total}`);
+      lines.push(`IBC denna vecka${sep}${this.summary.denna_vecka.total}`);
+      lines.push(`Kassationsgrad idag${sep}${this.summary.idag.kassation_pct}%`);
+      lines.push(`Drifttid idag${sep}${this.summary.idag.drifttid_h}h`);
+      lines.push(`Snitt IBC/h (7d)${sep}${this.summary.snitt_ibc_per_h}`);
+    }
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const datum = new Date().toISOString().slice(0, 10);
+    a.download = `statistik-dashboard-${datum}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }
