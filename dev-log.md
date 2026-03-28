@@ -1,5 +1,73 @@
 # MauserDB Dev Log
 
+## Session #373 — Worker A (2026-03-28)
+**Fokus: Input-validering audit + Cache-strategi review + Endpoint-test + SQL-audit + Deploy**
+
+### UPPGIFT 1: Input-validering audit — KLAR
+- **44 controllers granskade** som hanterar POST/PUT/DELETE (grep på `$_POST`, `$_REQUEST`, `json_decode`, `php://input`)
+- **Inga SQLi-sårbarheter hittade** — alla SQL-queries använder prepared statements
+- **Dynamisk SQL i AdminController (rad 339)**: `implode(', ', $fields)` — SÄKER, fältnamnerna är hårdkodade konstanter, ej user-input
+- **Granskade och godkända controllers** (urval):
+  - `LoginController`: strip_tags, length-check (username ≤100, password ≤255), bcrypt verify
+  - `RegisterController`: mb_strlen 3-50, password 8-255 regex, filter_var email, hash_equals kod
+  - `AdminController`: mb_strlen username, filter_var email, strlen phone, password regex, (int) ID
+  - `NewsController`: intval ID, htmlspecialchars title/content, whitelist categories, max length
+  - `FeedbackController`: (int) stämning 1-4, mb_substr kommentar 280 tecken
+  - `StoppageController`: in_array line whitelist, intval reason_id, preg_match datum, mb_strlen kommentar ≤500
+  - `RebotlingProductController`: strip_tags name, (float) cycle_time, max bounds 0<x≤9999, mb_strlen ≤100
+  - `SkiftrapportController`: preg_match datum, max/min ibc-värden, intval ID
+  - `OperatorController`: strip_tags name, intval number, mb_strlen ≤100
+  - `AlertsController`: whitelist type (oee_low/stop_long/scrap_high), (float) threshold 0-99999
+  - `ProfileController`: strip_tags email, filter_var, strlen, preg_match password
+  - `TvattlinjeController`: preg_match tid-format, intval värden, max/min bounds
+  - `BonusAdminController`: filter_var float/int, preg_match datum-format, max/min bounds
+- **Inga fixar behövdes** — alla 44 controllers implementerar korrekt input-validering
+
+### UPPGIFT 2: Cache-strategi review — KLAR
+- **10 controllers använder fil-cache** (i `/noreko-backend/cache/`)
+- **TTL-värden** (alla rimliga):
+  - `RebotlingController` getLiveStats: 5s TTL — korrekt för realtidsdata
+  - `RebotlingController` getSettings: 30s TTL — korrekt, settings ändras sällan
+  - `AlarmHistorikController`: 30s TTL (historik + summary + timeline) — korrekt
+  - `DagligBriefingController`: 30s TTL (per datum) — korrekt
+  - `OeeTrendanalysController`: 30s TTL (6 cache-nycklar) — korrekt
+  - `ProduktionsDashboardController`: 15s TTL — korrekt för dashboard
+  - `RebotlingAnalyticsController`: 30s TTL (month_compare per månad) — korrekt
+- **Cache-invalidering**: `RebotlingAdminController::invalidateCache()` rensas vid alla admin-CRUD-operationer
+- **Cache-nycklar saniteras korrekt** mot path traversal: preg_replace, preg_match + md5
+- **Inga stale-data-problem eller cache-säkerhetsproblem hittade**
+
+### UPPGIFT 3: Full endpoint-test mot dev — KLAR
+- **114 endpoints testade** mot https://dev.mauserdb.com/noreko-backend/api.php
+- **0 st 500-fel** — alla endpoints svarar korrekt
+- **0 st svar >1s** — alla svarar under 1 sekund
+- Icke-200-svar (login 405, lineskiftrapport 400 etc.) är alla korrekta och förväntade
+
+### UPPGIFT 4: SQL-audit mot prod_db_schema.sql — KLAR
+- **88 tabeller i schema granskade** mot controllers
+- **6 tabeller saknas i schema men används i controllers**:
+  1. `klassificeringslinje_ibc` — graceful try/catch i KlassificeringslinjeController
+  2. `rebotling_data` — GamificationController (fallback-logik), TidrapportController
+  3. **`rebotling_maintenance_log`** — **FIX: Skapade tabell** (se nedan)
+  4. `rebotling_stopporsak` — SHOW TABLES-check i RebotlingController, graceful
+  5. `saglinje_ibc` — graceful try/catch i SaglinjeController
+  6. `saglinje_onoff` — graceful try/catch i SaglinjeController
+- **Åtgärd**: `rebotling_maintenance_log` skapad i dev-DB + migration-fil skapad
+- **prod_db_schema.sql** uppdaterad med ny tabell
+- **Inga JOIN/kolumn-mismatchar hittade** — alla andra tabellreferenser matchar schemat
+
+### UPPGIFT 5: Deploy till dev — KLAR
+- Backend deployd: `rsync` med `--exclude='db_config.php'`
+- Post-deploy test: 114 endpoints, 0 x 500, 0 x >1s — GODKÄNT
+
+### Sammanfattning ändringar:
+- **Ny fil**: `noreko-backend/migrations/2026-03-28_rebotling_maintenance_log.sql`
+- **Uppdaterad**: `prod_db_schema.sql` (rebotling_maintenance_log tillagd)
+- **DB-ändring**: `rebotling_maintenance_log` skapad i dev-DB (saknades, gav 500 vid saveMaintenanceLog)
+- **Granskade**: 44 controllers (input-validering), 10 controllers (cache), 114 endpoints
+
+---
+
 ## Session #373 — Worker B (2026-03-28)
 **Fokus: Operatörsbonus UX-förbättring + admin-sidor UX + data-verifiering + lazy loading review + lifecycle-audit + deploy**
 

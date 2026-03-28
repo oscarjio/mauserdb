@@ -2019,4 +2019,20 @@ CREATE TABLE `vader_data` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-25 19:30:07
+--
+-- Table structure for table `rebotling_maintenance_log`
+-- Added: 2026-03-28 session #373 Worker A
+--
+
+DROP TABLE IF EXISTS `rebotling_maintenance_log`;
+CREATE TABLE `rebotling_maintenance_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `action_text` text NOT NULL,
+  `logged_by_user_id` int(11) DEFAULT NULL,
+  `logged_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_logged_at` (`logged_at`),
+  KEY `idx_user_id` (`logged_by_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Dump completed on 2026-03-28 (updated by session #373 Worker A)
