@@ -33,6 +33,10 @@ export class UsersPage implements OnInit, OnDestroy {
   sortDirection: 'asc' | 'desc' = 'asc';
   statusFilter: 'alla' | 'aktiva' | 'admin' | 'inaktiva' = 'alla';
 
+  // Pagination
+  readonly pageSize = 20;
+  currentPage = 1;
+
   constructor(
     private usersService: UsersService,
     private auth: AuthService,
@@ -125,10 +129,31 @@ export class UsersPage implements OnInit, OnDestroy {
   // --- Statusfilter ---
   setStatusFilter(filter: 'alla' | 'aktiva' | 'admin' | 'inaktiva') {
     this.statusFilter = filter;
+    this.currentPage = 1;
   }
 
-  // --- Filtrerad & sorterad lista ---
-  get filteredUsers(): any[] {
+  // --- Paginering ---
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.allFilteredUsers.length / this.pageSize));
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const cur = this.currentPage;
+    const pages = new Set<number>([1, total, cur]);
+    if (cur > 1) pages.add(cur - 1);
+    if (cur < total) pages.add(cur + 1);
+    return Array.from(pages).sort((a, b) => a - b);
+  }
+
+  // --- Alla filtrerade (utan paginering) ---
+  get allFilteredUsers(): any[] {
     let result = [...this.users];
 
     // Statusfilter
@@ -180,6 +205,13 @@ export class UsersPage implements OnInit, OnDestroy {
     });
 
     return result;
+  }
+
+  // --- Paginerad lista ---
+  get filteredUsers(): any[] {
+    const all = this.allFilteredUsers;
+    const start = (this.currentPage - 1) * this.pageSize;
+    return all.slice(start, start + this.pageSize);
   }
 
   toggleExpand(id: number) {

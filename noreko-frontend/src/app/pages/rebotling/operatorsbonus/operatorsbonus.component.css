@@ -247,6 +247,226 @@
   background: #4a5568;
 }
 
+/* ---- Formelkort ---- */
+.formula-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  border-left: 4px solid #63b3ed;
+}
+
+.formula-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+}
+
+.formula-body { color: #cbd5e0; }
+
+.formula-equation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+
+.formula-box {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.formula-eq {
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.formula-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.formula-factor {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #1a202c;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.factor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.factor-label { color: #e2e8f0; }
+
+.factor-weight {
+  color: #a0aec0;
+  font-size: 0.78rem;
+  margin-left: 0.1rem;
+}
+
+.formula-note {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: #8fa3b8;
+}
+
+/* ---- Status-badges i tabell ---- */
+.bonus-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.status-excellent {
+  background: #22543d44;
+  color: #68d391;
+  border: 1px solid #22543d;
+}
+
+.status-good {
+  background: #276749 33;
+  color: #9ae6b4;
+  border: 1px solid #276749;
+}
+
+.status-medium {
+  background: #74440244;
+  color: #f6e05e;
+  border: 1px solid #744402;
+}
+
+.status-low {
+  background: #63171b44;
+  color: #fc8181;
+  border: 1px solid #63171b;
+}
+
+.bonus-pct-small {
+  font-size: 0.7rem;
+  color: #718096;
+  margin-top: 2px;
+}
+
+/* ---- Statusöversikt-grid ---- */
+.status-overview {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.status-overview-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.status-overview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.status-op-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  min-width: 100px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.1s;
+  text-align: center;
+}
+
+.status-op-tile:hover { transform: translateY(-2px); }
+
+.status-op-tile.status-excellent { border-color: #22543d; }
+.status-op-tile.status-good      { border-color: #276749; }
+.status-op-tile.status-medium    { border-color: #744402; }
+.status-op-tile.status-low       { border-color: #63171b; }
+
+.status-op-icon {
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.status-op-tile.status-excellent .status-op-icon { color: #68d391; }
+.status-op-tile.status-good      .status-op-icon { color: #9ae6b4; }
+.status-op-tile.status-medium    .status-op-icon { color: #f6e05e; }
+.status-op-tile.status-low       .status-op-icon { color: #fc8181; }
+
+.status-op-name {
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-op-bonus {
+  font-size: 0.8rem;
+  color: #ecc94b;
+  font-weight: 700;
+  margin-top: 0.1rem;
+}
+
+.status-op-pct {
+  font-size: 0.7rem;
+  color: #718096;
+}
+
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #8fa3b8;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.status-excellent { background: #68d391; }
+.legend-dot.status-good      { background: #9ae6b4; }
+.legend-dot.status-medium    { background: #f6e05e; }
+.legend-dot.status-low       { background: #fc8181; }
+
 @media (max-width: 768px) {
   .sim-result-grid {
     grid-template-columns: 1fr;
@@ -256,5 +476,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .formula-equation {
+    font-size: 0.8rem;
   }
 }

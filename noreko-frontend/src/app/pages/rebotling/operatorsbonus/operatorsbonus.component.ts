@@ -456,4 +456,44 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
   trackById(index: number, item: any): any { return item?.id ?? index; }
   trackByOperatorId(index: number, item: any): any { return item?.operator_id ?? item?.id ?? index; }
+
+  // ---- Status-hjälpare ----
+
+  /** Returnerar statusetikett baserat på total bonus som % av max */
+  bonusStatusLabel(totalBonus: number): string {
+    const pct = this.maxTotal > 0 ? (totalBonus / this.maxTotal) * 100 : 0;
+    if (pct >= 85) return 'Utmärkt';
+    if (pct >= 65) return 'Bra';
+    if (pct >= 40) return 'Medel';
+    return 'Låg';
+  }
+
+  bonusStatusClass(totalBonus: number): string {
+    const pct = this.maxTotal > 0 ? (totalBonus / this.maxTotal) * 100 : 0;
+    if (pct >= 85) return 'status-excellent';
+    if (pct >= 65) return 'status-good';
+    if (pct >= 40) return 'status-medium';
+    return 'status-low';
+  }
+
+  bonusStatusIcon(totalBonus: number): string {
+    const pct = this.maxTotal > 0 ? (totalBonus / this.maxTotal) * 100 : 0;
+    if (pct >= 85) return 'fas fa-star';
+    if (pct >= 65) return 'fas fa-thumbs-up';
+    if (pct >= 40) return 'fas fa-minus-circle';
+    return 'fas fa-arrow-down';
+  }
+
+  bonusPctOfMax(totalBonus: number): string {
+    const pct = this.maxTotal > 0 ? (totalBonus / this.maxTotal) * 100 : 0;
+    return pct.toFixed(0) + '%';
+  }
+
+  /** Tooltip-text för bonus-beräkning per operatör */
+  bonusFormelTooltip(op: any): string {
+    return `IBC/h: ${op.ibc_per_timme?.toFixed(1)} → ${this.formatKr(op.bonus_ibc)} | ` +
+           `Kvalitet: ${op.kvalitet?.toFixed(1)}% → ${this.formatKr(op.bonus_kvalitet)} | ` +
+           `Närvaro: ${op.narvaro?.toFixed(1)}% → ${this.formatKr(op.bonus_narvaro)} | ` +
+           `Team: ${this.formatKr(op.bonus_team)}`;
+  }
 }

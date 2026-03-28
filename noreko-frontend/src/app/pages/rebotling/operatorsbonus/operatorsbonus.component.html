@@ -224,6 +224,33 @@
     </div>
   </div>
 
+  <!-- Statusöversikt — snabb statuskoll -->
+  <div *ngIf="!loadingOperatorer && !errorOperatorer && operatorer.length > 0" class="status-overview mb-4">
+    <div class="status-overview-title">
+      <i class="fas fa-traffic-light me-2" style="color:#a0aec0;"></i>Statusöversikt
+    </div>
+    <div class="status-overview-grid">
+      <div *ngFor="let op of operatorer; trackBy: trackByOperatorId"
+           class="status-op-tile"
+           [ngClass]="bonusStatusClass(op.total_bonus)"
+           (click)="selectOperator(op)"
+           [title]="bonusFormelTooltip(op)"
+           role="button" tabindex="0"
+           (keydown.enter)="selectOperator(op)">
+        <div class="status-op-icon"><i [class]="bonusStatusIcon(op.total_bonus)"></i></div>
+        <div class="status-op-name">{{ op.operator_namn }}</div>
+        <div class="status-op-bonus">{{ formatKr(op.total_bonus) }}</div>
+        <div class="status-op-pct">{{ bonusPctOfMax(op.total_bonus) }}</div>
+      </div>
+    </div>
+    <div class="status-legend mt-2">
+      <span class="legend-item"><span class="legend-dot status-excellent"></span>Utmärkt (≥85%)</span>
+      <span class="legend-item"><span class="legend-dot status-good"></span>Bra (65–84%)</span>
+      <span class="legend-item"><span class="legend-dot status-medium"></span>Medel (40–64%)</span>
+      <span class="legend-item"><span class="legend-dot status-low"></span>Låg (&lt;40%)</span>
+    </div>
+  </div>
+
   <!-- Operatorstabell -->
   <div class="table-card mb-4">
     <div class="section-title">
@@ -243,6 +270,7 @@
             <th scope="col" class="sortable-th" (click)="sortBy('operator_namn')" tabindex="0" (keydown.enter)="sortBy('operator_namn')">
               Operatör <i [class]="sortIcon('operator_namn')"></i>
             </th>
+            <th scope="col" class="text-center">Status</th>
             <th scope="col" class="text-end sortable-th" (click)="sortBy('ibc_per_timme')" tabindex="0" (keydown.enter)="sortBy('ibc_per_timme')">
               IBC/h <i [class]="sortIcon('ibc_per_timme')"></i>
             </th>
@@ -266,6 +294,14 @@
               [class.selected-row]="selectedOperator?.operator_id === op.operator_id" tabindex="0" (keydown.enter)="selectOperator(op)">
             <td>
               <strong>{{ op.operator_namn }}</strong>
+            </td>
+            <td class="text-center">
+              <span class="bonus-status-badge" [ngClass]="bonusStatusClass(op.total_bonus)"
+                    [title]="bonusFormelTooltip(op)">
+                <i [class]="bonusStatusIcon(op.total_bonus)"></i>
+                {{ bonusStatusLabel(op.total_bonus) }}
+              </span>
+              <div class="bonus-pct-small">{{ bonusPctOfMax(op.total_bonus) }} av max</div>
             </td>
             <td class="text-end">
               <span>{{ op.ibc_per_timme.toFixed(1) }}</span>
@@ -402,13 +438,48 @@
     </div>
   </div>
 
-  <!-- Info-fotnot -->
-  <div class="text-muted small mb-3">
-    <i class="fas fa-info-circle me-1"></i>
-    Bonusformel: Bonus per faktor = min(verkligt / mal, 1.0) x max_bonus_kr.
-    Faktorer: IBC/h (40%), Kvalitet (30%), Närvaro (20%), Team-mål (10%).
-    Klicka <strong>Bonuskonfiguration</strong> för att justera parametrar.
-    Data uppdateras automatiskt var 60:e sekund.
+  <!-- Formelförklaring -->
+  <div class="formula-card mb-3">
+    <div class="formula-header">
+      <i class="fas fa-function me-2" style="color:#63b3ed;"></i>
+      <strong>Hur beräknas bonusen?</strong>
+    </div>
+    <div class="formula-body">
+      <div class="formula-equation">
+        <span class="formula-box">Bonus per faktor</span>
+        <span class="formula-eq">=</span>
+        <span class="formula-box">min(verkligt ÷ målvärde, 1,0)</span>
+        <span class="formula-eq">×</span>
+        <span class="formula-box">max bonus (kr)</span>
+      </div>
+      <div class="formula-factors mt-3">
+        <div class="formula-factor" title="IBC per timme — tyngsta faktorn">
+          <span class="factor-dot" style="background:#4299e1;"></span>
+          <span class="factor-label">IBC/h</span>
+          <span class="factor-weight">40%</span>
+        </div>
+        <div class="formula-factor" title="Kassationsgrad — andel godkända produkter">
+          <span class="factor-dot" style="background:#48bb78;"></span>
+          <span class="factor-label">Kvalitet</span>
+          <span class="factor-weight">30%</span>
+        </div>
+        <div class="formula-factor" title="Närvaro i procent av schemalagd tid">
+          <span class="factor-dot" style="background:#ecc94b;"></span>
+          <span class="factor-label">Närvaro</span>
+          <span class="factor-weight">20%</span>
+        </div>
+        <div class="formula-factor" title="Team når gemensamt produktionsmål">
+          <span class="factor-dot" style="background:#9f7aea;"></span>
+          <span class="factor-label">Team-mål</span>
+          <span class="factor-weight">10%</span>
+        </div>
+      </div>
+      <div class="formula-note">
+        <i class="fas fa-info-circle me-1"></i>
+        Klicka <strong>Bonuskonfiguration</strong> för att justera parametrar.
+        Data uppdateras automatiskt var 60:e sekund.
+      </div>
+    </div>
   </div>
 
 </div>

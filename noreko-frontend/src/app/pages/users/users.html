@@ -81,7 +81,7 @@
               <div class="col-12 col-md-3 text-md-end">
                 <span class="stats-badge">
                   <i class="fas fa-filter me-1"></i>
-                  {{ filteredUsers.length }} av {{ users.length }} användare
+                  {{ allFilteredUsers.length }} av {{ users.length }} användare
                 </span>
               </div>
             </div>
@@ -135,7 +135,14 @@
                         {{ user.admin === 1 ? 'Admin' : 'Användare' }}
                       </span>
                     </td>
-                    <td>{{ user.last_login || '-' }}</td>
+                    <td>
+                      <span *ngIf="user.last_login" class="last-login-cell" [title]="user.last_login">
+                        <i class="fas fa-clock me-1 text-muted" style="font-size:0.75rem;"></i>
+                        {{ user.last_login | slice:0:10 }}
+                        <small class="d-block text-muted" style="font-size:0.7rem;">{{ user.last_login | slice:11:16 }}</small>
+                      </span>
+                      <span *ngIf="!user.last_login" class="text-muted">Aldrig</span>
+                    </td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
                         <button class="btn btn-outline-primary" (click)="toggleExpand(user.id)" title="Redigera"
@@ -213,7 +220,7 @@
             </table>
 
             <!-- Inga resultat -->
-            <div *ngIf="filteredUsers.length === 0 && users.length > 0" class="text-center py-5">
+            <div *ngIf="allFilteredUsers.length === 0 && users.length > 0" class="text-center py-5">
               <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
               <p class="text-muted mt-2">Inga användare matchar sökningen</p>
             </div>
@@ -222,6 +229,32 @@
               <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
               <p class="text-muted mt-2">Inga användare hittades</p>
             </div>
+          </div>
+
+          <!-- Paginering -->
+          <div *ngIf="totalPages > 1" class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <small class="text-muted">
+              Sida {{ currentPage }} av {{ totalPages }} —
+              visar {{ filteredUsers.length }} av {{ allFilteredUsers.length }} användare
+            </small>
+            <nav aria-label="Sidnavigering">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" [class.disabled]="currentPage === 1">
+                  <button class="page-link" (click)="goToPage(currentPage - 1)" aria-label="Föregående">
+                    <i class="fas fa-chevron-left"></i>
+                  </button>
+                </li>
+                <li class="page-item" *ngFor="let p of pageNumbers; trackBy: trackByIndex"
+                    [class.active]="p === currentPage">
+                  <button class="page-link" (click)="goToPage(p)">{{ p }}</button>
+                </li>
+                <li class="page-item" [class.disabled]="currentPage === totalPages">
+                  <button class="page-link" (click)="goToPage(currentPage + 1)" aria-label="Nästa">
+                    <i class="fas fa-chevron-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
           </div>
         </div>
       </div>
