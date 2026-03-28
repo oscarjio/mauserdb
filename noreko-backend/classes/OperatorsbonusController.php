@@ -43,6 +43,7 @@ class OperatorsbonusController {
                 case 'konfiguration':   $this->getKonfiguration();   break;
                 case 'historik':        $this->getHistorik();        break;
                 case 'simulering':      $this->getSimulering();      break;
+                case 'trend':           $this->getTrend();           break;
                 default:
                     $this->sendError('Okänd run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'), 404);
             }
@@ -723,6 +724,192 @@ class OperatorsbonusController {
         } catch (\Exception $e) {
             error_log('OperatorsbonusController::getSimulering: ' . $e->getMessage());
             $this->sendError('Kunde inte köra simulering', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=trend — Operatorsbonus trenddata per operatör
+    // ?operator_id=X&period=30d|90d|365d
+    // Returnerar daglig/veckovis bonus-utveckling
+    // =========================================================================
+
+    private function getTrend(): void {
+        try {
+            $operatorId = isset($_GET['operator_id']) ? (int)$_GET['operator_id'] : 0;
+            $period     = trim($_GET['period'] ?? '30d');
+
+            // Bestäm antal dagar
+            $daysMap = ['7d' => 7, '30d' => 30, '90d' => 90, '365d' => 365];
+            $days = $daysMap[$period] ?? 30;
+
+            // Validera operator_id
+            if ($operatorId <= 0) {
+                $this->sendError('operator_id krävs (positivt heltal)', 400);
+                return;
+            }
+
+            // Hämta operatörens info
+            $stmt = $this->pdo->prepare("SELECT id, number, name FROM operators WHERE id = ? AND active = 1");
+            $stmt->execute([$operatorId]);
+            $operator = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$operator) {
+                $this->sendError('Operatör hittades inte', 404);
+                return;
+            }
+
+            $opNumber = (int)$operator['number'];
+            $konfig   = $this->loadKonfig();
+
+            // Bestäm granularitet: daglig för <=90d, veckovis för >90d
+            $granularity = ($days <= 90) ? 'dag' : 'vecka';
+
+            // Datum-gränser
+            $toDate   = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+            if ($granularity === 'dag') {
+                // Daglig aggregering
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        dag,
+                        COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                        COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
+                        COALESCE(SUM(shift_ok), 0) AS total_ok,
+                        COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
+                        COUNT(*) AS antal_skift
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM (
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op1 = :op1 AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                            UNION ALL
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op2 = :op2 AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
+                            UNION ALL
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op3 = :op3 AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
+                        ) AS all_ops
+                        GROUP BY dag, skiftraknare
+                    ) AS per_shift
+                    GROUP BY dag
+                    ORDER BY dag ASC
+                ");
+                $stmt->execute([
+                    ':op1' => $opNumber, ':from1' => $fromDate, ':to1' => $toDate,
+                    ':op2' => $opNumber, ':from2' => $fromDate, ':to2' => $toDate,
+                    ':op3' => $opNumber, ':from3' => $fromDate, ':to3' => $toDate,
+                ]);
+            } else {
+                // Veckovis aggregering
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        YEARWEEK(dag, 1) AS vecka,
+                        MIN(dag) AS vecka_start,
+                        MAX(dag) AS vecka_slut,
+                        COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                        COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
+                        COALESCE(SUM(shift_ok), 0) AS total_ok,
+                        COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
+                        COUNT(*) AS antal_skift
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM (
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op1 = :op1 AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                            UNION ALL
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op2 = :op2 AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
+                            UNION ALL
+                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
+                            FROM rebotling_ibc
+                            WHERE op3 = :op3 AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
+                        ) AS all_ops
+                        GROUP BY dag, skiftraknare
+                    ) AS per_shift
+                    GROUP BY YEARWEEK(dag, 1)
+                    ORDER BY vecka ASC
+                ");
+                $stmt->execute([
+                    ':op1' => $opNumber, ':from1' => $fromDate, ':to1' => $toDate,
+                    ':op2' => $opNumber, ':from2' => $fromDate, ':to2' => $toDate,
+                    ':op3' => $opNumber, ':from3' => $fromDate, ':to3' => $toDate,
+                ]);
+            }
+
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Beräkna bonus per datapunkt
+            $trendData = [];
+            foreach ($rows as $row) {
+                $totalIbc   = (int)$row['total_ibc'];
+                $runtimeMin = (float)$row['total_runtime_min'];
+                $timmar     = $runtimeMin / 60.0;
+                $ibcPerTimme = $timmar > 0 ? round($totalIbc / $timmar, 2) : 0;
+
+                $ok    = (int)$row['total_ok'];
+                $ejOk  = (int)$row['total_ej_ok'];
+                $total = $ok + $ejOk;
+                $kvalitetPct = $total > 0 ? round(($ok / $total) * 100, 1) : 0;
+
+                // Beräkna bonus
+                $bonusIbc      = $this->beraknaBonus($ibcPerTimme, $konfig['ibc_per_timme']['mal_varde'], $konfig['ibc_per_timme']['max_bonus_kr']);
+                $bonusKvalitet = $this->beraknaBonus($kvalitetPct, $konfig['kvalitet']['mal_varde'], $konfig['kvalitet']['max_bonus_kr']);
+                $totalBonus    = $bonusIbc + $bonusKvalitet;
+
+                $point = [
+                    'ibc_per_timme'  => $ibcPerTimme,
+                    'kvalitet_pct'   => $kvalitetPct,
+                    'total_ibc'      => $totalIbc,
+                    'drifttid_h'     => round($timmar, 2),
+                    'bonus_belopp'   => round($totalBonus, 2),
+                    'bonus_ibc'      => $bonusIbc,
+                    'bonus_kvalitet' => $bonusKvalitet,
+                    'antal_skift'    => (int)$row['antal_skift'],
+                ];
+
+                if ($granularity === 'dag') {
+                    $point['datum'] = $row['dag'];
+                } else {
+                    $point['datum']      = $row['vecka_start'];
+                    $point['vecka_slut'] = $row['vecka_slut'];
+                    $point['vecka']      = $row['vecka'];
+                }
+
+                $trendData[] = $point;
+            }
+
+            $this->sendSuccess([
+                'operator_id'   => $operatorId,
+                'operator_namn' => $operator['name'],
+                'period'        => $period,
+                'days'          => $days,
+                'granularity'   => $granularity,
+                'from'          => $fromDate,
+                'to'            => $toDate,
+                'datapunkter'   => count($trendData),
+                'trend'         => $trendData,
+            ]);
+        } catch (\Exception $e) {
+            error_log('OperatorsbonusController::getTrend: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta trenddata', 500);
         }
     }
 }

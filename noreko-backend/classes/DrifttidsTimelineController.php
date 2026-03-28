@@ -41,6 +41,8 @@ class DrifttidsTimelineController {
             case 'summary':          $this->getSummary();         break;
             case 'orsaksfordelning': $this->getOrsaksfordelning(); break;
             case 'veckotrend':       $this->getVeckotrend();      break;
+            case 'vecko-aggregat':   $this->getVeckoAggregat();   break;
+            case 'manads-aggregat':  $this->getManadsAggregat();  break;
             default:
                 $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
         }
@@ -647,6 +649,185 @@ class DrifttidsTimelineController {
         } catch (\Exception $e) {
             error_log('DrifttidsTimelineController::getVeckotrend: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna veckotrend', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: vecko-aggregat
+    // ================================================================
+
+    /**
+     * GET ?action=drifttids-timeline&run=vecko-aggregat&date=YYYY-MM-DD
+     * Aggregerar driftstopp per vecka. date anger vilken vecka som ska visas.
+     * Returnerar daglig breakdown + veckosumma.
+     */
+    private function getVeckoAggregat(): void {
+        $date = $this->getDate();
+
+        try {
+            $dt = new \DateTime($date);
+            $dayOfWeek = (int)$dt->format('N');
+            $weekStart = (clone $dt)->modify('-' . ($dayOfWeek - 1) . ' days');
+            $weekEnd   = (clone $weekStart)->modify('+6 days');
+
+            $veckoNr = (int)$dt->format('W');
+            $ar      = (int)$dt->format('o');
+
+            $result = [];
+            $totalRunning  = 0;
+            $totalStopped  = 0;
+            $totalAntalStopp = 0;
+
+            for ($i = 0; $i < 7; $i++) {
+                $dagDate = (clone $weekStart)->modify("+{$i} days")->format('Y-m-d');
+
+                $onOffPeriods = $this->getOnOffPeriods($dagDate);
+                $stopReasons  = $this->getStopReasons($dagDate);
+                $segments     = $this->buildSegments($dagDate, $onOffPeriods, $stopReasons);
+
+                $skiftStartTs  = strtotime($dagDate . ' ' . self::SKIFT_START);
+                $skiftSlutTs   = strtotime($dagDate . ' ' . self::SKIFT_SLUT);
+                $plannadTidMin = ($skiftSlutTs - $skiftStartTs) / 60;
+
+                $runningMin = 0;
+                $stoppedMin = 0;
+                $antalStopp = 0;
+                foreach ($segments as $seg) {
+                    if ($seg['type'] === 'running')  $runningMin += $seg['duration_min'];
+                    if ($seg['type'] === 'stopped') {
+                        $stoppedMin += $seg['duration_min'];
+                        $antalStopp++;
+                    }
+                }
+
+                $utnyttjandegrad = $plannadTidMin > 0
+                    ? round(($runningMin / $plannadTidMin) * 100, 1)
+                    : 0.0;
+
+                $totalRunning    += $runningMin;
+                $totalStopped    += $stoppedMin;
+                $totalAntalStopp += $antalStopp;
+
+                $result[] = [
+                    'datum'               => $dagDate,
+                    'veckodag'            => ['', 'Mandag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lordag', 'Sondag'][$i + 1],
+                    'drifttid_min'        => round($runningMin, 1),
+                    'stopptid_min'        => round($stoppedMin, 1),
+                    'antal_stopp'         => $antalStopp,
+                    'utnyttjandegrad_pct' => $utnyttjandegrad,
+                    'plannad_tid_min'     => $plannadTidMin,
+                ];
+            }
+
+            $totalPlannad = 960 * 7; // 16h * 7 dagar
+            $veckoUtnyttjandegrad = $totalPlannad > 0
+                ? round(($totalRunning / $totalPlannad) * 100, 1)
+                : 0.0;
+
+            $this->sendSuccess([
+                'vecka'                => $veckoNr,
+                'ar'                   => $ar,
+                'vecka_start'          => $weekStart->format('Y-m-d'),
+                'vecka_slut'           => $weekEnd->format('Y-m-d'),
+                'dagar'                => $result,
+                'total_drifttid_min'   => round($totalRunning, 1),
+                'total_stopptid_min'   => round($totalStopped, 1),
+                'total_antal_stopp'    => $totalAntalStopp,
+                'utnyttjandegrad_pct'  => $veckoUtnyttjandegrad,
+            ]);
+        } catch (\Exception $e) {
+            error_log('DrifttidsTimelineController::getVeckoAggregat: ' . $e->getMessage());
+            $this->sendError('Kunde inte berakna veckoaggregat', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: manads-aggregat
+    // ================================================================
+
+    /**
+     * GET ?action=drifttids-timeline&run=manads-aggregat&date=YYYY-MM-DD
+     * Aggregerar driftstopp per manad. date anger vilken manad som ska visas.
+     * Returnerar daglig breakdown + manadssumma.
+     */
+    private function getManadsAggregat(): void {
+        $date = $this->getDate();
+
+        try {
+            $dt = new \DateTime($date);
+            $manadStart  = new \DateTime($dt->format('Y-m-01'));
+            $manadSlut   = (clone $manadStart)->modify('last day of this month');
+            $antalDagar  = (int)$manadSlut->format('d');
+            $manadNamn   = $dt->format('Y-m');
+
+            $result = [];
+            $totalRunning    = 0;
+            $totalStopped    = 0;
+            $totalAntalStopp = 0;
+            $totalPlannad    = 0;
+
+            for ($i = 0; $i < $antalDagar; $i++) {
+                $dagDate = (clone $manadStart)->modify("+{$i} days")->format('Y-m-d');
+
+                // Hoppa over framtida datum
+                if ($dagDate > date('Y-m-d')) break;
+
+                $onOffPeriods = $this->getOnOffPeriods($dagDate);
+                $stopReasons  = $this->getStopReasons($dagDate);
+                $segments     = $this->buildSegments($dagDate, $onOffPeriods, $stopReasons);
+
+                $skiftStartTs  = strtotime($dagDate . ' ' . self::SKIFT_START);
+                $skiftSlutTs   = strtotime($dagDate . ' ' . self::SKIFT_SLUT);
+                $plannadTidMin = ($skiftSlutTs - $skiftStartTs) / 60;
+
+                $runningMin = 0;
+                $stoppedMin = 0;
+                $antalStopp = 0;
+                foreach ($segments as $seg) {
+                    if ($seg['type'] === 'running')  $runningMin += $seg['duration_min'];
+                    if ($seg['type'] === 'stopped') {
+                        $stoppedMin += $seg['duration_min'];
+                        $antalStopp++;
+                    }
+                }
+
+                $utnyttjandegrad = $plannadTidMin > 0
+                    ? round(($runningMin / $plannadTidMin) * 100, 1)
+                    : 0.0;
+
+                $totalRunning    += $runningMin;
+                $totalStopped    += $stoppedMin;
+                $totalAntalStopp += $antalStopp;
+                $totalPlannad    += $plannadTidMin;
+
+                $result[] = [
+                    'datum'               => $dagDate,
+                    'drifttid_min'        => round($runningMin, 1),
+                    'stopptid_min'        => round($stoppedMin, 1),
+                    'antal_stopp'         => $antalStopp,
+                    'utnyttjandegrad_pct' => $utnyttjandegrad,
+                ];
+            }
+
+            $manadsUtnyttjandegrad = $totalPlannad > 0
+                ? round(($totalRunning / $totalPlannad) * 100, 1)
+                : 0.0;
+
+            $this->sendSuccess([
+                'manad'                => $manadNamn,
+                'manad_start'          => $manadStart->format('Y-m-d'),
+                'manad_slut'           => $manadSlut->format('Y-m-d'),
+                'antal_dagar'          => count($result),
+                'dagar'                => $result,
+                'total_drifttid_min'   => round($totalRunning, 1),
+                'total_stopptid_min'   => round($totalStopped, 1),
+                'total_antal_stopp'    => $totalAntalStopp,
+                'total_plannad_min'    => round($totalPlannad, 1),
+                'utnyttjandegrad_pct'  => $manadsUtnyttjandegrad,
+            ]);
+        } catch (\Exception $e) {
+            error_log('DrifttidsTimelineController::getManadsAggregat: ' . $e->getMessage());
+            $this->sendError('Kunde inte berakna manadsaggregat', 500);
         }
     }
 }

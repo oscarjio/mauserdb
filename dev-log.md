@@ -1,5 +1,50 @@
 # MauserDB Dev Log
 
+## Session #379 — Worker A (Backend) (2026-03-28)
+**Fokus: Operatorsbonus trendgraf backend + admin CRUD granskning + driftstopp vecko/manadsvy + endpoint-test + SQL-audit + deploy**
+
+### UPPGIFT 1: Operatorsbonus trendgraf — BACKEND
+- Ny endpoint `?action=operatorsbonus&run=trend&operator_id=X&period=30d|90d|365d`
+- Returnerar daglig (<=90d) eller veckovis (>90d) bonus-utveckling per operator
+- Data per punkt: datum, bonus_belopp, ibc_per_timme, kvalitet_pct, drifttid_h, antal_skift
+- Aggregerar fran rebotling_ibc (op1/op2/op3) med korrekt per-skift dedup
+- Beraknar bonus per datapunkt med samma formel som per-operator-endpointen
+
+### UPPGIFT 2: Admin CRUD — Backend-granskning
+- Granskade ALLA admin-endpoints: create, update, delete, toggleAdmin, toggleActive, GET list
+- Alla anvander PDO prepared statements (SQL injection-skydd OK)
+- Input-validering: username 3-50 tecken, password 8-255 med bokstav+siffra, email FILTER_VALIDATE_EMAIL, phone max 50
+- Transaktioner med FOR UPDATE for race condition-skydd pa create/delete/toggle
+- Sjalv-skydd: kan inte ta bort/inaktivera/avadminera eget konto
+- Audit-loggning pa alla andringar
+- bcrypt via AuthHelper::hashPassword
+- Inga buggar hittade
+
+### UPPGIFT 3: Driftstopp timeline — Backend forbattring
+- Ny endpoint `?action=drifttids-timeline&run=vecko-aggregat&date=YYYY-MM-DD`
+  - Aggregerar drifttid/stopptid per dag for hela veckan som innehaller angivet datum
+  - Returnerar: dagar[], total_drifttid_min, total_stopptid_min, total_antal_stopp, utnyttjandegrad_pct
+- Ny endpoint `?action=drifttids-timeline&run=manads-aggregat&date=YYYY-MM-DD`
+  - Aggregerar drifttid/stopptid per dag for hela manaden
+  - Hoppar over framtida datum
+  - Returnerar: dagar[], total_drifttid_min, total_stopptid_min, utnyttjandegrad_pct
+
+### UPPGIFT 4: Endpoint-test — ALLA endpoints
+- Testade 115 endpoints med curl mot dev.mauserdb.com
+- Resultat: 0 x 500-fel, alla <1.5s
+- 8 st 2xx (offentliga), 87 st 401 (auth), 7 st 403 (admin), 8 st 400 (saknar param), 5 st VPN-begransade
+- Ingen fix behovdes
+
+### UPPGIFT 5: SQL-audit
+- Jamforde SQL-queries i alla PHP-filer mot prod_db_schema.sql (92 tabeller)
+- 0 riktiga mismatches — alla tabellreferenser korrekt
+- Tabeller som saknas (klassificeringslinje_ibc, saglinje_ibc, saglinje_onoff, rebotling_stopporsak) hanteras med tableExists()-check eller try/catch
+
+### UPPGIFT 6: Deploy till dev
+- Backend deployad till dev.mauserdb.com via rsync
+- Alla nya endpoints verifierade (returnerar 401 korrekt, ej 500)
+- Endpoint-test korda efter deploy: 115 endpoints, 0 x 500
+
 ## Session #378 — Worker B (Frontend) (2026-03-28)
 **Fokus: Rebotling daglig historik + statistik manads/kvartalsjamforelser + operatorsbonus drilldown + driftstopp filter + lifecycle-audit + deploy**
 
