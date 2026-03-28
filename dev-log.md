@@ -1,5 +1,92 @@
 # MauserDB Dev Log
 
+## Session #384 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: Dashboard/oversikt UX granskad OK + Driftstopp UX granskad OK + Historisk produktion granskad OK + Navigering+routing granskad OK + Error handling granskad OK + Lifecycle audit 180 komp 0 lackor + build OK + deploy dev OK**
+
+### UPPGIFT 1: Dashboard/oversikt — fullstandig UX-granskning
+- Granskade executive-dashboard.ts/.html/.css (800+ rader TS, 870+ rader HTML)
+- KPI-kort: IBC idag, OEE, kvalitet, basta operator — alla med dark theme korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Realtidsdata: 30s polling med isFetching-guard, loading/error/empty states — OK
+- Linjestatus-banner: alla 4 linjer med realtidsstatus, dot-indikator, polling var 60s — OK
+- Grafer: barChart (7 dagar IBC vs mal), moodChart (stamningstrend 30d) — dark theme, tooltips, legend — OK
+- Cirkularprogress: SVG med animerad strokeDashoffset, fargkodning — OK
+- Veckoframgangsmatare: progressbar med 3-niva fargkodning + KPI-kort — OK
+- Bemanningsoversikt: underbemannade skift med varningskort — OK
+- Veckorapport: forhandsgranska + skicka via e-post — OK
+- Underhallskostnad, teamstamning, senaste nyheter, snabblänkar — OK
+- Responsiv layout: col-12/col-md-3/col-md-4, table-responsive — OK
+- Lifecycle: OnInit/OnDestroy, destroy$, takeUntil, 2 clearInterval, 2 clearTimeout, 2 chart.destroy — OK
+- Granskade aven vd-dashboard.component.ts/.html (305 rader TS, 353 rader HTML)
+- VD-vy: oversikt, stoppstatus, top 3 operatorer, OEE per station, veckotrend, skiftstatus — OK
+- Lifecycle: destroy$, clearInterval, 2 clearTimeout, 2 chart.destroy — OK
+- Inga svenskafel hittade, alla texter pa svenska
+
+### UPPGIFT 2: Driftstopp — fullstandig UX-granskning
+- Granskade stoppage-log.ts/.html/.css (1300+ rader TS)
+- Tabbar: log/stats/pareto — alla med korrekt dark theme — OK
+- Formulär: registrera driftstopp, validering (reason_id, start_time), submittingStoppage guard — OK
+- Inline editing: edit duration+comment, savingId guard — OK
+- Filter: sok (debounced 350ms), datumrange, kategori, period (week/month/3months/year) — OK
+- Sortering: alla kolumner sorterbara — OK
+- Export: CSV + Excel (med korrekt BOM for svenska tecken) — OK
+- QR-koder: generering och utskrift — OK
+- Pareto-tab: Pareto-graf med 80%-referenslinje, kumulativ %, dagarselektor — OK
+- Pattern analysis: timfordelning, costly_reasons — OK
+- Manadssammanfattning: horisontell stapelgraf per stopporsak — OK
+- Statistik-tab: daglig trendgraf + paretoChart — OK
+- Veckosammanfattning: 14-dagars trendgraf + diff mot forra veckan — OK
+- Lifecycle: destroy$, 1 clearInterval, 3 clearTimeout, 6 chart.destroy — OK
+
+### UPPGIFT 3: Historisk produktion — daglig/vecko/manadsvy
+- Granskade historisk-produktion.component.ts/.html (470 rader TS, 480 rader HTML)
+- Periodselektor: 7d/30d/90d/365d + anpassad datumrange — OK
+- KPI-kort: Total produktion, Snitt/dag, Basta dag, Kassation% — OK
+- Trendindikator: pilar + fargkodning + diff-badges (produktion, snitt/dag, kassation) — OK
+- Jamforelsevy: nuvarande vs foregaende period med 6 KPI per sida — OK
+- Produktionsgraf: line chart med 3 datasets (total, godkanda, kasserade), dark theme, tooltips — OK
+- Detaljerad tabell: sorterbara kolumner, summor, pagination — OK
+- Daglig historik tab: filter (datum, operator), sorterbara kolumner, pagination — OK
+- PDF-export: PdfExportButtonComponent — OK
+- Responsiv layout: col-6/col-lg-3, table-responsive — OK
+- Lifecycle: destroy$, clearInterval, clearTimeout, chart.destroy — OK
+
+### UPPGIFT 4: Navigering + routing
+- Granskade app.routes.ts (164 rader)
+- 80+ routes definierade, alla med lazy loading (loadComponent) — OK
+- Guards: authGuard, adminGuard, pendingChangesGuard pa kansliga routes — OK
+- Wildcard: **-route laddar NotFoundPage — OK
+- Granskade layout.ts/.html: Layout-komponent med Header, Menu, RouterOutlet — OK
+- Back-button pa live/login-sidor med auto-hide pa live-sidor — OK
+- Skip-link: "Hoppa till innehall" for tillganglighet — OK
+- Granskade menu.ts/.html (354 rader TS, 295 rader HTML)
+- Hamburger-meny: data-bs-toggle="collapse" med lazy-loaded Bootstrap JS — OK
+- Dropdowns: Rebotling, Tvattlinje, Saglinje, Klassificeringslinje, Rapporter, Admin — OK
+- Active route: routerLinkActive="active" — OK (pa Hem)
+- Notifikationscentral: badge med urgentNoteCount + certExpiryCount + activeAlertsCount — OK
+- VPN-statusindikator for admin — OK
+- Linjestatus-dots (rebotling, tvattlinje) — OK
+- Feature flags: ff.canAccess() styr synlighet — OK
+- Profil-formular i dropdown: e-post, operator-id, losenordsbyte — OK
+- Lifecycle: destroy$, 5 clearInterval — OK
+
+### UPPGIFT 5: Error handling — services
+- Granskade 92 services med totalt 606 catchError-anvandningar och 516 pipe()-anvandningar
+- Alla HTTP-anrop i services anvander pipe(timeout(), catchError()) konsekvent
+- Felmeddelanden i komponenter pa svenska: "Kunde inte hamta data", "Timeout — kontrollera anslutningen" etc.
+- Loading states: varje sektion har loading-spinner + felmeddelande + empty state
+- isFetching-guards: forhindrar parallella anrop (t.ex. isFetchingStoppages, isFetchingLines)
+
+### UPPGIFT 6: Lifecycle audit — alla komponenter
+- 160 komponenter med subscribe() — alla 160 implementerar OnDestroy
+- 135 komponenter med setInterval/setTimeout — alla har matchande clearInterval/clearTimeout i ngOnDestroy
+- 109 komponenter med new Chart() — alla har chart.destroy() i ngOnDestroy
+- destroy$ + takeUntil genomgaende pa alla subscriptions
+- **180 komponenter granskade, 0 lackor funna**
+
+### UPPGIFT 7: Build + Deploy
+- Build: npx ng build — OK (inga fel, warnings for CommonJS-deps i canvg/html2canvas/bootstrap)
+- Deploy: rsync till dev.mauserdb.com — OK
+
 ## Session #383 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: Gamification UX-granskning OK + Operatorsbonus frontend granskad OK + Skiftrapport UX OK + Statistik grafer granskade OK + Lifecycle audit 170 komp 0 lackor + 7 svenska textfixar + build OK + deploy dev OK**
 
