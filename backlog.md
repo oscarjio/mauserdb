@@ -11,10 +11,9 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #380):
-- [ ] Rebotling live-dashboard — verifiera realtidsdata mot prod DB, UX-granskning (rör EJ live-komponenterna)
-- [ ] Statistik dashboard — exportfunktion (PDF/CSV) for grafer och tabeller
-- [ ] Operatorsbonus trendgraf — verifiera data mot prod, finjustera grafvy
-- [ ] Skiftrapport — granska berakningar, verifiera mot prod data
-- [ ] Driftstopp — verifiera nya vecko/manadsaggregat-endpoints mot prod data
-- [ ] Historik — granska daglig historik-fliken, pagination + filter UX
+### Nasta (session #381):
+- [ ] Skiftrapport — verifiera berakningar mot prod data, forbattra UX
+- [ ] Admin-sidor — fullstandig CRUD-test mot dev, UX-granskning
+- [ ] Rebotling live-dashboard — verifiera realtidsdata mot prod DB (ror EJ live-komponenterna)
+- [ ] Performance-audit — identifiera langa requests, optimera
+- [ ] Mobilanpassning — granska alla sidor pa smal viewport
