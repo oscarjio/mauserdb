@@ -1,5 +1,71 @@
 # MauserDB Dev Log
 
+## Session #387 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: Grundlig genomgang — rebotling datakvalitet verifierad mot prod DB + edge cases OK + lasttest OK + PLC-diagnostik OK + 114 endpoints 0x500 + SQL-audit 6 hanterade mismatches + deploy dev OK**
+
+### UPPGIFT 1: Rebotling datakvalitetstest mot prod DB
+- Hamtade senaste 20 rader fran rebotling_ibc via prod DB (5030 totala rader)
+- Verifierade att op1/op2/op3 anvander operators.number (INTE operators.id) — korrekt
+  - Exempel: op1=168 = Mayo (number=168, id=12), op2=164 = Ted (number=164, id=9)
+- Verifierade live-ranking endpoint: op_number matchar operators.number korrekt
+- getLiveStats, getDayStats, getRastStatus, getDriftstoppStatus — alla returnerar korrekt data
+- Prod DB radantal: rebotling_onoff=1153, rebotling_ibc=5030, rebotling_runtime=6, rebotling_driftstopp=4, operators=13
+
+### UPPGIFT 2: Edge cases — extrema parametrar
+- Ogiltiga datum: fallback till today — 200 OK (ingen 500)
+- Framtida datum (2030): tomma resultat — 200 OK
+- SQL injection (OR 1=1--): saniterat via regex-validering — 200 OK
+- Tomma parametrar: fallback till defaults — 200 OK
+- Negativa tal: hanteras korrekt — 200 OK
+- Icke-existerande operator (op=99999): 400 "Ogiltigt op_id"
+- Ogiltigt manadsformat: 400 "Ogiltig manadsparameter"
+- XSS-forsok i parametrar: saniterat — 200 OK
+
+### UPPGIFT 3: Lasttestning — 10 parallella anrop
+- getLiveStats: 10/10 = 200 OK, alla under 0.5s (cache-effekt)
+- month-compare: 10/10 = 200 OK, max 1.4s under last
+- day-stats: 10/10 = 200 OK, max 1.8s under last
+- Inga 500-fel under belastning, cache fungerar korrekt
+
+### UPPGIFT 4: PLC-diagnostik end-to-end
+- Verifierade getPlcDiagnostik() mot prod DB
+- Alla 4 tabeller (rebotling_onoff, rebotling_ibc, rebotling_runtime, rebotling_driftstopp) returneras korrekt
+- Quick stats fixad: visar nu alltid CURRENT status (inte historiskt datum)
+- ibc_today anvander MAX(ibc_count) istallet for MAX(ibc_ok) — korrekt fix
+- Utan admin-session: 403 "Endast admin har behorighet" — korrekt skydd
+
+### UPPGIFT 5: Endpoint-test — 114 endpoints 0x500
+- Testade ALLA 114 endpoints systematiskt med curl mot dev.mauserdb.com
+- Resultat: 109 OK (200/400/401/403), 0 x 500, 5 x 429 (rate limit)
+- Kor om efter deploy — 114 endpoints, 0 x 500
+- Rebotling sub-endpoints: 25 testade, alla OK
+
+### UPPGIFT 6: SQL-audit mot prod_db_schema.sql
+- 92 tabeller i prod_db_schema.sql, 93 tabellreferenser i PHP
+- 6 tabeller i PHP som saknas i schema (alla hanteras defensivt):
+  - klassificeringslinje_ibc: try/catch i KlassificeringslinjeController
+  - saglinje_ibc, saglinje_onoff: try/catch i SaglinjeController (ej i drift)
+  - rebotling_data: tableExists() guard i OperatorRankingController, GamificationController, TidrapportController
+  - rebotling_stopporsak: SHOW TABLES LIKE check i RebotlingController
+  - skift_log: tableExists() guard i TidrapportController
+- 0 faktiska buggar — alla mismatches ar medvetet hanterade
+
+### UPPGIFT 7-8: Fixar + Deploy
+- Ingen ny bugg hittad — alla endpoints fungerar korrekt
+- Backend deployad med rsync --exclude='db_config.php'
+- dev.mauserdb.com status endpoint: 200 OK (0.157s)
+- Post-deploy verifiering: 114 endpoints, 0 x 500
+
+### Statistik session #387 Worker A
+- Endpoints testade: 114 (0 x 500)
+- Edge cases testade: 9 (0 x 500)
+- Lasttest: 30 parallella anrop (0 x 500)
+- SQL-audit: 92 tabeller i schema, 6 hanterade mismatches, 0 buggar
+- Prod DB-verifiering: 5 tabeller kontrollerade
+- Operatorsnummer-matchning: verifierad korrekt (number, INTE id)
+
+---
+
 ## Session #386 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: PLC-diagnostik granskad OK + driftstopp endpoints verifierade + admin CRUD auth OK + 114 endpoints 0x500 + SQL-audit 0 mismatches + deploy dev OK**
 

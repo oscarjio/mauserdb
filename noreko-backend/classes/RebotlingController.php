@@ -3355,13 +3355,13 @@ class RebotlingController {
                 if ($eid > $maxId) $maxId = $eid;
             }
 
-            // Quick stats: line status, ibc count today, last event
-            $stmtStatus = $this->pdo->prepare("SELECT running, skiftraknare, datum FROM rebotling_onoff WHERE DATE(datum) = :date ORDER BY id DESC LIMIT 1");
-            $stmtStatus->execute([':date' => $date]);
+            // Quick stats: always show CURRENT status (today), not historical date
+            $today = date('Y-m-d');
+            $stmtStatus = $this->pdo->query("SELECT running, skiftraknare, datum FROM rebotling_onoff ORDER BY id DESC LIMIT 1");
             $latestOnoff = $stmtStatus->fetch(\PDO::FETCH_ASSOC);
 
-            $stmtIbc = $this->pdo->prepare("SELECT MAX(ibc_ok) as ibc_ok_total FROM rebotling_ibc WHERE DATE(datum) = :date");
-            $stmtIbc->execute([':date' => $date]);
+            $stmtIbc = $this->pdo->prepare("SELECT COALESCE(MAX(ibc_count), 0) as ibc_today FROM rebotling_ibc WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)");
+            $stmtIbc->execute([':today' => $today, ':today2' => $today]);
             $ibcRow = $stmtIbc->fetch(\PDO::FETCH_ASSOC);
 
             echo json_encode([
@@ -3373,7 +3373,7 @@ class RebotlingController {
                         'running' => $latestOnoff ? intval($latestOnoff['running']) === 1 : false,
                         'skiftraknare' => $latestOnoff ? intval($latestOnoff['skiftraknare']) : 0,
                         'last_event' => $latestOnoff['datum'] ?? null,
-                        'ibc_today' => intval($ibcRow['ibc_ok_total'] ?? 0),
+                        'ibc_today' => intval($ibcRow['ibc_today'] ?? 0),
                     ],
                     'date' => $date,
                     'event_count' => count($events),
