@@ -11,6 +11,7 @@ import {
   PerOperatorData,
   KonfigItem,
   SimuleringData,
+  TrendDagItem,
 } from '../../../services/operatorsbonus.service';
 
 Chart.register(...registerables);
@@ -68,16 +69,25 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   drilldownLoading = false;
   drilldownData: any = null;
 
+  // Trendgraf (session #379)
+  trendDays = 30;
+  trendData: TrendDagItem[] = [];
+  trendOperatorNamn = '';
+  trendSnittBonus = 0;
+  loadingTrend = false;
+
   // Charts
   private radarChart: Chart | null     = null;
   private barChart: Chart | null       = null;
   private simChart: Chart | null       = null;
+  private trendChart: Chart | null     = null;
 
   private destroy$         = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private operatorerChartTimer: ReturnType<typeof setTimeout> | null = null;
   private radarChartTimer: ReturnType<typeof setTimeout> | null = null;
   private simChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private svc: OperatorsbonusService) {}
@@ -97,6 +107,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     if (this.operatorerChartTimer !== null) { clearTimeout(this.operatorerChartTimer); this.operatorerChartTimer = null; }
     if (this.radarChartTimer !== null) { clearTimeout(this.radarChartTimer); this.radarChartTimer = null; }
     if (this.simChartTimer !== null) { clearTimeout(this.simChartTimer); this.simChartTimer = null; }
+    if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
     this.destroyCharts();
   }
 
@@ -104,6 +115,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     if (this.radarChart) { this.radarChart.destroy(); this.radarChart = null; }
     if (this.barChart)   { this.barChart.destroy();   this.barChart = null; }
     if (this.simChart)   { this.simChart.destroy();   this.simChart = null; }
+    if (this.trendChart) { this.trendChart.destroy();  this.trendChart = null; }
   }
 
   loadAll(): void {
@@ -197,6 +209,7 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.selectedOperator = op;
     if (this.radarChartTimer !== null) { clearTimeout(this.radarChartTimer); }
     this.radarChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderRadarChart(); }, 100);
+    this.loadTrend();
   }
 
   // ---- Konfig ----
@@ -317,6 +330,165 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     if (val === avg) return 'fas fa-minus';
     const better = invertiert ? val < avg : val > avg;
     return better ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
+  }
+
+  // ---- Trendgraf (session #379) ----
+
+  loadTrend(): void {
+    if (!this.selectedOperator) return;
+    this.loadingTrend = true;
+    this.svc.getTrend(this.selectedOperator.operator_id, this.trendDays)
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingTrend = false;
+        if (res?.success && res.data) {
+          this.trendData = res.data.trend;
+          this.trendOperatorNamn = res.data.operator_namn;
+          this.trendSnittBonus = res.data.snitt_bonus;
+          if (this.trendChartTimer !== null) { clearTimeout(this.trendChartTimer); }
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
+        }
+      });
+  }
+
+  onTrendDaysChange(): void {
+    this.loadTrend();
+  }
+
+  renderTrendChart(): void {
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null; }
+    const canvas = document.getElementById('bonusTrendChart') as HTMLCanvasElement | null;
+    if (!canvas || !this.trendData.length) return;
+
+    const labels = this.trendData.map(d => {
+      const parts = d.datum.split('-');
+      return parts.length >= 3 ? `${parts[1]}-${parts[2]}` : d.datum;
+    });
+    const bonusData = this.trendData.map(d => d.bonus);
+    const ibcData = this.trendData.map(d => d.ibc_per_h);
+    const kvalData = this.trendData.map(d => d.kvalitet);
+    const narvData = this.trendData.map(d => d.narvaro);
+    const snittLine = this.trendData.map(() => this.trendSnittBonus);
+
+    this.trendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Bonus (kr)',
+            data: bonusData,
+            borderColor: '#ecc94b',
+            backgroundColor: 'rgba(236,201,75,0.12)',
+            borderWidth: 2.5,
+            fill: true,
+            pointRadius: this.trendData.length > 60 ? 0 : 3,
+            pointHoverRadius: 6,
+            tension: 0.3,
+            yAxisID: 'yLeft',
+          },
+          {
+            label: 'Snittbonus',
+            data: snittLine,
+            borderColor: '#a0aec0',
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            fill: false,
+            pointRadius: 0,
+            yAxisID: 'yLeft',
+          },
+          {
+            label: 'IBC/h',
+            data: ibcData,
+            borderColor: '#4299e1',
+            borderWidth: 1.5,
+            fill: false,
+            pointRadius: this.trendData.length > 60 ? 0 : 2,
+            pointHoverRadius: 5,
+            tension: 0.3,
+            yAxisID: 'yRight',
+          },
+          {
+            label: 'Kvalitet %',
+            data: kvalData,
+            borderColor: '#48bb78',
+            borderWidth: 1.5,
+            borderDash: [3, 2],
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            yAxisID: 'yRight',
+          },
+          {
+            label: 'Närvaro %',
+            data: narvData,
+            borderColor: '#9f7aea',
+            borderWidth: 1.5,
+            borderDash: [3, 2],
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            yAxisID: 'yRight',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+          tooltip: {
+            intersect: false, mode: 'index',
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              title: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                return this.trendData[idx]?.datum || '';
+              },
+              label: (ctx: any) => {
+                if (ctx.datasetIndex === 0) return ` Bonus: ${this.formatKr(ctx.parsed.y)}`;
+                if (ctx.datasetIndex === 1) return ` Snitt: ${this.formatKr(ctx.parsed.y)}`;
+                if (ctx.datasetIndex === 2) return ` IBC/h: ${ctx.parsed.y.toFixed(1)}`;
+                if (ctx.datasetIndex === 3) return ` Kvalitet: ${ctx.parsed.y.toFixed(1)}%`;
+                return ` Närvaro: ${ctx.parsed.y.toFixed(1)}%`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 45, maxTicksLimit: 15 },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          yLeft: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Bonus (kr)', color: '#ecc94b' },
+            ticks: {
+              color: '#a0aec0',
+              callback: (v: any) => v + ' kr',
+            },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            beginAtZero: true,
+          },
+          yRight: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'KPI-värden', color: '#63b3ed' },
+            ticks: { color: '#a0aec0' },
+            grid: { drawOnChartArea: false },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
   }
 
   // ---- Charts ----

@@ -360,9 +360,31 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', padding: 12 },
           },
           tooltip: {
-            intersect: false, mode: 'nearest',
+            intersect: false, mode: 'index',
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} IBC`,
+              title: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                const s = series[idx];
+                return s ? s.label : '';
+              },
+              label: (ctx: any) => {
+                if (ctx.datasetIndex === 0) return ` Totalt: ${ctx.parsed.y} IBC`;
+                if (ctx.datasetIndex === 1) return ` Godkända: ${ctx.parsed.y} IBC`;
+                return ` Kasserade: ${ctx.parsed.y} IBC`;
+              },
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx < 0 || idx >= series.length) return [];
+                const s = series[idx];
+                const pct = s.total > 0 ? ((s.ibc_ej_ok / s.total) * 100).toFixed(1) : '0.0';
+                return [`Kassation: ${pct}%`];
+              },
             },
           },
         },

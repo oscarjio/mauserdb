@@ -263,13 +263,37 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
             labels: { color: '#e2e8f0', font: { size: 12 } },
           },
           tooltip: {
-            intersect: false, mode: 'nearest',
+            intersect: false, mode: 'index',
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            padding: 10,
+            titleFont: { weight: 'bold' as const, size: 13 },
+            bodyFont: { size: 12 },
             callbacks: {
+              title: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                const item = aggregated[idx];
+                if (!item) return '';
+                return `${this.formatDatum(item.datum)}`;
+              },
               label: (ctx: any) => {
-                if (ctx.datasetIndex === 2) {
-                  return ` Kassation: ${ctx.parsed.y}%`;
-                }
+                if (ctx.datasetIndex === 0) return ` IBC totalt: ${ctx.parsed.y} st`;
+                if (ctx.datasetIndex === 1) return ` Snitt IBC/dag: ${ctx.parsed.y}`;
+                if (ctx.datasetIndex === 2) return ` Kassation: ${ctx.parsed.y}%`;
                 return ` ${ctx.dataset.label}: ${ctx.parsed.y}`;
+              },
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx < 0 || idx >= aggregated.length) return [];
+                const item = aggregated[idx];
+                const lines: string[] = [];
+                if (item.drifttid_h != null) lines.push(`Drifttid: ${item.drifttid_h.toFixed(1)}h`);
+                if (item.ibc_per_h != null) lines.push(`IBC/h: ${item.ibc_per_h.toFixed(1)}`);
+                if (item.ibc_ok != null) lines.push(`Godkända: ${item.ibc_ok} | Kasserade: ${item.ibc_ej_ok}`);
+                return lines;
               },
             },
           },
@@ -286,8 +310,11 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
           yLeft: {
             type: 'linear',
             position: 'left',
-            title: { display: true, text: 'IBC (antal)', color: '#63b3ed' },
-            ticks: { color: '#a0aec0' },
+            title: { display: true, text: 'IBC (antal)', color: '#63b3ed', font: { size: 12 } },
+            ticks: {
+              color: '#a0aec0',
+              callback: (val: any) => val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val,
+            },
             grid:  { color: 'rgba(255,255,255,0.05)' },
             beginAtZero: true,
           },

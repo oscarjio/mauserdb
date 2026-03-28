@@ -390,6 +390,35 @@
 }
 
 /* ----------------------------------------------------------------
+   Vy-switch (session #379)
+   ---------------------------------------------------------------- */
+
+.view-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-btn {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.15s;
+}
+
+.view-btn.active,
+.view-btn:hover {
+  background: #4fd1c5;
+  border-color: #4fd1c5;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------
    Responsivitet
    ---------------------------------------------------------------- */
 

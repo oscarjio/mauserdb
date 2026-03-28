@@ -110,6 +110,25 @@ export interface HistorikResponse {
   };
 }
 
+export interface TrendDagItem {
+  datum: string;
+  bonus: number;
+  ibc_per_h: number;
+  kvalitet: number;
+  narvaro: number;
+}
+
+export interface TrendResponse {
+  success: boolean;
+  data: {
+    operator_id: number;
+    operator_namn: string;
+    period_days: number;
+    trend: TrendDagItem[];
+    snitt_bonus: number;
+  };
+}
+
 // ---- Service ----
 
 @Injectable({ providedIn: 'root' })
@@ -158,6 +177,13 @@ export class OperatorsbonusService {
     return this.http.get<HistorikResponse>(
       url, { withCredentials: true }
     ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+  }
+
+  getTrend(operatorId: number, days: number = 30): Observable<TrendResponse | null> {
+    return this.http.get<TrendResponse>(
+      `${this.api}&run=trend&operator_id=${operatorId}&days=${days}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getSimulering(ibcPerTimme: number, kvalitet: number, narvaro: number, teamMal: number): Observable<SimuleringResponse | null> {

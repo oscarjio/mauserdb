@@ -8,9 +8,23 @@
     <p class="page-subtitle">Visuell tidslinje over maskindrift — körning, stopp och ej planerad tid per dag</p>
   </div>
 
-  <!-- Datumväljare -->
+  <!-- Vy-switch + Datumväljare -->
+  <div class="view-mode-bar mb-2">
+    <div class="d-flex gap-1">
+      <button class="view-btn" [class.active]="viewMode === 'dag'" (click)="switchView('dag')">
+        <i class="fas fa-calendar-day me-1"></i>Dag
+      </button>
+      <button class="view-btn" [class.active]="viewMode === 'vecka'" (click)="switchView('vecka')">
+        <i class="fas fa-calendar-week me-1"></i>Vecka
+      </button>
+      <button class="view-btn" [class.active]="viewMode === 'manad'" (click)="switchView('manad')">
+        <i class="fas fa-calendar-alt me-1"></i>Månad
+      </button>
+    </div>
+  </div>
+
   <div class="date-bar">
-    <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="prevDay()" title="Föregående dag" aria-label="Föregående dag">
+    <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="prevDay()" [title]="'Föregående ' + viewModeLabel()" [attr.aria-label]="'Föregående ' + viewModeLabel()">
       <i class="fas fa-chevron-left"></i>
     </button>
     <input
@@ -24,8 +38,8 @@
       class="btn btn-outline-secondary btn-sm nav-btn"
       (click)="nextDay()"
       [disabled]="isToday"
-      title="Nästa dag"
-      aria-label="Nästa dag">
+      [title]="'Nästa ' + viewModeLabel()"
+      [attr.aria-label]="'Nästa ' + viewModeLabel()">
       <i class="fas fa-chevron-right"></i>
     </button>
     <span class="date-display">{{ formatDisplayDate(selectedDate) }}</span>
@@ -136,7 +150,7 @@
           *ngFor="let seg of cachedVisibleSegments; let i = index; trackBy: trackByIndex"
           [style.left.%]="segmentLeft(seg)"
           [style.width.%]="segmentWidth(seg)"
-          [style.background-color]="segmentColor(seg.type)"
+          [style.background-color]="segmentColor(seg.type, seg.stop_reason)"
           [class.selected]="selectedSegment === seg"
           [title]="seg.type"
           role="button"
@@ -174,7 +188,7 @@
       *ngIf="tooltipSegment"
       [style.left.px]="tooltipX"
       [style.top.px]="tooltipY">
-      <div class="tooltip-type" [style.color]="segmentColor(tooltipSegment.type)">
+      <div class="tooltip-type" [style.color]="segmentColor(tooltipSegment.type, tooltipSegment.stop_reason)">
         <i class="fas" [class.fa-play-circle]="tooltipSegment.type === 'running'"
            [class.fa-pause-circle]="tooltipSegment.type === 'stopped'"
            [class.fa-clock]="tooltipSegment.type === 'unplanned'"></i>
@@ -210,7 +224,7 @@
          [class.fa-play-circle]="selectedSegment.type === 'running'"
          [class.fa-pause-circle]="selectedSegment.type === 'stopped'"
          [class.fa-clock]="selectedSegment.type === 'unplanned'"
-         [style.color]="segmentColor(selectedSegment.type)"></i>
+         [style.color]="segmentColor(selectedSegment.type, selectedSegment.stop_reason)"></i>
       Segment-detaljer
       <button class="btn btn-sm btn-outline-secondary ms-3" (click)="selectedSegment = null">
         <i class="fas fa-times"></i> Stäng
@@ -219,7 +233,7 @@
     <div class="detail-grid">
       <div class="detail-item">
         <span class="detail-label">Typ</span>
-        <span class="detail-value" [style.color]="segmentColor(selectedSegment.type)">
+        <span class="detail-value" [style.color]="segmentColor(selectedSegment.type, selectedSegment.stop_reason)">
           {{ segmentTypeLabel(selectedSegment.type) }}
         </span>
       </div>
@@ -294,9 +308,9 @@
             tabindex="0"
             style="cursor: pointer;">
             <td>
-              <span class="type-badge" [style.background-color]="segmentColor(seg.type) + '33'"
-                    [style.color]="segmentColor(seg.type)"
-                    [style.border-color]="segmentColor(seg.type) + '66'">
+              <span class="type-badge" [style.background-color]="segmentColor(seg.type, seg.stop_reason) + '33'"
+                    [style.color]="segmentColor(seg.type, seg.stop_reason)"
+                    [style.border-color]="segmentColor(seg.type, seg.stop_reason) + '66'">
                 <i class="fas me-1"
                    [class.fa-play]="seg.type === 'running'"
                    [class.fa-pause]="seg.type === 'stopped'"

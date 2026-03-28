@@ -68,6 +68,9 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   private veckotrendChart: Chart | null = null;
   private chartTimers: ReturnType<typeof setTimeout>[] = [];
 
+  // -- Vy-switch (session #379) --
+  viewMode: 'dag' | 'vecka' | 'manad' = 'dag';
+
   // -- Filter (session #378) --
   filterType = 'all'; // 'all' | 'running' | 'stopped' | 'unplanned'
   filterMinDuration = 0; // min minuter
@@ -117,18 +120,45 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
 
   prevDay(): void {
     const d = new Date(this.selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() - 1);
+    const step = this.viewMode === 'manad' ? 30 : this.viewMode === 'vecka' ? 7 : 1;
+    d.setDate(d.getDate() - step);
     this.selectedDate = localDateStr(d);
     this.onDateChange();
   }
 
   nextDay(): void {
     const d = new Date(this.selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
+    const step = this.viewMode === 'manad' ? 30 : this.viewMode === 'vecka' ? 7 : 1;
+    d.setDate(d.getDate() + step);
     const today = this.todayStr();
     if (localDateStr(d) <= today) {
       this.selectedDate = localDateStr(d);
       this.onDateChange();
+    }
+  }
+
+  prevPeriod(): void {
+    const d = new Date(this.selectedDate + 'T00:00:00');
+    const step = this.viewMode === 'manad' ? 30 : this.viewMode === 'vecka' ? 7 : 1;
+    d.setDate(d.getDate() - step);
+    this.selectedDate = localDateStr(d);
+    this.onDateChange();
+  }
+
+  switchView(mode: 'dag' | 'vecka' | 'manad'): void {
+    this.viewMode = mode;
+    if (mode !== 'dag') {
+      // Veckotrend visar redan veckodata, justera veckotrendDagar
+      this.veckotrendDagar = mode === 'manad' ? 30 : 7;
+      this.loadVeckotrend();
+    }
+  }
+
+  viewModeLabel(): string {
+    switch (this.viewMode) {
+      case 'vecka': return 'Veckoöversikt';
+      case 'manad': return 'Månadsöversikt';
+      default:      return 'Dagsvy';
     }
   }
 
@@ -335,10 +365,19 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     return type;
   }
 
-  segmentColor(type: string): string {
+  segmentColor(type: string, reason?: string | null): string {
     if (type === 'running')   return '#48bb78';
-    if (type === 'stopped')   return '#fc8181';
     if (type === 'unplanned') return '#4a5568';
+    if (type === 'stopped') {
+      // Färgkodning baserat på stopporsak
+      if (!reason) return '#fc8181';
+      const r = reason.toLowerCase();
+      if (r.includes('mekanisk') || r.includes('haveri')) return '#e53e3e';
+      if (r.includes('material') || r.includes('brist'))  return '#ed8936';
+      if (r.includes('byte') || r.includes('planerat'))   return '#ecc94b';
+      if (r.includes('rast') || r.includes('lunch'))      return '#9f7aea';
+      return '#fc8181';
+    }
     return '#8fa3b8';
   }
 

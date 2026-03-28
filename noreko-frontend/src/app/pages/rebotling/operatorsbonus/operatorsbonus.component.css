@@ -555,6 +555,18 @@
   color: #718096;
 }
 
+/* ---- Trendgraf (session #379) ---- */
+.trend-stat-mini {
+  display: flex;
+  flex-direction: column;
+}
+
+.trend-stat-val-sm {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
 @media (max-width: 768px) {
   .sim-result-grid {
     grid-template-columns: 1fr;

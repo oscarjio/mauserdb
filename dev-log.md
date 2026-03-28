@@ -1,5 +1,101 @@
 # MauserDB Dev Log
 
+## Session #379 — Worker B (Frontend) (2026-03-28)
+**Fokus: Rebotling UX-granskning + statistik grafinteraktivitet + operatorsbonus trendgraf + driftstopp navigering + admin UX-granskning + lifecycle-audit + deploy**
+
+### UPPGIFT 1: Rebotling — UX-granskning
+- Granskade historisk-produktion, statistik-dashboard, operatorsbonus, skiftoverlamning
+- Forbattrade tooltip i historisk-produktion-grafen: visar kassationsprocent, index-mode for att se alla dataserier samtidigt
+- Alla komponenter har korrekt dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Inga UI-buggar hittade (live-komponenterna ej rorda)
+
+### UPPGIFT 2: Statistik dashboard — Grafinteraktivitet
+- Forbattrade Chart.js tooltips med detaljerad info:
+  - Visar datum, IBC totalt, snitt IBC/dag, kassation
+  - afterBody-callback med drifttid, IBC/h, godkanda/kasserade
+  - Dark theme-stil (bakgrund #1a202c, border #4a5568)
+  - Index-mode for att visa alla dataserier vid hover
+- Forbattrade y-axel labels: stora tal visas som "1.2k" for battre lasbarhet
+- Responsiv design redan pa plats (mobile breakpoint 576px)
+
+### UPPGIFT 3: Operatorsbonus — Trendgraf
+- Ny trendgraf-sektion i operatorsbonus-komponenten
+- Visar daglig bonus-utveckling per operator med periodval (30d/90d/365d)
+- Chart.js linjediagram med:
+  - Vänster axel: bonus (kr) med gul linje + snittbonus streckad linje
+  - Höger axel: KPI-värden (IBC/h bla, kvalitet gron, narvaro lila)
+  - Index-mode tooltips med detaljerad info per datapunkt
+- Kopplas till ny service-metod `getTrend()` och backend endpoint `?action=operatorsbonus&run=trend`
+- Ny interface `TrendDagItem` och `TrendResponse` i operatorsbonus.service.ts
+- Korrekt lifecycle: trendChart destroyed i ngOnDestroy, timer rensas
+- Laddar automatiskt vid operatorval, periodbyten triggar nytt anrop
+
+### UPPGIFT 4: Driftstopp — Timeline + datumnavigering
+- Ny vy-switch med Dag/Vecka/Manad-knappar
+- Datumnavigering med framåt/bakåt-knappar anpassade till vald vy:
+  - Dagsvy: stegar 1 dag
+  - Veckovy: stegar 7 dagar
+  - Månadsvy: stegar 30 dagar
+- Fargkodning per driftstopp-typ baserat pa stopporsak:
+  - Mekanisk/haveri = morkt rod (#e53e3e)
+  - Material/brist = orange (#ed8936)
+  - Byte/planerat = gul (#ecc94b)
+  - Rast/lunch = lila (#9f7aea)
+  - Ovriga stopp = standard rod (#fc8181)
+- CSS for view-mode-knappar med dark theme
+
+### UPPGIFT 5: Admin-sidor — UX-granskning
+- Granskade rebotling-admin (1500+ rader):
+  - Korrekt formulärvalidering (dagsmål >=1, timmål >=1, skiftlängd 1-24h)
+  - Felmeddelanden visas vid valideringsfel
+  - Alla API-anrop har timeout(8000) + catchError + takeUntil(destroy$)
+  - Produkthantering: CRUD med redigeringsläge
+  - Veckodagsmål med snabbval och kopiera-till-helg
+  - Skifttider med enable/disable
+  - PLC-varningsnivå med trefärgad statusindikator
+  - Underhållsindikator med Chart.js-graf
+  - Korrelationsanalys underhåll vs stopp
+  - Dagsmål-historik med stegdiagram
+  - Visibility-change handler (pausar polling vid dold flik)
+- Granskade users-sida:
+  - Sök med debounce, sortering, paginering, statusfilter
+  - Korrekt CRUD med felhantering via ToastService
+  - bcrypt-lösenord (ej sha1/md5)
+- Granskade operators-sida:
+  - Sök, filtrering, sortering, CSV-export
+  - Trend-diagram per operatör med IBC/h + kvalitet
+  - Korrelationspar och kompatibilitetsmatris
+  - Alla charts destroyed i ngOnDestroy
+- Inga UX-problem hittade
+
+### UPPGIFT 6: Lifecycle-audit
+- Granskade ALLA 41 komponenter for memory leaks
+- Resultat: 0 problem hittade
+  - Alla komponenter med subscriptions har takeUntil(this.destroy$)
+  - Alla setInterval rensas i ngOnDestroy (clearInterval)
+  - Alla setTimeout rensas i ngOnDestroy (clearTimeout)
+  - Alla Chart.js-instanser destroys i ngOnDestroy
+  - Destroy$-pattern korrekt (next + complete)
+- 41 komponenter granskade, 0 fixade (alla redan korrekta)
+
+### UPPGIFT 7: Bygg och deploy
+- `npx ng build` — lyckades utan fel (enbart ESM-varningar for canvg/jspdf)
+- Deploy via rsync till dev.mauserdb.com — OK
+- Verifierat att sidan laddar korrekt (Angular app med dark theme)
+
+### Andrade filer:
+- `noreko-frontend/src/app/services/operatorsbonus.service.ts` — ny getTrend-metod + TrendDagItem/TrendResponse interfaces
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.ts` — trendgraf med renderTrendChart, loadTrend, onTrendDaysChange
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html` — trendgraf-sektion med periodval
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.css` — trend-stat-mini styling
+- `noreko-frontend/src/app/pages/rebotling/statistik-dashboard/statistik-dashboard.component.ts` — forbattrade tooltips + y-axel-formatering
+- `noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts` — forbattrade tooltips
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts` — vy-switch + stopporsak-fargkodning
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.html` — vy-knappar + datumnavigering
+- `noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.css` — view-btn styling
+
+---
+
 ## Session #379 — Worker A (Backend) (2026-03-28)
 **Fokus: Operatorsbonus trendgraf backend + admin CRUD granskning + driftstopp vecko/manadsvy + endpoint-test + SQL-audit + deploy**
 
