@@ -1,5 +1,97 @@
 # MauserDB Dev Log
 
+## Session #391 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: Grundlig UX-granskning av driftstopp, skiftrapport, VD/executive-dashboard, morgonrapport, veckorapport, operatorsportal — 0 buggar hittade, alla lifecycle/charts/dark-theme/responsiv/svenska korrekt, build+deploy dev OK**
+
+### UPPGIFT 1: Driftstopp-sidor — frontend-granskning
+- drifttids-timeline.component.ts: 615 rader granskade
+  - Timeline-visning: korrekt left/width-berakningar, timrubriker 06-22, cached segments
+  - Orsaksfordelning (doughnut chart): labels svenska, dark theme farger (#1a202c bg, #e2e8f0 text), destroy() i ngOnDestroy, responsive:true, maintainAspectRatio:false
+  - Veckotrend (linjediagram): dual y-axis (minuter + %), svenska labels, destroy() OK
+  - Vy-switch (dag/vecka/manad): fungerar korrekt
+  - Filter (typ + min langd): cached segments, undviker onodiga berakningar
+  - Tooltip: foljer musen, visar stopporsak/operator
+  - Lifecycle: destroy$ + takeUntil + chartTimers.forEach(clearTimeout) + chart?.destroy()
+- drifttids-timeline.service.ts: 4 endpoints, timeout+retry+catchError
+- HTML: alla texter svenska, dark theme klasser, responsive Bootstrap grid (col-12 col-lg-6)
+- CSS: #1a202c bg, #2d3748 cards, responsiva breakpoints (576px, 400px)
+
+### UPPGIFT 2: Skiftrapport-sidor — UX-granskning
+- rebotling-skiftrapport: komplex komponent med sortering, sokning, operatorsfilter, lopnummer, skiftkommentarer, trendgraf, e-postutskick, skiftjamforelse, op-KPI-jamforelse
+  - Alla charts har destroy() i ngOnDestroy
+  - CSV-export: korrekt BOM + semikolon
+  - Dark theme OK, tabeller responsive
+- skiftrapport-export, skiftjamforelse: granskade, lifecycle OK
+- veckorapport: clean component, destroy$ + takeUntil, ISO-veckeberakning OK, svenska texter
+
+### UPPGIFT 3: VD-dashboard + executive-dashboard — UX-granskning
+- executive-dashboard.ts: 807 rader granskade
+  - KPI-widgets: IBC idag vs mal, OEE, veckotrend, alert-berakning
+  - Bar chart (7 dagars IBC): responsive:true, maintainAspectRatio:false, destroy() OK
+  - Mood chart (teamstamning): destroy() OK
+  - Linjestatus-banner: publik endpoint, 4 linjer med realtidsstatus
+  - Servicevarningar, certifikatutgang, bemanningsvarning: alla korrekt
+  - Veckorapport med e-postutskick: lifecycle OK
+  - Polling: 30s data, 60s linjestatus, clearInterval i ngOnDestroy
+  - Dark theme: #2d3748 kort, #8fa3b8 text, #48bb78/#e53e3e fargkodning
+- vd-dashboard.component.ts: forkJoin for parallell datahämtning, 2 charts destroy OK
+- vd-veckorapport: granskad, lifecycle OK
+
+### UPPGIFT 4: Morgonrapport + veckorapport — UX-granskning
+- morgonrapport.ts: 263 rader, ren komponent
+  - Datum default gardag, formatering svenska (veckodag, datum)
+  - Trendpilar, severityikoner, varningsfargkodning
+  - Staplad mini-trendgraf via CSS (inga Chart.js — latt)
+  - destroy$ + takeUntil, utskriftsfunktion
+- veckorapport.ts: 137 rader
+  - ISO-veckeberakning, utskriftslayout
+  - Produktion, effektivitet, stopp, kvalitet med trendpilar
+  - Alla tabeller table-responsive
+  - Inga charts att destroya, lifecycle korrekt
+
+### UPPGIFT 5: Operatorsportal — komplett UX-granskning
+- my-bonus.ts: 1428 rader — mest komplex operatorsvy
+  - 4 charts (KPI-radar, historik-bar, IBC-trend-linje, vecko-bar): alla destroy() i ngOnDestroy
+  - Achievements/badges: cached, confetti med timeout som rensas
+  - Peer ranking: anonymiserad jamforelse, motivationstexter
+  - Feedbacksystem: mood + kommentar, historik
+  - Narvaro-kalender: manadsvy med arbetade dagar
+  - CSV + PDF export: BOM + semikolon resp pdfmake
+  - Alla timers rensas: confettiTimerId, feedbackSavedTimerId, weeklyChartTimerId
+- operator-personal-dashboard.ts: 383 rader
+  - 2 charts (produktion/timme + veckotrend): destroy() + clearTimeout OK
+  - Auto-refresh var 60:e sekund: clearInterval i ngOnDestroy
+  - Operator fran inloggad anvandare: auto-select
+- operatorsportal.ts: chart + chartTimer, destroy() OK
+- operator-ranking.component.ts: 2 charts, refreshTimer (120s), destroy OK
+- operator-compare.ts: Chart.defaults.color = '#e2e8f0', dark theme, lifecycle OK
+- bonus-dashboard.ts: 4 charts, pollingInterval, shiftChartTimeout, weekTrendChartTimeout — alla rensas
+- bonus-admin.ts: formular med validering, pendingChangesGuard, lifecycle OK
+- operator-detail, operator-trend, operator-attendance: granskade, lifecycle OK
+
+### UPPGIFT 6: Overgripande UI-kvalitet
+- app.routes.ts: 166 rader, 120+ routes granskade
+  - Alla routes har korrekt lazy-loading via loadComponent
+  - authGuard/adminGuard korrekt applicerade
+  - pendingChangesGuard pa formularsidor
+  - Wildcard-route (**) langst ner -> NotFoundPage
+  - Inga doda routes hittade
+- menu.ts: 354 rader
+  - destroy$ + takeUntil, 5 intervals alla rensas i ngOnDestroy
+  - Profilformular med validering pa svenska
+  - VPN-status, cert-utgang, alerts-count for admin
+- 161 komponenter har ngOnDestroy (alla som behover det)
+- 108 filer med Chart.js: alla har destroy(), responsive:true, maintainAspectRatio:false
+- 0 synlig engelska text i UI (HTML-kommentarer pa engelska ar OK)
+- Dark theme korrekt overallt: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Responsive breakpoints i alla granskade CSS-filer
+
+### Resultat
+- **0 buggar hittade** — kodbasen ar i utmarkt skick efter session #390
+- Build: `npx ng build` OK (inga errors, enbart CommonJS-varningar for html2canvas/canvg/bootstrap)
+- Deploy: rsync till dev.mauserdb.com OK
+- API-test: alla endpoints svarar korrekt (auth-skyddade returnerar "Inloggning kravs", publika returnerar data)
+
 ## Session #390 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: 187 filer granskade (rebotling+admin+statistik+bonus/operator) — 96 Chart.js-instanser OK + dark theme 1 fix (bg-light->dark) + alla tabeller responsive + alla lifecycle OK + svenska text overallt + build+deploy dev OK**
 
