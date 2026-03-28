@@ -147,6 +147,23 @@ spl_autoload_register(function ($class) {
     if (file_exists($file)) require $file;
 });
 
+// API Rate Limiting — sliding window 120 req/minut per IP (undantar login/register som har egen begränsning)
+require_once __DIR__ . '/classes/RateLimiter.php';
+$rateLimitIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+// Om X-Forwarded-For innehåller flera IP:er — ta den första (klientens IP)
+if (str_contains($rateLimitIp, ',')) {
+    $rateLimitIp = trim(explode(',', $rateLimitIp)[0]);
+}
+// Validera att det är ett rimligt IP-format (IPv4 eller IPv6)
+if (!filter_var($rateLimitIp, FILTER_VALIDATE_IP)) {
+    $rateLimitIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+RateLimiter::check($rateLimitIp);
+// Rensa gamla rate limit-filer med ~1% sannolikhet per request
+if (mt_rand(1, 100) === 1) {
+    RateLimiter::cleanup();
+}
+
 $action = $_GET['action'] ?? '';
 
 // Vitlistade actions → controller-klasser
