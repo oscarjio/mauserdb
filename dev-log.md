@@ -1,5 +1,43 @@
 # MauserDB Dev Log
 
+## Session #390 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: 115 endpoints 0x500 0x404 0xslow + rebotling datakvalitet verifierad (API vs DB 0 diskrepanser) + admin CRUD auth OK + operatorsbonus 3 op verifierad + 10 controllers SQL-audit OK + deploy dev OK**
+
+### Uppgift 1: Full endpoint-test (115 endpoints)
+- Alla 115 endpoints testade mot dev.mauserdb.com
+- **0 x 500-fel**, 0 x 404-fel, 0 x slow (>2s)
+- 11 publika endpoints (200), 104 skyddade (401/403/400/405 som forvantad)
+- Snabbaste: 94ms, langsammaste: 592ms (skiftrapport)
+
+### Uppgift 2: Rebotling datakvalitet
+- Jamfort API-svar med direkta prod DB-queries
+- rebotling dashboard: API visar 0 idag (korrekt, lordag ingen produktion)
+- HistorikController: Feb 2026 total_ibc=7 (1 dag), Mar 2026 total_ibc=650 (9 dagar) — matchar exakt DB-query
+- Senaste data: 2026-03-27, 122 cykler, ibc_ok=67, operatorer: 168, 156
+- **0 diskrepanser mellan API och DB**
+
+### Uppgift 3: Admin CRUD edge cases
+- Auth-kontroller: GET utan session → 403, POST utan session → 401
+- BonusAdmin, Operators, Audit: 403 utan admin-roll
+- SQL-injection i query-params → parametriserade queries skyddar (returnerar normal data)
+- XSS i action-param → 404
+- Tomma/ogiltiga parametrar → korrekt felhantering
+
+### Uppgift 4: Operatorsbonus verifiering (3 operatorer)
+- Verifierat veckodata for op 168 (Mayo), 156 (Biniam), 157 (Evaldas)
+- Bonusberakning: ibc/h, kvalitet, narvaro, team-mal — formler korrekta
+- Konfiguration i DB: ibc_per_timme mal=12, kvalitet mal=98%, narvaro mal=100%, team_bonus mal=95%
+- **0 diskrepanser i berakningslogik**
+
+### Uppgift 5: SQL-audit (10 controllers)
+- GamificationController, PrediktivtUnderhallController, FeatureFlagController, KapacitetsplaneringController, MaskinOeeController, AvvikelselarmController, DagligBriefingController, VdDashboardController, StatistikOverblickController, KassationskvotAlarmController
+- Alla tabell/kolumnreferenser verifierade mot prod_db_schema.sql
+- **0 mismatches hittade**
+
+### Uppgift 6: Deploy
+- Backend deployed via rsync (exkl. db_config.php)
+- Verifierat: status endpoint 200 OK
+
 ## Session #389 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: 3 endpoints 404→200 + unused code borttagen + produktion_procent analys + 115 endpoints 0x500 0x404 + SQL-audit OK + build+deploy dev OK**
 
