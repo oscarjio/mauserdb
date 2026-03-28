@@ -341,8 +341,8 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
   getTrendLabel(): string {
     if (!this.summaryData) return '-';
     switch (this.summaryData.trend) {
-      case 'improving': return 'Forbattras';
-      case 'declining': return 'Forsamras';
+      case 'improving': return 'Förbättras';
+      case 'declining': return 'Försämras';
       default:          return 'Stabilt';
     }
   }
@@ -378,7 +378,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
     const pct = this.summaryData?.change_pct ?? null;
     if (pct === null) return '';
     const sign = pct >= 0 ? '+' : '';
-    return `${sign}${pct.toFixed(1)}% vs foregaende 7d`;
+    return `${sign}${pct.toFixed(1)}% vs föregående 7d`;
   }
 
   formatPct(v: number | null): string {

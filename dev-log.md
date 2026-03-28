@@ -4022,3 +4022,83 @@ Djupgranskade foljande controllers som INTE redan granskats som backend (Worker 
 - noreko-frontend/src/app/pages/tvattlinje-admin/tvattlinje-admin.html
 - noreko-frontend/src/app/pages/users/users.html
 - noreko-frontend/src/app/pages/weekly-report/weekly-report.ts
+
+---
+
+## Session #382 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: Driftstopp UX-granskning + historisk produktion granskning + dashboard KPI-granskning + fullstandig lifecycle-audit + svenska texter**
+
+### UPPGIFT 1: Driftstopp-sidan — fullstandig UX-granskning
+- Granskade alla filer i drifttids-timeline/ (component.ts, component.html, component.css) och service
+- Dark theme korrekt: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Responsivitet: media queries for 576px och 400px finns, kpi-grid anpassas
+- Grafkonfiguration (Chart.js): doughnut + line-diagram med korrekt dark theme farger
+- **FIX**: "over" -> "over" i page-subtitle (saknade umlaut)
+- **FIX**: "Okand orsak" -> "Okand orsak" (saknade umlaut)
+- Lifecycle: OnInit/OnDestroy implementerat, destroy$ + takeUntil, chart?.destroy(), chartTimers forEach clearTimeout — KORREKT
+
+### UPPGIFT 1b: Stopptidsanalys + Stopporsaker — UX-granskning
+- Granskade stopptidsanalys.component.ts/html/css — dark theme korrekt
+- Granskade stopporsaker.component.ts/html — dark theme korrekt, inline styles
+- **FIX**: "Forbattras" -> "Forbattras" och "Forsamras" -> "Forsamras" (svenska tecken)
+- Lifecycle: Bada implementerar OnInit/OnDestroy korrekt med destroy$, clearInterval, chart?.destroy()
+
+### UPPGIFT 2: Historisk produktion — verifiera grafer och data
+- Granskade historisk-produktion.component.ts/html + historisk-sammanfattning.component.ts/html
+- Chart.js-konfiguration korrekt: line-diagram med total/godkanda/kasserade, dark theme
+- Historisk sammanfattning: trendChart + paretoChart med korrekt config, print CSS
+- **FIX**: "fler IBC an foregaende period" -> "fler IBC an foregaende period" (svenska tecken)
+- **FIX**: "farre IBC an foregaende period" -> "farre IBC an foregaende period" (svenska tecken)
+- Lifecycle: Bada korrekt, destroy$ + chart?.destroy() + clearInterval + clearTimeout
+
+### UPPGIFT 3: Dashboard/oversikt — granska KPI-widgets
+- Granskade produktions-dashboard.component.ts: polling var 30s, forkJoin for grafer
+- KPI-widgets: OEE, produktion, kassation, stationer, alarm, senaste IBC — alla med dark theme
+- Granskade vd-dashboard.component.ts: polling var 30s, forkJoin for alla 6 API-anrop
+- **Inga UX-problem hittade** — dark theme korrekt, svenska etiketter, error handling, loading states
+- Lifecycle: Bada korrekt med pollInterval, chart?.destroy(), clearTimeout, destroy$
+
+### UPPGIFT 3b: Ovriga driftstopp-relaterade komponenter
+- maskin-oee.component.ts: **FIX** "Forbattras"/"Forsamras" -> svenska tecken
+- utnyttjandegrad.ts: **FIX** "Forbattras"/"Forsamras"/"foregaende" -> svenska tecken
+
+### UPPGIFT 4: Fullstandig lifecycle-audit — ALLA komponenter
+Granskade totalt 42 Angular-komponenter med setInterval/setTimeout/Chart:
+
+**Komponenter granskade (42 st):**
+1. drifttids-timeline — OK (destroy$, chart?.destroy(), chartTimers)
+2. stopptidsanalys — OK (destroy$, clearInterval, chart?.destroy(), chartTimers)
+3. stopporsaker — OK (destroy$, clearInterval, chart?.destroy(), chartTimers)
+4. historisk-produktion — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+5. historisk-sammanfattning — OK (destroy$, clearTimeout, chart?.destroy())
+6. produktions-dashboard — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+7. vd-dashboard — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+8. gamification — OK (destroy$, clearInterval)
+9. daglig-briefing — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+10. prediktivt-underhall — OK (destroy$, clearInterval, chartTimers)
+11. oee-trendanalys — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+12. operator-ranking — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+13. statistik-overblick — OK (destroy$, clearInterval, clearTimeout, chart?.destroy())
+14. skiftoverlamning — OK (destroy$, inget interval/chart)
+15. tidrapport — OK (destroy$, clearInterval)
+16. skiftjamforelse — OK (clearInterval)
+17. rebotling-live — OK (clearInterval x4) [EJ RORD]
+18. rebotling-admin — OK (clearInterval x3)
+19. saglinje-live — OK (clearInterval)
+20. klassificeringslinje-live — OK (clearInterval)
+21-42. Ovriga 22 komponenter (bonus-dashboard, operator-dashboard, live-ranking, alerts, avvikelselarm, rebotling-sammanfattning, produktionskostnad, maskin-oee, produktions-sla, batch-sparning, kvalitetscertifikat, stationsdetalj, maskinhistorik, maskinunderhall, kassationskvot-alarm, leveransplanering, kapacitetsplanering, produktionsmal, operators-prestanda, rebotling-trendanalys, produktionsflode, operatorsbonus) — alla OK
+
+**Resultat: 42 komponenter granskade, 0 lackor**
+
+### UPPGIFT 5: Bygg + deploy
+- `npx ng build` — OK (warnings for CommonJS modules, no errors)
+- `rsync deploy` till dev — OK
+- 6 filer andrade (5 svenska textfixar)
+
+### Fixade filer:
+- noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.html (over -> over)
+- noreko-frontend/src/app/pages/drifttids-timeline/drifttids-timeline.component.ts (Okand -> Okand)
+- noreko-frontend/src/app/pages/rebotling/stopptidsanalys/stopptidsanalys.component.ts (Forbattras/Forsamras)
+- noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts (an/farre/foregaende)
+- noreko-frontend/src/app/pages/rebotling/maskin-oee/maskin-oee.component.ts (Forbattras/Forsamras)
+- noreko-frontend/src/app/pages/utnyttjandegrad/utnyttjandegrad.ts (Forbattras/Forsamras/foregaende)

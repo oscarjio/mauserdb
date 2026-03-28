@@ -475,8 +475,8 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   getTrendText(): string {
     if (!this.overview) return '';
     switch (this.overview.trend_direction) {
-      case 'down': return 'Forbattras';
-      case 'up':   return 'Forsamras';
+      case 'down': return 'Förbättras';
+      case 'up':   return 'Försämras';
       default:     return 'Stabil';
     }
   }

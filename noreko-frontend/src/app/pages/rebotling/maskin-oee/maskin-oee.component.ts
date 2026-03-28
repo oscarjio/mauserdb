@@ -460,8 +460,8 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   getTrendText(): string {
     if (!this.overview) return '';
     switch (this.overview.trend_direction) {
-      case 'up':   return 'Forbattras';
-      case 'down': return 'Forsamras';
+      case 'up':   return 'Förbättras';
+      case 'down': return 'Försämras';
       default:     return 'Stabil';
     }
   }

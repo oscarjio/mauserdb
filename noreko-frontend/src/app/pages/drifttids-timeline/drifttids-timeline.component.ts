@@ -432,7 +432,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
     const labels = data.map(d => d.orsak);
     const values = data.map(d => d.total_min);
     if (this.orsaksfordelning.okand_stopp_min > 0) {
-      labels.push('Okand orsak');
+      labels.push('Okänd orsak');
       values.push(this.orsaksfordelning.okand_stopp_min);
     }
 

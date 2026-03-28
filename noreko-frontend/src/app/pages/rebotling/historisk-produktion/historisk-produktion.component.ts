@@ -438,8 +438,8 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     const d = this.jamforelse.diff;
     const sign = d.total_pct > 0 ? '+' : '';
     switch (this.jamforelse.trend_direction) {
-      case 'upp': return `${sign}${d.total_pct}% fler IBC an foregaende period`;
-      case 'ner': return `${sign}${d.total_pct}% farre IBC an foregaende period`;
+      case 'upp': return `${sign}${d.total_pct}% fler IBC än föregående period`;
+      case 'ner': return `${sign}${d.total_pct}% färre IBC än föregående period`;
       default:    return 'Stabil produktion';
     }
   }
