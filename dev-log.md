@@ -46,6 +46,44 @@
 - Verifierat: dev.mauserdb.com status endpoint 200 OK (0.11s)
 - Re-test alla endpoints efter deploy: 114 OK, 0 x500
 
+## Session #386 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: PLC-diagnostik frontend granskad OK + sakerhetsgranskning OK + lifecycle-audit 180 komp 0 lackor + mobilanpassning fix + build+deploy dev OK**
+
+### UPPGIFT 1: PLC-diagnostik — frontend granskad OK
+- plc-diagnostik.ts: korrekt lifecycle (OnInit/OnDestroy, destroy$, takeUntil, clearInterval x2 for pollIntervalId + healthIntervalId)
+- plc-diagnostik.html: svenska texter, filter-badges, console-UI med kommandorad
+- plc-diagnostik.css: dark theme (GitHub-mork tema #0d1117/#161b22, monospace font) — konsol-estetik, mobilanpassning med @media max-width 768px
+- Routing: bekraftad i app.routes.ts (rad 135, adminGuard)
+- Meny: bekraftad i menu.html (rad 34, under Rebotling admin-sektion)
+- Backend-endpoint: getPlcDiagnostik() + plcSimulate() — prepared statements, input-validering, error handling OK
+
+### UPPGIFT 2: Sakerhetsgranskning — inga problem hittade
+- CSRF: valideras centralt i api.php (rad 311) for alla POST/PUT/DELETE via AuthHelper::validateCsrfToken()
+- Rate limiting: implementerat via RateLimiter.php, sliding window 120 req/min per IP
+- Input-validering: 1220+ forekomster av filter_input/filter_var/prepare() over 118 filer
+- Session-sakerhet: httponly, secure, samesite=Lax, use_strict_mode, use_only_cookies
+- Losenord: bcrypt (password_hash/password_verify) — inga sha1/md5 for losenord
+- XSS: inga innerHTML/[innerHtml]/bypassSecurityTrust i sidor (1 forekomst i app.config.ts for error overlay, OK)
+- Headers: CSP, HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
+- CORS: vitlistade domaner + automatisk subdomanmatchning + CRLF-injection-skydd
+
+### UPPGIFT 3: Sidgranskning — alla sidor
+- 0 console.log kvar i pages/
+- 0 engelska synliga texter i templates
+- Mobilanpassning: fixade rebotling-admin.html 3x col-4 -> col-12 col-md-4 (KPI-rad for underhallstrend)
+- Inga hardkodade col-3/col-4 utan breakpoint utanfor live-sidor (som ej ska roras)
+
+### UPPGIFT 4: Lifecycle-audit — 180 komponenter, 0 lackor
+- Alla 180 @Component-klasser granskade
+- Alla med subscribe har takeUntil(this.destroy$) i pipe-kedjan
+- Alla med setInterval/setTimeout har clearInterval/clearTimeout i ngOnDestroy
+- Alla med Chart har chart?.destroy() i ngOnDestroy
+- FunktionshubPage har OnInit utan OnDestroy — OK, inga subscriptions/timers/charts
+
+### UPPGIFT 5: Build + deploy
+- Build: npx ng build — OK (enbart CommonJS-varningar, inga fel)
+- Deploy: rsync till dev.mauserdb.com — OK
+
 ## Session #385 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: mobilanpassning 11 sidor fixade + statistik grafer OK + operatorsbonus UX OK + skiftrapport UX OK + gamification UX OK + lifecycle-audit 180+ komp 0 lackor + build OK + deploy dev OK**
 
