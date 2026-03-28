@@ -11,16 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #386):
-- [x] PLC-diagnostik — backend+frontend granskad OK, verifierad mot prod DB
-- [x] Driftstopp — orsaksfordelning + veckotrend verifierad mot prod DB
-- [x] Admin CRUD — auth OK (401/403), CSRF OK, self-delete prevention OK
-- [x] Prestandaoptimering — 0 endpoints over 2s, cache fungerar
-- [x] Sakerhet — CSRF OK, rate limiting 120/min, 1220+ prepared statements, bcrypt OK
+### Klart (session #387):
+- [x] Rebotling — fordjupad datakvalitetstest mot prod DB (Worker A)
+- [x] Edge cases — ogiltiga datum, tomma datasets, saknade operatorer (Worker A)
+- [x] Lasttestning — 30 parallella anrop 0x500 (Worker A)
+- [x] PLC-diagnostik end-to-end + quick stats fix (Worker A)
+- [x] Mobilanpassning — 21 HTML-filer fixade (Worker B)
+- [x] Grafer/charts — 112 filer OK (Worker B)
+- [x] Lifecycle-audit — 170 komp 0 lackor (Worker B)
 
-### Nasta (session #387):
-- [ ] Verifiera PLC-diagnostik end-to-end med riktiga PLC-data
-- [ ] Rebotling — fordjupad datakvalitetstest mot prod DB
-- [ ] Alla sidor — mobilanpassning slutkontroll
-- [ ] Edge cases — tomma datasets, ogiltiga datum, saknade operatorer
-- [ ] Lasttestning — simulera samtidiga anrop
+### Nasta (session #388):
+- [ ] Skiftrapport — verifiera berakningar mot prod DB raadata
+- [ ] Operatorsbonus — stresstesta med manga operatorer samtidigt
+- [ ] Admin — CRUD edge cases (dubbla namn, tomma falt, specialtecken)
+- [ ] Navigering — verifiera ALLA 80+ routes fungerar
+- [ ] Prestandaoptimering — identifiera och fixa endpoints >500ms
