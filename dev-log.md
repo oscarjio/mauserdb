@@ -1,5 +1,69 @@
 # MauserDB Dev Log
 
+## Session #381 — Worker B (Frontend) (2026-03-28)
+**Fokus: Uncommitted-granskning + Skiftrapport UX + Statistik UX + Admin UX + Mobilanpassning + Lifecycle-audit + deploy dev**
+
+### UPPGIFT 1: Granska uncommitted frontend-andringar
+- Granskade rebotling-skiftrapport (CSS 807 rader, HTML 1100+ rader, TS 2300+ rader)
+- Granskade rebotling-statistik (CSS 1340 rader, HTML 709 rader, TS 1200+ rader)
+- Dark theme: korrekt (#1a202c bg, #2d3748 cards, #e2e8f0 text) i bada komponenterna
+- Svenska texter: alla etiketter, knappar och meddelanden pa svenska
+- Lifecycle: bada komponenterna har OnInit/OnDestroy, destroy$, takeUntil, clearInterval/clearTimeout, chart.destroy()
+- Fixade HTML-indentering i rebotling-skiftrapport.html (PLC-data sektion rad 620-625 hade felindragna stangningstaggar)
+
+### UPPGIFT 2: Skiftrapport — fullstandig UX-granskning
+- Berakningar: summaryTotalIbc, summaryAvgQuality, summaryAvgOee, summaryAvgIbcH, summaryAvgEfficiency — korrekta
+- Formatering: kvalitet/effektivitet fargkodade (gron >=90%, gul >=70%, rod <70%), OEE (gron >=75%, gul >=50%)
+- Tabeller: dag-grupperad vy med expanderbar detaljvy per skift, sorterbar pa alla kolumner
+- Data fran backend: drifttid, rasttid, lopnummer, operatorer, skifttider, kommentarer — allt hamtas och visas korrekt
+- Export: CSV, Excel, handover-PDF, shift-PDF — alla knappar kopplade till metoder i TS
+- Responsivitet: saknades helt — fixades i UPPGIFT 5
+
+### UPPGIFT 3: Rebotling statistik — fullstandig UX-granskning
+- 5 flikar: Oversikt, Produktion, Kvalitet & OEE, Operatorer, Analys — alla korrekt implementerade
+- Grafer: produktionsanalys med Chart.js, heatmap, timeline — korrekta
+- Tabeller: detaljerad statistik med export (CSV, Excel), klickbara rader for navigering
+- Export: graf-export, CSV/Excel, heatmap-CSV — alla implementerade
+- Dark theme: fullt korrekt med gradient-bakgrunder och glasmorfism
+- Mobilanpassning: redan bra med media queries for 768px och 576px breakpoints
+- Dashboard layout-konfigurering: widget-synlighet och ordning med sparfunktion
+- Radatamodal: sorterbara kolumner, dark theme, scrollbar
+
+### UPPGIFT 4: Admin-sidor — UX-granskning
+- rebotling-admin: OnInit/OnDestroy, destroy$, clearInterval(systemStatusInterval), clearTimeout(successTimerId), chart.destroy() — korrekt lifecycle
+- users: OnInit/OnDestroy, destroy$, clearTimeout(searchTimer), takeUntil — korrekt
+- operators: OnInit/OnDestroy, destroy$, trendCharts destroy, trendTimers clearTimeout — korrekt
+- Alla admin-sidor: dark theme, svenska texter, formuler med validering, CRUD-floden med feedback
+
+### UPPGIFT 5: Mobilanpassning
+- rebotling-skiftrapport.css: Lade till 120+ rader mobilanpassning (768px + 576px breakpoints)
+  - Filterfaltet: kolumnlayout pa mobil, full bredd
+  - KPI-kort: reducerad padding och textstorlek
+  - Knappar: flex-wrap pa knappgrupper, mindre storlek
+  - Tabeller: smalare celler, nowrap pa rubriker
+  - Trendgrafer: reducerad hojd (200px/180px)
+  - Operatorsrankning: smalare text
+  - Header: kolumnlayout med gap
+- rebotling-statistik.css: redan mobilanpassad (granskat och bekraftat)
+- operators.css: redan mobilanpassad med 4 media queries
+- rebotling-admin.css: grundlaggande mobilstod finns
+- users.css: grundlaggande mobilstod finns
+- Alla table-responsive wrappers har overflow-x: auto — bekraftat
+
+### UPPGIFT 6: Lifecycle-audit
+- Granskade 179 komponenter totalt
+- 0 komponenter saknar OnDestroy trots subscriptions/timers
+- 0 Chart.js-instanser utan .destroy() i ngOnDestroy
+- 0 setInterval utan clearInterval
+- 0 lackor hittade
+- Resultat: **179 komponenter granskade, 0 lackor**
+
+### UPPGIFT 7: Bygg + Deploy + Commit
+- Build: npx ng build — OK (bara CommonJS-varningar, inga fel)
+- Deploy frontend: rsync till mauserdb.com:32546 — OK
+- Deploy backend: rsync till mauserdb.com:32546 — OK
+- Commit: specifika filer
+
 ## Session #380 — Worker B (Frontend) (2026-03-28)
 **Fokus: Statistik export CSV/PDF + Rebotling UX-granskning + Daglig historik UX + Operatorsbonus trendgraf UX + Lifecycle-audit + deploy dev**
 

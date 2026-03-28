@@ -260,6 +260,13 @@
             <i class="fas fa-table me-2"></i>Skiftrapporter
           </h5>
           <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="btn btn-sm"
+                    [class.btn-info]="showAdvanced"
+                    [class.btn-outline-info]="!showAdvanced"
+                    (click)="toggleAdvanced()"
+                    title="Visa/dölj avancerade funktioner per dag">
+              <i class="fas fa-cogs me-1"></i>{{ showAdvanced ? 'Dölj Avancerat' : 'Visa Avancerat' }}
+            </button>
             <button class="btn btn-sm btn-outline-light" (click)="exportCSV()"
               [disabled]="filteredReports.length === 0"
               [class.disabled]="filteredReports.length === 0"
@@ -364,6 +371,11 @@
                     </td>
                     <td>
                       <span class="badge bg-secondary">{{ day.reports.length }} st</span>
+                      <button *ngIf="showAdvanced" class="btn btn-sm btn-outline-info ms-2"
+                              (click)="$event.stopPropagation(); openRawDataModal(day.date)"
+                              title="Visa rådata för {{ day.date }}">
+                        <i class="fas fa-database me-1"></i>Rådata
+                      </button>
                     </td>
                   </tr>
 
@@ -608,9 +620,9 @@
                                           <div class="col-auto border-start border-secondary ps-3">
                                             <div class="small text-muted mb-1">Löpnummer (D4009)</div>
                                             <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
-                            </div>
-                          </div>
-                        </div>
+                                          </div>
+                                        </div>
+                                      </div>
 
                         <!-- ======== FÖRBÄTTRAD OPERATÖRSTABELL ======== -->
                         <div class="mb-3" *ngIf="getCachedOperatorRanking(report).length > 0">
@@ -1658,4 +1670,214 @@
 
     </div>
   </div>
+
+  <!-- ======== RÅDATA MODAL (per dag) ======== -->
+  <div class="modal fade" id="rawDataDayModal" tabindex="-1" aria-labelledby="rawDataDayModalLabel" aria-hidden="true" *ngIf="showRawDataModal">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content" style="background-color: #1a202c; color: #e2e8f0; border: 1px solid #2d3748;">
+        <div class="modal-header" style="background-color: #2d3748; border-bottom: 1px solid #4a5568;">
+          <h5 class="modal-title" id="rawDataDayModalLabel">
+            <i class="fas fa-database me-2 text-info"></i>Rådata — {{ rawDataDate }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+        </div>
+        <div class="modal-body" style="background-color: #1a202c; max-height: 70vh; overflow-y: auto;">
+
+          <!-- Loading -->
+          <div *ngIf="rawDataLoading" class="text-center py-5">
+            <div class="spinner-border text-info" role="status"></div>
+            <p class="mt-3 text-muted">Hämtar rådata...</p>
+          </div>
+
+          <!-- Error -->
+          <div *ngIf="rawDataError && !rawDataLoading" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ rawDataError }}
+          </div>
+
+          <!-- Tabs -->
+          <div *ngIf="!rawDataLoading && !rawDataError">
+            <ul class="nav nav-tabs mb-3" style="border-color: #4a5568;">
+              <li class="nav-item">
+                <button class="nav-link raw-data-tab"
+                        [class.active]="rawDataActiveTab === 'onoff'"
+                        (click)="setRawDataTab('onoff')">
+                  <i class="fas fa-power-off me-1"></i>On/Off
+                  <span class="badge bg-secondary ms-1">{{ rawDataOnoff.length }}</span>
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link raw-data-tab"
+                        [class.active]="rawDataActiveTab === 'rast'"
+                        (click)="setRawDataTab('rast')">
+                  <i class="fas fa-coffee me-1"></i>Rast
+                  <span class="badge bg-secondary ms-1">{{ rawDataRast.length }}</span>
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link raw-data-tab"
+                        [class.active]="rawDataActiveTab === 'driftstopp'"
+                        (click)="setRawDataTab('driftstopp')">
+                  <i class="fas fa-pause-circle me-1"></i>Driftstopp
+                  <span class="badge bg-secondary ms-1">{{ rawDataDriftstopp.length }}</span>
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link raw-data-tab"
+                        [class.active]="rawDataActiveTab === 'skiftrapport'"
+                        (click)="setRawDataTab('skiftrapport')">
+                  <i class="fas fa-clipboard-list me-1"></i>Skiftrapport
+                  <span class="badge bg-secondary ms-1">{{ rawDataSkiftrapport.length }}</span>
+                </button>
+              </li>
+            </ul>
+
+            <!-- Tab: On/Off -->
+            <div *ngIf="rawDataActiveTab === 'onoff'">
+              <div *ngIf="rawDataOnoff.length === 0" class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Inga on/off-händelser för {{ rawDataDate }}</div>
+              </div>
+              <div class="table-responsive" *ngIf="rawDataOnoff.length > 0">
+                <table class="table table-dark table-striped table-hover table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Tidpunkt</th>
+                      <th>Status</th>
+                      <th>Skifträknare</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let ev of rawDataOnoff; let i = index; trackBy: trackByIndex">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td>{{ formatRawDatum(ev.datum) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="ev.running === 1" [class.bg-danger]="ev.running !== 1">
+                          {{ ev.running === 1 ? 'Kör' : 'Stoppad' }}
+                        </span>
+                      </td>
+                      <td>{{ ev.skiftraknare ?? '–' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab: Rast -->
+            <div *ngIf="rawDataActiveTab === 'rast'">
+              <div *ngIf="rawDataRast.length === 0" class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Inga rast-händelser för {{ rawDataDate }}</div>
+              </div>
+              <div class="table-responsive" *ngIf="rawDataRast.length > 0">
+                <table class="table table-dark table-striped table-hover table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Tidpunkt</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let ev of rawDataRast; let i = index; trackBy: trackByIndex">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td>{{ formatRawDatum(ev.datum) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-warning]="ev.rast_status === 1" [class.bg-secondary]="ev.rast_status !== 1"
+                              [class.text-dark]="ev.rast_status === 1">
+                          {{ ev.rast_status === 1 ? 'Rast på' : 'Rast av' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab: Driftstopp -->
+            <div *ngIf="rawDataActiveTab === 'driftstopp'">
+              <div *ngIf="rawDataDriftstopp.length === 0" class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Inga driftstopp-händelser för {{ rawDataDate }}</div>
+              </div>
+              <div class="table-responsive" *ngIf="rawDataDriftstopp.length > 0">
+                <table class="table table-dark table-striped table-hover table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Tidpunkt</th>
+                      <th>Status</th>
+                      <th>Skifträknare</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let ev of rawDataDriftstopp; let i = index; trackBy: trackByIndex">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td>{{ formatRawDatum(ev.datum) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-danger]="ev.driftstopp_status === 1" [class.bg-success]="ev.driftstopp_status !== 1">
+                          {{ ev.driftstopp_status === 1 ? 'Stopp på' : 'Stopp av' }}
+                        </span>
+                      </td>
+                      <td>{{ ev.skiftraknare ?? '–' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab: Skiftrapport -->
+            <div *ngIf="rawDataActiveTab === 'skiftrapport'">
+              <div *ngIf="rawDataSkiftrapport.length === 0" class="text-center py-4 text-muted">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Ingen skiftrapportdata för {{ rawDataDate }}</div>
+              </div>
+              <div class="table-responsive" *ngIf="rawDataSkiftrapport.length > 0">
+                <table class="table table-dark table-striped table-hover table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>Skifträknare</th>
+                      <th>Första cykel</th>
+                      <th>Sista cykel</th>
+                      <th class="text-end">IBC OK</th>
+                      <th class="text-end">IBC ej OK</th>
+                      <th class="text-end">Bur ej OK</th>
+                      <th class="text-end">Antal cykler</th>
+                      <th class="text-end">Körtid (PLC)</th>
+                      <th class="text-end">Rasttid</th>
+                      <th class="text-end">Snitt cykeltid</th>
+                      <th class="text-end">Prod %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let s of rawDataSkiftrapport; trackBy: trackByIndex">
+                      <td><strong>{{ s.skiftraknare }}</strong></td>
+                      <td>{{ formatRawDatum(s.first_datum) }}</td>
+                      <td>{{ formatRawDatum(s.last_datum) }}</td>
+                      <td class="text-end text-success">{{ s.ibc_ok }}</td>
+                      <td class="text-end" [class.text-danger]="+(s.ibc_ej_ok) > 0">{{ s.ibc_ej_ok || 0 }}</td>
+                      <td class="text-end" [class.text-danger]="+(s.bur_ej_ok) > 0">{{ s.bur_ej_ok || 0 }}</td>
+                      <td class="text-end">{{ s.ibc_count }}</td>
+                      <td class="text-end">{{ s.runtime_plc ? (+s.runtime_plc).toFixed(1) + ' min' : '–' }}</td>
+                      <td class="text-end">{{ s.rasttime ? (+s.rasttime).toFixed(1) + ' min' : '–' }}</td>
+                      <td class="text-end">{{ s.avg_cycle_time ? (+s.avg_cycle_time).toFixed(1) + ' min' : '–' }}</td>
+                      <td class="text-end">{{ s.produktion_procent ? (+s.produktion_procent).toFixed(0) + '%' : '–' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer" style="background-color: #2d3748; border-top: 1px solid #4a5568;">
+          <small class="text-muted me-auto">
+            <i class="fas fa-info-circle me-1"></i>Rådata direkt från PLC/databas
+          </small>
+          <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Stäng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

@@ -2311,4 +2311,83 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   trackByOpName(index: number, op: { name: string }): string {
     return op.name;
   }
+
+  // ======== Visa Avancerat / Rådata Modal ========
+
+  showAdvanced = false;
+  showRawDataModal = false;
+  rawDataLoading = false;
+  rawDataError = '';
+  rawDataDate = '';
+  rawDataActiveTab: 'onoff' | 'rast' | 'driftstopp' | 'skiftrapport' = 'onoff';
+  rawDataOnoff: any[] = [];
+  rawDataRast: any[] = [];
+  rawDataDriftstopp: any[] = [];
+  rawDataSkiftrapport: any[] = [];
+
+  toggleAdvanced(): void {
+    this.showAdvanced = !this.showAdvanced;
+  }
+
+  openRawDataModal(date: string): void {
+    this.rawDataDate = date;
+    this.rawDataActiveTab = 'onoff';
+    this.rawDataOnoff = [];
+    this.rawDataRast = [];
+    this.rawDataDriftstopp = [];
+    this.rawDataSkiftrapport = [];
+    this.rawDataError = '';
+    this.rawDataLoading = true;
+    this.showRawDataModal = true;
+
+    // Fetch raw data from backend
+    this.http.get<any>(
+      `${environment.apiUrl}?action=rebotling&run=day-raw-data&date=${date}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(10000),
+      catchError(err => {
+        console.error('Rådata-hämtning misslyckades:', err);
+        this.rawDataError = 'Kunde inte hämta rådata för ' + date;
+        this.rawDataLoading = false;
+        return of(null);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe(res => {
+      this.rawDataLoading = false;
+      if (res?.success && res.data) {
+        this.rawDataOnoff = res.data.onoff_events || [];
+        this.rawDataRast = res.data.rast_events || [];
+        this.rawDataDriftstopp = res.data.driftstopp_events || [];
+        this.rawDataSkiftrapport = res.data.skiftrapport_data || [];
+      } else if (!this.rawDataError) {
+        this.rawDataError = 'Tomt svar från servern';
+      }
+      // Open the Bootstrap modal
+      this.openBootstrapRawModal();
+    });
+  }
+
+  private async openBootstrapRawModal(): Promise<void> {
+    const { default: Modal } = await import('bootstrap/js/dist/modal');
+    setTimeout(() => {
+      const el = document.getElementById('rawDataDayModal');
+      if (el) {
+        const modal = new Modal(el);
+        modal.show();
+        el.addEventListener('hidden.bs.modal', () => {
+          this.showRawDataModal = false;
+        }, { once: true });
+      }
+    });
+  }
+
+  setRawDataTab(tab: 'onoff' | 'rast' | 'driftstopp' | 'skiftrapport'): void {
+    this.rawDataActiveTab = tab;
+  }
+
+  formatRawDatum(datum: string): string {
+    if (!datum) return '–';
+    return datum.substring(11, 19) || datum;
+  }
 }

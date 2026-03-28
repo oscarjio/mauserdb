@@ -174,6 +174,10 @@
                   <i class="fas fa-pause-circle me-1"></i>{{ dayLongestStopMinutes }}min stopp
                 </span>
                 <button *ngIf="chartHasSelection()" class="btn btn-outline-light btn-sm" (click)="resetChartZoom()">Återställ</button>
+                <button *ngIf="viewMode === 'day' && rawCycles.length > 0"
+                        class="btn btn-sm btn-outline-info" (click)="openRawDataModal()" title="Visa rådata">
+                  <i class="fas fa-database me-1"></i>Rådata
+                </button>
                 <button class="btn btn-sm btn-outline-secondary" (click)="exportProductionChart()" [disabled]="!productionChart" title="Exportera graf">
                   <i class="fas fa-download"></i>
                 </button>
@@ -619,6 +623,85 @@
       } @placeholder {
         <div class="text-center py-4"><div class="spinner-border text-secondary" role="status"></div></div>
       }
+    </div>
+  </div>
+
+  <!-- ============ RÅDATA MODAL ============ -->
+  <div class="modal fade" id="rawDataModal" tabindex="-1" aria-labelledby="rawDataModalLabel" aria-hidden="true" *ngIf="showRawDataModal">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content raw-data-modal-content">
+        <div class="modal-header raw-data-modal-header">
+          <h5 class="modal-title" id="rawDataModalLabel">
+            <i class="fas fa-database me-2"></i>Rådata — {{ rawCyclesSorted.length }} cykler
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+        </div>
+        <div class="modal-body raw-data-modal-body">
+          <div class="raw-data-table-wrapper">
+            <table class="table table-dark table-striped table-hover table-sm mb-0">
+              <thead class="raw-data-thead">
+                <tr>
+                  <th class="raw-data-th">
+                    <small class="text-muted">#</small>
+                  </th>
+                  <th class="raw-data-th" style="cursor:pointer;" (click)="sortRawCycles('datum')">
+                    Tidpunkt <i [class]="getRawSortIcon('datum')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('cycle_time')">
+                    Cykeltid (min) <i [class]="getRawSortIcon('cycle_time')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_count')">
+                    IBC# <i [class]="getRawSortIcon('ibc_count')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_ok')">
+                    OK <i [class]="getRawSortIcon('ibc_ok')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_ej_ok')">
+                    Ej OK <i [class]="getRawSortIcon('ibc_ej_ok')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th" style="cursor:pointer;" (click)="sortRawCycles('produkt_namn')">
+                    Produkt <i [class]="getRawSortIcon('produkt_namn')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('skiftraknare')">
+                    Skift <i [class]="getRawSortIcon('skiftraknare')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('produktion_procent')">
+                    Prod% <i [class]="getRawSortIcon('produktion_procent')" class="ms-1"></i>
+                  </th>
+                  <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('bur_ej_ok')">
+                    Bur ej OK <i [class]="getRawSortIcon('bur_ej_ok')" class="ms-1"></i>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of rawCyclesSorted; let i = index; trackBy: trackByIndex">
+                  <td class="text-muted">{{ i + 1 }}</td>
+                  <td>{{ c.datum | date:'HH:mm:ss' }}</td>
+                  <td class="text-end"
+                      [ngClass]="{
+                        'text-success': +c.cycle_time > 0 && +c.cycle_time <= targetCycleTime,
+                        'text-warning': +c.cycle_time > targetCycleTime && +c.cycle_time <= targetCycleTime * 1.5,
+                        'text-danger': +c.cycle_time > targetCycleTime * 1.5
+                      }">
+                    {{ (+c.cycle_time).toFixed(1) }}
+                  </td>
+                  <td class="text-end">{{ c.ibc_count }}</td>
+                  <td class="text-end text-success">{{ c.ibc_ok }}</td>
+                  <td class="text-end" [class.text-danger]="+(c.ibc_ej_ok) > 0">{{ c.ibc_ej_ok }}</td>
+                  <td>{{ c.produkt_namn || '-' }}</td>
+                  <td class="text-end">{{ c.skiftraknare }}</td>
+                  <td class="text-end">{{ c.produktion_procent ? (+c.produktion_procent).toFixed(0) + '%' : '-' }}</td>
+                  <td class="text-end" [class.text-danger]="+(c.bur_ej_ok) > 0">{{ c.bur_ej_ok || 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer raw-data-modal-footer">
+          <small class="text-muted me-auto">Klicka på kolumnrubriker för att sortera</small>
+          <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Stäng</button>
+        </div>
+      </div>
     </div>
   </div>
 

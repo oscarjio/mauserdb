@@ -766,6 +766,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
 
+    // Spara rådata för modal
+    this.rawCycles = data.cycles || [];
+    this.sortRawCycles();
+
     this.updatePeriodCellsData(data.cycles);
   }
 
@@ -2422,6 +2426,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   // Visibility toggles for on-demand panels
   showDetailTable: boolean = false;
 
+  // Rådata modal
+  rawCycles: any[] = [];
+  rawCyclesSorted: any[] = [];
+  rawSortColumn: string = 'datum';
+  rawSortAsc: boolean = false;
+  showRawDataModal: boolean = false;
+
   showWeekComparison: boolean = false;
   showPrediktion: boolean = false;
   showOeeDeepDive: boolean = false;
@@ -2567,4 +2578,59 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     URL.revokeObjectURL(url);
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
+
+  // ---- Rådata modal ----
+
+  async openRawDataModal(): Promise<void> {
+    this.showRawDataModal = true;
+    const { default: Modal } = await import('bootstrap/js/dist/modal');
+    setTimeout(() => {
+      const el = document.getElementById('rawDataModal');
+      if (el) {
+        const modal = new Modal(el);
+        modal.show();
+        el.addEventListener('hidden.bs.modal', () => {
+          this.showRawDataModal = false;
+        }, { once: true });
+      }
+    });
+  }
+
+  sortRawCycles(column?: string): void {
+    if (column) {
+      if (this.rawSortColumn === column) {
+        this.rawSortAsc = !this.rawSortAsc;
+      } else {
+        this.rawSortColumn = column;
+        this.rawSortAsc = true;
+      }
+    }
+    const col = this.rawSortColumn;
+    const asc = this.rawSortAsc;
+    this.rawCyclesSorted = [...this.rawCycles].sort((a, b) => {
+      let va = a[col];
+      let vb = b[col];
+      // Numeric columns
+      if (col === 'cycle_time' || col === 'ibc_count' || col === 'ibc_ok' || col === 'ibc_ej_ok' ||
+          col === 'skiftraknare' || col === 'produktion_procent' || col === 'bur_ej_ok' ||
+          col === 'runtime_plc' || col === 'rasttime') {
+        va = parseFloat(va) || 0;
+        vb = parseFloat(vb) || 0;
+      } else if (col === 'datum') {
+        va = new Date(va).getTime();
+        vb = new Date(vb).getTime();
+      } else {
+        va = String(va || '').toLowerCase();
+        vb = String(vb || '').toLowerCase();
+      }
+      if (va < vb) return asc ? -1 : 1;
+      if (va > vb) return asc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  getRawSortIcon(col: string): string {
+    if (this.rawSortColumn !== col) return 'fas fa-sort';
+    return this.rawSortAsc ? 'fas fa-sort-up' : 'fas fa-sort-down';
+  }
 }

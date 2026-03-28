@@ -785,3 +785,186 @@
     margin: 15mm;
   }
 }
+
+/* ---- Rådata Modal ---- */
+.raw-data-tab {
+  color: #a0aec0 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.raw-data-tab:hover {
+  color: #e2e8f0 !important;
+  border-color: #4a5568 !important;
+}
+
+.raw-data-tab.active {
+  color: #e2e8f0 !important;
+  background-color: #2d3748 !important;
+  border-color: #4a5568 #4a5568 #1a202c !important;
+}
+
+/* ---- Mobilanpassning ---- */
+@media (max-width: 768px) {
+  .container-fluid.mt-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .filter-bar > div {
+    width: 100%;
+  }
+
+  .filter-bar .form-control {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .filter-bar select.form-control {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .summary-card {
+    padding: 8px 10px;
+  }
+
+  .summary-value {
+    font-size: 1.1rem;
+  }
+
+  .summary-label {
+    font-size: 0.62rem;
+  }
+
+  .kpi-card {
+    padding: 8px 10px;
+  }
+
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+
+  .kpi-label {
+    font-size: 0.62rem;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .btn-group .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+  }
+
+  .shift-detail-table thead th,
+  .shift-detail-table tbody td {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  .day-summary-row td {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+
+  .expand-panel {
+    padding: 0.75rem;
+  }
+
+  .shift-summary {
+    padding: 8px 10px;
+  }
+
+  .shift-stat-item {
+    padding: 2px 8px;
+  }
+
+  .eff-kpi-card {
+    padding: 8px 10px;
+  }
+
+  .eff-kpi-value {
+    font-size: 1.1rem;
+  }
+
+  .trend-chart-wrapper {
+    height: 200px;
+  }
+
+  .trend-chart-wrapper canvas {
+    max-height: 200px;
+  }
+
+  .eff-chart-wrapper {
+    height: 180px;
+  }
+
+  .eff-chart-wrapper canvas {
+    max-height: 180px;
+  }
+
+  .compare-kpi-card {
+    padding: 10px 12px;
+  }
+
+  .compare-day-value {
+    font-size: 1rem;
+  }
+
+  .operator-rank-table table thead th,
+  .operator-rank-table table tbody td {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start !important;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 h1 {
+    font-size: 1.2rem;
+  }
+
+  .card-header.bg-success .d-flex.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  .card-header.bg-success .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .kpi-card-op {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .kpi-card-op-value {
+    font-size: 1.1rem;
+  }
+
+  .kpi-card-op-label {
+    font-size: 0.65rem;
+  }
+
+  .table-responsive {
+    font-size: 0.82rem;
+  }
+
+  .day-expanded-panel {
+    padding: 0.5rem 0.75rem;
+  }
+}

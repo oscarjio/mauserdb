@@ -1262,3 +1262,79 @@
   border-color: #4a5568;
   cursor: pointer;
 }
+
+/* ============================================
+   Rådata Modal
+   ============================================ */
+
+.raw-data-modal-content {
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+.raw-data-modal-header {
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.raw-data-modal-header .modal-title {
+  font-weight: 600;
+}
+
+.raw-data-modal-body {
+  padding: 0;
+  background: #1a202c;
+}
+
+.raw-data-table-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.raw-data-table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.raw-data-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.raw-data-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+}
+
+.raw-data-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+.raw-data-thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.raw-data-th {
+  background: #2d3748 !important;
+  color: #a0aec0 !important;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  user-select: none;
+  border-bottom: 2px solid rgba(0, 212, 255, 0.25) !important;
+}
+
+.raw-data-th:hover {
+  color: #e2e8f0 !important;
+  background: #374151 !important;
+}
+
+.raw-data-modal-footer {
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
