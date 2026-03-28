@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-28 (session #381)*
+*Senast uppdaterad: 2026-03-28 (session #383)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -78,6 +78,7 @@ Session #379: Operatorsbonus trendgraf backend+frontend. Driftstopp vecko/manads
 Session #380: Statistik export CSV/PDF + endpoint-test 115 0x500 + SQL-audit 0 mismatches + 5030 cykler 0 diskrepanser + skiftrapport KPI verifierad + 163 komp 0 lackor + bootstrap modal-fix + deploy dev OK.
 Session #381: day-raw-data endpoint granskad + endpoint-test 123 0x500 <1.5s + SQL-audit 0 mismatches + skiftrapport KPI verifierad + admin CRUD OK + mobilanpassning skiftrapport + 179 komp 0 lackor + deploy dev OK.
 Session #382: Rebotling live-data verifierad mot prod DB (exakt matchning) + operatorsbonus berakningar verifierade + 115 endpoints 0x500 <364ms + SQL-audit 0 mismatches + driftstopp UX-fix (svenska tecken) + historisk produktion UX-fix + 42 komp 0 lackor + deploy dev OK.
+Session #383: Skiftrapport berakningar OK + statistik backend OK + admin CRUD OK + 115 endpoints 0x500 + SQL-audit 0 mismatches + SkiftrapportController CREATE TABLE buggfix + gamification UX OK + operatorsbonus 4 grafer OK + 7 svenska textfixar (Mal->Mål) + 170 komp 0 lackor + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -90,23 +91,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #383):
-- Skiftrapport — fullstandig UX-granskning + verifiera berakningar mot prod data
-- Statistik-sidan — granska alla grafer, berakningar, CSV/PDF-export mot prod data
-- Admin-sidor — fullstandig CRUD-test + UX-granskning + behorighet
-- Gamification-sidan — UX-granskning + dataverifiering
-- Operatorsbonus frontend — verifiera att bonusdata visas korrekt i alla vyer
+### Nasta (session #384):
+- Dashboard/oversikt — verifiera KPI-kort, realtidsdata, grafer mot prod
+- Driftstopp — fullstandig UX-granskning + orsaksfordelning + trender
+- Rebotling historik — daglig/vecko/manadsvy + grafer + datakvalitet
+- Navigering + routing — testa alla lankar, breadcrumbs, mobilmeny
+- Error handling — granska alla API-anrop for korrekta felmeddelanden pa svenska
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-28 — Session #380 (klar)
-Worker A: 115 endpoints 0x500 <1.5s. 0 SQL mismatches. 5030 cykler 0 diskrepanser. Skiftrapport KPI verifierad. Deploy dev OK.
-Worker B: Statistik export CSV/PDF. Rebotling dashboard UX OK. 163 komp 0 lackor. Bootstrap modal-fix. Build+deploy dev OK.
-
 ### 2026-03-28 — Session #381 (klar)
-Worker A: getDayRawData endpoint granskad+deployad (0.74s). 123 endpoints 0x500 <1.5s. SQL-audit 0 mismatches. Skiftrapport KPI verifierad (kvalitet 98.5%, kassation 1.47%, IBC/h 66.1). Admin CRUD OK (auth+CSRF). Deploy dev OK.
-Worker B: Skiftrapport mobilanpassning (120+ rader media queries). HTML-nesting fix. Statistik UX OK. Admin UX OK. 179 komp 0 lackor. Build+deploy dev OK.
+Worker A: getDayRawData endpoint granskad+deployad (0.74s). 123 endpoints 0x500 <1.5s. SQL-audit 0 mismatches. Skiftrapport KPI verifierad. Admin CRUD OK. Deploy dev OK.
+Worker B: Skiftrapport mobilanpassning. HTML-nesting fix. Statistik UX OK. Admin UX OK. 179 komp 0 lackor. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #382 (klar)
-Worker A: Rebotling live-data verifierad mot prod DB (exakt matchning). Operatorsbonus berakningar verifierade (formel+konfig OK). 115 endpoints 0x500 <364ms. SQL-audit 0 mismatches. Deploy dev OK.
-Worker B: Driftstopp UX-fix (svenska tecken 6 filer). Historisk produktion UX-fix. Dashboard/oversikt granskad OK. 42 komp 0 lackor. Build+deploy dev OK.
+Worker A: Rebotling live-data verifierad mot prod DB (exakt matchning). Operatorsbonus berakningar OK. 115 endpoints 0x500 <364ms. SQL-audit 0 mismatches. Deploy dev OK.
+Worker B: Driftstopp UX-fix (svenska tecken 6 filer). Historisk produktion UX-fix. Dashboard granskad OK. 42 komp 0 lackor. Build+deploy dev OK.
+
+### 2026-03-28 — Session #383 (klar)
+Worker A: Skiftrapport berakningar verifierade mot prod. Statistik backend OK. Admin CRUD+auth OK. 115 endpoints 0x500 (max 5.8s). SQL-audit 0 mismatches. SkiftrapportController CREATE TABLE buggfix. Deploy dev OK.
+Worker B: Gamification UX OK. Operatorsbonus 4 grafer OK. Skiftrapport UX OK. Statistik UX OK. 7 svenska textfixar (Mal->Mål). 170 komp 0 lackor. Build+deploy dev OK.

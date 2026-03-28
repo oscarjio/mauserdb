@@ -11,13 +11,6 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Pagaende (session #383):
-- [~] Skiftrapport — fullstandig UX-granskning + verifiera berakningar mot prod data
-- [~] Statistik-sidan — granska alla grafer, berakningar, CSV/PDF-export mot prod data
-- [~] Admin-sidor — fullstandig CRUD-test + UX-granskning + behorighet
-- [~] Gamification-sidan — UX-granskning + dataverifiering
-- [~] Operatorsbonus frontend — verifiera att bonusdata visas korrekt i alla vyer
-
 ### Nasta (session #384):
 - [ ] Dashboard/oversikt — verifiera KPI-kort, realtidsdata, grafer mot prod
 - [ ] Driftstopp — fullstandig UX-granskning + orsaksfordelning + trender
