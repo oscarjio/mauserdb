@@ -24,6 +24,8 @@ class NewsController {
             $this->update();
         } elseif ($method === 'POST' && $run === 'delete') {
             $this->delete();
+        } elseif ($method === 'GET' && $run === '') {
+            echo json_encode(['success' => true, 'endpoints' => ['events', 'admin-list']], JSON_UNESCAPED_UNICODE);
         } else {
             http_response_code(404);
             echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);

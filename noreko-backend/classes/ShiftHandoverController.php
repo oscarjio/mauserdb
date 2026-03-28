@@ -49,6 +49,11 @@ class ShiftHandoverController {
             return;
         }
 
+        if ($method === 'GET' && $run === '') {
+            echo json_encode(['success' => true, 'endpoints' => ['recent', 'unread-count']], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         http_response_code(404);
         echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
     }

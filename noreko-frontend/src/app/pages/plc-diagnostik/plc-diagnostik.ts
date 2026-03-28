@@ -135,7 +135,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
       .pipe(
         timeout(5000),
-        catchError(err => {
+        catchError(_err => {
           this.fetchError = true;
           return of(null);
         }),
@@ -270,7 +270,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
     return this.stats.running ? 'status-running' : 'status-stopped';
   }
 
-  trackEvent(index: number, event: PlcEvent): string {
+  trackEvent(_index: number, event: PlcEvent): string {
     return event.source + '-' + event.id;
   }
 

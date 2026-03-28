@@ -55,6 +55,11 @@ class ShiftPlanController {
             return;
         }
 
+        if ($method === 'GET' && $run === '') {
+            echo json_encode(['success' => true, 'endpoints' => ['week', 'operators', 'week-view', 'operators-list', 'staffing-warning']], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         http_response_code(404);
         echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
     }

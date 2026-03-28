@@ -11,10 +11,10 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Nasta (session #389):
-- [ ] Diagnostik-fixar: plc-diagnostik.ts unused vars (err rad 138, index rad 273)
-- [ ] SkiftrapportController.php — unused calcSkiftData funktion (rad 1091-1092)
-- [ ] 404-endpoints: shift-plan, shift-handover, news — saknar class-filer pa servern
-- [ ] Rebotling — djupare analys av produktion_procent (kumulativ eller ej?)
-- [ ] Statistik — forbattra exportfunktioner (CSV/PDF) med fler datapunkter
-- [ ] Driftstopp — forlangd historik och trendanalys
+### Pagaende (session #389):
+- [x] Diagnostik-fixar: plc-diagnostik.ts unused vars (Worker A)
+- [x] SkiftrapportController.php — unused calcSkiftData funktion (Worker A)
+- [x] 404-endpoints: shift-plan, shift-handover, news — default GET-handler tillagd (Worker A)
+- [x] Rebotling — djupare analys av produktion_procent: EJ kumulativ, momentan takt-%, graferna korrekt (Worker A)
+- [~] Statistik — forbattra exportfunktioner (CSV/PDF) (Worker B)
+- [~] Driftstopp — forlangd historik och trendanalys (Worker B)

@@ -1,5 +1,40 @@
 # MauserDB Dev Log
 
+## Session #389 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: 3 endpoints 404→200 + unused code borttagen + produktion_procent analys + 115 endpoints 0x500 0x404 + SQL-audit OK + build+deploy dev OK**
+
+### UPPGIFT 1: Fixa 404-endpoints — shift-plan, shift-handover, news
+- Alla 3 class-filer fanns redan på servern — 404 berodde på att controllers returnerade 404 vid tomt `run`-param
+- Lade till default GET-handler i varje controller som returnerar tillgängliga sub-endpoints
+- Verifierat: alla 3 ger nu 200 vid bara `?action=xxx`
+
+### UPPGIFT 2: Fixa unused code
+- SkiftrapportController.php: Tog bort `calcSkiftData()` (93 rader) — aldrig anropad, ersatt av batch-queries i `getDagligSammanstallning()`
+- plc-diagnostik.ts: Prefixade oanvända parametrar med `_` (`err` → `_err`, `index` → `_index`)
+
+### UPPGIFT 3: Rebotling produktion_procent — djupare analys
+- Prod DB visar: skifträknare 82 går 65→67→70→...→127 (stigande), skifträknare 83 startar om vid 6→14
+- Bekräftat: EJ kumulativ per session — det är en momentan takt-procent (faktisk/mål*100) som beräknas per cykel
+- Värden >100% beror på kort runtime i början av skiftet (ramp-up), PHP-koden cap:ar korrekt till 100 och filtrerar >200%
+- Graferna visar korrekt data: MAX(produktion_procent) per skifträknare i dagsvyn
+
+### UPPGIFT 4: Full endpoint-test — 115 endpoints
+- 200: 11 (publika endpoints)
+- 401: 80 (kräver inloggning — korrekt)
+- 403: 8 (kräver admin — korrekt)
+- 400: 8 (saknar obligatoriska params — korrekt)
+- 405: 2 (login/register, kräver POST — korrekt)
+- 404: 0, 500: 0, slow >2s: 0
+
+### UPPGIFT 5: SQL-audit
+- Granskade ShiftPlanController, ShiftHandoverController, NewsController, SkiftrapportController mot prod_db_schema.sql
+- Alla tabell- och kolumnnamn matchar schemat — 0 mismatches
+
+### UPPGIFT 6: Deploy till dev
+- Backend rsync (exkl. db_config.php) OK — 4 ändrade filer deployade
+- Frontend ng build + rsync OK
+- Verifierat med curl: shift-plan, shift-handover, news alla 200
+
 ## Session #389 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: CSV-export forbattrad i 3 sidor + driftstopp utokad historik 90d + 42 komp granskade 0 lackor + stavfix + build+deploy dev OK**
 
