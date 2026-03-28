@@ -1,5 +1,46 @@
 # MauserDB Dev Log
 
+## Session #378 — Worker A (Backend) (2026-03-28)
+**Fokus: Fullstandig endpoint-test + SQL-audit + backend-granskning + deploy**
+
+### UPPGIFT 1: Fullstandig endpoint-test (115 endpoints)
+- Testat ALLA 115 registrerade endpoints i api.php med curl mot dev.mauserdb.com
+- **0 HTTP 500-fel** — samtliga endpoints returnerar korrekta statuskoder
+- 7 publika endpoints (200): rebotling, tvattlinje, saglinje, klassificeringslinje, status, feature-flags, historik
+- 108 endpoints returnerar 401/403/400/404 (forvantat utan session)
+- Svarstider: alla <1s forutom tillfallinga spikes
+- Testat stoppage med run=reasons, run=stats, line/period-parametrar — alla 200 OK
+- Post-deploy verifiering: 20 endpoints testade, 0 st 500-fel
+
+### UPPGIFT 2: SQL-audit mot prod_db_schema.sql
+- Last och analyserat hela prod_db_schema.sql (91 tabeller)
+- Granskat alla SQL-queries i controllers mot schemat
+- Kolumnreferenser i rebotling_ibc, rebotling_skiftrapport, operators, users, bonus_utbetalning, bonus_konfiguration, stoppage_log, stopporsak_registreringar — alla matchar
+- Legacy-tabeller (rebotling_data, rebotling_stopporsak, saglinje_ibc, saglinje_onoff, klassificeringslinje_ibc, skift_log) — alla wrappade i tableExists() och try/catch
+- **0 SQL mismatches** som orsakar fel
+
+### UPPGIFT 3: Backend-granskning
+- Granskat: OperatorsbonusController, StatistikDashboardController, SkiftrapportController, RebotlingController, StoppageController, DrifttidsTimelineController
+- Berakningar verifierade: bonus, OEE, kassation, IBC/h — alla korrekta
+- Felhantering: alla controllers har try/catch med rollback, AuditLogger, 401/403 kontroller
+- Prestanda: batch-queries i OperatorsbonusController och SkiftrapportController
+- Verifierat mot prod DB: 5030 cykler, 63 skift, 13 aktiva operatorer, 28 skiftrapporter
+
+### UPPGIFT 4: Deploy till dev
+- rsync backend till dev.mauserdb.com (ssh -p 32546)
+- EXKLUDERAT db_config.php, .git, node_modules, dist
+- Post-deploy verifiering: 0 st 500-fel
+
+### Andrade filer:
+- `dev-log.md` — denna logg
+
+### Verifiering mot prod DB:
+- 5030 cykler, 0 diskrepanser
+- 13 operatorer, senaste data 2026-03-27 14:25:59
+- rebotling_target = 1000
+
+---
+
 ## Session #377 — Worker A (Backend) (2026-03-28)
 **Fokus: Operatorsbonus KPI-detaljer + historik filter/sortering + statistik periodval + endpoint-test + SQL-audit**
 
