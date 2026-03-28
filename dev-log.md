@@ -1,5 +1,74 @@
 # MauserDB Dev Log
 
+## Session #390 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: 187 filer granskade (rebotling+admin+statistik+bonus/operator) — 96 Chart.js-instanser OK + dark theme 1 fix (bg-light->dark) + alla tabeller responsive + alla lifecycle OK + svenska text overallt + build+deploy dev OK**
+
+### UPPGIFT 1: Rebotling-sidor — grundlig granskning
+- 137 TS+HTML-filer i rebotling/ granskade (UTOM rebotling-live)
+- rebotling-admin: 3 charts korrekt destroy, dark theme 1 fix (bg-light pa "Lagg till ny produkt" -> dark)
+- rebotling-skiftrapport: 3 charts + 7 timers alla rensas i ngOnDestroy
+- rebotling-prognos: ingen chart, lifecycle OK, dark theme OK
+- 90 Chart.js-instanser i rebotling/: alla har destroy(), responsive:true, maintainAspectRatio:false
+- Alla tabeller har table-responsive wrapper
+- Svenska text overallt, inga engelska strangar i UI
+
+### UPPGIFT 2: Admin-sidor — UX-granskning
+- bonus-admin: formular, validering, felmeddelanden pa svenska, dark theme OK
+- users: sortering, pagination, sok, inline-redigering, dark theme OK
+- operators: chart destroy OK, dark theme OK
+- feature-flag-admin: CRUD, rollhantering, dark theme OK
+- vpn-admin: dark theme via CSS, alla texter svenska
+- news-admin: lifecycle OK, dark theme OK
+- klassificeringslinje-admin, saglinje-admin, tvattlinje-admin: lifecycle OK, dark theme OK
+- 17 filer granskade, 0 problem (utover 1 fix i rebotling-admin)
+
+### UPPGIFT 3: Statistik-sidor — grafer och data
+- statistik-overblick: 3 charts, dark theme OK, destroy OK
+- cykeltid-heatmap: 1 chart, dark theme OK
+- oee-benchmark: 2 charts, dark theme OK
+- oee-trendanalys: 2 charts, dark theme OK
+- oee-waterfall: 1 chart, svenska tooltips, dark theme OK
+- operator-compare: 2 charts, dark theme OK
+- operator-ranking: 2 charts, dark theme OK
+- pareto: 1 chart, svenska labels, dark theme OK
+- stopporsak-trend: 2 charts, dark theme OK
+- kvalitetstrend: 2 charts, dark theme OK
+- 19 filer granskade, alla chart labels/tooltips pa svenska
+
+### UPPGIFT 4: Mobilanpassning
+- Alla tabeller har table-responsive wrapper
+- Alla charts har responsive:true + maintainAspectRatio:false
+- Inga fasta bredder >220px (de som finns ar pa formkontroller, OK)
+- col-6/col-md-* breakpoints korrekt, inga col-4 utan responsive fallback
+- 0 nya mobilproblem hittade
+
+### UPPGIFT 5: Skiftrapport och operatorsbonus sidor
+- rebotling-skiftrapport: 3 charts, 7 timers, alla rensas korrekt
+- my-bonus: 4 charts, PDF-export med pdfmake, dark theme OK, destroy OK
+- bonus-dashboard: 4 charts, dark theme OK
+- operator-dashboard: 1 chart, dark theme OK
+- operator-detail: 1 chart, dark theme OK
+- live-ranking: 3 timers (poll+countdown+motivation), alla rensas i ngOnDestroy, svenska texter
+- 8 filer granskade, 0 problem
+
+### UPPGIFT 6: Bygg och deploy
+- `npx ng build` — OK (0 errors, CommonJS-varningar)
+- `rsync deploy` till dev — OK
+
+### Fixade problem
+- rebotling-admin.html rad 688: `bg-light` -> dark theme (`background:#1a202c;color:#e2e8f0`)
+
+### Statistik
+- 187 TS+HTML-filer granskade
+- 96 Chart.js-instanser i rebotling/: 0 lackor (destroy, responsive, dark theme)
+- 22 Chart.js-instanser i statistik/bonus/operator-sidor: 0 lackor
+- Alla tabeller responsive
+- Alla lifecycle korrekt (destroy$, takeUntil, clearInterval/clearTimeout)
+- Svenska text overallt
+- 1 dark theme fix
+- Build: OK
+- Deploy: OK
+
 ## Session #390 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: 115 endpoints 0x500 0x404 0xslow + rebotling datakvalitet verifierad (API vs DB 0 diskrepanser) + admin CRUD auth OK + operatorsbonus 3 op verifierad + 10 controllers SQL-audit OK + deploy dev OK**
 
