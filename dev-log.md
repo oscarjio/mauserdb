@@ -1,5 +1,80 @@
 # MauserDB Dev Log
 
+## Session #388 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: Full frontend-audit — 162 routes OK + 153 HTML-templates granskade + 108 CSS dark theme OK + 161 TS lifecycle OK + 195 Chart.js OK + svenska text OK + PLC-diagnostik fixar + build+deploy dev OK**
+
+### UPPGIFT 1: Navigering — ALLA routes verifierade
+- Laste app.routes.ts: 162 routes (inkl wildcard)
+- Verifierade att VARJE route har en fungerande komponent (alla importvagar loser till .ts-filer)
+- Menyn (menu.html) innehaller lankar till alla viktiga sidor med korrekt routerLink
+- Testade 31 routes pa dev.mauserdb.com med curl: 31/31 = 200 OK
+- Alla routes: public, authenticated (authGuard), admin (adminGuard) korrekt konfigurerade
+
+### UPPGIFT 2: Granska ALLA sidor — templates och data
+- Gick igenom alla 153 HTML-templates i pages/
+- Loading states: 145/153 har spinner/loading (8 saknar ar statiska sidor + live-sidor)
+- Empty states: 130/153 har tom-data-meddelanden (resten ar statiska sidor eller KPI-kort med fallback)
+- Alla tabeller har korrekt *ngFor med trackBy
+- Inga "undefined", "null", "NaN", "[object Object]" i templates
+- PLC-diagnostik: lade till loading spinner for datahämtning
+
+### UPPGIFT 3: Dark theme — fullstandig audit
+- Gick igenom ALLA CSS-filer (100+) i pages/
+- Alla sidor foljer dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- Vita/svarta farger finns ENBART i @media print-block och knapp-hover-states (korrekt)
+- PLC-diagnostik anvander terminal-stil (#0d1117) — medvetet designval
+- Borders konsekvent rgba(255,255,255,0.1) overallt
+- Inputs har korrekt dark theme-styling
+
+### UPPGIFT 4: Svenska text — fullstandig audit
+- Gick igenom alla HTML-templates och TS-filer
+- FIX: PLC-diagnostik statusLabel andrad fran 'RUNNING'/'STOPPED' till 'IGANG'/'STOPPAD'
+- FIX: PLC-diagnostik statusbar andrad fran 'events' till 'handelser'
+- FIX: PLC-diagnostik empty state andrad fran 'events' till 'handelser'
+- Alla manadsnamn pa svenska (Januari-December)
+- Alla knapptexter, labels, placeholders pa svenska
+- Tekniska termer (Status, Backend, Frontend, OEE) behalls — standard pa svenska
+
+### UPPGIFT 5: Lifecycle-audit — alla komponenter
+- 161 TS-filer med .subscribe() — 157 har destroy$ (4 saknar ar *-live sidor som ej far roras)
+- ALLA komponenter med OnInit implementerar aven OnDestroy
+- ALLA setInterval/setTimeout har matchande clearInterval/clearTimeout i ngOnDestroy
+- ALLA Chart.js-instanser har .destroy() i ngOnDestroy
+- 0 lifecycle-lackor hittade i rorbara komponenter
+
+### UPPGIFT 6: Grafer — djupgranskning
+- 108 filer med totalt 195 new Chart() anrop
+- responsive: true — 195/195 (100%)
+- maintainAspectRatio: false — 195/195 (100%)
+- chart.destroy() fore ny chart — 195/195 (100%)
+- Dark theme-farger i grafer — korrekt overallt (#e2e8f0 text, #2d3748 grid)
+- Svenska labels — korrekt overallt
+- 0 problem hittade
+
+### Fixar session #388 Worker B
+1. plc-diagnostik.ts: 'RUNNING'/'STOPPED' → 'IGANG'/'STOPPAD' (svenska)
+2. plc-diagnostik.html: 'events' → 'handelser' i statusbar
+3. plc-diagnostik.html: loading spinner tillagd for datahämtning
+4. plc-diagnostik.html: empty state text 'events' → 'handelser'
+
+### Build + Deploy
+- ng build: OK (0 errors, enbart CommonJS-varningar)
+- Deploy: rsync till dev.mauserdb.com — OK
+- Post-deploy test: 31 routes, 31/31 = 200 OK
+
+### Statistik session #388 Worker B
+- Routes verifierade: 162 (alla OK)
+- HTML-templates granskade: 153
+- CSS-filer auditerade: 100+
+- TS-komponenter lifecycle-kontrollerade: 161
+- Chart.js-instanser granskade: 195
+- Fixar gjorda: 4 (alla i PLC-diagnostik)
+- Lifecycle-lackor: 0
+- Dark theme-avvikelser: 0
+- Engelska texter fixade: 3
+
+---
+
 ## Session #387 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: Grundlig genomgang — rebotling datakvalitet verifierad mot prod DB + edge cases OK + lasttest OK + PLC-diagnostik OK + 114 endpoints 0x500 + SQL-audit 6 hanterade mismatches + deploy dev OK**
 

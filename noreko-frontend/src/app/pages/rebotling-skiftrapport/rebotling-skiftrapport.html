@@ -321,11 +321,11 @@
                   </th>
                   <th scope="col" style="width:40px;"></th>
                   <th scope="col">Datum</th>
-                  <th scope="col">Produkter</th>
-                  <th scope="col">Operatörer</th>
-                  <th scope="col">Total IBC</th>
-                  <th scope="col">Snitt effektivitet</th>
-                  <th scope="col">Drifttid</th>
+                  <th scope="col" class="d-none d-md-table-cell">Produkter</th>
+                  <th scope="col" class="d-none d-md-table-cell">Operatörer</th>
+                  <th scope="col">IBC</th>
+                  <th scope="col">Eff.</th>
+                  <th scope="col" class="d-none d-lg-table-cell">Drifttid</th>
                   <th scope="col">Skift</th>
                 </tr>
               </thead>
@@ -344,11 +344,11 @@
                     <td>
                       <strong class="text-info">{{ day.date }}</strong>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                       <span *ngFor="let p of day.products; trackBy: trackByIndex" class="badge bg-info me-1 mb-1">{{ p }}</span>
                       <span *ngIf="day.products.length === 0" class="text-muted">–</span>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                       <span *ngFor="let op of day.operators; trackBy: trackByIndex" class="badge bg-secondary me-1 mb-1">{{ op }}</span>
                       <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
                     </td>
@@ -365,7 +365,7 @@
                       </span>
                       <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
                     </td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">
                       <span *ngIf="day.totalDrift > 0" class="text-success">{{ formatDrifttid(day.totalDrift) }}</span>
                       <span *ngIf="day.totalDrift === 0" class="text-muted">–</span>
                     </td>
@@ -390,15 +390,15 @@
                             <thead>
                               <tr>
                                 <th *ngIf="isAdmin" scope="col" width="40"></th>
-                                <th scope="col">Tid</th>
-                                <th scope="col">Produkt</th>
-                                <th scope="col">Operatör (kontrollstation)</th>
-                                <th scope="col">IBC OK</th>
-                                <th scope="col">IBC/h</th>
-                                <th scope="col">Effektivitet</th>
-                                <th scope="col">Drifttid</th>
-                                <th scope="col">Inlagd</th>
-                                <th scope="col">Åtgärder</th>
+                                <th scope="col" class="text-nowrap">Tid</th>
+                                <th scope="col" class="text-nowrap">Produkt</th>
+                                <th scope="col" class="text-nowrap">Operatör</th>
+                                <th scope="col" class="text-nowrap">IBC</th>
+                                <th scope="col" class="text-nowrap">IBC/h</th>
+                                <th scope="col" class="text-nowrap">Eff.</th>
+                                <th scope="col" class="text-nowrap">Drifttid</th>
+                                <th scope="col" class="text-nowrap">Inlagd</th>
+                                <th scope="col" class="text-nowrap"></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -407,7 +407,7 @@
                                   <td *ngIf="isAdmin">
                                     <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
                                   </td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <span class="text-muted small">
                                       {{ getShiftTimeRange(report).start }}
                                       <i class="fas fa-arrow-right mx-1" style="font-size:0.6rem;"></i>
@@ -417,13 +417,13 @@
                                   <td>
                                     <span class="badge bg-info">{{ report.product_name || '-' }}</span>
                                   </td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <span class="badge bg-secondary">{{ report.op2_name || '-' }}</span>
                                     <span *ngIf="report.op1_name" class="badge bg-dark ms-1" style="font-size:0.7rem;">{{ report.op1_name }}</span>
                                     <span *ngIf="report.op3_name" class="badge bg-dark ms-1" style="font-size:0.7rem;">{{ report.op3_name }}</span>
                                   </td>
                                   <td><strong>{{ report.ibc_ok }}</strong></td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <span *ngIf="getIbcPerHour(report) != null" class="text-warning fw-semibold">
                                       {{ getIbcPerHour(report) }}
                                     </span>
@@ -439,11 +439,11 @@
                                     </span>
                                     <span *ngIf="getEfficiency(report) == null" class="text-muted">–</span>
                                   </td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <span *ngIf="report.drifttid" class="text-success small">{{ report.drifttid }} min</span>
                                     <span *ngIf="!report.drifttid" class="text-muted">–</span>
                                   </td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <div class="form-check form-switch" *ngIf="isAdmin">
                                       <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1"
                                         (change)="toggleInlagd(report)" />
@@ -455,7 +455,7 @@
                                       {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
                                     </span>
                                   </td>
-                                  <td>
+                                  <td class="text-nowrap">
                                     <div class="btn-group btn-group-sm" role="group">
                                       <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
                                         [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
@@ -1673,7 +1673,7 @@
 
   <!-- ======== RÅDATA MODAL (per dag) ======== -->
   <div class="modal fade" id="rawDataDayModal" tabindex="-1" aria-labelledby="rawDataDayModalLabel" aria-hidden="true" *ngIf="showRawDataModal">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-scrollable">
       <div class="modal-content" style="background-color: #1a202c; color: #e2e8f0; border: 1px solid #2d3748;">
         <div class="modal-header" style="background-color: #2d3748; border-bottom: 1px solid #4a5568;">
           <h5 class="modal-title" id="rawDataDayModalLabel">
@@ -1696,9 +1696,9 @@
 
           <!-- Tabs -->
           <div *ngIf="!rawDataLoading && !rawDataError">
-            <ul class="nav nav-tabs mb-3" style="border-color: #4a5568;">
+            <ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto" style="border-color: #4a5568;">
               <li class="nav-item">
-                <button class="nav-link raw-data-tab"
+                <button class="nav-link raw-data-tab text-nowrap"
                         [class.active]="rawDataActiveTab === 'onoff'"
                         (click)="setRawDataTab('onoff')">
                   <i class="fas fa-power-off me-1"></i>On/Off
@@ -1706,7 +1706,7 @@
                 </button>
               </li>
               <li class="nav-item">
-                <button class="nav-link raw-data-tab"
+                <button class="nav-link raw-data-tab text-nowrap"
                         [class.active]="rawDataActiveTab === 'rast'"
                         (click)="setRawDataTab('rast')">
                   <i class="fas fa-coffee me-1"></i>Rast
@@ -1714,7 +1714,7 @@
                 </button>
               </li>
               <li class="nav-item">
-                <button class="nav-link raw-data-tab"
+                <button class="nav-link raw-data-tab text-nowrap"
                         [class.active]="rawDataActiveTab === 'driftstopp'"
                         (click)="setRawDataTab('driftstopp')">
                   <i class="fas fa-pause-circle me-1"></i>Driftstopp
@@ -1722,7 +1722,7 @@
                 </button>
               </li>
               <li class="nav-item">
-                <button class="nav-link raw-data-tab"
+                <button class="nav-link raw-data-tab text-nowrap"
                         [class.active]="rawDataActiveTab === 'skiftrapport'"
                         (click)="setRawDataTab('skiftrapport')">
                   <i class="fas fa-clipboard-list me-1"></i>Skiftrapport

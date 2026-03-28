@@ -82,6 +82,16 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Ensure expanded panel can scroll horizontally on mobile */
+.day-expanded-panel .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.day-expanded-panel .shift-detail-table {
+  min-width: 500px;
+}
+
 .table {
   background-color: #2d3748;
   color: #e2e8f0;
@@ -805,6 +815,47 @@
   border-color: #4a5568 #4a5568 #1a202c !important;
 }
 
+/* Rådata modal tables — prevent text stacking */
+#rawDataDayModal .table th,
+#rawDataDayModal .table td {
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+#rawDataDayModal .nav-tabs {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+#rawDataDayModal .nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #rawDataDayModal .modal-body {
+    padding: 0.75rem;
+  }
+
+  #rawDataDayModal .table th,
+  #rawDataDayModal .table td {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  #rawDataDayModal .nav-link {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  #rawDataDayModal .modal-header {
+    padding: 0.75rem;
+  }
+
+  #rawDataDayModal .modal-title {
+    font-size: 1rem;
+  }
+}
+
 /* ---- Mobilanpassning ---- */
 @media (max-width: 768px) {
   .container-fluid.mt-4 {
@@ -961,10 +1012,61 @@
   }
 
   .table-responsive {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
+  }
+
+  .table th, .table td {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.78rem;
   }
 
   .day-expanded-panel {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .day-summary-row td {
+    padding: 0.4rem 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  .shift-detail-table thead th,
+  .shift-detail-table tbody td {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  h1.h3 {
+    font-size: 1.1rem;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    gap: 0.5rem;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 .d-flex.gap-2 {
+    flex-wrap: wrap;
+    gap: 4px !important;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .badge {
+    font-size: 0.68rem !important;
+    padding: 0.2em 0.45em;
+  }
+
+  .summary-card, .kpi-card {
+    padding: 6px 8px;
+  }
+
+  .summary-value, .kpi-value {
+    font-size: 1rem;
+  }
+
+  .filter-bar {
+    gap: 0.5rem !important;
   }
 }

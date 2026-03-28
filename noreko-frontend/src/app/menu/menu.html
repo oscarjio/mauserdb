@@ -31,6 +31,7 @@
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus-admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus-admin"><i class="fas fa-sliders-h me-2"></i>Bonus Admin</a></li>
+          <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/plc-diagnostik"><i class="fas fa-terminal me-2"></i>PLC Diagnostik</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Alla funktioner</li>
           <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-muted"></i>Topplista (live)</a></li>
