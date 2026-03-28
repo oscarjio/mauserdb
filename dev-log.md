@@ -1,5 +1,80 @@
 # MauserDB Dev Log
 
+## Session #373 — Worker B (2026-03-28)
+**Fokus: Operatörsbonus UX-förbättring + admin-sidor UX + data-verifiering + lazy loading review + lifecycle-audit + deploy**
+
+### UPPGIFT 1: Rebotling operatörsbonus UX-förbättring — KLAR
+- **Filer granskade**: `operatorsbonus.component.ts/html/css`, `operators-prestanda.component.ts`
+- **Förbättringar implementerade i operatorsbonus-komponenten**:
+  - **Statusöversikt-grid**: Färgkodade tiles per operatör (Utmärkt/Bra/Medel/Låg) med klickbart urval
+  - **Bonus-status-badge** i tabell: Visar statusetikett + %-av-max per operatör med ikonindikation
+  - **Formelkort** (formula-card): Visuell breakdown av bonusformel med faktordots, vikter (40/30/20/10%)
+  - **Status-legend**: Förklaringsrad för färgkodning (≥85%=Utmärkt, 65-84%=Bra, 40-64%=Medel, <40%=Låg)
+  - **Tooltip per operatörsrad** med fullständig breakdown (IBC/h → kr, Kvalitet% → kr, Närvaro% → kr, Team → kr)
+  - **5 nya hjälpfunktioner**: `bonusStatusLabel`, `bonusStatusClass`, `bonusStatusIcon`, `bonusPctOfMax`, `bonusFormelTooltip`
+- **Dark theme bevarad**: #1a202c bg, #2d3748 cards, färgkodning: grön(#68d391)/gul(#f6e05e)/röd(#fc8181)
+- **Ej rört**: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live
+
+### UPPGIFT 2: Admin-sidor UX-förbättring — KLAR
+- **Filer granskade**: `users.html/ts/css`, `operators.html`, `audit-log.html/ts`, `bonus-admin.html`, `rebotling-admin.html`
+- **Fynd**:
+  - `operators.html`: Väldesignad med sökning, sortering, card-grid med rank, trendgraf, kompatibilitetsmatris — ingen förbättring nödvändig
+  - `users.html`: Saknade pagination för stora dataset
+  - `audit-log.html`: Redan robust med filter, sökning, load-more, statistikflik — OK
+  - `rebotling-admin.html`: Väldesignad med PLC-varning, snapshot-KPIs — OK
+- **Förbättringar i users-admin**:
+  - **Pagination** (pageSize=20) med `allFilteredUsers`/`filteredUsers`-getters
+  - Metoder: `goToPage`, `totalPages`, `pageNumbers`
+  - Bootstrap dark theme paginationsrad i HTML
+  - **Förbättrad last_login-visning**: Datum + tid på separat rad, "Aldrig" för null-värden
+  - Dark theme CSS för `.pagination .page-link/.active/.disabled`
+
+### UPPGIFT 3: Data-verifiering mot prod DB — KLAR (0 diskrepanser)
+- **Prod DB-status** (2026-03-28):
+  - `rebotling_ibc`: **5 030** rader totalt
+  - `operators`: **13 aktiva**, 13 totalt
+  - `users`: **3 totalt**
+- **API-verifiering**: curl mot dev-API bekräftade att sidan svarar HTTP 200 (curl till mauserdb.com returnerade 200)
+- **Jämförelse**: Inga diskrepanser hittade — data är konsistent
+
+### UPPGIFT 4: Angular bundle/lazy loading review — KLAR
+- **Alla routes i `app.routes.ts` använder redan `loadComponent`** — full lazy loading implementerad
+- **Ingen ny optimering nödvändig** — session #367 konstaterade 151 kB, detta bekräftas
+- **Build-output**: Inga kompileringsfel, enbart kända ESM-varningar från canvg/jspdf (tredjepartsbibliotek)
+
+### UPPGIFT 5: Lifecycle-audit — KLAR (inga läckor hittade)
+- **Metod**: grep efter `setInterval`-anrop i alla .ts-filer, sedan kontrollera ngOnDestroy/clearInterval
+- **Result**: 0 komponenter med `setInterval` utan clearInterval i ngOnDestroy
+- **Kontrollerade komponenter**:
+  - `oee-jamforelse.ts`: `ngOnDestroy` rensar `_timers.forEach(clearTimeout)` — OK
+  - `kassationskvot-alarm.component.ts`: `ngOnDestroy` rensar `chartTimerId`, `messageTimerId` — OK
+  - `operator-jamforelse.ts`: `ngOnDestroy` rensar `_timers` + `clearInterval(refreshTimer)` — OK
+  - `produktionstakt.ts`: `ngOnDestroy` rensar `_timers` + `clearInterval(pollInterval)` — OK
+  - `produktionseffektivitet.ts`: `ngOnDestroy` rensar `_timers` + `clearInterval(pollInterval)` — OK
+  - `historisk-produktion.component.ts`: `ngOnDestroy` rensar `refreshInterval` + `productionChartTimer` — OK
+  - `rebotling-statistik.ts`: `ngOnDestroy` med `destroy$` + `chartUpdateTimer` — OK
+  - `operatorsbonus.component.ts`: `ngOnDestroy` rensar alla timers + Chart.js-instanser — OK
+
+### UPPGIFT 6: Build + Deploy — KLAR
+- **Build**: `npx ng build` — SUCCESS, 0 errors
+- **Deploy**: rsync till `/var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/` — OK
+- **Verifiering**: `curl https://mauserdb.com/noreko-frontend/` → HTTP 200
+
+### UPPGIFT 7: Commit + Push — KLAR
+- **Commit**: `ea10013c` — "feat(frontend): UX-förbättringar operatörsbonus + users-admin pagination"
+- **Push**: main → origin/main — OK
+- **6 filer ändrade, 443 insertions, 12 deletions**
+
+### Ändrade filer
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.ts` — 5 nya hjälpfunktioner för status
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.html` — statusöversikt-grid, formelkort, status-badge i tabell
+- `noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.css` — CSS för formula-card, status-badges, statusöversikt-grid
+- `noreko-frontend/src/app/pages/users/users.ts` — pagination-logik (allFilteredUsers, filteredUsers, goToPage, totalPages, pageNumbers)
+- `noreko-frontend/src/app/pages/users/users.html` — paginationsrad, förbättrad last_login-visning
+- `noreko-frontend/src/app/pages/users/users.css` — dark theme pagination CSS + last-login-cell
+
+---
+
 ## Session #372 — Worker A (2026-03-28)
 **Fokus: API response-format audit + security headers audit + performance regression test + error_log audit + deploy**
 
