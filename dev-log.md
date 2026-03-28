@@ -1,5 +1,43 @@
 # MauserDB Dev Log
 
+## Session #384 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: endpoint-test 115 0x500 + SQL-audit 0 mismatches + dashboard verifierat + admin CRUD auth OK + error handling granskat OK + deploy dev OK**
+
+### UPPGIFT 1: Endpoint-test — alla 115 endpoints mot dev.mauserdb.com
+- Testade samtliga 115 endpoints med curl mot dev.mauserdb.com
+- Resultat: 115 endpoints, **0 st 500-fel**
+- 1 langsammare endpoint: morgonrapport (5.1s) — aggregerar fran manga tabeller, acceptabel for daglig rapport
+- Alla andra endpoints svarar inom rimlig tid
+
+### UPPGIFT 2: SQL-audit — alla PHP-controllers mot prod_db_schema.sql
+- Granskade alla 114 controllers mot prod_db_schema.sql (91 tabeller)
+- 6 tabellreferenser som ej finns i schema-dumpen: klassificeringslinje_ibc, rebotling_data, rebotling_stopporsak, saglinje_ibc, saglinje_onoff, skift_log
+- Alla 6 har korrekt tableExists()-guard eller try/catch-fallback — inga faktiska buggar
+- Resultat: **0 mismatches**
+
+### UPPGIFT 3: Dashboard backend — verifierat
+- Testade rebotling, vd-dashboard, produktionsdashboard, statistikdashboard, statistik-overblick, operator-dashboard
+- rebotling: HTTP 200, data matchar prod DB (0 IBC idag)
+- historik: HTTP 200, korrekt aggregering per manad
+- Auth-skyddade endpoints: korrekta 401/403-svar
+- Inga diskrepanser mellan API och DB
+
+### UPPGIFT 4: Admin CRUD — auth-skydd verifierat
+- admin, operators, bonusadmin: GET = 403 (admin-behörighet kravs), POST = 401 (session expired)
+- profile, shift-plan, shift-handover, news, feedback, stoppage, maintenance: POST = 401 med svensk feltext
+- CSRF-skydd aktivt via X-CSRF-Token header
+- Alla state-andrande ops (POST/PUT/DELETE) kraver session + CSRF-token
+
+### UPPGIFT 5: Error handling — granskat OK
+- Alla 114 controllers har try/catch-block
+- Alla felmeddelanden pa svenska
+- Inga engelska felmeddelanden hittades
+- sendError() anvands konsekvent med HTTP-statuskoder
+
+### UPPGIFT 6: Deploy till dev
+- rsync backend till dev.mauserdb.com (--exclude='db_config.php')
+- Post-deploy verifiering: status=200, rebotling=200 — OK
+
 ## Session #384 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: Dashboard/oversikt UX granskad OK + Driftstopp UX granskad OK + Historisk produktion granskad OK + Navigering+routing granskad OK + Error handling granskad OK + Lifecycle audit 180 komp 0 lackor + build OK + deploy dev OK**
 
