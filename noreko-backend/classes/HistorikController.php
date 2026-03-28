@@ -51,6 +51,8 @@ class HistorikController {
             // Månadsaggregering i två steg:
             // Steg 1: Daglig aggregering (MAX av kumulativa fält)
             // Steg 2: Månadsaggregering (SUM/AVG/MAX på dagvärden)
+            // Korrekt aggregering: MAX(ibc_ok) per skifträknare per dag, sedan SUM per dag.
+            // rebotling_ibc har kumulativa räkneverk — varje skifträknare har sin egen räknare.
             $sql = "
                 SELECT
                     ar,
@@ -62,14 +64,21 @@ class HistorikController {
                     MAX(daglig_ibc) AS basta_dag_ibc
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
-                        YEAR(datum) AS ar,
-                        MONTH(datum) AS manad,
-                        MAX(ibc_ok) AS daglig_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
-                      AND ibc_ok > 0
-                    GROUP BY DATE(datum)
+                        dag,
+                        YEAR(dag) AS ar,
+                        MONTH(dag) AS manad,
+                        SUM(shift_ibc) AS daglig_ibc
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            MAX(ibc_ok) AS shift_ibc
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
+                          AND ibc_ok > 0
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift
+                    GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, manad
                 ORDER BY ar, manad
@@ -287,6 +296,7 @@ class HistorikController {
      */
     private function getYearly() {
         try {
+            // Korrekt aggregering: MAX(ibc_ok) per skifträknare per dag, sedan SUM per dag.
             $sql = "
                 SELECT
                     ar,
@@ -294,14 +304,21 @@ class HistorikController {
                     SUM(daglig_ibc) AS ibc_vecka
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
-                        YEAR(datum) AS ar,
-                        WEEK(datum, 1) AS vecka,
-                        MAX(ibc_ok) AS daglig_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 3 YEAR)
-                      AND ibc_ok > 0
-                    GROUP BY DATE(datum)
+                        dag,
+                        YEAR(dag) AS ar,
+                        WEEK(dag, 1) AS vecka,
+                        SUM(shift_ibc) AS daglig_ibc
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            MAX(ibc_ok) AS shift_ibc
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 3 YEAR)
+                          AND ibc_ok > 0
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift
+                    GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, vecka
                 ORDER BY ar, vecka

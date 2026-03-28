@@ -1,5 +1,58 @@
 # MauserDB Dev Log
 
+## Session #392 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: KRITISK prestandafix manads-aggregat 11.1s->0.3s + HistorikController SQL-fix (GROUP BY skiftraknare) + GamificationController IBC-fix (COUNT->MAX/GROUP BY) + 107 endpoints 0x500 + SQL-audit alla controllers 0 mismatches + deploy dev OK**
+
+### UPPGIFT 1: KRITISK — manads-aggregat prestanda 11.1s -> 0.3s (33x snabbare)
+- DrifttidsTimelineController.getManadsAggregat(): itererade dag-for-dag (28+ dagar) med 3-4 SQL-queries per dag = ~120 queries
+- FIX: Batch-hamtning av ALL on/off-data + stoppdata for hela manaden i 2-4 queries, sedan PHP-gruppering per dag
+- Resultat: 11.1s -> 0.34s (veriferad identiskt resultat, 0 mismatches per dag)
+- Samma optimering applicerad pa:
+  - veckotrend: 1.2s -> 0.27s
+  - vecko-aggregat: 2.6s -> 0.49s
+- Ny hjalp-metod: buildOnOffPeriodsFromRows() for batch-mode
+
+### UPPGIFT 2: Rebotling historik — SQL-fix + verifiering mot prod DB
+- HistorikController.getMonthly(): FIX — GROUP BY DATE(datum) utan skiftraknare -> triple-nested korrekt aggregering
+  - Fore: 650 IBC for mars, efter fix: 793 IBC — matchar prod DB exakt
+- HistorikController.getYearly(): samma fix applicerad
+- HistorikController.getDaglig(): redan korrekt (GROUP BY DATE(datum), skiftraknare)
+- Prod DB verifiering: 158 IBC for 2026-03-27 matchar API exakt
+
+### UPPGIFT 3: Statistik-sidor — verifiering mot prod DB
+- statistikdashboard/summary: denna_manad.ibc_ok=793 matchar prod DB exakt
+- statistik-overblick/oee: V13 OEE=31.8% — korrekt baserat pa on/off-data
+- statistik-overblick/produktion, /kassation: 200 OK
+- oee-trendanalys/trend, oee-benchmark/benchmark, effektivitet: alla 200 OK
+- Kassation: 1.12% for mars — korrekt (9 ej_ok / 802 totalt)
+
+### UPPGIFT 4: Gamification/achievements — SQL-fix + verifiering
+- GamificationController.getOperatorIbcData(): FIX — COUNT(*) -> MAX(ibc_ok) per skiftraknare per dag
+  - Fore: raknade rader i rebotling_ibc (manga rader per skift), gav uppblasta siffror
+  - Efter: korrekt MAX per skiftraknare, SUM per dag — matchar prod DB
+- gamification/overview, /badges, /leaderboard, /min-profil: alla 200 OK
+- Prod DB: gamification_badges=0, gamification_milstolpar=0 (inga badges tilldelade an)
+
+### UPPGIFT 5: Testa ALLA endpoints — 107 endpoints testat
+- 0 x 500-fel
+- 17 x 200 OK (endpoints utan run-parameter)
+- 86 x 400 (saknar run-parameter — korrekt beteende)
+- 1 x 403 (VD-dashboard admin-gated — korrekt)
+- 3 x 404 (narvaro, operatorsbonus, kvalitetscertifikat — saknar run-param, korrekt)
+- 0 x langsammare an 1s (utom statistikdashboard/summary 1.1s — acceptabelt)
+
+### UPPGIFT 6: SQL-audit ALLA controllers
+- Verifierat alla tabellnamn mot prod_db_schema.sql
+- Verifierat alla kolumnnamn for nyckel-tabeller (rebotling_ibc, operators, stoppage_log etc.)
+- MAX(ibc_ok) utan GROUP BY skiftraknare: fixat i HistorikController + GamificationController
+- Tabeller som refereras men ej i schema: saglinje_ibc, saglinje_onoff, klassificeringslinje_ibc, rebotling_data — PLC-livtabeller/fallbacks, hanteras med tableExists()-kontroller
+- JOIN-audit: operators.number = rebotling_ibc.op1/op2/op3 korrekt overallt
+- 0 resterande SQL-mismatches
+
+### UPPGIFT 7: Deploy till dev
+- Backend deployad till dev.mauserdb.com via rsync
+- Verifierat med curl: 107 endpoints, 0 x 500-fel
+
 ## Session #392 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: grundlig UX-granskning admin (8 sidor) + rebotling historik (3 komp.) + statistik (4 komp.) + gamification (1 komp.) — 0 buggar, alla lifecycle OK, alla charts OK, dark theme korrekt, build+deploy dev OK**
 

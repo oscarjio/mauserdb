@@ -602,16 +602,45 @@ class DrifttidsTimelineController {
      * GET ?action=drifttids-timeline&run=veckotrend&days=7
      * Drifttid/stopptid/utnyttjandegrad per dag, senaste N dagar (default 7).
      * For linjediagram med trender.
+     *
+     * Optimerad: hämtar ALL on/off-data i en batch-query istället för dag-för-dag.
      */
     private function getVeckotrend(): void {
         $days = max(1, min(90, intval($_GET['days'] ?? 7)));
 
         try {
+            $firstDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+            $lastDate  = date('Y-m-d');
+            $rangeStart = $firstDate . ' 00:00:00';
+            $rangeEnd   = (new \DateTime($lastDate))->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+
+            // Batch-hämta all on/off-data
+            $allOnOff = [];
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT datum, running
+                        FROM rebotling_onoff
+                        WHERE datum >= :range_start AND datum < :range_end
+                        ORDER BY datum ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $dayKey = substr($row['datum'], 0, 10);
+                        $allOnOff[$dayKey][] = $row;
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getVeckotrend (batch onoff): ' . $e->getMessage());
+            }
+
             $result = [];
             for ($i = $days - 1; $i >= 0; $i--) {
                 $date = date('Y-m-d', strtotime("-{$i} days"));
 
-                $onOffPeriods = $this->getOnOffPeriods($date);
+                $onOffPeriods = $this->buildOnOffPeriodsFromRows($date, $allOnOff[$date] ?? []);
                 $segments     = $this->buildSegments($date, $onOffPeriods, []);
 
                 $skiftStartTs  = strtotime($date . ' ' . self::SKIFT_START);
@@ -660,6 +689,8 @@ class DrifttidsTimelineController {
      * GET ?action=drifttids-timeline&run=vecko-aggregat&date=YYYY-MM-DD
      * Aggregerar driftstopp per vecka. date anger vilken vecka som ska visas.
      * Returnerar daglig breakdown + veckosumma.
+     *
+     * Optimerad: hämtar ALL on/off- och stoppdata för hela veckan i batch-queries.
      */
     private function getVeckoAggregat(): void {
         $date = $this->getDate();
@@ -673,6 +704,101 @@ class DrifttidsTimelineController {
             $veckoNr = (int)$dt->format('W');
             $ar      = (int)$dt->format('o');
 
+            $rangeStart = $weekStart->format('Y-m-d') . ' 00:00:00';
+            $rangeEnd   = (clone $weekEnd)->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+
+            // Batch-hämta all on/off-data för veckan
+            $allOnOff = [];
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT datum, running
+                        FROM rebotling_onoff
+                        WHERE datum >= :range_start AND datum < :range_end
+                        ORDER BY datum ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $dayKey = substr($row['datum'], 0, 10);
+                        $allOnOff[$dayKey][] = $row;
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getVeckoAggregat (batch onoff): ' . $e->getMessage());
+            }
+
+            // Batch-hämta all stoppdata för veckan
+            $allStops = [];
+
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'stoppage_log'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT sl.start_time, sl.end_time, sl.duration_minutes,
+                               sr.name AS reason, sl.user_id AS operator_name
+                        FROM stoppage_log sl
+                        LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
+                        WHERE sl.start_time >= :range_start AND sl.start_time < :range_end
+                          AND sl.duration_minutes > 0
+                        ORDER BY sl.start_time ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                        $dayKey = substr($row['start_time'], 0, 10);
+                        $startTs = strtotime($row['start_time']);
+                        $endTs = $row['end_time'] ? strtotime($row['end_time']) : ($startTs + (int)$row['duration_minutes'] * 60);
+                        $allStops[$dayKey][] = [
+                            'start_ts' => $startTs, 'end_ts' => $endTs,
+                            'reason' => $row['reason'] ?? null, 'operator' => $row['operator_name'] ?? null,
+                            'source' => 'stoppage_log',
+                        ];
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getVeckoAggregat (batch stoppage_log): ' . $e->getMessage());
+            }
+
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT sr.start_time, sr.end_time, sk.namn AS orsak, sr.kommentar, sr.user_id
+                        FROM stopporsak_registreringar sr
+                        LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
+                        WHERE sr.start_time >= :range_start AND sr.start_time < :range_end
+                          AND sr.end_time IS NOT NULL
+                          AND TIMESTAMPDIFF(MINUTE, sr.start_time, sr.end_time) > 0
+                        ORDER BY sr.start_time ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                        $dayKey = substr($row['start_time'], 0, 10);
+                        $startTs = strtotime($row['start_time']);
+                        $endTs = strtotime($row['end_time']);
+                        if ($endTs > $startTs) {
+                            $reason = $row['orsak'] ?? null;
+                            if ($row['kommentar']) {
+                                $reason = $reason ? ($reason . ': ' . $row['kommentar']) : $row['kommentar'];
+                            }
+                            $allStops[$dayKey][] = [
+                                'start_ts' => $startTs, 'end_ts' => $endTs,
+                                'reason' => $reason, 'operator' => $row['user_id'] ? 'Op #' . $row['user_id'] : null,
+                                'source' => 'stopporsak_registreringar',
+                            ];
+                        }
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getVeckoAggregat (batch stopporsak_reg): ' . $e->getMessage());
+            }
+
+            foreach ($allStops as &$dayStops) {
+                usort($dayStops, fn($a, $b) => $a['start_ts'] <=> $b['start_ts']);
+            }
+            unset($dayStops);
+
             $result = [];
             $totalRunning  = 0;
             $totalStopped  = 0;
@@ -681,8 +807,8 @@ class DrifttidsTimelineController {
             for ($i = 0; $i < 7; $i++) {
                 $dagDate = (clone $weekStart)->modify("+{$i} days")->format('Y-m-d');
 
-                $onOffPeriods = $this->getOnOffPeriods($dagDate);
-                $stopReasons  = $this->getStopReasons($dagDate);
+                $onOffPeriods = $this->buildOnOffPeriodsFromRows($dagDate, $allOnOff[$dagDate] ?? []);
+                $stopReasons  = $allStops[$dagDate] ?? [];
                 $segments     = $this->buildSegments($dagDate, $onOffPeriods, $stopReasons);
 
                 $skiftStartTs  = strtotime($dagDate . ' ' . self::SKIFT_START);
@@ -749,6 +875,9 @@ class DrifttidsTimelineController {
      * GET ?action=drifttids-timeline&run=manads-aggregat&date=YYYY-MM-DD
      * Aggregerar driftstopp per manad. date anger vilken manad som ska visas.
      * Returnerar daglig breakdown + manadssumma.
+     *
+     * Optimerad: hämtar ALL on/off- och stoppdata för hela månaden i batch-queries
+     * istället för dag-för-dag (reducerar ~120 SQL-queries till 2-4).
      */
     private function getManadsAggregat(): void {
         $date = $this->getDate();
@@ -760,6 +889,126 @@ class DrifttidsTimelineController {
             $antalDagar  = (int)$manadSlut->format('d');
             $manadNamn   = $dt->format('Y-m');
 
+            // Bestäm sista dag att inkludera (hoppa över framtida datum)
+            $today = date('Y-m-d');
+            $lastDate = min($manadSlut->format('Y-m-d'), $today);
+
+            $rangeStart = $manadStart->format('Y-m-d') . ' 00:00:00';
+            $rangeEnd   = (new \DateTime($lastDate))->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+
+            // --- Batch-hämta ALL on/off-data för hela månaden i EN query ---
+            $allOnOff = []; // [date => [{datum, running}]]
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT datum, running
+                        FROM rebotling_onoff
+                        WHERE datum >= :range_start AND datum < :range_end
+                        ORDER BY datum ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $dayKey = substr($row['datum'], 0, 10); // YYYY-MM-DD
+                        $allOnOff[$dayKey][] = $row;
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getManadsAggregat (batch onoff): ' . $e->getMessage());
+            }
+
+            // --- Batch-hämta ALL stoppdata för hela månaden ---
+            $allStops = []; // [date => [{start_ts, end_ts, reason, operator, source}]]
+
+            // Från stoppage_log
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'stoppage_log'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT
+                            sl.start_time,
+                            sl.end_time,
+                            sl.duration_minutes,
+                            sr.name AS reason,
+                            sl.user_id AS operator_name
+                        FROM stoppage_log sl
+                        LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
+                        WHERE sl.start_time >= :range_start AND sl.start_time < :range_end
+                          AND sl.duration_minutes > 0
+                        ORDER BY sl.start_time ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $dayKey = substr($row['start_time'], 0, 10);
+                        $startTs = strtotime($row['start_time']);
+                        $endTs   = $row['end_time']
+                            ? strtotime($row['end_time'])
+                            : ($startTs + (int)$row['duration_minutes'] * 60);
+                        $allStops[$dayKey][] = [
+                            'start_ts' => $startTs,
+                            'end_ts'   => $endTs,
+                            'reason'   => $row['reason'] ?? null,
+                            'operator' => $row['operator_name'] ?? null,
+                            'source'   => 'stoppage_log',
+                        ];
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getManadsAggregat (batch stoppage_log): ' . $e->getMessage());
+            }
+
+            // Från stopporsak_registreringar
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmt = $this->pdo->prepare("
+                        SELECT
+                            sr.start_time,
+                            sr.end_time,
+                            sk.namn AS orsak,
+                            sr.kommentar,
+                            sr.user_id
+                        FROM stopporsak_registreringar sr
+                        LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
+                        WHERE sr.start_time >= :range_start AND sr.start_time < :range_end
+                          AND sr.end_time IS NOT NULL
+                          AND TIMESTAMPDIFF(MINUTE, sr.start_time, sr.end_time) > 0
+                        ORDER BY sr.start_time ASC
+                    ");
+                    $stmt->execute([':range_start' => $rangeStart, ':range_end' => $rangeEnd]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    foreach ($rows as $row) {
+                        $dayKey = substr($row['start_time'], 0, 10);
+                        $startTs = strtotime($row['start_time']);
+                        $endTs   = strtotime($row['end_time']);
+                        if ($endTs > $startTs) {
+                            $reason = $row['orsak'] ?? null;
+                            if ($row['kommentar']) {
+                                $reason = $reason ? ($reason . ': ' . $row['kommentar']) : $row['kommentar'];
+                            }
+                            $allStops[$dayKey][] = [
+                                'start_ts' => $startTs,
+                                'end_ts'   => $endTs,
+                                'reason'   => $reason,
+                                'operator' => $row['user_id'] ? 'Op #' . $row['user_id'] : null,
+                                'source'   => 'stopporsak_registreringar',
+                            ];
+                        }
+                    }
+                }
+            } catch (\PDOException $e) {
+                error_log('DrifttidsTimelineController::getManadsAggregat (batch stopporsak_reg): ' . $e->getMessage());
+            }
+
+            // Sortera stoppdata per dag
+            foreach ($allStops as &$dayStops) {
+                usort($dayStops, fn($a, $b) => $a['start_ts'] <=> $b['start_ts']);
+            }
+            unset($dayStops);
+
+            // --- Bearbeta dag-för-dag med pre-hämtad data ---
             $result = [];
             $totalRunning    = 0;
             $totalStopped    = 0;
@@ -770,10 +1019,11 @@ class DrifttidsTimelineController {
                 $dagDate = (clone $manadStart)->modify("+{$i} days")->format('Y-m-d');
 
                 // Hoppa over framtida datum
-                if ($dagDate > date('Y-m-d')) break;
+                if ($dagDate > $today) break;
 
-                $onOffPeriods = $this->getOnOffPeriods($dagDate);
-                $stopReasons  = $this->getStopReasons($dagDate);
+                // Bygg on/off-perioder från batchad data
+                $onOffPeriods = $this->buildOnOffPeriodsFromRows($dagDate, $allOnOff[$dagDate] ?? []);
+                $stopReasons  = $allStops[$dagDate] ?? [];
                 $segments     = $this->buildSegments($dagDate, $onOffPeriods, $stopReasons);
 
                 $skiftStartTs  = strtotime($dagDate . ' ' . self::SKIFT_START);
@@ -829,5 +1079,46 @@ class DrifttidsTimelineController {
             error_log('DrifttidsTimelineController::getManadsAggregat: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna manadsaggregat', 500);
         }
+    }
+
+    /**
+     * Bygg on/off-perioder från redan hämtade rader (för batch-mode).
+     * Samma logik som getOnOffPeriods() men tar emot rows direkt.
+     */
+    private function buildOnOffPeriodsFromRows(string $date, array $rows): array {
+        $periods = [];
+        if (empty($rows)) return $periods;
+
+        $dayStart   = $date . ' 00:00:00';
+        $nextDay    = (new \DateTime($date))->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+        $dayStartTs = strtotime($dayStart);
+        $dayEndTs   = strtotime($nextDay);
+
+        $lastOnTs = null;
+        foreach ($rows as $row) {
+            $ts = strtotime($row['datum']);
+            if ((int)$row['running'] === 1) {
+                if ($lastOnTs === null) {
+                    $lastOnTs = max($ts, $dayStartTs);
+                }
+            } else {
+                if ($lastOnTs !== null) {
+                    $stopTs = min($ts, $dayEndTs);
+                    if ($stopTs > $lastOnTs) {
+                        $periods[] = ['start_ts' => $lastOnTs, 'stop_ts' => $stopTs];
+                    }
+                    $lastOnTs = null;
+                }
+            }
+        }
+        // Om linjen fortfarande kor vid dagens slut
+        if ($lastOnTs !== null) {
+            $stopTs = min(time(), $dayEndTs);
+            if ($stopTs > $lastOnTs) {
+                $periods[] = ['start_ts' => $lastOnTs, 'stop_ts' => $stopTs];
+            }
+        }
+
+        return $periods;
     }
 }

@@ -114,28 +114,54 @@ class GamificationController {
 
     /**
      * Hamta IBC-data per operator for en period.
+     *
+     * Korrekt aggregering: MAX(ibc_ok) per skiftraknare per dag (kumulativa rakneverk),
+     * sedan tilldelning till alla operatorer (op1/op2/op3) som var aktiva pa skiftet.
+     * IBC delas till alla 3 ops pa ett skift (varje op far hela skiftets IBC — standard for team-KPI).
      */
     private function getOperatorIbcData(string $from, string $to): array {
         $operators = [];
 
-        // rebotling_ibc uses op1/op2/op3, not user_id
-        // Aggregate IBC counts per operator from all 3 op columns
+        // Steg 1: Aggregera IBC per skift (MAX per skiftraknare per dag)
+        // Steg 2: Tilldela IBC till alla operatorer (op1/op2/op3) pa skiftet
         try {
             $sql = "
                 SELECT op_id, COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                       SUM(cnt) AS total_ibc
+                       SUM(shift_ibc) AS total_ibc,
+                       SUM(shift_ok) AS ok_ibc
                 FROM (
-                    SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                    GROUP BY op1
+                    SELECT op1 AS op_id, shift_ibc, shift_ok FROM (
+                        SELECT skiftraknare, DATE(datum) AS dag,
+                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) AS shift_ok,
+                               MIN(op1) AS op1
+                        FROM rebotling_ibc
+                        WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                          AND ibc_ok > 0
+                        GROUP BY skiftraknare, DATE(datum)
+                    ) s WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                    GROUP BY op2
+                    SELECT op2 AS op_id, shift_ibc, shift_ok FROM (
+                        SELECT skiftraknare, DATE(datum) AS dag,
+                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) AS shift_ok,
+                               MIN(op2) AS op2
+                        FROM rebotling_ibc
+                        WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
+                          AND ibc_ok > 0
+                        GROUP BY skiftraknare, DATE(datum)
+                    ) s WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                    GROUP BY op3
+                    SELECT op3 AS op_id, shift_ibc, shift_ok FROM (
+                        SELECT skiftraknare, DATE(datum) AS dag,
+                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) AS shift_ok,
+                               MIN(op3) AS op3
+                        FROM rebotling_ibc
+                        WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
+                          AND ibc_ok > 0
+                        GROUP BY skiftraknare, DATE(datum)
+                    ) s WHERE op3 IS NOT NULL AND op3 > 0
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
                 GROUP BY op_id, o.name
@@ -153,7 +179,7 @@ class GamificationController {
                     'user_id'       => $uid,
                     'operator_namn' => $row['operator_namn'],
                     'total_ibc'     => (int)$row['total_ibc'],
-                    'ok_ibc'        => (int)$row['total_ibc'], // all counted as ok here
+                    'ok_ibc'        => (int)$row['ok_ibc'],
                 ];
             }
         } catch (\PDOException $e) {
