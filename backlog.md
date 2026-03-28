@@ -11,18 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #372):
-- [x] API response-format audit — 115/116 endpoints standardformat (Worker A)
-- [x] Security headers audit — alla 9 headers redan implementerade (Worker A)
-- [x] Performance-regression test — 115 endpoints 0x500 alla <1s (Worker A)
-- [x] Rebotling graf-forbattringar — 7 charts forbattrade tooltips+labels (Worker B)
-- [x] Error monitoring — GlobalErrorHandler + interceptor forbattrad (Worker B)
-- [x] Data-verifiering — 394 cykler 0 diskrepanser (Worker B)
-- [x] APP_INITIALIZER deprecation fixad — migrerad till provideAppInitializer (Lead)
+### Klart (session #373):
+- [x] Input-validering audit — 44 controllers alla OK (Worker A)
+- [x] Cache-strategi review — 10 controllers OK (Worker A)
+- [x] Full endpoint-test 114 endpoints 0x500 + SQL-audit 1 fix (Worker A)
+- [x] Rebotling operatorsbonus UX — fargkodning+formelkort+tooltips (Worker B)
+- [x] Admin-sidor UX — users-admin pagination (Worker B)
+- [x] Angular bundle/lazy loading — redan optimerad (Worker B)
+- [x] Lifecycle-audit — 0 leaks (Worker B)
 
-### Nasta (session #373):
-- [ ] Input-validering audit — granska alla POST/PUT endpoints for edge cases
-- [ ] Rebotling operatorsbonus UX — tydligare visning av bonusberakning
-- [ ] Admin-sidor UX-forbattring — battre tabeller, pagination, sokfunktion
-- [ ] Cache-strategi review — verifiera TTL och invalidering
-- [ ] Angular bundle-optimering — lazy loading review
+### Nasta (session #374):
+- [ ] Error recovery UX — vad ser anvandaren vid nere/timeout?
+- [ ] Rebotling historik-vy forbattring — filtrera per operator/period
+- [ ] API rate limiting review — skydd mot overbelastning
+- [ ] Accessibility-audit — tangentbordsnavigering, aria-labels
+- [ ] PHP 8.x compatibility check — deprecated functions

@@ -67,7 +67,8 @@ Session #368: KRITISK buggfix livestats COUNT→SUM(MAX) + month-compare 600ms�
 Session #369: Livestats ibc_today fix (overcounting) + summaryTotalIbc buggfix + SQL-audit 0 mismatches + 171 endpoints 0x500 + produktion_procent EJ kumulativ (bekraftad) + 0 DB diskrepanser + deploy dev OK.
 Session #370: PHP dead code cleanup + error handling OK + 115 endpoints 0x500 alla <1s + driftstopp-timeline + effektivitet cap 150% + lifecycle audit 0 leaks + WCAG AA OK + deploy dev OK.
 Session #371: idx_datum migrationsfil + admin CRUD 0x500 + 115 endpoints alla <0.5s + 118 controllers 0 buggar + skiftrapport OK + 69 komponenter 0 leaks + data 0 diskrepanser + deploy dev OK.
-Session #372: (pagaende) API response-format audit + security headers + performance regression + rebotling graf-forbattringar + error monitoring + data-verifiering.
+Session #372: API format audit 115/116 + security headers 9/9 OK + performance 0x500 <1s + rebotling grafer 7 charts + error monitoring + data 394 cykler 0 diskrepanser + deploy dev OK.
+Session #373: Input-validering 44 OK + cache 10 OK + 114 endpoints 0x500 + maintenance_log migration + operatorsbonus UX + admin pagination + lifecycle 0 leaks + 5030 cykler 0 diskrepanser + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -80,24 +81,24 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #373):
-- Input-validering audit — granska POST/PUT endpoints for edge cases
-- Rebotling operatorsbonus UX — tydligare bonusberakning
-- Admin-sidor UX-forbattring — tabeller, pagination, sok
-- Cache-strategi review — TTL och invalidering
-- Angular bundle-optimering — lazy loading review
+### Nasta (session #374):
+- Error recovery UX — vad ser anvandaren vid nere/timeout?
+- Rebotling historik-vy forbattring — filtrera per operator/period
+- API rate limiting review — skydd mot overbelastning
+- Accessibility — tangentbordsnavigering, aria-labels
+- PHP 8.x compatibility check
 
 ## BESLUTSDAGBOK (senaste 3)
 
 ### 2026-03-27 — Session #371 (klar)
-Worker A: Redundant index idx_datum migrationsfil skapad. Admin CRUD 9 endpoints x4 metoder 0x500. 115 endpoints 0x500 alla <0.5s. PHP controller-audit 118 filer 0 buggar 0 SQLi. Deploy dev OK.
-Worker B: Uncommitted rebotling-statistik.ts REVERTERAD (tog bort 150% cap — bryter designbeslut). Skiftrapport UX OK. 69 komponenter lifecycle 0 leaks. Data-verifiering 0 diskrepanser. Build + deploy dev OK.
-
-### 2026-03-27 — Session #370 (klar)
-Worker A: PHP dead code audit (1 dead method borttagen). Error handling review OK. 115 endpoints 0x500 alla <1s. SQL optimization: covering indexes OK, 1 redundant index noterad (idx_datum). Deploy dev OK.
-Worker B: Driftstopp-timeline + effektivitet cap 150%. Icke-rebotling UX 6 sidor OK. Lifecycle audit 0 memory leaks. WCAG AA OK. Build + deploy dev OK.
+Worker A: idx_datum migration + admin CRUD 0x500 + 115 endpoints <0.5s + 118 controllers 0 buggar. Deploy dev OK.
+Worker B: Rebotling-statistik revert (150% cap). Skiftrapport UX. 69 komponenter 0 leaks. 0 diskrepanser. Deploy dev OK.
 
 ### 2026-03-28 — Session #372 (klar)
-Worker A: API response-format audit 115/116 standard (AndonController undantag — frontend mappar direkt). Security headers alla 9 redan OK. Performance 115 endpoints 0x500 alla <1s. error_log audit 1161 anrop 0 kanslig data. Deploy dev OK.
-Worker B: Rebotling graf-forbattringar 7 charts (tooltips+labels+enheter). Error monitoring forbattrad (GlobalErrorHandler+interceptor). Data-verifiering 394 cykler 0 diskrepanser. UX walkthrough 20+ endpoints OK. Build+deploy dev OK.
-Lead: APP_INITIALIZER deprecation fixad — migrerad till provideAppInitializer.
+Worker A: API format audit 115/116 standard. Security headers 9/9 OK. Performance 0x500 <1s. error_log 0 kanslig data. Deploy dev OK.
+Worker B: Rebotling grafer 7 charts forbattrade. Error monitoring forbattrad. 394 cykler 0 diskrepanser. Deploy dev OK.
+Lead: APP_INITIALIZER→provideAppInitializer.
+
+### 2026-03-28 — Session #373 (klar)
+Worker A: Input-validering 44 controllers OK. Cache-strategi 10 controllers OK. 114 endpoints 0x500 <1s. SQL-audit: rebotling_maintenance_log tabell skapad (migration). Deploy dev OK.
+Worker B: Operatorsbonus UX forbattrad (fargkodning+formelkort+tooltips). Users-admin pagination. Lazy loading redan OK. Lifecycle 0 leaks. 5030 cykler 0 diskrepanser. Deploy dev OK.
