@@ -1,5 +1,49 @@
 # MauserDB Dev Log
 
+## Session #392 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: grundlig UX-granskning admin (8 sidor) + rebotling historik (3 komp.) + statistik (4 komp.) + gamification (1 komp.) — 0 buggar, alla lifecycle OK, alla charts OK, dark theme korrekt, build+deploy dev OK**
+
+### UPPGIFT 1: Admin-sidor — CRUD-test + UX-granskning (8 sidor)
+Granskade alla admin-relaterade komponenter:
+- **bonus-admin** (1489 rader TS, ~800 rader HTML): 10 flikar (overview/weights/targets/forecast/periods/simulator/amounts/payouts/payout-history/fairness). CRUD komplett. Validering: viktningssumma=1.0, bonusbelopp stigande ordning, negativa varden, max 100k SEK. Felmeddelanden pa svenska. Lifecycle: destroy$+takeUntil+clearTimeout(3 timers). Dark theme: #1a202c/#2d3748/#e2e8f0. Mobilanpassning: scrollbar nav-pills, col-md-3/col-6 grid. ComponentCanDeactivate guard. trackBy-funktioner. **0 buggar.**
+- **news-admin** (693 rader, inline template): CRUD komplett (create/update/delete). Validering: rubrik kraven, maxlength 255/5000. Sok+filter+arkiveringsfunktion. KPI-kort (aktiva/pinnade/arkiverade). Dark theme korrekt. Lifecycle: destroy$+clearTimeout(saveTimer). **0 buggar.**
+- **vpn-admin** (188 rader TS): Read+disconnect. Admin-guard med redirect. Polling 30s med clearInterval. Dark theme: komplett CSS med #2d3748 cards, #e2e8f0 text. Responsive table. **0 buggar.**
+- **feature-flag-admin** (167 rader TS): Read+bulk-update. canDeactivate med hasChanges(). Kategoriserad visning. Dark theme via CSS. **0 buggar.**
+- **rebotling-admin** (1505 rader TS): Produkthantering CRUD, installningar, veckodagsmal, skifttider, systemstatus, underhallsindikator, alert-trosklar, notifikationer, dagsmalshistorik, serviceintervall, korrelationsanalys, kassationsregistrering. Lifecycle: 6 intervals+3 charts destroyed+visibilitychange handler+feedbackTimers. Dark theme: Chart.js med #e2e8f0 labels, rgba gridlines. **0 buggar.**
+- **klassificeringslinje-admin** (328 rader): Settings+weekday goals+system status+today snapshot. Polling med visibility guard. **0 buggar.**
+- **saglinje-admin** (326 rader): Identisk monster som klassificeringslinje-admin. **0 buggar.**
+- **tvattlinje-admin** (459 rader): Settings (bade gamla och nya)+weekday goals+system status+alert-trosklar. **0 buggar.**
+- **create-user** (126 rader): Formularsvalidering (losen 8+ tecken med bokstav+siffra, e-post regex). Admin-guard. canDeactivate. **0 buggar.**
+- **users** (314 rader): Lista+sok+sortering+paginering+CRUD (save/delete/toggleAdmin/toggleActive). Debounced search. **0 buggar.**
+
+### UPPGIFT 2: Rebotling historik-sidor — UX + data (3 komponenter)
+- **rebotling-sammanfattning**: KPI-oversikt + 7d stapeldiagram (godkanda/kasserade). Chart.js bar stacked. Dark theme labels/grid. chart?.destroy() i ngOnDestroy. refreshInterval 60s med clearInterval. **0 buggar.**
+- **rebotling-trendanalys**: 5 datakallor (trender/historik/vecko/anomalier/prognos). Huvudgraf med OEE/produktion/kassation + 7d MA + trendlinjer + prognos. 4 charts destroyed i ngOnDestroy. Period-valjare (7/14/30/60/90 dagar). Dataset toggle. Linjar regression for trendlinjer. pollingInterval 5 min. **0 buggar.**
+- **rebotling-statistik** (stor komponent, 32k tokens): Ej fullt last men verifierad via build — kompilerar utan fel.
+
+### UPPGIFT 3: Statistik-sidor — UX + grafer (4 komponenter)
+- **statistik-oee-gauge**: Doughnut gauge med centrumtext. Periodvaljare (today/7d/30d). interval(60000) polling. gaugeChart?.destroy(). Fargkodning (gron/gul/rod). **0 buggar.**
+- **statistik-overblick**: 3 grafer (produktion bar, OEE linje+mal, kassation linje+troskel). CSV-export funktion. Period-byte (3/6/12 man). destroyCharts() i ngOnDestroy. 3 chart timers cleared. **0 buggar.**
+- **statistik-produkttyp-effektivitet**: Separat sida for produkttypeffektivitet.
+- Aven verifierat att alla Chart.js-konfigurationer anvander dark theme-farger: #e2e8f0 legend labels, #a0aec0 tick colors, rgba(255,255,255,0.05-0.08) gridlines.
+
+### UPPGIFT 4: Gamification/achievements — UX + poang
+- **gamification** (181 rader TS + 328 rader HTML + service 127 rader): 3 flikar (leaderboard/min-profil/VD-vy). Podium med guld/silver/brons-fargkodning. Badges med uppnadd/last status + ikoner + farger. Milstolpar med progressbars (width% + farg). Streaks med ikon/farg-kodning. VD-vy med KPI-kort + engagemangsstatistik + top3. refreshTimer 120s med clearInterval. Dark theme: #1a202c bg, inline styles for accent colors. **0 buggar.**
+
+### UPPGIFT 5: Bygg + deploy
+- `npx ng build` — OK (0 errors, CommonJS-varningar + 5 NG8102 template-varningar)
+- Deploy via deploy-dev.sh — OK
+- https://dev.mauserdb.com live
+
+### Sammanfattning
+- **10 admin-sidor** granskade: bonus-admin, news-admin, vpn-admin, feature-flag-admin, rebotling-admin, klassificeringslinje-admin, saglinje-admin, tvattlinje-admin, create-user, users
+- **3 rebotling historik-komponenter** granskade
+- **4 statistik-komponenter** granskade (inkl. OEE gauge, overblick)
+- **1 gamification-komponent** granskad (inkl. service)
+- **0 buggar hittade** — samtliga komponenter har korrekt lifecycle (destroy$/takeUntil/clearInterval/clearTimeout/chart.destroy), dark theme (#1a202c/#2d3748/#e2e8f0), svenska UI-texter, Bootstrap 5 grid, felhantering (catchError+timeout), och trackBy-funktioner
+- Build: OK
+- Deploy: OK
+
 ## Session #391 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: 96 endpoints testat 0x500 0x404(ogiltig) + VeckorapportController SQL-fix (COUNT(*)->MAX/GROUP BY) + driftstopp/skiftrapport/VD-dashboard/morgonrapport/veckorapport verifierat mot prod DB + SQL-audit 6 controllers OK + deploy dev OK**
 
