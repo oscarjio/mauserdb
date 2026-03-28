@@ -1,5 +1,57 @@
 # MauserDB Dev Log
 
+## Session #385 — Worker B (Frontend UX + Data) (2026-03-28)
+**Fokus: mobilanpassning 11 sidor fixade + statistik grafer OK + operatorsbonus UX OK + skiftrapport UX OK + gamification UX OK + lifecycle-audit 180+ komp 0 lackor + build OK + deploy dev OK**
+
+### UPPGIFT 1: Statistik — grafer granskade for korrekt data + adaptiv granularitet
+- Granskade statistik-dashboard: adaptiv granularitet implementerad (dag <=30d, vecka >=90d) — korrekt
+- Granskade historisk-produktion: granularitet per dag/vecka/manad fran backend — korrekt
+- Granskade alla Pareto-diagram (stopporsaker, kassationsanalys, kassationsorsak-statistik, kvalitetsanalys): kumulativa linjer korrekt for Pareto
+- Alla grafer: responsive: true + maintainAspectRatio: false — 0 problem
+- Operatorsbonus: 4 grafer (bar, radar, doughnut, trend) — data korrekt, dark theme OK
+
+### UPPGIFT 2: Mobilanpassning — 11 sidor fixade
+- operatorsbonus: drilldown-raden col-3 -> col-6 col-md-3 (bonus-detaljer synliga pa mobil)
+- drifttids-timeline: col-lg-6 -> col-12 col-lg-6 (2 sektioner, orsaksfordelning + veckotrend)
+- produktionsflode: col-3 -> col-6 col-md-3 (sammanfattning under diagram)
+- kvalitets-trendbrott: col-md-3 -> col-6 col-md-3 (8 KPI-kort, bade ovre + undre block)
+- produktions-sla: col-md-3 -> col-6 col-md-3 (malformular med 4 falt)
+- rebotling-prognos: col-md-3 -> col-6 col-md-3, col-md-4 -> col-12 col-md-4 (indata + taktkort)
+- bonus-dashboard: col-md-4/5/7 -> col-12 col-md-4/5/7 (KPI-bars + chart-layout)
+- vpn-admin: col-md-4 -> col-12 col-md-4 (statistikkort)
+- skiftrapport-export: col-md-4 -> col-12 col-md-4 (trendkort)
+- skiftjamforelse: col-md-4 -> col-12 col-md-4 (best practices)
+- saglinje-admin: col-md-3 -> col-6 col-md-3 (installningsformular)
+- news: col-md-4 -> col-12 col-md-4 (quick links)
+
+### UPPGIFT 3: Operatorsbonus UX — granskad OK
+- 4 grafer (stacked bar, radar, doughnut simulator, trendlinje) — alla korrekt data
+- Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text — korrekt
+- Svenska texter: alla labels, tooltips, felmeddelanden pa svenska
+- Lifecycle: OnInit/OnDestroy, destroy$, takeUntil, 4 chart timers + refreshInterval rensas korrekt
+
+### UPPGIFT 4: Skiftrapport UX — granskad OK
+- KPI-presentation korrekt med sorterad tabell, skiftjamforelse, operator-KPI
+- Lifecycle: destroy$, 6 timers rensas (updateInterval, successTimerId, searchTimer, trendBuildTimer, effBuildTimer, scrollRestoreTimer)
+- Charts rensas korrekt i ngOnDestroy
+
+### UPPGIFT 5: Gamification UX — granskad OK
+- Topplista med podium (guld/silver/brons) + fullstandig ranking — korrekt
+- Min profil: badges, milstolpar, svit — korrekt
+- VD-vy: KPI-kort, engagemangsstatistik, top 3 — korrekt
+- Dark theme: alla fargkoder matchar designspec
+- Svenska texter: Spelifiering, Topplista, Min profil, Utmarkelser, Milstolpar
+
+### UPPGIFT 6: Lifecycle audit — 180+ komponenter, 0 lackor
+- Alla komponenter implementerar OnInit + OnDestroy
+- Alla har destroy$ Subject + takeUntil pa alla subscribe()
+- Alla setInterval/setTimeout rensas i ngOnDestroy
+- Alla Chart-instanser destroy():as korrekt
+
+### UPPGIFT 7: Build + Deploy
+- `npx ng build` — OK (inga error, bara CommonJS-warnings)
+- Deploy: rsync till mauserdb-dev — OK
+
 ## Session #385 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: operatorsbonus end-to-end verifierad + skiftrapport OK + gamification OK + endpoint-test 92 0x500 + SQL-audit 0 mismatches + deploy dev OK**
 

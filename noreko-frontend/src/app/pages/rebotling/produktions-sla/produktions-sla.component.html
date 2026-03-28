@@ -84,7 +84,7 @@
     </div>
     <div class="card-body">
       <div class="row g-3">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label">Måltyp</label>
           <select aria-label="Välj måltyp" class="form-select form-select-sm bg-dark text-light border-secondary"
                   [(ngModel)]="goalForm.mal_typ">
@@ -92,17 +92,17 @@
             <option value="veckovist">Veckovist</option>
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label" for="slaTargetIbc">IBC-mål</label>
           <input type="number" id="slaTargetIbc" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.target_ibc" min="1" required max="99999">
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label" for="slaTargetKassation">Max kassation %</label>
           <input type="number" id="slaTargetKassation" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.target_kassation_pct" min="0" max="100" step="0.5">
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <label class="form-label" for="slaGiltigFrom">Giltigt från</label>
           <input type="date" id="slaGiltigFrom" class="form-control form-control-sm bg-dark text-light border-secondary"
                  [(ngModel)]="goalForm.giltig_from">

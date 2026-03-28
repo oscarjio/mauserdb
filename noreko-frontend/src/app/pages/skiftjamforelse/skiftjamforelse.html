@@ -217,7 +217,7 @@
       Best Practices — styrkor per skift
     </h3>
     <div class="row g-3">
-      <div class="col-md-4" *ngFor="let bp of bestPractices?.practices; trackBy: trackByIndex">
+      <div class="col-12 col-md-4" *ngFor="let bp of bestPractices?.practices; trackBy: trackByIndex">
         <div class="bp-card" [style.border-left-color]="getSkiftColor(bp.skift)">
           <div class="bp-header">
             <i [class]="getSkiftIcon(bp.skift)" class="me-2" [style.color]="getSkiftColor(bp.skift)"></i>

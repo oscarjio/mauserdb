@@ -207,7 +207,7 @@
 
         <!-- KPI progress bars -->
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="kpi-bar">
               <div class="d-flex justify-content-between mb-1">
                 <span>Effektivitet</span>
@@ -218,7 +218,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="kpi-bar">
               <div class="d-flex justify-content-between mb-1">
                 <span>Produktivitet</span>
@@ -229,7 +229,7 @@
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="kpi-bar">
               <div class="d-flex justify-content-between mb-1">
                 <span>Kvalitet</span>
@@ -244,13 +244,13 @@
 
         <!-- Charts -->
         <div class="row g-3">
-          <div class="col-md-5">
+          <div class="col-12 col-md-5">
             <div class="chart-container">
               <h6 class="text-center mb-2">KPI Radar</h6>
               <canvas id="kpiRadarChart"></canvas>
             </div>
           </div>
-          <div class="col-md-7">
+          <div class="col-12 col-md-7">
             <div class="chart-container">
               <h6 class="text-center mb-2">KPI Trend</h6>
               <canvas id="trendChart"></canvas>
@@ -498,7 +498,7 @@
       <!-- Hall of Fame kategorier -->
       <div *ngIf="!hallOfFameLoading && hallOfFame" class="row g-3">
         <!-- IBC/h -->
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="hof-category">
             <div class="hof-category-title">
               <i class="fas fa-bolt me-2 text-info"></i>Snabbast (IBC/h)
@@ -524,7 +524,7 @@
         </div>
 
         <!-- Kvalitet% -->
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="hof-category">
             <div class="hof-category-title">
               <i class="fas fa-check-double me-2 text-success"></i>Precisast (Kvalitet%)
@@ -548,7 +548,7 @@
         </div>
 
         <!-- Mest aktiv -->
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="hof-category">
             <div class="hof-category-title">
               <i class="fas fa-calendar-check me-2 text-purple"></i>Mest aktiv (skift)

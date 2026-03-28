@@ -13,14 +13,14 @@
 
   <!-- KPI-kort -->
   <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-label">Snitt kassation</div>
         <div class="kpi-value">{{ overview.snitt_kassation }}%</div>
         <div class="kpi-sub">Period: {{ overview.period }} dagar</div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-label">Antal trendbrott</div>
         <div class="kpi-value" [class.text-danger]="overview.antal_avvikelser > 0">
@@ -29,7 +29,7 @@
         <div class="kpi-sub">Avvikelser &gt; 2&sigma;</div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-label">Senaste trendbrott</div>
         <div class="kpi-value" *ngIf="overview.senaste_avvikelse">
@@ -41,7 +41,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="kpi-card">
         <div class="kpi-label">Aktuell trend</div>
         <div class="kpi-value">
@@ -163,25 +163,25 @@
     <div *ngIf="dailyDetail && !loadingDetail">
       <!-- Sammanfattning -->
       <div class="row g-3 mb-3">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Kassation</div>
             <div class="detail-kpi-value">{{ dailyDetail.kassation_pct }}%</div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Total IBC</div>
             <div class="detail-kpi-value">{{ dailyDetail.total }}</div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Kasserade</div>
             <div class="detail-kpi-value text-danger">{{ dailyDetail.ej_ok }}</div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
           <div class="detail-kpi">
             <div class="detail-kpi-label">Avvikelse</div>
             <div class="detail-kpi-value" [class.text-danger]="dailyDetail.avvikelse" [class.text-success]="!dailyDetail.avvikelse">

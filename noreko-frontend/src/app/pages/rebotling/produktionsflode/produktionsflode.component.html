@@ -199,25 +199,25 @@
       <!-- Sammanfattning under diagram -->
       <div class="flow-summary mt-3" *ngIf="flodeData.summary">
         <div class="row g-2 text-center">
-          <div class="col-3">
+          <div class="col-6 col-md-3">
             <div class="flow-stat">
               <span class="flow-stat-val" style="color:#4299e1;">{{ flodeData.summary.total }}</span>
               <span class="flow-stat-label">Totalt in</span>
             </div>
           </div>
-          <div class="col-3">
+          <div class="col-6 col-md-3">
             <div class="flow-stat">
               <span class="flow-stat-val" style="color:#48bb78;">{{ flodeData.summary.godkanda }}</span>
               <span class="flow-stat-label">Godkända ut</span>
             </div>
           </div>
-          <div class="col-3">
+          <div class="col-6 col-md-3">
             <div class="flow-stat">
               <span class="flow-stat-val" style="color:#fc8181;">{{ flodeData.summary.kasserade }}</span>
               <span class="flow-stat-label">Kasserade</span>
             </div>
           </div>
-          <div class="col-3">
+          <div class="col-6 col-md-3">
             <div class="flow-stat">
               <span class="flow-stat-val" style="color:#9f7aea;">{{ formatPct(flodeData.summary.genomstromning) }}</span>
               <span class="flow-stat-label">Genomstromning</span>

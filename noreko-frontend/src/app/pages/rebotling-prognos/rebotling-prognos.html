@@ -6,19 +6,19 @@
 
   <!-- Indata-panel -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Mål-IBC (antal)</label>
         <input type="number" class="form-control bg-dark text-light border-secondary" [(ngModel)]="targetIbc" min="1" (change)="calculate()" max="99999">
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Startdatum</label>
         <input type="date" class="form-control bg-dark text-light border-secondary" [(ngModel)]="startDate" (change)="calculate()">
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Produktionstakt (baserat på)</label>
         <div class="btn-group w-100">
@@ -28,7 +28,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
       <div class="card p-3" style="background:#2d3748;border:none">
         <label class="form-label text-muted small mb-1">Arbetsdagar/vecka</label>
         <select aria-label="Välj arbetsdagar/vecka" class="form-select bg-dark text-light border-secondary" [(ngModel)]="workdaysPerWeek" (change)="calculate()">
@@ -56,19 +56,19 @@
 
   <!-- Taktinformation -->
   <div *ngIf="productionRate && !loading" class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card p-3 text-center" style="background:#2d3748;border:1px solid #4a5568">
         <div class="text-muted small mb-1">Snitt 7 dagar</div>
         <div class="fw-bold fs-4" style="color:#63b3ed">{{ productionRate.avg_ibc_per_day_7d | number:'1.0-0' }} IBC/dag</div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card p-3 text-center" [style.border]="selectedPeriod==='30d' ? '2px solid #68d391' : '1px solid #4a5568'" style="background:#2d3748">
         <div class="text-muted small mb-1">Snitt 30 dagar <span *ngIf="selectedPeriod==='30d'" class="badge bg-success ms-1">Vald</span></div>
         <div class="fw-bold fs-4" style="color:#68d391">{{ productionRate.avg_ibc_per_day_30d | number:'1.0-0' }} IBC/dag</div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card p-3 text-center" style="background:#2d3748;border:1px solid #4a5568">
         <div class="text-muted small mb-1">Snitt 90 dagar</div>
         <div class="fw-bold fs-4" style="color:#f6ad55">{{ productionRate.avg_ibc_per_day_90d | number:'1.0-0' }} IBC/dag</div>
