@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-27 (session #370)*
+*Senast uppdaterad: 2026-03-28 (session #372)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -61,23 +61,13 @@ Session #105-#170: BUGGJAKT — ~2000+ buggar. Se lead-memory-archive.md.
 Session #190-#244: BUGGJAKT — ~1100+ buggar. Se lead-memory-archive.md.
 Session #245-#255: BUGGJAKT — 27 buggar. Kodbasen nara rent-status. Se lead-memory-archive.md.
 Session #256-#354: BUGGJAKT — Se dev-log.md for detaljer.
-Session #355: SQL-schema granskning + performance audit + WCAG.
-Session #356: E2E regressionstest + HTTP interceptor audit + caching + lazy loading + Chart.js granskning + auth-flode.
-Session #357: Rebotling-djupgranskning — 0 SQL-mismatches, produktion_procent OK (inte kumulativ), 3 schema-fixes, heatmap CSS-fix, E2E 50/50 PASS.
-Session #358: Icke-rebotling genomgang — 100+ endpoints 0x500, 80+ komponenter 0 buggar, 2 indexes, produktion_procent cap OK, E2E 50/50 PASS.
-Session #359: Performance-optimering oee-trendanalys 988ms→124ms + alarm-historik 931ms→130ms (filcache+2 index). CRUD-integrationstest OK. 109 endpoints 0x500. Data-kvalitet DB vs API 0 diskrepanser. 118 grafer OK. E2E 50/50 PASS.
-Session #360: EXPLAIN-audit 3 covering indexes + error-handling 3 fixes + stresstest <600ms + security audit 0 SQLi/XSS + API-docs 117 endpoints + 115 endpoints 0x500 + E2E 115/115 PASS.
-Session #361: Cache review 13 filer OK + DB persistent connections + PHP error_log (kraver root) + 130+128 endpoints 0x500 + bundle 8.8MB/72K main + admin guards OK + 50+ grafer OK + 0 DB diskrepanser + E2E 128/128 PASS.
-Session #362: API benchmark 103 endpoints 0x500 alla <500ms + 32 dead code filer borttagna + ErrorLogger centraliserad + 27 WCAG heading-fixes + 23 chart.destroy() fixes + backup OK + 0 DB diskrepanser.
-Session #363: 156 endpoints 0x500 + rebotling backend SQL OK + error handling 1186 loggar OK + rebotling-statistik IBC/h+effektivitet+bar chart granskad + CSV export fixad + UX alla sidor OK + DB 946 vs 1058 diskrepans noterad.
-Session #364: API vs DB diskrepans FIXAD (skiftraknare IS NOT NULL filter borttaget 220 stallen 44 filer) + PHP parse error FIXAD (RebotlingAnalyticsController.php) + slow endpoints optimerade (today-snapshot, all-lines-status) + 55 endpoints 0x500 + 94 sidor mobile/UX granskade 0 problem + $rows7 dead code borttagen + deploy dev OK.
-Session #365: Diskrepans-fix verifierad mot prod DB OK + benchmarking 926ms->237ms + month-compare 984ms->627ms (CTE-optimering) + getOtherLineStatus dead code borttagen + covering index + 97 endpoints 0x500 + UX alla sidor OK + produktion_procent EJ kumulativ (bekraftad) + rebotling-statistik djupgranskning + VD Dashboard OK + error handling audit + lifecycle-audit alla Chart-komponenter + build + deploy dev OK.
-Session #366: 129 endpoints 0x500 alla <2s + PHP controller-audit 112 filer 79k rader 0 problem + integration test API vs DB perfekt match + error/404-hantering OK + data-korrekthet 0 diskrepanser + Angular kodgranskning 92 services OK + 115 chart-filer OK + build 0 fel + deploy dev OK.
+Session #355-#366: Se lead-memory-archive.md.
 Session #367: month-compare 1032ms→540ms + operatorsbonus RATTVIS + admin CRUD OK + caching 6 controllers OK + bundle 151 kB (redan optimerad) + 111 endpoints 0x500 + $cutoff dead code borttagen + deploy dev OK.
 Session #368: KRITISK buggfix livestats COUNT→SUM(MAX) + month-compare 600ms→100ms (covering index+cache) + cache-invalidering 9 admin-endpoints + heatmap UX (gradient+klickbar+summor) + 145 endpoints 0x500 + 0 DB diskrepanser + deploy dev OK.
 Session #369: Livestats ibc_today fix (overcounting) + summaryTotalIbc buggfix + SQL-audit 0 mismatches + 171 endpoints 0x500 + produktion_procent EJ kumulativ (bekraftad) + 0 DB diskrepanser + deploy dev OK.
 Session #370: PHP dead code cleanup + error handling OK + 115 endpoints 0x500 alla <1s + driftstopp-timeline + effektivitet cap 150% + lifecycle audit 0 leaks + WCAG AA OK + deploy dev OK.
 Session #371: idx_datum migrationsfil + admin CRUD 0x500 + 115 endpoints alla <0.5s + 118 controllers 0 buggar + skiftrapport OK + 69 komponenter 0 leaks + data 0 diskrepanser + deploy dev OK.
+Session #372: (pagaende) API response-format audit + security headers + performance regression + rebotling graf-forbattringar + error monitoring + data-verifiering.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -90,12 +80,12 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #372):
-- API response-format standardisering
-- Performance-regression test
-- Rebotling graf-forbattringar
-- Security headers audit
-- Error monitoring
+### Nasta (session #373):
+- Input-validering audit — granska POST/PUT endpoints for edge cases
+- Rebotling operatorsbonus UX — tydligare bonusberakning
+- Admin-sidor UX-forbattring — tabeller, pagination, sok
+- Cache-strategi review — TTL och invalidering
+- Angular bundle-optimering — lazy loading review
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -107,6 +97,7 @@ Worker B: Uncommitted rebotling-statistik.ts REVERTERAD (tog bort 150% cap — b
 Worker A: PHP dead code audit (1 dead method borttagen). Error handling review OK. 115 endpoints 0x500 alla <1s. SQL optimization: covering indexes OK, 1 redundant index noterad (idx_datum). Deploy dev OK.
 Worker B: Driftstopp-timeline + effektivitet cap 150%. Icke-rebotling UX 6 sidor OK. Lifecycle audit 0 memory leaks. WCAG AA OK. Build + deploy dev OK.
 
-### 2026-03-27 — Session #369 (klar)
-Worker A: Livestats ibc_today fix (SUM MAX→MAX ibc_count, overcounting fixad). SQL-audit 90+ tabeller 0 mismatches. 171 endpoints 0x500 alla <2s. API vs prod DB 0 diskrepanser. Deploy dev OK.
-Worker B: summaryTotalIbc buggfix (totalt→ibc_ok). produktion_procent bekraftad EJ kumulativ (4:e gangen). UX djupgranskning alla rebotling-sidor OK. Data-verifiering 0 diskrepanser. Build + deploy dev OK.
+### 2026-03-28 — Session #372 (klar)
+Worker A: API response-format audit 115/116 standard (AndonController undantag — frontend mappar direkt). Security headers alla 9 redan OK. Performance 115 endpoints 0x500 alla <1s. error_log audit 1161 anrop 0 kanslig data. Deploy dev OK.
+Worker B: Rebotling graf-forbattringar 7 charts (tooltips+labels+enheter). Error monitoring forbattrad (GlobalErrorHandler+interceptor). Data-verifiering 394 cykler 0 diskrepanser. UX walkthrough 20+ endpoints OK. Build+deploy dev OK.
+Lead: APP_INITIALIZER deprecation fixad — migrerad till provideAppInitializer.

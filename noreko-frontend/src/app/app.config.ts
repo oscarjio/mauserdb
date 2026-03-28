@@ -1,4 +1,4 @@
-import { ApplicationConfig, APP_INITIALIZER, ErrorHandler, Injectable, Injector, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, inject, Injectable, Injector, LOCALE_ID, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withPreloading, PreloadAllModules, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
@@ -102,10 +102,12 @@ class GlobalErrorHandler implements ErrorHandler {
   }
 }
 
-// APP_INITIALIZER returnerar en Promise som Angular VÄNTAR på innan routing startar.
+// initApp returnerar en Promise som Angular VÄNTAR på innan routing startar.
 // Laddar auth-status och feature flags parallellt.
-function initApp(auth: AuthService, ff: FeatureFlagService) {
-  return () => Promise.all([
+function initApp() {
+  const auth = inject(AuthService);
+  const ff = inject(FeatureFlagService);
+  return Promise.all([
     firstValueFrom(auth.fetchStatus()),
     ff.loadFlags()
   ]);
@@ -117,7 +119,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withPreloading(PreloadAllModules), withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })),
     provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]), withFetch()),
-    { provide: APP_INITIALIZER, useFactory: initApp, deps: [AuthService, FeatureFlagService], multi: true },
+    provideAppInitializer(initApp),
     { provide: LOCALE_ID, useValue: 'sv' },
     { provide: ErrorHandler, useClass: GlobalErrorHandler }
   ]
