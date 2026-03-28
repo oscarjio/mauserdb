@@ -200,19 +200,19 @@
             <!-- Edit mode -->
             <div *ngIf="editingWeights[produktId]">
               <div class="mb-3">
-                <label class="form-label">Effektivitet</label>
-                <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].eff" (ngModelChange)="formDirty = true">
+                <label [for]="'weight-eff-' + produktId" class="form-label">Effektivitet</label>
+                <input [id]="'weight-eff-' + produktId" type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
+                       [(ngModel)]="weightsForm[produktId].eff" (ngModelChange)="formDirty = true" [name]="'eff-' + produktId">
               </div>
               <div class="mb-3">
-                <label class="form-label">Produktivitet</label>
-                <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].prod" (ngModelChange)="formDirty = true">
+                <label [for]="'weight-prod-' + produktId" class="form-label">Produktivitet</label>
+                <input [id]="'weight-prod-' + produktId" type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
+                       [(ngModel)]="weightsForm[produktId].prod" (ngModelChange)="formDirty = true" [name]="'prod-' + produktId">
               </div>
               <div class="mb-3">
-                <label class="form-label">Kvalitet</label>
-                <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
-                       [(ngModel)]="weightsForm[produktId].qual" (ngModelChange)="formDirty = true">
+                <label [for]="'weight-qual-' + produktId" class="form-label">Kvalitet</label>
+                <input [id]="'weight-qual-' + produktId" type="number" class="form-control form-control-sm" step="0.05" min="0" max="1"
+                       [(ngModel)]="weightsForm[produktId].qual" (ngModelChange)="formDirty = true" [name]="'qual-' + produktId">
               </div>
               <div class="mb-3">
                 <small [class]="getWeightsSum(produktId) === 1 ? 'text-success' : 'text-danger'">
@@ -247,28 +247,28 @@
         <div class="row g-4">
           <div class="col-12 col-md-4">
             <div class="target-card">
-              <h6>FoodGrade</h6>
+              <label for="target-foodgrade" class="h6 d-block">FoodGrade</label>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.foodgrade }} <small>IBC/h</small></div>
-              <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.foodgrade" (ngModelChange)="formDirty = true">
+              <input *ngIf="editingTargets" id="target-foodgrade" type="number" class="form-control" step="0.5" min="1" max="100"
+                     [(ngModel)]="targetsForm.foodgrade" (ngModelChange)="formDirty = true" name="target-foodgrade">
               <small class="text-muted">Högre kvalitetskrav, lägre volym</small>
             </div>
           </div>
           <div class="col-12 col-md-4">
             <div class="target-card">
-              <h6>NonUN</h6>
+              <label for="target-nonun" class="h6 d-block">NonUN</label>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.nonun }} <small>IBC/h</small></div>
-              <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.nonun" (ngModelChange)="formDirty = true">
+              <input *ngIf="editingTargets" id="target-nonun" type="number" class="form-control" step="0.5" min="1" max="100"
+                     [(ngModel)]="targetsForm.nonun" (ngModelChange)="formDirty = true" name="target-nonun">
               <small class="text-muted">Volymproduktion</small>
             </div>
           </div>
           <div class="col-12 col-md-4">
             <div class="target-card">
-              <h6>Tvättade IBC</h6>
+              <label for="target-tvattade" class="h6 d-block">Tvättade IBC</label>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.tvattade }} <small>IBC/h</small></div>
-              <input *ngIf="editingTargets" type="number" class="form-control" step="0.5" min="1" max="100"
-                     [(ngModel)]="targetsForm.tvattade" (ngModelChange)="formDirty = true">
+              <input *ngIf="editingTargets" id="target-tvattade" type="number" class="form-control" step="0.5" min="1" max="100"
+                     [(ngModel)]="targetsForm.tvattade" (ngModelChange)="formDirty = true" name="target-tvattade">
               <small class="text-muted">Mellannivå</small>
             </div>
           </div>
@@ -319,9 +319,9 @@
         <div *ngIf="editingWeeklyGoal">
           <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
-              <label class="form-label">Veckobonusmål (poäng)</label>
-              <input type="number" class="form-control" step="1" min="1" max="200"
-                     [(ngModel)]="weeklyGoalForm">
+              <label for="weekly-goal-input" class="form-label">Veckobonusmål (poäng)</label>
+              <input id="weekly-goal-input" type="number" class="form-control" step="1" min="1" max="200"
+                     [(ngModel)]="weeklyGoalForm" name="weekly-goal">
               <small class="text-muted">1–200 poäng. Tier-gränser: 70, 80, 90, 95</small>
             </div>
             <div class="col-12 col-md-4">

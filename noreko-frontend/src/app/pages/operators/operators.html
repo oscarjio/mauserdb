@@ -37,16 +37,16 @@
     <div class="ops-card-body">
       <form #formRef="ngForm" (ngSubmit)="createOperator()" class="row g-2 align-items-end">
         <div class="col-md-4">
-          <label class="form-label">Namn</label>
-          <input type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
+          <label for="add-name" class="form-label">Namn</label>
+          <input id="add-name" type="text" class="form-control form-control-sm" [(ngModel)]="addForm.name"
                  name="add-name" placeholder="Operatörens namn" required maxlength="100"
                  #addNameField="ngModel"
                  [class.is-invalid]="addNameField.invalid && addNameField.touched" />
           <div class="invalid-feedback" *ngIf="addNameField.invalid && addNameField.touched">Namn krävs</div>
         </div>
         <div class="col-md-2">
-          <label class="form-label">PLC-nummer</label>
-          <input class="form-control form-control-sm" [(ngModel)]="addForm.number"
+          <label for="add-number" class="form-label">PLC-nummer</label>
+          <input id="add-number" class="form-control form-control-sm" [(ngModel)]="addForm.number"
                  name="add-number" placeholder="T.ex. 101" type="number" min="1" required max="99999"
                  #addNumberField="ngModel"
                  [class.is-invalid]="addNumberField.invalid && addNumberField.touched" />
@@ -81,17 +81,17 @@
         </div>
         <div class="sort-controls">
           <span class="sort-label">Sortera:</span>
-          <button class="sort-btn" [class.active]="sortField === 'ibc_per_hour'" (click)="sortBy('ibc_per_hour')">
-            IBC/h <i class="fas" [class]="'fas ' + sortIcon('ibc_per_hour')"></i>
+          <button class="sort-btn" [class.active]="sortField === 'ibc_per_hour'" (click)="sortBy('ibc_per_hour')" [attr.aria-label]="'Sortera efter IBC per timme ' + (sortField === 'ibc_per_hour' ? (sortDir === 'asc' ? 'stigande' : 'fallande') : '')">
+            IBC/h <i class="fas" [class]="'fas ' + sortIcon('ibc_per_hour')" aria-hidden="true"></i>
           </button>
-          <button class="sort-btn" [class.active]="sortField === 'avg_quality'" (click)="sortBy('avg_quality')">
-            Kvalitet <i class="fas" [class]="'fas ' + sortIcon('avg_quality')"></i>
+          <button class="sort-btn" [class.active]="sortField === 'avg_quality'" (click)="sortBy('avg_quality')" [attr.aria-label]="'Sortera efter kvalitet ' + (sortField === 'avg_quality' ? (sortDir === 'asc' ? 'stigande' : 'fallande') : '')">
+            Kvalitet <i class="fas" [class]="'fas ' + sortIcon('avg_quality')" aria-hidden="true"></i>
           </button>
-          <button class="sort-btn" [class.active]="sortField === 'shifts'" (click)="sortBy('shifts')">
-            Skift <i class="fas" [class]="'fas ' + sortIcon('shifts')"></i>
+          <button class="sort-btn" [class.active]="sortField === 'shifts'" (click)="sortBy('shifts')" [attr.aria-label]="'Sortera efter skift ' + (sortField === 'shifts' ? (sortDir === 'asc' ? 'stigande' : 'fallande') : '')">
+            Skift <i class="fas" [class]="'fas ' + sortIcon('shifts')" aria-hidden="true"></i>
           </button>
-          <button class="sort-btn" [class.active]="sortField === 'name'" (click)="sortBy('name')">
-            Namn <i class="fas" [class]="'fas ' + sortIcon('name')"></i>
+          <button class="sort-btn" [class.active]="sortField === 'name'" (click)="sortBy('name')" [attr.aria-label]="'Sortera efter namn ' + (sortField === 'name' ? (sortDir === 'asc' ? 'stigande' : 'fallande') : '')">
+            Namn <i class="fas" [class]="'fas ' + sortIcon('name')" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -416,15 +416,15 @@
                 <td colspan="7">
                   <form #formRef="ngForm" (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
                     <div class="col-md-4">
-                      <label class="form-label">Namn</label>
-                      <input type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
+                      <label [for]="'edit-name-' + op.id" class="form-label">Namn</label>
+                      <input [id]="'edit-name-' + op.id" type="text" class="form-control form-control-sm" [(ngModel)]="op.name"
                              [name]="'name-' + op.id" placeholder="Namn" required maxlength="100"
                              #editNameField="ngModel"
                              [class.is-invalid]="editNameField.invalid && editNameField.touched" />
                     </div>
                     <div class="col-md-2">
-                      <label class="form-label">PLC-nummer</label>
-                      <input class="form-control form-control-sm" [(ngModel)]="op.number"
+                      <label [for]="'edit-number-' + op.id" class="form-label">PLC-nummer</label>
+                      <input [id]="'edit-number-' + op.id" class="form-control form-control-sm" [(ngModel)]="op.number"
                              [name]="'number-' + op.id" type="number" min="1" required max="99999"
                              #editNumberField="ngModel"
                              [class.is-invalid]="editNumberField.invalid && editNumberField.touched" />

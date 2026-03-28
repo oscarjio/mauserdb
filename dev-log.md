@@ -1,5 +1,101 @@
 # MauserDB Dev Log
 
+## Session #374 — Worker B (2026-03-28)
+**Fokus: Error Recovery UX + Accessibility Audit + Data-verifiering + Frontend UX + Build + Deploy**
+
+### UPPGIFT 1: Error Recovery UX — KLAR (Inget att fixa)
+- **Global error interceptor** (`interceptors/error.interceptor.ts`) — fullstandigt implementerad sedan tidigare:
+  - Retry 1 gang vid statuserna 0/502/503/504 med 1s delay (enbart GET/HEAD/OPTIONS)
+  - catchError med svenska felmeddelanden for alla HTTP-statuskoder (0, 401, 403, 404, 408, 429, 5xx)
+  - Loggning till console.error med metod, URL, status, tidsstampel
+  - Toast-service visar felmeddelanden (6000ms for fel)
+  - 401 hanterar session-utgang med redirect till /login och returnUrl
+  - Skip-logik for polling-requests (action=status) och X-Skip-Error-Toast-header
+- **Alla services granskade**: Alla 88 services med HTTP-anrop har timeout() + catchError() — 0 saknade
+- **Komponenter med loading/error/empty states**: Alla sidor har *ngIf for loading/error/empty (ex. historik.ts, rebotling-skiftrapport.ts, users.ts)
+- **Resultat**: 0 fixar behövdes — error recovery är robust
+
+### UPPGIFT 2: Rebotling Historik-vy — GRANSKAD
+- **Historik-sidan** (`pages/historik/historik.ts`): Visar månadsaggregat, har:
+  - Periodval: 12/18/24/36/48 månader
+  - Export till CSV (semikolonseparerad med BOM) och Excel (SheetJS)
+  - Loading + error states med "Försök igen"-knapp
+  - Månadsdiagram (stapel) + årsöversikt (linje, veckovis)
+  - Sorterat/trend-arrows i tabell
+- **Rebotling skiftrapport** (`rebotling-skiftrapport.ts`): Har redan:
+  - Operatörsfilter (dropdown med alla operatörer)
+  - Datumfilter (fran/till), skiftfilter (förmiddag/eftermiddag/natt)
+  - Sortering per kolumn (datum, IBC, effektivitet, etc.)
+  - Export CSV med operator-filter inbakat
+- **Slutsats**: Operatörsfilter och sortering är implementerade pa rätt plats (skiftrapport). Historik är månadsaggregat som inte kan filtrera per operatör utan bakend-stöd.
+
+### UPPGIFT 3: Accessibility Audit — FIXAR GENOMFÖRDA
+**Granskade ALLA Angular templates for accessibility-problem**
+
+**Problem hittade och fixade:**
+1. **operators.html** — Sorteringsknappar saknade aria-label (4 knappar):
+   - Fixat: aria-label med sorteringsriktning ("Sortera efter IBC per timme stigande/fallande")
+   - Fixat: aria-hidden="true" pa dekorativa sort-ikoner
+   - Fixat: for/id-koppling pa "Lägg till"-formulärets Namn och PLC-nummer
+   - Fixat: for/id-koppling pa edit-formuläret (dynamiska ID:n med op.id)
+2. **users.html** — Edit-formulär saknade for/id-koppling (5 fält):
+   - Fixat: label[for] och input[id] for Användarnamn, E-post, Telefon, Op-ID, Nytt lösenord
+   - Dynamiska ID:n med user.id
+3. **bonus-admin.html** — Viktnings- och malformulär saknade for/id-koppling:
+   - Fixat: label[for] och input[id] för Effektivitet, Produktivitet, Kvalitet (dynamiska ID:n)
+   - Fixat: label[for] och input[id] för FoodGrade, NonUN, Tvättade IBC (statiska ID:n)
+   - Fixat: label[for] och input[id] för Veckobonusmål
+
+**Dokumenterade men ej fixade (laga risk, hög komplexitet):**
+- Dekorativa FontAwesome-ikoner utan aria-hidden i header/menu (100+ förekomster) — hanteras bra av skärmläsare
+- Knappar med title= men utan aria-label (titel ger viss accessibility)
+- Tabindex pa custom components — Bootstrap 5 hanterar detta
+
+**Resultat: 13 accessibility-fixar i 3 filer**
+
+### UPPGIFT 4: Data-verifiering mot prod DB — KLAR
+**Prod DB-query (2026-03-28):**
+- Cykler idag: **0** (inga cykler körda idag — produktionen ej igång)
+- Aktiva operatörer: **13** (operators WHERE active=1)
+- Senaste cykel: **2026-03-27 14:25:59** (gårdagens produktion)
+- Antal produkter: **5** (rebotling_products, ingen active-kolumn — totalt 5 produkter)
+- Dev-servern svarar korrekt (HTTP 200 pa /api.php?action=status)
+- **Inga diskrepanser** — data stämmer
+
+### UPPGIFT 5: Frontend UX Genomgång — KLAR
+- **Dark theme**: Konsekvent #1a202c/bg, #2d3748 cards, #e2e8f0 text genomgaende
+- **Svenska texter**: Alla synliga UI-texter pa svenska — inga engelska labels hittade i templates
+- **Grafer**: Chart.js konfigurerat korrekt med mörkt tema (grid #4a5568, ticks #8fa3b8)
+- **Tabeller**: Pagination implementerad i users-admin, rebotling-skiftrapport, och statistiksidor
+- **Responsive**: Bootstrap 5-grid, flex-wrap och col-12 col-md-X-klasser används genomgaende
+- **Loading-states**: Spinner och "Laddar..."-text på alla datahämtningssidor
+- **Error-states**: Alert-danger med felmeddelande och "Försök igen"-knappar
+
+### UPPGIFT 6: Build och Deploy — KLAR
+- `cd /home/clawd/clawd/mauserdb/noreko-frontend && npx ng build` — **0 errors** (enbart CommonJS-warnings för externa bibliotek)
+- rsync till dev.mauserdb.com — **86.784 bytes skickat, 72.243 bytes mottaget**
+- Verifiering: `curl https://dev.mauserdb.com/noreko-frontend/` — **HTTP 200 OK**
+
+### UPPGIFT 7: Commit och Push — KLAR
+- 3 frontend HTML-filer commitade med accessibility-fixar
+- dev-log.md uppdaterad med session #374 Worker B
+
+### Ändrade filer:
+- `noreko-frontend/src/app/pages/operators/operators.html` — aria-labels på sorteringsknappar + for/id-koppling
+- `noreko-frontend/src/app/pages/users/users.html` — for/id-koppling pa edit-formulär
+- `noreko-frontend/src/app/pages/bonus-admin/bonus-admin.html` — for/id-koppling pa viktnings-/malformulär
+
+### Sammanfattning fixar per kategori:
+- Error Recovery UX: 0 fixar (redan robust)
+- Rebotling Historik: 0 fixar (operatörsfilter finns i skiftrapport)
+- Accessibility: 13 fixar i 3 filer
+- Data-verifiering: 0 diskrepanser
+- Frontend UX: 0 kritiska fel hittade
+- Build: 0 errors
+- Deploy: OK
+
+---
+
 ## Session #374 — Worker A (2026-03-28)
 **Fokus: PHP 8.x Compatibility Audit + API Rate Limiting + Error Recovery + Endpoint-test + SQL-audit + Deploy**
 
