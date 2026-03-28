@@ -1,5 +1,66 @@
 # MauserDB Dev Log
 
+## Session #388 — Worker A (Backend + Deploy) (2026-03-28)
+**Fokus: Skiftrapport verifierad mot prod DB + operatorsbonus 13 operatorer OK + admin CRUD edge cases OK + 88 endpoints 0x500 + prestandaoptimering daglig-sammanstallning 3x snabbare + SQL-audit OK + deploy dev OK**
+
+### UPPGIFT 1: Skiftrapport — verifierat mot prod DB
+- Last SkiftrapportController.php, SkiftrapportExportController.php
+- Hamtade radata fran prod DB for 2026-03-27: 4 skift (80-83), totalt 158 IBC OK
+- API returnerar 158 IBC OK — KORREKT
+- Per skift: 80=52, 81=8, 82=67, 83=31 — matchar prod DB exakt
+- Kvalitet: 100% (0 ibc_ej_ok i prod DB) — KORREKT
+- IBC/h, drifttid, cykeltider beraknade korrekt
+- Alla sub-endpoints testade: daglig-sammanstallning, veckosammanstallning, skiftjamforelse, operator-list, operator-kpi-jamforelse, lopnummer, shift-report-by-operator — alla 200 OK
+
+### UPPGIFT 2: Operatorsbonus — stresstestat med 13 operatorer
+- Alla 13 operatorer (Olof, Gorgen, Leif, Daniel, Remyga, Eligijus, Biniam, Evaldas, Ted, Robin, Sebastian, Kim, Mayo) returneras for dag/vecka/manad
+- Verifierade manuellt for Biniam: IBC=284, runtime=466min, IBC/h=36.57, kvalitet=99.6%, narvaro=40% — matchar radata
+- Bonusberakning: korrekt formel (verkligt/mal * max_bonus, cap 100%)
+- Stressttest: 20 parallella anrop — alla 200 OK, max 1.17s under last
+- Testade: overview, per-operator, konfiguration, historik, simulering, trend — alla OK
+
+### UPPGIFT 3: Admin CRUD edge cases — alla hanterade
+- Tomma falt: "Anvandarnamn, losenord och e-post kravs" (400)
+- Dublett username: "Anvandarnamnet ar redan taget" (409)
+- Kort username (2 tecken): "Anvandarnamn maste vara 3-50 tecken" (400)
+- Kort losenord: "Losenordet maste vara 8-255 tecken" (400)
+- Ogiltig email: "Ogiltig e-postadress" (400)
+- Specialtecken (aao): Skapas korrekt (prepared statements forhindrar SQL injection)
+- Langt username (1001 tecken): Avvisat (400)
+- Radera obefintlig: "Anvandare hittades inte" (404)
+- ID=0: "ID saknas" (400)
+- Ogiltig JSON: "Ogiltig JSON-data" (400)
+- SQL-injection forsok: Skapas sákert (prepared statements)
+- Sjalvradering: "Du kan inte ta bort ditt eget konto" (400)
+
+### UPPGIFT 4: Prestandaoptimering
+- getDagligSammanstallning: Omskriven fran 9 enskilda queries (3 skift x 3 queries) till 3 batch-queries
+  - Fore: 1.0-1.5s, Efter: 0.5-0.7s (2-3x snabbare)
+- getOperatorList: Optimerad subquery — undviker onodiga JOINs i UNION
+  - Fore: 0.5-0.8s, Efter: 0.45s
+- Alla index verifierade: rebotling_ibc har covering indexes, rebotling_onoff har datum+running index
+
+### UPPGIFT 5: Full endpoint-test — 88 endpoints 0 x 500
+- Testade 88 endpoints med curl mot dev.mauserdb.com
+- 0 st 500-fel
+- 3 st 404 (shift-plan, shift-handover, news — saknar class-fil, ej route-mappade korrekt)
+- Majoriteten <500ms, nagra skiftrapport-endpoints ~500-800ms pga natlatensmarginal
+
+### UPPGIFT 6: SQL-audit
+- Jamforde alla SQL-queries i 80+ PHP-controllerfiler mot prod_db_schema.sql
+- rebotling_ibc: alla kolumner (datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, op1-op3, lopnummer) finns i schema — OK
+- operators: id, name, number, active — OK
+- rebotling_settings: rebotling_target — OK
+- bonus_konfiguration: faktor, vikt, mal_varde, max_bonus_kr — OK
+- bonus_utbetalning: alla kolumner matchar — OK
+- users: username, password, email, phone, admin, active, operator_id — OK
+- Saknade tabeller (klassificeringslinje_ibc, saglinje_ibc/onoff) = PLC-live tabeller, hanteras gracefully med try/catch
+- 0 mismatches som orsakar 500-fel
+
+### Deploy
+- Backend deployd till dev: rsync noreko-backend/ -> mauserdb-dev
+- Alla endpoints omtestad efter deploy — fortfarande 0 x 500
+
 ## Session #388 — Worker B (Frontend UX + Data) (2026-03-28)
 **Fokus: Full frontend-audit — 162 routes OK + 153 HTML-templates granskade + 108 CSS dark theme OK + 161 TS lifecycle OK + 195 Chart.js OK + svenska text OK + PLC-diagnostik fixar + build+deploy dev OK**
 

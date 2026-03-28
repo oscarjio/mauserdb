@@ -744,15 +744,14 @@ class SkiftrapportController {
             $stmt = $this->pdo->query("
                 SELECT DISTINCT o.id, o.name, o.number
                 FROM operators o
-                WHERE o.id IN (
-                    SELECT DISTINCT o1.id FROM rebotling_skiftrapport s
-                    JOIN operators o1 ON o1.number = s.op1 WHERE s.op1 IS NOT NULL
-                    UNION
-                    SELECT DISTINCT o2.id FROM rebotling_skiftrapport s
-                    JOIN operators o2 ON o2.number = s.op2 WHERE s.op2 IS NOT NULL
-                    UNION
-                    SELECT DISTINCT o3.id FROM rebotling_skiftrapport s
-                    JOIN operators o3 ON o3.number = s.op3 WHERE s.op3 IS NOT NULL
+                WHERE o.number IN (
+                    SELECT DISTINCT op_num FROM (
+                        SELECT DISTINCT op1 AS op_num FROM rebotling_skiftrapport WHERE op1 IS NOT NULL
+                        UNION
+                        SELECT DISTINCT op2 FROM rebotling_skiftrapport WHERE op2 IS NOT NULL
+                        UNION
+                        SELECT DISTINCT op3 FROM rebotling_skiftrapport WHERE op3 IS NOT NULL
+                    ) AS all_ops
                 )
                 ORDER BY o.name
             ");
@@ -1196,14 +1195,146 @@ class SkiftrapportController {
             return;
         }
 
-        $skift = $this->getSkiftIntervall($datum);
+        $skiftIntervall = $this->getSkiftIntervall($datum);
+        $fromDt = $datum . ' 06:00:00';
+        $nextDay = date('Y-m-d', strtotime($datum . ' +1 day'));
+        $toDt   = $nextDay . ' 06:00:00';
+
+        // ---- BATCH QUERY 1: IBC-data per skift ----
+        $ibcMap = ['dag' => ['ok' => 0, 'ej_ok' => 0], 'kvall' => ['ok' => 0, 'ej_ok' => 0], 'natt' => ['ok' => 0, 'ej_ok' => 0]];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END AS skift_namn,
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok,
+                           datum
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_dt AND datum < :to_dt
+                    GROUP BY skiftraknare,
+                        CASE
+                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                            ELSE 'natt'
+                        END
+                ) AS per_skift
+                GROUP BY skift_namn
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $ibcMap[$row['skift_namn']] = [
+                    'ok'    => (int)$row['ok_antal'],
+                    'ej_ok' => (int)$row['ej_ok_antal'],
+                ];
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::getDagligSammanstallning(ibc batch): ' . $e->getMessage());
+        }
+
+        // ---- BATCH QUERY 2: Drifttid fran rebotling_onoff ----
+        $drifttidMap = ['dag' => 0, 'kvall' => 0, 'natt' => 0];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running,
+                    CASE
+                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END AS skift_namn
+                FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $onoffRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+            $prevSkift = null;
+            foreach ($onoffRows as $oor) {
+                $ts = strtotime($oor['datum']);
+                $running = (int)$oor['running'];
+                $skiftN = $oor['skift_namn'];
+
+                if ($prevTime !== null && $prevRunning === 1 && $prevSkift === $skiftN) {
+                    $drifttidMap[$skiftN] += ($ts - $prevTime);
+                }
+                $prevTime = $ts;
+                $prevRunning = $running;
+                $prevSkift = $skiftN;
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::getDagligSammanstallning(onoff batch): ' . $e->getMessage());
+        }
+
+        // ---- BATCH QUERY 3: Kassationsorsaker per skift ----
+        $kassMap = ['dag' => [], 'kvall' => [], 'natt' => []];
+        try {
+            $stmtK = $this->pdo->prepare("
+                SELECT
+                    CASE
+                        WHEN HOUR(kr.datum) >= 6 AND HOUR(kr.datum) < 14 THEN 'dag'
+                        WHEN HOUR(kr.datum) >= 14 AND HOUR(kr.datum) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END AS skift_namn,
+                    COALESCE(kt.namn, 'Okänd') AS orsak,
+                    COUNT(*) AS antal
+                FROM kassationsregistrering kr
+                LEFT JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
+                WHERE kr.datum >= :from_dt AND kr.datum < :to_dt
+                GROUP BY skift_namn, kt.id, kt.namn
+                ORDER BY skift_namn, antal DESC
+            ");
+            $stmtK->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            foreach ($stmtK->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $kassMap[$row['skift_namn']][] = [
+                    'orsak' => $row['orsak'],
+                    'antal' => (int)$row['antal'],
+                ];
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftrapportController::getDagligSammanstallning(kassation batch): ' . $e->getMessage());
+        }
+
+        // ---- Bygg resultat fran batch-data ----
         $resultat = [];
-        foreach ($skift as $namn => $intervall) {
-            $data = $this->calcSkiftData($intervall[0], $intervall[1]);
-            $data['skift'] = $namn;
-            $data['start'] = $intervall[0];
-            $data['slut'] = $intervall[1];
-            $resultat[] = $data;
+        foreach ($skiftIntervall as $namn => $intervall) {
+            $ibcData = $ibcMap[$namn];
+            $okIbc = $ibcData['ok'];
+            $totalIbc = $okIbc + $ibcData['ej_ok'];
+            $kasserade = $totalIbc - $okIbc;
+            $drifttidSek = max(0, $drifttidMap[$namn]);
+
+            $tillganglighet = self::SKIFT_LANGD_SEK > 0 ? min(1.0, $drifttidSek / self::SKIFT_LANGD_SEK) : 0.0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+            $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+            $oee = $tillganglighet * $prestanda * $kvalitet;
+            $stopptidH = max(0, (self::SKIFT_LANGD_SEK - $drifttidSek)) / 3600;
+            $topOrsaker = array_slice($kassMap[$namn], 0, 3);
+
+            $resultat[] = [
+                'skift'              => $namn,
+                'start'              => $intervall[0],
+                'slut'               => $intervall[1],
+                'producerade'        => $totalIbc,
+                'godkanda'           => $okIbc,
+                'kasserade'          => $kasserade,
+                'kassationsgrad_pct' => $totalIbc > 0 ? round(($kasserade / $totalIbc) * 100, 1) : 0,
+                'oee_pct'            => round($oee * 100, 1),
+                'tillganglighet_pct' => round($tillganglighet * 100, 1),
+                'prestanda_pct'      => round($prestanda * 100, 1),
+                'kvalitet_pct'       => round($kvalitet * 100, 1),
+                'drifttid_h'         => round($drifttidSek / 3600, 2),
+                'stopptid_h'         => round($stopptidH, 2),
+                'top_kassationsorsaker' => $topOrsaker,
+            ];
         }
 
         // Totalt for dagen
