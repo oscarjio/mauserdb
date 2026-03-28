@@ -11,18 +11,19 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #374):
-- [x] PHP 8.x audit — 0 deprecated, PHP 8.2 fullt kompatibel (Worker A)
-- [x] API rate limiting — RateLimiter.php implementerad 120 req/min (Worker A)
-- [x] Error recovery backend — 1126 catch-block, 0 tysta, alla korrekt JSON (Worker A)
-- [x] Full endpoint-test 114 endpoints 0x500 <1s + SQL-audit 0 mismatches (Worker A)
-- [x] Error recovery UX — interceptor+timeout+catchError alla 88 services OK (Worker B)
-- [x] Rebotling historik — operatorsfilter+periodval+CSV redan pa plats (Worker B)
-- [x] Accessibility — 13 fixar aria-labels+for/id i 3 filer (Worker B)
+### Klart (session #375):
+- [x] Rebotling skiftrapport — KPI-forbattringar backend + trendgrafer frontend (Worker A+B)
+- [x] Driftstopp-analys — orsaksfordelning + veckotrend endpoints (Worker A)
+- [x] Admin audit-logg — redan implementerad (270 rader i prod) (Worker B)
+- [x] Notifikationer UX — redan implementerad (alarm-historik+alerts) (Worker B)
+- [x] Frontend bundle-optimering — redan optimerad (69KB main, 137/138 lazy) (Worker B)
+- [x] Full endpoint-test 115 endpoints 0x500 <1s + SQL-audit 0 mismatches (Worker A)
+- [x] Data-verifiering 5030 cykler 0 diskrepanser (Worker B)
+- [x] Prestandafix SkiftplaneringController ensureTables 2.4s->0.13s (Worker A)
 
-### Nasta (session #375):
-- [ ] Rebotling skiftrapport — forbattra grafer och KPI-visning
-- [ ] Admin audit-logg — visa vem som andrat vad (om data finns)
-- [ ] Driftstopp-analys — forbattra timeline och orsaksfordelning
-- [ ] Frontend bundle-optimering — lazy load tyngre moduler
-- [ ] Notifikationer UX — visa aktiva alarmer tydligare
+### Nasta (session #376):
+- [ ] Rebotling skiftrapport — anvand nya KPI-endpoints i frontend (operator-kpi-jamforelse)
+- [ ] Driftstopp-analys frontend — anvand nya orsaksfordelning+veckotrend endpoints
+- [ ] Operatorsbonus — granska berakningar mot prod-data
+- [ ] Statistik dashboard — forbattra KPI-kort och grafer
+- [ ] Granska alla admin-sidor — CRUD, validering, UX

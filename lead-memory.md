@@ -70,6 +70,7 @@ Session #371: idx_datum migrationsfil + admin CRUD 0x500 + 115 endpoints alla <0
 Session #372: API format audit 115/116 + security headers 9/9 OK + performance 0x500 <1s + rebotling grafer 7 charts + error monitoring + data 394 cykler 0 diskrepanser + deploy dev OK.
 Session #373: Input-validering 44 OK + cache 10 OK + 114 endpoints 0x500 + maintenance_log migration + operatorsbonus UX + admin pagination + lifecycle 0 leaks + 5030 cykler 0 diskrepanser + deploy dev OK.
 Session #374: PHP 8.2 kompatibel 0 issues + rate limiting implementerad 120 req/min + error recovery 1126 catch OK + accessibility 13 fixar + 114 endpoints 0x500 <1s + 0 diskrepanser + deploy dev OK.
+Session #375: Skiftrapport KPI backend (operator-kpi-jamforelse endpoint) + trendgrafer frontend (dolda canvas fixade) + driftstopp orsaksfordelning+veckotrend endpoints + prestandafix ensureTables 2.4s->0.13s + 115 endpoints 0x500 <1s + 0 SQL mismatches + 5030 cykler 0 diskrepanser + deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -82,23 +83,19 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #375):
-- Rebotling skiftrapport — forbattra grafer och KPI-visning
-- Admin audit-logg — visa vem som andrat vad
-- Driftstopp-analys — forbattra timeline och orsaksfordelning
-- Frontend bundle-optimering — lazy load tyngre moduler
-- Notifikationer UX — visa aktiva alarmer tydligare
+### Nasta (session #376):
+- Rebotling skiftrapport — anvand nya KPI-endpoints i frontend (operator-kpi-jamforelse)
+- Driftstopp-analys frontend — anvand nya orsaksfordelning+veckotrend endpoints
+- Operatorsbonus — granska berakningar mot prod-data
+- Statistik dashboard — forbattra KPI-kort och grafer
+- Granska alla admin-sidor — CRUD, validering, UX
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #372 (klar)
-Worker A: API format audit 115/116 standard. Security headers 9/9 OK. Performance 0x500 <1s. Deploy dev OK.
-Worker B: Rebotling grafer 7 charts. Error monitoring. 394 cykler 0 diskrepanser. Deploy dev OK.
-
-### 2026-03-28 — Session #373 (klar)
-Worker A: Input-validering 44 OK. Cache 10 OK. 114 endpoints 0x500. SQL-audit maintenance_log fix. Deploy dev OK.
-Worker B: Operatorsbonus UX. Users-admin pagination. Lifecycle 0 leaks. 5030 cykler 0 diskrepanser. Deploy dev OK.
 
 ### 2026-03-28 — Session #374 (klar)
 Worker A: PHP 8.2 kompatibel (0 issues). Rate limiting implementerad (RateLimiter.php, 120 req/min). Error recovery 1126 catch-block OK. 114 endpoints 0x500 <1s. 0 SQL mismatches. Deploy dev OK.
 Worker B: Error recovery UX redan komplett (interceptor+88 services). Rebotling historik redan har filter. Accessibility 13 fixar (aria-labels, for/id). 0 diskrepanser. Build+deploy dev OK.
+
+### 2026-03-28 — Session #375 (klar)
+Worker A: Skiftrapport operator-kpi-jamforelse endpoint. Driftstopp orsaksfordelning+veckotrend endpoints. Prestandafix ensureTables 2.4s->0.13s. 115 endpoints 0x500 <1s. 0 SQL mismatches. Deploy dev OK.
+Worker B: Skiftrapport trendgrafer synliga (dolda canvas fixade, KPI-kort utokade 4->6). Audit-logg+notifikationer redan implementerade. Bundle redan optimerad (69KB). 5030 cykler 0 diskrepanser. Build+deploy dev OK.
