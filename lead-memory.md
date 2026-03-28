@@ -73,6 +73,7 @@ Session #374: PHP 8.2 kompatibel 0 issues + rate limiting implementerad 120 req/
 Session #375: Skiftrapport KPI backend (operator-kpi-jamforelse endpoint) + trendgrafer frontend (dolda canvas fixade) + driftstopp orsaksfordelning+veckotrend endpoints + prestandafix ensureTables 2.4s->0.13s + 115 endpoints 0x500 <1s + 0 SQL mismatches + 5030 cykler 0 diskrepanser + deploy dev OK.
 Session #376: Operator-KPI-jamforelse stapeldiagram i skiftrapport + driftstopp orsaksfordelning doughnut+veckotrend linje + operatorsbonus berakningar OK + admin CRUD-audit OK + 113 endpoints 0x500 <1s + 0 SQL mismatches + 5030 cykler 0 diskrepanser + deploy dev OK.
 Session #377: Operatorsbonus KPI-detaljer backend+frontend. Historik daglig-endpoint filter/sortering/pagination. Statistik manads+kvartalsjamforelser. Navigationsfix. Prestandafix driftstopp 1.6s->0.23s. 169 endpoints 0x500. 0 SQL mismatches. 5030 cykler 0 diskrepanser. Deploy dev OK.
+Session #378: Rebotling daglig historik frontend. Statistik manads/kvartalsjamforelser frontend. Operatorsbonus drilldown. Driftstopp filter. 115 endpoints 0x500. 0 SQL mismatches. 5030 cykler 0 diskrepanser. Deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -85,19 +86,19 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #378):
-- Rebotling historik frontend — integrera daglig-endpoint med filter/sortering UI
-- Statistik dashboard frontend — integrera manads/kvartalsjamforelser
-- Operatorsbonus — detaljvy per operator (drilldown)
-- Skiftrapport — granska och forbattra UX
-- Driftstopp-analys — forbattra timeline UX och filter
+### Nasta (session #379):
+- Rebotling live-dashboard — granska UX, verifiera realtidsdata
+- Operatorsbonus — trendgraf per operator
+- Statistik dashboard — grafinteraktivitet (hover, zoom, export)
+- Admin-sidor — CRUD-granskning + UX
+- Driftstopp-analys — timeline + datumnavigering
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-28 — Session #376 (klar)
-Worker A: Operatorsbonus berakningar verifierade mot prod (13 operatorer, bonus_konfiguration 40/30/20/10 viktning OK). Admin CRUD-audit alla controllers OK. 113 endpoints 0x500 <1s. 0 SQL mismatches. Deploy dev OK.
-Worker B: Operator-KPI-jamforelse stapeldiagram i skiftrapport (snitt IBC/h, OEE%, kassation%). Driftstopp orsaksfordelning doughnut + veckotrend linjediagram (7/14/30 dagar). Lifecycle 0 leaks. 5030 cykler 0 diskrepanser. Build+deploy dev OK.
 
 ### 2026-03-28 — Session #377 (klar)
 Worker A: Operatorsbonus 7 nya KPI-falt per operator. Historik daglig-endpoint med filter/sortering/pagination. Statistik manads+kvartalsjamforelser. Prestandafix driftstopp 1.6s->0.23s. 169 endpoints 0x500. 0 SQL mismatches. Deploy dev OK.
 Worker B: Operatorsbonus KPI-indikatorer+radar+fargkodning. Statistik [ngValue] fix. Navigationsmenyn routerLinkActive fix. Lifecycle 40+ komp 0 lackor. 5030 cykler 0 diskrepanser. Build+deploy dev OK.
+
+### 2026-03-28 — Session #378 (klar)
+Worker A: 115 endpoints 0x500 <1s. 0 SQL mismatches. Backend-granskning OK, 5030 cykler 0 diskrepanser. Deploy dev OK.
+Worker B: Rebotling daglig historik (filter/sort/pagination). Statistik manads/kvartalsjamforelser (pilar+fargkodning+180d/365d). Operatorsbonus drilldown (klickbar rad, KPI+historik). Driftstopp typ/langd-filter. Lifecycle 0 lackor. Build+deploy dev OK.
