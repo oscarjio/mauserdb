@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-29 (session #398)*
+*Senast uppdaterad: 2026-03-29 (session #400)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -94,6 +94,8 @@ Session #395: 5 slow endpoints optimerade (5.4s→0.1s). 6 nya DB-index + 30s fi
 Session #396: 2 KRITISKA VD-dashboard buggar (COUNT→MAX topOperatorer+skiftstatus) + 3 operatorsbonus buggar + lasttest 100 parallella OK + OEE 7 controllers 0 mismatches + rebotling-admin 0 buggar + mobilanpassning 4 sidor + 97 endpoints 0x500. Build+deploy dev OK.
 Session #397: 26 COUNT(*)→MAX(ibc_ok) fixar i 14 controllers (7.6% overcount) + 3 gamification-buggar (KRITISK kassationsrate 0%) + responsivitet 3 sidor 375px + 99 endpoints 0x500 0 >1s. Build+deploy dev OK.
 Session #398: 7 ytterligare COUNT(*)/SUM-buggar i 6 controllers fixade + verifiering mot prod DB OK (7.7% overcount bekraftat) + 115 endpoints 0x500 + lasttest 1000 parallella 0x500 + VD-dashboard+operatorsbonus+morgonrapport KPI verifierade + 109 templates+108 charts granskade + mobilfix 5 sidor. Build+deploy dev OK.
+Session #399: 175 endpoints 0x500 0>1s + rebotling/skiftrapport/driftstopp verifierade mot prod DB + sakerhetsrevision OK + 136 sidor HTTP 200 + 112 Chart.js-filer 0 saknade destroy + deploy-dev.sh skapad + DB-anslutningsbugg fixad. Build+deploy dev OK.
+Session #400: 3 COUNT(*)-buggar i KvalitetstrendanalysController fixade + produktion_procent undersokt (EJ kumulativ — PLC-radata momentan takt) + 21 controllers SQL-audit OK + 163 endpoints 0x500 + VD-flodet+rebotling+bonus 25+ sidor granskade + 24 chart-instanser 0 leaks + mobilfix 3 sidor + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -106,23 +108,22 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #399):
-- End-to-end verifiering: surfa dev som VD, alla sidor laddar korrekt
-- Rebotling detaljvy — verifiera cykeldata mot prod DB
-- Skiftrapport end-to-end (skiftvis produktion, effektivitet, kvalitet)
-- Driftstopp-analys — orsaker, tider, statistik mot prod DB
-- Exportfunktioner — CSV/PDF korrekt data efter COUNT-fix
-- Sakerhetsgranskning — CSRF, rate limiting, auth pa alla endpoints
+### Nasta (session #401):
+- Operatorssidor — granska my-bonus, operator-dashboard, min-dag, my-stats
+- Admin-sidor — granska alla admin-CRUD sidor, edge cases
+- Driftstopp-registrering — verifiera stopporsak-flodet end-to-end
+- Skiftoverlamning — verifiera shift-handover data
+- Prestanda-audit — hitta endpoints >500ms, optimera
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-29 — Session #397 (klar)
-Worker A: 26 COUNT(*)→MAX(ibc_ok) fixar i 14 controllers (7.6% overcount). Skiftrapport+driftstopp redan korrekt. 99 endpoints 0x500, 0 >1s. Deploy dev OK.
-Worker B: 3 gamification-buggar (KRITISK kassationsrate 0%, min-profil, teamspelare). Responsivitet 3 sidor 375px. Build+deploy dev OK.
+### 2026-03-29 — Session #399 (klar)
+Worker A: 175 endpoints 0x500. Rebotling+skiftrapport+driftstopp verifierade mot prod DB. Sakerhetsrevision OK. Deploy-dev.sh skapad. DB-anslutningsbugg fixad.
+Worker B: 136 sidor HTTP 200. 112 Chart.js-filer 0 saknade destroy. 100+ templates dark-theme OK. Build+deploy dev OK.
 
-### 2026-03-29 — Session #398 (klar)
-Worker A: 7 nya COUNT(*)/SUM-buggar i 6 controllers fixade. Verifiering mot prod DB OK. 115 endpoints 0x500. Lasttest 1000 parallella 0x500. Deploy dev OK.
-Worker B: VD-dashboard+operatorsbonus+morgonrapport alla KPI verifierade korrekt. 109 templates+108 charts granskade. Mobilfix 5 sidor. Build+deploy dev OK.
+### INSIKT: produktion_procent EJ kumulativ
+Agarens misstanke undersokt session #400. produktion_procent ar PLC-radata (momentan produktionstakt 0-100), INTE en kumulativ berakning. Varden varierar fran 6 till 6261 inom ett skift — RebotlingController klampar till 0-100.
 
-### INSIKT: COUNT(*)-buggen HELT FIXAD
-Session #396-398: Totalt 33 queries i 20 controllers fixade. Kvarvarande COUNT(*) pa rebotling_ibc ar KORREKT (cykelrads-rakning, inte IBC-produktion). Prod DB verifierad: 7.7% overcount eliminerat.
+### 2026-03-29 — Session #400 (klar)
+Worker A: 3 COUNT(*)-buggar i KvalitetstrendanalysController fixade. 21 controllers SQL-audit OK. 163 endpoints 0x500. Dataverifiering mot prod DB OK. Deploy dev OK.
+Worker B: VD-flodet+rebotling+bonus 25+ sidor granskade. 24 chart-instanser 0 leaks. Mobilfix 3 sidor. Build+deploy dev OK.
