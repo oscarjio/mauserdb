@@ -30,6 +30,9 @@ class MorgonrapportController {
     /** Tillganglig tid per dag i timmar (3 skift x 7.5h efter rast) */
     private const TILLGANGLIG_TID_PER_DAG = 22.5;
 
+    /** Cache TTL in seconds */
+    private const CACHE_TTL = 30;
+
     /** Standard dagligt mal om rebotling_weekday_goals saknas */
     private const DEFAULT_DAILY_GOAL = 120;
 
@@ -166,6 +169,19 @@ class MorgonrapportController {
                 return;
             }
 
+            // Filcache 30s TTL — morgonrapporten andras sallan
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/morgonrapport_' . $date . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < self::CACHE_TTL) {
+                $cached = @file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
             // Foregaende vecka, samma dag
             $prevWeekDt = new \DateTime($date);
             $prevWeekDt->modify('-7 days');
@@ -184,7 +200,7 @@ class MorgonrapportController {
             $highlights  = $this->getHighlightsData($date);
             $varningar   = $this->buildVarningar($produktion, $stopp, $kvalitet, $effektivitet);
 
-            $this->sendSuccess([
+            $responseData = [
                 'rapport_info' => [
                     'datum'           => $date,
                     'prev_week_datum' => $prevWeekDate,
@@ -199,7 +215,11 @@ class MorgonrapportController {
                 'trender'      => $trender,
                 'highlights'   => $highlights,
                 'varningar'    => $varningar,
-            ]);
+            ];
+            // Cacha hela rapporten
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
 
         } catch (\Exception $e) {
             error_log('MorgonrapportController::getRapport: ' . $e->getMessage());

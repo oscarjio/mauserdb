@@ -83,6 +83,59 @@ class RankingHistorikController {
     }
 
     /**
+     * Batch-hamta produktion per operator per vecka for ett helt datumintervall.
+     * Returnerar [ "year-week" => [ operator_nummer => antal_ok_ibc ] ]
+     * EN enda query istallet for N separata (drastisk prestandavinst).
+     */
+    private function calcBatchWeekProduction(string $fromDate, string $toDate): array {
+        $sql = "
+            SELECT YEAR(datum) AS yr, WEEK(datum, 1) AS wk, op, SUM(cnt) AS total_ok
+            FROM (
+                SELECT datum, op1 AS op, COUNT(*) AS cnt
+                FROM rebotling_ibc
+                WHERE datum >= :from1 AND datum <= :to1
+                  AND op1 IS NOT NULL AND op1 > 0
+                GROUP BY YEAR(datum), WEEK(datum, 1), op1
+
+                UNION ALL
+
+                SELECT datum, op2 AS op, COUNT(*) AS cnt
+                FROM rebotling_ibc
+                WHERE datum >= :from2 AND datum <= :to2
+                  AND op2 IS NOT NULL AND op2 > 0
+                GROUP BY YEAR(datum), WEEK(datum, 1), op2
+
+                UNION ALL
+
+                SELECT datum, op3 AS op, COUNT(*) AS cnt
+                FROM rebotling_ibc
+                WHERE datum >= :from3 AND datum <= :to3
+                  AND op3 IS NOT NULL AND op3 > 0
+                GROUP BY YEAR(datum), WEEK(datum, 1), op3
+            ) AS combined
+            GROUP BY yr, wk, op
+            HAVING total_ok > 0
+            ORDER BY yr, wk, total_ok DESC
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':from1' => $fromDate . ' 00:00:00', ':to1' => $toDate . ' 23:59:59',
+            ':from2' => $fromDate . ' 00:00:00', ':to2' => $toDate . ' 23:59:59',
+            ':from3' => $fromDate . ' 00:00:00', ':to3' => $toDate . ' 23:59:59',
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($rows as $r) {
+            $key = (int)$r['yr'] . '-' . (int)$r['wk'];
+            if (!isset($result[$key])) $result[$key] = [];
+            $result[$key][(int)$r['op']] = (int)$r['total_ok'];
+        }
+        return $result;
+    }
+
+    /**
      * Beräkna antal OK IBC per operatör för ett givet veckonummer + år.
      * Operatörer räknas från op1, op2 och op3 (alla tre positioner bidrar).
      * Returnerar [ operator_nummer => antal_ok_ibc ]
@@ -180,14 +233,39 @@ class RankingHistorikController {
             $weeks   = $this->getWeeks();
             $opMap   = $this->getOperatorMap();
 
+            // Filcache 30s TTL
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/ranking_historik_weekly_' . $weeks . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+                $cached = @file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
+            // Batch-hamta alla veckor i EN query istallet for N separata
+            $weekInfos = [];
+            for ($i = $weeks - 1; $i >= 0; $i--) {
+                $weekInfos[] = $this->getWeekInfo($i);
+            }
+
+            // Berakna datumintervall for hela perioden
+            $firstDate = $weekInfos[0]['date_from'];
+            $lastDate  = end($weekInfos)['date_to'];
+
+            // EN enda batch-query for ALLA veckor
+            $batchProd = $this->calcBatchWeekProduction($firstDate, $lastDate);
+
             // Samla produktionsdata per vecka
             $veckor = [];
-            // Alla operatörer som dyker upp under perioden
             $alleOp = [];
 
-            for ($i = $weeks - 1; $i >= 0; $i--) {
-                $wi   = $this->getWeekInfo($i);
-                $prod = $this->calcWeekProduction($wi['year'], $wi['week']);
+            foreach ($weekInfos as $wi) {
+                $yearWeekKey = $wi['year'] . '-' . $wi['week'];
+                $prod = $batchProd[$yearWeekKey] ?? [];
                 $rank = $this->calcRankings($prod);
 
                 foreach (array_keys($prod) as $op) {
@@ -236,11 +314,14 @@ class RankingHistorikController {
             // Vecko-etiketter för Chart.js x-axel
             $veckoLabels = array_map(fn($v) => $v['label'], $veckor);
 
-            $this->sendSuccess([
+            $responseData = [
                 'veckor'      => $veckoLabels,
                 'op_trender'  => $opTrender,
                 'weeks'       => $weeks,
-            ]);
+            ];
+            $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendSuccess($responseData);
 
         } catch (Exception $e) {
             error_log('RankingHistorikController::getWeeklyRankings: ' . $e->getMessage());

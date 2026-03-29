@@ -24,9 +24,36 @@
 class OperatorRankingController {
     private $pdo;
 
+    /** Cache TTL in seconds */
+    private const CACHE_TTL = 30;
+
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+    }
+
+    /**
+     * Simple file-based cache (30s TTL).
+     * Returns cached data or null if miss/expired.
+     */
+    private function cacheGet(string $key): ?array {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        $file = $cacheDir . '/opranking_' . md5($key) . '.json';
+        if (file_exists($file) && (time() - filemtime($file)) < self::CACHE_TTL) {
+            $data = @file_get_contents($file);
+            if ($data !== false) {
+                $decoded = json_decode($data, true);
+                if (is_array($decoded)) return $decoded;
+            }
+        }
+        return null;
+    }
+
+    private function cacheSet(string $key, array $data): void {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $file = $cacheDir . '/opranking_' . md5($key) . '.json';
+        @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX);
     }
 
     public function handle(): void {
@@ -270,8 +297,13 @@ class OperatorRankingController {
 
     /**
      * Berakna ranking-poang for alla operatorer.
+     * Resultat cachas i 30 sekunder for att undvika upprepade tunga queries.
      */
     private function calcRanking(string $from, string $to): array {
+        $cacheKey = "ranking_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) return $cached;
+
         $operators = $this->getOperatorIbcData($from, $to);
         $stoppData = $this->getOperatorStopptid($from, $to);
 
@@ -356,6 +388,9 @@ class OperatorRankingController {
 
         // Berakna streaks
         $this->calcStreaks($result);
+
+        // Cacha resultatet
+        $this->cacheSet($cacheKey, $result);
 
         return $result;
     }

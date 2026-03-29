@@ -230,6 +230,19 @@ class StatistikDashboardController {
     // ================================================================
 
     private function getSummary(): void {
+        // Filcache 30s TTL — summary ar det tyngsta endpointet
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/statistikdashboard_summary.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 30) {
+            $cached = @file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+
         try {
             $today     = date('Y-m-d');
             $yesterday = date('Y-m-d', strtotime('-1 day'));
@@ -267,7 +280,7 @@ class StatistikDashboardController {
                 ? round($todayData['total'] / $todayData['drifttid_h'], 2)
                 : 0.0;
 
-            $this->sendJson([
+            $summaryData = [
                 'idag' => [
                     'ibc_ok'         => $todayData['ibc_ok'],
                     'ibc_ej_ok'      => $todayData['ibc_ej_ok'],
@@ -321,7 +334,11 @@ class StatistikDashboardController {
                 'mal_ibc_per_h'   => self::IBC_PER_H_MAL,
                 'mal_kassation'   => self::KASSATION_MAL_PCT,
                 'planerad_drift_h'=> self::PLANERAD_DRIFTTID_H,
-            ]);
+            ];
+            // Cacha resultatet
+            $jsonResult = json_encode(['success' => true, 'data' => $summaryData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
+            $this->sendJson($summaryData);
         } catch (\PDOException $e) {
             error_log('StatistikDashboardController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
