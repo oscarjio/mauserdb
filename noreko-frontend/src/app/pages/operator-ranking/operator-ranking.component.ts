@@ -80,8 +80,6 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.poangChart) { this.poangChart.destroy(); this.poangChart = null as any; }
-    if (this.historikChart) { this.historikChart.destroy(); this.historikChart = null as any; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();

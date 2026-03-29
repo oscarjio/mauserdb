@@ -1,5 +1,84 @@
 # MauserDB Dev Log
 
+## Session #401 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: Operatörssidor djup granskning + shift-handover + skiftöverlämning + Chart.js-audit + build+deploy**
+
+### UPPGIFT 1: Operatörssidor — grundlig granskning (4 sidor)
+
+- **my-bonus** (`/min-bonus`) — Genomgång klar
+  - TypeScript: korrekt lifecycle (OnInit/OnDestroy, destroy$, takeUntil, clearInterval/clearTimeout)
+  - 4 Chart.js-instanser (kpiChart, historyChart, ibcTrendChart, weeklyChart) — alla destroy() i ngOnDestroy ✅
+  - Caching av tunga beräkningar (cachedTrendDirection, cachedStatusBadge etc.) — bra mönster ✅
+  - Endpoints: bonus (personal-best, streak, achievements, my-ranking, peer-ranking, weekly-history, ranking-position) — alla svarar korrekt (kräver inloggning) ✅
+  - Dark theme CSS: fullständig med mobilresponsivitet (768px, 480px) ✅
+  - HTML: Svenska texter ✅, PDF/CSV-export ✅, feedback-sektion ✅, achievements ✅, närvaro-kalender ✅
+  - Inga buggar hittade
+
+- **operator-dashboard** (`/admin/operator-dashboard`) — Genomgång klar
+  - TypeScript: inline template, korrekt lifecycle, clearInterval + clearTimeout i ngOnDestroy ✅
+  - 1 Chart.js (weekChart) — destroy() i ngOnDestroy ✅
+  - 3 flikar: Idag, Vecka, Teamstämning
+  - Endpoints: operator-dashboard (today, weekly, summary, history, feedback/summary) — alla svarar ✅
+  - Dark theme via inline styles ✅
+  - Inga buggar hittade
+
+- **operator-personal-dashboard** (`/rebotling/operator-dashboard`) — Genomgång klar
+  - TypeScript: korrekt lifecycle, destroyCharts() helper ✅
+  - 2 Chart.js (produktionChart, veckotrendChart) — destroy() i ngOnDestroy ✅
+  - Endpoints via OperatorPersonalDashboardService (action=operator-dashboard, run=operatorer/min-produktion/mitt-tempo/min-bonus/mina-stopp/min-veckotrend) — kräver inloggning ✅
+  - CSS: dark theme, mobilresponsivitet 600px breakpoint ✅
+  - Inga buggar hittade
+
+- **min-dag** (`/rebotling/min-dag`) — Genomgång klar
+  - TypeScript: korrekt lifecycle med _timers[] array + forEach clearTimeout ✅
+  - 1 Chart.js (cycleTrendChart) — destroy() i ngOnDestroy ✅
+  - forkJoin med timeout för parallella API-anrop ✅
+  - **BUGG FIXAD**: "IBC-mal" → "IBC-mål" (saknad å) på rad 164
+  - **BUGG FIXAD**: "for dig" → "för dig" (saknad ö) på rad 219
+
+### UPPGIFT 2: Skiftöverlämning — djup granskning
+
+- **shift-handover** (`/rebotling/overlamning`) — Genomgång klar
+  - TypeScript: korrekt lifecycle, clearInterval + clearTimeout i ngOnDestroy ✅
+  - ComponentCanDeactivate guard (varnar om osparade ändringar) ✅
+  - Optimistic update vid kvittering med rollback vid fel ✅
+  - Endpoints: shift-handover (recent, add, acknowledge, delete) — svarar korrekt ✅
+  - Auto-fokus på textarea, filterflikar (alla/brådskande/öppna/kvitterade) ✅
+  - Inga buggar hittade
+
+- **skiftoverlamning** (`/rebotling/skiftoverlamning`) — Genomgång klar
+  - TypeScript: korrekt lifecycle, clearInterval i ngOnDestroy ✅
+  - SkiftoverlamningService använder action=skiftoverlamning (kräver session) ✅
+  - KPI-automation (loadAutoKpis), checklista, historik ✅
+  - Endpoints: skiftoverlamning (aktuellt-skift, skiftsammanfattning, oppna-problem, summary, historik, detail, shift-kpis, checklista, create) ✅
+  - Inga buggar hittade
+
+### UPPGIFT 3: Övriga operatörssidor
+
+- **operator-ranking** (`/rebotling/operator-ranking`) — Genomgång klar
+  - TypeScript: korrekt lifecycle
+  - **BUGG FIXAD**: dubbel chart.destroy() i ngOnDestroy — manuell destroy + destroyCharts() → nu bara destroyCharts() ✅
+  - 2 Chart.js (poangChart, historikChart) — destroy() via destroyCharts() i ngOnDestroy ✅
+  - 6 endpoints via OperatorRankingService ✅
+
+### UPPGIFT 4: Chart.js-audit
+- **Totalt granskade Chart.js-instanser på operatörssidor**: 10 (4 my-bonus + 1 operator-dashboard + 2 operator-personal-dashboard + 1 min-dag + 2 operator-ranking)
+- **Alla 10 har destroy() i ngOnDestroy** ✅
+- Dark theme på alla grafer (ljus text #a0aec0, grid #2d3748, transparent bakgrunder) ✅
+- Grafer uppdateras korrekt via destroy+rebuild-mönster ✅
+
+### UPPGIFT 5: Build + Deploy
+- ng build: ✅ inga fel (bara CommonJS-varningar som är kända)
+- deploy-dev.sh: ✅ deployat till https://dev.mauserdb.com
+- HTTP 200 verifierat ✅
+
+### Sammanfattning fixar
+1. min-dag.html: "IBC-mal" → "IBC-mål" (svenska stavning)
+2. min-dag.html: "for dig" → "för dig" (svenska stavning)
+3. operator-ranking.component.ts: Borttaget dubbel chart.destroy() (memory-säkerhet)
+
+---
+
 ## Session #400 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: VD-flodet djup UX-granskning + rebotling-sidor + Chart.js-audit + bonus/gamification + mobilresponsivitet + build+deploy**
 
