@@ -247,12 +247,16 @@ class DagligBriefingController {
             if ($dagsmal === 0) {
                 try {
                     $sql = "
-                        SELECT ROUND(AVG(cnt)) AS avg_ibc FROM (
-                            SELECT COUNT(*) AS cnt
-                            FROM rebotling_ibc
-                            WHERE datum >= DATE_SUB(:date1, INTERVAL 30 DAY) AND datum < DATE_ADD(DATE_SUB(:date2, INTERVAL 1 DAY), INTERVAL 1 DAY)
+                        SELECT ROUND(AVG(dag_ibc)) AS avg_ibc FROM (
+                            SELECT DATE(datum) AS dag, COALESCE(SUM(max_ok), 0) AS dag_ibc
+                            FROM (
+                                SELECT DATE(datum) AS datum_dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok, datum
+                                FROM rebotling_ibc
+                                WHERE datum >= DATE_SUB(:date1, INTERVAL 30 DAY) AND datum < DATE_ADD(DATE_SUB(:date2, INTERVAL 1 DAY), INTERVAL 1 DAY)
+                                GROUP BY DATE(datum), skiftraknare
+                            ) AS per_shift
                             GROUP BY DATE(datum)
-                            HAVING cnt > 0
+                            HAVING dag_ibc > 0
                         ) AS sub
                     ";
                     $stmt = $this->pdo->prepare($sql);

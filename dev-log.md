@@ -1,5 +1,58 @@
 # MauserDB Dev Log
 
+## Session #398 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: Verifiera COUNT->MAX fixar mot prod DB + endpoint-test + lasttest + fixa kvarvarande SQL-problem**
+
+### UPPGIFT 1: Verifiera COUNT->MAX fixar mot prod DB
+Korde queries mot prod DB for att verifiera att session #397:s fixar stammer:
+- Korrekt metod (MAX per skiftraknare): 366 IBC senaste 7 dagar
+- Felaktig gammal metod (COUNT(*)): 394 rader senaste 7 dagar
+- **Overcount: 7.7%** — matchar session #397:s fynd (7.6%)
+- Dagligt snitt: Korrekt=88, Felaktig COUNT(*)=82 (avvikelse aven har)
+- De 14 controllers som fixades i session #397 verifierade: alla anvander korrekt MAX(ibc_ok) per skiftraknare
+
+### UPPGIFT 2: Granska ALLA PHP-controllers for kvarvarande SQL-problem
+Hittade och fixade **7 kvarvarande COUNT(*)/SUM(ibc_ok)-buggar** i 6 controllers:
+
+1. **ProduktionspulsController.php** (rad 270): COUNT(*) for IBC/h -> MAX-MIN per skift
+2. **RebotlingController.php** (rad 429): COUNT(*) for ibc_hour -> MAX-MIN per skift
+3. **AndonController.php** (rad 647+653): 2x COUNT(*) for taktberakning -> MAX-MIN per skift
+4. **RebotlingAdminController.php** (rad 365): COUNT(*) for ibc_2h rate -> MAX-MIN per skift
+5. **DagligBriefingController.php** (rad 251): COUNT(*) for dagligt snitt fallback -> MAX per skift aggregering
+6. **BonusAdminController.php** (rad 395): SUM(ibc_ok) utan GROUP BY skiftraknare -> MAX per skift forst
+7. **RebotlingController.php** (rad 3203): SUM(ibc_ok) GROUP BY datum utan skiftraknare -> MAX per skift forst
+
+Aven granskade men bekraftade korrekta:
+- OperatorRankingController: korrekt MAX per skiftraknare
+- VDVeckorapportController: korrekt MAX per skiftraknare
+- DagligBriefingController (calcOeeForDay): korrekt MAX per skiftraknare
+- StatusController: korrekt MAX per skiftraknare
+- KvalitetstrendController: korrekt MAX per skiftraknare i subquery
+- RebotlingAnalyticsController: korrekt MAX per skiftraknare eller rebotling_skiftrapport
+- OperatorsPrestandaController: anvander rebotling_skiftrapport (redan aggregerad)
+
+### UPPGIFT 3: Endpoint-test (115 endpoints)
+- **115 endpoints testade mot dev.mauserdb.com**
+- **0 x 500-fel**
+- **0 endpoints > 1s** (max 0.45s for tvattlinje)
+- Alla endpoints svarar korrekt efter deploy
+
+### UPPGIFT 4: Lasttest (1000 requests)
+- 100 parallella requests x 10 endpoints = 1000 requests
+- Endpoints: status, rebotling, feature-flags, news, historik, shift-plan, saglinje, klassificeringslinje, tvattlinje, stoppage
+- **0 x 500-fel**
+- Alla responses OK
+
+### UPPGIFT 5: Deploy
+- Backend deployad till dev via rsync
+- Alla fixar verifierade efter deploy
+
+### Sammanfattning
+- 7 nya SQL-buggar fixade (6 controllers)
+- Totalt session #397 + #398: **33 SQL-queries fixade i 20 controllers**
+- 115 endpoints: 0x500, 0>1s
+- 1000 lasttest-requests: 0x500
+
 ## Session #398 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: Verifiera KPI-siffror + operatorsbonus + grafer + mobilresponsivitet**
 

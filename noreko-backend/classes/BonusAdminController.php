@@ -388,16 +388,26 @@ class BonusAdminController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE_FORMAT(datum, '%Y-%m') as period,
-                    COUNT(*) as total_cycles,
-                    COUNT(DISTINCT COALESCE(op1, op2, op3)) as unique_operators,
-                    AVG(bonus_poang) as avg_bonus,
-                    SUM(ibc_ok) as total_ibc_ok,
-                    SUM(CASE WHEN bonus_poang >= 80 THEN 1 ELSE 0 END) as cycles_above_80
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                AND bonus_poang IS NOT NULL
-                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                    period,
+                    SUM(total_cycles) as total_cycles,
+                    COUNT(DISTINCT first_op) as unique_operators,
+                    AVG(avg_bonus) as avg_bonus,
+                    SUM(max_ibc_ok) as total_ibc_ok,
+                    SUM(CASE WHEN avg_bonus >= 80 THEN 1 ELSE 0 END) as cycles_above_80
+                FROM (
+                    SELECT
+                        DATE_FORMAT(datum, '%Y-%m') as period,
+                        skiftraknare,
+                        COUNT(*) as total_cycles,
+                        COALESCE(MAX(op1), MAX(op2), MAX(op3)) as first_op,
+                        AVG(bonus_poang) as avg_bonus,
+                        COALESCE(MAX(ibc_ok), 0) as max_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                    AND bonus_poang IS NOT NULL
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m'), skiftraknare
+                ) AS per_shift
+                GROUP BY period
                 ORDER BY period DESC
             ");
 

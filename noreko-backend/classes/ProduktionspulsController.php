@@ -263,11 +263,17 @@ class ProduktionspulsController {
             error_log('ProduktionspulsController::getLiveKpi (ibc_idag): ' . $e->getMessage());
         }
 
-        // 2. IBC/h (senaste timmen)
+        // 2. IBC/h (senaste timmen) — använd MAX(ibc_ok)-MIN(ibc_ok) per skift istället för COUNT(*)
         $ibcPerTimme = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= :from_dt
+                SELECT COALESCE(SUM(GREATEST(max_ok - min_ok, 0)), 0) AS cnt
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MIN(ibc_ok) AS min_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_dt AND ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
             $stmt->execute([':from_dt' => $oneHourAgo]);
             $ibcPerTimme = (int)($stmt->fetchColumn() ?: 0);

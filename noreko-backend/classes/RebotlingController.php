@@ -426,9 +426,10 @@ class RebotlingController {
                     (SELECT COALESCE(MAX(ibc_count), 0) FROM rebotling_ibc
                      WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
                     (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer,
-                    (SELECT COUNT(*) FROM rebotling_ibc
+                    (SELECT COALESCE(MAX(ibc_ok), 0) - COALESCE(MIN(ibc_ok), 0) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)
-                       AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
+                       AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                       AND ibc_ok IS NOT NULL) AS ibc_hour,
                     (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
                     (SELECT p.cycle_time_minutes
@@ -3195,14 +3196,18 @@ class RebotlingController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(AVG(CASE WHEN datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_7d,
-                    COALESCE(AVG(CASE WHEN datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_30d,
+                    COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_7d,
+                    COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_30d,
                     COALESCE(AVG(ibc_total), 0) as avg_ibc_per_day_90d
                 FROM (
-                    SELECT datum, SUM(ibc_ok) as ibc_total
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-                    GROUP BY datum
+                    SELECT dag, SUM(max_ok) as ibc_total
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) per_shift
+                    GROUP BY dag
                     HAVING ibc_total > 0
                 ) t
             ");

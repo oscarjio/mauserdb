@@ -362,8 +362,7 @@ class RebotlingAdminController {
             $combo = $this->pdo->prepare("
                 SELECT
                     (SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps1) AS ibc_today,
-                    (SELECT COUNT(*) FROM rebotling_ibc
-                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)) AS ibc_2h,
+                    (SELECT COALESCE(SUM(GREATEST(max_ok - min_ok, 0)), 0) FROM (SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MIN(ibc_ok) AS min_ok FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR) AND ibc_ok IS NOT NULL GROUP BY skiftraknare) ps2) AS ibc_2h,
                     (SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1) AS is_running,
                     (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS rebotling_target,
                     (SELECT shift_hours FROM rebotling_settings WHERE id = 1) AS shift_hours,

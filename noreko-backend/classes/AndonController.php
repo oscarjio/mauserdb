@@ -644,13 +644,13 @@ class AndonController {
             $nowStr = $nu->format('Y-m-d H:i:s');
 
             $stmtRate = $this->pdo->prepare(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+                "SELECT COALESCE(SUM(GREATEST(max_ok - min_ok, 0)), 0) FROM (SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MIN(ibc_ok) AS min_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND ibc_ok IS NOT NULL GROUP BY skiftraknare) ps"
             );
             $stmtRate->execute([$oneHourAgo, $nowStr]);
             $lastHourCount = (int)$stmtRate->fetchColumn();
 
             $stmtPrev = $this->pdo->prepare(
-                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+                "SELECT COALESCE(SUM(GREATEST(max_ok - min_ok, 0)), 0) FROM (SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MIN(ibc_ok) AS min_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND ibc_ok IS NOT NULL GROUP BY skiftraknare) ps"
             );
             $stmtPrev->execute([$twoHoursAgo, $oneHourAgo]);
             $prevHourCount = (int)$stmtPrev->fetchColumn();
