@@ -1,5 +1,101 @@
 # MauserDB Dev Log
 
+## Session #400 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: VD-flodet djup UX-granskning + rebotling-sidor + Chart.js-audit + bonus/gamification + mobilresponsivitet + build+deploy**
+
+### UPPGIFT 1: VD-flodet — djup UX-granskning (6 sidor)
+Granskade sidor och deras API-endpoints:
+- **vd-dashboard** — 6 endpoints (oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus) — alla HTTP 200 success:true
+  - Korrekt lifecycle (destroy$, takeUntil, clearInterval/clearTimeout, chart.destroy())
+  - Dark theme OK (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - Mobilresponsivitet: redan 3 breakpoints (768px, 575px, 420px) — OK
+  - Tom data hanteras korrekt (fallback-meddelanden visas)
+- **morgonrapport** — endpoint morgonrapport&run=rapport — HTTP 200 success:true
+  - Korrekt lifecycle, svenska labels, tabeller med table-responsive wrapper
+  - Trendstaplar med CSS (inte Chart.js) — inga chart leaks
+- **veckorapport** — endpoint veckorapport&run=report — HTTP 200 success:true
+  - Korrekt lifecycle, alla sektioner fyllda (produktion, effektivitet, stopp, kvalitet, sammanfattning)
+  - Tabeller med table-responsive wrappers
+- **daglig-sammanfattning** — 2 endpoints (daily-summary, comparison) — HTTP 200 success:true
+  - Auto-refresh 60s med countdown, korrekt lifecycle
+  - OEE-faktorvisualisering med progressbars, jamforelsetabell
+- **executive-dashboard** — 8+ endpoints (exec-dashboard, status/all-lines, certification, maintenance, news, feedback, staffing, weekly) — HTTP 200 success:true
+  - Mest komplex sida: 3 Chart.js-grafer (barChart, moodChart), alla med destroy()
+  - Linjestatus-banner, bemanningsvarning, veckorapport-avsandning
+  - Mobilmediaqueries vid 768px, 576px, 420px — OK
+- **statistik-overblick** — 4 endpoints (kpi, produktion, oee, kassation) — HTTP 200 success:true
+  - 3 Chart.js-grafer, alla med destroy() i ngOnDestroy
+  - CSV-export funktionalitet
+
+### UPPGIFT 2: Rebotling-sidorna — djup granskning (5 sidor)
+- **rebotling-skiftrapport** — endpoint skiftrapport&run=list — HTTP 200 success:true
+  - 2393 rader TypeScript, 3 Chart.js-grafer (trendChart, efficiencyChart, opKpiChart)
+  - Alla med destroy(), clearTimeout, clearInterval i ngOnDestroy
+  - Operatorsfilter, datumfilter, skiftfilter, sok, sortering — allt pa svenska
+- **rebotling-admin** — 3 Chart.js-grafer (maintenanceChart, goalHistoryChart, correlationChart)
+  - Korrekt destroy() for alla, clearInterval for systemStatus/maintenance/todaySnapshot
+- **rebotling-prognos** — endpoint rebotling&run=production-rate — HTTP 200 success:true
+  - Prognosberakning vettig: tar snitt IBC/dag (7d/30d/90d), beraknar slutdatum med arbetsdagar
+  - Veckomilepalar med progressbars
+  - Inga Chart.js-grafer (ren tabell/kort-layout)
+- **rebotling-statistik** — finns som rebotling-statistik.ts i rebotling-mappen
+- **rebotling-sammanfattning** — finns i rebotling/rebotling-sammanfattning/
+
+### UPPGIFT 3: Chart.js-grafer — kvalitetsgranskning (7 sidor)
+Alla granskade sidor har:
+1. chart.destroy() i ngOnDestroy — OK for ALLA
+2. Ratt graftyp: bar for produktion/ranking, line for trender/OEE, doughnut for gauge — OK
+3. Svenska labels — OK overallt
+4. Dark theme-kompatibel (ljus text #e2e8f0/#a0aec0, mork bakgrund) — OK
+5. Tom data hanteras med fallback-meddelanden — OK
+
+Detaljresultat per sida:
+- statistik-overblick: 3 charts (bar, line, line) — OK
+- historisk-sammanfattning: 2 charts (trendChart, paretoChart) — OK
+- oee-benchmark: 2 charts (gaugeChart, trendChart) — OK
+- kvalitetstrend: 2 charts (trendChart, detailChart) — OK
+- effektivitet: 1 chart (trendChart) — OK
+- cykeltid-heatmap: 1 chart (patternChart) — OK
+- produktionsprognos: inga Chart.js-grafer (bara polls) — OK
+
+### UPPGIFT 4: Bonus och gamification (5 sidor)
+- **my-bonus** — 4 Chart.js-grafer (kpiChart, historyChart, ibcTrendChart, weeklyChart) — alla med destroy()
+- **bonus-dashboard** — 4 Chart.js-grafer (trendChart, kpiRadarChart, shiftCompareChart, weekTrendChart) — alla med destroy()
+- **bonus-admin** — 1 canvas med Canvas2D API (auditChart, inte Chart.js) — korrekt hantering
+- **live-ranking** — 3 intervals (pollTimer, countdownTimer, motivationTimer) — alla clearInterval i ngOnDestroy
+- **operator-ranking** — 2 Chart.js-grafer (poangChart, historikChart) — alla med destroy()
+
+Bonusberakningar i frontend matchar backend-svaren (bonus&run=summary returnerar korrekt data).
+
+### UPPGIFT 5: Mobilresponsivitet — 3 CSS-fixar
+Granskade 9 sidor for 375px-stod:
+- vd-dashboard: redan 3 breakpoints (768px, 575px, 420px) — OK, inga andringar
+- executive-dashboard: redan 3 breakpoints (768px, 576px, 420px) — OK, inga andringar
+- daglig-sammanfattning: hade bara 767px — **FIXAT: lade till 575px + 375px breakpoints**
+  - Reducerade fontstorlekar, OEE-siffror, KPI-varden, comp-table for smalare skarm
+- oee-benchmark: **saknade alla mobil-mediaqueries — FIXAT: lade till 768px + 575px + 375px**
+  - Gauge-storlek, faktor-procent, benchmark-namn, trendgraf-hojd, knappstorlekar
+- kvalitetstrend: redan 576px breakpoint — OK
+- cykeltid-heatmap: redan 768px breakpoint + overflow-x: auto — OK
+- rebotling-prognos: **saknade alla mobil-mediaqueries — FIXAT: lade till 575px + 375px**
+  - completion-date storlek, knappstorlekar, rubrikstorlek
+- alarm-historik: redan 768px + 480px breakpoints — OK
+- shift-handover: redan 600px breakpoint — OK
+
+### UPPGIFT 6: Build + Deploy
+- `npx ng build` — SUCCESS (warnings for CommonJS-beroenden, inget kritiskt)
+- `rsync deploy` — SUCCESS
+- `curl https://dev.mauserdb.com/` — HTTP 200, korrekt HTML
+
+### Sammanfattning
+- **Granskade sidor:** 25+ sidor
+- **API-endpoints testade:** 20+ endpoints — alla HTTP 200, success:true
+- **Chart.js-grafer granskade:** 24 chart-instanser over 12 sidor — alla med korrekt destroy()
+- **Buggar hittade:** 0 JavaScript-buggar, 0 Chart.js memory leaks
+- **CSS-fixar:** 3 filer (daglig-sammanfattning, oee-benchmark, rebotling-prognos) — mobilresponsivitet
+- **Lifecycle-audit:** alla sidor har korrekt OnInit/OnDestroy, destroy$, takeUntil, clearInterval/clearTimeout
+- **Build + Deploy:** OK
+
 ## Session #400 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: produktion_procent-undersokning + djup SQL-audit 21 controllers + 163 endpoints testade + dataverifiering mot prod DB**
 

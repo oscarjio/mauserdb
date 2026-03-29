@@ -267,3 +267,72 @@
 .text-teal {
   color: #38b2ac !important;
 }
+
+/* ---- Mobilresponsivitet ---- */
+@media (max-width: 768px) {
+  .gauge-container {
+    width: 180px;
+    height: 100px;
+  }
+  .gauge-pct {
+    font-size: 1.8rem;
+  }
+  .faktor-pct {
+    font-size: 1.8rem;
+  }
+  .trend-chart-container {
+    height: 240px;
+  }
+}
+
+@media (max-width: 575px) {
+  .oee-benchmark-page .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  .page-title {
+    font-size: 1.15rem;
+  }
+  .gauge-container {
+    width: 160px;
+    height: 90px;
+  }
+  .gauge-pct {
+    font-size: 1.5rem;
+  }
+  .faktor-pct {
+    font-size: 1.5rem;
+  }
+  .factor-mini-val {
+    font-size: 0.9rem;
+  }
+  .benchmark-namn {
+    font-size: 0.85rem;
+  }
+  .bench-bar-track {
+    margin-bottom: 22px;
+  }
+  .trend-chart-container {
+    height: 200px;
+  }
+  .btn-group .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .page-title {
+    font-size: 1rem;
+  }
+  .gauge-container {
+    width: 140px;
+    height: 80px;
+  }
+  .gauge-pct {
+    font-size: 1.3rem;
+  }
+  .faktor-pct {
+    font-size: 1.2rem;
+  }
+}

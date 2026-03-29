@@ -308,3 +308,60 @@
     grid-template-columns: 110px 1fr 44px;
   }
 }
+
+@media (max-width: 575px) {
+  .daglig-sammanfattning-page .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+  .page-title {
+    font-size: 1.15rem;
+  }
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+  .kpi-label {
+    font-size: 0.7rem;
+  }
+  .oee-big-number {
+    font-size: 2.2rem;
+  }
+  .oee-faktor-rad {
+    grid-template-columns: 90px 1fr 40px;
+    gap: 4px;
+  }
+  .oee-faktor-namn {
+    font-size: 0.7rem;
+  }
+  .stopp-total-val {
+    font-size: 1.5rem;
+  }
+  .skift-kpi-val {
+    font-size: 1.3rem;
+  }
+  .trend-icon-big {
+    font-size: 1.8rem;
+  }
+  .comp-table {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .daglig-sammanfattning-page .container-fluid {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  .page-title {
+    font-size: 1rem;
+  }
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .oee-big-number {
+    font-size: 1.8rem;
+  }
+  .oee-faktor-rad {
+    grid-template-columns: 80px 1fr 36px;
+  }
+}

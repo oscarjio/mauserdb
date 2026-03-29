@@ -8,3 +8,30 @@
   color: #63b3ed;
   letter-spacing: 0.02em;
 }
+
+/* ---- Mobilresponsivitet ---- */
+@media (max-width: 575px) {
+  .container-fluid {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .completion-date {
+    font-size: 1.6rem;
+  }
+  .btn-group .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+  }
+  h2 {
+    font-size: 1.15rem !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .completion-date {
+    font-size: 1.3rem;
+  }
+  h2 {
+    font-size: 1rem !important;
+  }
+}
