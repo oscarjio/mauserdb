@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-29 (session #400)*
+*Senast uppdaterad: 2026-03-29 (session #401)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -96,6 +96,7 @@ Session #397: 26 COUNT(*)→MAX(ibc_ok) fixar i 14 controllers (7.6% overcount) 
 Session #398: 7 ytterligare COUNT(*)/SUM-buggar i 6 controllers fixade + verifiering mot prod DB OK (7.7% overcount bekraftat) + 115 endpoints 0x500 + lasttest 1000 parallella 0x500 + VD-dashboard+operatorsbonus+morgonrapport KPI verifierade + 109 templates+108 charts granskade + mobilfix 5 sidor. Build+deploy dev OK.
 Session #399: 175 endpoints 0x500 0>1s + rebotling/skiftrapport/driftstopp verifierade mot prod DB + sakerhetsrevision OK + 136 sidor HTTP 200 + 112 Chart.js-filer 0 saknade destroy + deploy-dev.sh skapad + DB-anslutningsbugg fixad. Build+deploy dev OK.
 Session #400: 3 COUNT(*)-buggar i KvalitetstrendanalysController fixade + produktion_procent undersokt (EJ kumulativ — PLC-radata momentan takt) + 21 controllers SQL-audit OK + 163 endpoints 0x500 + VD-flodet+rebotling+bonus 25+ sidor granskade + 24 chart-instanser 0 leaks + mobilfix 3 sidor + build+deploy dev OK.
+Session #401: KRITISK mb_substr UTF-8 bugg fixad (shift-plan tom JSON) + 6 admin-controllers CRUD-audit OK + driftstopp end-to-end OK + 30+ endpoints <500ms 0x500 + 7 operatorssidor granskade + 3 frontend-buggar fixade + 10 Chart.js 0 leaks + build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -108,18 +109,14 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #401):
-- Operatorssidor — granska my-bonus, operator-dashboard, min-dag, my-stats
-- Admin-sidor — granska alla admin-CRUD sidor, edge cases
-- Driftstopp-registrering — verifiera stopporsak-flodet end-to-end
-- Skiftoverlamning — verifiera shift-handover data
-- Prestanda-audit — hitta endpoints >500ms, optimera
+### Nasta (session #402):
+- Rapport-sidor — granska veckorapport, manadsrapport, kvartalsrapport
+- Export-funktioner — verifiera CSV/PDF-export pa alla sidor
+- Gamification — granska teamspelare, operator-ranking, achievements
+- OEE-sidor — verifiera OEE-berakningar mot prod DB
+- Navigering — verifiera alla routes och lazy loading
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-29 — Session #399 (klar)
-Worker A: 175 endpoints 0x500. Rebotling+skiftrapport+driftstopp verifierade mot prod DB. Sakerhetsrevision OK. Deploy-dev.sh skapad. DB-anslutningsbugg fixad.
-Worker B: 136 sidor HTTP 200. 112 Chart.js-filer 0 saknade destroy. 100+ templates dark-theme OK. Build+deploy dev OK.
 
 ### INSIKT: produktion_procent EJ kumulativ
 Agarens misstanke undersokt session #400. produktion_procent ar PLC-radata (momentan produktionstakt 0-100), INTE en kumulativ berakning. Varden varierar fran 6 till 6261 inom ett skift — RebotlingController klampar till 0-100.
@@ -127,3 +124,7 @@ Agarens misstanke undersokt session #400. produktion_procent ar PLC-radata (mome
 ### 2026-03-29 — Session #400 (klar)
 Worker A: 3 COUNT(*)-buggar i KvalitetstrendanalysController fixade. 21 controllers SQL-audit OK. 163 endpoints 0x500. Dataverifiering mot prod DB OK. Deploy dev OK.
 Worker B: VD-flodet+rebotling+bonus 25+ sidor granskade. 24 chart-instanser 0 leaks. Mobilfix 3 sidor. Build+deploy dev OK.
+
+### 2026-03-29 — Session #401 (klar)
+Worker A: 6 admin-controllers CRUD-audit OK + driftstopp end-to-end OK (8 stopporsaker) + 30+ endpoints <500ms 0x500 + KRITISK mb_substr UTF-8 bugg fixad (shift-plan tom JSON pga svenska tecken). Deploy dev OK.
+Worker B: 7 operatorssidor granskade + 3 buggar fixade (svenska text + dubbel chart.destroy()) + 10 Chart.js-instanser 0 leaks + skiftoverlamning OK. Build+deploy dev OK.
