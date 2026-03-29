@@ -11,17 +11,17 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #394):
-- [x] Alarm-historik: SQL OK, frontend OK (1 chart, lifecycle, dark theme) — verifierad mot prod DB
-- [x] Underhallsprognos: SQL OK, frontend OK (1 chart, 3 datasektioner) — 12 komponenter matchar prod DB
-- [x] Produktionskalender/prognos: SQL OK + ProduktionsPrognosController COUNT→MAX fix — frontend OK
-- [x] Andon-board: 2 komp OK (7+2 intervals rensas, 1 chart, TV-layout) — realtidsdata OK
-- [x] Shift-plan/tidrapport: frontend OK (1 chart, CSV-export, bemanningsvarning)
-- [x] 108 endpoints testade 0x500, 10 frontend-komp granskade 0 buggar
+### Klart (session #395):
+- [x] Slow endpoints: 5.4s→0.1s (operator-ranking), 1.7s→0.11s (morgonrapport), 1.6s→0.1s (statistikdashboard) — 6 nya index + 30s filcache
+- [x] SQL-audit 11 controllers 0 mismatches (historik+kassation+stopporsak)
+- [x] 120 endpoints testade 0x500, 0 endpoints >1s
+- [x] 25 frontend-komp granskade 0 buggar: historik(6)+kvalitet(2)+stopporsak(4)+export(5)+ovriga(8)
+- [x] ~43 charts destroy() OK, 5 exportfunktioner UTF-8 BOM+svenska OK
 
-### Nasta (session #395):
-- [ ] Slow endpoints: operator-ranking 5.4s, morgonrapport 1.7s, statistikdashboard 1.6s — optimera
-- [ ] Rebotling-historik: djupgranskning alla historik-endpoints + frontend
-- [ ] Kvalitet/kassation: granska kvalitetscontrollers + frontend
-- [ ] Stopporsak: verifiera registrering + trender mot prod DB
-- [ ] Export-funktioner: granska CSV/PDF/Excel-export pa alla sidor
+### Nasta (session #396):
+- [ ] Lasttest: 100+ parallella requests mot optimerade endpoints — verifiera cache under last
+- [ ] Rebotling-admin: djupgranskning backend CRUD + frontend (1504 rader, komplex)
+- [ ] Operatorsportal: verifiera bonusberakningar end-to-end mot prod DB
+- [ ] Executive/VD-dashboard: verifiera alla KPI-siffror mot prod DB
+- [ ] Benchmarking/OEE: granska controllers + verifiera berakningar
+- [ ] Mobilanpassning: testa alla sidor pa smal viewport (375px)
