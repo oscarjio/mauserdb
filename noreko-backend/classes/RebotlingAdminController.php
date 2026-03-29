@@ -361,8 +361,7 @@ class RebotlingAdminController {
             $this->ensureSettingsTable();
             $combo = $this->pdo->prepare("
                 SELECT
-                    (SELECT COUNT(*) FROM rebotling_ibc
-                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
+                    (SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps1) AS ibc_today,
                     (SELECT COUNT(*) FROM rebotling_ibc
                      WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)) AS ibc_2h,
                     (SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1) AS is_running,
@@ -550,7 +549,7 @@ class RebotlingAdminController {
             // Totalt IBC idag från PLC
             $ibcToday = 0;
             try {
-                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
+                $row = $this->pdo->query("SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps")->fetchColumn();
                 $ibcToday = (int)$row;
             } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus ibcToday: ' . $e->getMessage()); }
 
@@ -595,8 +594,7 @@ class RebotlingAdminController {
             $comboRow = $this->pdo->query("
                 SELECT
                     (SELECT datum FROM rebotling_ibc ORDER BY datum DESC LIMIT 1) AS senaste_datum,
-                    (SELECT COUNT(*) FROM rebotling_ibc
-                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_idag,
+                    (SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps2) AS ibc_idag,
                     (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS dagsMal,
                     agg.ibc_ok, agg.runtime, agg.rasttime
                 FROM (

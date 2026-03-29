@@ -345,10 +345,12 @@ class KapacitetsplaneringController {
         try {
             $stmtTrend = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
-                    SELECT DATE(datum) AS dag, COUNT(*) AS dag_total
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag, SUM(max_ok) AS dag_total FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) ps GROUP BY dag
                 ) t
             ");
             $stmtTrend->execute([':from_date' => $refFrom, ':to_date' => $today]);
@@ -454,10 +456,12 @@ class KapacitetsplaneringController {
         try {
             $stmtSnitt = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
-                    SELECT DATE(datum) AS dag, COUNT(*) AS dag_total
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag, SUM(max_ok) AS dag_total FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) ps GROUP BY dag
                 ) t
             ");
             $stmtSnitt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);

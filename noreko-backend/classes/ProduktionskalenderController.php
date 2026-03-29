@@ -478,29 +478,26 @@ class ProduktionskalenderController {
     private function getTop5Operatorer(string $date, array $opMap): array {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT op, SUM(cnt) AS ibc_ok
+                SELECT op, SUM(shift_ibc) AS ibc_ok
                 FROM (
-                    SELECT op1 AS op, COUNT(*) AS cnt
+                    SELECT op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY op1
+                    GROUP BY op1, skiftraknare
 
                     UNION ALL
 
-                    SELECT op2 AS op, COUNT(*) AS cnt
+                    SELECT op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY op2
+                    GROUP BY op2, skiftraknare
 
                     UNION ALL
 
-                    SELECT op3 AS op, COUNT(*) AS cnt
+                    SELECT op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY op3
+                    GROUP BY op3, skiftraknare
                 ) AS sub
                 GROUP BY op
                 ORDER BY ibc_ok DESC

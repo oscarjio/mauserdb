@@ -1,5 +1,56 @@
 # MauserDB Dev Log
 
+## Session #397 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: Komplett COUNT(*) vs MAX(ibc_ok) audit — 13 controllers fixade + 99 endpoints 0x500 + deploy dev**
+
+### UPPGIFT 1: Systematisk COUNT(*) vs MAX(ibc_ok) audit — ALLA controllers
+Granskade SAMTLIGA PHP-controllers for felaktig COUNT(*) pa rebotling_ibc.
+rebotling_ibc har en rad PER PLC-lasning inom ett skift — COUNT(*) ger antal rader (overraknar), inte antal IBC.
+Korrekt: MAX(ibc_ok) per skiftraknare, sedan SUM over skift.
+
+**Verifiering mot prod DB:**
+- COUNT(*) senaste 7 dagar: 394 (felaktigt)
+- SUM(MAX(ibc_ok)) per skift: 366 (korrekt) — 7.6% overrakning
+- Operatorranking helt felaktig med COUNT(*): fel operator pa forsta plats
+
+**Fixade 13 controllers (26 SQL-queries):**
+1. RebotlingTrendanalysController.php — hamtaDagligData() + veckosammanfattning() [2 queries]
+2. GamificationController.php — leaderboard trend + centurion badge + teamspelare badge + milstolpar + countBadgesTotal [5 queries]
+3. DagligBriefingController.php — bastaOperator() + bemanning() [2 queries]
+4. RankingHistorikController.php — calcBatchWeekProduction() + calcWeekProduction() [2 queries]
+5. OperatorRankingController.php — ranking overview + daglig trend + historik [3 queries]
+6. ProduktionskalenderController.php — getTop5Operatorer() [1 query]
+7. VDVeckorapportController.php — beraknaKpiForPeriod() + dagligProduktion() + trenderAnomalier() + beraknaAnomalierPeriod() [4 queries]
+8. ProduktionsTaktController.php — countIbcBetween() + getHourlyHistory() [2 queries]
+9. ProduktionspulsController.php — getLiveKpi ibcIdag [1 query]
+10. KapacitetsplaneringController.php — getKpi snitt + getDagligKapacitet snitt [2 queries]
+11. StatusController.php — ibcIdag [1 query]
+12. SkiftplaneringController.php — getShiftDetail produktion [1 query]
+13. RebotlingAdminController.php — ibc_today + systemStatus ibcToday + ibc_idag [3 queries]
+14. RebotlingAnalyticsController.php — ibc_today + 2 goal-progress queries [3 queries]
+
+**Ej andrade (korrekt anvandning av COUNT(*)):**
+- Hourly heatmaps (cycle rate per timme — rad = cykel-event)
+- Cycle-rate-queries (senaste timmen for takt)
+- LAG/OVER cykeltidsanalyser
+- COUNT pa andra tabeller (stopporsak, maintenance, etc.)
+- COUNT(DISTINCT ...) queries
+
+### UPPGIFT 2-3: Skiftrapport + Driftstopp granskning
+- SkiftrapportController.php: Redan korrekt — anvander MAX(ibc_ok) per skiftraknare
+- DrifttidsTimelineController.php: Arbetar mot rebotling_onoff, inte rebotling_ibc — OK
+- Alla relaterade controllers: SQL verifierad mot prod_db_schema.sql
+
+### UPPGIFT 4: Testa ALLA endpoints med curl
+- 99 endpoints testade mot dev.mauserdb.com
+- 0 x 500-fel
+- 0 endpoints >1s svarstid
+- Alla fixade controllers returnerar korrekt HTTP-status (200 eller 401 for auth-skyddade)
+
+### UPPGIFT 5: Deploy till dev
+- Backend deployed med rsync till dev.mauserdb.com
+- Alla endpoints verifierade efter deploy
+
 ## Session #397 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: Gamification buggfixar (kassationsrate+badges) + produktionsprognos verifiering + driftstopp granskning + responsivitet 375px 3 sidor**
 

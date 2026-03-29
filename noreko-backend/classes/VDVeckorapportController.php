@@ -161,13 +161,21 @@ class VDVeckorapportController {
         // IBC-produktion och kassation
         $sql = "
             SELECT
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda,
-                SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade,
-                MIN(datum) AS forsta,
-                MAX(datum) AS sista
-            FROM rebotling_ibc
-            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
+                SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc,
+                SUM(max_ibc_ok) AS godkanda,
+                SUM(max_ibc_ej_ok) AS kasserade,
+                MIN(forsta) AS forsta,
+                MAX(sista) AS sista
+            FROM (
+                SELECT skiftraknare,
+                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
+                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok,
+                       MIN(datum) AS forsta,
+                       MAX(datum) AS sista
+                FROM rebotling_ibc
+                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
+                GROUP BY skiftraknare
+            ) AS per_shift
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':fran' => $fran, ':till' => $till]);
@@ -234,13 +242,16 @@ class VDVeckorapportController {
 
     private function dagligProduktion(string $fran, string $till): array {
         $sql = "
-            SELECT
-                DATE(datum) AS dag,
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
-            FROM rebotling_ibc
-            WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
-            GROUP BY DATE(datum)
+            SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
+            FROM (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
+                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
+                FROM rebotling_ibc
+                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ) AS per_shift
+            GROUP BY dag
             ORDER BY dag ASC
         ";
         $stmt = $this->pdo->prepare($sql);
@@ -269,13 +280,16 @@ class VDVeckorapportController {
 
         $dagar = (int)$dagar; // Säkerställ int
         $sql = "
-            SELECT
-                DATE(datum) AS dag,
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
-            FROM rebotling_ibc
-            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
-            GROUP BY DATE(datum)
+            SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
+            FROM (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
+                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
+                FROM rebotling_ibc
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ) AS per_shift
+            GROUP BY dag
             ORDER BY dag ASC
         ";
         $stmt = $this->pdo->prepare($sql);
@@ -722,13 +736,16 @@ class VDVeckorapportController {
     private function beraknaAnomalierPeriod(string $fran, string $till): array {
         try {
             $sql = "
-                SELECT
-                    DATE(datum) AS dag,
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
-                FROM rebotling_ibc
-                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
+                SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
+                           COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
                 ORDER BY dag ASC
             ";
             $stmt = $this->pdo->prepare($sql);

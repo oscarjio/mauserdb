@@ -72,7 +72,7 @@ class ProduktionsTaktController {
      */
     private function countIbcBetween(string $from, string $to): int {
         $stmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+            "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? GROUP BY skiftraknare) AS ps"
         );
         $stmt->execute([$from, $to]);
         return (int)($stmt->fetchColumn() ?: 0);
@@ -202,12 +202,15 @@ class ProduktionsTaktController {
             $twentyFourHoursAgo = date('Y-m-d H:i:s', strtotime('-24 hours'));
 
             $stmt = $this->pdo->prepare("
-                SELECT
-                    DATE_FORMAT(datum, '%Y-%m-%d %H:00:00') AS timme,
-                    COUNT(*) AS ibc_count
-                FROM rebotling_ibc
-                WHERE datum BETWEEN ? AND ?
-                GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00')
+                SELECT timme, SUM(max_ok) AS ibc_count
+                FROM (
+                    SELECT DATE_FORMAT(datum, '%Y-%m-%d %H:00:00') AS timme, skiftraknare,
+                           COALESCE(MAX(ibc_ok), 0) AS max_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN ? AND ?
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00'), skiftraknare
+                ) AS per_shift
+                GROUP BY timme
                 ORDER BY timme ASC
             ");
             $stmt->execute([$twentyFourHoursAgo, $now]);

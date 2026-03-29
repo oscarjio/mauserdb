@@ -56,16 +56,26 @@ class RebotlingTrendanalysController {
         try {
         $sql = "
             SELECT
-                DATE(i.datum) AS datum,
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN i.lopnummer = 0 OR i.lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda,
-                SUM(CASE WHEN i.lopnummer = 0 OR i.lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade,
-                MIN(i.datum) AS forsta_cykel,
-                MAX(i.datum) AS sista_cykel
-            FROM rebotling_ibc i
-            WHERE i.datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-              AND i.datum < CURDATE() + INTERVAL 1 DAY
-            GROUP BY DATE(i.datum)
+                datum,
+                SUM(max_ibc_ok) AS total_ibc,
+                SUM(max_ibc_ok) AS godkanda,
+                SUM(max_ibc_ej_ok) AS kasserade,
+                MIN(forsta_cykel) AS forsta_cykel,
+                MAX(sista_cykel) AS sista_cykel
+            FROM (
+                SELECT
+                    DATE(i.datum) AS datum,
+                    i.skiftraknare,
+                    COALESCE(MAX(i.ibc_ok), 0) AS max_ibc_ok,
+                    COALESCE(MAX(i.ibc_ej_ok), 0) AS max_ibc_ej_ok,
+                    MIN(i.datum) AS forsta_cykel,
+                    MAX(i.datum) AS sista_cykel
+                FROM rebotling_ibc i
+                WHERE i.datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                  AND i.datum < CURDATE() + INTERVAL 1 DAY
+                GROUP BY DATE(i.datum), i.skiftraknare
+            ) AS per_shift
+            GROUP BY datum
             ORDER BY datum ASC
         ";
         $stmt = $this->pdo->prepare($sql);
@@ -339,17 +349,29 @@ class RebotlingTrendanalysController {
         try {
         $sql = "
             SELECT
-                YEAR(datum)       AS ar,
-                WEEK(datum, 1)    AS vecka,
-                MIN(DATE(datum))  AS from_datum,
-                MAX(DATE(datum))  AS to_datum,
-                COUNT(*)          AS total_ibc,
-                SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade,
-                MIN(datum)        AS forsta_cykel,
-                MAX(datum)        AS sista_cykel
-            FROM rebotling_ibc
-            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
-            GROUP BY YEAR(datum), WEEK(datum, 1)
+                ar, vecka,
+                MIN(from_datum) AS from_datum,
+                MAX(to_datum)   AS to_datum,
+                SUM(max_ibc_ok) AS total_ibc,
+                SUM(max_ibc_ej_ok) AS kasserade,
+                MIN(forsta_cykel) AS forsta_cykel,
+                MAX(sista_cykel)  AS sista_cykel
+            FROM (
+                SELECT
+                    YEAR(datum) AS ar,
+                    WEEK(datum, 1) AS vecka,
+                    skiftraknare,
+                    MIN(DATE(datum)) AS from_datum,
+                    MAX(DATE(datum)) AS to_datum,
+                    COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
+                    COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok,
+                    MIN(datum) AS forsta_cykel,
+                    MAX(datum) AS sista_cykel
+                FROM rebotling_ibc
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
+                GROUP BY YEAR(datum), WEEK(datum, 1), skiftraknare
+            ) AS per_shift
+            GROUP BY ar, vecka
             ORDER BY ar DESC, vecka DESC
             LIMIT 12
         ";

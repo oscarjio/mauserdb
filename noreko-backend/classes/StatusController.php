@@ -135,7 +135,7 @@ class StatusController {
 
                 // IBC idag
                 $ibcIdag = (int)$pdo->query(
-                    "SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                    "SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps"
                 )->fetchColumn();
 
                 // OEE idag

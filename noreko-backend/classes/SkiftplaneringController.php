@@ -472,7 +472,7 @@ class SkiftplaneringController {
                 }
 
                 $prodStmt = $this->pdo->prepare(
-                    "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+                    "SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? GROUP BY skiftraknare) ps"
                 );
                 $prodStmt->execute([$fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();

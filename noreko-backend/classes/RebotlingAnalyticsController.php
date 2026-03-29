@@ -697,8 +697,7 @@ class RebotlingAnalyticsController {
             try {
                 $comboRow = $this->pdo->query("
                     SELECT
-                        (SELECT COUNT(*) FROM rebotling_ibc
-                         WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
+                        (SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps_today) AS ibc_today,
                         t.ibc_ok AS today_ibc_ok, t.ibc_ej_ok AS today_ibc_ej_ok,
                         t.runtime_min AS today_runtime, t.rast_min AS today_rast,
                         y.ibc_ok AS yest_ibc_ok, y.ibc_ej_ok AS yest_ibc_ej_ok,
@@ -6566,7 +6565,7 @@ HTML;
                 $weekEnd   = $sunday->format('Y-m-d 23:59:59');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0"
+                    "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0 GROUP BY skiftraknare) ps"
                 );
                 $stmt->execute([$weekStart, $weekEnd]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
@@ -6600,7 +6599,7 @@ HTML;
                 $today = $now->format('Y-m-d');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0"
+                    "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0 GROUP BY skiftraknare) ps"
                 );
                 $stmt->execute([$today, $today]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);

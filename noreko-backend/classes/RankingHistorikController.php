@@ -89,29 +89,29 @@ class RankingHistorikController {
      */
     private function calcBatchWeekProduction(string $fromDate, string $toDate): array {
         $sql = "
-            SELECT YEAR(datum) AS yr, WEEK(datum, 1) AS wk, op, SUM(cnt) AS total_ok
+            SELECT YEAR(datum) AS yr, WEEK(datum, 1) AS wk, op, SUM(shift_ibc) AS total_ok
             FROM (
-                SELECT datum, op1 AS op, COUNT(*) AS cnt
+                SELECT datum, op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE datum >= :from1 AND datum <= :to1
                   AND op1 IS NOT NULL AND op1 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op1
+                GROUP BY YEAR(datum), WEEK(datum, 1), op1, skiftraknare
 
                 UNION ALL
 
-                SELECT datum, op2 AS op, COUNT(*) AS cnt
+                SELECT datum, op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE datum >= :from2 AND datum <= :to2
                   AND op2 IS NOT NULL AND op2 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op2
+                GROUP BY YEAR(datum), WEEK(datum, 1), op2, skiftraknare
 
                 UNION ALL
 
-                SELECT datum, op3 AS op, COUNT(*) AS cnt
+                SELECT datum, op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE datum >= :from3 AND datum <= :to3
                   AND op3 IS NOT NULL AND op3 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op3
+                GROUP BY YEAR(datum), WEEK(datum, 1), op3, skiftraknare
             ) AS combined
             GROUP BY yr, wk, op
             HAVING total_ok > 0
@@ -144,29 +144,29 @@ class RankingHistorikController {
         // rebotling_ibc uses cumulative ibc_ok per skiftraknare.
         // For operator ranking we count rows (each row = 1 IBC cycle) per operator.
         $sql = "
-            SELECT op, SUM(cnt) AS total_ok
+            SELECT op, SUM(shift_ibc) AS total_ok
             FROM (
-                SELECT op1 AS op, COUNT(*) AS cnt
+                SELECT op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y1 AND WEEK(datum, 1) = :w1
                   AND op1 IS NOT NULL AND op1 > 0
-                GROUP BY op1
+                GROUP BY op1, skiftraknare
 
                 UNION ALL
 
-                SELECT op2 AS op, COUNT(*) AS cnt
+                SELECT op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y2 AND WEEK(datum, 1) = :w2
                   AND op2 IS NOT NULL AND op2 > 0
-                GROUP BY op2
+                GROUP BY op2, skiftraknare
 
                 UNION ALL
 
-                SELECT op3 AS op, COUNT(*) AS cnt
+                SELECT op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y3 AND WEEK(datum, 1) = :w3
                   AND op3 IS NOT NULL AND op3 > 0
-                GROUP BY op3
+                GROUP BY op3, skiftraknare
             ) AS combined
             GROUP BY op
             HAVING total_ok > 0

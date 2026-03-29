@@ -150,24 +150,24 @@ class OperatorRankingController {
             $sql = "
                 SELECT op_id,
                        COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                       SUM(cnt) AS total_ibc,
+                       SUM(shift_ibc) AS total_ibc,
                        MIN(first_dt) AS first_ibc,
                        MAX(last_dt) AS last_ibc
                 FROM (
-                    SELECT op1 AS op_id, COUNT(*) AS cnt, MIN(datum) AS first_dt, MAX(datum) AS last_dt
+                    SELECT op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum) AS first_dt, MAX(datum) AS last_dt
                     FROM rebotling_ibc
                     WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                    GROUP BY op1
+                    GROUP BY op1, skiftraknare
                     UNION ALL
-                    SELECT op2 AS op_id, COUNT(*) AS cnt, MIN(datum), MAX(datum)
+                    SELECT op2 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum), MAX(datum)
                     FROM rebotling_ibc
                     WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                    GROUP BY op2
+                    GROUP BY op2, skiftraknare
                     UNION ALL
-                    SELECT op3 AS op_id, COUNT(*) AS cnt, MIN(datum), MAX(datum)
+                    SELECT op3 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum), MAX(datum)
                     FROM rebotling_ibc
                     WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                    GROUP BY op3
+                    GROUP BY op3, skiftraknare
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
                 GROUP BY op_id, o.name
@@ -414,22 +414,22 @@ class OperatorRankingController {
 
         try {
             $sql = "
-                SELECT op_id, dag, SUM(cnt) AS ibc_count
+                SELECT op_id, dag, SUM(shift_ibc) AS ibc_count
                 FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op1, DATE(datum)
+                    GROUP BY op1, DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    SELECT op2 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op2, DATE(datum)
+                    GROUP BY op2, DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt
+                    SELECT op3 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op3, DATE(datum)
+                    GROUP BY op3, DATE(datum), skiftraknare
                 ) AS combined
                 GROUP BY op_id, dag
                 ORDER BY op_id, dag DESC
@@ -612,32 +612,32 @@ class OperatorRankingController {
 
             try {
                 $sql = "
-                    SELECT dag, op_id, SUM(cnt) AS total_ibc
+                    SELECT dag, op_id, SUM(shift_ibc) AS total_ibc
                     FROM (
-                        SELECT DATE(datum) AS dag, op1 AS op_id, COUNT(*) AS cnt
+                        SELECT DATE(datum) AS dag, op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op1 IN ({$placeholders})
                           AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY DATE(datum), op1
+                        GROUP BY DATE(datum), op1, skiftraknare
 
                         UNION ALL
 
-                        SELECT DATE(datum) AS dag, op2 AS op_id, COUNT(*) AS cnt
+                        SELECT DATE(datum) AS dag, op2 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op2 IN ({$placeholders})
                           AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY DATE(datum), op2
+                        GROUP BY DATE(datum), op2, skiftraknare
 
                         UNION ALL
 
-                        SELECT DATE(datum) AS dag, op3 AS op_id, COUNT(*) AS cnt
+                        SELECT DATE(datum) AS dag, op3 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op3 IN ({$placeholders})
                           AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY DATE(datum), op3
+                        GROUP BY DATE(datum), op3, skiftraknare
                     ) AS combined
                     GROUP BY dag, op_id
                     ORDER BY dag ASC
