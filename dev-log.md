@@ -69,6 +69,87 @@ Ingen deploy behovs -- inga kodfiler andrades.
 Filer andrade:
 - dev-log.md (denna logg)
 
+## Session #396 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: VD-dashboard KPI-verifiering mot prod DB (2 SQL-buggar fixade: COUNT(*)-->MAX per skiftraknare), operatorsbonus trend field-mismatch fixad, rebotling-admin dark theme bugg fixad, mobilanpassning 375px for 4 sidor + build+deploy dev OK**
+
+### UPPGIFT 1: Executive/VD-dashboard — KPI-verifiering mot prod DB (HOGSTA PRIO)
+Granskade 2 frontend-komponenter + 2 backend-controllers:
+- `executive-dashboard.ts` (exec dashboard med RebotlingService)
+- `vd-dashboard.component.ts` (VD-oversikt med VdDashboardService)
+- `VdDashboardController.php`
+- `RebotlingAnalyticsController.php`
+
+**Hittade 2 kritiska SQL-buggar i VdDashboardController:**
+1. **`topOperatorer`** — anvande `COUNT(*)` per operator istallet for kumulativt MAX per skiftraknare. Prod DB visade: COUNT(*)=72 for op 157, men korrekt IBC=8. Operatorsrankningen var helt fel.
+2. **`skiftstatus`** — anvande `COUNT(*)` for IBC istallet for MAX per skiftraknare. Prod DB: COUNT(*)=120, korrekt IBC=127 for FM-skiftet 2026-03-27.
+
+**Fix:** Ersatte COUNT(*)-queries med `SUM(MAX(ibc_ok) GROUP BY skiftraknare)` — samma monster som session #394 fixade i ProduktionsPrognosController.
+
+**Verifiering mot prod DB (2026-03-27):**
+- `calcOeeForDay`: OK — redan korrekt MAX per skiftraknare
+- `oversikt`: OK — korrekt IBC + aktiva operatorer + dagsmal (400 IBC)
+- `topOperatorer`: FIXAD — nu visar Mayo=106, Biniam=106, Ted=98 (korrekt)
+- `skiftstatus`: FIXAD — korrekt IBC per skift
+- `stationOee`: OK — korrekt fordelning
+- `veckotrend`: OK
+
+### UPPGIFT 2: Operatorsportal — bonusberakningar end-to-end
+Granskade:
+- `operatorsbonus.component.ts` + `operatorsbonus.service.ts`
+- `OperatorsbonusController.php`
+
+**Hittade 2 buggar:**
+1. **Trend field-name mismatch** — Backend returnerade `bonus_belopp`, `ibc_per_timme`, `kvalitet_pct` men frontend forvantar `bonus`, `ibc_per_h`, `kvalitet`, `narvaro`. Trendgrafen var tom.
+2. **Trend saknade `snitt_bonus`** — Frontend laste `res.data.snitt_bonus` men backend returnerade det inte. Snittbonus-linjen i grafen visades inte.
+3. **Trend days-parameter ignorerades** — Frontend skickade `?days=30` men backend laste bara `?period=30d`. Periodbyte fungerade inte.
+
+**Fix:** Lade till frontend-kompatibla faltnamn i trend-responsen, beraknade snitt_bonus, stod for bade `?period=` och `?days=` parametrar.
+
+**Bonusberakning verifierad mot prod DB (2026-03-27):**
+- Konfig: ibc_per_timme mal=12, max=500kr | kvalitet mal=98%, max=400kr | narvaro mal=100%, max=200kr | team mal=95%, max=100kr
+- Op 156 (Biniam): IBC=106, runtime=360min=6h, IBC/h=17.67 -> bonus_ibc=500kr (capped), kvalitet=100% -> bonus_kval=400kr. Korrekt.
+- Team-mal baserat pa rebotling_target=1000 IBC/dag, alla dagar under mal -> team_bonus_pct lag. Korrekt.
+
+### UPPGIFT 3: Rebotling-admin frontend djupgranskning
+Granskade `rebotling-admin.ts` + `rebotling-admin.html` + `rebotling-admin.css`:
+
+**Lifecycle:** OK
+- `destroy$` + `takeUntil` pa alla subscriptions
+- `clearInterval` pa systemStatusInterval, todaySnapshotInterval, maintenanceTimer
+- `chart.destroy()` pa maintenanceChart, goalHistoryChart, correlationChart
+- `clearTimeout` pa successTimerId + _feedbackTimers array
+- `visibilitychange` listener korrekt borttagen i ngOnDestroy
+
+**CRUD-formular:** OK
+- Produkthantering: validering (namn+cykeltid kravs), felmeddelanden pa svenska
+- Veckodagsmal: validering min=0, snabbverktyg (kopiera till helg, satt alla)
+- Skifttider: validering via HTML5 time input
+- Kassationsregistrering: validering orsak_id + antal >= 1
+
+**Dark theme bugg hittad och fixad:**
+- `.form-label` hade dubblerad definition: rad 48 satte `#e2e8f0` (korrekt) men rad 116 overskrev med `#495057` (ljust tema). Labels var nastan osynliga pa mork bakgrund. Fixad.
+
+### UPPGIFT 4: Mobilanpassning — 375px viewport
+Lade till `@media (max-width: 420px)` breakpoints for:
+1. **Executive Dashboard** — mindre font-storlekar, enkolumns linjestatus, kompaktare KPI-kort, mindra chart-hogd
+2. **VD Dashboard** — kompaktare hero-varden, mindra card-body padding
+3. **Rebotling Admin** — kompaktare snapshot-kpi, status-kort, tabeller, formular
+4. **Operatorsbonus** — kompaktare KPI-kort, tabeller, chart containers, drilldown
+
+### UPPGIFT 5: Bygg + Deploy
+- `npx ng build` — OK (inga fel, bara CommonJS-varningar)
+- Frontend deploy via rsync — OK
+- Backend deploy via rsync — OK (VdDashboardController.php + OperatorsbonusController.php)
+
+Filer andrade:
+- noreko-backend/classes/VdDashboardController.php (2 SQL-fixar: topOperatorer + skiftstatus)
+- noreko-backend/classes/OperatorsbonusController.php (trend field-names + snitt_bonus + days-param)
+- noreko-frontend/src/app/pages/executive-dashboard/executive-dashboard.css (375px mobilanpassning)
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.html (375px mobilanpassning)
+- noreko-frontend/src/app/pages/rebotling-admin/rebotling-admin.css (form-label dark theme fix + 375px)
+- noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.css (375px mobilanpassning)
+- dev-log.md (denna logg)
+
 ## Session #395 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: optimering av 5 slow endpoints (5.4s/1.7s/1.6s/1.0s/1.1s -> alla <0.5s cold, <0.13s warm) + SQL-audit rebotling-historik/kvalitet/kassation/stopporsak controllers 0 mismatches + 120 endpoints 0x500 + 6 nya DB-index + 30s filcache + deploy dev OK**
 

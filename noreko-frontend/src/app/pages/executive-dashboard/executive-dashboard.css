@@ -565,6 +565,32 @@
   }
 }
 
+/* 375px viewport — mobilanpassning */
+@media (max-width: 420px) {
+  .exec-dashboard { padding: 0.5rem; }
+  .exec-title { font-size: 1.15rem; }
+  .ibc-big { font-size: 1.6rem; }
+  .ibc-sep { font-size: 1.2rem; }
+  .ibc-target { font-size: 1rem; }
+  .circle-progress { width: 100px; height: 100px; }
+  .forecast-value { font-size: 1.2rem; }
+  .oee-block-value { font-size: 1.3rem; }
+  .kpi-card { padding: 0.9rem; }
+  .kpi-value { font-size: 1.2rem; }
+  .kpi-icon { font-size: 1.2rem; }
+  .section-card-inner { padding: 0.75rem; }
+  .vecko-ibc-big { font-size: 1.8rem; }
+  .alert-text { font-size: 0.82rem; }
+  .alert-message { font-size: 0.88rem; }
+  .ops-table { font-size: 0.78rem; }
+  .ops-table th { font-size: 0.62rem; }
+  .detail-card-header h6 { font-size: 0.85rem; }
+  .weekly-kpi .kpi-value { font-size: 1.1rem; }
+  .line-status-card { min-width: 100%; flex: 1 1 100%; }
+  .staffing-card { padding: 0.6rem 0.75rem; }
+  .mood-chart-container { height: 120px; }
+}
+
 /* ============================================================
    VECKOFRAMGÅNGSMÄTARE
    ============================================================ */

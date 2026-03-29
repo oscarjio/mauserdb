@@ -736,11 +736,17 @@ class OperatorsbonusController {
     private function getTrend(): void {
         try {
             $operatorId = isset($_GET['operator_id']) ? (int)$_GET['operator_id'] : 0;
-            $period     = trim($_GET['period'] ?? '30d');
+            $period     = trim($_GET['period'] ?? '');
 
-            // Bestäm antal dagar
+            // Bestäm antal dagar — stöd både ?period=30d och ?days=30
             $daysMap = ['7d' => 7, '30d' => 30, '90d' => 90, '365d' => 365];
-            $days = $daysMap[$period] ?? 30;
+            if (isset($daysMap[$period])) {
+                $days = $daysMap[$period];
+            } elseif (isset($_GET['days']) && (int)$_GET['days'] > 0) {
+                $days = min(365, max(1, (int)$_GET['days']));
+            } else {
+                $days = 30;
+            }
 
             // Validera operator_id
             if ($operatorId <= 0) {
@@ -875,6 +881,12 @@ class OperatorsbonusController {
                 $totalBonus    = $bonusIbc + $bonusKvalitet;
 
                 $point = [
+                    // Fältnamn matchade mot frontend TrendDagItem-interface
+                    'bonus'          => round($totalBonus, 2),
+                    'ibc_per_h'      => $ibcPerTimme,
+                    'kvalitet'       => $kvalitetPct,
+                    'narvaro'        => 100, // Närvaro kan inte beräknas per dag utan schemainfo
+                    // Extra fält för backend-kompatibilitet
                     'ibc_per_timme'  => $ibcPerTimme,
                     'kvalitet_pct'   => $kvalitetPct,
                     'total_ibc'      => $totalIbc,
@@ -896,6 +908,13 @@ class OperatorsbonusController {
                 $trendData[] = $point;
             }
 
+            // Beräkna snittbonus för perioden
+            $snittBonus = 0;
+            if (!empty($trendData)) {
+                $sumBonus = array_sum(array_column($trendData, 'bonus'));
+                $snittBonus = round($sumBonus / count($trendData), 2);
+            }
+
             $this->sendSuccess([
                 'operator_id'   => $operatorId,
                 'operator_namn' => $operator['name'],
@@ -906,6 +925,7 @@ class OperatorsbonusController {
                 'to'            => $toDate,
                 'datapunkter'   => count($trendData),
                 'trend'         => $trendData,
+                'snitt_bonus'   => $snittBonus,
             ]);
         } catch (\Exception $e) {
             error_log('OperatorsbonusController::getTrend: ' . $e->getMessage());

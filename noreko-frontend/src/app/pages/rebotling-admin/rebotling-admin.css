@@ -115,7 +115,7 @@
 /* Form styling */
 .form-label {
   font-weight: 600;
-  color: #495057;
+  color: #e2e8f0;
 }
 
 .form-text {
@@ -493,4 +493,23 @@
 @keyframes service-pulse {
   0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5); }
   50%       { opacity: 0.9; box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+}
+
+/* 375px viewport — mobilanpassning */
+@media (max-width: 420px) {
+  .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .card-body { padding: 0.75rem; }
+  .card-header h5 { font-size: 0.95rem; }
+  .snapshot-kpi-value { font-size: 1.2rem; }
+  .snapshot-kpi-label { font-size: 0.6rem; }
+  .status-card { padding: 10px 12px; }
+  .status-value { font-size: 0.95rem; }
+  .status-label { font-size: 0.62rem; }
+  .weekday-goal-card { padding: 8px; }
+  .weekday-input { font-size: 0.85rem; }
+  .threshold-card { padding: 10px; }
+  .shift-time-card { padding: 10px; }
+  .btn-group-sm .btn { padding: 0.2rem 0.4rem; font-size: 0.78rem; }
+  .table-responsive { font-size: 0.78rem; }
+  .form-control-sm { min-width: 90px; }
 }

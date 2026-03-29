@@ -363,26 +363,28 @@ class VdDashboardController {
             $operators = [];
 
             // rebotling_ibc uses op1/op2/op3, not user_id
+            // IBC-fält är kumulativa per skifträknare — använd MAX per skifträknare, sedan SUM
             try {
                 $sql = "
                     SELECT
                         op_id AS user_id,
                         COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                        SUM(cnt) AS total_ibc
+                        SUM(shift_ibc) AS total_ibc
                     FROM (
-                        SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1
-                        UNION ALL
-                        SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2
-                        UNION ALL
-                        SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3
-                    ) AS sub
-                    LEFT JOIN operators o ON o.number = sub.op_id
+                        SELECT op_id, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                        FROM (
+                            SELECT op1 AS op_id, skiftraknare, ibc_ok FROM rebotling_ibc
+                            WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
+                            UNION ALL
+                            SELECT op2, skiftraknare, ibc_ok FROM rebotling_ibc
+                            WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
+                            UNION ALL
+                            SELECT op3, skiftraknare, ibc_ok FROM rebotling_ibc
+                            WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
+                        ) AS all_ops
+                        GROUP BY op_id, skiftraknare
+                    ) AS per_shift
+                    LEFT JOIN operators o ON o.number = per_shift.op_id
                     GROUP BY op_id, o.name
                     ORDER BY total_ibc DESC
                     LIMIT 3
@@ -614,11 +616,20 @@ class VdDashboardController {
             }
             $skiftToTime = date('Y-m-d H:i:s');
 
+            // IBC för aktuellt skift — kumulativa fält, MAX per skifträknare sedan SUM
             $ibcAktuellt = 0;
             try {
-                $sql = "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN :from AND :to";
+                $sql = "
+                    SELECT COALESCE(SUM(shift_ok), 0) AS total_ibc
+                    FROM (
+                        SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok
+                        FROM rebotling_ibc
+                        WHERE datum BETWEEN :from_dt AND :to_dt
+                        GROUP BY skiftraknare
+                    ) sub
+                ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':from' => $skiftFromTime, ':to' => $skiftToTime]);
+                $stmt->execute([':from_dt' => $skiftFromTime, ':to_dt' => $skiftToTime]);
                 $ibcAktuellt = (int)$stmt->fetchColumn();
             } catch (\Exception $e) {
                 error_log('VdDashboardController::skiftstatus (aktuellt ibc): ' . $e->getMessage());
@@ -637,9 +648,17 @@ class VdDashboardController {
                     $fFrom = date('Y-m-d', strtotime('-2 days')) . ' 22:00:00';
                     $fTo   = date('Y-m-d', strtotime('-1 day')) . ' 06:00:00';
                 }
-                $sql = "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN :from AND :to";
+                $sql = "
+                    SELECT COALESCE(SUM(shift_ok), 0) AS total_ibc
+                    FROM (
+                        SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok
+                        FROM rebotling_ibc
+                        WHERE datum BETWEEN :from_dt AND :to_dt
+                        GROUP BY skiftraknare
+                    ) sub
+                ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':from' => $fFrom, ':to' => $fTo]);
+                $stmt->execute([':from_dt' => $fFrom, ':to_dt' => $fTo]);
                 $ibcForra = (int)$stmt->fetchColumn();
             } catch (\Exception $e) {
                 error_log('VdDashboardController::skiftstatus (forra ibc): ' . $e->getMessage());

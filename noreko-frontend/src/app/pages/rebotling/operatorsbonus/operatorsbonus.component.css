@@ -582,3 +582,22 @@
     font-size: 0.8rem;
   }
 }
+
+/* 375px viewport — mobilanpassning */
+@media (max-width: 420px) {
+  .kpi-card { padding: 0.8rem; min-height: auto; }
+  .kpi-value { font-size: 1.3rem; }
+  .kpi-label { font-size: 0.7rem; }
+  .chart-container { height: 220px; }
+  .chart-container-sm { height: 180px; }
+  .table-card { padding: 0.75rem; }
+  .table-dark-custom th { font-size: 0.68rem; padding: 0.4rem 0.5rem; }
+  .table-dark-custom td { font-size: 0.78rem; padding: 0.4rem 0.5rem; }
+  .status-op-tile { min-width: 80px; padding: 0.5rem 0.6rem; }
+  .status-op-name { max-width: 70px; font-size: 0.68rem; }
+  .formula-card { padding: 0.75rem 0.9rem; }
+  .section-title { font-size: 0.9rem; }
+  .drilldown-kpi { padding: 0.4rem 0.5rem; }
+  .drilldown-kpi-val { font-size: 0.9rem; }
+  .sim-result-item { padding: 0.5rem 0.75rem; }
+}
