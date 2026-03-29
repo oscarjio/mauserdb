@@ -1,5 +1,77 @@
 # MauserDB Dev Log
 
+## Session #398 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: Verifiera KPI-siffror + operatorsbonus + grafer + mobilresponsivitet**
+
+### UPPGIFT 1: VD-Dashboard — verifiera ALLA KPI-siffror
+Granskade VdDashboardController.php (682 rader):
+- Alla 6 endpoints (oversikt, stopp-nu, top-operatorer, station-oee, veckotrend, skiftstatus) anvander korrekt MAX(ibc_ok) per skiftraknare
+- calcOeeForDay() aggregerar korrekt: MAX(ibc_ok) + MAX(ibc_ej_ok) GROUP BY skiftraknare, sedan SUM
+- topOperatorer() anvander UNION ALL med op1/op2/op3, MAX per skiftraknare, sedan SUM per operator
+- skiftstatus() anvander MAX per skiftraknare for bade aktuellt och forra skiftet
+- **Resultat: Alla SQL-queries korrekt, inga avvikelser**
+
+### UPPGIFT 2: Operatorsbonus — end-to-end verifiering
+Granskade OperatorsbonusController.php (935 rader):
+- getOperatorData() anvander batch-query med MAX(ibc_ok) per (op_id, skiftraknare), sedan SUM
+- getTeamMalProcent() anvander MAX per (dag, skiftraknare)
+- getTrend() anvander MAX per (dag, skiftraknare) for bade daglig och veckovis aggregering
+- Bonusberakningar matchar: beraknaBonus(verkligt/mal * maxBonus) med cap vid 100%
+- **Resultat: Alla SQL-queries korrekt**
+
+### UPPGIFT 3: Morgonrapport/Daglig briefing — verifiera
+Granskade MorgonrapportController.php (836 rader):
+- getProduktionData() anvander MAX(ibc_ok) per skiftraknare med HAVING COUNT(*) > 1
+- getEffektivitetData() anvander samma aggregering
+- getKvalitetData() anvander MAX(ibc_ej_ok) + MAX(ibc_ok) per skiftraknare
+- getTrenderData() anvander MAX per (dag, skiftraknare)
+- getHighlightsData() anvander MAX per (timme, skiftraknare)
+- **Resultat: Alla SQL-queries korrekt**
+
+Granskade OperatorRankingController.php (754 rader):
+- getOperatorIbcData() anvander MAX(ibc_ok) per (op_id, skiftraknare) via UNION ALL
+- calcStreaks() anvander batch-query med MAX per (dag, skiftraknare)
+- historik() anvander MAX per (dag, op_id, skiftraknare)
+- **Resultat: Alla SQL-queries korrekt**
+
+### UPPGIFT 4: Granska ALLA frontend-komponenter som visar IBC-data
+- Granskade 109 HTML-filer som visar IBC-data
+- VD-dashboard: visar total_ibc, ok_ibc, oee_pct, mal_procent korrekt fran API
+- Operator-ranking: visar total_ibc, total_poang, ok_pct fran backend
+- Morgonrapport: visar totalt_ibc, kasserade_antal, kvalitetsgrad korrekt
+- Executive-dashboard: visar ibc, target, pct, forecast korrekt
+- My-bonus: visar total_ibc, ibc_ok, ibc_ej_ok korrekt
+- **Ingen frontend-komponent formaterar om data felaktigt — alla visar API-data direkt**
+
+### UPPGIFT 5: Granska grafer och charts
+- 108 komponenter med Chart.js (new Chart())
+- ALLA har ngOnDestroy med chart.destroy()
+- VD-dashboard: trendChart + stationChart korrekt binds till veckotrend.trend och stationOee.stationer
+- Operator-ranking: poangFordelningChart + historikChart korrekt databinding
+- Dark theme-farger korrekt: #e2e8f0 text, #a0aec0 labels, rgba(255,255,255,0.05) gridlines
+- **Resultat: Inga graflackor, korrekt databinding**
+
+### UPPGIFT 6: Mobilresponsivitet — testa ALLA sidor vid 375px
+Lade till 375px/480px media queries for 4 sidor som saknade dem:
+1. **operator-ranking** — la till @media (max-width: 480px) med komprimerade podium-kort, tabell, KPI-kort
+2. **morgonrapport** — la till @media (max-width: 420px) med komprimerad header, KPI-rad, tabeller
+3. **historisk-sammanfattning** — la till @media (max-width: 480px) med komprimerade KPI-kort och tabeller
+4. **statistik-overblick** — la till @media (max-width: 480px) med komprimerad padding och chart-hojd
+5. **veckorapport** — la till @media (max-width: 480px) med komprimerad layout
+
+Sidor som redan var testade i session #397: gamification, produktionsprognos, driftstopp
+Sidor som redan hade bra responsivitet: vd-dashboard, executive-dashboard, my-bonus, live-ranking
+
+### UPPGIFT 7: Bygg och deploya frontend
+- `npx ng build` — bygge OK (inga fel, 5 ESM-varningar)
+- Deploy till dev.mauserdb.com — rsync OK
+- Alla endpoints returnerar 401 (inloggning kravs) — inga 500-fel
+
+### Verifiering mot prod DB
+- 2026-03-29 (sondag): 0 IBC producerade — korrekt visat av API
+- Senaste produktionsdag 2026-03-27: 122 rader i rebotling_ibc
+- COUNT(*) vs MAX(ibc_ok) aggregering bekraftad korrekt i alla controllers
+
 ## Session #397 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: Komplett COUNT(*) vs MAX(ibc_ok) audit — 13 controllers fixade + 99 endpoints 0x500 + deploy dev**
 

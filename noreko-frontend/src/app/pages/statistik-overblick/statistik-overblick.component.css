@@ -139,3 +139,18 @@
     height: 250px;
   }
 }
+
+@media (max-width: 480px) {
+  .overblick-container {
+    padding: 8px 4px;
+  }
+  .kpi-value {
+    font-size: 1.1rem;
+  }
+  .kpi-label {
+    font-size: 0.7rem;
+  }
+  .chart-wrapper {
+    height: 200px;
+  }
+}
