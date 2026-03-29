@@ -1,5 +1,53 @@
 # MauserDB Dev Log
 
+## Session #399 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: End-to-end verifiering rebotling/skiftrapport/driftstopp mot prod DB + sakerhetsrevision + 175 endpoints testade + deploy-dev.sh fixad**
+
+### UPPGIFT 1: Rebotling detaljvy — verifiering mot prod DB
+- Verifierat rebotling huvudendpoint, day-detail, cycle-by-operator, shift-summary mot prod DB
+- **Skiftrapportdata (rebotling_skiftrapport) matchar exakt** mellan API och prod DB:
+  - id=40: datum=2026-03-27, ibc_ok=2, totalt=3 (korrekt)
+  - id=38: datum=2026-03-27, ibc_ok=67, totalt=68 (korrekt)
+- Day-detail anvander rebotling_ibc (PLC-data) med delta-berakning — ger annorlunda siffror an manuella skiftrapporter, men detta ar avsett beteende (tva olika datakallor)
+- Shift-summary fungerar korrekt med skiftnummer-parameter
+
+### UPPGIFT 2: Skiftrapport end-to-end verifiering
+- Testat alla 8 skiftrapport-endpoints: 6x HTTP 200, 2x HTTP 400 (korrekt — saknar obligatoriska parametrar)
+- Verifierat daglig-sammanstallning, veckosammanstallning, skiftjamforelse, operator-kpi-jamforelse
+- Data matchar prod DB (2026-03-27: total_ibc_ok=108, total_kasserat=2, antal_rapporter=4)
+- Berakningar (effektivitet, kvalitet, OEE) stammer
+
+### UPPGIFT 3: Driftstopp-analys verifiering
+- Testat 5 stoppage-endpoints + rebotling driftstopp: alla HTTP 200
+- stoppage_log ar tom i prod DB (0 rader) — API returnerar tomt korrekt
+- rebotling_driftstopp har 4 poster fran 2026-03-27 — API visar korrekt 0 for idag (2026-03-29)
+- Stopporsaker, Pareto, veckosammanfattning, monster-analys alla fungerar
+
+### UPPGIFT 4: Sakerhetsrevision
+- **Auth-kontroll**: POST/PUT/DELETE skyddas centralt i api.php (session + CSRF-token)
+- **GET-auth**: De flesta controllers kraver inloggning; 7 controllers har publika GET-endpoints:
+  - RebotlingController (avsett — fabriksdisplayer), HistorikController (markerade som publika), AndonController, KlassificeringslinjeController, SaglinjeController, TvattlinjeController (produktionslinjedisplayer), RegisterController, ShiftPlanController
+  - Alla POST-endpoints i dessa kraver admin-roll
+- **CSRF-skydd**: Valideras centralt i api.php for alla state-andrande requests
+- **Rate limiting**: 120 req/min per IP med sliding window + filbaserad lagring — fungerar
+- **SQL injection**: Alla queries anvander prepared statements (PDO::prepare + execute med parametrar)
+  - Interpolerade variabler ar validerade (t.ex. $days via intval+clamp, $ph via array_fill med '?')
+- **Bcrypt**: Losenord hashas med PASSWORD_BCRYPT — inga sha1/md5
+- **Sakerhetshuvuden**: X-Content-Type-Options, X-Frame-Options, CSP, HSTS, Permissions-Policy — alla korrekta
+
+### UPPGIFT 5: Endpoint-test ALLA endpoints
+- **175 endpoints testade** med curl mot dev.mauserdb.com
+- **0 st 500-fel**
+- **0 st >1 sekund**
+- Inga fixar behovdes — alla endpoints fungerar korrekt
+
+### UPPGIFT 6: Deploy
+- **Hittade och fixade kritisk bugg**: db_config.php deployades med port 3306 (lokal dev DB) istallet for port 33061 (prod DB)
+  - Orsak: det saknades en deploy-dev.sh for backend — tidigare deploys koperade db_config.php
+  - Fix: Skapade noreko-backend/deploy-dev.sh som exkluderar db_config.php, cors_origins.php, app_config.php, logs/
+  - Fixade dev-serverns db_config.php till port 33061 med korrekta credentials
+- Backend deployat och verifierat — 175 endpoints OK efter deploy
+
 ## Session #399 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: End-to-end verifiering alla sidor + export-endpoints + Chart.js-audit + template-granskning + lint-fix**
 
