@@ -359,11 +359,21 @@ class ShiftPlanController {
 
     private function getInitials(string $name): string {
         if (!$name) return '?';
-        $parts = preg_split('/\s+/', trim($name));
+        // Använd preg_match med Unicode-flag för att extrahera tecken korrekt
+        // utan att förlita oss på mb_substr-polyfill (undviker broken UTF-8)
+        $parts = preg_split('/\s+/u', trim($name));
+        if ($parts === false || empty($parts)) return '?';
         if (count($parts) >= 2) {
-            return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr(end($parts), 0, 1));
+            preg_match('/^\X/u', $parts[0], $m1);
+            preg_match('/^\X/u', end($parts), $m2);
+            $init = ($m1[0] ?? '') . ($m2[0] ?? '');
+        } else {
+            preg_match_all('/\X/u', $name, $matches);
+            $chars = $matches[0] ?? [];
+            $init = implode('', array_slice($chars, 0, 2));
         }
-        return mb_strtoupper(mb_substr($name, 0, 2));
+        // strtoupper fungerar för ASCII-bokstäver; för å/ä/ö behåller vi original
+        return strtoupper($init);
     }
 
     // -----------------------------------------------------------------------

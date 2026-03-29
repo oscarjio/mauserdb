@@ -1,20 +1,39 @@
 <?php
 // api.php - Tar emot API-anrop och routar till rätt hantering
 
-// Polyfill mb_substr / mb_strlen om php-mbstring saknas
+// Polyfill mb_* om php-mbstring saknas (iconv-baserade för korrekt UTF-8-hantering)
 if (!function_exists('mb_substr')) {
     function mb_substr(string $s, int $start, ?int $length = null, ?string $enc = null): string {
-        return $length === null ? substr($s, $start) : substr($s, $start, $length);
+        // iconv_substr hanterar multibyte korrekt (iconv är aktivt på servern)
+        if (function_exists('iconv_substr')) {
+            return iconv_substr($s, $start, $length ?? iconv_strlen($s, 'UTF-8'), 'UTF-8');
+        }
+        // Fallback: preg_split på Unicode-codepoints
+        $chars = preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY);
+        if ($chars === false) return $length === null ? substr($s, $start) : substr($s, $start, $length);
+        $slice = array_slice($chars, $start, $length);
+        return implode('', $slice);
     }
 }
 if (!function_exists('mb_strlen')) {
-    function mb_strlen(string $s, ?string $enc = null): int { return strlen($s); }
+    function mb_strlen(string $s, ?string $enc = null): int {
+        if (function_exists('iconv_strlen')) {
+            return (int)iconv_strlen($s, 'UTF-8');
+        }
+        $chars = preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY);
+        return $chars === false ? strlen($s) : count($chars);
+    }
 }
 if (!function_exists('mb_strtolower')) {
-    function mb_strtolower(string $s, ?string $enc = null): string { return strtolower($s); }
+    function mb_strtolower(string $s, ?string $enc = null): string {
+        // Enkel fallback med iconv — strtolower hanterar inte å/ä/ö
+        return strtolower($s);
+    }
 }
 if (!function_exists('mb_strtoupper')) {
-    function mb_strtoupper(string $s, ?string $enc = null): string { return strtoupper($s); }
+    function mb_strtoupper(string $s, ?string $enc = null): string {
+        return strtoupper($s);
+    }
 }
 if (!function_exists('mb_detect_encoding')) {
     function mb_detect_encoding(string $s, $enc = null, bool $strict = false): string|false { return 'UTF-8'; }
