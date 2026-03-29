@@ -1,5 +1,57 @@
 # MauserDB Dev Log
 
+## Session #393 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: grundlig UX-granskning av 30+ frontend-komponenter (bonus, skiftrapport, VD-dashboard, drifttid, stopporsak m.fl.) efter session #392 backend-fixes — 0 buggar, alla lifecycle OK, alla charts destroy() OK, dark theme korrekt, svenska texter, build OK**
+
+### UPPGIFT 1: Operatorsbonus-sidor (3 komponenter)
+- **bonus-dashboard.ts/.html** — OK. 4 Chart.js-grafer destroy() i ngOnDestroy. pollingInterval + timeouts rensas. Cachad activeRanking. Dark theme + svenska.
+- **bonus-admin.ts/.html** — OK. ~1490 rader TS. 3 timeouts rensas. What-if simulator, utbetalningar, rattviseaudit. ComponentCanDeactivate.
+- **my-bonus.ts/.html** — OK. 4 Chart.js-grafer destroy(). Cachade berakningar. Veckohistorik, rekord, streak, achievements, peer ranking, feedback.
+
+### UPPGIFT 2: Skiftrapport-sidor (6 komponenter)
+- **rebotling-skiftrapport.ts** — OK. Charts destroy(). Polling + timers rensas.
+- **shared-skiftrapport.ts** — OK. Cachade KPI-varden. IBC-totaler korrekt (totalOk + totalEjOk).
+- **skiftrapport-export.ts** — OK. PDF via pdfmake (dag + vecka).
+- **skiftjamforelse.ts** — OK. 2 charts destroy(). refreshInterval + _timers rensas.
+- **skiftoverlamning.ts** — OK. refreshInterval (60s) rensas.
+- **shift-handover.ts** — OK. pollInterval + focusTimer rensas. Optimistic update.
+
+### UPPGIFT 3: VD-dashboard och daglig sammanfattning (5 komponenter)
+- **vd-dashboard.component.ts** — OK. forkJoin 6 endpoints. 2 charts destroy(). refreshInterval (30s).
+- **daglig-sammanfattning.ts** — OK. refreshInterval + countdownInterval rensas.
+- **executive-dashboard.ts** — OK. 2 charts destroy(). 2 pollIntervals rensas.
+- **veckorapport.ts** — OK. Enkel ISO-veckovaljare, inga charts.
+- **weekly-report.ts** — OK. 1 chart destroy(). loadVersion-pattern. CSV + Excel + PDF export.
+
+### UPPGIFT 4: Drifttids-timeline och effektivitet (6 komponenter)
+- **drifttids-timeline.component.ts** — OK. 2 charts destroy(). Cachade computed properties.
+- **effektivitet.ts** — OK. 1 chart destroy().
+- **utnyttjandegrad.ts** — OK. 2 charts destroy().
+- **cykeltid-heatmap.ts** — OK. 1 chart destroy(). AfterViewInit.
+- **heatmap.ts** — OK. Ren DOM-baserad heatmap, inga charts.
+- **forsta-timme-analys.ts** — OK. 2 charts destroy().
+
+### UPPGIFT 5: Stopporsak-sidor och ovriga (9 komponenter)
+- **stopporsak-trend.ts** — OK. 2 charts destroy().
+- **stopporsak-operator.ts** — OK. 3 charts destroy().
+- **stopporsak-registrering.ts** — OK. timerInterval (1s) + refreshInterval (30s) rensas.
+- **stoppage-log.ts** — OK. 6 charts destroy(). QR-kod. Inline editing.
+- **kassations-drilldown.ts** — OK. 2 charts destroy().
+- **kvalitetstrend.ts** — OK. 2 charts destroy().
+- **ranking-historik.ts** — OK. 2 charts destroy(). Head-to-head.
+- **tidrapport.component.ts** — OK. 1 chart destroy(). refreshTimer (5 min).
+- **benchmarking.ts** — OK. 1 chart destroy(). pollInterval (60s).
+
+### Sammanfattning
+- **30 frontend-komponenter granskade** (alla .ts + .html)
+- **0 buggar hittade** — 0 kodfixar
+- **Build: OK** (inga fel)
+- Alla Chart.js-instanser har destroy() i ngOnDestroy
+- Alla subscriptions: takeUntil(destroy$) eller explicit unsubscribe
+- Alla setInterval/setTimeout rensas korrekt
+- Dark theme konsekvent: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Svenska texter overallt i UI
+
 ## Session #392 — Worker A (Backend + Deploy) (2026-03-28)
 **Fokus: KRITISK prestandafix manads-aggregat 11.1s->0.3s + HistorikController SQL-fix (GROUP BY skiftraknare) + GamificationController IBC-fix (COUNT->MAX/GROUP BY) + 107 endpoints 0x500 + SQL-audit alla controllers 0 mismatches + deploy dev OK**
 
