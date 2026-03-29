@@ -200,10 +200,63 @@
   .prognos-page {
     padding: 1rem 0.5rem;
   }
+  .page-title {
+    font-size: 1.2rem;
+  }
+  .page-subtitle {
+    font-size: 0.75rem;
+  }
+  .vd-summary .row {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .vd-sep {
+    display: none;
+  }
   .vd-number-big {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
   .vd-number {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
+  }
+  .vd-label {
+    font-size: 0.65rem;
+  }
+  .vd-unit {
+    font-size: 0.65rem;
+  }
+  .shift-badge {
+    flex-direction: row;
+    padding: 0.3rem 0.5rem;
+  }
+  .shift-icon {
+    font-size: 1.4rem;
+  }
+  .shift-name {
+    font-size: 0.72rem;
+  }
+  .card-title {
+    font-size: 0.9rem;
+  }
+  .trend-icon-big {
+    font-size: 1.8rem;
+  }
+  .trend-label {
+    font-size: 0.9rem;
+  }
+  .trend-pct {
+    font-size: 1.3rem;
+  }
+  .stat-mini-value {
+    font-size: 1rem;
+  }
+  .detail-card {
+    padding: 0.5rem 0.3rem;
+  }
+  .detail-value {
+    font-size: 1.1rem;
+  }
+  .detail-label {
+    font-size: 0.65rem;
   }
 }

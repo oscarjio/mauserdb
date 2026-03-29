@@ -132,7 +132,7 @@ class GamificationController {
                 FROM (
                     SELECT op1 AS op_id, shift_ibc, shift_ok FROM (
                         SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
                                MAX(ibc_ok) AS shift_ok,
                                MIN(op1) AS op1
                         FROM rebotling_ibc
@@ -143,7 +143,7 @@ class GamificationController {
                     UNION ALL
                     SELECT op2 AS op_id, shift_ibc, shift_ok FROM (
                         SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
                                MAX(ibc_ok) AS shift_ok,
                                MIN(op2) AS op2
                         FROM rebotling_ibc
@@ -154,7 +154,7 @@ class GamificationController {
                     UNION ALL
                     SELECT op3 AS op_id, shift_ibc, shift_ok FROM (
                         SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) AS shift_ibc,
+                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
                                MAX(ibc_ok) AS shift_ok,
                                MIN(op3) AS op3
                         FROM rebotling_ibc
@@ -351,18 +351,18 @@ class GamificationController {
 
         try {
             $sql = "
-                SELECT op_id, dag, SUM(cnt) AS ibc_count FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                SELECT op_id, dag, SUM(shift_ibc) AS ibc_count FROM (
+                    SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
                     WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op1, DATE(datum)
+                    GROUP BY op1, DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT op2 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    SELECT op2 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
                     WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op2, DATE(datum)
+                    GROUP BY op2, DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT op3 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    SELECT op3 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
                     WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op3, DATE(datum)
+                    GROUP BY op3, DATE(datum), skiftraknare
                 ) AS sub
                 GROUP BY op_id, dag
                 ORDER BY op_id, dag DESC
@@ -425,15 +425,15 @@ class GamificationController {
         // rebotling_ibc uses op1/op2/op3, not user_id
         try {
             $sql = "
-                SELECT dag, SUM(cnt) AS total_cnt FROM (
-                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op1 = :uid1 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                SELECT dag, SUM(shift_ibc) AS total_cnt FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
+                    WHERE op1 = :uid1 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op2 = :uid2 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
+                    WHERE op2 = :uid2 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
                     UNION ALL
-                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE op3 = :uid3 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
+                    WHERE op3 = :uid3 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
                 ) AS sub
                 GROUP BY dag HAVING total_cnt >= 100
                 ORDER BY dag DESC LIMIT 1
@@ -585,15 +585,15 @@ class GamificationController {
             $today = date('Y-m-d');
 
             $sql = "
-                SELECT op_id, SUM(cnt) AS total_ibc FROM (
-                    SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
-                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1
+                SELECT op_id, SUM(shift_ibc) AS total_ibc FROM (
+                    SELECT op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
+                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1, skiftraknare
                     UNION ALL
-                    SELECT op2, COUNT(*) FROM rebotling_ibc
-                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2
+                    SELECT op2, skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
+                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2, skiftraknare
                     UNION ALL
-                    SELECT op3, COUNT(*) FROM rebotling_ibc
-                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3
+                    SELECT op3, skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
+                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3, skiftraknare
                 ) AS sub
                 GROUP BY op_id ORDER BY total_ibc DESC LIMIT 1
             ";
@@ -784,8 +784,29 @@ class GamificationController {
                 }
             }
 
-            // Badges
-            $badges = $this->getBadges($userId);
+            // Badges — visa alla mojliga med uppnadd-status (konsekvent med badges-endpoint)
+            $earned = $this->getBadges($userId);
+            $allBadges = $this->getAllPossibleBadges();
+            $earnedIds = array_column($earned, 'id');
+            $badges = [];
+            foreach ($allBadges as $b) {
+                $isEarned = in_array($b['id'], $earnedIds, true);
+                $earnedData = null;
+                if ($isEarned) {
+                    foreach ($earned as $e) {
+                        if ($e['id'] === $b['id']) { $earnedData = $e; break; }
+                    }
+                }
+                $badges[] = [
+                    'id'          => $b['id'],
+                    'namn'        => $b['namn'],
+                    'beskrivning' => $b['beskrivning'],
+                    'ikon'        => $b['ikon'],
+                    'farg'        => $b['farg'],
+                    'uppnadd'     => $isEarned,
+                    'tilldelad'   => $earnedData['tilldelad'] ?? null,
+                ];
+            }
 
             // Milstolpar
             $milstolpar = $this->getMilstolpar($userId);
@@ -799,7 +820,7 @@ class GamificationController {
                 'total_ibc'        => $myIbc,
                 'streak'           => $myStreak,
                 'badges'           => $badges,
-                'antal_badges'     => count($badges),
+                'antal_badges'     => count($earned),
                 'milstolpar'       => $milstolpar,
                 'period'           => 'vecka',
             ]);
@@ -825,12 +846,12 @@ class GamificationController {
         $totalIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT SUM(cnt) AS total FROM (
-                    SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE op1 = ?
+                SELECT SUM(shift_ibc) AS total FROM (
+                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc WHERE op1 = ? GROUP BY skiftraknare
                     UNION ALL
-                    SELECT COUNT(*) FROM rebotling_ibc WHERE op2 = ?
+                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE op2 = ? GROUP BY skiftraknare
                     UNION ALL
-                    SELECT COUNT(*) FROM rebotling_ibc WHERE op3 = ?
+                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE op3 = ? GROUP BY skiftraknare
                 ) AS sub
             ");
             $stmt->execute([$userId, $userId, $userId]);
@@ -915,15 +936,15 @@ class GamificationController {
         try {
             $sql = "
                 SELECT COUNT(DISTINCT op_id) FROM (
-                    SELECT op_id, dag, SUM(cnt) AS total_cnt FROM (
-                        SELECT op1 AS op_id, DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
-                        WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op1, DATE(datum)
+                    SELECT op_id, dag, SUM(shift_ibc) AS total_cnt FROM (
+                        SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
+                        WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op1, DATE(datum), skiftraknare
                         UNION ALL
-                        SELECT op2, DATE(datum), COUNT(*) FROM rebotling_ibc
-                        WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op2, DATE(datum)
+                        SELECT op2, DATE(datum), skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
+                        WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op2, DATE(datum), skiftraknare
                         UNION ALL
-                        SELECT op3, DATE(datum), COUNT(*) FROM rebotling_ibc
-                        WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op3, DATE(datum)
+                        SELECT op3, DATE(datum), skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
+                        WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op3, DATE(datum), skiftraknare
                     ) AS sub GROUP BY op_id, dag HAVING total_cnt >= 100
                 ) AS centurions
             ";
@@ -1008,7 +1029,9 @@ class GamificationController {
         }
 
         // 5. Teamspelare: top IBC denna vecka (1 operator max)
-        $total++; // Det finns alltid en toppoperator om leaderboard ar icke-tom
+        if (!empty($leaderboard)) {
+            $total++; // Det finns alltid en toppoperator om leaderboard ar icke-tom
+        }
 
         return $total;
     }

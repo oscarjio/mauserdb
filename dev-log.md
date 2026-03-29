@@ -1,5 +1,82 @@
 # MauserDB Dev Log
 
+## Session #397 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: Gamification buggfixar (kassationsrate+badges) + produktionsprognos verifiering + driftstopp granskning + responsivitet 375px 3 sidor**
+
+### UPPGIFT 1: Gamification — granska badges/achievements berakningar
+Granskade GamificationController.php och alla frontend-komponenter.
+
+**Bugg 1 (KRITISK): Kassationsrate alltid 0%**
+- `getOperatorIbcData()` anvande `MAX(ibc_ok) AS shift_ibc` och `MAX(ibc_ok) AS shift_ok` — identiska!
+- Fixat: `shift_ibc = MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0))`, `shift_ok = MAX(ibc_ok)`
+- Resultat: kassationsrate visar nu korrekta varden (0.4%, 0.5%, 2% etc.)
+
+**Bugg 2: min-profil visade bara uppnadda badges**
+- `minProfil()` returnerade bara `getBadges()` (uppnadda), inte alla med last-status
+- Fixat: visar nu alla 5 badges med `uppnadd: true/false` — konsekvent med `badges`-endpoint
+
+**Bugg 3: countBadgesTotal teamspelare raknades aven med tom leaderboard**
+- `$total++` for teamspelare lagdes alltid till
+- Fixat: skyddad med `if (!empty($leaderboard))`
+
+**Endpoint-test (alla 4 gamification-endpoints):**
+- leaderboard: OK, 8 operatorer, korrekt ranking och kassationsrate
+- badges: OK, 5 badges med korrekt uppnadd-status
+- min-profil: OK, 5 badges + 6 milstolpar med progress
+- overview: OK, total_badges_utdelade=14, avg_streak, max_streak
+
+### UPPGIFT 2: Produktionsprognos — verifiering mot historisk data
+Granskade ProduktionsPrognosController.php och frontend-komponent.
+- forecast-endpoint: Korrekt skiftberakning (dag 06-14, kvall 14-22, natt 22-06)
+- IBC hittills: MAX per skiftraknare + SUM — konsekvent med andra controllers
+- Snitttakt: historiskt genomsnitt senaste 14 dagar (exkl. idag) — korrekt
+- Trendindikator: +/-5% troskel — korrekt
+- Dagsmål: laser fran rebotling_settings + undantag — korrekt
+- shift-history: senaste 10 skiften med IBC och takt — korrekt
+- **Inga buggar hittade i backend eller frontend**
+
+### UPPGIFT 3: Driftstopp-analys frontend verifiering
+Granskade drifttids-timeline-komponent (616 rader TS, 421 rader HTML, 448 rader CSS).
+- Dark theme: #1a202c bg, #2d3748 cards — korrekt
+- Svenska texter: alla labels pa svenska — korrekt
+- Lifecycle: OnInit/OnDestroy, destroy$, chart.destroy(), clearTimeout — korrekt
+- Chart.js: orsakChart + veckotrendChart — bada destroyed i ngOnDestroy
+- Tooltip: fixed position (foljer musen) — korrekt, inga globala event-lyssnare
+- Filter: typ + min langd — fungerar korrekt
+- Vy-switch: dag/vecka/manad — korrekt
+- **Inga buggar hittade**
+
+### UPPGIFT 4: Responstest 375px — gamification + produktionsprognos + driftstopp
+Alla tre sidor fick forbattrad responsivitet for 375px:
+
+**Gamification (gamification.component.css):**
+- Lade till `@media (max-width: 576px)` med 30+ regler
+- Podium: mindre avatarer (44/52px), mindre text
+- Ranking-tabell: kompaktare celler (0.25rem padding, 0.65-0.75rem font)
+- Profil: mindre avatar, tightare stats
+- Badges: mindre kort (100px min-height), kompaktare ikoner
+- VD-vy: kompaktare KPI-kort och overview-statistik
+
+**Produktionsprognos (produktionsprognos.css):**
+- VD-sammanfattning: kolumn-layout pa mobil (flex-direction: column)
+- Dolj separatorer pa mobil
+- Mindre siffror: 2rem prognos, 1.4rem varden
+- Kompaktare detalj-kort
+
+**Drifttids-timeline (drifttids-timeline.component.css):**
+- Lade till `@media (max-width: 400px)` med 15+ regler
+- Kompaktare KPI-kort, rubriker, timmarkeringar
+- Mindre vy-knappar och datum-input
+- Kompaktare tabell- och type-badges
+
+### UPPGIFT 5: Bygg och deploy
+- `npx ng build` — OK (inga fel, 3 varningar for CommonJS)
+- Backend deploy — OK (GamificationController.php uppdaterad)
+- Frontend deploy — OK (nya CSS)
+- dev.mauserdb.com verifierad: 200 OK
+
+**Sammanfattning: 3 buggar fixade (1 KRITISK kassationsrate, 1 badges-konsistens, 1 tom-leaderboard guard) + responsivitet 375px 3 sidor**
+
 ## Session #396 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: Lasttest 100 parallella requests + Rebotling-admin CRUD granskning + OEE/Benchmarking SQL-audit + 97 endpoints testad 0x500**
 

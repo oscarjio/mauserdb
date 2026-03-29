@@ -216,3 +216,42 @@
   .profil-avatar { width: 56px; height: 56px; font-size: 1.2rem; }
   .badge-card { min-height: 120px; }
 }
+
+@media (max-width: 576px) {
+  .page-title { font-size: 1.2rem; }
+  .tab-btn { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
+  .period-btn { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
+  .podium-card { padding: 1rem 0.5rem; }
+  .podium-avatar { width: 44px; height: 44px; font-size: 0.9rem; }
+  .podium-avatar-gold { width: 52px; height: 52px; font-size: 1.1rem; }
+  .podium-poang { font-size: 1.2rem; }
+  .podium-poang-gold { font-size: 1.4rem; }
+  .podium-name { font-size: 0.85rem; }
+  .podium-ibc { font-size: 0.75rem; }
+  .ranking-table th { font-size: 0.65rem; padding: 0.3rem 0.25rem; }
+  .ranking-table td { font-size: 0.75rem; padding: 0.3rem 0.25rem; }
+  .rank-badge { width: 1.3rem; height: 1.3rem; font-size: 0.65rem; }
+  .table-avatar { width: 22px; height: 22px; font-size: 0.55rem; }
+  .profil-header { padding: 1rem; }
+  .profil-avatar { width: 48px; height: 48px; font-size: 1rem; }
+  .profil-name { font-size: 1rem; }
+  .profil-stat-value { font-size: 1rem; }
+  .profil-stat-label { font-size: 0.65rem; }
+  .badge-card { min-height: 100px; padding: 0.6rem 0.4rem; }
+  .badge-icon { font-size: 1.4rem; }
+  .badge-name { font-size: 0.75rem; }
+  .badge-desc { font-size: 0.6rem; }
+  .milstolpe-card { padding: 0.7rem; }
+  .milstolpe-icon { font-size: 1.2rem; width: 32px; }
+  .milstolpe-name { font-size: 0.78rem; }
+  .milstolpe-krav { font-size: 0.65rem; }
+  .kpi-card { padding: 0.9rem 0.5rem; }
+  .kpi-value { font-size: 1.3rem; }
+  .kpi-label { font-size: 0.72rem; }
+  .chart-card { padding: 1rem 0.75rem; }
+  .chart-card h2 { font-size: 0.95rem; }
+  .overview-stat-label { font-size: 0.78rem; }
+  .overview-stat-value { font-size: 0.95rem; }
+  .top3-name { font-size: 0.82rem; }
+  .top3-details { font-size: 0.68rem; }
+}
