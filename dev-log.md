@@ -1,5 +1,66 @@
 # MauserDB Dev Log
 
+## Session #400 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: produktion_procent-undersokning + djup SQL-audit 21 controllers + 163 endpoints testade + dataverifiering mot prod DB**
+
+### UPPGIFT 1: Undersokning produktion_procent — kumulativ?
+- Granskat prod DB-data: produktion_procent i rebotling_ibc ar ett PLC-falt som representerar momentan produktionstakt (inte kumulativt)
+- Varden varierar fran 6 till 6261 inom ett skift — minskar over tid (typ sekunder-sedan-senaste-IBC)
+- RebotlingController klampar redan varden till 0-100 i API-svaret (rad 903-1038)
+- **Slutsats: INGEN bugg** — feltet ar PLC-raw-data, inte en procentberakning fran backend
+- Ingen controller anvander produktion_procent for berakningar (enbart visas i frontend)
+
+### UPPGIFT 2: Djup SQL-audit av 21 controllers
+Granskade controllers:
+- RebotlingTrendanalysController — OK (MAX per skiftraknare + GROUP BY)
+- RebotlingSammanfattningController — OK (MAX per skiftraknare)
+- RebotlingStationsdetaljController — OK (MAX per skiftraknare)
+- RebotlingProductController — OK (enkel CRUD, inga aggregerings-queries)
+- OeeBenchmarkController — OK (MAX per skiftraknare)
+- OeeJamforelseController — OK (batch-hamtning med MAX per skiftraknare)
+- OeeTrendanalysController — OK (batch-hamtning, korrekt OEE-berakning)
+- OeeWaterfallController — OK (MAX per skiftraknare)
+- **KvalitetstrendanalysController — 3 BUGGAR FIXADE:**
+  1. fetchStationDailyData anvande COUNT(*) istallet for MAX(ibc_ok) per skiftraknare — overcounting
+  2. fetchOperatorData anvande COUNT(*) + lopnummer-heuristik istallet for MAX(ibc_ok)/MAX(ibc_ej_ok)
+  3. getHeatmap anvande COUNT(*) + lopnummer-heuristik istallet for MAX per skiftraknare
+  - Alla tre fixade till korrekt MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare-monster
+- KvalitetsTrendbrottController — OK (MAX per skiftraknare)
+- ProduktionseffektivitetController — NOTERING: COUNT(*) anvands korrekt har (raknar cykler per timme for heatmap, inte IBC-antal)
+- ProduktionsTaktController — OK (MAX per skiftraknare)
+- ProduktionsSlaController — OK (MAX per skiftraknare for range-queries; COUNT(*) for per-timme ar avsett)
+- ForstaTimmeAnalysController — OK (raknar individuella IBC-registreringar)
+- StopptidsanalysController — OK (ansluter till maskin_stopptid, inte rebotling_ibc)
+- CykeltidHeatmapController — OK (LAG-baserad cykeltid, inga aggregeringsbuggar)
+- AlarmHistorikController — OK (MAX per skiftraknare for produktionsdata)
+- KapacitetsplaneringController — OK (konsekvent MAX per skiftraknare)
+- LeveransplaneringController — OK (kundordrar-tabellen, ingen rebotling_ibc aggregering)
+- BatchSparningController — OK (batch_order/batch_ibc-tabellerna)
+
+### UPPGIFT 3: Endpoint-testning
+- **163 endpoints testade med curl mot dev.mauserdb.com**
+- **0 stycken 500-fel**
+- **0 stycken langsamma (>1s)**
+- Alla endpoints returnerar korrekt HTTP-statuskod (200 for data, 401 for auth-skyddade)
+
+### UPPGIFT 4: Dataverifiering mot prod DB
+- Verifierat 2026-03-27: API IBC-count = 158 ok, 0 ej_ok — matchar exakt mot direkt SQL-query
+- Verifierat kassationsrate: 0% for 2026-03-27 (0 kasserade av 158)
+- Verifierat veckodata: 2026-03-27=158, 2026-03-25=14, 2026-03-24=195, 2026-03-23=1
+- OEE-berakningsformel verifierad: T * P * K med korrekta delkomponenter
+
+### UPPGIFT 5: Deploy
+- Backend deployat till dev.mauserdb.com via rsync (exkluderat db_config.php, cors_origins.php, app_config.php, logs/)
+- Alla 163 endpoints verifierade efter deploy
+
+### Sammanfattning
+- 3 SQL-buggar fixade i KvalitetstrendanalysController (COUNT(*) -> MAX per skiftraknare)
+- 163 endpoints testade, 0 fel, 0 langsamma
+- produktion_procent ar PLC-data (ej kumulativ bugg)
+- Deploy till dev OK
+
+---
+
 ## Session #399 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: End-to-end verifiering rebotling/skiftrapport/driftstopp mot prod DB + sakerhetsrevision + 175 endpoints testade + deploy-dev.sh fixad**
 

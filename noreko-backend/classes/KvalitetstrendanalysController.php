@@ -113,15 +113,24 @@ class KvalitetstrendanalysController {
         $result = [];
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
+            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) AS dag,
+                    dag,
                     1 AS station_id,
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
+                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total,
+                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -147,26 +156,45 @@ class KvalitetstrendanalysController {
     private function fetchOperatorData(string $fromDate, string $toDate): array {
         $result = [];
         try {
-            // UNION for op1, op2, op3
+            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
+            // then attribute per operator via op1/op2/op3
             $stmt = $this->pdo->prepare("
                 SELECT op_num, SUM(total) AS total, SUM(kasserade) AS kasserade FROM (
-                    SELECT op1 AS op_num, COUNT(*) AS total,
-                           SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                    FROM rebotling_ibc
-                    WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY) AND op1 IS NOT NULL
-                    GROUP BY op1
+                    SELECT op1 AS op_num,
+                           SUM(shift_ok + shift_ej_ok) AS total,
+                           SUM(shift_ej_ok) AS kasserade
+                    FROM (
+                        SELECT skiftraknare, op1,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY) AND op1 IS NOT NULL
+                        GROUP BY skiftraknare, op1
+                    ) ps1 GROUP BY op1
                     UNION ALL
-                    SELECT op2 AS op_num, COUNT(*) AS total,
-                           SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                    FROM rebotling_ibc
-                    WHERE datum >= :f2 AND datum < DATE_ADD(:t2, INTERVAL 1 DAY) AND op2 IS NOT NULL
-                    GROUP BY op2
+                    SELECT op2 AS op_num,
+                           SUM(shift_ok + shift_ej_ok) AS total,
+                           SUM(shift_ej_ok) AS kasserade
+                    FROM (
+                        SELECT skiftraknare, op2,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :f2 AND datum < DATE_ADD(:t2, INTERVAL 1 DAY) AND op2 IS NOT NULL
+                        GROUP BY skiftraknare, op2
+                    ) ps2 GROUP BY op2
                     UNION ALL
-                    SELECT op3 AS op_num, COUNT(*) AS total,
-                           SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                    FROM rebotling_ibc
-                    WHERE datum >= :f3 AND datum < DATE_ADD(:t3, INTERVAL 1 DAY) AND op3 IS NOT NULL
-                    GROUP BY op3
+                    SELECT op3 AS op_num,
+                           SUM(shift_ok + shift_ej_ok) AS total,
+                           SUM(shift_ej_ok) AS kasserade
+                    FROM (
+                        SELECT skiftraknare, op3,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :f3 AND datum < DATE_ADD(:t3, INTERVAL 1 DAY) AND op3 IS NOT NULL
+                        GROUP BY skiftraknare, op3
+                    ) ps3 GROUP BY op3
                 ) AS combined
                 GROUP BY op_num
                 ORDER BY total DESC
@@ -491,16 +519,26 @@ class KvalitetstrendanalysController {
 
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
+            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
             $stmt = $this->pdo->prepare("
                 SELECT
                     1 AS station_id,
-                    YEARWEEK(datum, 1) AS yearweek,
-                    MIN(DATE(datum)) AS week_start,
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                GROUP BY YEARWEEK(datum, 1)
+                    yearweek,
+                    MIN(dag) AS week_start,
+                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total,
+                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT
+                        YEARWEEK(datum, 1) AS yearweek,
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
