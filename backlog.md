@@ -11,18 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #396):
-- [x] Lasttest 100 parallella: 0x500, cache fungerar <150ms warm, rate limiter OK
-- [x] Rebotling-admin: CRUD backend 0 buggar, frontend dark theme fix + mobilanpassning
-- [x] Operatorsportal: 3 buggar fixade (trend faltnamn+snitt_bonus+days-param)
-- [x] VD-dashboard: 2 KRITISKA buggar (COUNT→MAX topOperatorer+skiftstatus), KPI verifierad
-- [x] OEE/Benchmarking: 7 controllers 0 SQL mismatches, berakningar korrekta
-- [x] Mobilanpassning: 4 sidor fixade for 375px (executive+vd+rebotling-admin+operatorsbonus)
+### Klart (session #397):
+- [x] COUNT(*) vs MAX(ibc_ok) audit: 26 queries fixade i 14 controllers (7.6% overcount i prod)
+- [x] Skiftrapport+driftstopp: redan korrekt SQL, verifierat
+- [x] Gamification: 3 buggar fixade (KRITISK kassationsrate 0%, min-profil, teamspelare)
+- [x] Produktionsprognos: verifierad OK
+- [x] Responstest: 3 sidor fixade (gamification+prognos+driftstopp) 375px
+- [x] 99 endpoints 0x500, 0 >1s
 
-### Nasta (session #397):
-- [ ] Skiftrapport: djupgranskning alla berakningar end-to-end mot prod DB
-- [ ] Driftstopp-analys: verifiera alla controllers+frontend mot prod DB
-- [ ] Gamification: granska badges/achievements berakningar
-- [ ] Produktionsprognos: verifiera prognos-berakningar mot historisk data
-- [ ] Alla controllers: systematisk COUNT(*) vs MAX(ibc_ok) audit (COUNT-buggen aterkommande)
-- [ ] Responstest: alla sidor pa 375px, 768px, 1024px
+### Nasta (session #398):
+- [ ] Verifiera COUNT→MAX fixar mot prod DB (alla 14 controllers)
+- [ ] Operatorsbonus end-to-end: ranking korrekt efter COUNT-fix?
+- [ ] VD-dashboard: alla KPI-siffror korrekta efter COUNT-fix?
+- [ ] Morgonrapport/daglig briefing: verifiera siffror efter fix
+- [ ] Alla frontend-grafer: data korrekt efter backend COUNT-fix?
+- [ ] Lasttest: 100 parallella efter alla fixar, 0x500?
