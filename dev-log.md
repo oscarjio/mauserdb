@@ -1,5 +1,89 @@
 # MauserDB Dev Log
 
+## Session #395 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: djupgranskning av rebotling-historik, kvalitet/kassation, stopporsak, export-funktioner, operatorsportal, login, admin-sidor, executive-dashboard, vd-dashboard, benchmarking, oee-trendanalys — 25 komponenter granskade 0 buggar, ~45 charts destroy() OK, dark theme korrekt, svenska texter, alla lifecycle OK**
+
+### UPPGIFT 1: Rebotling-historik frontend — djupgranskning (6 komponenter)
+Granskade: historik, ranking-historik, malhistorik, historisk-produktion, maskinhistorik, historisk-sammanfattning
+
+1. **historik.ts** (809 rader) — OK. OnInit/OnDestroy/AfterViewInit. destroy$ Subject + takeUntil. 2 Chart.js (monthlyChart, yearlyChart) destroy() i ngOnDestroy + destroyCharts(). chartBuildTimer clearTimeout. loadVersion-pattern forhindrar race condition vid periodbyte. catchError + timeout(8000) pa bada HTTP-anrop. trackByIndex. CSV-export med UTF-8 BOM (\uFEFF). Excel-export med SheetJS. Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text. Alla texter pa svenska. table-responsive. Laddnings- och fel-states i HTML.
+2. **ranking-historik.ts/html/css** (483+343+293 rader) — OK. OnInit/OnDestroy/AfterViewInit. destroy$ + takeUntil. 2 charts (trendChart, h2hChart) destroy() i ngOnDestroy. chartTimer clearTimeout. catchError pa alla 3 anrop (rankings, changes, streaks). cachedAllaOperatorer + cachedStorstKlattare undviker omberakning per change-detection. trackByIndex. Dark theme korrekt. @media 767px responsiv. Alla texter svenska.
+3. **malhistorik.ts/html/css** (292+320+278 rader) — OK. OnInit/OnDestroy/AfterViewInit. destroy$ + takeUntil. 1 chart (tidslinjeChart) destroy() i ngOnDestroy. catchError pa bada anrop. Laddings/fel-states. trackByIndex. Dark theme. Svenska.
+4. **historisk-produktion.component.ts/html** (469+480 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 chart (productionChart) destroy() i ngOnDestroy. refreshInterval clearInterval. productionChartTimer clearTimeout. catchError pa alla anrop. Pagination med goPage/goDagligPage. trackByIndex + trackById. table-responsive. Daglig historik-flik (session #378). Dark theme. Svenska.
+5. **maskinhistorik.component.ts/html** (459+296 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (drifttidChart, oeeChart) destroy() i ngOnDestroy. drifttidChartTimer + oeeChartTimer clearTimeout. timeout(15000) + catchError pa alla 5 datahantningsanrop. Jamforelsematris. trackByIndex + trackById. table-responsive. Dark theme. Svenska.
+6. **historisk-sammanfattning.component.ts/html** (408+491 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (trendChart, paretoChart) destroy() i destroyCharts(). trendChartTimer + paretoChartTimer clearTimeout. timeout(15000) + catchError pa alla 6 datahantningsanrop. cachedPeriodOptions. Print CSS (@media print). trackByIndex + trackById. Dark theme. Svenska.
+
+**Resultat: 6 komponenter, ~12 Chart.js-instanser, 0 buggar.**
+
+### UPPGIFT 2: Kvalitet/kassation frontend — djupgranskning (2 komponenter)
+Granskade: kassations-drilldown, kvalitetstrend
+
+1. **kassations-drilldown.ts** (394 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (reasonChart, trendChart) destroy() i destroyCharts(). reasonChartTimer + trendChartTimer clearTimeout. catchError pa alla 3 anrop (overview, trend, detail). Drill-down-funktionalitet med expandedReasonId. trackByIndex. Dark theme. Svenska.
+2. **kvalitetstrend.ts** (591 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (trendChart, detailChart) destroy() i destroyCharts(). chartTimer + detailChartTimer clearTimeout. Operator-filter + visaBaraLarm. 3 API-anrop med takeUntil. Manadvis aggregering. trackByNummer + trackByIndex. Dark theme. Svenska.
+
+**Resultat: 2 komponenter, 4 Chart.js-instanser, 0 buggar.**
+
+### UPPGIFT 3: Stopporsak frontend — djupgranskning (4 komponenter)
+Granskade: stoppage-log, stopporsak-registrering, stopporsak-trend, stopporsak-operator
+
+1. **stoppage-log.ts** (1302 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 7 charts (paretoDetailChart, dailyChart, weekly14Chart, hourlyChart, monthlyStopChart, paretoChart + hourlyChart) alla destroy() i ngOnDestroy. refreshInterval clearInterval. successTimerId + chartTimerId + searchTimer alla clearTimeout. timeout(8000) + catchError pa alla anrop. CRUD (create/update/delete). QR-kod-generering. CSV-export med UTF-8 BOM. Excel-export med SheetJS (dynamisk import). Debounced sokning. Inline-redigering. cachedAvgDuration/cachedTotalDowntime/filteredStoppages for att undvika omberakning. trackByIndex. Dark theme. Svenska.
+2. **stopporsak-registrering.ts** (241 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. Inga charts. timerInterval + refreshInterval + successTimerId alla clearInterval/clearTimeout. timeout(10000) + catchError pa alla anrop. Live-timer (uppdateraTimers). trackByIndex. Dark theme. Svenska.
+3. **stopporsak-trend.ts** (462 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (trendChart, detailChart) destroy() i destroyCharts(). chartTimer + detailChartTimer clearTimeout. catchError pa alla 3 anrop. cachedSparkdata Map for att undvika omberakning. trackByReason + trackByWeek + trackByIndex. Dark theme. Svenska.
+4. **stopporsak-operator.ts** (409 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 3 charts (barChart, donutChart, detailChart) alla destroy(). chartTimer clearTimeout. catchError pa alla anrop. Drill-down med selectOperator(). trackByIndex. Dark theme. Svenska.
+
+**Resultat: 4 komponenter, ~14 Chart.js-instanser, 0 buggar.**
+
+### UPPGIFT 4: Export-funktioner — djupgranskning
+Granskade export-logik i: historik.ts, stoppage-log.ts, benchmarking.ts + pdf-export-button komponent
+
+1. **historik.ts exportHistorikCSV()** — OK. UTF-8 BOM (\uFEFF). Semikolon-separator (svenskt Excel). Kolumnrubriker pa svenska. Filnamn `historik-YYYY-MM-DD.csv`. URL.revokeObjectURL() efter nedladdning.
+2. **historik.ts exportHistorikExcel()** — OK. SheetJS med aoa_to_sheet. Kolumnbredder satta. Filnamn `historik-YYYY-MM-DD.xlsx`.
+3. **stoppage-log.ts exportCSV()** — OK. UTF-8 BOM. Semikolon-separator. Kolumnrubriker pa svenska (ID, Linje, Orsak, Kategori, Start, Slut, etc.). Filnamn `stopporsaker-{linje}-{period}.csv`. Kvoterar varje cell med dubbla citattecken.
+4. **stoppage-log.ts exportExcel()** — OK. Dynamisk import('xlsx'). json_to_sheet. Kolumnbredder. Filnamn `stopporsaker-{linje}-{datum}.xlsx`.
+5. **benchmarking.ts exportBenchmarkCSV()** — OK. UTF-8 BOM. Semikolon-separator. Kolumnrubriker pa svenska (Plats, Vecka, IBC Totalt, etc.). Filnamn `benchmarking-topp10-YYYY-MM-DD.csv`.
+
+**Resultat: 5 exportfunktioner granskade, alla korrekt UTF-8 BOM, svenska rubriker, meningsfulla filnamn. 0 buggar.**
+
+### UPPGIFT 5: Ovriga sidor som ej granskats nyligen (7 komponenter)
+Granskade: operatorsportal, login, rebotling-admin, executive-dashboard, vd-dashboard, benchmarking, oee-trendanalys + drifttids-timeline
+
+1. **operatorsportal.ts** (249 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 chart destroy() i ngOnDestroy. chartTimer clearTimeout. catchError pa alla 3 anrop. @ViewChild. Dark theme. Svenska.
+2. **login.ts** (147 rader) — OK. OnDestroy. destroy$ + takeUntil. Inga charts. timeout(8000) + catchError. Inline template. Validerad returnUrl (prevents open redirect). Dark theme. Svenska. bcrypt-autentisering (via backend).
+3. **rebotling-admin.ts** (1504 rader) — OK. OnInit/OnDestroy/AfterViewInit. destroy$ + takeUntil. 3 charts (maintenanceChart, goalHistoryChart, correlationChart) alla destroy() i ngOnDestroy. visibilitychange-handler for att pausa polling. Alla timers clearTimeout/clearInterval (systemStatusInterval, todaySnapshotInterval, maintenanceTimer, successTimerId, _feedbackTimers[]). timeout(8000) + catchError pa alla ~20 anrop. ComponentCanDeactivate guard. trackByIndex + trackByProductId. Dark theme. Svenska.
+4. **executive-dashboard.ts** (807 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (barChart, moodChart) destroy() i ngOnDestroy. pollInterval + linesStatusInterval clearInterval. barChartTimer + moodChartTimer clearTimeout. timeout(8000) + catchError pa alla anrop. Mange trackBy-funktioner (trackByLineId, trackByAlertMessage, etc.). Dark theme. Svenska.
+5. **vd-dashboard.component.ts** (304 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (trendChart, stationChart) destroy() i ngOnDestroy. refreshInterval clearInterval. stationChartTimer + trendChartTimer clearTimeout. forkJoin for parallell datahantning. trackByIndex + trackById. Dark theme. Svenska.
+6. **benchmarking.ts** (383 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 chart (monthlyChartInstance) destroy() i ngOnDestroy. pollInterval clearInterval. chartTimer clearTimeout. timeout(10000) + catchError. 3 flikar (overview, personbasta, halloffame). CSV-export med UTF-8 BOM. trackByIndex. Dark theme. Svenska.
+7. **oee-trendanalys.component.ts** (433 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (trendChart, prediktionChart) destroy() i destroyCharts(). refreshTimer clearInterval. trendChartTimer + prediktionChartTimer clearTimeout. timeout(15000) + catchError pa alla 6 anrop. Stationsfilter. trackByIndex + trackById. Dark theme. Svenska.
+8. **drifttids-timeline.component.ts** (614 rader) — OK. OnInit/OnDestroy. destroy$ + takeUntil. 2 charts (orsakChart, veckotrendChart) destroy() i ngOnDestroy. chartTimers[] forEach clearTimeout. timeout(15000) + catchError. cachedTimelineHours/cachedVisibleSegments/cachedFilteredSegments for att undvika omberakning. trackByIndex + trackById. Dark theme. Svenska.
+
+**Resultat: 8 komponenter, ~13 Chart.js-instanser, 0 buggar.**
+
+### UPPGIFT 6: Bygg + Deploy
+- `npx ng build` — LYCKAD (bara CommonJS-varningar for canvg, html2canvas, bootstrap modal)
+- `rsync` till dev — OK
+- Endpoint-test: historik 200 0.17s, stoppage 200 0.38s, rebotling 200 0.38s — alla OK
+
+### Sammanfattning
+| Kategori | Antal komponenter | Charts | Buggar |
+|---|---|---|---|
+| Rebotling-historik | 6 | ~12 | 0 |
+| Kvalitet/kassation | 2 | 4 | 0 |
+| Stopporsak | 4 | ~14 | 0 |
+| Export-funktioner | 5 funktioner | - | 0 |
+| Ovriga (ej granskade) | 8 | ~13 | 0 |
+| **TOTALT** | **25 komponenter** | **~43 charts** | **0 buggar** |
+
+Alla 25 granskade komponenter foljer checklist:
+- Lifecycle: OnInit/OnDestroy + destroy$ Subject + takeUntil + clearInterval/clearTimeout
+- Charts: alla Chart.js-instanser har destroy() i ngOnDestroy
+- Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Svenska: alla synliga texter pa svenska
+- Responsivt: table-responsive, @media queries dar relevant
+- Error handling: catchError pa HTTP-anrop, laddnings- och fel-states i HTML
+- trackBy pa *ngFor
+
+---
+
 ## Session #394 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: SQL-audit av AlarmHistorikController, UnderhallsprognosController, ProduktionskalenderController, ProduktionsPrognosController mot prod_db_schema.sql + fullstandig endpoint-test 108 endpoints 0x500 + IBC-fix i ProduktionsPrognosController + deploy dev OK**
 
