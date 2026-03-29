@@ -5263,3 +5263,54 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 - 21 filer mobilfixade
 - Build: OK
 - Deploy: OK
+
+## Session #393 — Worker A (Backend + Deploy) (2026-03-29)
+
+### Uppgift 1: Operatorsbonus — verifiering efter GamificationController-fix
+- BonusController.php: Korrekt aggregering — MAX(ibc_ok) per skiftraknare, SUBSTRING_INDEX for KPI-falt
+- BonusAdminController.php: 16 run-endpoints granskade, alla SQL korrekt mot prod_db_schema.sql
+- OperatorsbonusController.php: Korrekt batch-query med UNION ALL op1/op2/op3, GROUP BY skiftraknare
+- Prod DB bekraftar: 793 IBC OK mars 2026 (matchar session #392 fix)
+
+### Uppgift 2: Skiftrapport — end-to-end test
+- SkiftrapportController.php: 12 run-endpoints, korrekt MAX(ibc_ok) per skiftraknare i daglig-sammanstallning/veckosammanstallning
+- SkiftrapportExportController.php: report-data + multi-day endpoints, korrekt GROUP BY skiftraknare + HAVING COUNT(*)>1
+- Prod DB: SUM(MAX(ibc_ok) per skiftraknare) = 793 (korrekt)
+
+### Uppgift 3: Dashboard KPI — VD-vy verifiering
+- VdDashboardController.php: 6 endpoints, calcOeeForDay() anvander MAX per skiftraknare korrekt
+- StatistikDashboardController.php: getDaySummary() — MAX per skiftraknare, korrekt
+- DagligSammanfattningController.php: Korrekt aggregeringsmonster
+- Prod DB: idag=0 IBC (natt), denna_vecka=366, mars=793 — alla matchar
+
+### Uppgift 4: Cykeltider — verifiering mot prod DB
+- CykeltidHeatmapController.php: LAG(datum) OVER (PARTITION BY skiftraknare) — korrekt
+- Prod DB cykeltider mars 2026: AVG=169.6s, MIN=30s, MAX=1774s, 989 cykler (filter 30-1800s)
+- EffektivitetController.php: MAX(COALESCE(ibc_ok,0)) GROUP BY skiftraknare — korrekt
+- UtnyttjandegradController.php: GROUP BY skiftraknare — korrekt
+
+### Uppgift 5: Lasttest — 20 parallella anrop
+- drifttids-timeline/manads-aggregat: 20 req, max 0.208s (0x >2s)
+- drifttids-timeline/veckotrend: 20 req, max 0.187s (0x >2s)
+- drifttids-timeline/vecko-aggregat: 20 req, max 0.201s (0x >2s)
+- statistikdashboard/summary: 20 req, max 0.185s (0x >2s)
+- Alla under 250ms — optimeringar fran session #392 (12.8s->0.34s) haller under last
+
+### Uppgift 6: Endpoint-test + SQL-audit
+- **151 endpoints testade: 0x 500-fel, 0x >1s**
+- SQL-audit — 7 controllers granskade mot prod_db_schema.sql:
+  - KassationsanalysController.php: tabeller kassationsregistrering, kassationsorsak_typer, rebotling_ibc — alla matchar
+  - StopptidsanalysController.php: tabeller maskin_stopptid, maskin_register — alla matchar
+  - AvvikelselarmController.php: tabeller avvikelselarm, larmregler — alla matchar
+  - SkiftjamforelseController.php: rebotling_ibc med MAX per skiftraknare HAVING COUNT(*)>1 — korrekt
+  - ShiftHandoverController.php: tabell shift_handover — matchar (id,datum,skift_nr,note,priority,op_number,op_name,...)
+  - ShiftPlanController.php: tabell shift_plan — matchar (id,datum,skift_nr,op_number,note,...)
+  - TidrapportController.php: Anvander tableExists() fallback-kedja (rebotling_data->skift_log->stopporsak_registreringar) — sakert
+
+### Resultat
+- 0 buggar hittade
+- 0 fixar behovdes
+- 151 endpoints 0x500
+- 80 parallella anrop 0x >2s
+- SQL-audit 7 controllers 0 mismatches
+- Prod DB: 793 IBC OK mars 2026 matchar API-berakningar
