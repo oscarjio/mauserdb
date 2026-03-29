@@ -152,14 +152,20 @@ class ProduktionsPrognosController {
         $shiftEndStr   = $shift['end']->format('Y-m-d H:i:s');
         $nowStr        = $now->format('Y-m-d H:i:s');
 
-        // -- IBC hittills i skiftet --
+        // -- IBC hittills i skiftet (MAX per skiftraknare, sedan SUM — konsekvent med andra controllers) --
         $ibcHittills = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS cnt
-                FROM rebotling_ibc
-                WHERE {$ibcCol} >= :shift_start
-                  AND {$ibcCol} <= :now_dt
+                SELECT COALESCE(SUM(max_ok + max_ej), 0) AS total_ibc
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
+                    FROM rebotling_ibc
+                    WHERE {$ibcCol} >= :shift_start
+                      AND {$ibcCol} <= :now_dt
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
             $stmt->execute([':shift_start' => $shiftStartStr, ':now_dt' => $nowStr]);
             $ibcHittills = (int)($stmt->fetchColumn() ?: 0);
@@ -207,13 +213,19 @@ class ProduktionsPrognosController {
         // -- Dagsmål --
         $dagsMal = $this->getDagsMal();
 
-        // -- Progress mot dagsmål (hela dagen) --
+        // -- Progress mot dagsmål (hela dagen, MAX per skiftraknare sedan SUM) --
         $ibcIdag = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS cnt
-                FROM rebotling_ibc
-                WHERE {$ibcCol} >= CURDATE() AND {$ibcCol} < CURDATE() + INTERVAL 1 DAY
+                SELECT COALESCE(SUM(max_ok + max_ej), 0) AS total_ibc
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
+                    FROM rebotling_ibc
+                    WHERE {$ibcCol} >= CURDATE() AND {$ibcCol} < CURDATE() + INTERVAL 1 DAY
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
             $stmt->execute();
             $ibcIdag = (int)($stmt->fetchColumn() ?: 0);

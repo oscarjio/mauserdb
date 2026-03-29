@@ -1,5 +1,41 @@
 # MauserDB Dev Log
 
+## Session #394 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: SQL-audit av AlarmHistorikController, UnderhallsprognosController, ProduktionskalenderController, ProduktionsPrognosController mot prod_db_schema.sql + fullstandig endpoint-test 108 endpoints 0x500 + IBC-fix i ProduktionsPrognosController + deploy dev OK**
+
+### UPPGIFT 1: AlarmHistorikController — SQL-audit mot prod DB
+- **stoppage_log** JOIN **stoppage_reasons**: kolumner `id`, `start_time`, `duration_minutes`, `reason_id`, `comment` + `name` — alla matchar schema. OK.
+- **rebotling_ibc**: `datum`, `skiftraknare`, `ibc_ok`, `ibc_ej_ok` — matchar. GROUP BY `DATE(datum), skiftraknare` + MAX-aggregering korrekt.
+- **kassationsregistrering**: `datum`, `antal` — matchar. GROUP BY datum OK.
+- **rebotling_weekday_goals**: `weekday`, `daily_goal` — matchar.
+- Verifierade alarm-data mot prod DB: 2026-03-27 = 158 IBC, mal 950 (fredag weekday=5), alarm visar "17% av mal (950 IBC)" — KORREKT.
+- 3 endpoints (list, summary, timeline): alla 200 OK, <0.85s.
+
+### UPPGIFT 2: UnderhallsprognosController — SQL-audit + verifiering
+- **underhall_scheman** JOIN **underhall_komponenter**: `komponent_id`, `intervall_dagar`, `senaste_underhall`, `nasta_planerat`, `ansvarig`, `noteringar`, `aktiv` — alla matchar.
+- **maintenance_log**: `title`, `line`, `maintenance_type`, `start_time`, `duration_minutes`, `performed_by`, `description`, `status` — alla matchar schema.
+- **underhallslogg** JOIN **users**: `kategori`, `maskin`, `typ`, `varaktighet_min`, `kommentar`, `user_id`, `created_at` + `username` — alla matchar.
+- Prod DB: 12 komponenter, 12 scheman — endpoint visar 12 — KORREKT.
+- 3 endpoints (overview, schedule, history): alla 200 OK, <0.36s.
+
+### UPPGIFT 3: ProduktionskalenderController + ProduktionsPrognosController — SQL-audit
+- **ProduktionskalenderController**: `rebotling_ibc` (datum, skiftraknare, ibc_ok, ibc_ej_ok, lopnummer, op1/op2/op3), `operators` (number, name), `rebotling_onoff` (datum, running), `rebotling_settings` (rebotling_target), `stopporsak_registreringar` + `stopporsak_kategorier` — alla matchar schema. GROUP BY korrekt. 2 endpoints 200 OK.
+- **ProduktionsPrognosController**: `rebotling_ibc` (datum), `rebotling_settings` (rebotling_target), `produktionsmal_undantag` (datum, justerat_mal) — alla matchar.
+- **FIX: ProduktionsPrognosController** — ibcHittills och ibcIdag anvande COUNT(*) for IBC-rakning istallet for MAX(ibc_ok) per skiftraknare. COUNT(*) gav 120, korrekt MAX-metod ger 127 (6% avvikelse). Fixat till konsekvent MAX-aggregering som alla andra controllers anvander.
+
+### UPPGIFT 4: Fullstandig endpoint-test
+- **108 endpoints testade** med curl mot dev.mauserdb.com
+- **94 x 200 OK**, 8 x 400 (felaktiga test-params), 4 x 404, 2 x annat
+- **0 x 500-fel**
+- **5 slow (>1s)**: alarm-historik/list (1.0s), ranking-historik (1.1s), morgonrapport (1.7s), statistikdashboard (1.6s), operator-ranking (5.4s) — inga av dessa i granskade controllers
+- Alla granskade controllers svarstider <0.85s
+
+### UPPGIFT 5: Deploy + commit
+- Deploy till dev med rsync (ProduktionsPrognosController.php)
+- Verifierat att alla endpoints fungerar efter deploy
+
+---
+
 ## Session #394 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: grundlig UX-granskning av alarm-historik, underhallsprognos, andon-board, andon-tavla, shift-plan, tidrapport, produktionskalender, produktionsprognos, production-calendar — 0 buggar, alla lifecycle OK, alla charts destroy() OK, dark theme korrekt, svenska texter, mobil-responsivt**
 
