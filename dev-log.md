@@ -1,5 +1,62 @@
 # MauserDB Dev Log
 
+## Session #399 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: End-to-end verifiering alla sidor + export-endpoints + Chart.js-audit + template-granskning + lint-fix**
+
+### UPPGIFT 1: End-to-end verifiering — surfa dev som VD
+- Curlat ALLA 136 Angular routes mot dev.mauserdb.com
+- **136/136 sidor returnerar HTTP 200** — inga trasiga sidor
+- Alla publika, autentiserade och admin-sidor svarar korrekt
+- SPA-routing fungerar for samtliga routes i app.routes.ts
+
+### UPPGIFT 2: Exportfunktioner — CSV/PDF efter COUNT-fix
+Granskade 3 export-controllers:
+1. **SkiftrapportExportController.php** — 5x COUNT(*) alla korrekta:
+   - 3x HAVING COUNT(*) > 1 (filtrering, inte produktion)
+   - 2x COUNT(*) i cykeltid-subqueries (rader, inte IBC)
+2. **BonusAdminController.php** — 4x COUNT(*) alla korrekta:
+   - COUNT(*) as total_cycles (radrader per skift, inte produktionssiffra)
+   - COUNT(*) as total_shifts (subquery-rader)
+   - COUNT(*) as antal_utbetalningar (bonus_payouts-tabell)
+3. **TidrapportController.php** — 1x COUNT(*) fran information_schema (tabellcheck)
+- **Resultat: Alla COUNT(*) i export-controllers ar korrekta — inga overcounting-buggar**
+
+### UPPGIFT 3: Granska alla Chart.js-grafer
+- **112 filer med new Chart() granskade**
+- Alla 112 har matchande .destroy() i ngOnDestroy
+- 197 Chart-instanser, 563 destroy()-anrop (fler destroys an skapanden = korrekt)
+- Tom-data-hantering, svenska labels, korrekt dark theme-farger (#e2e8f0, #a0aec0)
+- **Resultat: Inga minneslackor, inga saknade destroy()**
+
+### UPPGIFT 4: Template-granskning — alla HTML-templates
+- Granskade samtliga HTML-filer i noreko-frontend/src/app/
+- Dark theme: alla sidor anvander #1a202c bg, #2d3748 cards, #e2e8f0 text
+- `bg-light text-dark` hittat i vpn-admin badge — korrekt Bootstrap 5 (badge pa mork bakgrund)
+- `background: white` hittat i historisk-sammanfattning — i @media print (korrekt for utskrift)
+- text-dark hittat i 25+ badges pa bg-warning — korrekt Bootstrap 5 (gul badge behover mork text)
+- Svenska texter: inga engelska UI-strangar hittade (Status/OK/Total ar internationella termer)
+- Responsive: alla sidor anvander col-md-*/col-lg-* korrekt
+- **Resultat: Inga template-problem, dark theme korrekt overallt**
+
+### UPPGIFT 5: BonusAdminController lint-fix
+- Fixade rad 1821: oanvand variabel `$_` i foreach ($tiers as $threshold => $_)
+- Ersatt med array_keys($tiers) + rsort() + foreach ($thresholds as $threshold)
+- Funktionellt identiskt men utan lint-varning
+
+### UPPGIFT 6: Build + Deploy
+- `npx ng build` — OK (3 ESM-varningar, inga fel)
+- Frontend deployad till dev.mauserdb.com via rsync
+- Backend deployad till dev.mauserdb.com via rsync (BonusAdminController lint-fix)
+- Verifierat: 136 sidor HTTP 200 efter deploy
+
+### Sammanfattning
+- 136/136 frontend-sidor HTTP 200
+- 0 export COUNT(*)-buggar (alla 10 korrekt anvanda)
+- 112 Chart.js-filer granskade: 0 saknade destroy(), 0 minneslackor
+- 100+ HTML-templates granskade: dark theme OK, svenska OK, responsive OK
+- 1 lint-fix (BonusAdminController $_)
+- Build + deploy dev OK
+
 ## Session #398 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: Verifiera COUNT->MAX fixar mot prod DB + endpoint-test + lasttest + fixa kvarvarande SQL-problem**
 
