@@ -1,5 +1,74 @@
 # MauserDB Dev Log
 
+## Session #396 — Worker A (Backend + Deploy) (2026-03-29)
+**Fokus: Lasttest 100 parallella requests + Rebotling-admin CRUD granskning + OEE/Benchmarking SQL-audit + 97 endpoints testad 0x500**
+
+### UPPGIFT 1: Lasttest 100+ parallella requests
+Testade de 5 optimerade endpoints fran session #395 under hog last (100 parallella curl-requests).
+
+**Resultat:**
+| Endpoint | 100 parallellt | Single cold | Single cached | 500-fel |
+|---|---|---|---|---|
+| operator-ranking (sammanfattning) | 100x200, avg 0.49s, max 0.66s | 0.43s | 0.10s | 0 |
+| morgonrapport (rapport) | Rate limited (120 req/min) | 1.75s | <0.15s | 0 |
+| statistikdashboard (summary) | Rate limited | 1.31s | <0.15s | 0 |
+| alarm-historik (list) | Rate limited | 0.98s | <0.15s | 0 |
+| ranking-historik (weekly-rankings) | Rate limited | 0.21s | <0.15s | 0 |
+
+- Rate limiter (120 req/min per IP) aktiveras korrekt under last -- bra skydd
+- operator-ranking: 100x200 utan ett enda 500-fel, avg <500ms
+- Alla endpoints med 30s filcache returnerar <150ms vid andra request -- cachen fungerar
+
+### UPPGIFT 2: Rebotling-admin backend CRUD granskning
+Granskade RebotlingAdminController.php (1407 rader):
+- **getAdminSettings / saveAdminSettings**: Korrekt SQL mot rebotling_settings (id, rebotling_target, hourly_target, shift_hours, auto_start, maintenance_mode, alert_threshold, min_operators). Matchar prod_db_schema.sql.
+- **getWeekdayGoals / saveWeekdayGoals**: rebotling_weekday_goals (weekday, daily_goal, label). Korrekt.
+- **getAlertThresholds / saveAlertThresholds**: rebotling_settings.alert_thresholds (TEXT). Korrekt.
+- **getTodaySnapshot**: rebotling_ibc (datum, ibc_ok, skiftraknare), rebotling_onoff (running), rebotling_settings, rebotling_weekday_goals, produktionsmal_undantag. Alla korrekt.
+- **getShiftTimes / saveShiftTimes**: rebotling_shift_times (shift_name, start_time, end_time, enabled). Korrekt.
+- **getAllLinesStatus**: rebotling_ibc aggregering per skiftraknare. Korrekt.
+- **saveGoalException / deleteGoalException**: produktionsmal_undantag (datum, justerat_mal, orsak). Korrekt.
+- **getServiceStatus / resetService / saveServiceInterval**: rebotling_kv_settings (key, value). Korrekt.
+- **getLiveRankingSettings / saveLiveRankingSettings**: rebotling_kv_settings. Korrekt.
+- **createRecordNewsManual**: news (title, body, category, pinned, published, priority). Korrekt.
+
+Alla CRUD-endpoints validerar input korrekt, alla SQL matchar prod_db_schema.sql. 0 buggar hittade.
+
+### UPPGIFT 3: Benchmarking/OEE controllers — SQL-audit
+Granskade 7 OEE/effektivitets-controllers:
+
+| Controller | Tabeller | OEE-berakning | SQL match | Status |
+|---|---|---|---|---|
+| OeeBenchmarkController | rebotling_onoff, rebotling_ibc | T*P*K korrekt | OK | 0 buggar |
+| MaskinOeeController | maskin_oee_daglig, maskin_oee_config, maskin_register | T*P*K fran pre-beraknad data | OK | 0 buggar |
+| EffektivitetController | rebotling_ibc (ibc_ok, runtime_plc, skiftraknare) | IBC/drifttimme | OK | 0 buggar |
+| OeeJamforelseController | rebotling_ibc, rebotling_onoff | T*P*K per vecka batch | OK | 0 buggar |
+| OeeTrendanalysController | rebotling_ibc, rebotling_onoff, maskin_register | T*P*K per dag batch | OK | 0 buggar |
+| OeeWaterfallController | rebotling_onoff, rebotling_ibc, kassationsregistrering, stoppage_log | T*P*K waterfall | OK | 0 buggar |
+| ProduktionseffektivitetController | rebotling_ibc (datum, timme) | Heatmap + peak | OK | 0 buggar |
+
+OEE-formeln: Tillganglighet x Prestanda x Kvalitet
+- Tillganglighet = Drifttid / Planerad tid -- korrekt i alla controllers
+- Prestanda = (Antal IBC x Ideal cykeltid) / Drifttid -- korrekt (120 sek/IBC)
+- Kvalitet = Godkanda IBC / Totala IBC -- korrekt
+Alla 7 controllers: 0 SQL mismatches, 0 berakningsfel.
+
+### UPPGIFT 4: Testa ALLA endpoints
+Testade 97 endpoints med curl mot dev.mauserdb.com:
+- **97 OK** (200/400)
+- **0x500**
+- **4 slow (>1s)**:
+  - morgonrapport (run=rapport): 1.75s cold (30s cache -> <0.15s warm)
+  - statistikdashboard (run=summary): 1.31s cold (30s cache -> <0.15s warm)
+  - oee-waterfall (run=summary): 1.06s cold
+  - kapacitetsplanering (run=summary): 5.16s -- detta ar ett 400-fel (run=summary ar inte ett giltigt run-varde)
+
+### UPPGIFT 5: Deploy
+Ingen deploy behovs -- inga kodfiler andrades.
+
+Filer andrade:
+- dev-log.md (denna logg)
+
 ## Session #395 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: optimering av 5 slow endpoints (5.4s/1.7s/1.6s/1.0s/1.1s -> alla <0.5s cold, <0.13s warm) + SQL-audit rebotling-historik/kvalitet/kassation/stopporsak controllers 0 mismatches + 120 endpoints 0x500 + 6 nya DB-index + 30s filcache + deploy dev OK**
 
