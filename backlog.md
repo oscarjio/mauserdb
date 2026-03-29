@@ -11,17 +11,18 @@
 - **Testa live pa dev**: curl mot https://dev.mauserdb.com/noreko-backend/api.php?action=...
 - **Prod DB direkt**: ssh -p 32546 user@mauserdb.com "mysql -u aiab -pNoreko2025 -P 33061 -h 127.0.0.1 mauserdb -e 'QUERY'"
 
-### Klart (session #395):
-- [x] Slow endpoints: 5.4s→0.1s (operator-ranking), 1.7s→0.11s (morgonrapport), 1.6s→0.1s (statistikdashboard) — 6 nya index + 30s filcache
-- [x] SQL-audit 11 controllers 0 mismatches (historik+kassation+stopporsak)
-- [x] 120 endpoints testade 0x500, 0 endpoints >1s
-- [x] 25 frontend-komp granskade 0 buggar: historik(6)+kvalitet(2)+stopporsak(4)+export(5)+ovriga(8)
-- [x] ~43 charts destroy() OK, 5 exportfunktioner UTF-8 BOM+svenska OK
+### Klart (session #396):
+- [x] Lasttest 100 parallella: 0x500, cache fungerar <150ms warm, rate limiter OK
+- [x] Rebotling-admin: CRUD backend 0 buggar, frontend dark theme fix + mobilanpassning
+- [x] Operatorsportal: 3 buggar fixade (trend faltnamn+snitt_bonus+days-param)
+- [x] VD-dashboard: 2 KRITISKA buggar (COUNT→MAX topOperatorer+skiftstatus), KPI verifierad
+- [x] OEE/Benchmarking: 7 controllers 0 SQL mismatches, berakningar korrekta
+- [x] Mobilanpassning: 4 sidor fixade for 375px (executive+vd+rebotling-admin+operatorsbonus)
 
-### Nasta (session #396):
-- [ ] Lasttest: 100+ parallella requests mot optimerade endpoints — verifiera cache under last
-- [ ] Rebotling-admin: djupgranskning backend CRUD + frontend (1504 rader, komplex)
-- [ ] Operatorsportal: verifiera bonusberakningar end-to-end mot prod DB
-- [ ] Executive/VD-dashboard: verifiera alla KPI-siffror mot prod DB
-- [ ] Benchmarking/OEE: granska controllers + verifiera berakningar
-- [ ] Mobilanpassning: testa alla sidor pa smal viewport (375px)
+### Nasta (session #397):
+- [ ] Skiftrapport: djupgranskning alla berakningar end-to-end mot prod DB
+- [ ] Driftstopp-analys: verifiera alla controllers+frontend mot prod DB
+- [ ] Gamification: granska badges/achievements berakningar
+- [ ] Produktionsprognos: verifiera prognos-berakningar mot historisk data
+- [ ] Alla controllers: systematisk COUNT(*) vs MAX(ibc_ok) audit (COUNT-buggen aterkommande)
+- [ ] Responstest: alla sidor pa 375px, 768px, 1024px

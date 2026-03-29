@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-29 (session #395)*
+*Senast uppdaterad: 2026-03-29 (session #396)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -91,6 +91,7 @@ Session #392: KRITISK prestandafix manads-aggregat 12.8s→0.34s + HistorikContr
 Session #393: Verifiering av #392-fixar — operatorsbonus+skiftrapport+dashboard KPI alla korrekta IBC-siffror (793 matchar prod DB). Lasttest 80 parallella <250ms. 151 endpoints 0x500. SQL-audit 7 controllers 0 mismatches. 30 frontend-komp 0 buggar ~45 charts OK. Build+deploy dev OK.
 Session #394: ProduktionsPrognosController SQL-fix COUNT→MAX (122→158 IBC). 4 controllers SQL-audit 0 mismatches. 108 endpoints 0x500. 10 frontend-komp 0 buggar. 5 slow endpoints identifierade (operator-ranking 5.4s). Build+deploy dev OK.
 Session #395: 5 slow endpoints optimerade (5.4s→0.1s). 6 nya DB-index + 30s filcache. SQL-audit 11 controllers 0 mismatches. 120 endpoints 0x500, 0 >1s. 25 frontend-komp 0 buggar. ~43 charts OK. 5 exportfunktioner OK. Build+deploy dev OK.
+Session #396: 2 KRITISKA VD-dashboard buggar (COUNT→MAX topOperatorer+skiftstatus) + 3 operatorsbonus buggar + lasttest 100 parallella OK + OEE 7 controllers 0 mismatches + rebotling-admin 0 buggar + mobilanpassning 4 sidor + 97 endpoints 0x500. Build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -103,24 +104,24 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #396):
-- Lasttest 100+ parallella mot optimerade endpoints
-- Rebotling-admin djupgranskning backend+frontend
-- Operatorsportal bonusberakningar end-to-end
-- Executive/VD-dashboard KPI-verifiering mot prod DB
-- Benchmarking/OEE controllers + berakningar
-- Mobilanpassning alla sidor 375px
+### Nasta (session #397):
+- Skiftrapport djupgranskning end-to-end mot prod DB
+- Driftstopp-analys controllers+frontend verifiering
+- Gamification badges/achievements berakningar
+- Produktionsprognos verifiering mot historisk data
+- Systematisk COUNT(*) vs MAX(ibc_ok) audit alla controllers
+- Responstest alla sidor 375px/768px/1024px
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-29 — Session #393 (klar)
-Worker A: Verifiering av #392-fixar. Operatorsbonus+skiftrapport+dashboard KPI alla korrekta (793 IBC matchar prod DB). Lasttest 80 parallella <250ms 0x500. 151 endpoints 0x500. SQL-audit 7 controllers 0 mismatches. Deploy dev OK.
-Worker B: 30 komp granskade 0 buggar. Bonus(3)+skiftrapport(6)+dashboard(5)+drifttid(6)+stopporsak(9)+ovrigt(1). ~45 charts alla destroy() OK. Build+deploy dev OK.
 
 ### 2026-03-29 — Session #394 (klar)
 Worker A: ProduktionsPrognosController SQL-fix COUNT→MAX (122→158 IBC). 4 controllers SQL-audit 0 mismatches. 108 endpoints 0x500. 5 slow (>1s): operator-ranking 5.4s, morgonrapport 1.7s, statistikdashboard 1.6s. Deploy dev OK.
 Worker B: 10 komp granskade 0 buggar. Alla lifecycle+charts+dark theme+svenska OK. Build+deploy dev OK.
 
 ### 2026-03-29 — Session #395 (klar)
-Worker A: 5 slow endpoints optimerade — operator-ranking 5.4s→0.1s, morgonrapport 1.7s→0.11s, statistikdashboard 1.6s→0.1s. 6 nya covering index + 30s filcache. SQL-audit 11 controllers 0 mismatches (historik+kassation+stopporsak). 120 endpoints 0x500, 0 endpoints >1s. Deploy dev OK.
-Worker B: 25 komp granskade 0 buggar. Historik(6)+kvalitet(2)+stopporsak(4)+export(5)+ovriga(8). ~43 charts destroy() OK. 5 exportfunktioner UTF-8 BOM+svenska OK. Build+deploy dev OK.
+Worker A: 5 slow endpoints optimerade — operator-ranking 5.4s→0.1s, morgonrapport 1.7s→0.11s, statistikdashboard 1.6s→0.1s. 6 nya covering index + 30s filcache. SQL-audit 11 controllers 0 mismatches. 120 endpoints 0x500, 0 endpoints >1s. Deploy dev OK.
+Worker B: 25 komp granskade 0 buggar. ~43 charts destroy() OK. 5 exportfunktioner OK. Build+deploy dev OK.
+
+### 2026-03-29 — Session #396 (klar)
+Worker A: Lasttest 100 parallella 0x500 (cache <150ms, rate limiter OK). Rebotling-admin CRUD 0 buggar. OEE/Benchmarking 7 controllers 0 SQL mismatches. 97 endpoints 0x500. Deploy dev OK.
+Worker B: 2 KRITISKA buggar VD-dashboard (COUNT→MAX topOperatorer+skiftstatus). 3 operatorsbonus buggar (trend faltnamn+snitt_bonus+days-param). Dark theme fix rebotling-admin. Mobilanpassning 4 sidor 375px. KPI verifierad mot prod DB. Build+deploy dev OK.
