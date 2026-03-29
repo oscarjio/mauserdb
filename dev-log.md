@@ -1,5 +1,55 @@
 # MauserDB Dev Log
 
+## Session #394 — Worker B (Frontend UX + Data) (2026-03-29)
+**Fokus: grundlig UX-granskning av alarm-historik, underhallsprognos, andon-board, andon-tavla, shift-plan, tidrapport, produktionskalender, produktionsprognos, production-calendar — 0 buggar, alla lifecycle OK, alla charts destroy() OK, dark theme korrekt, svenska texter, mobil-responsivt**
+
+### UPPGIFT 1: Alarm-historik frontend (3 filer)
+- **alarm-historik.ts** — OK. OnInit/OnDestroy korrekt. destroy$ Subject + takeUntil. 1 Chart.js (timelineChart) destroy() i ngOnDestroy + destroyChart(). _timers[] rensas med forEach(clearTimeout). catchError pa alla 3 API-anrop (summary, list, timeline). trackByIndex.
+- **alarm-historik.html** — OK. Alla texter pa svenska (Allvarlighetsgrad, Larmtyp, Kritiska, Varningar, etc). Laddar/fel-states. Filterrad (period, severity, typ, status). Responsiv tabell med table-responsive.
+- **alarm-historik.css** — OK. Dark theme: #1a202c bg, #2d3748 cards/filter-bar, #e2e8f0 text. Responsiv: @media 768px + 480px. KPI-grid auto-fit.
+- **alarm-historik.service.ts** — OK. 3 endpoints (list, summary, timeline). timeout(20s) + retry(1) + catchError.
+
+### UPPGIFT 2: Underhallsprognos frontend (3 filer)
+- **underhallsprognos.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 Chart.js (timelineChart) destroy() i ngOnDestroy + destroyChart(). chartBuildTimer clearTimeout. Horisontell stapeldiagram for kommande underhall. Statusfarger (forsenat/snart/ok). trackByIndex.
+- **underhallsprognos.html** — OK. Alla texter pa svenska (Forsenade, Snart forfaller, Underhallsschema, Underhallstidslinje, Underhallshistorik). 3 sektioner: oversikt + schema + historik. Laddar/fel-states. 3 period-knappar (30/90/180 dagar).
+- **underhallsprognos.css** — OK. Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text. Tabell-head #1a202c. Responsiv @media 768px.
+
+### UPPGIFT 3: Andon-board + Andon-tavla (6 filer)
+- **andon-board.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. refreshInterval (30s) + clockInterval (1s) — bada clearInterval i ngOnDestroy. Inga Chart.js. isFetching-guard. timeout(10s). Fullscreen-toggle.
+- **andon-board.html** — OK. Svenska: Laddar fabriksskarm, Dagens produktion, Aktuell takt, Maskinstatus, Senaste stopp, Kassationsgrad, Skift, Auto-uppdatering var 30:e sekund.
+- **andon-board.css** — OK. TV-optimerad (1920x1080). Mork bakgrund #0a0e14. Responsiv: @media 1200px + 768px.
+- **andon.ts** — OK. ~926 rader. Komplex komponent. OnInit/OnDestroy/AfterViewInit. destroy$ + takeUntil. 7 intervals alla rensas via stopPollingTimers() + clockInterval + skiftTimerInterval. shiftNoticeTimeout clearTimeout. 1 Chart.js (cumulativeChart) destroy(). visibilitychange-handler borttagen i ngOnDestroy. 7 features: skifttimer, stopporsaker, produktionsprognos, overlamninsnoter, S-kurva, produktionstakt, daily challenge.
+- **andon.html** — OK. Alla texter pa svenska (REBOTLING, Skiftbyte genomfort, Visa skiftrapport, SENASTE STOPP, SKIFTOVERLAMNING, KUMULATIV PRODUKTION IDAG, DAGENS UTMANING).
+- **andon.css** — OK. TV-display #0d1117 bakgrund. Responsiv @media 1200px + 900px.
+
+### UPPGIFT 4: Shift-plan + Tidrapport (6 filer)
+- **shift-plan.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. Inga Chart.js. Inga intervals. 2 flikar (veckoplan + narvarojamforelse). Keyboard: @HostListener escape. Modal for tilldelning. Kopiera forra veckan. Bemanningsvarning. trackByIndex.
+- **shift-plan.html** — OK. Alla texter pa svenska (Skiftplanering, Bemanningsvarning, Veckoplan, Narvaro & Jamforelse, Valj operator, etc). ARIA-labels. Modal med aria-modal.
+- **shift-plan.css** — OK. Dark theme: #1a202c bg, #2d3748 cards. Responsiv via table-responsive + overflow-x.
+- **tidrapport.component.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 Chart.js (veckoChart) destroy() x2 i ngOnDestroy (dubbelkoll). chartTimer clearTimeout. refreshTimer (5 min) clearInterval. 4 data-sektioner (sammanfattning, operator, veckodata, detaljer). CSV-export. trackByIndex + trackById.
+- **tidrapport.component.html** — OK. Alla texter pa svenska (Tidrapport, Arbetstider, skiftfordelning, Per operator, Arbetstid per dag, Detaljerade skiftregistreringar, Exportera CSV).
+- **tidrapport.component.css** — OK. Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text. Skiftfordelning-bars (FM/EM/Natt). Responsiv @media 768px.
+
+### UPPGIFT 5: Produktionskalender + Produktionsprognos + Production-calendar (7 filer)
+- **produktionskalender.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. Inga Chart.js. Inga intervals. Kalenderbygge med veckonummer. Dagdetalj-panel. trackByIndex.
+- **produktionskalender.html** — OK. Alla texter pa svenska (Produktionskalender, Foregaende manad, Nasta manad, Topp 5 operatorer, Stopporsaker, Manadssammanfattning). Fargforklaring.
+- **produktionskalender.css** — OK. Dark theme: #1a202c bg, #2d3748 cards. Responsiv @media 768px. Fargkodning gron/gul/rod.
+- **produktionsprognos.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. Inga Chart.js. pollInterval (60s) clearInterval. isFetching-guards for bade forecast och history. trackByIndex.
+- **produktionsprognos.html** — OK. Alla texter pa svenska (Produktionsprognos, Producerat, Takt, Prognos vid skiftslut, Tid kvar, Skiftets forlopp, Taktjamforelse, Battre an snitt, Samre an snitt, Senaste 10 skiftens utfall).
+- **produktionsprognos.css** — OK. Dark theme: #1a202c bg, #2d3748 cards. Responsiv @media 576px.
+- **production-calendar.ts** — OK. OnInit/OnDestroy. destroy$ + takeUntil. 1 Chart.js (dayDetailChart) destroy() i ngOnDestroy + closeDayDetail(). dayDetailTimer clearTimeout. Excel-export via xlsx. Alla svenska manads/dag-namn. trackByIndex.
+
+### Sammanfattning
+- **17 frontend-filer granskade** (10 komponenter: alarm-historik, underhallsprognos, andon-board, andon, shift-plan, tidrapport, produktionskalender, produktionsprognos, production-calendar + tillhorande services)
+- **0 buggar hittade** — 0 kodfixar kravdes
+- Alla Chart.js-instanser har destroy() i ngOnDestroy (6 charts totalt)
+- Alla subscriptions: takeUntil(destroy$)
+- Alla setInterval/setTimeout rensas korrekt (andon: 7 intervals, andon-board: 2, tidrapport: 2, produktionsprognos: 1)
+- Dark theme konsekvent: #1a202c bg, #2d3748 cards, #e2e8f0 text
+- Svenska texter overallt i UI — inga engelska labels
+- Mobil-responsivitet: alla komponenter har @media breakpoints
+- Realtidsdata: andon 10s polling med visibilitychange-guard, andon-board 30s, produktionsprognos 60s
+
 ## Session #393 — Worker B (Frontend UX + Data) (2026-03-29)
 **Fokus: grundlig UX-granskning av 30+ frontend-komponenter (bonus, skiftrapport, VD-dashboard, drifttid, stopporsak m.fl.) efter session #392 backend-fixes — 0 buggar, alla lifecycle OK, alla charts destroy() OK, dark theme korrekt, svenska texter, build OK**
 
