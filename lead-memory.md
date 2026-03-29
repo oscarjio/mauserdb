@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-29 (session #396)*
+*Senast uppdaterad: 2026-03-29 (session #398)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -93,6 +93,7 @@ Session #394: ProduktionsPrognosController SQL-fix COUNT→MAX (122→158 IBC). 
 Session #395: 5 slow endpoints optimerade (5.4s→0.1s). 6 nya DB-index + 30s filcache. SQL-audit 11 controllers 0 mismatches. 120 endpoints 0x500, 0 >1s. 25 frontend-komp 0 buggar. ~43 charts OK. 5 exportfunktioner OK. Build+deploy dev OK.
 Session #396: 2 KRITISKA VD-dashboard buggar (COUNT→MAX topOperatorer+skiftstatus) + 3 operatorsbonus buggar + lasttest 100 parallella OK + OEE 7 controllers 0 mismatches + rebotling-admin 0 buggar + mobilanpassning 4 sidor + 97 endpoints 0x500. Build+deploy dev OK.
 Session #397: 26 COUNT(*)→MAX(ibc_ok) fixar i 14 controllers (7.6% overcount) + 3 gamification-buggar (KRITISK kassationsrate 0%) + responsivitet 3 sidor 375px + 99 endpoints 0x500 0 >1s. Build+deploy dev OK.
+Session #398: 7 ytterligare COUNT(*)/SUM-buggar i 6 controllers fixade + verifiering mot prod DB OK (7.7% overcount bekraftat) + 115 endpoints 0x500 + lasttest 1000 parallella 0x500 + VD-dashboard+operatorsbonus+morgonrapport KPI verifierade + 109 templates+108 charts granskade + mobilfix 5 sidor. Build+deploy dev OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -105,23 +106,23 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #397):
-- Skiftrapport djupgranskning end-to-end mot prod DB
-- Driftstopp-analys controllers+frontend verifiering
-- Gamification badges/achievements berakningar
-- Produktionsprognos verifiering mot historisk data
-- Systematisk COUNT(*) vs MAX(ibc_ok) audit alla controllers
-- Responstest alla sidor 375px/768px/1024px
+### Nasta (session #399):
+- End-to-end verifiering: surfa dev som VD, alla sidor laddar korrekt
+- Rebotling detaljvy — verifiera cykeldata mot prod DB
+- Skiftrapport end-to-end (skiftvis produktion, effektivitet, kvalitet)
+- Driftstopp-analys — orsaker, tider, statistik mot prod DB
+- Exportfunktioner — CSV/PDF korrekt data efter COUNT-fix
+- Sakerhetsgranskning — CSRF, rate limiting, auth pa alla endpoints
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-29 — Session #396 (klar)
-Worker A: Lasttest 100 parallella 0x500. Rebotling-admin CRUD 0 buggar. OEE 7 controllers 0 SQL mismatches. 97 endpoints 0x500. Deploy dev OK.
-Worker B: 2 KRITISKA VD-dashboard buggar (COUNT→MAX). 3 operatorsbonus buggar. Mobilanpassning 4 sidor 375px. Build+deploy dev OK.
 
 ### 2026-03-29 — Session #397 (klar)
 Worker A: 26 COUNT(*)→MAX(ibc_ok) fixar i 14 controllers (7.6% overcount). Skiftrapport+driftstopp redan korrekt. 99 endpoints 0x500, 0 >1s. Deploy dev OK.
 Worker B: 3 gamification-buggar (KRITISK kassationsrate 0%, min-profil, teamspelare). Responsivitet 3 sidor 375px. Build+deploy dev OK.
 
-### INSIKT: COUNT(*)-buggen var MASSIV
-26 queries i 14 controllers hade felaktig COUNT(*) pa rebotling_ibc. Prod DB visar 394 rader vs 366 korrekta IBC (7.6% overcount). Operator-ranking var helt fel. Nu fixat med SUM(MAX(ibc_ok)) GROUP BY skiftraknare.
+### 2026-03-29 — Session #398 (klar)
+Worker A: 7 nya COUNT(*)/SUM-buggar i 6 controllers fixade. Verifiering mot prod DB OK. 115 endpoints 0x500. Lasttest 1000 parallella 0x500. Deploy dev OK.
+Worker B: VD-dashboard+operatorsbonus+morgonrapport alla KPI verifierade korrekt. 109 templates+108 charts granskade. Mobilfix 5 sidor. Build+deploy dev OK.
+
+### INSIKT: COUNT(*)-buggen HELT FIXAD
+Session #396-398: Totalt 33 queries i 20 controllers fixade. Kvarvarande COUNT(*) pa rebotling_ibc ar KORREKT (cykelrads-rakning, inte IBC-produktion). Prod DB verifierad: 7.7% overcount eliminerat.
