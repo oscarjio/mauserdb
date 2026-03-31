@@ -741,12 +741,10 @@ class TvattlinjeController {
     private function loadSettings() {
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
-        } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
-        error_log('TvattlinjeController::loadSettings: ' . $e->getMessage());
+        } catch (\Exception) { /* Kolumn finns redan — OK */ }
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
-        } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
-            error_log('TvattlinjeController::loadSettings: ' . $e->getMessage());
+        } catch (\Exception) { /* Kolumn finns redan — OK */ }
 
         $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings ORDER BY id ASC LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);

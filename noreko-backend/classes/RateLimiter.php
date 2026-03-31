@@ -15,7 +15,7 @@
 class RateLimiter
 {
     /** Max requests per tidsfönster */
-    private const MAX_REQUESTS = 120;
+    private const MAX_REQUESTS = 600;
 
     /** Tidsfönster i sekunder */
     private const WINDOW_SECONDS = 60;
