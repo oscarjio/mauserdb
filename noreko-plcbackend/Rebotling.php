@@ -542,24 +542,26 @@ class Rebotling {
     public function handleSkiftrapport(array $data): void {
         
         error_log("handleSkiftrapport: Skiftrapport ---");
-        // Läs D4000-D4009 via Modbus – dessa innehåller skiftets kumulativa totaler
+        // Läs D4000-D4011 via Modbus – dessa innehåller skiftets kumulativa totaler
         // när PLC triggar skiftrapporten vid skiftets slut.
         //$this->modbus = new ModbusMaster("192.168.10.100", "TCP");
         // Vänta 500ms sedan senaste Modbus-read innan vi läser skiftrapport
         usleep(500000);
-        $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
+        $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 12);
         $plc_data = $this->convert8to16bit($raw_data);
 
-        $op1         = $plc_data[0]; // D4000 - Operatör Tvättplats
-        $op2         = $plc_data[1]; // D4001 - Operatör Kontrollstation
-        $op3         = $plc_data[2]; // D4002 - Operatör Truckförare
-        $produkt     = $plc_data[3]; // D4003 - Produkt
-        $ibc_ok      = $plc_data[4]; // D4004 - IBC OK
-        $ibc_ej_ok   = $plc_data[5]; // D4005 - IBC Ej OK
-        $bur_ej_ok   = $plc_data[6]; // D4006 - Bur Ej OK
-        $drifttid    = $plc_data[7]; // D4007 - Runtime PLC (exkl rast)
-        $rasttime    = $plc_data[8]; // D4008 - Rasttid PLC
-        $lopnummer   = $plc_data[9]; // D4009 - Högsta löpnummer i skiftet
+        $op1            = $plc_data[0];  // D4000 - Operatör Tvättplats
+        $op2            = $plc_data[1];  // D4001 - Operatör Kontrollstation
+        $op3            = $plc_data[2];  // D4002 - Operatör Truckförare
+        $produkt        = $plc_data[3];  // D4003 - Produkt
+        $ibc_ok         = $plc_data[4];  // D4004 - IBC OK
+        $ibc_ej_ok      = $plc_data[5];  // D4005 - IBC Ej OK
+        $bur_ej_ok      = $plc_data[6];  // D4006 - Bur Ej OK
+        $drifttid       = $plc_data[7];  // D4007 - Runtime PLC (exkl rast)
+        $rasttime       = $plc_data[8];  // D4008 - Rasttid PLC
+        $lopnummer      = $plc_data[9];  // D4009 - Högsta löpnummer i skiftet
+        // D4010 läses separat nedan för aktuellt löpnummer
+        $driftstopptime = $plc_data[11]; // D4011 - Stopptid PLC (minuter)
 
         // Läs även D4010 när skiftrapport skickas – uppdatera aktuellt löpnummer
         try {
@@ -596,27 +598,28 @@ class Rebotling {
         $stmt = $this->db->prepare('
             INSERT INTO rebotling_skiftrapport
                 (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id,
-                 op1, op2, op3, drifttid, rasttime, lopnummer, skiftraknare)
+                 op1, op2, op3, drifttid, rasttime, lopnummer, skiftraknare, driftstopptime)
             VALUES
                 (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :product_id, :user_id,
-                 :op1, :op2, :op3, :drifttid, :rasttime, :lopnummer, :skiftraknare)
+                 :op1, :op2, :op3, :drifttid, :rasttime, :lopnummer, :skiftraknare, :driftstopptime)
         ');
 
         error_log("handleSkiftrapport: ---------");
         $stmt->execute([
-            'ibc_ok'      => $ibc_ok,
-            'bur_ej_ok'   => $bur_ej_ok,
-            'ibc_ej_ok'   => $ibc_ej_ok,
-            'totalt'      => $totalt,
-            'product_id'  => $produkt,
-            'user_id'     => $op1,   // Primäroperatör (Tvättplats) som user_id för bakåtkompatibilitet
-            'op1'         => $op1,
-            'op2'         => $op2,
-            'op3'         => $op3,
-            'drifttid'    => $drifttid,
-            'rasttime'    => $rasttime,
-            'lopnummer'   => $lopnummer,
-            'skiftraknare' => $skiftraknare,
+            'ibc_ok'          => $ibc_ok,
+            'bur_ej_ok'       => $bur_ej_ok,
+            'ibc_ej_ok'       => $ibc_ej_ok,
+            'totalt'          => $totalt,
+            'product_id'      => $produkt,
+            'user_id'         => $op1,   // Primäroperatör (Tvättplats) som user_id för bakåtkompatibilitet
+            'op1'             => $op1,
+            'op2'             => $op2,
+            'op3'             => $op3,
+            'drifttid'        => $drifttid,
+            'rasttime'        => $rasttime,
+            'lopnummer'       => $lopnummer,
+            'skiftraknare'    => $skiftraknare,
+            'driftstopptime'  => $driftstopptime,
         ]);
 
         error_log("handleSkiftrapport: ---------");
