@@ -824,11 +824,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
           : 0;
 
-        const avgEff = periodCycles.length > 0
-          ? periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length
-          : 0;
+        // Beräkna effektivitet som target/actual cycle time (per cykel), inte produktion_procent (PLC-råvärde)
+        const validTargets = periodCycles
+          .map(c => parseFloat(c.target_cycle_time))
+          .filter(t => !isNaN(t) && t > 0);
+        const avgTarget = validTargets.length > 0
+          ? validTargets.reduce((s, t) => s + t, 0) / validTargets.length
+          : (this.targetCycleTime || 3);
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = Math.min(150, Math.round(avgEff));
+        cell.efficiency = avgCycleTime > 0 ? Math.min(150, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
       }
     });
 

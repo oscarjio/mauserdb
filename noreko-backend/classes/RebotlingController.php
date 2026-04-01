@@ -431,11 +431,18 @@ class RebotlingController {
                        AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
                     (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
-                    (SELECT p.cycle_time_minutes
-                     FROM rebotling_onoff o
-                     LEFT JOIN rebotling_products p ON p.id = o.produkt
-                     WHERE o.skiftraknare = (SELECT sk FROM skift) AND o.produkt IS NOT NULL AND o.produkt > 0
-                     ORDER BY o.datum DESC LIMIT 1) AS cycle_time
+                    COALESCE(
+                        (SELECT p.cycle_time_minutes
+                         FROM rebotling_onoff o
+                         LEFT JOIN rebotling_products p ON p.id = o.produkt
+                         WHERE o.skiftraknare = (SELECT sk FROM skift) AND o.produkt IS NOT NULL AND o.produkt > 0
+                         ORDER BY o.datum DESC LIMIT 1),
+                        (SELECT p.cycle_time_minutes
+                         FROM rebotling_ibc i
+                         LEFT JOIN rebotling_products p ON p.id = i.produkt
+                         WHERE i.skiftraknare = (SELECT sk FROM skift) AND i.produkt IS NOT NULL AND i.produkt > 0
+                         ORDER BY i.datum DESC LIMIT 1)
+                    ) AS cycle_time
             ");
             $stmt->execute();
             $combo = $stmt->fetch(PDO::FETCH_ASSOC);
