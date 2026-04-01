@@ -888,6 +888,7 @@ class RebotlingController {
 
             // Hämta driftstopp events för perioden
             $driftstopp_events = [];
+            $totalDriftstoppMinutes = 0;
             try {
                 $dsStmt = $this->pdo->prepare(
                     'SELECT datum, driftstopp_status FROM rebotling_driftstopp
@@ -896,6 +897,18 @@ class RebotlingController {
                 );
                 $dsStmt->execute(['start' => $start, 'end' => $end]);
                 $driftstopp_events = $dsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Beräkna total driftstopptid
+                $ds = null;
+                foreach ($driftstopp_events as $ev) {
+                    if ((int)$ev['driftstopp_status'] === 1) {
+                        $ds = new DateTime($ev['datum'], new DateTimeZone('Europe/Stockholm'));
+                    } elseif ((int)$ev['driftstopp_status'] === 0 && $ds !== null) {
+                        $d = $ds->diff(new DateTime($ev['datum'], new DateTimeZone('Europe/Stockholm')));
+                        $totalDriftstoppMinutes += ($d->days * 1440) + ($d->h * 60) + $d->i + ($d->s / 60);
+                        $ds = null;
+                    }
+                }
             } catch (Exception $e) {
                 error_log('RebotlingController driftstopp-events query: ' . $e->getMessage());
             }
@@ -984,6 +997,10 @@ class RebotlingController {
             
             $total_runtime_hours = $totalRuntimeMinutes / 60;
 
+            // Netto-drifttid: total on-tid minus rast och driftstopp
+            // = tid linjen faktiskt producerade (matchar PLC:ns drifttid-räknare)
+            $netRuntimeMinutes = max(0.0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
+
             // Räkna dagar med produktion
             $unique_dates = array_unique(array_map(function($cycle) {
                 return date('Y-m-d', strtotime($cycle['datum']));
@@ -1004,7 +1021,9 @@ class RebotlingController {
                         'target_cycle_time' => round($target_cycle_time, 1),
                         'total_runtime_hours' => round($total_runtime_hours, 1),
                         'days_with_production' => $days_with_production,
-                        'total_rast_minutes' => round($totalRastMinutes, 1)
+                        'total_rast_minutes' => round($totalRastMinutes, 1),
+                        'total_driftstopp_minutes' => round($totalDriftstoppMinutes, 1),
+                        'net_runtime_minutes' => round($netRuntimeMinutes, 1)
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);

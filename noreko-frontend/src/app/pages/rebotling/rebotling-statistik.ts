@@ -752,10 +752,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   updateStatistics(data: any) {
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    // Compute proper efficiency: target_cycle_time / avg_cycle_time * 100
+    // Effektivitet = total_ibc * target_cykeltid / netto_drifttid
+    // "tid linjen är igång (exkl. rast+driftstopp)" / "antal produkter" = faktisk cykeltid
     const targetCt = data.summary.target_cycle_time || 3;
-    const avgCt = data.summary.avg_cycle_time || 0;
-    const properEff = avgCt > 0 ? Math.round((targetCt / avgCt) * 100) : 0;
+    const netRtMin = data.summary.net_runtime_minutes || 0;
+    const totalCyc = data.summary.total_cycles || 0;
+    const properEff = (netRtMin > 0 && totalCyc > 0)
+      ? Math.round(totalCyc * targetCt / netRtMin * 100)
+      : 0;
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
@@ -824,7 +828,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
           : 0;
 
-        // Beräkna effektivitet som target/actual cycle time (per cykel), inte produktion_procent (PLC-råvärde)
         const validTargets = periodCycles
           .map(c => parseFloat(c.target_cycle_time))
           .filter(t => !isNaN(t) && t > 0);
