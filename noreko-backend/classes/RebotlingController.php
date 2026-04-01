@@ -426,10 +426,9 @@ class RebotlingController {
                     (SELECT COALESCE(MAX(ibc_count), 0) FROM rebotling_ibc
                      WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
                     (SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1) AS lopnummer,
-                    (SELECT COALESCE(MAX(ibc_ok), 0) - COALESCE(MIN(ibc_ok), 0) FROM rebotling_ibc
+                    (SELECT COUNT(*) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)
-                       AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-                       AND ibc_ok IS NOT NULL) AS ibc_hour,
+                       AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)) AS ibc_hour,
                     (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
                     (SELECT p.cycle_time_minutes
