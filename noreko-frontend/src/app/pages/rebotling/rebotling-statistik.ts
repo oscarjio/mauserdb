@@ -717,10 +717,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         end.setDate(0);
         end.setHours(23, 59, 59, 999);
       } else if (this.viewMode === 'month') {
-        // Hämta alltid hela månaden så stapeldiagrammet har data för alla dagar
-        start = new Date(this.currentYear, this.currentMonth, 1);
         start.setHours(0, 0, 0, 0);
-        end = new Date(this.currentYear, this.currentMonth + 1, 0, 23, 59, 59);
+        end.setHours(23, 59, 59, 999);
       } else if (this.viewMode === 'day') {
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
@@ -942,8 +940,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       } else {
         const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        // Visa alltid ALLA dagar i månaden — en vald dag ska inte isolera stapeln i mitten
-        const daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        let daysToShow: number[];
+        if (this.selectedPeriods.length > 0) {
+          const daySet = new Set<number>();
+          this.selectedPeriods.forEach(d => {
+            if (d.getFullYear() === this.currentYear && d.getMonth() === this.currentMonth) {
+              daySet.add(d.getDate());
+            }
+          });
+          daysToShow = Array.from(daySet).sort((a, b) => a - b);
+        } else {
+          daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        }
         daysToShow.forEach(d => {
           grouped.set(`${d}`, { cycles: [], cycleTime: [], running: false });
         });
@@ -1099,10 +1107,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const count = value.cycles.length;
       cycleCountArr.push(count);
       if (count > 0) {
+        // parseFloat säkerställer att PDO-strängar ("2.61") blir tal före summering
         const validTimes = value.cycles
-          .map((c: any) => c.cycle_time)
-          .filter((t: any) => t !== null && t !== undefined && t > 0 && t <= 30);
-        const avgTarget = value.cycles.reduce((s: number, c: any) => s + (c.target_cycle_time || 3), 0) / count;
+          .map((c: any) => parseFloat(c.cycle_time))
+          .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
+        const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
           efficiencyArr.push(Math.min(150, Math.round((avgTarget / avgActual) * 100)));
