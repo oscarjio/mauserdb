@@ -811,10 +811,10 @@ class RebotlingController {
                     i.skiftraknare,
                     i.produkt as produkt_id,
                     COALESCE(p.name, CONCAT("Produkt ", i.produkt)) as produkt_namn,
-                    TIMESTAMPDIFF(MINUTE,
+                    ROUND(TIMESTAMPDIFF(SECOND,
                         LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
                         i.datum
-                    ) as cycle_time,
+                    ) / 60.0, 2) as cycle_time,
                     p.cycle_time_minutes as target_cycle_time
                 FROM rebotling_ibc i
                 LEFT JOIN rebotling_products p ON i.produkt = p.id
@@ -825,14 +825,22 @@ class RebotlingController {
             $rawCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Behåll ALLA cykler för korrekt antal.
-            // Cykeltid NULL = första cykeln i skiftet (LAG ger NULL) eller lång paus (>30 min).
+            // Cykeltid sätts till NULL om den är orimlig (stopp-gap eller PLC-dubblett).
+            // Tröskel: target * 3 (t.ex. 9 min för 3-min-produkt) — stopp-gap EXKLUDERAS
+            // ur effektivitetsberäkning precis som i skiftrapporten (drifttid exkl. stopp).
             $cycles = [];
             foreach ($rawCycles as $cycle) {
-                if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 30) {
-                    // Lång paus — behåll cykeln men nollställ cykeltiden
-                    $cycle['cycle_time'] = null;
-                } elseif ($cycle['cycle_time'] !== null && $cycle['cycle_time'] <= 0) {
-                    $cycle['cycle_time'] = null;
+                $ct = $cycle['cycle_time'] !== null ? (float)$cycle['cycle_time'] : null;
+                if ($ct !== null) {
+                    $target = (float)($cycle['target_cycle_time'] ?? 0);
+                    $maxCt  = $target > 0 ? $target * 3 : 15.0;
+                    if ($ct > $maxCt) {
+                        // Driftstopp-gap — behåll cykeln men nollställ cykeltiden
+                        $cycle['cycle_time'] = null;
+                    } elseif ($ct < 0.5) {
+                        // PLC-dubblettrigger (< 30 sek) — nollställ cykeltiden
+                        $cycle['cycle_time'] = null;
+                    }
                 }
                 $cycles[] = $cycle;
             }
