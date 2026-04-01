@@ -752,14 +752,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   updateStatistics(data: any) {
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    // Effektivitet = total_ibc * target_cykeltid / netto_drifttid
-    // "tid linjen är igång (exkl. rast+driftstopp)" / "antal produkter" = faktisk cykeltid
+    // Effektivitet:
+    //  - Dag-vy: total_ibc * target / netto_drifttid (matchar skiftrapporten)
+    //  - Månad/år-vy: target / avg_cykeltid (samma formel som stapeldiagrammet)
     const targetCt = data.summary.target_cycle_time || 3;
-    const netRtMin = data.summary.net_runtime_minutes || 0;
-    const totalCyc = data.summary.total_cycles || 0;
-    const properEff = (netRtMin > 0 && totalCyc > 0)
-      ? Math.round(totalCyc * targetCt / netRtMin * 100)
-      : 0;
+    let properEff: number;
+    if (this.viewMode === 'day') {
+      const netRtMin = data.summary.net_runtime_minutes || 0;
+      const totalCyc = data.summary.total_cycles || 0;
+      properEff = (netRtMin > 0 && totalCyc > 0)
+        ? Math.round(totalCyc * targetCt / netRtMin * 100)
+        : 0;
+    } else {
+      const avgCt = data.summary.avg_cycle_time || 0;
+      properEff = avgCt > 0 ? Math.round((targetCt / avgCt) * 100) : 0;
+    }
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
@@ -933,18 +940,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       } else {
         const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        let daysToShow: number[];
-        if (this.selectedPeriods.length > 0) {
-          const daySet = new Set<number>();
-          this.selectedPeriods.forEach(d => {
-            if (d.getFullYear() === this.currentYear && d.getMonth() === this.currentMonth) {
-              daySet.add(d.getDate());
-            }
-          });
-          daysToShow = Array.from(daySet).sort((a, b) => a - b);
-        } else {
-          daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-        }
+        // Visa alltid ALLA dagar i månaden — en vald dag ska inte isolera stapeln i mitten
+        const daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
         daysToShow.forEach(d => {
           grouped.set(`${d}`, { cycles: [], cycleTime: [], running: false });
         });
