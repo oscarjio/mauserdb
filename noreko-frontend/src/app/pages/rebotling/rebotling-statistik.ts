@@ -717,8 +717,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         end.setDate(0);
         end.setHours(23, 59, 59, 999);
       } else if (this.viewMode === 'month') {
+        // Hämta alltid hela månaden så stapeldiagrammet har data för alla dagar
+        start = new Date(this.currentYear, this.currentMonth, 1);
         start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+        end = new Date(this.currentYear, this.currentMonth + 1, 0, 23, 59, 59);
       } else if (this.viewMode === 'day') {
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
