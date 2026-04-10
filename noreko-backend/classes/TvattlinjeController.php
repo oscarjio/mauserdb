@@ -108,7 +108,7 @@ class TvattlinjeController {
         ");
         $defaults = [
             ['dagmal',       '80'],
-            ['takt_mal',     '15'],
+            ['takt_mal',     '3'],
             ['skift_start',  '06:00'],
             ['skift_slut',   '22:00'],
         ];
@@ -779,7 +779,7 @@ class TvattlinjeController {
             $target_cycle_time = 3.0;
             try {
                 $this->ensureSettingsTable();
-                $sr = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'takt_mal' LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+                $sr = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'takt_mal' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 if ($sr && (float)$sr['value'] > 0) $target_cycle_time = (float)$sr['value'];
             } catch (\Exception $e) { /* ignorera */ }
 
