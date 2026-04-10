@@ -34,6 +34,8 @@ class TvattlinjeController {
                 $this->getReport();
             } elseif ($action === 'oee-trend') {
                 $this->getOeeTrend();
+            } elseif ($action === 'skiftrapport-statistik') {
+                $this->getSkiftrapportStatistik();
             } else {
                 $this->getLiveStats();
             }
@@ -773,137 +775,246 @@ class TvattlinjeController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
 
+            // Hämta takt_mal från settings
+            $target_cycle_time = 3.0;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'takt_mal' LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+                if ($sr && (float)$sr['value'] > 0) $target_cycle_time = (float)$sr['value'];
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Hämta cyklar med PLC-fält (om de finns)
             $stmt = $this->pdo->prepare('
-                SELECT 
+                SELECT
                     i.datum,
                     i.ibc_count,
                     i.s_count,
-                    100 as produktion_procent,
-                    1 as skiftraknare,
-                    TIMESTAMPDIFF(MINUTE, 
-                        LAG(i.datum) OVER (ORDER BY i.datum), 
+                    COALESCE(i.effektivitet, 100) as produktion_procent,
+                    COALESCE(i.skiftraknare, 1) as skiftraknare,
+                    TIMESTAMPDIFF(SECOND,
+                        LAG(i.datum) OVER (ORDER BY i.datum),
                         i.datum
-                    ) as cycle_time,
-                    3 as target_cycle_time
+                    ) / 60.0 as cycle_time,
+                    i.op1,
+                    i.op2,
+                    i.op3,
+                    i.ibc_ok,
+                    i.ibc_ej_ok,
+                    i.omtvaatt,
+                    i.runtime_plc,
+                    i.rasttime,
+                    i.lopnummer
                 FROM tvattlinje_ibc i
                 WHERE i.datum >= :start AND i.datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY i.datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);
             $rawCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             $cycles = [];
             foreach ($rawCycles as $cycle) {
-                if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 0 && $cycle['cycle_time'] <= 15) {
+                $ct = $cycle['cycle_time'] !== null ? (float)$cycle['cycle_time'] : null;
+                if ($ct !== null && $ct > 0 && $ct <= 30) {
+                    $cycle['cycle_time'] = round($ct, 2);
                     $cycles[] = $cycle;
-                } else if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 15) {
+                } else {
                     $cycle['cycle_time'] = null;
+                    // Inkludera ändå för att visa i tidslinje
                     $cycles[] = $cycle;
                 }
             }
 
+            // On/off-events
             $stmt = $this->pdo->prepare('
-                SELECT 
-                    datum,
-                    running,
-                    runtime_today
-                FROM tvattlinje_onoff 
+                SELECT datum, running, runtime_today
+                FROM tvattlinje_onoff
                 WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY datum ASC
             ');
             $stmt->execute(['start' => $start, 'end' => $end]);
             $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $total_cycles = count($cycles);
-            $avg_production_percent = 0;
-            $avg_cycle_time = 0;
-            $total_runtime_hours = 0;
-            $target_cycle_time = 3;
-
-            if ($total_cycles > 0) {
-                $cycle_times = array_filter(array_column($cycles, 'cycle_time'), function($val) {
-                    return $val !== null && $val > 0;
-                });
-
-                if (count($cycle_times) > 0) {
-                    $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
-                }
+            // Rast-events (från tvattlinje_rast eller tvattlinje_runtime)
+            $rast_events = [];
+            foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $rast_table) {
+                try {
+                    $stmt = $this->pdo->prepare("
+                        SELECT datum, rast_status
+                        FROM {$rast_table}
+                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                        ORDER BY datum ASC
+                    ");
+                    $stmt->execute(['start' => $start, 'end' => $end]);
+                    $rast_events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    break; // Använd första funna tabellen
+                } catch (\Exception $e) { /* prova nästa tabell */ }
             }
 
+            // Beräkna runtime
             $totalRuntimeMinutes = 0;
-
             if (count($onoff_events) > 0) {
                 $lastRunningStart = null;
-
                 foreach ($onoff_events as $event) {
                     $eventTime = new DateTime($event['datum'], new DateTimeZone('Europe/Stockholm'));
                     $isRunning = (bool)($event['running'] ?? false);
-
                     if ($isRunning && $lastRunningStart === null) {
                         $lastRunningStart = $eventTime;
                     } elseif (!$isRunning && $lastRunningStart !== null) {
                         $diff = $lastRunningStart->diff($eventTime);
-                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                        $totalRuntimeMinutes += $periodMinutes;
+                        $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                         $lastRunningStart = null;
                     }
                 }
-
                 if ($lastRunningStart !== null) {
-                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
-                    $diff = $lastRunningStart->diff($lastEventTime);
-                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalRuntimeMinutes += $periodMinutes;
+                    $lastEvt = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $diff = $lastRunningStart->diff($lastEvt);
+                    $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                 }
             }
 
+            $total_cycles = count($cycles);
             if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
-                $firstCycle = new DateTime($cycles[0]['datum'], new DateTimeZone('Europe/Stockholm'));
-                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
-                $diff = $firstCycle->diff($lastCycle);
-                $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                // Fallback: span av första–sista cykel
+                $validCycles = array_filter($cycles, fn($c) => $c['datum'] !== null);
+                if (count($validCycles) > 1) {
+                    $first = new DateTime(reset($validCycles)['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $last  = new DateTime(end($validCycles)['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $diff  = $first->diff($last);
+                    $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                }
             }
 
+            // Beräkna rasttid
+            $totalRastMinutes = 0;
+            if (count($rast_events) > 0) {
+                $rastStart = null;
+                foreach ($rast_events as $evt) {
+                    $t = new DateTime($evt['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $status = (int)($evt['rast_status'] ?? 0);
+                    if ($status === 1 && $rastStart === null) {
+                        $rastStart = $t;
+                    } elseif ($status === 0 && $rastStart !== null) {
+                        $diff = $rastStart->diff($t);
+                        $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $rastStart = null;
+                    }
+                }
+            }
+
+            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes);
             $total_runtime_hours = $totalRuntimeMinutes / 60;
 
-            // Beräkna produktionsprocent: faktisk IBC/h vs mål-IBC/h
-            if ($totalRuntimeMinutes > 0 && $total_cycles > 0) {
-                $settings = $this->loadSettings();
-                $ibcTarget = $settings['antal_per_dag'] ?? 150;
-                $hourlyTarget = $ibcTarget / 8;
-                if ($hourlyTarget > 0) {
-                    $actualProductionPerHour = ($total_cycles * 60) / $totalRuntimeMinutes;
-                    $avg_production_percent = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
-                }
+            // Snitt cykeltid
+            $avg_cycle_time = 0;
+            $cycle_times = array_filter(array_column($cycles, 'cycle_time'), fn($v) => $v !== null && $v > 0);
+            if (count($cycle_times) > 0) {
+                $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
             }
 
-            $unique_dates = array_unique(array_map(function($cycle) {
-                return date('Y-m-d', strtotime($cycle['datum']));
-            }, $cycles));
+            // Effektivitet: (total_cycles * target_cycle_time) / net_runtime_minutes * 100
+            $avg_production_percent = 0;
+            if ($netRuntimeMinutes > 0 && $total_cycles > 0 && $target_cycle_time > 0) {
+                $avg_production_percent = round(($total_cycles * $target_cycle_time) / $netRuntimeMinutes * 100, 1);
+            }
+
+            $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
             $days_with_production = count($unique_dates);
 
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'cycles' => $cycles,
+                    'cycles'       => $cycles,
                     'onoff_events' => $onoff_events,
+                    'rast_events'  => $rast_events,
                     'summary' => [
-                        'total_cycles' => $total_cycles,
-                        'avg_production_percent' => round($avg_production_percent, 1),
-                        'avg_cycle_time' => round($avg_cycle_time, 1),
-                        'target_cycle_time' => round($target_cycle_time, 1),
-                        'total_runtime_hours' => round($total_runtime_hours, 1),
-                        'days_with_production' => $days_with_production
+                        'total_cycles'          => $total_cycles,
+                        'avg_production_percent'=> round($avg_production_percent, 1),
+                        'avg_cycle_time'        => round($avg_cycle_time, 2),
+                        'target_cycle_time'     => $target_cycle_time,
+                        'total_runtime_hours'   => round($total_runtime_hours, 2),
+                        'net_runtime_minutes'   => round($netRuntimeMinutes, 1),
+                        'total_rast_minutes'    => round($totalRastMinutes, 1),
+                        'days_with_production'  => $days_with_production,
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('TvattlinjeController::getStatistics: ' . $e->getMessage());
             http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // =========================================================
+    // Skiftrapport-statistik — hämtar PLC-genererade skiftrapporter
+    // =========================================================
+
+    private function getSkiftrapportStatistik() {
+        try {
+            $start = $_GET['start'] ?? date('Y-m-d', strtotime('-30 days'));
+            $end   = $_GET['end']   ?? date('Y-m-d');
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d', strtotime('-30 days'));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+
+            $rows = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        sr.*,
+                        u.username as op1_name
+                    FROM tvattlinje_skiftrapport sr
+                    LEFT JOIN users u ON sr.op1 = u.operator_id AND u.operator_id IS NOT NULL
+                    WHERE sr.datum >= :start AND sr.datum <= :end
+                    ORDER BY sr.datum DESC, sr.id DESC
+                ");
+                $stmt->execute(['start' => $start, 'end' => $end]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                error_log('TvattlinjeController::getSkiftrapportStatistik rows: ' . $e->getMessage());
+                // Försök utan JOIN
+                try {
+                    $stmt = $this->pdo->prepare("
+                        SELECT * FROM tvattlinje_skiftrapport
+                        WHERE datum >= :start AND datum <= :end
+                        ORDER BY datum DESC, id DESC
+                    ");
+                    $stmt->execute(['start' => $start, 'end' => $end]);
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                } catch (\Exception $e2) {
+                    error_log('TvattlinjeController::getSkiftrapportStatistik fallback: ' . $e2->getMessage());
+                }
+            }
+
+            // Beräkna summerade KPI:er
+            $totalOk     = 0;
+            $totalEjOk   = 0;
+            $totalOmtvatt = 0;
+            $totalDrifttid = 0;
+            foreach ($rows as $r) {
+                $totalOk     += (int)($r['antal_ok']   ?? 0);
+                $totalEjOk   += (int)($r['antal_ej_ok'] ?? 0);
+                $totalOmtvatt+= (int)($r['omtvaatt']   ?? 0);
+                $totalDrifttid+= (int)($r['drifttid']  ?? 0);
+            }
+            $totalIbc = $totalOk + $totalEjOk + $totalOmtvatt;
+
             echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte hämta statistik'
+                'success' => true,
+                'data'    => $rows,
+                'summary' => [
+                    'total_ibc'      => $totalIbc,
+                    'total_ok'       => $totalOk,
+                    'total_ej_ok'    => $totalEjOk,
+                    'total_omtvaatt' => $totalOmtvatt,
+                    'total_drifttid' => $totalDrifttid,
+                    'skift_count'    => count($rows),
+                ],
             ], JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController::getSkiftrapportStatistik: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapportstatistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 

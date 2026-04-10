@@ -527,11 +527,78 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   updateStatistics(data: any) {
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
+
+    // Effektivitet: beräknas från net_runtime_minutes om möjligt
+    const netRtMin = data.summary.net_runtime_minutes
+      || (data.summary.total_runtime_hours * 60)
+      || 0;
+    const target = data.summary.target_cycle_time || 3;
+    if (netRtMin > 0 && data.summary.total_cycles > 0 && target > 0) {
+      this.avgEfficiency = Math.round((data.summary.total_cycles * target / netRtMin) * 100);
+    } else {
+      this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
+    }
+
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
 
     this.updatePeriodCellsData(data.cycles);
+  }
+
+  /** Bygg pausperioder (rast + ev. stopp) för rullande effektivitetsberäkning */
+  private buildPausePeriods(rast_events: any[]): Array<{start: number; end: number}> {
+    const periods: Array<{start: number; end: number}> = [];
+    let rastStart: number | null = null;
+    for (const evt of rast_events) {
+      const t = new Date(evt.datum).getTime();
+      if ((evt.rast_status === 1 || evt.rast_status === '1') && rastStart === null) {
+        rastStart = t;
+      } else if ((evt.rast_status === 0 || evt.rast_status === '0') && rastStart !== null) {
+        periods.push({ start: rastStart, end: t });
+        rastStart = null;
+      }
+    }
+    return periods;
+  }
+
+  /** Beräkna rullande 30-min effektivitet per cykel */
+  private calcRollingEfficiency(cycles: any[], rast_events: any[], targetMin: number): number[] {
+    if (cycles.length === 0) return [];
+    const WINDOW_MS = 30 * 60 * 1000;
+    const WINDOW_MINUTES = 30;
+    const pausePeriods = this.buildPausePeriods(rast_events || []);
+    const result: number[] = [];
+
+    for (let i = 0; i < cycles.length; i++) {
+      const cycleMs = new Date(cycles[i].datum).getTime();
+      const windowStart = cycleMs - WINDOW_MS;
+
+      // Räkna giltiga cykler i fönstret
+      let windowCount = 0;
+      for (let w = i; w >= 0; w--) {
+        const wMs = new Date(cycles[w].datum).getTime();
+        if (wMs < windowStart) break;
+        const wct = parseFloat(cycles[w].cycle_time);
+        if (!isNaN(wct) && wct > 0 && wct <= 30) windowCount++;
+      }
+
+      // Beräkna pausminuter i fönstret
+      let pauseMinInWindow = 0;
+      for (const p of pausePeriods) {
+        const overlapStart = Math.max(p.start, windowStart);
+        const overlapEnd   = Math.min(p.end, cycleMs);
+        if (overlapEnd > overlapStart) {
+          pauseMinInWindow += (overlapEnd - overlapStart) / 60000;
+        }
+      }
+
+      const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow);
+      const pp = windowCount > 0
+        ? Math.round((windowCount * targetMin / netWindowMin) * 100)
+        : 0;
+      result.push(pp);
+    }
+    return result;
   }
 
   updatePeriodCellsData(cycles: any[]) {
@@ -638,7 +705,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const ctx = this.productionChartRef.nativeElement.getContext('2d');
       if (!ctx) return;
 
-      const chartData = this.prepareChartData(data);
+      // Dag-vy: använd per-cykel data med rullande effektivitet
+      const chartData = this.viewMode === 'day'
+        ? this.preparePerCycleChartData(data)
+        : this.prepareChartData(data);
 
       if (chartData.labels.length === 0) {
         return;
@@ -851,8 +921,57 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods };
   }
 
+  /** Förbereder dag-vy chart med per-cykel-data och rullande effektivitet */
+  private preparePerCycleChartData(data: any): any {
+    const cycles = (data.cycles || []).filter((c: any) => {
+      const ct = parseFloat(c.cycle_time);
+      return !isNaN(ct) && ct > 0 && ct <= 30;
+    });
+    const rast_events = data.rast_events || [];
+    const target = this.targetCycleTime || 3;
+
+    // Tillämpa ev. graf-markering
+    let displayCycles = cycles;
+    if (this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null) {
+      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      displayCycles = cycles.slice(minSel, maxSel + 1);
+    }
+
+    const labels: string[] = displayCycles.map((c: any) => {
+      const d = new Date(c.datum);
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    });
+
+    const cycleTimeData: number[] = displayCycles.map((c: any) => parseFloat(c.cycle_time));
+    const targetLine: number[] = displayCycles.map(() => target);
+    const effData = this.calcRollingEfficiency(displayCycles, rast_events, target);
+
+    // Körperioder för bakgrundsfärg
+    const pausePeriods = this.buildPausePeriods(rast_events);
+    const runningPeriods: any[] = [];
+    let cur: any = null;
+    displayCycles.forEach((c: any, idx: number) => {
+      const ms = new Date(c.datum).getTime();
+      const onRast = pausePeriods.some(p => ms >= p.start && ms <= p.end);
+      const running = !onRast;
+      if (!cur || cur.running !== running) {
+        if (cur) runningPeriods.push(cur);
+        cur = { startIndex: idx, endIndex: idx, running };
+      } else {
+        cur.endIndex = idx;
+      }
+    });
+    if (cur) runningPeriods.push(cur);
+
+    return { labels, cycleTime: cycleTimeData, targetCycleTime: targetLine, efficiency: effData, runningPeriods, isPerCycle: true };
+  }
+
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
     try {
+      const isDay = this.viewMode === 'day';
+      const isPerCycle = chartData.isPerCycle === true;
+
       const datasets: any[] = [
         {
           label: 'Cykeltid (min)',
@@ -862,7 +981,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           tension: 0.4,
           fill: true,
           yAxisID: 'y',
-          pointRadius: this.viewMode === 'day' ? 2 : 3,
+          pointRadius: isDay ? 2 : 3,
           pointHoverRadius: 6,
           borderWidth: 2
         },
@@ -879,8 +998,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         }
       ];
 
-      // Add target line if target exists
-      if (this.targetCycleTime > 0) {
+      // Mål-cykeltid
+      if (this.targetCycleTime > 0 && chartData.targetCycleTime) {
         datasets.push({
           label: 'Mål Cykeltid',
           data: chartData.targetCycleTime,
@@ -894,7 +1013,57 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         });
       }
 
+      // Rullande effektivitet — visas i dag-vy
+      const hasEfficiency = isPerCycle && chartData.efficiency && chartData.efficiency.length > 0;
+      if (hasEfficiency) {
+        datasets.push({
+          label: 'Effektivitet % (30 min)',
+          data: chartData.efficiency,
+          borderColor: '#68d391',
+          backgroundColor: 'rgba(104,211,145,0.08)',
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'yEff',
+          pointRadius: 1,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          borderDash: [],
+        });
+      }
+
       if (this.productionChart) { (this.productionChart as any).destroy(); }
+
+      const scales: any = {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Cykeltid (minuter)', color: '#e0e0e0', font: { size: 13 } },
+          ticks: { color: '#a0a0a0' },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          position: 'left',
+        },
+        x: {
+          ticks: {
+            color: '#a0a0a0',
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: isDay ? 24 : undefined
+          },
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        }
+      };
+
+      if (hasEfficiency) {
+        scales['yEff'] = {
+          beginAtZero: true,
+          suggestedMin: 0,
+          position: 'right',
+          title: { display: true, text: 'Effektivitet (%)', color: '#68d391', font: { size: 12 } },
+          ticks: { color: '#68d391', callback: (v: number) => v + '%' },
+          grid: { drawOnChartArea: false },
+        };
+      }
+
       this.productionChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -922,24 +1091,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
               displayColors: true
             }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Cykeltid (minuter)', color: '#e0e0e0', font: { size: 13 } },
-              ticks: { color: '#a0a0a0' },
-              grid: { color: 'rgba(255, 255, 255, 0.05)' }
-            },
-            x: {
-              ticks: {
-                color: '#a0a0a0',
-                maxRotation: 45,
-                minRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: this.viewMode === 'day' ? 24 : undefined
-              },
-              grid: { color: 'rgba(255, 255, 255, 0.05)' }
-            }
-          }
+          scales
         },
         plugins: [{
           id: 'backgroundColors',

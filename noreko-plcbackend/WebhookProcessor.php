@@ -30,6 +30,12 @@ class WebhookProcessor {
                     case 'rast':
                         $tvattlinje->handleRast($data);
                         break;
+                    case 'skiftrapport':
+                        $tvattlinje->handleSkiftrapport($data);
+                        break;
+                    case 'command':
+                        $tvattlinje->handleCommand($data);
+                        break;
                     default:
                         throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
                 }

@@ -28,8 +28,18 @@ export interface ProductionCycle {
   ibc_count: number;
   produktion_procent: number;
   skiftraknare: number;
-  cycle_time: number;
+  cycle_time: number | null;
   target_cycle_time?: number;
+  // PLC-fält (finns när Modbus-läsning är aktiv)
+  op1?: number | null;
+  op2?: number | null;
+  op3?: number | null;
+  ibc_ok?: number | null;
+  ibc_ej_ok?: number | null;
+  omtvaatt?: number | null;
+  runtime_plc?: number | null;
+  rasttime?: number | null;
+  lopnummer?: number | null;
 }
 
 export interface OnOffEvent {
@@ -38,17 +48,25 @@ export interface OnOffEvent {
   runtime_today: number;
 }
 
+export interface RastEvent {
+  datum: string;
+  rast_status: number; // 0 = arbetar, 1 = rast
+}
+
 export interface StatisticsResponse {
   success: boolean;
   data: {
     cycles: ProductionCycle[];
     onoff_events: OnOffEvent[];
+    rast_events: RastEvent[];
     summary: {
       total_cycles: number;
       avg_production_percent: number;
       avg_cycle_time: number;
       target_cycle_time: number;
       total_runtime_hours: number;
+      net_runtime_minutes: number;
+      total_rast_minutes: number;
       days_with_production: number;
     };
   };
@@ -107,6 +125,13 @@ export class TvattlinjeService {
   getOeeTrend(dagar: number = 30): Observable<any> {
     return this.http.get<OeeTrendResponse>(
       `${environment.apiUrl}?action=tvattlinje&run=oee-trend&dagar=${dagar}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getSkiftrapportStatistik(startDate: string, endDate: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}?action=tvattlinje&run=skiftrapport-statistik&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
