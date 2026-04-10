@@ -1,5 +1,40 @@
 # MauserDB Dev Log
 
+## Session #404 — Tvättlinje: PLC-stöd + statistik-effektivitet (2026-04-10)
+**Fokus: Kopiera rebotling statistik/skiftrapport/PLC-backend till tvättlinje**
+
+- TvattLinje.php: Modbus TCP aktiv (192.168.0.250). handleCycle läser D4000-D4009:
+  op1=Påsatt, op2=Spolplatform, op3=Kontrollstation, omtvätt (D4006, inte bur_ej_ok)
+  Nya metoder handleSkiftrapport + handleCommand (D4015-router)
+- WebhookProcessor.php: Lagt till 'skiftrapport' + 'command' för tvattlinje
+- DB-migration: tvattlinje_ibc och tvattlinje_skiftrapport fick PLC-kolumner (op1-3, ibc_ok, ibc_ej_ok, omtvaatt, runtime_plc, rasttime, lopnummer, skiftraknare, effektivitet)
+- TvattlinjeController: getStatistics inkluderar nu rast_events, PLC-fält, net_runtime_minutes. Ny endpoint skiftrapport-statistik
+- tvattlinje-statistik.ts: Dag-vy visar rullande 30-min effektivitet per cykel (grön linje höger axel)
+- TvattlinjeService: Utökad med RastEvent-interface, PLC-fält, getSkiftrapportStatistik()
+- Allt deployat till dev, DB-migration körd på dev-databasen
+- Rör inte rebotling, rör inte livesidor
+
+## Session #403 — Dag-vy effektivitet: 30-min bins (2026-04-06)
+**Fokus: Ersätt per-cykel-rullande-snitt med 30-minutersbins, beräkna effektivitet självständigt**
+
+- Skiftrapport-referens: Effektivitet = (ibc_ok/drifttid×60) / (60/mål_cykeltid) × 100 (per skift, netto drifttid)
+- Dag-vy (tidigare): Effektivitet per cykel via rullande 5-cykel-medelvärde — hackigt och opålitligt
+- Dag-vy (ny): Effektivitet per 30-min-bin = snitt(mål_cykeltid)/snitt(faktisk_cykeltid)×100, cappad 100%
+- Beräkning är **oberoende av produktion_procent i databasen** — räknar alltid om från cykeltiderna
+- Ny metod `buildRunningPeriodsForBins` + `buildRastPeriodsForBins` för tidbaserade kör/rast-markeringar
+- Tooltip visar nu: "HH:MM – HH:MM", effektivitet %, antal IBC, snitt cykeltid, mål cykeltid
+- Borttagna oanvända metoder: `buildRunningPeriodsForCycles`, `buildRastPeriodsForCycles`
+- Build: OK (0 errors), Deploy: rsync via SSH port 32546 → mauserdb-dev OK
+
+## Session #402 — Effektivitetsfix dag-vy (2026-04-06)
+**Fokus: Bugfix — effektivitet visade upp till 150% i dag-vyn**
+
+- Rotorsak: Alla `Math.min(150, ...)` i effektivitetsberäkningar tillät >100%. Y-axeln satt till max 150.
+- Fix: Cappade alla effektivitetsvärden till 100% (dag-vy per-cykel, månad/år stapeldiagram, KPI-bar, tabell)
+- Fix: Y-axel dag-vy: `max: 150` → `max: 100`, stapeldiagram: `suggestedMax: 150` → `suggestedMax: 100`
+- Fil: `rebotling-statistik.ts` — 6 ställen uppdaterade
+- Build: OK (0 errors), Deploy: rsync till dev.mauserdb.com OK
+
 ## Session #401 — Worker A (Backend + Deploy) (2026-03-29)
 **Fokus: Admin CRUD-audit, Driftstopp-verifiering, Prestanda-audit, SQL-audit, Buggfix mb_substr/getInitials**
 
