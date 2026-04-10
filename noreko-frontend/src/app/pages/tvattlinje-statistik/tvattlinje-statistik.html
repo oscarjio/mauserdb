@@ -71,75 +71,14 @@
 
   <div class="container-fluid py-4">
 
-    <!-- KPI Cards — 6 kort inkl OEE-trend-data -->
-    <div class="row mb-4">
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-cubes text-primary"></i>
-          </div>
-          <div class="kpi-value">{{ totalCycles }}</div>
-          <div class="kpi-label">Totalt Cykler</div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-clock text-info"></i>
-          </div>
-          <div class="kpi-value">{{ avgCycleTime }} min</div>
-          <div class="kpi-label">Snitt Cykeltid</div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-percentage text-warning"></i>
-          </div>
-          <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">
-            {{ avgEfficiency | number:'1.1-1' }}%
-          </div>
-          <div class="kpi-label">Snitt Effektivitet</div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-hourglass-half text-secondary"></i>
-          </div>
-          <div class="kpi-value">{{ totalRuntimeHours }}h</div>
-          <div class="kpi-label">Total Körtid</div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-chart-bar text-success"></i>
-          </div>
-          <div class="kpi-value text-success">
-            {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}
-          </div>
-          <div class="kpi-label">Snitt IBC / dag (30d)</div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-2 mb-3">
-        <div class="kpi-card"
-          [class.kpi-highlight]="bastaDagIbc > 0">
-          <div class="kpi-icon">
-            <i class="fas fa-trophy text-warning"></i>
-          </div>
-          <div class="kpi-value text-warning">
-            {{ bastaDagIbc > 0 ? bastaDagIbc : '–' }}
-          </div>
-          <div class="kpi-label">Bästa dag (IBC)</div>
-          <div class="kpi-sub" *ngIf="bastaDagLabel !== '–'">{{ bastaDagLabel }}</div>
-        </div>
-      </div>
+    <!-- KPI Compact Bar -->
+    <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
+      <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
+      <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
+      <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
+      <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
+      <span class="kpi-compact" *ngIf="oeeTrendSummary.snitt_per_dag > 0"><i class="fas fa-chart-bar me-1 text-muted"></i><strong class="text-success">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}</strong> IBC/dag (30d)</span>
+      <span class="kpi-compact" *ngIf="bastaDagIbc > 0"><i class="fas fa-trophy me-1 text-muted"></i><strong class="text-warning">{{ bastaDagIbc }}</strong> bästa dag</span>
     </div>
 
     <!-- Loading State -->
@@ -246,134 +185,38 @@
       </div>
     </div>
 
-    <!-- Main Content Grid -->
+    <!-- Main Content: Chart (full width, like rebotling) -->
     <div class="row" *ngIf="!loading">
 
-      <!-- Calendar/Period Selector -->
-      <div class="col-lg-3 mb-4">
-        <div class="dark-card">
-          <div class="card-header">
-            <h5 class="mb-0">
-              <i class="fas fa-calendar-alt me-2"></i>
-              Välj Period
-            </h5>
-            <small class="text-muted" *ngIf="viewMode !== 'day'">
-              Klicka för att markera, dubbelklicka för att öppna
-            </small>
-            <small class="text-muted" *ngIf="viewMode === 'day'">
-              Visar snitt cykeltid (min) per 10-minutersintervall
-            </small>
-          </div>
-          <div class="card-body">
-            <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
-              <div
-                *ngFor="let cell of visiblePeriodCells; trackBy: trackByIndex"
-                class="period-cell"
-                [class.has-data]="cell.hasData"
-                [class.selected]="cell.isSelected"
-                (mousedown)="onCellMouseDown(cell, $event)"
-                (mouseenter)="onCellMouseEnter(cell)"
-                (dblclick)="onCellDoubleClick(cell)">
-                <div class="cell-label">{{ cell.label }}</div>
-                <div class="cell-count" *ngIf="cell.hasData && viewMode !== 'day'">
-                  {{ cell.cyclesCount }}
-                </div>
-                <div class="cell-count" *ngIf="cell.hasData && viewMode === 'day' && cell.avgCycleTime > 0">
-                  {{ cell.avgCycleTime }}<small style="font-size: 0.7em;">min</small>
-                </div>
-                <div class="cell-info" *ngIf="cell.hasData && viewMode !== 'day'">
-                  <small>{{ cell.avgCycleTime }}min</small>
-                </div>
-                <div class="cell-info" *ngIf="cell.hasData && viewMode === 'day'">
-                  <small>{{ cell.cyclesCount }} cykel<span *ngIf="cell.cyclesCount !== 1">er</span></small>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3" *ngIf="viewMode !== 'day'">
-              <!-- I månadsvy: växla visa alla dagar / bara dagar med cykler -->
-              <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="toggleShowOnlyDaysWithCycles()">
-                  <i class="fas fa-filter me-2"></i>
-                  <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
-                  <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>
-                </button>
-              </div>
-              <!-- Action Buttons -->
-              <div class="d-grid gap-2 mb-3">
-                <button
-                  class="btn btn-primary btn-lg"
-                  (click)="showStatistics()"
-                  [disabled]="loading">
-                  <i class="fas fa-sync-alt me-2" [class.fa-spin]="loading"></i>
-                  <span *ngIf="selectedPeriods.length > 0">
-                    Visa Markerade ({{ selectedPeriods.length }})
-                  </span>
-                  <span *ngIf="selectedPeriods.length === 0">
-                    Uppdatera Statistik
-                  </span>
-                </button>
-                <button
-                  class="btn btn-outline-secondary"
-                  (click)="clearSelection()"
-                  [disabled]="selectedPeriods.length === 0">
-                  <i class="fas fa-times me-2"></i>
-                  Rensa markering
-                </button>
-              </div>
-
-              <small class="legend d-block text-center">
-                <span class="legend-item">
-                  <span class="legend-color" style="background: #228b22"></span>
-                  = Produktion
-                </span>
-                <span class="legend-item ms-3">
-                  <span class="legend-color selected"></span>
-                  = Vald
-                </span>
-              </small>
-              <small class="text-muted d-block text-center mt-2">
-                Dra musen för att markera flera
-              </small>
-            </div>
-
-            <div class="mt-3" *ngIf="viewMode === 'day'">
-              <small class="legend d-block text-center">
-                <span class="legend-item">
-                  <span class="legend-color" style="background: #228b22"></span>
-                  = Data finns
-                </span>
-              </small>
-              <small class="text-muted d-block text-center mt-2">
-                Visar genomsnittlig cykeltid per 10-minutersintervall
-              </small>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Chart -->
-      <div class="col-lg-9 mb-4">
+      <div class="col-12 mb-4">
         <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
               <h5 class="mb-0">
-                <i class="fas fa-chart-line me-2"></i>
+                <i class="fas me-2" [ngClass]="viewMode === 'day' ? 'fa-chart-line' : 'fa-chart-bar'"></i>
                 Produktionsanalys
               </h5>
-              <small class="text-muted d-block">
-                Bakgrund: Grön = Kör, Röd = Stoppad | Gul = Snitt | Orange = Mål
+              <small class="text-muted d-block" *ngIf="viewMode === 'day'">
+                <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
+                <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
+                <span style="color:#ffc107">--</span> Rullande effektivitet
+              </small>
+              <small class="text-muted d-block" *ngIf="viewMode !== 'day'">
+                Klicka på en stapel för att navigera.
+                <span style="color:#27ae60">&#9632;</span> &ge;90% &nbsp;
+                <span style="color:#ffc107">&#9632;</span> &ge;70% &nbsp;
+                <span style="color:#dc3545">&#9632;</span> &lt;70%
               </small>
             </div>
-            <button
-              *ngIf="viewMode === 'day' && chartHasSelection()"
-              class="btn btn-outline-light btn-sm"
-              (click)="resetChartZoom()">
-              Återställ
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button
+                *ngIf="viewMode === 'day' && chartHasSelection()"
+                class="btn btn-outline-light btn-sm"
+                (click)="resetChartZoom()">
+                Återställ
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <div class="chart-container">

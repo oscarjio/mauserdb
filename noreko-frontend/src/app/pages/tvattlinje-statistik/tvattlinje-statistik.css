@@ -92,6 +92,26 @@
 }
 
 /* ============================================
+   KPI Compact Bar
+   ============================================ */
+
+.kpi-compact-bar {
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+}
+.kpi-compact {
+  color: #c0c0c0;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.kpi-compact strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+/* ============================================
    KPI Cards
    ============================================ */
 

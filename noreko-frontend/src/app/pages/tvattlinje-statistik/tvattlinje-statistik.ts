@@ -528,13 +528,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
-    // Effektivitet: beräknas från net_runtime_minutes om möjligt
-    const netRtMin = data.summary.net_runtime_minutes
-      || (data.summary.total_runtime_hours * 60)
-      || 0;
+    // Effektivitet: target / snitt-cykeltid * 100 (konsekvent med stapeldiagrammet)
     const target = data.summary.target_cycle_time || 3;
-    if (netRtMin > 0 && data.summary.total_cycles > 0 && target > 0) {
-      this.avgEfficiency = Math.round((data.summary.total_cycles * target / netRtMin) * 100);
+    const avgActual = data.summary.avg_cycle_time || 0;
+    if (avgActual > 0 && target > 0) {
+      this.avgEfficiency = Math.round((target / avgActual) * 100);
     } else {
       this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
     }
@@ -918,7 +916,27 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     if (currentPeriod) runningPeriods.push(currentPeriod);
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods };
+    // Bygg effektivitets- och IBC-räknar-arrayer för stapeldiagram (månad/år-vy)
+    const efficiencyArr: number[] = [];
+    const cycleCountArr: number[] = [];
+    const target = this.targetCycleTime || 3;
+    slicedEntries.forEach(([, value]) => {
+      const count = value.cycles.length;
+      cycleCountArr.push(count);
+      if (count > 0) {
+        const validTimes: number[] = value.cycleTime;
+        if (validTimes.length > 0) {
+          const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
+          efficiencyArr.push(Math.round((target / avgActual) * 100));
+        } else {
+          efficiencyArr.push(0);
+        }
+      } else {
+        efficiencyArr.push(0);
+      }
+    });
+
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, efficiencyArr, cycleCountArr };
   }
 
   /** Förbereder dag-vy chart med per-cykel-data och rullande effektivitet */
@@ -971,6 +989,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     try {
       const isDay = this.viewMode === 'day';
       const isPerCycle = chartData.isPerCycle === true;
+
+      // Månad/år-vy: stapeldiagram med effektivitet (som rebotling)
+      if (!isPerCycle) {
+        this.createBarChart(ctx, chartData);
+        return;
+      }
 
       const datasets: any[] = [
         {
@@ -1148,6 +1172,151 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
+  private createBarChart(ctx: CanvasRenderingContext2D, chartData: any) {
+    const effData: number[] = chartData.efficiencyArr || [];
+    const countData: number[] = chartData.cycleCountArr || [];
+
+    const barColors = effData.map((eff: number) => {
+      if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
+      if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
+      return eff > 0 ? 'rgba(220, 53, 69, 0.65)' : 'rgba(100, 100, 100, 0.3)';
+    });
+    const barBorderColors = effData.map((eff: number) => {
+      if (eff >= 90) return '#27ae60';
+      if (eff >= 70) return '#ffc107';
+      return eff > 0 ? '#dc3545' : '#555';
+    });
+
+    const maxEff = Math.max(...effData.filter(v => v > 0), 0);
+    const yMax = Math.max(maxEff + 18, 115);
+
+    if (this.productionChart) { try { this.productionChart.destroy(); } catch (e) {} }
+
+    this.productionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: 'Effektivitet %',
+          data: effData,
+          backgroundColor: barColors,
+          borderColor: barBorderColors,
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        onClick: (_event: any, elements: any[]) => {
+          if (elements.length > 0) {
+            const idx = elements[0].index;
+            this.onBarChartClick(idx, chartData);
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            intersect: false, mode: 'index',
+            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+            titleColor: '#fff', bodyColor: '#e0e0e0',
+            borderColor: '#4fd1c5', borderWidth: 1, padding: 12,
+            callbacks: {
+              title: (items: any[]) => {
+                if (!items.length) return '';
+                const label = items[0].label;
+                return this.viewMode === 'year' ? `Månad: ${label}` : `Dag: ${label}`;
+              },
+              label: (context: any) => {
+                const idx = context.dataIndex;
+                const eff = effData[idx] || 0;
+                const count = countData[idx] || 0;
+                const effStatus = eff >= 100 ? ' (över mål)' : eff >= 90 ? ' (nära mål)' : ' (under mål)';
+                return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMin: 0,
+            suggestedMax: yMax,
+            title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
+            ticks: { color: '#a0a0a0', callback: (v: string | number) => v + '%' },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          },
+          x: {
+            ticks: { color: '#a0a0a0', maxRotation: 45, minRotation: 0, autoSkip: true },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+          }
+        }
+      },
+      plugins: [{
+        id: 'ibcCountLabels',
+        afterDatasetsDraw: (chart: any) => {
+          const { ctx: c, chartArea, scales } = chart;
+          if (!chartArea) return;
+          // 100%-referenslinje
+          const yScale = scales['y'];
+          if (yScale) {
+            const y100 = yScale.getPixelForValue(100);
+            if (y100 >= chartArea.top && y100 <= chartArea.bottom) {
+              c.save();
+              c.beginPath();
+              c.setLineDash([6, 4]);
+              c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+              c.lineWidth = 1.5;
+              c.moveTo(chartArea.left, y100);
+              c.lineTo(chartArea.right, y100);
+              c.stroke();
+              c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+              c.font = '10px sans-serif';
+              c.textAlign = 'right';
+              c.textBaseline = 'bottom';
+              c.fillText('Mål 100%', chartArea.right - 4, y100 - 3);
+              c.restore();
+            }
+          }
+          // IBC-antal ovanpå varje stapel
+          const meta = chart.getDatasetMeta(0);
+          if (!meta?.data) return;
+          c.save();
+          c.font = 'bold 11px sans-serif';
+          c.textAlign = 'center';
+          c.textBaseline = 'bottom';
+          meta.data.forEach((bar: any, i: number) => {
+            const count = countData[i];
+            if (count > 0) {
+              c.fillStyle = '#e2e8f0';
+              c.fillText(`${count}`, bar.x, bar.y - 4);
+            }
+          });
+          c.restore();
+        }
+      }]
+    });
+  }
+
+  private onBarChartClick(index: number, chartData: any) {
+    if (!chartData?.labels) return;
+    const label = chartData.labels[index];
+    if (!label) return;
+
+    if (this.viewMode === 'month') {
+      const day = parseInt(label, 10);
+      if (isNaN(day)) return;
+      const date = new Date(this.currentYear, this.currentMonth, day);
+      this.navigateToDay(date);
+    } else if (this.viewMode === 'year') {
+      const monthIdx = this.monthNames.findIndex(m => m.substring(0, 3) === label);
+      if (monthIdx < 0) return;
+      this.currentMonth = monthIdx;
+      this.navigateToMonth(new Date(this.currentYear, monthIdx, 1));
+    }
+  }
+
   private attachChartSelectionHandlers(chart: Chart) {
     const canvas = chart.canvas as HTMLCanvasElement | null;
     if (!canvas) {
@@ -1292,14 +1461,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
         : 0;
 
-      const avgEff = cycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / cycles.length;
+      const taktMal = this.targetCycleTime || 3;
+      const efficiency = avgCycleTime > 0 ? Math.round((taktMal / avgCycleTime) * 100) : 0;
 
       this.tableData.push({
         period: period,
         date: date,
         cycles: cycles.length,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
-        efficiency: Math.round(avgEff),
+        efficiency: efficiency,
         runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,
         clickable: this.viewMode !== 'day'
       });
