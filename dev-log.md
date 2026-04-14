@@ -1,5 +1,16 @@
 # MauserDB Dev Log
 
+## 2026-04-12 — Tvättlinje feature parity (background agent)
+- Implementerat: Tab-navigation (Översikt/Skiftrapporter/OEE-trend) i tvattlinje-statistik
+- Implementerat: Timeline-bar i dagvy med running/rast/stopp-segment + detaljvy
+- Implementerat: Skiftsammanfattning per skiftraknare i dagvy
+- Implementerat: Dag-metrics (utnyttjandegrad % + längsta stopp) i KPI-bar
+- Implementerat: Skiftrapporter-tab med datumfilter, KPI-cards, stapeldiagram, tabell
+- Implementerat: OEE-trend i eget Analys-tab
+- tvattlinje-skiftrapport redan klar via SharedSkiftrapportComponent (inga ändringar behövdes)
+- Byggt + pushat till GitHub (commit ec14ee37)
+- TODO: Tvättlinje är ej i drift — dessa sidor fylls med data när produktion startar
+
 ## Session #404 — Tvättlinje: PLC-stöd + statistik-effektivitet (2026-04-10)
 **Fokus: Kopiera rebotling statistik/skiftrapport/PLC-backend till tvättlinje**
 
