@@ -92,22 +92,93 @@
   <div *ngIf="activeTab === 'overview'" class="tab-content-area">
     <div class="container-fluid py-4">
 
-      <!-- KPI Compact Bar -->
-      <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
-        <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
-        <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
-        <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
-        <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
-        <span class="kpi-compact" *ngIf="viewMode === 'day' && dayUtilizationPct > 0">
-          <i class="fas fa-chart-area me-1 text-muted"></i>
-          <strong [ngClass]="dayUtilizationPct >= 75 ? 'text-success' : dayUtilizationPct >= 50 ? 'text-warning' : 'text-danger'">{{ dayUtilizationPct }}%</strong> utnyttjande
-        </span>
-        <span class="kpi-compact" *ngIf="viewMode === 'day' && dayLongestStopMinutes > 0">
-          <i class="fas fa-pause-circle me-1 text-muted"></i>
-          <strong [ngClass]="dayLongestStopMinutes < 15 ? 'text-success' : dayLongestStopMinutes < 30 ? 'text-warning' : 'text-danger'">{{ dayLongestStopMinutes }} min</strong> längsta stopp
-        </span>
-        <span class="kpi-compact" *ngIf="oeeTrendSummary.snitt_per_dag > 0"><i class="fas fa-chart-bar me-1 text-muted"></i><strong class="text-success">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}</strong> IBC/dag (30d)</span>
-        <span class="kpi-compact" *ngIf="bastaDagIbc > 0"><i class="fas fa-trophy me-1 text-muted"></i><strong class="text-warning">{{ bastaDagIbc }}</strong> bästa dag</span>
+      <!-- Hero KPI Cards -->
+      <div class="row g-3 mb-4 kpi-hero-row">
+
+        <!-- IBC Producerade -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-hero-card" [class.kpi-hero-green]="totalCycles > 0" [class.kpi-hero-neutral]="totalCycles === 0">
+            <div class="kpi-hero-icon"><i class="fas fa-cubes"></i></div>
+            <div class="kpi-hero-value">{{ totalCycles }}</div>
+            <div class="kpi-hero-label">IBC Producerade</div>
+            <div class="kpi-hero-sub" *ngIf="viewMode !== 'day' && oeeTrendSummary.snitt_per_dag > 0">
+              Snitt {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}/dag (30d)
+            </div>
+            <div class="kpi-hero-sub" *ngIf="viewMode === 'day'">{{ viewMode === 'day' ? 'Idag' : '' }}</div>
+          </div>
+        </div>
+
+        <!-- Effektivitet -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-hero-card"
+               [class.kpi-hero-green]="avgEfficiency >= 85"
+               [class.kpi-hero-yellow]="avgEfficiency >= 60 && avgEfficiency < 85"
+               [class.kpi-hero-red]="avgEfficiency > 0 && avgEfficiency < 60"
+               [class.kpi-hero-neutral]="avgEfficiency === 0">
+            <div class="kpi-hero-icon"><i class="fas fa-tachometer-alt"></i></div>
+            <div class="kpi-hero-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency | number:'1.0-1' }}%</div>
+            <div class="kpi-hero-label">Effektivitet</div>
+            <div class="kpi-hero-sub">
+              <span *ngIf="avgEfficiency >= 85" class="kpi-status-badge kpi-badge-green">Bra</span>
+              <span *ngIf="avgEfficiency >= 60 && avgEfficiency < 85" class="kpi-status-badge kpi-badge-yellow">Godkänt</span>
+              <span *ngIf="avgEfficiency > 0 && avgEfficiency < 60" class="kpi-status-badge kpi-badge-red">Låg</span>
+              <span *ngIf="avgEfficiency === 0" class="kpi-status-badge kpi-badge-neutral">Ingen data</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Körtid -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-hero-card"
+               [class.kpi-hero-green]="viewMode === 'day' && dayUtilizationPct >= 75"
+               [class.kpi-hero-yellow]="viewMode === 'day' && dayUtilizationPct >= 50 && dayUtilizationPct < 75"
+               [class.kpi-hero-red]="viewMode === 'day' && dayUtilizationPct > 0 && dayUtilizationPct < 50"
+               [class.kpi-hero-neutral]="viewMode !== 'day' || dayUtilizationPct === 0">
+            <div class="kpi-hero-icon"><i class="fas fa-clock"></i></div>
+            <div class="kpi-hero-value">{{ totalRuntimeHours }}<span class="kpi-hero-unit">h</span></div>
+            <div class="kpi-hero-label">Körtid</div>
+            <div class="kpi-hero-sub" *ngIf="viewMode === 'day' && dayUtilizationPct > 0">
+              Utnyttjande {{ dayUtilizationPct }}%
+            </div>
+            <div class="kpi-hero-sub" *ngIf="viewMode !== 'day' || dayUtilizationPct === 0">&nbsp;</div>
+          </div>
+        </div>
+
+        <!-- Snitt Cykeltid / Bästa dag -->
+        <div class="col-6 col-md-3">
+          <!-- Dag-vy: Längsta stopp -->
+          <div *ngIf="viewMode === 'day' && dayLongestStopMinutes > 0" class="kpi-hero-card"
+               [class.kpi-hero-green]="dayLongestStopMinutes < 15"
+               [class.kpi-hero-yellow]="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30"
+               [class.kpi-hero-red]="dayLongestStopMinutes >= 30">
+            <div class="kpi-hero-icon"><i class="fas fa-pause-circle"></i></div>
+            <div class="kpi-hero-value"
+                 [class.text-success]="dayLongestStopMinutes < 15"
+                 [class.text-warning]="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30"
+                 [class.text-danger]="dayLongestStopMinutes >= 30">
+              {{ dayLongestStopMinutes }}<span class="kpi-hero-unit">min</span>
+            </div>
+            <div class="kpi-hero-label">Längsta Stopp</div>
+            <div class="kpi-hero-sub">
+              <span *ngIf="dayLongestStopMinutes < 15" class="kpi-status-badge kpi-badge-green">OK</span>
+              <span *ngIf="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30" class="kpi-status-badge kpi-badge-yellow">Varning</span>
+              <span *ngIf="dayLongestStopMinutes >= 30" class="kpi-status-badge kpi-badge-red">Högt</span>
+            </div>
+          </div>
+          <!-- Övriga vyer: Snitt cykeltid / Bästa dag -->
+          <div *ngIf="viewMode !== 'day' || dayLongestStopMinutes === 0" class="kpi-hero-card"
+               [class.kpi-hero-neutral]="bastaDagIbc === 0"
+               [class.kpi-hero-gold]="bastaDagIbc > 0">
+            <div class="kpi-hero-icon kpi-icon-gold"><i class="fas fa-trophy"></i></div>
+            <div class="kpi-hero-value kpi-value-gold">{{ bastaDagIbc > 0 ? bastaDagIbc : (avgCycleTime + '') }}</div>
+            <div class="kpi-hero-label">{{ bastaDagIbc > 0 ? 'Bästa Dag' : 'Snitt Cykeltid' }}</div>
+            <div class="kpi-hero-sub">
+              <span *ngIf="bastaDagIbc > 0">{{ bastaDagLabel }}</span>
+              <span *ngIf="bastaDagIbc === 0 && avgCycleTime > 0">min per IBC</span>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Loading State -->
