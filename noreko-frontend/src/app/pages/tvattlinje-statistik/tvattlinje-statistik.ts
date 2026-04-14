@@ -6,7 +6,6 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
-import { localToday } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -146,7 +145,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.loadStatistics();
     this.loadOeeTrend();
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
-    const today = localToday();
+    const today = new Date().toISOString().split('T')[0];
     this.skiftStatTo = today;
     const d = new Date(today);
     d.setDate(d.getDate() - 30);
@@ -1413,7 +1412,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
             const { ctx, chartArea, scales } = chart;
             if (!chartArea || !scales.x) return;
 
-            const { left, right, top, bottom } = chartArea;
+            const { top, bottom } = chartArea;
 
             chartData.runningPeriods.forEach((period: any) => {
               try {
@@ -1726,7 +1725,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       grouped.get(key)!.push(cycle);
     });
 
-    grouped.forEach((cycles, key) => {
+    grouped.forEach((cycles, _key) => {
       const date = new Date(cycles[0].datum);
       let period: string;
 
