@@ -15,7 +15,7 @@
   <!-- Header with Breadcrumb -->
   <div class="stats-header">
     <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
           <h2 class="mb-2">
             <i class="fas fa-chart-line me-2"></i>
@@ -69,246 +69,515 @@
     </div>
   </div>
 
-  <div class="container-fluid py-4">
-
-    <!-- KPI Compact Bar -->
-    <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
-      <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
-      <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
-      <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
-      <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
-      <span class="kpi-compact" *ngIf="oeeTrendSummary.snitt_per_dag > 0"><i class="fas fa-chart-bar me-1 text-muted"></i><strong class="text-success">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}</strong> IBC/dag (30d)</span>
-      <span class="kpi-compact" *ngIf="bastaDagIbc > 0"><i class="fas fa-trophy me-1 text-muted"></i><strong class="text-warning">{{ bastaDagIbc }}</strong> bästa dag</span>
+  <!-- Tab Navigation -->
+  <div class="stats-tab-bar">
+    <div class="container-fluid">
+      <nav class="stats-tabs">
+        <button [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+          <i class="fas fa-tachometer-alt"></i><span>Översikt</span>
+        </button>
+        <button [class.active]="activeTab === 'produktion'" (click)="setTab('produktion')">
+          <i class="fas fa-industry"></i><span>Skiftrapporter</span>
+        </button>
+        <button [class.active]="activeTab === 'analys'" (click)="setTab('analys')">
+          <i class="fas fa-chart-line"></i><span>OEE-trend</span>
+        </button>
+      </nav>
     </div>
+  </div>
 
-    <!-- Loading State -->
-    <div class="text-center py-5" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Laddar...</span>
+  <!-- ================================================================
+       TAB: ÖVERSIKT
+       ================================================================ -->
+  <div *ngIf="activeTab === 'overview'" class="tab-content-area">
+    <div class="container-fluid py-4">
+
+      <!-- KPI Compact Bar -->
+      <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
+        <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
+        <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
+        <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
+        <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
+        <span class="kpi-compact" *ngIf="viewMode === 'day' && dayUtilizationPct > 0">
+          <i class="fas fa-chart-area me-1 text-muted"></i>
+          <strong [ngClass]="dayUtilizationPct >= 75 ? 'text-success' : dayUtilizationPct >= 50 ? 'text-warning' : 'text-danger'">{{ dayUtilizationPct }}%</strong> utnyttjande
+        </span>
+        <span class="kpi-compact" *ngIf="viewMode === 'day' && dayLongestStopMinutes > 0">
+          <i class="fas fa-pause-circle me-1 text-muted"></i>
+          <strong [ngClass]="dayLongestStopMinutes < 15 ? 'text-success' : dayLongestStopMinutes < 30 ? 'text-warning' : 'text-danger'">{{ dayLongestStopMinutes }} min</strong> längsta stopp
+        </span>
+        <span class="kpi-compact" *ngIf="oeeTrendSummary.snitt_per_dag > 0"><i class="fas fa-chart-bar me-1 text-muted"></i><strong class="text-success">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}</strong> IBC/dag (30d)</span>
+        <span class="kpi-compact" *ngIf="bastaDagIbc > 0"><i class="fas fa-trophy me-1 text-muted"></i><strong class="text-warning">{{ bastaDagIbc }}</strong> bästa dag</span>
       </div>
-      <p class="mt-3">Hämtar statistik...</p>
-    </div>
 
-    <!-- Error State -->
-    <div class="alert alert-info d-flex align-items-center" *ngIf="error && !loading" style="border-radius:10px;">
-      <i class="fas fa-flask me-2"></i>
-      <div>
-        <strong>Exempeldata visas</strong> — backend svarar inte eller tvättlinjen har inga mätvärden ännu.
+      <!-- Loading State -->
+      <div class="text-center py-5" *ngIf="loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Laddar...</span>
+        </div>
+        <p class="mt-3">Hämtar statistik...</p>
       </div>
-    </div>
 
-    <!-- OEE Trend Panel -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <h5 class="mb-0">
-                <i class="fas fa-chart-line me-2 text-primary"></i>
-                OEE-trend — Kvalitet &amp; IBC per dag
-              </h5>
-              <small class="text-muted">Baserat på skiftrapporter. Orange linje = WCM-mål 85%.</small>
+      <!-- Error State -->
+      <div class="alert alert-info d-flex align-items-center" *ngIf="error && !loading" style="border-radius:10px;">
+        <i class="fas fa-flask me-2"></i>
+        <div>
+          <strong>Exempeldata visas</strong> — backend svarar inte eller tvättlinjen har inga mätvärden ännu.
+        </div>
+      </div>
+
+      <!-- Main Content: Chart (full width, like rebotling) -->
+      <div class="row" *ngIf="!loading">
+
+        <!-- Chart -->
+        <div class="col-12 mb-4">
+          <div class="dark-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h5 class="mb-0">
+                  <i class="fas me-2" [ngClass]="viewMode === 'day' ? 'fa-chart-line' : 'fa-chart-bar'"></i>
+                  Produktionsanalys
+                </h5>
+                <small class="text-muted d-block" *ngIf="viewMode === 'day'">
+                  <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
+                  <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
+                  <span style="color:#ffc107">--</span> Rullande effektivitet
+                </small>
+                <small class="text-muted d-block" *ngIf="viewMode !== 'day'">
+                  Klicka på en stapel för att navigera.
+                  <span style="color:#27ae60">&#9632;</span> &ge;90% &nbsp;
+                  <span style="color:#ffc107">&#9632;</span> &ge;70% &nbsp;
+                  <span style="color:#dc3545">&#9632;</span> &lt;70%
+                </small>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button
+                  *ngIf="viewMode === 'day' && chartHasSelection()"
+                  class="btn btn-outline-light btn-sm"
+                  (click)="resetChartZoom()">
+                  Återställ
+                </button>
+              </div>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-              <select aria-label="Välj oee trend dagar" class="form-select form-select-sm"
-                style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
-                [(ngModel)]="oeeTrendDagar"
-                (change)="onOeeTrendDagarChange()">
-                <option [value]="14">14 dagar</option>
-                <option [value]="30">30 dagar</option>
-                <option [value]="60">60 dagar</option>
-                <option [value]="90">90 dagar</option>
-              </select>
-              <button class="btn btn-sm btn-outline-secondary" (click)="loadOeeTrend()" [disabled]="oeeTrendLoading">
-                <i class="fas fa-sync-alt" [class.fa-spin]="oeeTrendLoading"></i>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas #productionChart></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline (dag-vy) -->
+          <div *ngIf="viewMode === 'day' && timelineSegments.length > 0" class="rast-timeline mt-2 mb-3">
+            <div class="timeline-time-labels">
+              <small>00:00</small>
+              <small>03:00</small>
+              <small>06:00</small>
+              <small>09:00</small>
+              <small>12:00</small>
+              <small>15:00</small>
+              <small>18:00</small>
+              <small>21:00</small>
+              <small>24:00</small>
+            </div>
+            <div class="timeline-bar position-relative">
+              <div *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
+                   class="timeline-seg"
+                   [class.seg-running]="seg.type === 'running'"
+                   [class.seg-rast]="seg.type === 'rast'"
+                   [class.seg-stopped]="seg.type === 'stopped'"
+                   [style.left.%]="seg.startPct"
+                   [style.width.%]="seg.widthPct"
+                   [title]="(seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : 'Stopp') + ': ' + seg.startTime + ' \u2013 ' + seg.endTime + ' (' + seg.duration + ')'"></div>
+              <div class="timeline-tick" *ngFor="let t of [12.5, 25, 37.5, 50, 62.5, 75, 87.5]" [style.left.%]="t"></div>
+              <div class="timeline-now-marker" *ngIf="timelineEndPct < 100" [style.left.%]="timelineEndPct"></div>
+            </div>
+            <div class="d-flex gap-3 mt-1 align-items-center">
+              <small><span class="tl-dot running"></span> I drift</small>
+              <small><span class="tl-dot rast"></span> Rast</small>
+              <small><span class="tl-dot stopped"></span> Stopp</small>
+              <small class="ms-auto">
+                <a href="javascript:void(0)" class="text-muted" (click)="showTimelineDetail = !showTimelineDetail">
+                  <i class="fas fa-list me-1"></i>{{ showTimelineDetail ? 'Dölj detaljer' : 'Visa detaljer' }}
+                </a>
+              </small>
+            </div>
+            <!-- Detaljerad tabell -->
+            <div *ngIf="showTimelineDetail" class="mt-3">
+              <div class="table-responsive">
+                <table class="table table-dark table-hover table-sm align-middle mb-0" style="border-radius:8px; overflow:hidden;">
+                  <thead>
+                    <tr class="text-uppercase" style="font-size:.75rem; letter-spacing:.5px;">
+                      <th class="ps-3" style="width:35%">Status</th>
+                      <th style="width:20%">Från</th>
+                      <th style="width:20%">Till</th>
+                      <th class="pe-3 text-end" style="width:25%">Varaktighet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
+                        [class.tbl-row-running]="seg.type === 'running'"
+                        [class.tbl-row-rast]="seg.type === 'rast'"
+                        [class.tbl-row-stopped]="seg.type === 'stopped'">
+                      <td class="ps-3">
+                        <span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;"
+                              [class.bg-success]="seg.type === 'running'"
+                              [class.bg-warning]="seg.type === 'rast'"
+                              [class.bg-danger]="seg.type === 'stopped'"></span>
+                        {{ seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : 'Stopp' }}
+                      </td>
+                      <td>{{ seg.startTime }}</td>
+                      <td>{{ seg.endTime }}</td>
+                      <td class="pe-3 text-end">{{ seg.duration }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skiftsammanfattning (dag-vy) -->
+          <div *ngIf="viewMode === 'day' && shiftSummaries.length > 0" class="row g-2 mt-1 mb-3">
+            <div class="col-12">
+              <small class="text-muted text-uppercase" style="font-size:.7rem; letter-spacing:.5px;">Skiftsammanfattning</small>
+            </div>
+            <div class="col-6 col-md-3" *ngFor="let s of shiftSummaries; trackBy: trackByIndex">
+              <div class="mini-kpi">
+                <div class="mini-kpi-val">{{ s.ibcCount }}</div>
+                <div class="mini-kpi-lbl">Skift #{{ s.nr }} — {{ s.avgCycleTime > 0 ? (s.avgCycleTime | number:'1.1-1') + ' min/st' : '–' }}</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Data Table -->
+      <div class="row" *ngIf="!loading && tableData.length > 0">
+        <div class="col-12">
+          <div class="dark-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-0">
+                  <i class="fas fa-table me-2"></i>
+                  Detaljerad Statistik
+                </h5>
+                <small class="text-muted">
+                  Klicka på en rad för att öppna detaljvy
+                </small>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
+                  <i class="fas fa-download me-1"></i>CSV
+                </button>
+                <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
+                  <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Period</th>
+                      <th class="text-end" scope="col">Cykler</th>
+                      <th class="text-end" scope="col">Snitt Cykeltid</th>
+                      <th class="text-end" scope="col">Effektivitet</th>
+                      <th class="text-end" scope="col">Körtid (min)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="let row of tableData; trackBy: trackByIndex"
+                      [class.clickable]="row.clickable"
+                      (click)="onTableRowClick(row)" tabindex="0" (keydown.enter)="onTableRowClick(row)">
+                      <td>
+                        <i class="fas fa-calendar-day me-2 text-muted"></i>
+                        {{ row.period }}
+                      </td>
+                      <td class="text-end"><strong>{{ row.cycles }}</strong></td>
+                      <td class="text-end">{{ row.avgCycleTime }} min</td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
+                        <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
+                      </td>
+                      <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot *ngIf="tableData.length > 1">
+                    <tr class="total-row">
+                      <td><strong>Totalt</strong></td>
+                      <td class="text-end"><strong>{{ totalCycles }}</strong></td>
+                      <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
+                        <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
+                      </td>
+                      <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Data Message -->
+      <div class="row" *ngIf="!loading && tableData.length === 0">
+        <div class="col-12">
+          <div class="dark-card text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h5>Ingen data för vald period</h5>
+            <p class="text-muted">Välj en annan period eller vänta på att produktionen startar.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB: SKIFTRAPPORTER (Produktion)
+       ================================================================ -->
+  <div *ngIf="activeTab === 'produktion'" class="tab-content-area">
+    <div class="container-fluid py-4">
+
+      <!-- Datumfilter -->
+      <div class="dark-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filtrera skiftrapporter</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-auto">
+              <label class="form-label text-muted small">Från</label>
+              <input type="date" class="form-control form-control-sm" style="background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
+                [(ngModel)]="skiftStatFrom">
+            </div>
+            <div class="col-auto">
+              <label class="form-label text-muted small">Till</label>
+              <input type="date" class="form-control form-control-sm" style="background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
+                [(ngModel)]="skiftStatTo">
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-primary btn-sm" (click)="loadSkiftrapportStatistik()" [disabled]="skiftStatLoading">
+                <i class="fas fa-search me-1" *ngIf="!skiftStatLoading"></i>
+                <i class="fas fa-spinner fa-spin me-1" *ngIf="skiftStatLoading"></i>
+                Hämta
               </button>
             </div>
           </div>
-          <div class="card-body">
+        </div>
+      </div>
 
-            <!-- Laddning -->
-            <div *ngIf="oeeTrendLoading" class="text-center py-4">
-              <div role="status" class="spinner-border spinner-border-sm text-primary me-2"></div>
-              Hämtar trenddata...
+      <!-- Laddning -->
+      <div class="text-center py-5" *ngIf="skiftStatLoading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Hämtar skiftrapporter...</p>
+      </div>
+
+      <!-- Ingen data ännu -->
+      <div *ngIf="!skiftStatLoading && skiftStatData.length === 0 && skiftStatSummary === null" class="dark-card text-center py-5">
+        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+        <h5>Inga skiftrapporter hittades</h5>
+        <p class="text-muted">Tryck på "Hämta" för att söka eller välj ett annat datumintervall.</p>
+      </div>
+
+      <!-- KPI-sammanfattning -->
+      <div *ngIf="!skiftStatLoading && skiftStatSummary !== null" class="row g-3 mb-4">
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val">{{ skiftStatSummary.skift_count }}</div>
+            <div class="mini-kpi-lbl">Antal skift</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val text-primary">{{ skiftStatSummary.total_ibc | number }}</div>
+            <div class="mini-kpi-lbl">Totalt IBC</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val text-success">{{ skiftStatSummary.total_ok | number }}</div>
+            <div class="mini-kpi-lbl">Godkända</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val text-danger">{{ skiftStatSummary.total_ej_ok | number }}</div>
+            <div class="mini-kpi-lbl">Ej godkända</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val text-warning">{{ skiftStatSummary.total_omtvaatt | number }}</div>
+            <div class="mini-kpi-lbl">Omtvätt</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val">
+              {{ skiftStatSummary.total_ibc > 0 ? ((skiftStatSummary.total_ok / skiftStatSummary.total_ibc * 100) | number:'1.1-1') + '%' : '–' }}
             </div>
+            <div class="mini-kpi-lbl">Kvalitet %</div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Ej i drift -->
-            <div *ngIf="oeeTrendLoaded && oeeTrendEmpty && !oeeTrendLoading"
-              class="ej-i-drift-banner">
-              <i class="fas fa-pause-circle fa-2x mb-2 text-muted"></i>
-              <h6 class="mb-1">Linjen ej i drift</h6>
-              <p class="mb-0 text-muted small">{{ oeeTrendMessage || 'Ingen historisk data tillgänglig ännu.' }}</p>
-              <p class="text-muted small mt-1">Diagrammet fylls automatiskt när produktion startar.</p>
+      <!-- Graf: IBC per dag -->
+      <div *ngIf="!skiftStatLoading && skiftStatData.length > 0" class="dark-card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>IBC per dag (skiftrapporter)</h5>
+          <small class="text-muted">Grön = godkända, röd = ej godkända</small>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="height:280px;">
+            <canvas #skiftStatChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabell med skiftrapporter -->
+      <div *ngIf="!skiftStatLoading && skiftStatData.length > 0" class="dark-card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-list me-2"></i>Skiftrapporter</h5>
+          <small class="text-muted">{{ skiftStatData.length }} rapport(er)</small>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th scope="col">Datum</th>
+                  <th class="text-end" scope="col">OK</th>
+                  <th class="text-end" scope="col">Ej OK</th>
+                  <th class="text-end" scope="col">Omtvätt</th>
+                  <th class="text-end" scope="col">Totalt</th>
+                  <th class="text-end" scope="col">Kvalitet</th>
+                  <th scope="col">Kommentar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of skiftStatData; trackBy: trackByIndex">
+                  <td>{{ (r.datum || '').substring(0, 10) }}</td>
+                  <td class="text-end text-success"><strong>{{ r.antal_ok || 0 }}</strong></td>
+                  <td class="text-end text-danger">{{ r.antal_ej_ok || 0 }}</td>
+                  <td class="text-end text-warning">{{ r.omtvaatt || 0 }}</td>
+                  <td class="text-end"><strong>{{ (r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0) }}</strong></td>
+                  <td class="text-end">
+                    <span *ngIf="(r.antal_ok + r.antal_ej_ok + r.omtvaatt) > 0"
+                          [ngClass]="((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) >= 90 ? 'text-success' : ((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) >= 70 ? 'text-warning' : 'text-danger'">
+                      {{ ((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) | number:'1.1-1' }}%
+                    </span>
+                    <span *ngIf="(r.antal_ok + r.antal_ej_ok + r.omtvaatt) === 0" class="text-muted">–</span>
+                  </td>
+                  <td class="text-muted small">{{ r.kommentar || '' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB: OEE-TREND (Analys)
+       ================================================================ -->
+  <div *ngIf="activeTab === 'analys'" class="tab-content-area">
+    <div class="container-fluid py-4">
+
+      <!-- OEE Trend Panel -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="dark-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h5 class="mb-0">
+                  <i class="fas fa-chart-line me-2 text-primary"></i>
+                  OEE-trend — Kvalitet &amp; IBC per dag
+                </h5>
+                <small class="text-muted">Baserat på skiftrapporter. Orange linje = WCM-mål 85%.</small>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <select aria-label="Välj oee trend dagar" class="form-select form-select-sm"
+                  style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
+                  [(ngModel)]="oeeTrendDagar"
+                  (change)="onOeeTrendDagarChange()">
+                  <option [value]="14">14 dagar</option>
+                  <option [value]="30">30 dagar</option>
+                  <option [value]="60">60 dagar</option>
+                  <option [value]="90">90 dagar</option>
+                </select>
+                <button class="btn btn-sm btn-outline-secondary" (click)="loadOeeTrend()" [disabled]="oeeTrendLoading">
+                  <i class="fas fa-sync-alt" [class.fa-spin]="oeeTrendLoading"></i>
+                </button>
+              </div>
             </div>
+            <div class="card-body">
 
-            <!-- KPI-sammanfattning OEE-trend -->
-            <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
-              class="row g-2 mb-3">
-              <div class="col-6 col-md-3">
-                <div class="mini-kpi">
-                  <div class="mini-kpi-val">{{ oeeTrendSummary.total_ibc | number }}</div>
-                  <div class="mini-kpi-lbl">Totalt IBC ({{ oeeTrendDagar }}d)</div>
-                </div>
+              <!-- Laddning -->
+              <div *ngIf="oeeTrendLoading" class="text-center py-4">
+                <div role="status" class="spinner-border spinner-border-sm text-primary me-2"></div>
+                Hämtar trenddata...
               </div>
-              <div class="col-6 col-md-3">
-                <div class="mini-kpi">
-                  <div class="mini-kpi-val">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-1' }}</div>
-                  <div class="mini-kpi-lbl">Snitt IBC/dag</div>
-                </div>
+
+              <!-- Ej i drift -->
+              <div *ngIf="oeeTrendLoaded && oeeTrendEmpty && !oeeTrendLoading"
+                class="ej-i-drift-banner">
+                <i class="fas fa-pause-circle fa-2x mb-2 text-muted"></i>
+                <h6 class="mb-1">Linjen ej i drift</h6>
+                <p class="mb-0 text-muted small">{{ oeeTrendMessage || 'Ingen historisk data tillgänglig ännu.' }}</p>
+                <p class="text-muted small mt-1">Diagrammet fylls automatiskt när produktion startar.</p>
               </div>
-              <div class="col-6 col-md-3">
-                <div class="mini-kpi">
-                  <div class="mini-kpi-val"
-                    [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
-                    [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
-                    [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
-                    {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+
+              <!-- KPI-sammanfattning OEE-trend -->
+              <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+                class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                  <div class="mini-kpi">
+                    <div class="mini-kpi-val">{{ oeeTrendSummary.total_ibc | number }}</div>
+                    <div class="mini-kpi-lbl">Totalt IBC ({{ oeeTrendDagar }}d)</div>
                   </div>
-                  <div class="mini-kpi-lbl">Snitt Kvalitet %</div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="mini-kpi">
+                    <div class="mini-kpi-val">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-1' }}</div>
+                    <div class="mini-kpi-lbl">Snitt IBC/dag</div>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="mini-kpi">
+                    <div class="mini-kpi-val"
+                      [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
+                      [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
+                      [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
+                      {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+                    </div>
+                    <div class="mini-kpi-lbl">Snitt Kvalitet %</div>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="mini-kpi">
+                    <div class="mini-kpi-val text-warning">{{ oeeTrendSummary.basta_ibc }}</div>
+                    <div class="mini-kpi-lbl">Bästa dag — {{ oeeTrendSummary.basta_dag || '–' }}</div>
+                  </div>
                 </div>
               </div>
-              <div class="col-6 col-md-3">
-                <div class="mini-kpi">
-                  <div class="mini-kpi-val text-warning">{{ oeeTrendSummary.basta_ibc }}</div>
-                  <div class="mini-kpi-lbl">Bästa dag — {{ oeeTrendSummary.basta_dag || '–' }}</div>
-                </div>
+
+              <!-- Graf -->
+              <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+                class="chart-container" style="height:260px;">
+                <canvas #oeeTrendChart></canvas>
               </div>
             </div>
-
-            <!-- Graf -->
-            <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
-              class="chart-container" style="height:260px;">
-              <canvas #oeeTrendChart></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content: Chart (full width, like rebotling) -->
-    <div class="row" *ngIf="!loading">
-
-      <!-- Chart -->
-      <div class="col-12 mb-4">
-        <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <h5 class="mb-0">
-                <i class="fas me-2" [ngClass]="viewMode === 'day' ? 'fa-chart-line' : 'fa-chart-bar'"></i>
-                Produktionsanalys
-              </h5>
-              <small class="text-muted d-block" *ngIf="viewMode === 'day'">
-                <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
-                <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
-                <span style="color:#ffc107">--</span> Rullande effektivitet
-              </small>
-              <small class="text-muted d-block" *ngIf="viewMode !== 'day'">
-                Klicka på en stapel för att navigera.
-                <span style="color:#27ae60">&#9632;</span> &ge;90% &nbsp;
-                <span style="color:#ffc107">&#9632;</span> &ge;70% &nbsp;
-                <span style="color:#dc3545">&#9632;</span> &lt;70%
-              </small>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <button
-                *ngIf="viewMode === 'day' && chartHasSelection()"
-                class="btn btn-outline-light btn-sm"
-                (click)="resetChartZoom()">
-                Återställ
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="chart-container">
-              <canvas #productionChart></canvas>
-            </div>
           </div>
         </div>
       </div>
 
     </div>
-
-    <!-- Data Table -->
-    <div class="row" *ngIf="!loading && tableData.length > 0">
-      <div class="col-12">
-        <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-0">
-                <i class="fas fa-table me-2"></i>
-                Detaljerad Statistik
-              </h5>
-              <small class="text-muted">
-                Klicka på en rad för att öppna detaljvy
-              </small>
-            </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
-                <i class="fas fa-download me-1"></i>CSV
-              </button>
-              <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
-                <i class="fas fa-file-excel me-1"></i>Excel
-              </button>
-            </div>
-          </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="stats-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Period</th>
-                    <th class="text-end" scope="col">Cykler</th>
-                    <th class="text-end" scope="col">Snitt Cykeltid</th>
-                    <th class="text-end" scope="col">Effektivitet</th>
-                    <th class="text-end" scope="col">Körtid (min)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    *ngFor="let row of tableData; trackBy: trackByIndex"
-                    [class.clickable]="row.clickable"
-                    (click)="onTableRowClick(row)" tabindex="0" (keydown.enter)="onTableRowClick(row)">
-                    <td>
-                      <i class="fas fa-calendar-day me-2 text-muted"></i>
-                      {{ row.period }}
-                    </td>
-                    <td class="text-end"><strong>{{ row.cycles }}</strong></td>
-                    <td class="text-end">{{ row.avgCycleTime }} min</td>
-                    <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
-                      <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
-                    </td>
-                    <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
-                  </tr>
-                </tbody>
-                <tfoot *ngIf="tableData.length > 1">
-                  <tr class="total-row">
-                    <td><strong>Totalt</strong></td>
-                    <td class="text-end"><strong>{{ totalCycles }}</strong></td>
-                    <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
-                    <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
-                      <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
-                    </td>
-                    <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- No Data Message -->
-    <div class="row" *ngIf="!loading && tableData.length === 0">
-      <div class="col-12">
-        <div class="dark-card text-center py-5">
-          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-          <h5>Ingen data för vald period</h5>
-          <p class="text-muted">Välj en annan period eller vänta på att produktionen startar.</p>
-        </div>
-      </div>
-    </div>
-
   </div>
 
 </div>

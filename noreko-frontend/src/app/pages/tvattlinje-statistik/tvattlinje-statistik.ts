@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
+import { localToday } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -98,6 +99,30 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   isDragging: boolean = false;
 
+  // ---- Tabs ----
+  activeTab: 'overview' | 'produktion' | 'analys' = 'overview';
+
+  // ---- Timeline (dag-vy) ----
+  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped'; startTime: string; endTime: string; duration: string }[] = [];
+  timelineEndPct: number = 100;
+  showTimelineDetail: boolean = false;
+
+  // ---- Skiftsammanfattning (dag-vy) ----
+  shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number }[] = [];
+
+  // ---- Dag-metrics ----
+  dayLongestStopMinutes: number = 0;
+  dayUtilizationPct: number = 0;
+
+  // ---- Skiftrapport statistik (produktions-tab) ----
+  skiftStatLoading: boolean = false;
+  skiftStatData: any[] = [];
+  skiftStatSummary: { total_ibc: number; total_ok: number; total_ej_ok: number; total_omtvaatt: number; total_drifttid: number; skift_count: number } | null = null;
+  skiftStatFrom: string = '';
+  skiftStatTo: string = '';
+  private skiftStatChartRef: Chart | null = null;
+  @ViewChild('skiftStatChart') skiftStatChartElement!: ElementRef<HTMLCanvasElement>;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
   private oeeTrendChartTimer: any = null;
@@ -120,6 +145,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.syncStateToUrl();
     this.loadStatistics();
     this.loadOeeTrend();
+    // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
+    const today = localToday();
+    this.skiftStatTo = today;
+    const d = new Date(today);
+    d.setDate(d.getDate() - 30);
+    this.skiftStatFrom = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -185,6 +216,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.productionChart = null;
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
+    try { this.skiftStatChartRef?.destroy(); } catch (e) {}
+    this.skiftStatChartRef = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -540,7 +573,264 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
 
+    this.buildTimelineSegments(data);
+    this.buildShiftSummaries(data.cycles || []);
+    this.computeDayMetrics(data);
+
     this.updatePeriodCellsData(data.cycles);
+  }
+
+  // =========================================================
+  // Timeline — dag-vy tidslinje (port från rebotling-statistik)
+  // =========================================================
+
+  private buildTimelineSegments(data: any) {
+    if (this.viewMode !== 'day') { this.timelineSegments = []; this.timelineEndPct = 100; return; }
+    const segments: typeof this.timelineSegments = [];
+    const onoff: any[] = data.onoff_events || [];
+    const rast: any[] = data.rast_events || [];
+
+    const now = new Date();
+    const isToday = this.selectedPeriods.length === 1 &&
+      this.selectedPeriods[0].getFullYear() === now.getFullYear() &&
+      this.selectedPeriods[0].getMonth() === now.getMonth() &&
+      this.selectedPeriods[0].getDate() === now.getDate();
+
+    type EvType = 'run_start' | 'run_end' | 'rast_start' | 'rast_end';
+    const events: { min: number; type: EvType }[] = [];
+    onoff.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.running ? 'run_start' : 'run_end' });
+    });
+    rast.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
+    });
+    events.sort((a, b) => a.min - b.min);
+
+    let capMin: number;
+    if (isToday) {
+      capMin = now.getHours() * 60 + now.getMinutes();
+    } else if (events.length > 0) {
+      capMin = events[events.length - 1].min;
+    } else {
+      capMin = 1440;
+    }
+    this.timelineEndPct = Math.min(100, (capMin / 1440) * 100);
+
+    const fmtTime = (min: number): string => {
+      const h = Math.floor(min / 60);
+      const m = Math.round(min % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    const fmtDuration = (mins: number): string => {
+      if (mins < 1) return '<1 min';
+      const h = Math.floor(mins / 60);
+      const m = Math.round(mins % 60);
+      return h > 0 ? `${h}h ${m}min` : `${m} min`;
+    };
+
+    let running = false, onRast = false, lastMin = 0;
+    const push = (end: number) => {
+      if (end > lastMin) {
+        const type: 'running' | 'rast' | 'stopped' =
+          onRast ? 'rast' : running ? 'running' : 'stopped';
+        segments.push({
+          startPct: (lastMin / 1440) * 100,
+          widthPct: ((end - lastMin) / 1440) * 100,
+          type,
+          startTime: fmtTime(lastMin),
+          endTime: fmtTime(end),
+          duration: fmtDuration(end - lastMin)
+        });
+      }
+    };
+    for (const ev of events) {
+      if (ev.min > capMin) break;
+      push(ev.min);
+      lastMin = ev.min;
+      if (ev.type === 'run_start') running = true;
+      else if (ev.type === 'run_end') running = false;
+      else if (ev.type === 'rast_start') onRast = true;
+      else if (ev.type === 'rast_end') onRast = false;
+    }
+    push(capMin);
+
+    // Absorb very short stops (<2 min) into surrounding running
+    const MIN_STOP = 2;
+    const cleaned: typeof segments = [];
+    for (const seg of segments) {
+      const pStart = parseFloat(seg.startTime.split(':')[0]) * 60 + parseFloat(seg.startTime.split(':')[1]);
+      const pEnd = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1]);
+      const segMins = pEnd - pStart;
+      if (seg.type === 'stopped' && segMins < MIN_STOP && cleaned.length > 0 && cleaned[cleaned.length - 1].type === 'running') {
+        const prev = cleaned[cleaned.length - 1];
+        prev.widthPct += seg.widthPct;
+        prev.endTime = seg.endTime;
+        const ps = parseFloat(prev.startTime.split(':')[0]) * 60 + parseFloat(prev.startTime.split(':')[1]);
+        const pe = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1]);
+        prev.duration = fmtDuration(pe - ps);
+      } else {
+        cleaned.push({ ...seg });
+      }
+    }
+
+    // Merge consecutive same-type segments
+    const merged: typeof segments = [];
+    for (const seg of cleaned) {
+      const prev = merged.length > 0 ? merged[merged.length - 1] : null;
+      if (prev && prev.type === seg.type) {
+        prev.widthPct += seg.widthPct;
+        prev.endTime = seg.endTime;
+        const startMin = parseFloat(prev.startTime.split(':')[0]) * 60 + parseFloat(prev.startTime.split(':')[1]);
+        const endMin = parseFloat(seg.endTime.split(':')[0]) * 60 + parseFloat(seg.endTime.split(':')[1]);
+        prev.duration = fmtDuration(endMin - startMin);
+      } else {
+        merged.push({ ...seg });
+      }
+    }
+    this.timelineSegments = merged;
+  }
+
+  private buildShiftSummaries(cycles: any[]) {
+    if (this.viewMode !== 'day') { this.shiftSummaries = []; return; }
+    const map = new Map<number, { ibcCount: number; times: number[] }>();
+    cycles.forEach((c: any) => {
+      if (!c.skiftraknare) return;
+      if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [] });
+      const s = map.get(c.skiftraknare)!;
+      s.ibcCount += (c.ibc_count || 1);
+      if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
+    });
+    this.shiftSummaries = Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([nr, s]) => ({
+        nr,
+        ibcCount: s.ibcCount,
+        avgCycleTime: s.times.length ? Math.round(s.times.reduce((a, b) => a + b, 0) / s.times.length * 10) / 10 : 0
+      }));
+  }
+
+  private computeDayMetrics(data: any) {
+    if (this.viewMode !== 'day') { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+    const onoff: any[] = data.onoff_events || [];
+    if (onoff.length === 0) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+
+    const events = onoff
+      .map((e: any) => ({ min: new Date(e.datum).getHours() * 60 + new Date(e.datum).getMinutes(), running: !!e.running }))
+      .sort((a: any, b: any) => a.min - b.min);
+
+    let firstRunMin: number | null = null;
+    let lastEventMin: number | null = null;
+    for (const ev of events) {
+      if (firstRunMin === null && ev.running) firstRunMin = ev.min;
+      lastEventMin = ev.min;
+    }
+    if (firstRunMin === null) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+
+    let totalRunMinutes = 0;
+    let longestStop = 0;
+    let currentRunning = false;
+    let runStartMin = 0;
+    let stopStart: number | null = null;
+    for (const ev of events) {
+      if (currentRunning && !ev.running) {
+        totalRunMinutes += ev.min - runStartMin;
+        stopStart = ev.min;
+        currentRunning = false;
+      } else if (!currentRunning && ev.running) {
+        if (stopStart !== null) {
+          const stopDur = ev.min - stopStart;
+          if (stopDur > longestStop) longestStop = stopDur;
+        }
+        runStartMin = ev.min;
+        currentRunning = true;
+      }
+    }
+    if (currentRunning && lastEventMin !== null) totalRunMinutes += lastEventMin - runStartMin;
+
+    const totalSpan = lastEventMin! - firstRunMin;
+    this.dayLongestStopMinutes = longestStop;
+    this.dayUtilizationPct = totalSpan > 0 ? Math.round((totalRunMinutes / totalSpan) * 100) : 0;
+  }
+
+  // =========================================================
+  // Skiftrapport statistik — produktions-tab
+  // =========================================================
+
+  setTab(tab: 'overview' | 'produktion' | 'analys') {
+    this.activeTab = tab;
+    if (tab === 'produktion' && this.skiftStatData.length === 0 && !this.skiftStatLoading) {
+      this.loadSkiftrapportStatistik();
+    }
+  }
+
+  loadSkiftrapportStatistik() {
+    if (this.skiftStatLoading) return;
+    this.skiftStatLoading = true;
+    this.tvattlinjeService.getSkiftrapportStatistik(this.skiftStatFrom, this.skiftStatTo)
+      .pipe(
+        timeout(10000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.skiftStatLoading = false;
+          if (res?.success) {
+            this.skiftStatData = res.data || [];
+            this.skiftStatSummary = res.summary || null;
+            setTimeout(() => this.renderSkiftStatChart(), 150);
+          }
+        }
+      });
+  }
+
+  renderSkiftStatChart() {
+    if (!this.skiftStatChartElement?.nativeElement) return;
+    try { this.skiftStatChartRef?.destroy(); } catch (e) {}
+    this.skiftStatChartRef = null;
+    if (this.skiftStatData.length === 0) return;
+
+    // Gruppera per dag
+    const dagMap = new Map<string, { ok: number; ejOk: number }>();
+    this.skiftStatData.forEach((r: any) => {
+      const dag = (r.datum || '').substring(0, 10);
+      if (!dag) return;
+      if (!dagMap.has(dag)) dagMap.set(dag, { ok: 0, ejOk: 0 });
+      const d = dagMap.get(dag)!;
+      d.ok += r.antal_ok || 0;
+      d.ejOk += r.antal_ej_ok || 0;
+    });
+
+    const labels = Array.from(dagMap.keys()).sort();
+    const okData = labels.map(d => dagMap.get(d)!.ok);
+    const ejOkData = labels.map(d => dagMap.get(d)!.ejOk);
+
+    this.skiftStatChartRef = new Chart(this.skiftStatChartElement.nativeElement, {
+      type: 'bar',
+      data: {
+        labels: labels.map(d => d.substring(5)), // MM-DD
+        datasets: [
+          { label: 'Godkända IBC', data: okData, backgroundColor: 'rgba(104,211,145,0.7)', borderColor: '#68d391', borderWidth: 1 },
+          { label: 'Ej godkända IBC', data: ejOkData, backgroundColor: 'rgba(229,62,62,0.6)', borderColor: '#e53e3e', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: '#a0aec0', maxRotation: 45, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { stacked: true, ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        }
+      }
+    });
   }
 
   /** Bygg pausperioder (rast + ev. stopp) för rullande effektivitetsberäkning */

@@ -703,3 +703,90 @@
   background: rgba(237,137,54,0.15);
   border-left-color: #ed8936;
 }
+
+/* ============================================
+   Tab navigation
+   ============================================ */
+.stats-tab-bar {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+}
+
+.stats-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.stats-tabs::-webkit-scrollbar { display: none; }
+
+.stats-tabs button {
+  background: none;
+  border: none;
+  color: #8899aa;
+  padding: 0.8rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stats-tabs button:hover {
+  color: #c8d8e8;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stats-tabs button.active {
+  color: #00d4ff;
+  border-bottom-color: #00d4ff;
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.stats-tabs button i {
+  font-size: 0.85rem;
+}
+
+.tab-content-area {
+  padding-top: 0;
+  padding-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .stats-tabs button {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  .stats-tabs button span { display: none; }
+  .stats-tabs button i { font-size: 1rem; }
+}
+
+/* ============================================
+   Timeline (dag-vy)
+   ============================================ */
+.timeline-time-labels { display:flex; justify-content:space-between; margin-bottom:2px; }
+.timeline-time-labels small { color:#718096; font-size:.7rem; }
+.rast-timeline .timeline-bar { height:28px; border-radius:4px; overflow:visible; background:#1a202c; border:1px solid #2d3748; position:relative; }
+.timeline-seg { position:absolute; height:100%; cursor:pointer; transition: opacity 0.15s; z-index:1; }
+.timeline-seg:hover { opacity:0.85; filter:brightness(1.2); }
+.seg-running    { background:#27ae60; }
+.seg-rast       { background:#ffc107; }
+.seg-stopped    { background:#64748b; }
+.timeline-tick { position:absolute; top:0; width:1px; height:100%; background:rgba(255,255,255,.08); z-index:0; pointer-events:none; }
+.timeline-now-marker { position:absolute; top:-2px; width:2px; height:calc(100% + 4px); background:#63b3ed; z-index:2; pointer-events:none; border-radius:1px; }
+.tl-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+.tl-dot.running    { background:#27ae60; }
+.tl-dot.rast       { background:#ffc107; }
+.tl-dot.stopped    { background:#64748b; }
+.tbl-row-running td { background: rgba(39,174,96,0.05); }
+.tbl-row-rast td    { background: rgba(255,193,7,0.05); }
+.tbl-row-stopped td { background: rgba(100,116,139,0.05); }
