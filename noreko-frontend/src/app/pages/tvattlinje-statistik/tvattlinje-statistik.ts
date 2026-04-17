@@ -55,6 +55,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
 
   totalCycles: number = 0;
+  missedWebhooks: number = 0;
   avgCycleTime: number = 0;
   avgEfficiency: number = 0;
   totalRuntimeHours: number = 0;
@@ -573,6 +574,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.rawCycles = data.cycles || [];
     this.rawCyclesSorted = [...this.rawCycles].reverse();
     this.totalCycles = data.summary.total_cycles;
+    this.missedWebhooks = data.summary.missed_webhooks || 0;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
     // Effektivitet: target / snitt-cykeltid * 100 (konsekvent med stapeldiagrammet)

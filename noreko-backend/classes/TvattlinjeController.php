@@ -251,11 +251,11 @@ class TvattlinjeController {
             $tz  = new \DateTimeZone('Europe/Stockholm');
             $now = new \DateTime('now', $tz);
 
-            // IBC idag — antal rader i tvattlinje_ibc
+            // IBC idag — MAX(ibc_count) fångar upp missade webhooks
             $ibcIdag = 0;
             try {
                 $ibcIdag = (int)$this->pdo->query(
-                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                    "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
             } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
@@ -501,9 +501,9 @@ class TvattlinjeController {
 
     private function getLiveStats() {
         try {
-            // Hämta antal IBCer producerade idag
+            // Hämta verkligt antal IBCer idag via MAX(ibc_count) — fångar upp missade webhooks
             $stmt = $this->pdo->prepare('
-                SELECT COUNT(*)
+                SELECT COALESCE(MAX(ibc_count), 0)
                 FROM tvattlinje_ibc
                 WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
@@ -890,7 +890,23 @@ class TvattlinjeController {
                 }
             }
 
-            $total_cycles = count($cycles);
+            // Verkligt antal cykler via MAX(ibc_count) per dag, summerat — fångar missade webhooks
+            $total_cycles_true = 0;
+            try {
+                $stmtTrue = $this->pdo->prepare('
+                    SELECT COALESCE(SUM(max_per_dag), 0)
+                    FROM (
+                        SELECT MAX(ibc_count) as max_per_dag
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum)
+                    ) sub
+                ');
+                $stmtTrue->execute(['start' => $start, 'end' => $end]);
+                $total_cycles_true = (int)$stmtTrue->fetchColumn();
+            } catch (\Exception $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
+
+            $total_cycles = $total_cycles_true > 0 ? $total_cycles_true : count($cycles);
             if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
                 // Fallback: span av första–sista cykel
                 $validCycles = array_filter($cycles, fn($c) => $c['datum'] !== null);
@@ -946,6 +962,8 @@ class TvattlinjeController {
                     'rast_events'  => $rast_events,
                     'summary' => [
                         'total_cycles'          => $total_cycles,
+                        'received_webhooks'     => count($cycles),
+                        'missed_webhooks'       => max(0, $total_cycles - count($cycles)),
                         'avg_production_percent'=> round($avg_production_percent, 1),
                         'avg_cycle_time'        => round($avg_cycle_time, 2),
                         'target_cycle_time'     => $target_cycle_time,
@@ -1248,7 +1266,7 @@ class TvattlinjeController {
 
             $ibcToday = 0;
             try {
-                $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
+                $ibcToday = (int)$this->pdo->query("SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
             } catch (\Exception $e) {}
 
             echo json_encode([

@@ -107,10 +107,13 @@
             <div class="kpi-hero-icon"><i class="fas fa-cubes"></i></div>
             <div class="kpi-hero-value">{{ totalCycles }}</div>
             <div class="kpi-hero-label">IBC Producerade</div>
-            <div class="kpi-hero-sub" *ngIf="viewMode !== 'day' && oeeTrendSummary.snitt_per_dag > 0">
+            <div class="kpi-hero-sub" style="color:#f6ad55" *ngIf="missedWebhooks > 0" title="Pucken räknade fler cykler än vi fick webhooks — {{ missedWebhooks }} signaler förlorade">
+              <i class="fas fa-exclamation-triangle me-1"></i>{{ missedWebhooks }} förlorade signaler
+            </div>
+            <div class="kpi-hero-sub" *ngIf="missedWebhooks === 0 && viewMode !== 'day' && oeeTrendSummary.snitt_per_dag > 0">
               Snitt {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}/dag (30d)
             </div>
-            <div class="kpi-hero-sub" *ngIf="viewMode === 'day'">{{ viewMode === 'day' ? 'Idag' : '' }}</div>
+            <div class="kpi-hero-sub" *ngIf="missedWebhooks === 0 && viewMode === 'day'">{{ viewMode === 'day' ? 'Idag' : '' }}</div>
           </div>
         </div>
 
