@@ -111,7 +111,7 @@ class TvattlinjeController {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $defaults = [
-            ['dagmal',       '80'],
+            ['dagmal',       '140'],
             ['takt_mal',     '3'],
             ['skift_start',  '06:00'],
             ['skift_slut',   '22:00'],
@@ -257,7 +257,7 @@ class TvattlinjeController {
             } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
             // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
-            $dagmal = 80;
+            $dagmal = 140;
             try {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query(
@@ -507,9 +507,20 @@ class TvattlinjeController {
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
             
-            // Hämta target från settings
-            $settings = $this->loadSettings();
-            $ibcTarget = $settings['antal_per_dag'] ?? 150;
+            // Läs dagmål — försöker key-value-tabellen (ny kod) och faller tillbaka på gamla kolumnen
+            $ibcTarget = 140;
+            try {
+                $this->ensureSettingsTable();
+                $row = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal'")->fetch(\PDO::FETCH_ASSOC);
+                if ($row && (int)$row['value'] > 0) {
+                    $ibcTarget = (int)$row['value'];
+                } else {
+                    $settings = $this->loadSettings();
+                    if (!empty($settings['antal_per_dag'])) $ibcTarget = (int)$settings['antal_per_dag'];
+                }
+            } catch (\Exception $e) {
+                error_log('TvattlinjeController::getLiveStats dagmal: ' . $e->getMessage());
+            }
 
             // Beräkna hourlyTarget baserat på 8 timmars arbetstid
             $hourlyTarget = $ibcTarget / 8;

@@ -44,7 +44,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
 
   // ---- Nya key-value settings (tvattlinje_settings tabell) ----
   newSettings: any = {
-    dagmal: 80,
+    dagmal: 140,
     takt_mal: 15,
     skift_start: '06:00',
     skift_slut: '22:00'
@@ -218,7 +218,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
           if (response.success && response.data) {
             const d = response.data;
             this.newSettings = {
-              dagmal:      parseInt(d['dagmal']      ?? '80',  10),
+              dagmal:      parseInt(d['dagmal']      ?? '140', 10),
               takt_mal:    parseInt(d['takt_mal']    ?? '15',  10),
               skift_start: d['skift_start'] ?? '06:00',
               skift_slut:  d['skift_slut']  ?? '22:00',
