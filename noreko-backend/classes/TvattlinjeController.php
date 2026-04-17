@@ -38,6 +38,8 @@ class TvattlinjeController {
                 $this->getSkiftrapportStatistik();
             } elseif ($action === 'plc-diagnostics') {
                 $this->getPlcDiagnostics();
+            } elseif ($action === 'plc-diagnostik') {
+                $this->getPlcDiagnostikStream();
             } else {
                 $this->getLiveStats();
             }
@@ -1157,6 +1159,105 @@ class TvattlinjeController {
     // =========================================================
     // PLC Diagnostik — rådata och signalkvalitet för felsökning
     // =========================================================
+
+    // GET ?action=tvattlinje&run=plc-diagnostik[&date=YYYY-MM-DD][&since_id=N][&limit=200]
+    private function getPlcDiagnostikStream(): void {
+        try {
+            $date = $_GET['date'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) $date = date('Y-m-d');
+            $sinceId = isset($_GET['since_id']) ? intval($_GET['since_id']) : 0;
+            $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 500) : 200;
+
+            $events = [];
+
+            // tvattlinje_onoff
+            try {
+                $sql = "SELECT * FROM tvattlinje_onoff WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'onoff';
+                    $row['event_type'] = intval($row['running'] ?? 0) === 1 ? 'ON' : 'OFF';
+                    $events[] = $row;
+                }
+            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream onoff: ' . $e->getMessage()); }
+
+            // tvattlinje_ibc
+            try {
+                $sql = "SELECT * FROM tvattlinje_ibc WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'ibc';
+                    $row['event_type'] = 'IBC';
+                    $events[] = $row;
+                }
+            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
+
+            // tvattlinje_rast
+            try {
+                $sql = "SELECT * FROM tvattlinje_rast WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'rast';
+                    $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
+                    $events[] = $row;
+                }
+            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream rast: ' . $e->getMessage()); }
+
+            usort($events, function ($a, $b) {
+                $cmp = strcmp($b['datum'], $a['datum']);
+                return $cmp !== 0 ? $cmp : intval($b['id']) - intval($a['id']);
+            });
+            $events = array_slice($events, 0, $limit);
+
+            $maxId = 0;
+            foreach ($events as $e) {
+                $eid = intval($e['id'] ?? 0);
+                if ($eid > $maxId) $maxId = $eid;
+            }
+
+            $latestOnoff = null;
+            try {
+                $latestOnoff = $this->pdo->query("SELECT running, datum FROM tvattlinje_onoff ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
+
+            $ibcToday = 0;
+            try {
+                $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
+            } catch (\Exception $e) {}
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'events' => $events,
+                    'max_id' => $maxId,
+                    'stats' => [
+                        'running' => $latestOnoff ? intval($latestOnoff['running'] ?? 0) === 1 : false,
+                        'skiftraknare' => 0,
+                        'last_event' => $latestOnoff['datum'] ?? null,
+                        'ibc_today' => $ibcToday,
+                    ],
+                    'date' => $date,
+                    'event_count' => count($events),
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController::getPlcDiagnostikStream: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av PLC-diagnostik.'], JSON_UNESCAPED_UNICODE);
+        }
+    }
 
     private function getPlcDiagnostics() {
         $start = $_GET['start'] ?? date('Y-m-d');

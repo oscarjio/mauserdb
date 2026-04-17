@@ -66,6 +66,7 @@
           <li *ngIf="ff.canAccess('tvattlinje/statistik')"><a class="dropdown-item" routerLink="/tvattlinje/statistik">Statistik</a></li>
           <li *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('tvattlinje/admin')"><a class="dropdown-item text-warning" routerLink="/tvattlinje/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
+          <li *ngIf="ff.canAccess('tvattlinje/admin')"><a class="dropdown-item text-warning" routerLink="/tvattlinje/plc-diagnostik"><i class="fas fa-terminal me-2"></i>PLC Diagnostik</a></li>
         </ul>
       </li>
       <li class="nav-item dropdown">

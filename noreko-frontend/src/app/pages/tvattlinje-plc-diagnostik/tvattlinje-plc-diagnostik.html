@@ -1,0 +1,104 @@
+<div class="plc-diagnostik-container">
+  <!-- Top stats bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">LINJE</span>
+      <span class="stat-value" [ngClass]="statusClass">{{ statusLabel }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">IBC IDAG</span>
+      <span class="stat-value text-ibc">{{ stats.ibc_today }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">SENASTE EVENT</span>
+      <span class="stat-value stat-value-sm">{{ stats.last_event ? formatTimestamp(stats.last_event) : '--' }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">ANSLUTNING</span>
+      <span class="stat-value" [ngClass]="healthClass">{{ healthLabel }}</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <h5 class="page-title"><i class="fas fa-terminal me-2"></i>Tvättlinje — PLC Diagnostik</h5>
+    </div>
+    <div class="toolbar-center">
+      <label class="filter-checkbox" title="ON/OFF-events">
+        <input type="checkbox" [(ngModel)]="showOnoff">
+        <span class="badge-on filter-badge">ON/OFF</span>
+      </label>
+      <label class="filter-checkbox" title="IBC-events">
+        <input type="checkbox" [(ngModel)]="showIbc">
+        <span class="badge-ibc filter-badge">IBC</span>
+      </label>
+      <label class="filter-checkbox" title="Rast-events">
+        <input type="checkbox" [(ngModel)]="showRast">
+        <span class="badge-rast filter-badge">RAST</span>
+      </label>
+    </div>
+    <div class="toolbar-right">
+      <input type="date" class="date-input" [(ngModel)]="selectedDate" (change)="onDateChange()">
+      <button class="btn-console" (click)="goToToday()" [disabled]="isToday" title="Gå till idag">
+        <i class="fas fa-calendar-day"></i>
+      </button>
+      <button class="btn-console" (click)="togglePause()" [title]="isPaused ? 'Starta live-uppdatering' : 'Pausa live-uppdatering'">
+        <i class="fas" [ngClass]="isPaused ? 'fa-play' : 'fa-pause'"></i>
+      </button>
+      <button class="btn-console" (click)="toggleAutoScroll()" [class.active]="autoScroll" title="Auto-scroll">
+        <i class="fas fa-arrow-down"></i>
+      </button>
+      <button class="btn-console btn-clear" (click)="clearConsole()" title="Rensa konsol">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Console output -->
+  <div class="console-output" #consoleOutput>
+    <div *ngIf="filteredEvents.length === 0 && isFetching" class="console-empty">
+      <span class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Hämtar PLC-data...</span>
+    </div>
+    <div *ngIf="filteredEvents.length === 0 && !isFetching" class="console-empty">
+      <span class="text-muted">Inga händelser för {{ selectedDate }}. {{ isToday ? 'Väntar på PLC-data...' : '' }}</span>
+    </div>
+    <div *ngFor="let event of filteredEvents; trackBy: trackEvent"
+         class="console-line"
+         [class.system-line]="event.source === '_system'"
+         [class.system-cmd]="event._systemType === 'cmd'"
+         [class.system-info]="event._systemType === 'info'"
+         [class.system-success]="event._systemType === 'success'"
+         [class.system-error]="event._systemType === 'error'"
+         [class.system-help]="event._systemType === 'help'">
+      <span class="line-ts">{{ formatTimestamp(event.datum) }}</span>
+      <ng-container *ngIf="event.source !== '_system'">
+        <span class="line-badge" [ngClass]="getBadgeClass(event)">{{ getBadgeLabel(event) }}</span>
+        <span class="line-data">{{ formatEventData(event) }}</span>
+      </ng-container>
+      <ng-container *ngIf="event.source === '_system'">
+        <span class="line-system-text">{{ event._systemText }}</span>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Command input -->
+  <div class="command-bar">
+    <span class="command-prompt">$</span>
+    <input type="text" class="command-input" [(ngModel)]="commandInput"
+           (keydown.enter)="executeCommand()"
+           placeholder="Skriv /help för kommandon..."
+           autocomplete="off" spellcheck="false">
+    <button class="btn-console" (click)="executeCommand()" [disabled]="!commandInput.trim()">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+
+  <!-- Status bar -->
+  <div class="console-statusbar">
+    <span>{{ filteredEvents.length }} händelser</span>
+    <span *ngIf="isPaused" class="status-paused"><i class="fas fa-pause me-1"></i>PAUSAD</span>
+    <span *ngIf="!isToday" class="status-history"><i class="fas fa-history me-1"></i>HISTORIK: {{ selectedDate }}</span>
+    <span *ngIf="isToday && !isPaused" class="status-live"><i class="fas fa-circle me-1"></i>LIVE</span>
+  </div>
+</div>

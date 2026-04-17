@@ -136,6 +136,7 @@ export const routes: Routes = [
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
+      { path: 'tvattlinje/plc-diagnostik', canActivate: [adminGuard], loadComponent: () => import('./pages/tvattlinje-plc-diagnostik/tvattlinje-plc-diagnostik').then(m => m.TvattlinjePlcDiagnostikPage) },
       { path: 'tvattlinje/admin', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/tvattlinje-admin/tvattlinje-admin').then(m => m.TvattlinjeAdminPage) },
       { path: 'saglinje/admin', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/saglinje-admin/saglinje-admin').then(m => m.SaglinjeAdminPage) },
       { path: 'klassificeringslinje/admin', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/klassificeringslinje-admin/klassificeringslinje-admin').then(m => m.KlassificeringslinjeAdminPage) },
