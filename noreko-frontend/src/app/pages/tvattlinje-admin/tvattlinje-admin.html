@@ -254,28 +254,23 @@
       </div>
     </div>
 
-    <!-- ======== DRIFTSINSTÄLLNINGAR (nya key-value settings) ======== -->
+    <!-- ======== DAGSMÅL ======== -->
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="fas fa-sliders-h me-2 text-info"></i>
-          Driftsinställningar
+          <i class="fas fa-bullseye me-2 text-info"></i>
+          Dagsmål
         </h5>
         <span *ngIf="newSettingsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
       </div>
       <div class="card-body">
-        <p class="text-muted small mb-3">
-          Grundinställningar för tvättlinjen — används av live-vy och statistik när linjen är i drift.
-        </p>
-
         <div *ngIf="newSettingsError" class="alert alert-danger mb-3" role="alert">
           <i class="fas fa-exclamation-triangle me-2"></i>{{ newSettingsError }}
         </div>
-
         <div class="row g-3">
-          <div class="col-md-3">
+          <div class="col-md-4 col-lg-3">
             <label class="form-label fw-semibold">
-              <i class="fas fa-bullseye me-1 text-info"></i>Dagsmål (IBC/dag)
+              <i class="fas fa-bullseye me-1 text-info"></i>Antal IBC per dag
             </label>
             <input
               type="number"
@@ -285,53 +280,11 @@
               name="dagmal"
               min="1"
               step="1"
-              placeholder="80" max="99999">
+              placeholder="80"
+              max="99999">
             <div class="form-text">Mål antal tvättade IBC per dag.</div>
           </div>
-
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-tachometer-alt me-1 text-warning"></i>Takt-mål (IBC/h)
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="newSettings.takt_mal"
-              (ngModelChange)="formDirty = true"
-              name="takt_mal"
-              min="1"
-              step="1"
-              placeholder="15" max="99999">
-            <div class="form-text">Förväntad takt i IBC per timme.</div>
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-play me-1 text-success"></i>Skiftstart
-            </label>
-            <input
-              type="time"
-              class="form-control"
-              [(ngModel)]="newSettings.skift_start"
-              (ngModelChange)="formDirty = true"
-              name="skift_start">
-            <div class="form-text">När skiftet börjar (HH:MM).</div>
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-stop me-1 text-danger"></i>Skiftslut
-            </label>
-            <input
-              type="time"
-              class="form-control"
-              [(ngModel)]="newSettings.skift_slut"
-              (ngModelChange)="formDirty = true"
-              name="skift_slut">
-            <div class="form-text">När skiftet slutar (HH:MM).</div>
-          </div>
         </div>
-
         <div class="mt-4 d-flex gap-2">
           <button
             class="btn btn-primary"
@@ -339,117 +292,12 @@
             [disabled]="newSettingsSaving || newSettingsLoading">
             <span *ngIf="newSettingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
             <i *ngIf="!newSettingsSaving" class="fas fa-save me-2"></i>
-            {{ newSettingsSaving ? 'Sparar...' : 'Spara driftsinställningar' }}
+            {{ newSettingsSaving ? 'Sparar...' : 'Spara' }}
           </button>
           <button
             class="btn btn-outline-secondary"
             (click)="loadNewSettings()"
             [disabled]="newSettingsLoading || newSettingsSaving">
-            <i class="fas fa-undo me-2"></i>Återställ
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======== VECKODAGSMÅL ======== -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-calendar-week me-2 text-warning"></i>
-          Veckodagsmål
-        </h5>
-        <span *ngIf="weekdayGoalsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">
-          Anpassa dagsmålet per veckodag. Lördag och söndag har lägre mål som standard.
-          Sätt 0 för att markera en dag som icke-produktionsdag.
-        </p>
-
-        <div *ngIf="weekdayGoalsError" class="alert alert-danger mb-3" role="alert">
-          <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayGoalsError }}
-        </div>
-
-        <!-- Snabbval -->
-        <div class="weekday-tools d-flex align-items-center gap-3 mb-3">
-          <label class="form-label fw-semibold mb-0 text-muted small">
-            <i class="fas fa-magic me-1"></i>Snabbval:
-          </label>
-          <input
-            type="number"
-            class="form-control form-control-sm"
-            [(ngModel)]="snabbvarde"
-            name="snabbvarde" aria-label="Snabbval värde"
-            min="0"
-            max="500"
-            style="max-width: 90px;"
-            placeholder="Värde">
-          <button class="btn btn-sm btn-outline-info" (click)="settAllaVeckodagsmal()">
-            <i class="fas fa-arrow-right me-1"></i>Sätt alla till {{ snabbvarde }}
-          </button>
-        </div>
-
-        <div class="table-responsive" *ngIf="weekdayGoals.length > 0">
-          <table class="table table-sm align-middle mb-3" style="max-width: 480px;">
-            <thead>
-              <tr>
-                <th style="width: 160px;" scope="col">Veckodag</th>
-                <th scope="col">Mål (IBC/dag)</th>
-                <th style="width: 80px;" class="text-center" scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let goal of weekdayGoals; trackBy: trackByIndex">
-                <td class="fw-semibold">
-                  <span class="badge me-2"
-                    [style.background]="goal.weekday >= 5 ? '#4a5568' : '#2b4c7e'"
-                    style="font-size: 0.7rem; width: 20px; text-align: center;">
-                    {{ goal.weekday + 1 }}
-                  </span>
-                  {{ goal.label }}
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    class="form-control form-control-sm"
-                    [(ngModel)]="goal.mal"
-                    (ngModelChange)="formDirty = true"
-                    [name]="'weekday_' + goal.weekday" [attr.aria-label]="'Dagsmål för ' + goal.label"
-                    min="0"
-                    max="500"
-                    step="1"
-                    style="max-width: 120px;">
-                </td>
-                <td class="text-center">
-                  <span class="badge"
-                    [style.background]="goal.mal === 0 ? '#4a5568' : goal.mal < 50 ? '#744210' : '#1a4a2e'"
-                    style="font-size: 0.7rem;">
-                    {{ goal.mal === 0 ? 'Stängt' : goal.mal + ' IBC' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div *ngIf="!weekdayGoalsLoading && weekdayGoals.length === 0" class="text-center py-4">
-          <i class="fas fa-inbox" style="font-size: 2rem; color: #8fa3b8;"></i>
-          <p style="color: #a0aec0; margin-top: 0.5rem;">Inga inställningar tillgängliga.</p>
-        </div>
-
-        <div class="d-flex gap-2">
-          <button
-            class="btn btn-primary"
-            (click)="saveWeekdayGoals()"
-            [disabled]="weekdayGoalsSaving || weekdayGoalsLoading">
-            <span *ngIf="weekdayGoalsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
-            <i *ngIf="!weekdayGoalsSaving" class="fas fa-save me-2"></i>
-            {{ weekdayGoalsSaving ? 'Sparar...' : 'Spara veckodagsmål' }}
-          </button>
-          <button
-            class="btn btn-outline-secondary"
-            (click)="loadWeekdayGoals()"
-            [disabled]="weekdayGoalsLoading || weekdayGoalsSaving">
             <i class="fas fa-undo me-2"></i>Återställ
           </button>
         </div>
@@ -544,91 +392,6 @@
           <span><i class="fas fa-star text-warning me-1"></i>Kvalitet: {{ alertThresholds.kvalitet_warn }}%</span>
           <span><i class="fas fa-plug text-danger me-1"></i>PLC max: {{ alertThresholds.plc_max_min }} min</span>
           <span><i class="fas fa-chart-bar text-warning me-1"></i>Dagsmål-varning: {{ alertThresholds.dagmal_warn_pct }}%</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======== PRODUKTIONSINSTÄLLNINGAR (gamla settings — bakåtkompatibilitet) ======== -->
-    <div class="card mb-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-industry me-2 text-secondary"></i>
-          Produktionsinställningar (äldre format)
-        </h5>
-        <span *ngIf="loading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">
-          Dessa inställningar används av befintliga live-vyer och statistiksidor.
-        </p>
-
-        <div *ngIf="settingsError" class="alert alert-danger mb-3" role="alert">
-          <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
-        </div>
-
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-box me-1 text-info"></i>Dagsmål (tankar/dag)
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="settings.antal_per_dag"
-              name="antal_per_dag"
-              min="1"
-              step="1"
-              placeholder="Ange dagsmål" max="99999">
-            <div class="form-text">Mål antal tvättade tankar per dag.</div>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-tachometer-alt me-1 text-warning"></i>Timtakt (tankar/h)
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="settings.timtakt"
-              name="timtakt"
-              min="1"
-              step="1"
-              placeholder="Ange timtakt" max="99999">
-            <div class="form-text">Förväntad produktion per timme.</div>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">
-              <i class="fas fa-clock me-1 text-success"></i>Skiftlängd (timmar)
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              [(ngModel)]="settings.skiftlangd"
-              name="skiftlangd"
-              min="0.5"
-              max="24"
-              step="0.5"
-              placeholder="Ange skiftlängd">
-            <div class="form-text">Antal arbetstimmar per skift.</div>
-          </div>
-        </div>
-
-        <div class="mt-4 d-flex gap-2">
-          <button
-            class="btn btn-primary"
-            (click)="saveSettings()"
-            [disabled]="settingsSaving || loading">
-            <span *ngIf="settingsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
-            <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
-            {{ settingsSaving ? 'Sparar...' : 'Spara produktionsinställningar' }}
-          </button>
-          <button
-            class="btn btn-outline-secondary"
-            (click)="loadSettings()"
-            [disabled]="loading || settingsSaving">
-            <i class="fas fa-sync-alt me-2"></i>Återställ
-          </button>
         </div>
       </div>
     </div>

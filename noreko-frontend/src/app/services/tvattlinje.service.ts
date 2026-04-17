@@ -135,4 +135,11 @@ export class TvattlinjeService {
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
+
+  getPlcDiagnostics(startDate: string, endDate: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostics&start=${startDate}&end=${endDate}`,
+      { withCredentials: true }
+    ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
+  }
 }

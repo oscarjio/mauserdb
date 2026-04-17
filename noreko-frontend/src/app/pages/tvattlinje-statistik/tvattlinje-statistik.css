@@ -916,3 +916,39 @@
 .tbl-row-running td { background: rgba(39,174,96,0.05); }
 .tbl-row-rast td    { background: rgba(255,193,7,0.05); }
 .tbl-row-stopped td { background: rgba(100,116,139,0.05); }
+
+/* ============================================
+   Rådata & PLC Diagnostik tabeller
+   ============================================ */
+.raw-data-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+.raw-data-table {
+  font-size: 0.8rem;
+  min-width: 800px;
+  border-collapse: collapse;
+}
+.raw-data-thead {
+  background: #1a202c;
+}
+.raw-data-th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2d3748;
+  white-space: nowrap;
+}
+.raw-data-td {
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+}
+.raw-data-table tbody tr:hover td {
+  background: rgba(255,255,255,0.04);
+}

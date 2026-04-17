@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { takeUntil, catchError, timeout, skip } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { RebotlingService, ChartAnnotation, ExecDashboardResponse, DashboardWidgetEntry, DashboardAvailableWidget } from '../../services/rebotling.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
@@ -248,18 +248,42 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngOnInit() {
-    this.applyStateFromUrl();
+    this.applyStateFromUrl(this.route.snapshot.queryParams);
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(true);
     this.loadStatistics();
     this.loadOverview();
     this.loadDashboardLayout();
+
+    // Reagera på webbläsarens back/forward-navigation
+    this.route.queryParams.pipe(
+      skip(1),
+      takeUntil(this.destroy$)
+    ).subscribe(params => {
+      const incomingView = (params['view'] || 'month') as ViewMode;
+      const incomingYear = parseInt(params['year'], 10);
+      const incomingMonth = parseInt(params['month'], 10);
+      const incomingDates = params['dates'] || '';
+      const currentDates = this.selectedPeriods.map(d => this.formatDate(d)).join(',');
+
+      // Hoppa över om URL matchar nuvarande state (vi satte den själva)
+      if (incomingView === this.viewMode &&
+          incomingYear === this.currentYear &&
+          incomingMonth === this.currentMonth &&
+          incomingDates === currentDates) {
+        return;
+      }
+
+      this.applyStateFromUrl(params);
+      this.updateBreadcrumb();
+      this.generatePeriodCells();
+      this.loadStatistics();
+    });
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
-  private applyStateFromUrl() {
-    const q = this.route.snapshot.queryParams;
+  private applyStateFromUrl(q: Record<string, string>) {
     const view = (q['view'] || 'month') as ViewMode;
     if (view === 'year' || view === 'month' || view === 'day') {
       this.viewMode = view;
@@ -289,8 +313,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  /** Uppdatera URL med nuvarande vy, år, månad och valda datum (ersätter inte history). */
-  private syncStateToUrl() {
+  /** Uppdatera URL med nuvarande vy, år, månad och valda datum. */
+  private syncStateToUrl(replace = true) {
     const params: Record<string, string> = {
       view: this.viewMode,
       year: String(this.currentYear),
@@ -307,7 +331,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       relativeTo: this.route,
       queryParams: params,
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: replace
     });
   }
 
@@ -438,7 +462,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
   }
 
@@ -451,7 +475,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
   }
 
@@ -758,7 +782,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const targetCt = data.summary.target_cycle_time || 3;
     let properEff: number;
     if (this.viewMode === 'day') {
-      const netRtMin = data.summary.net_runtime_minutes || 0;
+      // net_runtime_minutes kan saknas i äldre backend-svar — fall back på total_runtime_hours
+      const netRtMin = data.summary.net_runtime_minutes
+        || (data.summary.total_runtime_hours * 60)
+        || 0;
       const totalCyc = data.summary.total_cycles || 0;
       properEff = (netRtMin > 0 && totalCyc > 0)
         ? Math.round(totalCyc * targetCt / netRtMin * 100)
@@ -842,7 +869,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? validTargets.reduce((s, t) => s + t, 0) / validTargets.length
           : (this.targetCycleTime || 3);
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = avgCycleTime > 0 ? Math.min(150, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
+        cell.efficiency = avgCycleTime > 0 ? Math.min(100, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
       }
     });
 
@@ -1114,7 +1141,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.min(150, Math.round((avgTarget / avgActual) * 100)));
+          efficiencyArr.push(Math.min(100, Math.round((avgTarget / avgActual) * 100)));
         } else {
           efficiencyArr.push(0);
         }
@@ -1143,7 +1170,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       return !isNaN(ct) && ct > 0 && ct <= 30;
     });
 
-    // Tillämpa markering/zoom — arbetar direkt med cykelindex
     let displayCycles = withTime;
     if (
       this.chartSelectionStartIndex !== null &&
@@ -1167,7 +1193,34 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let totalCycleTime = 0;
     let totalProdPct = 0;
 
-    // Spåra produktbyten för annotations
+    // Rullande 30-min tidsfönster: för varje cykel samlas alla cykler inom föregående 30 min
+    const WINDOW_MS = 30 * 60 * 1000;
+    const WINDOW_MINUTES = 30;
+
+    // Bygg rast- och driftstopp-perioder som listor av {start, end} i ms
+    // Dessa exkluderas från fönstrets nämnarmed (samma logik som skiftrapporten)
+    const pausePeriods: { start: number; end: number }[] = [];
+    const rastRaw: any[] = data.rast_events || [];
+    let pauseStart: number | null = null;
+    for (const ev of rastRaw) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.rast_status) === 1) { pauseStart = t; }
+      else if (parseInt(ev.rast_status) === 0 && pauseStart !== null) {
+        pausePeriods.push({ start: pauseStart, end: t });
+        pauseStart = null;
+      }
+    }
+    const dsRaw: any[] = data.driftstopp_events || [];
+    let dsStart: number | null = null;
+    for (const ev of dsRaw) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.driftstopp_status) === 1) { dsStart = t; }
+      else if (parseInt(ev.driftstopp_status) === 0 && dsStart !== null) {
+        pausePeriods.push({ start: dsStart, end: t });
+        dsStart = null;
+      }
+    }
+
     let lastProduktId: any = null;
     const produktByten: { index: number; namn: string }[] = [];
 
@@ -1180,33 +1233,41 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       cycleTime.push(Math.round(ct * 10) / 10);
       totalCycleTime += ct;
 
-      // Per-cykel mål baserat på produktens cykeltid (stegar vid produktbyte)
       const target = parseFloat(cycle.target_cycle_time);
-
-      // Beräkna riktig effektivitet: target_cycle_time / rolling_avg_cycle_time * 100
-      // Använd glidande medelvärde av de senaste 5 cyklerna för jämnare kurva
       const effTargetVal = !isNaN(target) && target > 0 ? target : 3;
-      const windowSize = 5;
-      const startIdx = Math.max(0, i - windowSize + 1);
-      let windowSum = 0;
+
+      // Effektivitet = antal_IBC_i_netto_fönster × mål / netto_fönster_min × 100
+      // Rast och driftstopp exkluderas från fönstrets nämnare (matchar skiftrapportens drifttid-logik)
+      const cycleMs = d.getTime();
+      const windowStart = cycleMs - WINDOW_MS;
+
+      // Räkna IBC i fönstret
       let windowCount = 0;
-      for (let w = startIdx; w <= i; w++) {
+      for (let w = i; w >= 0; w--) {
+        const wMs = new Date(displayCycles[w].datum).getTime();
+        if (wMs < windowStart) break;
         const wct = parseFloat(displayCycles[w].cycle_time);
-        if (!isNaN(wct) && wct > 0 && wct <= 30) {
-          windowSum += wct;
-          windowCount++;
+        if (!isNaN(wct) && wct > 0 && wct <= 30) windowCount++;
+      }
+
+      // Beräkna pausad tid (rast + driftstopp) inom fönstret, i minuter
+      let pauseMinInWindow = 0;
+      for (const p of pausePeriods) {
+        const overlapStart = Math.max(p.start, windowStart);
+        const overlapEnd   = Math.min(p.end,   cycleMs);
+        if (overlapEnd > overlapStart) {
+          pauseMinInWindow += (overlapEnd - overlapStart) / 60000;
         }
       }
-      const rollingAvg = windowCount > 0 ? windowSum / windowCount : 0;
-      const pp = rollingAvg > 0 ? Math.min(150, Math.round((effTargetVal / rollingAvg) * 100)) : 0;
+      const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow);
+
+      const pp = windowCount > 0 ? Math.round((windowCount * effTargetVal / netWindowMin) * 100) : 0;
       prodPct.push(pp);
       totalProdPct += pp;
       targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
 
-      // Produktnamn per cykel (för tooltip)
       produktNamn.push(cycle.produkt_namn || '');
 
-      // Detektera produktbyte (inkludera även första produkten vid index 0)
       if (cycle.produkt_id && cycle.produkt_id !== lastProduktId) {
         produktByten.push({ index: i, namn: cycle.produkt_namn || 'Ny produkt' });
         lastProduktId = cycle.produkt_id;
@@ -1216,14 +1277,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const overallAvg = displayCycles.length > 0
       ? Math.round((totalCycleTime / displayCycles.length) * 10) / 10
       : 0;
-    labels.forEach(() => {
-      avgCycleTimeArr.push(overallAvg);
-    });
+    labels.forEach(() => avgCycleTimeArr.push(overallAvg));
 
-    // Bygg kör/stopp-perioder från on/off-händelser, mappade till cykelindex
     const runningPeriods = this.buildRunningPeriodsForCycles(displayCycles, onoff);
-
-    // Rast-perioder mappade till cykelindex
     const rast: any[] = data.rast_events || [];
     const rastPeriods = this.buildRastPeriodsForCycles(displayCycles, rast);
 
@@ -1240,77 +1296,44 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     };
   }
 
-  /**
-   * Bygg kör/stopp bakgrundsfält mappade till cykelindex.
-   * Varje cykel har en timestamp; vi kollar on/off-händelser för att avgöra
-   * om det finns stopp-perioder mellan cyklerna.
-   */
   private buildRunningPeriodsForCycles(displayCycles: any[], onoff: any[]): any[] {
     if (displayCycles.length === 0) return [];
-
-    // Bygg on/off tidslinje
     const offPeriods: { start: number; end: number }[] = [];
     let lastOff: Date | null = null;
     for (const ev of onoff) {
       const d = new Date(ev.datum);
-      if (!ev.running) {
-        lastOff = d;
-      } else if (lastOff) {
-        offPeriods.push({ start: lastOff.getTime(), end: d.getTime() });
-        lastOff = null;
-      }
+      if (!ev.running) { lastOff = d; }
+      else if (lastOff) { offPeriods.push({ start: lastOff.getTime(), end: d.getTime() }); lastOff = null; }
     }
-
-    // Markera hela grafområdet som "running" som bas
     const periods: any[] = [];
     let currentStart = 0;
-
     for (let i = 1; i < displayCycles.length; i++) {
       const prevTime = new Date(displayCycles[i - 1].datum).getTime();
       const currTime = new Date(displayCycles[i].datum).getTime();
-
-      // Kolla om det finns en off-period som överlappar gapet mellan cyklerna
       const hasOff = offPeriods.some(p => p.start <= currTime && p.end >= prevTime);
-
       if (hasOff) {
-        // Stäng köra-perioden
-        if (i - 1 >= currentStart) {
-          periods.push({ startIndex: currentStart, endIndex: i - 1, running: true });
-        }
-        // Stoppperiod (enbart gapet)
+        if (i - 1 >= currentStart) periods.push({ startIndex: currentStart, endIndex: i - 1, running: true });
         periods.push({ startIndex: i - 1, endIndex: i, running: false });
         currentStart = i;
       }
     }
-
-    // Stäng sista kör-perioden
     if (currentStart <= displayCycles.length - 1) {
       periods.push({ startIndex: currentStart, endIndex: displayCycles.length - 1, running: true });
     }
-
     return periods;
   }
 
-  /**
-   * Mappa rast-händelser till cykelindex i per-cykel-grafen.
-   */
   private buildRastPeriodsForCycles(displayCycles: any[], rastEvents: any[]): { startIndex: number; endIndex: number }[] {
     if (!displayCycles.length || !rastEvents.length) return [];
-
     const periods: { startIndex: number; endIndex: number }[] = [];
     let rastStart: Date | null = null;
-
     for (const ev of rastEvents) {
       const d = new Date(ev.datum);
-      if (ev.rast_status == 1) {
-        rastStart = d;
-      } else if (ev.rast_status == 0 && rastStart) {
+      if (ev.rast_status == 1) { rastStart = d; }
+      else if (ev.rast_status == 0 && rastStart) {
         const startTime = rastStart.getTime();
         const endTime = d.getTime();
-
-        // Hitta cykelindex som omger rast-perioden
-        let si = -1;
-        let ei = -1;
+        let si = -1, ei = -1;
         for (let i = 0; i < displayCycles.length; i++) {
           const ct = new Date(displayCycles[i].datum).getTime();
           if (ct >= startTime && si === -1) si = Math.max(0, i - 1);
@@ -1322,9 +1345,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         rastStart = null;
       }
     }
-
     return periods;
   }
+
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
     try {
@@ -1415,7 +1438,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           scales: {
             y: {
               beginAtZero: true,
-              max: 150,
               title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
@@ -1622,9 +1644,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         scales: {
           y: {
             beginAtZero: true,
-            suggestedMax: 150,
+            suggestedMin: 0,
+            suggestedMax: Math.max(Math.max(...effData.filter(v => v > 0), 0) + 18, 115),
             title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
-            ticks: { color: '#a0a0a0' },
+            ticks: { color: '#a0a0a0', callback: (v: string | number) => v + '%' },
             grid: { color: 'rgba(255, 255, 255, 0.05)' }
           },
           x: {

@@ -99,7 +99,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   isDragging: boolean = false;
 
   // ---- Tabs ----
-  activeTab: 'overview' | 'produktion' | 'analys' = 'overview';
+  activeTab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag' = 'overview';
+
+  // ---- Avancerat (rådata) ----
+  rawCycles: any[] = [];
+  rawCyclesSorted: any[] = [];
+  rawCyclesSortCol: string = 'datum';
+  rawCyclesSortDir: 1 | -1 = 1;
+
+  // ---- PLC Diagnostik ----
+  plcDiagLoading: boolean = false;
+  plcDiagData: any = null;
+  plcDiagError: string | null = null;
+  plcDiagRefreshInterval: any = null;
 
   // ---- Timeline (dag-vy) ----
   timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped'; startTime: string; endTime: string; duration: string }[] = [];
@@ -211,6 +223,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
     clearTimeout(this.oeeTrendChartTimer);
+    clearInterval(this.plcDiagRefreshInterval);
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
@@ -557,6 +570,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   updateStatistics(data: any) {
+    this.rawCycles = data.cycles || [];
+    this.rawCyclesSorted = [...this.rawCycles].reverse();
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
@@ -759,11 +774,65 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   // Skiftrapport statistik — produktions-tab
   // =========================================================
 
-  setTab(tab: 'overview' | 'produktion' | 'analys') {
+  setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag') {
     this.activeTab = tab;
     if (tab === 'produktion' && this.skiftStatData.length === 0 && !this.skiftStatLoading) {
       this.loadSkiftrapportStatistik();
     }
+    if (tab === 'plc-diag') {
+      this.loadPlcDiagnostics();
+      clearInterval(this.plcDiagRefreshInterval);
+      this.plcDiagRefreshInterval = setInterval(() => {
+        if (this.activeTab === 'plc-diag') this.loadPlcDiagnostics();
+      }, 30000);
+    } else {
+      clearInterval(this.plcDiagRefreshInterval);
+    }
+  }
+
+  sortRawCycles(col: string) {
+    if (this.rawCyclesSortCol === col) {
+      this.rawCyclesSortDir = this.rawCyclesSortDir === 1 ? -1 : 1;
+    } else {
+      this.rawCyclesSortCol = col;
+      this.rawCyclesSortDir = col === 'datum' ? -1 : 1;
+    }
+    const dir = this.rawCyclesSortDir;
+    this.rawCyclesSorted = [...this.rawCycles].sort((a, b) => {
+      const av = a[col] ?? '';
+      const bv = b[col] ?? '';
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }
+
+  loadPlcDiagnostics() {
+    if (this.plcDiagLoading) return;
+    this.plcDiagLoading = true;
+    this.plcDiagError = null;
+    const { start, end } = this.getDateRange();
+    this.tvattlinjeService.getPlcDiagnostics(start, end).pipe(
+      timeout(20000),
+      catchError(() => {
+        this.plcDiagLoading = false;
+        this.plcDiagError = 'Kunde inte hämta PLC-diagnostik';
+        return of(null);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe((res: any) => {
+      this.plcDiagLoading = false;
+      if (res?.success) {
+        this.plcDiagData = res.data;
+      } else if (res !== null) {
+        this.plcDiagError = 'Fel vid hämtning av PLC-diagnostik';
+      }
+    });
+  }
+
+  formatDateTime(dateStr: string): string {
+    if (!dateStr) return '–';
+    const d = new Date(dateStr);
+    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
   }
 
   loadSkiftrapportStatistik() {

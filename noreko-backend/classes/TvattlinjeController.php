@@ -36,6 +36,8 @@ class TvattlinjeController {
                 $this->getOeeTrend();
             } elseif ($action === 'skiftrapport-statistik') {
                 $this->getSkiftrapportStatistik();
+            } elseif ($action === 'plc-diagnostics') {
+                $this->getPlcDiagnostics();
             } else {
                 $this->getLiveStats();
             }
@@ -1150,6 +1152,106 @@ class TvattlinjeController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    // =========================================================
+    // PLC Diagnostik — rådata och signalkvalitet för felsökning
+    // =========================================================
+
+    private function getPlcDiagnostics() {
+        $start = $_GET['start'] ?? date('Y-m-d');
+        $end   = $_GET['end']   ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+
+        $tz  = new \DateTimeZone('Europe/Stockholm');
+        $now = new \DateTime('now', $tz);
+
+        // Senaste globala PLC-signal
+        $plcLastSeen   = null;
+        $plcAgeMinutes = null;
+        try {
+            $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM tvattlinje_ibc")->fetch(\PDO::FETCH_ASSOC);
+            if ($row && $row['last_ping']) {
+                $plcLastSeen = $row['last_ping'];
+                $lastDt = new \DateTime($plcLastSeen, $tz);
+                $diff   = $now->diff($lastDt);
+                $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+            }
+        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics plcLastSeen: ' . $e->getMessage()); }
+
+        // Rådata IBC-poster för valt period
+        $latestIbc = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum, ibc_count, s_count, ibc_ok, ibc_ej_ok, omtvaatt,
+                    runtime_plc, rasttime, lopnummer, skiftraknare, op1, op2, op3,
+                    ROUND(TIMESTAMPDIFF(SECOND,
+                        LAG(datum) OVER (ORDER BY datum),
+                        datum) / 60.0, 2) as cycle_time
+                FROM tvattlinje_ibc
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                ORDER BY datum DESC
+                LIMIT 500
+            ");
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            $latestIbc = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics latestIbc: ' . $e->getMessage()); }
+
+        // On/off-händelser för valt period
+        $latestOnoff = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running, runtime_today
+                FROM tvattlinje_onoff
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                ORDER BY datum DESC
+                LIMIT 200
+            ");
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            $latestOnoff = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics latestOnoff: ' . $e->getMessage()); }
+
+        // Datakvalitet
+        $totalCount    = count($latestIbc);
+        $nullCycleCount = 0;
+        $intervals     = [];
+        $prevTs        = null;
+        foreach (array_reverse($latestIbc) as $r) {
+            $ts = strtotime($r['datum']);
+            if ($prevTs !== null) $intervals[] = round(($ts - $prevTs) / 60.0, 1);
+            $prevTs = $ts;
+            $ct = $r['cycle_time'];
+            if ($ct === null || $ct <= 0 || $ct > 30) $nullCycleCount++;
+        }
+        $avgInterval  = count($intervals) > 0 ? round(array_sum($intervals) / count($intervals), 1) : null;
+        $maxInterval  = count($intervals) > 0 ? round(max($intervals), 1) : null;
+        $minInterval  = count($intervals) > 0 ? round(min($intervals), 1) : null;
+        $gapsGt15     = count(array_filter($intervals, fn($i) => $i > 15));
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'system_status' => [
+                    'plc_last_seen'   => $plcLastSeen,
+                    'plc_age_minutes' => $plcAgeMinutes,
+                    'is_running'      => $plcAgeMinutes !== null && $plcAgeMinutes < 15,
+                    'server_time'     => $now->format('Y-m-d H:i:s'),
+                ],
+                'data_quality' => [
+                    'total_records'    => $totalCount,
+                    'null_cycle_count' => $nullCycleCount,
+                    'valid_pct'        => $totalCount > 0 ? round(($totalCount - $nullCycleCount) / $totalCount * 100, 1) : 0,
+                    'avg_interval_min' => $avgInterval,
+                    'min_interval_min' => $minInterval,
+                    'max_interval_min' => $maxInterval,
+                    'gaps_gt_15min'    => $gapsGt15,
+                ],
+                'latest_ibc'   => $latestIbc,
+                'latest_onoff' => $latestOnoff,
+            ]
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================

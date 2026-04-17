@@ -82,6 +82,12 @@
         <button [class.active]="activeTab === 'analys'" (click)="setTab('analys')">
           <i class="fas fa-chart-line"></i><span>OEE-trend</span>
         </button>
+        <button [class.active]="activeTab === 'avancerat'" (click)="setTab('avancerat')">
+          <i class="fas fa-database"></i><span>Avancerat</span>
+        </button>
+        <button [class.active]="activeTab === 'plc-diag'" (click)="setTab('plc-diag')">
+          <i class="fas fa-stethoscope"></i><span>PLC Diagnostik</span>
+        </button>
       </nav>
     </div>
   </div>
@@ -648,6 +654,283 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB: AVANCERAT (rådata / PLC-poster)
+       ================================================================ -->
+  <div *ngIf="activeTab === 'avancerat'" class="tab-content-area">
+    <div class="container-fluid py-4">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="stats-card">
+            <div class="stats-card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-database me-2"></i>Rådata — PLC-poster</h5>
+              <span class="badge bg-secondary">{{ rawCycles.length }} poster</span>
+            </div>
+
+            <div *ngIf="rawCycles.length === 0" class="text-center py-5 text-muted">
+              <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+              Ingen data för valt period. Välj ett datum med produktion.
+            </div>
+
+            <div *ngIf="rawCycles.length > 0" class="raw-data-table-wrapper">
+              <table class="table table-dark table-sm table-hover raw-data-table mb-0">
+                <thead class="raw-data-thead">
+                  <tr>
+                    <th class="raw-data-th" style="cursor:pointer" (click)="sortRawCycles('datum')">
+                      Tid <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('lopnummer')">
+                      Löp# <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('cycle_time')">
+                      Cykeltid <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('ibc_ok')">
+                      OK <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('ibc_ej_ok')">
+                      Ej OK <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('omtvaatt')">
+                      Omtvättad <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('ibc_count')">
+                      IBC# <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('s_count')">
+                      S-count <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('runtime_plc')">
+                      Runtime PLC <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('rasttime')">
+                      Rasttid <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end" style="cursor:pointer" (click)="sortRawCycles('skiftraknare')">
+                      Skift# <i class="fas fa-sort ms-1 text-muted"></i>
+                    </th>
+                    <th class="raw-data-th text-end">Op1</th>
+                    <th class="raw-data-th text-end">Op2</th>
+                    <th class="raw-data-th text-end">Op3</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of rawCyclesSorted; let i = index; trackBy: trackByIndex"
+                      [class.table-warning]="c.cycle_time == null || c.cycle_time <= 0 || c.cycle_time > 30">
+                    <td class="raw-data-td" style="white-space:nowrap">{{ formatDateTime(c.datum) }}</td>
+                    <td class="raw-data-td text-end">{{ c.lopnummer ?? '–' }}</td>
+                    <td class="raw-data-td text-end"
+                        [class.text-danger]="c.cycle_time == null || c.cycle_time <= 0 || c.cycle_time > 30"
+                        [class.text-success]="c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30">
+                      {{ c.cycle_time != null ? (c.cycle_time | number:'1.2-2') + ' min' : '–' }}
+                    </td>
+                    <td class="raw-data-td text-end text-success">{{ c.ibc_ok ?? '–' }}</td>
+                    <td class="raw-data-td text-end"
+                        [class.text-danger]="c.ibc_ej_ok > 0">{{ c.ibc_ej_ok ?? '–' }}</td>
+                    <td class="raw-data-td text-end"
+                        [class.text-warning]="c.omtvaatt > 0">{{ c.omtvaatt ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.ibc_count ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.s_count ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.runtime_plc != null ? c.runtime_plc : '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.rasttime != null ? c.rasttime : '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.skiftraknare ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.op1 ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.op2 ?? '–' }}</td>
+                    <td class="raw-data-td text-end">{{ c.op3 ?? '–' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB: PLC DIAGNOSTIK
+       ================================================================ -->
+  <div *ngIf="activeTab === 'plc-diag'" class="tab-content-area">
+    <div class="container-fluid py-4">
+
+      <!-- Toolbar -->
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <button class="btn btn-outline-primary btn-sm" (click)="loadPlcDiagnostics()" [disabled]="plcDiagLoading">
+          <i class="fas fa-sync-alt me-1" [class.fa-spin]="plcDiagLoading"></i>
+          {{ plcDiagLoading ? 'Laddar...' : 'Uppdatera' }}
+        </button>
+        <span class="text-muted small">Uppdateras automatiskt var 30:e sekund</span>
+      </div>
+
+      <div *ngIf="plcDiagError" class="alert alert-danger">{{ plcDiagError }}</div>
+
+      <div *ngIf="!plcDiagData && !plcDiagLoading && !plcDiagError" class="text-center py-5 text-muted">
+        <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>Hämtar diagnostikdata...
+      </div>
+
+      <div *ngIf="plcDiagData">
+        <div class="row g-3 mb-4">
+
+          <!-- Systemstatus -->
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="kpi-hero-card"
+                 [class.kpi-hero-green]="plcDiagData.system_status.is_running"
+                 [class.kpi-hero-red]="!plcDiagData.system_status.is_running">
+              <div class="kpi-hero-icon">
+                <i class="fas" [class.fa-circle]="plcDiagData.system_status.is_running"
+                               [class.fa-stop-circle]="!plcDiagData.system_status.is_running"></i>
+              </div>
+              <div class="kpi-hero-value">
+                {{ plcDiagData.system_status.is_running ? 'AKTIV' : 'INAKTIV' }}
+              </div>
+              <div class="kpi-hero-label">PLC-status</div>
+              <div class="kpi-hero-sub">
+                <span *ngIf="plcDiagData.system_status.plc_age_minutes != null">
+                  {{ plcDiagData.system_status.plc_age_minutes }} min sedan senaste signal
+                </span>
+                <span *ngIf="plcDiagData.system_status.plc_age_minutes == null">Ingen signal hittad</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Datakvalitet -->
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="kpi-hero-card"
+                 [class.kpi-hero-green]="plcDiagData.data_quality.valid_pct >= 90"
+                 [class.kpi-hero-yellow]="plcDiagData.data_quality.valid_pct >= 70 && plcDiagData.data_quality.valid_pct < 90"
+                 [class.kpi-hero-red]="plcDiagData.data_quality.valid_pct < 70 && plcDiagData.data_quality.total_records > 0"
+                 [class.kpi-hero-neutral]="plcDiagData.data_quality.total_records === 0">
+              <div class="kpi-hero-icon"><i class="fas fa-check-circle"></i></div>
+              <div class="kpi-hero-value">{{ plcDiagData.data_quality.valid_pct }}%</div>
+              <div class="kpi-hero-label">Giltig cykeltid</div>
+              <div class="kpi-hero-sub">
+                {{ plcDiagData.data_quality.total_records - plcDiagData.data_quality.null_cycle_count }}
+                / {{ plcDiagData.data_quality.total_records }} poster
+              </div>
+            </div>
+          </div>
+
+          <!-- Snittintervall -->
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="kpi-hero-card kpi-hero-neutral">
+              <div class="kpi-hero-icon"><i class="fas fa-clock"></i></div>
+              <div class="kpi-hero-value">
+                {{ plcDiagData.data_quality.avg_interval_min != null ? (plcDiagData.data_quality.avg_interval_min | number:'1.1-1') + ' min' : '–' }}
+              </div>
+              <div class="kpi-hero-label">Snitt signalintervall</div>
+              <div class="kpi-hero-sub">
+                Min: {{ plcDiagData.data_quality.min_interval_min ?? '–' }} |
+                Max: {{ plcDiagData.data_quality.max_interval_min ?? '–' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Luckor > 15 min -->
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="kpi-hero-card"
+                 [class.kpi-hero-red]="plcDiagData.data_quality.gaps_gt_15min > 0"
+                 [class.kpi-hero-green]="plcDiagData.data_quality.gaps_gt_15min === 0 && plcDiagData.data_quality.total_records > 0"
+                 [class.kpi-hero-neutral]="plcDiagData.data_quality.total_records === 0">
+              <div class="kpi-hero-icon"><i class="fas fa-exclamation-triangle"></i></div>
+              <div class="kpi-hero-value">{{ plcDiagData.data_quality.gaps_gt_15min }}</div>
+              <div class="kpi-hero-label">Luckor &gt; 15 min</div>
+              <div class="kpi-hero-sub">
+                {{ plcDiagData.data_quality.gaps_gt_15min === 0 ? 'Inga signalbrott' : 'Möjliga signalbrott' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Senaste IBC-signaler -->
+          <div class="col-12 col-lg-7">
+            <div class="stats-card">
+              <div class="stats-card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-broadcast-tower me-2"></i>Inkommande IBC-signaler</h6>
+                <span class="badge bg-secondary">{{ plcDiagData.latest_ibc.length }} poster</span>
+              </div>
+              <div class="raw-data-table-wrapper" style="max-height:420px;overflow-y:auto">
+                <table class="table table-dark table-sm table-hover raw-data-table mb-0">
+                  <thead class="raw-data-thead" style="position:sticky;top:0;z-index:1">
+                    <tr>
+                      <th class="raw-data-th">Tid</th>
+                      <th class="raw-data-th text-end">Löp#</th>
+                      <th class="raw-data-th text-end">Cykeltid</th>
+                      <th class="raw-data-th text-end">OK</th>
+                      <th class="raw-data-th text-end">Ej OK</th>
+                      <th class="raw-data-th text-end">Omtvättad</th>
+                      <th class="raw-data-th text-end">Runtime PLC</th>
+                      <th class="raw-data-th text-end">Rasttid</th>
+                      <th class="raw-data-th text-end">Skift#</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of plcDiagData.latest_ibc; let i = index; trackBy: trackByIndex"
+                        [class.table-warning]="r.cycle_time == null || r.cycle_time <= 0 || r.cycle_time > 30">
+                      <td class="raw-data-td" style="white-space:nowrap;font-family:monospace">{{ r.datum | slice:0:19 }}</td>
+                      <td class="raw-data-td text-end">{{ r.lopnummer ?? '–' }}</td>
+                      <td class="raw-data-td text-end"
+                          [class.text-danger]="r.cycle_time == null || r.cycle_time <= 0 || r.cycle_time > 30"
+                          [class.text-success]="r.cycle_time != null && r.cycle_time > 0 && r.cycle_time <= 30">
+                        {{ r.cycle_time != null ? (r.cycle_time | number:'1.2-2') + ' min' : '–' }}
+                      </td>
+                      <td class="raw-data-td text-end text-success">{{ r.ibc_ok ?? '–' }}</td>
+                      <td class="raw-data-td text-end" [class.text-danger]="r.ibc_ej_ok > 0">{{ r.ibc_ej_ok ?? '–' }}</td>
+                      <td class="raw-data-td text-end" [class.text-warning]="r.omtvaatt > 0">{{ r.omtvaatt ?? '–' }}</td>
+                      <td class="raw-data-td text-end">{{ r.runtime_plc ?? '–' }}</td>
+                      <td class="raw-data-td text-end">{{ r.rasttime ?? '–' }}</td>
+                      <td class="raw-data-td text-end">{{ r.skiftraknare ?? '–' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- On/Off-händelser -->
+          <div class="col-12 col-lg-5">
+            <div class="stats-card">
+              <div class="stats-card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-power-off me-2"></i>On/Off-händelser</h6>
+                <span class="badge bg-secondary">{{ plcDiagData.latest_onoff.length }}</span>
+              </div>
+              <div class="raw-data-table-wrapper" style="max-height:420px;overflow-y:auto">
+                <table class="table table-dark table-sm table-hover raw-data-table mb-0">
+                  <thead class="raw-data-thead" style="position:sticky;top:0;z-index:1">
+                    <tr>
+                      <th class="raw-data-th">Tid</th>
+                      <th class="raw-data-th text-center">Status</th>
+                      <th class="raw-data-th text-end">Runtime idag (min)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let e of plcDiagData.latest_onoff; let i = index; trackBy: trackByIndex">
+                      <td class="raw-data-td" style="font-family:monospace">{{ e.datum | slice:0:19 }}</td>
+                      <td class="raw-data-td text-center">
+                        <span class="badge" [class.bg-success]="e.running" [class.bg-danger]="!e.running">
+                          {{ e.running ? 'KÖRT' : 'STOPP' }}
+                        </span>
+                      </td>
+                      <td class="raw-data-td text-end">{{ e.runtime_today != null ? (e.runtime_today | number:'1.0-0') : '–' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div *ngIf="plcDiagData.latest_onoff.length === 0" class="text-center py-3 text-muted small">
+                  Inga on/off-händelser för valt period
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-muted small mt-3">
+          Servertid: {{ plcDiagData.system_status.server_time }} •
+          Senaste PLC: {{ plcDiagData.system_status.plc_last_seen ?? 'Okänd' }}
+        </div>
+      </div>
     </div>
   </div>
 
