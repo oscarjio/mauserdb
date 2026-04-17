@@ -125,7 +125,7 @@ class TvattlinjeController {
     private function getSettings() {
         try {
             $this->ensureSettingsTable();
-            $rows = $this->pdo->query("SELECT setting, value FROM tvattlinje_settings ORDER BY id")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $rows = $this->pdo->query("SELECT setting, value FROM tvattlinje_settings WHERE setting IS NOT NULL ORDER BY id DESC")->fetchAll(PDO::FETCH_KEY_PAIR);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('TvattlinjeController::getSettings: ' . $e->getMessage());
@@ -144,17 +144,20 @@ class TvattlinjeController {
         $allowed = ['dagmal', 'takt_mal', 'skift_start', 'skift_slut'];
         try {
             $this->ensureSettingsTable();
-            $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_settings (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP");
+            $stmtUpd = $this->pdo->prepare("UPDATE tvattlinje_settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting = ?");
+            $stmtIns = $this->pdo->prepare("INSERT INTO tvattlinje_settings (setting, value) VALUES (?, ?)");
             foreach ($allowed as $key) {
                 if (!isset($data[$key])) continue;
                 $value = trim($data[$key]);
-                // Validera tidsfält
                 if (in_array($key, ['skift_start', 'skift_slut'], true)) {
                     if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value)) continue;
                 } else {
                     $value = (string)max(0, intval($value));
                 }
-                $stmt->execute([$key, $value]);
+                $stmtUpd->execute([$value, $key]);
+                if ($stmtUpd->rowCount() === 0) {
+                    $stmtIns->execute([$key, $value]);
+                }
             }
             AuditLogger::log($this->pdo, 'update_tvattlinje_settings_v2', 'tvattlinje_settings', null,
                 json_encode(array_intersect_key($data, array_flip($allowed)), JSON_UNESCAPED_UNICODE));
@@ -511,7 +514,7 @@ class TvattlinjeController {
             $ibcTarget = 140;
             try {
                 $this->ensureSettingsTable();
-                $row = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal'")->fetch(\PDO::FETCH_ASSOC);
+                $row = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 if ($row && (int)$row['value'] > 0) {
                     $ibcTarget = (int)$row['value'];
                 } else {
