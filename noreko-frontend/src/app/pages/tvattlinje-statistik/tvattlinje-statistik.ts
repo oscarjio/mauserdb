@@ -101,6 +101,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   // ---- Tabs ----
   activeTab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag' = 'overview';
+  showDetailTable = false;
 
   // ---- Avancerat (rådata) ----
   rawCycles: any[] = [];
