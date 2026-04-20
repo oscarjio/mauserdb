@@ -16,6 +16,26 @@ interface PlcEvent {
   [key: string]: any;
 }
 
+interface Skiftrapport {
+  id: number;
+  datum: string;
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  bur_ej_ok: number;
+  totalt: number;
+  drifttid: number;
+  rasttime: number | null;
+  driftstopptime: number | null;
+  op1: number | null;
+  op2: number | null;
+  op3: number | null;
+  skiftraknare: number | null;
+  lopnummer: number | null;
+  inlagd: number;
+  created_at: string;
+  updated_at: string;
+}
+
 interface PlcDiagnostikResponse {
   success: boolean;
   data: {
@@ -29,6 +49,7 @@ interface PlcDiagnostikResponse {
     };
     date: string;
     event_count: number;
+    skiftrapporter: Skiftrapport[];
   };
 }
 
@@ -46,6 +67,8 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
 
   // Console state
   events: PlcEvent[] = [];
+  skiftrapporter: Skiftrapport[] = [];
+  showSkiftrapporter = false;
   maxId = 0;
   isPaused = false;
   autoScroll = true;
@@ -165,6 +188,9 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
         }
 
         this.stats = res.data.stats;
+        if (!incremental) {
+          this.skiftrapporter = res.data.skiftrapporter ?? [];
+        }
       });
   }
 

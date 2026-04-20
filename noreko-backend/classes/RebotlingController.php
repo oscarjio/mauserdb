@@ -3393,6 +3393,16 @@ class RebotlingController {
                 if ($eid > $maxId) $maxId = $eid;
             }
 
+            // --- rebotling_skiftrapport ---
+            $stmtSkift = $this->pdo->prepare(
+                "SELECT id, datum, ibc_ok, ibc_ej_ok, bur_ej_ok, totalt, drifttid, rasttime, driftstopptime, op1, op2, op3, skiftraknare, lopnummer, inlagd, created_at, updated_at
+                 FROM rebotling_skiftrapport
+                 WHERE datum = :date
+                 ORDER BY id ASC"
+            );
+            $stmtSkift->execute([':date' => $date]);
+            $skiftrapporter = $stmtSkift->fetchAll(\PDO::FETCH_ASSOC);
+
             // Quick stats: always show CURRENT status (today), not historical date
             $today = date('Y-m-d');
             $stmtStatus = $this->pdo->query("SELECT running, skiftraknare, datum FROM rebotling_onoff ORDER BY id DESC LIMIT 1");
@@ -3415,6 +3425,7 @@ class RebotlingController {
                     ],
                     'date' => $date,
                     'event_count' => count($events),
+                    'skiftrapporter' => $skiftrapporter,
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {

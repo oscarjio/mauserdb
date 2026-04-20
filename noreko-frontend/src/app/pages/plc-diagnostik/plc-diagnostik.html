@@ -110,4 +110,59 @@
     <span *ngIf="!isToday" class="status-history"><i class="fas fa-history me-1"></i>HISTORIK: {{ selectedDate }}</span>
     <span *ngIf="isToday && !isPaused" class="status-live"><i class="fas fa-circle me-1"></i>LIVE</span>
   </div>
+
+  <!-- Skiftrapporter -->
+  <div class="card mt-3" style="background:#2d3748;border:1px solid #4a5568;">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="cursor:pointer;background:#2d3748;border-bottom:1px solid #4a5568;padding:0.75rem 1rem;"
+         (click)="showSkiftrapporter = !showSkiftrapporter">
+      <h6 class="mb-0" style="color:#e2e8f0;">
+        <i class="fas fa-chevron-right me-2"
+           [style.transform]="showSkiftrapporter ? 'rotate(90deg)' : 'rotate(0)'"
+           style="transition:transform 0.2s ease;color:#a0aec0;"></i>
+        Skiftrapporter &mdash; {{ selectedDate }}
+        <span class="badge ms-2" style="background:#4a5568;color:#e2e8f0;">{{ skiftrapporter.length }}</span>
+      </h6>
+    </div>
+    <div *ngIf="showSkiftrapporter">
+      <div *ngIf="skiftrapporter.length === 0" class="p-3" style="color:#a0aec0;font-size:0.85rem;">
+        Inga skiftrapporter f&ouml;r {{ selectedDate }}.
+      </div>
+      <div class="table-responsive" *ngIf="skiftrapporter.length > 0">
+        <table class="table table-sm mb-0" style="color:#e2e8f0;font-size:0.82rem;">
+          <thead style="background:#1a202c;">
+            <tr>
+              <th style="color:#a0aec0;">Skift#</th>
+              <th style="color:#a0aec0;">L&ouml;pnr</th>
+              <th style="color:#a0aec0;">OK</th>
+              <th style="color:#a0aec0;">Ej OK</th>
+              <th style="color:#a0aec0;">Bur ej OK</th>
+              <th style="color:#a0aec0;">Totalt</th>
+              <th style="color:#a0aec0;">Drifttid (min)</th>
+              <th style="color:#a0aec0;">Rasttid (min)</th>
+              <th style="color:#a0aec0;">Inlagd</th>
+              <th style="color:#a0aec0;">Skapad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of skiftrapporter" style="border-bottom:1px solid #4a5568;">
+              <td>{{ r.skiftraknare ?? '—' }}</td>
+              <td>{{ r.lopnummer ?? '—' }}</td>
+              <td style="color:#68d391;">{{ r.ibc_ok }}</td>
+              <td style="color:#fc8181;">{{ r.ibc_ej_ok }}</td>
+              <td style="color:#fbd38d;">{{ r.bur_ej_ok }}</td>
+              <td>{{ r.totalt }}</td>
+              <td>{{ r.drifttid }}</td>
+              <td>{{ r.rasttime ?? '—' }}</td>
+              <td>
+                <span *ngIf="r.inlagd" style="color:#68d391;"><i class="fas fa-check"></i></span>
+                <span *ngIf="!r.inlagd" style="color:#a0aec0;">—</span>
+              </td>
+              <td style="color:#a0aec0;">{{ r.created_at | slice:0:16 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
