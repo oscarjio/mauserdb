@@ -3395,7 +3395,8 @@ class RebotlingController {
 
             // --- rebotling_skiftrapport ---
             $stmtSkift = $this->pdo->prepare(
-                "SELECT id, datum, ibc_ok, ibc_ej_ok, bur_ej_ok, totalt, drifttid, rasttime, driftstopptime, op1, op2, op3, skiftraknare, lopnummer, inlagd, created_at, updated_at
+                "SELECT id, datum, ibc_ok, ibc_ej_ok, bur_ej_ok, totalt, drifttid, rasttime, driftstopptime,
+                        op1, op2, op3, product_id, skiftraknare, lopnummer, inlagd, created_at, updated_at
                  FROM rebotling_skiftrapport
                  WHERE datum = :date
                  ORDER BY id ASC"

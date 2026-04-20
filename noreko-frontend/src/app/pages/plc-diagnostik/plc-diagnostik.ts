@@ -29,6 +29,7 @@ interface Skiftrapport {
   op1: number | null;
   op2: number | null;
   op3: number | null;
+  product_id: number | null;
   skiftraknare: number | null;
   lopnummer: number | null;
   inlagd: number;
@@ -232,6 +233,10 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
       drifttid: s.drifttid,
       rasttime: s.rasttime,
       driftstopptime: s.driftstopptime,
+      op1: s.op1,
+      op2: s.op2,
+      op3: s.op3,
+      product_id: s.product_id,
       skiftraknare: s.skiftraknare,
       lopnummer: s.lopnummer,
       inlagd: s.inlagd,
@@ -287,14 +292,24 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
     if (event['source'] === 'skiftrapport') {
       const parts: string[] = [];
       if (event['skiftraknare'] != null) parts.push(`skift=${event['skiftraknare']}`);
-      if (event['lopnummer'] != null) parts.push(`löpnr=${event['lopnummer']}`);
-      parts.push(`ok=${event['ibc_ok']}`);
-      parts.push(`ej_ok=${event['ibc_ej_ok']}`);
-      parts.push(`bur_ej_ok=${event['bur_ej_ok']}`);
+      // PLC D4000-D4002: operatörer
+      if (event['op1'] != null && event['op1'] !== 0) parts.push(`op1(D4000)=${event['op1']}`);
+      if (event['op2'] != null && event['op2'] !== 0) parts.push(`op2(D4001)=${event['op2']}`);
+      if (event['op3'] != null && event['op3'] !== 0) parts.push(`op3(D4002)=${event['op3']}`);
+      // PLC D4003: produkt
+      if (event['product_id'] != null) parts.push(`produkt(D4003)=${event['product_id']}`);
+      // PLC D4004-D4006: IBC-räknare
+      parts.push(`ok(D4004)=${event['ibc_ok']}`);
+      parts.push(`ej_ok(D4005)=${event['ibc_ej_ok']}`);
+      parts.push(`bur_ej_ok(D4006)=${event['bur_ej_ok']}`);
       parts.push(`totalt=${event['totalt']}`);
-      parts.push(`drifttid=${event['drifttid']}min`);
-      if (event['rasttime'] != null) parts.push(`rast=${event['rasttime']}min`);
-      if (event['driftstopptime'] != null) parts.push(`stopp=${event['driftstopptime']}min`);
+      // PLC D4007-D4008: tider
+      parts.push(`drifttid(D4007)=${event['drifttid']}min`);
+      if (event['rasttime'] != null) parts.push(`rast(D4008)=${event['rasttime']}min`);
+      // PLC D4009: löpnummer
+      if (event['lopnummer'] != null) parts.push(`löpnr(D4009)=${event['lopnummer']}`);
+      // PLC D4011: stopptid
+      if (event['driftstopptime'] != null && event['driftstopptime'] !== 0) parts.push(`stopp(D4011)=${event['driftstopptime']}min`);
       parts.push(`inlagd=${event['inlagd'] ? '✓' : '—'}`);
       return parts.join('  ');
     }
