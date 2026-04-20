@@ -1363,6 +1363,19 @@ class TvattlinjeController {
         $minInterval  = count($intervals) > 0 ? round(min($intervals), 1) : null;
         $gapsGt15     = count(array_filter($intervals, fn($i) => $i > 15));
 
+        // Skiftrapporter för valt period
+        $skiftrapporter = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT datum, antal_ok, antal_ej_ok, omtvaatt, totalt, kommentar, inlagd, created_at, updated_at
+                FROM tvattlinje_skiftrapport
+                WHERE datum >= :start AND datum <= :end
+                ORDER BY datum DESC
+            ");
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            $skiftrapporter = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics skiftrapporter: ' . $e->getMessage()); }
+
         echo json_encode([
             'success' => true,
             'data' => [
@@ -1381,8 +1394,9 @@ class TvattlinjeController {
                     'max_interval_min' => $maxInterval,
                     'gaps_gt_15min'    => $gapsGt15,
                 ],
-                'latest_ibc'   => $latestIbc,
-                'latest_onoff' => $latestOnoff,
+                'latest_ibc'        => $latestIbc,
+                'latest_onoff'      => $latestOnoff,
+                'skiftrapporter'    => $skiftrapporter,
             ]
         ], JSON_UNESCAPED_UNICODE);
     }
