@@ -67,8 +67,6 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
 
   // Console state
   events: PlcEvent[] = [];
-  skiftrapporter: Skiftrapport[] = [];
-  showSkiftrapporter = false;
   maxId = 0;
   isPaused = false;
   autoScroll = true;
@@ -80,6 +78,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
   showIbc = true;
   showRast = true;
   showDriftstopp = true;
+  showSkiftrapport = true;
 
   // Stats
   stats = {
@@ -171,15 +170,17 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
         this.lastFetchTime = new Date();
 
         if (incremental) {
-          // Prepend new events (they come sorted DESC, we display ASC)
           if (res.data.events.length > 0) {
             const newEvents = res.data.events.reverse();
             this.events = [...this.events, ...newEvents];
             this.shouldScrollToBottom = true;
           }
         } else {
-          // Full load — events come DESC, reverse for ASC display
-          this.events = res.data.events.reverse();
+          // Full load — merge PLC events + skiftrapporter sorted ASC by datum
+          const skiftEvents = this.skiftrapportToEvents(res.data.skiftrapporter ?? []);
+          const allEvents = [...res.data.events, ...skiftEvents];
+          allEvents.sort((a, b) => (a.datum ?? '').localeCompare(b.datum ?? ''));
+          this.events = allEvents;
           this.shouldScrollToBottom = true;
         }
 
@@ -188,9 +189,6 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
         }
 
         this.stats = res.data.stats;
-        if (!incremental) {
-          this.skiftrapporter = res.data.skiftrapporter ?? [];
-        }
       });
   }
 
@@ -221,6 +219,25 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
     this.events = [];
   }
 
+  private skiftrapportToEvents(skiftrapporter: Skiftrapport[]): PlcEvent[] {
+    return skiftrapporter.map(s => ({
+      id: s.id,
+      datum: s.created_at,
+      source: 'skiftrapport',
+      event_type: 'SKIFTRAPPORT',
+      ibc_ok: s.ibc_ok,
+      ibc_ej_ok: s.ibc_ej_ok,
+      bur_ej_ok: s.bur_ej_ok,
+      totalt: s.totalt,
+      drifttid: s.drifttid,
+      rasttime: s.rasttime,
+      driftstopptime: s.driftstopptime,
+      skiftraknare: s.skiftraknare,
+      lopnummer: s.lopnummer,
+      inlagd: s.inlagd,
+    }));
+  }
+
   get filteredEvents(): PlcEvent[] {
     return this.events.filter(e => {
       if (e.source === '_system') return true;
@@ -228,6 +245,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
       if (e.source === 'ibc' && !this.showIbc) return false;
       if (e.source === 'rast' && !this.showRast) return false;
       if (e.source === 'driftstopp' && !this.showDriftstopp) return false;
+      if (e.source === 'skiftrapport' && !this.showSkiftrapport) return false;
       return true;
     });
   }
@@ -239,6 +257,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
       case 'IBC': return 'badge-ibc';
       case 'RAST_START': case 'RAST_END': return 'badge-rast';
       case 'STOPP_START': case 'STOPP_END': return 'badge-stopp';
+      case 'SKIFTRAPPORT': return 'badge-skiftrapport';
       default: return 'badge-default';
     }
   }
@@ -252,6 +271,7 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
       case 'RAST_END': return 'RAST SLUT';
       case 'STOPP_START': return 'STOPP START';
       case 'STOPP_END': return 'STOPP SLUT';
+      case 'SKIFTRAPPORT': return 'SKIFTRAPPORT';
       default: return event.event_type;
     }
   }
@@ -264,6 +284,20 @@ export class PlcDiagnostikPage implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   formatEventData(event: PlcEvent): string {
+    if (event['source'] === 'skiftrapport') {
+      const parts: string[] = [];
+      if (event['skiftraknare'] != null) parts.push(`skift=${event['skiftraknare']}`);
+      if (event['lopnummer'] != null) parts.push(`löpnr=${event['lopnummer']}`);
+      parts.push(`ok=${event['ibc_ok']}`);
+      parts.push(`ej_ok=${event['ibc_ej_ok']}`);
+      parts.push(`bur_ej_ok=${event['bur_ej_ok']}`);
+      parts.push(`totalt=${event['totalt']}`);
+      parts.push(`drifttid=${event['drifttid']}min`);
+      if (event['rasttime'] != null) parts.push(`rast=${event['rasttime']}min`);
+      if (event['driftstopptime'] != null) parts.push(`stopp=${event['driftstopptime']}min`);
+      parts.push(`inlagd=${event['inlagd'] ? '✓' : '—'}`);
+      return parts.join('  ');
+    }
     const skip = ['id', 'datum', 'source', 'event_type'];
     const parts: string[] = [];
     for (const key of Object.keys(event)) {
