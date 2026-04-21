@@ -1,5 +1,12 @@
 # MauserDB Dev Log
 
+## 2026-04-12 — Tvättlinje-statistik: Hero KPI-cards (UI/UX agent)
+- Ersatt liten KPI-kompaktrad med fyra stora hero KPI-kort: IBC Producerade, Effektivitet %, Körtid h, Bästa Dag/Längsta Stopp
+- Varje kort har färgkodad vänsterkant + statusmärke: grön (≥85% eff), gul (60–85%), röd (<60%)
+- Dag-vy: Körtid-kortet visar utnyttjandegrad %, Stopp-kortet visar längsta stopp med grön/gul/röd status
+- Guldtema för "Bästa dag"-kortet med trophy-ikon
+- Commit 4fb9ebd4, pushat till GitHub
+
 ## 2026-04-12 — Tvättlinje feature parity (background agent)
 - Implementerat: Tab-navigation (Översikt/Skiftrapporter/OEE-trend) i tvattlinje-statistik
 - Implementerat: Timeline-bar i dagvy med running/rast/stopp-segment + detaljvy
@@ -6457,3 +6464,5 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 - 80 parallella anrop 0x >2s
 - SQL-audit 7 controllers 0 mismatches
 - Prod DB: 793 IBC OK mars 2026 matchar API-berakningar
+
+[2026-04-18] Tvattlinje-statistik: Detaljerad Statistik är nu kollapsbar (dold som standard), matchar rebotling-mönstret. Build OK. Push OK.

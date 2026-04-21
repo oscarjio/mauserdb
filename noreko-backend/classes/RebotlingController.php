@@ -220,6 +220,8 @@ class RebotlingController {
                 $this->veckotrendController->handle();
             } elseif ($action === 'plc-diagnostik') {
                 $this->getPlcDiagnostik();
+            } elseif ($action === 'operator-analys') {
+                $this->getOperatorAnalys();
             } else {
                 $this->getLiveStats();
             }
@@ -3496,6 +3498,192 @@ class RebotlingController {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Simulering misslyckades: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    private function getOperatorAnalys(): void {
+        try {
+            $aFrom = $_GET['period_a_from'] ?? date('Y-m-01', strtotime('-1 month'));
+            $aTo   = $_GET['period_a_to']   ?? date('Y-m-t', strtotime('-1 month'));
+            $bFrom = $_GET['period_b_from'] ?? date('Y-m-01');
+            $bTo   = $_GET['period_b_to']   ?? date('Y-m-d');
+
+            foreach ([$aFrom, $aTo, $bFrom, $bTo] as $d) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+            }
+
+            // Operator names
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            $dataA = $this->queryOperatorPeriodStats($aFrom, $aTo);
+            $dataB = $this->queryOperatorPeriodStats($bFrom, $bTo);
+
+            $allNums = array_unique(array_merge(array_keys($dataA), array_keys($dataB)));
+            $result = [];
+
+            foreach ($opNames as $num => $name) {
+                if (!in_array($num, $allNums)) continue;
+                $trendFrom = date('Y-m-d', strtotime($bTo . ' -12 weeks'));
+                $trend = $this->queryOperatorWeeklyTrend($num, $trendFrom, $bTo);
+                $result[] = [
+                    'number'   => $num,
+                    'name'     => $name,
+                    'period_a' => $dataA[$num] ?? null,
+                    'period_b' => $dataB[$num] ?? null,
+                    'trend'    => $trend,
+                ];
+            }
+
+            usort($result, function($a, $b) {
+                return ($b['period_b']['ibc_per_h'] ?? 0) <=> ($a['period_b']['ibc_per_h'] ?? 0);
+            });
+
+            // Global averages for period_b (for normalization reference)
+            $allIbcPerH = array_filter(array_map(fn($r) => $r['period_b']['ibc_per_h'] ?? null, $result));
+            $avgIbcPerH = count($allIbcPerH) > 0 ? round(array_sum($allIbcPerH) / count($allIbcPerH), 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'data'    => [
+                    'period_a'   => ['from' => $aFrom, 'to' => $aTo],
+                    'period_b'   => ['from' => $bFrom, 'to' => $bTo],
+                    'operatorer' => $result,
+                    'avg_ibc_per_h' => $avgIbcPerH,
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorAnalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsanalys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function queryOperatorPeriodStats(string $from, string $to): array {
+        $sql = "
+            SELECT op_nr, pos,
+                   COUNT(*)                            AS antal_skift,
+                   SUM(ibc_ok)                         AS ibc_ok,
+                   SUM(ibc_ej_ok)                      AS ibc_ej_ok,
+                   SUM(bur_ej_ok)                      AS bur_ej_ok,
+                   SUM(totalt)                         AS totalt,
+                   SUM(drifttid)                       AS drifttid_min,
+                   SUM(COALESCE(rasttime,0))            AS rasttime_min
+            FROM (
+                SELECT op1 AS op_nr, 'op1' AS pos,
+                       ibc_ok, COALESCE(ibc_ej_ok,0) AS ibc_ej_ok, COALESCE(bur_ej_ok,0) AS bur_ej_ok,
+                       COALESCE(totalt,0) AS totalt, COALESCE(drifttid,0) AS drifttid, COALESCE(rasttime,0) AS rasttime
+                FROM rebotling_skiftrapport
+                WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                UNION ALL
+                SELECT op2, 'op2',
+                       ibc_ok, COALESCE(ibc_ej_ok,0), COALESCE(bur_ej_ok,0),
+                       COALESCE(totalt,0), COALESCE(drifttid,0), COALESCE(rasttime,0)
+                FROM rebotling_skiftrapport
+                WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                UNION ALL
+                SELECT op3, 'op3',
+                       ibc_ok, COALESCE(ibc_ej_ok,0), COALESCE(bur_ej_ok,0),
+                       COALESCE(totalt,0), COALESCE(drifttid,0), COALESCE(rasttime,0)
+                FROM rebotling_skiftrapport
+                WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+            ) combined
+            GROUP BY op_nr, pos
+            HAVING antal_skift > 0
+            ORDER BY op_nr, pos
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':from1' => $from, ':to1' => $to, ':from2' => $from, ':to2' => $to, ':from3' => $from, ':to3' => $to]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $byOp = [];
+        foreach ($rows as $row) {
+            $num = (int)$row['op_nr'];
+            if (!isset($byOp[$num])) {
+                $byOp[$num] = [
+                    'antal_skift' => 0, 'ibc_ok' => 0, 'ibc_ej_ok' => 0,
+                    'bur_ej_ok' => 0, 'totalt' => 0,
+                    'drifttid_min' => 0, 'rasttime_min' => 0,
+                    'per_position' => [],
+                ];
+            }
+            $byOp[$num]['antal_skift']  += (int)$row['antal_skift'];
+            $byOp[$num]['ibc_ok']       += (int)$row['ibc_ok'];
+            $byOp[$num]['ibc_ej_ok']    += (int)$row['ibc_ej_ok'];
+            $byOp[$num]['bur_ej_ok']    += (int)$row['bur_ej_ok'];
+            $byOp[$num]['totalt']       += (int)$row['totalt'];
+            $byOp[$num]['drifttid_min'] += (int)$row['drifttid_min'];
+            $byOp[$num]['rasttime_min'] += (int)$row['rasttime_min'];
+
+            $d = (int)$row['drifttid_min'];
+            $ibc = (int)$row['ibc_ok'];
+            $byOp[$num]['per_position'][$row['pos']] = [
+                'antal_skift' => (int)$row['antal_skift'],
+                'ibc_ok'      => $ibc,
+                'drifttid_min'=> $d,
+                'ibc_per_h'   => $d > 0 ? round($ibc / ($d / 60.0), 1) : 0,
+            ];
+        }
+
+        foreach ($byOp as $num => &$op) {
+            $d = $op['drifttid_min'];
+            $r = $op['rasttime_min'];
+            $ibc = $op['ibc_ok'];
+            $tot = $op['totalt'];
+            $kass = $op['ibc_ej_ok'] + $op['bur_ej_ok'];
+            $op['ibc_per_h']          = $d > 0 ? round($ibc / ($d / 60.0), 1) : 0;
+            $op['kassation_pct']      = $tot > 0 ? round($kass / $tot * 100, 1) : 0;
+            $op['tillganglighet_pct'] = ($d + $r) > 0 ? round($d / ($d + $r) * 100, 1) : 0;
+            $op['drifttid_h']         = round($d / 60.0, 1);
+            unset($op['drifttid_min'], $op['rasttime_min']);
+        }
+        unset($op);
+
+        return $byOp;
+    }
+
+    private function queryOperatorWeeklyTrend(int $opNr, string $from, string $to): array {
+        $sql = "
+            SELECT YEARWEEK(datum, 1) AS yw,
+                   MIN(datum)         AS week_start,
+                   COUNT(*)           AS antal_skift,
+                   SUM(ibc_ok)        AS ibc_ok,
+                   SUM(drifttid)      AS drifttid_min
+            FROM (
+                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
+                WHERE op1 = :op AND datum BETWEEN :from AND :to AND drifttid > 0
+                UNION ALL
+                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
+                WHERE op2 = :op2 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                UNION ALL
+                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
+                WHERE op3 = :op3 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+            ) combined
+            GROUP BY yw
+            ORDER BY yw ASC
+            LIMIT 12
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':op' => $opNr, ':from' => $from, ':to' => $to,
+            ':op2' => $opNr, ':from2' => $from, ':to2' => $to,
+            ':op3' => $opNr, ':from3' => $from, ':to3' => $to,
+        ]);
+        return array_map(function($r) {
+            $d = (int)$r['drifttid_min'];
+            return [
+                'week'        => $r['week_start'],
+                'ibc_per_h'   => $d > 0 ? round((int)$r['ibc_ok'] / ($d / 60.0), 1) : 0,
+                'antal_skift' => (int)$r['antal_skift'],
+            ];
+        }, $stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
 }

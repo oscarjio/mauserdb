@@ -1,0 +1,143 @@
+<div class="analys-page">
+  <!-- Header -->
+  <div class="page-header">
+    <h4 class="page-title"><i class="fas fa-users me-2"></i>Operatörsanalys</h4>
+    <p class="page-subtitle">Jämför KPI per operatör över valfria perioder</p>
+  </div>
+
+  <!-- Period controls -->
+  <div class="period-controls">
+    <div class="period-group">
+      <span class="period-label period-a-label">Period A</span>
+      <input type="date" class="date-input" [(ngModel)]="periodAFrom">
+      <span class="date-sep">—</span>
+      <input type="date" class="date-input" [(ngModel)]="periodATo">
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="period-group">
+      <span class="period-label period-b-label">Period B</span>
+      <input type="date" class="date-input" [(ngModel)]="periodBFrom">
+      <span class="date-sep">—</span>
+      <input type="date" class="date-input" [(ngModel)]="periodBTo">
+    </div>
+    <button class="btn-apply" (click)="fetchData()" [disabled]="loading">
+      <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>
+      {{ loading ? 'Hämtar...' : 'Läs in' }}
+    </button>
+  </div>
+
+  <!-- Quick presets -->
+  <div class="presets">
+    <span class="preset-label">Snabbval:</span>
+    <button class="btn-preset" (click)="setPreset('7')">7 dagar</button>
+    <button class="btn-preset" (click)="setPreset('30')">30 dagar</button>
+    <button class="btn-preset" (click)="setPreset('90')">Kvartal</button>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error-msg"><i class="fas fa-exclamation-triangle me-2"></i>{{ error }}</div>
+
+  <!-- Loading skeleton -->
+  <div *ngIf="loading" class="loading-state">
+    <i class="fas fa-spinner fa-spin me-2"></i>Hämtar operatörsdata...
+  </div>
+
+  <ng-container *ngIf="!loading && operatorer.length > 0">
+
+    <!-- Ranking chart -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title"><i class="fas fa-trophy me-2 text-warning"></i>Ranking — IBC/timme</span>
+        <span class="section-sub" *ngIf="responseB">
+          Period B: {{ formatDate(responseB.from) }} — {{ formatDate(responseB.to) }}
+        </span>
+      </div>
+      <div class="ranking-chart-wrap">
+        <canvas id="rankingChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="section-header mt-3">
+      <span class="section-title"><i class="fas fa-id-card me-2"></i>Per operatör</span>
+      <span class="section-sub">Pilarna visar förändring A→B</span>
+    </div>
+    <div class="cards-grid">
+      <div class="op-card" *ngFor="let op of operatorer">
+        <!-- Card header -->
+        <div class="op-card-header">
+          <span class="op-name">{{ op.name }}</span>
+          <div class="pos-badges">
+            <span *ngFor="let pos of getPositions(op)"
+                  class="pos-badge" [ngClass]="positionBadgeClass(pos)">
+              {{ positionLabel(pos) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- KPI grid -->
+        <div class="kpi-grid">
+          <div class="kpi-item">
+            <span class="kpi-label">IBC/timme</span>
+            <span class="kpi-value">{{ op.period_b?.ibc_per_h ?? '—' }}</span>
+            <span class="kpi-delta" [ngClass]="deltaClass(op, 'ibc_per_h')"
+                  *ngIf="delta(op, 'ibc_per_h') !== null">
+              {{ deltaArrow(op, 'ibc_per_h') }}{{ delta(op, 'ibc_per_h') | number:'1.1-1' }}
+            </span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">Kassation</span>
+            <span class="kpi-value">{{ op.period_b?.kassation_pct ?? '—' }}<span class="kpi-unit">%</span></span>
+            <span class="kpi-delta" [ngClass]="deltaClass(op, 'kassation_pct')"
+                  *ngIf="delta(op, 'kassation_pct') !== null">
+              {{ deltaArrow(op, 'kassation_pct') }}{{ delta(op, 'kassation_pct') | number:'1.1-1' }}pp
+            </span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">Tillgänglighet</span>
+            <span class="kpi-value">{{ op.period_b?.tillganglighet_pct ?? '—' }}<span class="kpi-unit">%</span></span>
+            <span class="kpi-delta" [ngClass]="deltaClass(op, 'tillganglighet_pct')"
+                  *ngIf="delta(op, 'tillganglighet_pct') !== null">
+              {{ deltaArrow(op, 'tillganglighet_pct') }}{{ delta(op, 'tillganglighet_pct') | number:'1.1-1' }}pp
+            </span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-label">Skift</span>
+            <span class="kpi-value">{{ op.period_b?.antal_skift ?? '—' }}</span>
+            <span class="kpi-sub" *ngIf="op.period_a">{{ op.period_a.antal_skift }} föreg</span>
+          </div>
+        </div>
+
+        <!-- Trend sparkline -->
+        <div class="sparkline-wrap" *ngIf="op.trend?.length">
+          <span class="sparkline-label">IBC/h trend (veckovis)</span>
+          <canvas [id]="'spark-' + op.number" width="200" height="45"></canvas>
+        </div>
+
+        <!-- Position breakdown -->
+        <div class="pos-breakdown" *ngIf="getPositions(op).length > 1">
+          <span class="pos-breakdown-label">Per position (Period B):</span>
+          <div class="pos-stats">
+            <div class="pos-stat" *ngFor="let pos of getPositions(op)">
+              <span class="pos-tag" [ngClass]="positionBadgeClass(pos)">{{ positionLabel(pos) }}</span>
+              <span class="pos-val">{{ op.period_b?.per_position?.[pos]?.ibc_per_h ?? '—' }}/h</span>
+              <span class="pos-skift">{{ op.period_b?.per_position?.[pos]?.antal_skift }}skift</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Period A mini summary -->
+        <div class="period-a-row" *ngIf="op.period_a">
+          <span class="period-a-dot"></span>
+          <span class="period-a-text">Period A: {{ op.period_a.ibc_per_h }}/h · {{ op.period_a.antal_skift }} skift · {{ op.period_a.kassation_pct }}% kass</span>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && operatorer.length === 0 && !error" class="empty-state">
+    <i class="fas fa-user-slash fa-2x mb-2"></i>
+    <p>Inga operatörsdata för valda perioder.</p>
+  </div>
+</div>
