@@ -1,5 +1,28 @@
 # MauserDB Dev Log
 
+## 2026-04-22 — Operator Intelligence: Operatörspoäng + Schemaläggningsmatris (backend + frontend)
+
+### Operatörspoäng (/rebotling/operator-scores)
+- Backend: `getOperatorScores()` i RebotlingController.php — beräknar score 0-100 per operatör
+  - Prestanda (50%): operatörens IBC/h vs lagsnitt per position (ratio × 50)
+  - Konsistens (30%): låg standardavvikelse i IBC/h = pålitlig = högre poäng
+  - Trend (20%): linjär regressionssluttning på senaste 8 veckors data (50 = neutral)
+- Nivåer: Elite ≥75 (grön), Solid 50–74 (blå), Utveckling 25–49 (gul), Behöver stöd <25 (röd)
+- Frontend: badge-grid med cirkelpoäng, tier-filter, sorterbar tabell, mini-trend-sparkline per operatör
+- Route: `/rebotling/operator-scores` (adminGuard), menypost under Rebotling admin-sektion
+
+### Schemaläggningsmatris (/rebotling/operator-matcher)
+- Backend: `getOperatorMatcher()` — per operatör + position: grön (≥110% av snitt), gul (90–110%), röd (<90%)
+- Filter: 14/30/60/90 dagar, sortering per position eller bäst totalt
+- Frontend: stor färgkodad matris (desktop), compact kortvy (mobil), tooltip med exakta värden
+- Route: `/rebotling/operator-matcher` (adminGuard), menypost under Rebotling admin-sektion
+
+### Deploy
+- Build: OK (0 errors, 3 CommonJS-varningar)
+- Deploy: rsync frontend + backend till dev.mauserdb.com OK
+- Commit: 058a30fd (backend), aeee6ab2 (frontend — förra sessionen)
+- Push: OK till GitHub
+
 ## 2026-04-12 — Tvättlinje-statistik: Hero KPI-cards (UI/UX agent)
 - Ersatt liten KPI-kompaktrad med fyra stora hero KPI-kort: IBC Producerade, Effektivitet %, Körtid h, Bästa Dag/Längsta Stopp
 - Varje kort har färgkodad vänsterkant + statusmärke: grön (≥85% eff), gul (60–85%), röd (<60%)
@@ -6466,3 +6489,4 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 - Prod DB: 793 IBC OK mars 2026 matchar API-berakningar
 
 [2026-04-18] Tvattlinje-statistik: Detaljerad Statistik är nu kollapsbar (dold som standard), matchar rebotling-mönstret. Build OK. Push OK.
+[2026-04-22] operator-scores + operator-matcher | LIVE på dev | CSS, routes, menu, build OK — backend returnerar 9 operatörer med score/trend/position-data
