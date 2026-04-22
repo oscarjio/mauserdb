@@ -222,6 +222,10 @@ class RebotlingController {
                 $this->getPlcDiagnostik();
             } elseif ($action === 'operator-analys') {
                 $this->getOperatorAnalys();
+            } elseif ($action === 'operator-scores') {
+                $this->getOperatorScores();
+            } elseif ($action === 'operator-matcher') {
+                $this->getOperatorMatcher();
             } else {
                 $this->getLiveStats();
             }
@@ -3684,6 +3688,320 @@ class RebotlingController {
                 'antal_skift' => (int)$r['antal_skift'],
             ];
         }, $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    // ─── FEATURE 1: Operator Reliability Scores ───────────────────────────────
+
+    private function getOperatorScores(): void {
+        try {
+            $to   = $_GET['to']   ?? date('Y-m-d');
+            $from = $_GET['from'] ?? date('Y-m-d', strtotime($to . ' -90 days'));
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Operator names
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // Per-shift IBC/h for each operator (for stddev + trend)
+            $shiftSql = "
+                SELECT op_nr, pos, datum,
+                       ibc_ok, drifttid
+                FROM (
+                    SELECT op1 AS op_nr, 'op1' AS pos, datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    UNION ALL
+                    SELECT op2, 'op2', datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    UNION ALL
+                    SELECT op3, 'op3', datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                ) s
+                ORDER BY op_nr, datum ASC
+            ";
+            $stmtShifts = $this->pdo->prepare($shiftSql);
+            $stmtShifts->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $allShifts = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Group per-shift IBC/h values by operator
+            $opShifts = [];  // op_nr => [ibc_per_h values chronologically]
+            $opShiftsByPos = []; // op_nr => pos => [ibc_per_h values]
+            foreach ($allShifts as $row) {
+                $num = (int)$row['op_nr'];
+                $d   = (int)$row['drifttid'];
+                $val = $d > 0 ? round((int)$row['ibc_ok'] / ($d / 60.0), 2) : 0;
+                $opShifts[$num][] = $val;
+                $opShiftsByPos[$num][$row['pos']][] = $val;
+            }
+
+            // Team average IBC/h per position (for relative score)
+            $posAvgs = ['op1' => [], 'op2' => [], 'op3' => []];
+            foreach ($opShiftsByPos as $num => $positions) {
+                foreach ($positions as $pos => $vals) {
+                    $posAvgs[$pos] = array_merge($posAvgs[$pos], $vals);
+                }
+            }
+            $teamAvgPerPos = [];
+            foreach ($posAvgs as $pos => $vals) {
+                $teamAvgPerPos[$pos] = count($vals) > 0 ? array_sum($vals) / count($vals) : 0;
+            }
+
+            $results = [];
+
+            foreach ($opNames as $num => $name) {
+                if (!isset($opShifts[$num])) continue;
+                $vals = $opShifts[$num];
+                if (count($vals) < 2) continue;
+
+                // --- Component 1: IBC/h vs team average per position (50%) ---
+                $posScores = [];
+                foreach (($opShiftsByPos[$num] ?? []) as $pos => $pVals) {
+                    $teamAvg = $teamAvgPerPos[$pos] ?? 0;
+                    if ($teamAvg <= 0) continue;
+                    $opAvg = array_sum($pVals) / count($pVals);
+                    // ratio: 1.0 = at average (50 pts), 2.0 = double (100 pts), 0 = 0 pts
+                    $ratio = min($opAvg / $teamAvg, 2.0);
+                    $posScores[] = $ratio * 50.0;
+                }
+                $perfScore = count($posScores) > 0 ? array_sum($posScores) / count($posScores) : 25.0;
+
+                // --- Component 2: Consistency — low stddev (30%) ---
+                $mean = array_sum($vals) / count($vals);
+                $variance = 0;
+                foreach ($vals as $v) { $variance += ($v - $mean) ** 2; }
+                $stddev = count($vals) > 1 ? sqrt($variance / (count($vals) - 1)) : 0;
+                // stddev of 0 = 100 pts, stddev >= mean = 0 pts
+                $consistencyScore = $mean > 0 ? max(0, min(100, (1 - $stddev / max($mean, 1)) * 100)) : 0;
+
+                // --- Component 3: Improvement trend — last 8 weekly datapoints (20%) ---
+                // Bucket shifts into weeks
+                $weeklyBuckets = [];
+                foreach (array_slice($allShifts, 0) as $row) {
+                    if ((int)$row['op_nr'] !== $num) continue;
+                    $yw = date('oW', strtotime($row['datum']));
+                    $d  = (int)$row['drifttid'];
+                    if ($d <= 0) continue;
+                    if (!isset($weeklyBuckets[$yw])) $weeklyBuckets[$yw] = ['ibc' => 0, 'min' => 0];
+                    $weeklyBuckets[$yw]['ibc'] += (int)$row['ibc_ok'];
+                    $weeklyBuckets[$yw]['min'] += $d;
+                }
+                ksort($weeklyBuckets);
+                $weeklyVals = [];
+                foreach ($weeklyBuckets as $bucket) {
+                    $weeklyVals[] = $bucket['min'] > 0 ? $bucket['ibc'] / ($bucket['min'] / 60.0) : 0;
+                }
+                $weeklyVals = array_slice($weeklyVals, -8);
+                $trendScore = 50.0; // neutral
+                $n = count($weeklyVals);
+                if ($n >= 3) {
+                    // Linear regression slope
+                    $xMean = ($n - 1) / 2.0;
+                    $yMean = array_sum($weeklyVals) / $n;
+                    $num2 = 0; $den = 0;
+                    for ($i = 0; $i < $n; $i++) {
+                        $num2 += ($i - $xMean) * ($weeklyVals[$i] - $yMean);
+                        $den  += ($i - $xMean) ** 2;
+                    }
+                    $slope = $den > 0 ? $num2 / $den : 0;
+                    // Normalize: slope of +1 IBC/h/week = +25 pts above 50
+                    $trendScore = max(0, min(100, 50 + $slope * 25));
+                }
+
+                // --- Composite score ---
+                $score = round($perfScore * 0.50 + $consistencyScore * 0.30 + $trendScore * 0.20);
+
+                // Per-position average IBC/h
+                $posStats = [];
+                foreach (($opShiftsByPos[$num] ?? []) as $pos => $pVals) {
+                    $teamAvg = $teamAvgPerPos[$pos] ?? 0;
+                    $opAvg   = round(array_sum($pVals) / count($pVals), 1);
+                    $posStats[$pos] = [
+                        'ibc_per_h'   => $opAvg,
+                        'team_avg'    => round($teamAvg, 1),
+                        'antal_skift' => count($pVals),
+                        'vs_avg_pct'  => $teamAvg > 0 ? round(($opAvg / $teamAvg - 1) * 100) : 0,
+                    ];
+                }
+
+                $results[] = [
+                    'number'            => $num,
+                    'name'              => $name,
+                    'score'             => (int)$score,
+                    'perf_score'        => round($perfScore),
+                    'consistency_score' => round($consistencyScore),
+                    'trend_score'       => round($trendScore),
+                    'antal_skift'       => count($vals),
+                    'ibc_per_h_avg'     => round($mean, 1),
+                    'per_position'      => $posStats,
+                    'trend_weeks'       => $weeklyVals,
+                ];
+            }
+
+            usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'from'       => $from,
+                    'to'         => $to,
+                    'operatorer' => $results,
+                    'team_avg_per_pos' => [
+                        'op1' => round($teamAvgPerPos['op1'] ?? 0, 1),
+                        'op2' => round($teamAvgPerPos['op2'] ?? 0, 1),
+                        'op3' => round($teamAvgPerPos['op3'] ?? 0, 1),
+                    ],
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorScores: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörspoäng'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE 4: Operator Matcher (scheduling matrix) ──────────────────────
+
+    private function getOperatorMatcher(): void {
+        try {
+            $days = max(7, min(180, (int)($_GET['days'] ?? 30)));
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Operator names
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // Per-shift data per operator per position
+            $sql = "
+                SELECT op_nr, pos,
+                       COUNT(*)       AS antal_skift,
+                       SUM(ibc_ok)    AS ibc_ok,
+                       SUM(drifttid)  AS drifttid_min
+                FROM (
+                    SELECT op1 AS op_nr, 'op1' AS pos, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    UNION ALL
+                    SELECT op2, 'op2', ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    UNION ALL
+                    SELECT op3, 'op3', ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                ) s
+                GROUP BY op_nr, pos
+                HAVING antal_skift >= 1
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Collect all IBC/h per position for team averages
+            $allPosData = ['op1' => [], 'op2' => [], 'op3' => []];
+            $opPosData  = [];
+            foreach ($rows as $row) {
+                $num = (int)$row['op_nr'];
+                $pos = $row['pos'];
+                $d   = (int)$row['drifttid_min'];
+                $ibc = (int)$row['ibc_ok'];
+                $rate = $d > 0 ? $ibc / ($d / 60.0) : 0;
+                $opPosData[$num][$pos] = [
+                    'ibc_per_h'   => round($rate, 1),
+                    'antal_skift' => (int)$row['antal_skift'],
+                ];
+                $allPosData[$pos][] = $rate;
+            }
+
+            // Team averages per position
+            $teamAvg = [];
+            foreach ($allPosData as $pos => $vals) {
+                $teamAvg[$pos] = count($vals) > 0 ? array_sum($vals) / count($vals) : 0;
+            }
+
+            // Build result — for each operator, rating per position
+            $results = [];
+            foreach ($opNames as $num => $name) {
+                if (!isset($opPosData[$num])) continue;
+                $positions = [];
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    if (!isset($opPosData[$num][$pos])) {
+                        $positions[$pos] = null; // no data
+                        continue;
+                    }
+                    $rate = $opPosData[$num][$pos]['ibc_per_h'];
+                    $avg  = $teamAvg[$pos];
+                    // rating: green = top 33% (>= 110% of avg), red = bottom 33% (< 90% of avg), else yellow
+                    if ($avg > 0) {
+                        $ratio = $rate / $avg;
+                        $rating = $ratio >= 1.10 ? 'green' : ($ratio < 0.90 ? 'red' : 'yellow');
+                    } else {
+                        $rating = 'yellow';
+                    }
+                    $positions[$pos] = [
+                        'ibc_per_h'   => $rate,
+                        'antal_skift' => $opPosData[$num][$pos]['antal_skift'],
+                        'team_avg'    => round($avg, 1),
+                        'vs_avg_pct'  => $avg > 0 ? round(($rate / $avg - 1) * 100) : 0,
+                        'rating'      => $rating,
+                    ];
+                }
+                $results[] = [
+                    'number'    => $num,
+                    'name'      => $name,
+                    'positions' => $positions,
+                ];
+            }
+
+            // Sort: total green count desc
+            usort($results, function($a, $b) {
+                $ga = count(array_filter($a['positions'], fn($p) => $p && $p['rating'] === 'green'));
+                $gb = count(array_filter($b['positions'], fn($p) => $p && $p['rating'] === 'green'));
+                return $gb <=> $ga;
+            });
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'from'       => $from,
+                    'to'         => $to,
+                    'days'       => $days,
+                    'operatorer' => $results,
+                    'team_avg'   => [
+                        'op1' => round($teamAvg['op1'], 1),
+                        'op2' => round($teamAvg['op2'], 1),
+                        'op3' => round($teamAvg['op3'], 1),
+                    ],
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorMatcher: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsmatchning'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
 }
