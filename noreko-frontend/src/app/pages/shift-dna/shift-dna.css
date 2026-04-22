@@ -1,0 +1,380 @@
+.dna-page {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 1rem;
+}
+
+.header-top {
+  margin-bottom: 0.75rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Summary badges */
+.summary-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.badge-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s, transform 0.1s;
+  user-select: none;
+}
+
+.badge-pill:hover,
+.badge-pill.active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.team-avg-info {
+  margin-left: auto;
+  color: #a0aec0;
+  font-size: 0.82rem;
+}
+
+/* Filter toolbar */
+.filter-toolbar {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-select {
+  background: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  min-width: 160px;
+}
+
+.count-info {
+  color: #a0aec0;
+  font-size: 0.82rem;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #a0aec0;
+  justify-content: center;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  color: #718096;
+  padding: 3rem 1rem;
+}
+
+/* Shifts feed */
+.shifts-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shift-card {
+  background: #2d3748;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.shift-card:hover {
+  background: #364152;
+}
+
+/* Rating strip */
+.rating-strip {
+  height: 4px;
+  width: 100%;
+}
+
+/* Rating colors */
+.rating-great { background: #68d391; color: #1a202c; }
+.rating-good  { background: #63b3ed; color: #1a202c; }
+.rating-avg   { background: #718096; color: #e2e8f0; }
+.rating-weak  { background: #f6ad55; color: #1a202c; }
+.rating-poor  { background: #fc8181; color: #1a202c; }
+
+.rating-strip.rating-great { background: #68d391; }
+.rating-strip.rating-good  { background: #63b3ed; }
+.rating-strip.rating-avg   { background: #4a5568; }
+.rating-strip.rating-weak  { background: #f6ad55; }
+.rating-strip.rating-poor  { background: #fc8181; }
+
+/* Shift body */
+.shift-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  flex-wrap: wrap;
+}
+
+.shift-left {
+  min-width: 90px;
+}
+
+.shift-date {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.shift-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* Operator chips */
+.shift-ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+.op-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.op-chip small {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+/* Metrics */
+.shift-metrics {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.metric-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+}
+
+.metric-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.metric-lbl {
+  font-size: 0.65rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Rating badge */
+.shift-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.rating-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.expand-icon {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+/* Expanded details */
+.shift-details {
+  background: #1a202c;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #4a5568;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.detail-lbl {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-val {
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.detail-ts {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #a0aec0;
+}
+
+.ops-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.op-detail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #2d3748;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+.op-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Load more */
+.load-more-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.btn-load-more {
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-load-more:hover:not(:disabled) {
+  background: #4a5568;
+}
+
+.btn-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.load-info {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .dna-page {
+    padding: 0.75rem;
+  }
+
+  .shift-metrics {
+    gap: 0.5rem;
+  }
+
+  .metric-block {
+    min-width: 40px;
+  }
+
+  .shift-rating {
+    margin-left: 0;
+  }
+}

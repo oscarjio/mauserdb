@@ -226,6 +226,8 @@ class RebotlingController {
                 $this->getOperatorScores();
             } elseif ($action === 'operator-matcher') {
                 $this->getOperatorMatcher();
+            } elseif ($action === 'shift-dna') {
+                $this->getShiftDna();
             } else {
                 $this->getLiveStats();
             }
@@ -3997,6 +3999,131 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorMatcher: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsmatchning'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE 5: Shift DNA (skift-fingeravtryck flöde) ─────────────────────
+
+    private function getShiftDna(): void {
+        try {
+            $limit    = max(10, min(200, (int)($_GET['limit']    ?? 50)));
+            $offset   = max(0,          (int)($_GET['offset']   ?? 0));
+            $opFilter = isset($_GET['operator']) && $_GET['operator'] !== '' ? (int)$_GET['operator'] : 0;
+
+            // Operator names map
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // Team average IBC/h over last 90 days — baseline for relative comparison
+            $stmtAvg = $this->pdo->query("
+                SELECT AVG(ibc_ok / (drifttid / 60.0)) AS team_avg
+                FROM rebotling_skiftrapport
+                WHERE drifttid > 0 AND ibc_ok > 0
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+            ");
+            $teamAvg = (float)($stmtAvg->fetchColumn() ?? 0);
+
+            $opWhere    = $opFilter > 0 ? "AND (op1 = :op OR op2 = :op OR op3 = :op)" : '';
+            $opWhereCnt = $opFilter > 0 ? "AND (op1 = :op OR op2 = :op OR op3 = :op)" : '';
+
+            $sql = "
+                SELECT skiftraknare, datum, op1, op2, op3, product_id,
+                       ibc_ok, ibc_ej_ok, bur_ej_ok, totalt,
+                       drifttid, rasttime, driftstopptime, created_at
+                FROM rebotling_skiftrapport
+                WHERE drifttid > 0
+                $opWhere
+                ORDER BY datum DESC, skiftraknare DESC
+                LIMIT :lim OFFSET :off
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':lim', $limit,  \PDO::PARAM_INT);
+            $stmt->bindValue(':off', $offset, \PDO::PARAM_INT);
+            if ($opFilter > 0) $stmt->bindValue(':op', $opFilter, \PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $shifts = [];
+            foreach ($rows as $row) {
+                $dt  = (int)$row['drifttid'];
+                $ibc = (int)$row['ibc_ok'];
+                $ibcPerH = $dt > 0 ? round($ibc / ($dt / 60.0), 1) : 0;
+                $vsAvg   = $teamAvg > 0 ? round(($ibcPerH / $teamAvg - 1) * 100) : 0;
+
+                if ($teamAvg > 0 && $ibcPerH > 0) {
+                    $ratio  = $ibcPerH / $teamAvg;
+                    $rating = $ratio >= 1.20 ? 'great'
+                            : ($ratio >= 1.05 ? 'good'
+                            : ($ratio >= 0.90 ? 'avg'
+                            : ($ratio >= 0.70 ? 'weak'
+                            : 'poor')));
+                } else {
+                    $rating = $ibc > 0 ? 'avg' : 'poor';
+                }
+
+                $ops = [];
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $num = (int)$row[$pos];
+                    if ($num > 0) {
+                        $ops[] = [
+                            'number' => $num,
+                            'name'   => $opNames[$num] ?? "Op $num",
+                            'pos'    => $pos,
+                        ];
+                    }
+                }
+
+                $shifts[] = [
+                    'skiftraknare'   => (int)$row['skiftraknare'],
+                    'datum'          => $row['datum'],
+                    'ops'            => $ops,
+                    'product_id'     => (int)$row['product_id'],
+                    'ibc_ok'         => $ibc,
+                    'ibc_ej_ok'      => (int)$row['ibc_ej_ok'],
+                    'bur_ej_ok'      => (int)$row['bur_ej_ok'],
+                    'totalt'         => (int)$row['totalt'],
+                    'ibc_per_h'      => $ibcPerH,
+                    'vs_avg_pct'     => $vsAvg,
+                    'drifttid'       => $dt,
+                    'rasttime'       => (int)$row['rasttime'],
+                    'driftstopptime' => (int)$row['driftstopptime'],
+                    'rating'         => $rating,
+                    'created_at'     => $row['created_at'],
+                ];
+            }
+
+            // Total count for pagination
+            $countSql = "SELECT COUNT(*) FROM rebotling_skiftrapport WHERE drifttid > 0 $opWhereCnt";
+            $stmtCnt  = $this->pdo->prepare($countSql);
+            if ($opFilter > 0) $stmtCnt->bindValue(':op', $opFilter, \PDO::PARAM_INT);
+            $stmtCnt->execute();
+            $total = (int)$stmtCnt->fetchColumn();
+
+            // Operator list for filter dropdown
+            $operators = [];
+            foreach ($opNames as $num => $name) {
+                $operators[] = ['number' => $num, 'name' => $name];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'shifts'    => $shifts,
+                    'total'     => $total,
+                    'limit'     => $limit,
+                    'offset'    => $offset,
+                    'team_avg'  => round($teamAvg, 1),
+                    'operators' => $operators,
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getShiftDna: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid shift-dna'], JSON_UNESCAPED_UNICODE);
         }
     }
 

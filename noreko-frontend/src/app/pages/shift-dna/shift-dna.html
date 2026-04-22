@@ -1,0 +1,183 @@
+<div class="dna-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-top">
+      <h2 class="page-title"><i class="fas fa-dna me-2"></i>Skift-DNA</h2>
+      <p class="page-subtitle">Alla skift rankade mot teamsnitt — grön=utmärkt, blå=bra, grå=snitt, gul=svag, röd=låg</p>
+    </div>
+
+    <!-- Summary badges -->
+    <div class="summary-badges" *ngIf="shifts.length > 0">
+      <span class="badge-pill rating-great" [class.active]="filterRating === 'great'" (click)="filterRating = filterRating === 'great' ? '' : 'great'">
+        Utmärkt {{ ratingCounts()['great'] }}
+      </span>
+      <span class="badge-pill rating-good" [class.active]="filterRating === 'good'" (click)="filterRating = filterRating === 'good' ? '' : 'good'">
+        Bra {{ ratingCounts()['good'] }}
+      </span>
+      <span class="badge-pill rating-avg" [class.active]="filterRating === 'avg'" (click)="filterRating = filterRating === 'avg' ? '' : 'avg'">
+        Snitt {{ ratingCounts()['avg'] }}
+      </span>
+      <span class="badge-pill rating-weak" [class.active]="filterRating === 'weak'" (click)="filterRating = filterRating === 'weak' ? '' : 'weak'">
+        Svag {{ ratingCounts()['weak'] }}
+      </span>
+      <span class="badge-pill rating-poor" [class.active]="filterRating === 'poor'" (click)="filterRating = filterRating === 'poor' ? '' : 'poor'">
+        Låg {{ ratingCounts()['poor'] }}
+      </span>
+      <span class="team-avg-info" *ngIf="teamAvg > 0">Teamsnitt: <strong>{{ teamAvg }} IBC/h</strong></span>
+    </div>
+  </div>
+
+  <!-- Filter toolbar -->
+  <div class="filter-toolbar card-dark">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">Operatör</label>
+        <select class="filter-select" [(ngModel)]="filterOperator" (change)="fetchData()">
+          <option [ngValue]="0">Alla operatörer</option>
+          <option *ngFor="let op of allOperators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Betyg</label>
+        <select class="filter-select" [(ngModel)]="filterRating">
+          <option value="">Alla betyg</option>
+          <option value="great">Utmärkt (≥120%)</option>
+          <option value="good">Bra (105–119%)</option>
+          <option value="avg">Genomsnitt (90–104%)</option>
+          <option value="weak">Svag (70–89%)</option>
+          <option value="poor">Låg (&lt;70%)</option>
+        </select>
+      </div>
+      <div class="filter-group count-info">
+        <span *ngIf="!loading">{{ filtered.length }} skift visas</span>
+        <span *ngIf="total > 0 && !filterOperator">av {{ total }} totalt</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span>Laddar skift...</span>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-danger mt-3">{{ error }}</div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && filtered.length === 0" class="empty-state">
+    <i class="fas fa-inbox fa-2x mb-2"></i>
+    <p>Inga skift matchar filtret</p>
+  </div>
+
+  <!-- Shifts feed -->
+  <div class="shifts-feed" *ngIf="!loading && filtered.length > 0">
+    <div
+      *ngFor="let shift of filtered"
+      class="shift-card"
+      [class.is-expanded]="shift.expanded"
+      (click)="toggleExpand(shift)"
+    >
+      <!-- Left rating strip -->
+      <div class="rating-strip" [ngClass]="ratingClass(shift.rating)"></div>
+
+      <!-- Main row -->
+      <div class="shift-body">
+        <div class="shift-left">
+          <div class="shift-date">{{ shift.datum }}</div>
+          <div class="shift-num">#{{ shift.skiftraknare }}</div>
+        </div>
+
+        <div class="shift-ops">
+          <span
+            *ngFor="let op of shift.ops"
+            class="op-chip"
+            [style.background-color]="opColor(op.number)"
+          >{{ op.name }}<small> {{ posLabel(op.pos) }}</small></span>
+        </div>
+
+        <div class="shift-metrics">
+          <span class="metric-block">
+            <span class="metric-val">{{ shift.ibc_ok }}</span>
+            <span class="metric-lbl">IBC</span>
+          </span>
+          <span class="metric-block">
+            <span class="metric-val">{{ shift.ibc_per_h }}</span>
+            <span class="metric-lbl">IBC/h</span>
+          </span>
+          <span class="metric-block">
+            <span class="metric-val" [ngClass]="vsClass(shift.vs_avg_pct)">
+              {{ vsArrow(shift.vs_avg_pct) }} {{ shift.vs_avg_pct > 0 ? '+' : '' }}{{ shift.vs_avg_pct }}%
+            </span>
+            <span class="metric-lbl">vs snitt</span>
+          </span>
+          <span class="metric-block">
+            <span class="metric-val">{{ formatDuration(shift.drifttid) }}</span>
+            <span class="metric-lbl">körtid</span>
+          </span>
+        </div>
+
+        <div class="shift-rating">
+          <span class="rating-badge" [ngClass]="ratingClass(shift.rating)">{{ ratingLabel(shift.rating) }}</span>
+          <i class="fas expand-icon" [ngClass]="shift.expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </div>
+      </div>
+
+      <!-- Expanded details -->
+      <div class="shift-details" *ngIf="shift.expanded" (click)="$event.stopPropagation()">
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-lbl">Produkt-ID</span>
+            <span class="detail-val">{{ shift.product_id || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">IBC ej OK</span>
+            <span class="detail-val text-warning">{{ shift.ibc_ej_ok }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Bur ej OK</span>
+            <span class="detail-val text-warning">{{ shift.bur_ej_ok }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Totalt processade</span>
+            <span class="detail-val">{{ shift.totalt }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Körtid</span>
+            <span class="detail-val">{{ formatDuration(shift.drifttid) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Rasttid</span>
+            <span class="detail-val">{{ formatDuration(shift.rasttime) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Stopptid</span>
+            <span class="detail-val" [class.text-danger]="shift.driftstopptime > 30">{{ formatDuration(shift.driftstopptime) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-lbl">Registrerat</span>
+            <span class="detail-val detail-ts">{{ shift.created_at }}</span>
+          </div>
+        </div>
+        <div class="ops-detail">
+          <span class="detail-lbl">Operatörer:</span>
+          <span *ngFor="let op of shift.ops" class="op-detail-chip" [style.border-color]="opColor(op.number)">
+            <span class="op-dot" [style.background-color]="opColor(op.number)"></span>
+            {{ op.name }} — {{ posLabel(op.pos) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load more -->
+  <div class="load-more-row" *ngIf="!filterRating && hasMore && !loading">
+    <button class="btn-load-more" (click)="loadMore()" [disabled]="loadingMore">
+      <span *ngIf="!loadingMore"><i class="fas fa-chevron-down me-1"></i>Ladda fler skift</span>
+      <span *ngIf="loadingMore">Laddar...</span>
+    </button>
+    <span class="load-info">Visar {{ shifts.length }} av {{ total }}</span>
+  </div>
+
+</div>
