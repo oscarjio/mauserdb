@@ -1,7 +1,7 @@
 <div class="scores-page">
   <div class="page-header">
-    <h2>Operatörspoäng</h2>
-    <p class="page-subtitle">Tillförlitlighetspoäng per operatör — prestanda, konsistens och trend</p>
+    <h2>Operatörsranking — IBC/h</h2>
+    <p class="page-subtitle">Ranking baserad på godkända IBC per timme. Teamsnitt beräknas per position.</p>
   </div>
 
   <!-- Datumfilter -->
@@ -24,7 +24,7 @@
   <!-- Laddning / fel -->
   <div *ngIf="loading" class="loading-state">
     <div class="spinner"></div>
-    <span>Beräknar operatörspoäng...</span>
+    <span>Hämtar operatörsdata...</span>
   </div>
   <div *ngIf="!loading && error" class="error-state">{{ error }}</div>
 
@@ -50,37 +50,35 @@
 
     <!-- Badge-kort grid -->
     <div class="badge-grid">
-      <div *ngFor="let op of sorted" class="score-card" [class]="tierClass(op.score)">
-        <div class="score-circle" [style.background]="scoreBg(op.score)">
-          <span class="score-num">{{ op.score }}</span>
-          <span class="score-label">/ 100</span>
-        </div>
-        <div class="card-body">
+      <div *ngFor="let op of sorted" class="score-card" [class]="tierClass(op.rating)">
+        <div class="card-top">
           <div class="op-name">{{ op.name }}</div>
-          <div class="tier-badge" [class]="tierClass(op.score)">{{ tierLabel(op.score) }}</div>
-          <div class="card-kpis">
-            <div class="kpi-item">
-              <span class="kpi-val">{{ op.ibc_per_h_avg }}</span>
-              <span class="kpi-lbl">IBC/h</span>
-            </div>
-            <div class="kpi-item">
-              <span class="kpi-val">{{ op.antal_skift }}</span>
-              <span class="kpi-lbl">skift</span>
-            </div>
-          </div>
-          <!-- Trend mini-chart -->
-          <canvas *ngIf="op.trend_weeks.length > 1"
-                  [id]="'trend-' + op.number"
-                  width="140" height="40" class="trend-canvas"></canvas>
-          <!-- Position bars -->
-          <div class="pos-bars">
-            <div *ngFor="let pos of posKeys(op)" class="pos-bar-row">
-              <span class="pos-lbl">{{ posLabel(pos) }}</span>
-              <span class="pos-rate">{{ op.per_position[pos]?.ibc_per_h }}</span>
-              <span class="pos-vs" [class]="vsAvgClass(op.per_position[pos]?.vs_avg_pct ?? 0)">
-                {{ (op.per_position[pos]?.vs_avg_pct ?? 0) > 0 ? '+' : '' }}{{ op.per_position[pos]?.vs_avg_pct }}%
-              </span>
-            </div>
+          <div class="tier-badge" [class]="tierClass(op.rating)">{{ tierLabel(op.rating) }}</div>
+        </div>
+        <div class="ibc-main">
+          <span class="ibc-val">{{ op.ibc_per_h }}</span>
+          <span class="ibc-unit">IBC/h</span>
+          <span class="ibc-vs" [class]="vsAvgClass(op.vs_avg_pct)">
+            {{ op.vs_avg_pct > 0 ? '+' : '' }}{{ op.vs_avg_pct }}% vs snitt
+          </span>
+        </div>
+        <div class="card-meta">
+          <span>{{ op.antal_skift }} skift</span>
+          <span>Bäst: {{ op.best_shift }}</span>
+          <span>Sämst: {{ op.worst_shift }}</span>
+        </div>
+        <!-- Trend mini-chart -->
+        <canvas *ngIf="op.trend_weeks.length > 1"
+                [id]="'trend-' + op.number"
+                width="140" height="40" class="trend-canvas"></canvas>
+        <!-- Position breakdown -->
+        <div class="pos-bars">
+          <div *ngFor="let pos of posKeys(op)" class="pos-bar-row">
+            <span class="pos-lbl">{{ posLabel(pos) }}</span>
+            <span class="pos-rate">{{ op.per_position[pos]?.ibc_per_h }} IBC/h</span>
+            <span class="pos-vs" [class]="vsAvgClass(op.per_position[pos]?.vs_avg_pct ?? 0)">
+              {{ (op.per_position[pos]?.vs_avg_pct ?? 0) > 0 ? '+' : '' }}{{ op.per_position[pos]?.vs_avg_pct }}%
+            </span>
           </div>
         </div>
       </div>
@@ -92,15 +90,13 @@
       <table class="scores-table">
         <thead>
           <tr>
-            <th (click)="sort('score')" class="sortable">
-              Poäng <span *ngIf="sortField === 'score'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
-            </th>
+            <th>#</th>
             <th>Operatör</th>
-            <th (click)="sort('ibc_per_h_avg')" class="sortable">
-              IBC/h snitt <span *ngIf="sortField === 'ibc_per_h_avg'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
+            <th (click)="sort('ibc_per_h')" class="sortable">
+              IBC/h <span *ngIf="sortField === 'ibc_per_h'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
             </th>
-            <th (click)="sort('consistency_score')" class="sortable">
-              Konsistens <span *ngIf="sortField === 'consistency_score'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
+            <th (click)="sort('vs_avg_pct')" class="sortable">
+              vs Snitt <span *ngIf="sortField === 'vs_avg_pct'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
             </th>
             <th (click)="sort('antal_skift')" class="sortable">
               Skift <span *ngIf="sortField === 'antal_skift'">{{ sortDir === -1 ? '↓' : '↑' }}</span>
@@ -113,45 +109,45 @@
         </thead>
         <tbody>
           <tr *ngFor="let op of sorted; let i = index">
-            <td>
-              <div class="score-pill" [class]="tierClass(op.score)">{{ op.score }}</div>
-            </td>
+            <td><span class="rank">#{{ i + 1 }}</span></td>
             <td class="op-name-cell">
-              <span class="rank">#{{ i + 1 }}</span>
+              <span class="tier-dot-inline" [class]="tierClass(op.rating)"></span>
               {{ op.name }}
             </td>
-            <td>{{ op.ibc_per_h_avg }}</td>
+            <td class="ibc-cell">
+              <strong>{{ op.ibc_per_h }}</strong>
+              <small class="team-avg">/ {{ op.team_avg }}</small>
+            </td>
             <td>
-              <div class="mini-bar-wrap">
-                <div class="mini-bar" [style.width.%]="op.consistency_score" [style.background]="scoreBg(op.consistency_score)"></div>
-                <span class="mini-bar-val">{{ op.consistency_score }}</span>
-              </div>
+              <span [class]="vsAvgClass(op.vs_avg_pct)">
+                {{ op.vs_avg_pct > 0 ? '+' : '' }}{{ op.vs_avg_pct }}%
+              </span>
             </td>
             <td>{{ op.antal_skift }}</td>
             <td>
               <ng-container *ngIf="op.per_position['op1'] as p">
                 <span [class]="vsAvgClass(p.vs_avg_pct)">{{ p.ibc_per_h }}</span>
-                <small class="team-avg">(snitt {{ teamAvgPerPos.op1 }})</small>
+                <small class="team-avg">({{ teamAvgPerPos.op1 }})</small>
               </ng-container>
               <span *ngIf="!op.per_position['op1']" class="no-data">—</span>
             </td>
             <td>
               <ng-container *ngIf="op.per_position['op2'] as p">
                 <span [class]="vsAvgClass(p.vs_avg_pct)">{{ p.ibc_per_h }}</span>
-                <small class="team-avg">(snitt {{ teamAvgPerPos.op2 }})</small>
+                <small class="team-avg">({{ teamAvgPerPos.op2 }})</small>
               </ng-container>
               <span *ngIf="!op.per_position['op2']" class="no-data">—</span>
             </td>
             <td>
               <ng-container *ngIf="op.per_position['op3'] as p">
                 <span [class]="vsAvgClass(p.vs_avg_pct)">{{ p.ibc_per_h }}</span>
-                <small class="team-avg">(snitt {{ teamAvgPerPos.op3 }})</small>
+                <small class="team-avg">({{ teamAvgPerPos.op3 }})</small>
               </ng-container>
               <span *ngIf="!op.per_position['op3']" class="no-data">—</span>
             </td>
             <td>
               <canvas *ngIf="op.trend_weeks.length > 1"
-                      [id]="'trend-' + op.number"
+                      [id]="'trend-tbl-' + op.number"
                       width="80" height="28" class="trend-canvas-sm"></canvas>
               <span *ngIf="op.trend_weeks.length <= 1" class="no-data">—</span>
             </td>
@@ -160,26 +156,15 @@
       </table>
     </div>
 
-    <!-- Poängförklaring -->
+    <!-- Förklaring -->
     <div class="legend-box card-dark">
-      <div class="legend-title">Hur beräknas poängen?</div>
-      <div class="legend-row">
-        <span class="legend-w">50%</span>
-        <span>Prestanda — IBC/h vs lagsnitt per position</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-w">30%</span>
-        <span>Konsistens — låg standardavvikelse = pålitlig</span>
-      </div>
-      <div class="legend-row">
-        <span class="legend-w">20%</span>
-        <span>Trend — stigande linje senaste 8 veckor</span>
-      </div>
+      <div class="legend-title">Hur rankas operatörerna?</div>
+      <p class="legend-desc">Ranking baseras <strong>enbart på IBC/h</strong> — godkända IBCer per netto körtid per position, jämfört med teamets snitt på samma position.</p>
       <div class="tier-legend">
-        <span class="tier-dot elite"></span>Elite ≥ 75 &nbsp;
-        <span class="tier-dot solid"></span>Solid 50–74 &nbsp;
-        <span class="tier-dot developing"></span>Utveckling 25–49 &nbsp;
-        <span class="tier-dot attention"></span>Behöver stöd &lt; 25
+        <span class="tier-dot elite"></span>Elite: ≥ +15% vs snitt &nbsp;
+        <span class="tier-dot solid"></span>Solid: 0 till +15% &nbsp;
+        <span class="tier-dot developing"></span>Utveckling: −15% till 0 &nbsp;
+        <span class="tier-dot attention"></span>Behöver stöd: &lt; −15%
       </div>
     </div>
   </div>

@@ -3765,32 +3765,51 @@ class RebotlingController {
             foreach ($opNames as $num => $name) {
                 if (!isset($opShifts[$num])) continue;
                 $vals = $opShifts[$num];
-                if (count($vals) < 2) continue;
+                if (count($vals) < 1) continue;
 
-                // --- Component 1: IBC/h vs team average per position (50%) ---
-                $posScores = [];
+                // Ranking baseras enbart på IBC/h — enkelt och rättvist
+                // Viktad per position: väger ihop operatörens IBC/h relativt teamets snitt per position
+                $mean = array_sum($vals) / count($vals);
+
+                // Per-position stats
+                $posStats = [];
+                $weightedIbcSum = 0;
+                $weightedShifts = 0;
                 foreach (($opShiftsByPos[$num] ?? []) as $pos => $pVals) {
                     $teamAvg = $teamAvgPerPos[$pos] ?? 0;
-                    if ($teamAvg <= 0) continue;
-                    $opAvg = array_sum($pVals) / count($pVals);
-                    // ratio: 1.0 = at average (50 pts), 2.0 = double (100 pts), 0 = 0 pts
-                    $ratio = min($opAvg / $teamAvg, 2.0);
-                    $posScores[] = $ratio * 50.0;
+                    $opAvg   = round(array_sum($pVals) / count($pVals), 1);
+                    $posStats[$pos] = [
+                        'ibc_per_h'   => $opAvg,
+                        'team_avg'    => round($teamAvg, 1),
+                        'antal_skift' => count($pVals),
+                        'vs_avg_pct'  => $teamAvg > 0 ? round(($opAvg / $teamAvg - 1) * 100) : 0,
+                    ];
+                    $weightedIbcSum += $opAvg * count($pVals);
+                    $weightedShifts += count($pVals);
                 }
-                $perfScore = count($posScores) > 0 ? array_sum($posScores) / count($posScores) : 25.0;
 
-                // --- Component 2: Consistency — low stddev (30%) ---
-                $mean = array_sum($vals) / count($vals);
-                $variance = 0;
-                foreach ($vals as $v) { $variance += ($v - $mean) ** 2; }
-                $stddev = count($vals) > 1 ? sqrt($variance / (count($vals) - 1)) : 0;
-                // stddev of 0 = 100 pts, stddev >= mean = 0 pts
-                $consistencyScore = $mean > 0 ? max(0, min(100, (1 - $stddev / max($mean, 1)) * 100)) : 0;
+                // Totalt vägt IBC/h (tar hänsyn till att operatören jobbat olika positioner)
+                $ibc_per_h = $weightedShifts > 0 ? round($weightedIbcSum / $weightedShifts, 1) : round($mean, 1);
 
-                // --- Component 3: Improvement trend — last 8 weekly datapoints (20%) ---
-                // Bucket shifts into weeks
+                // Teamets totala snitt (alla positioner)
+                $allTeamVals = array_merge(...array_values($posAvgs));
+                $teamTotal   = count($allTeamVals) > 0 ? array_sum($allTeamVals) / count($allTeamVals) : 1;
+
+                // Ranking: IBC/h jämfört med teamet. Skala: 0–100 där 50 = exakt teamsnitt
+                // +10 IBC/h över snitt = 100p, -10 IBC/h under snitt = 0p
+                $diff  = $ibc_per_h - $teamTotal;
+                $score = max(0, min(100, round(50 + $diff * 5)));
+
+                // Tiers baserade på IBC/h vs teamsnitt
+                $vsAvgPct = $teamTotal > 0 ? round(($ibc_per_h / $teamTotal - 1) * 100) : 0;
+                $rating   = $vsAvgPct >= 15  ? 'Elite'
+                          : ($vsAvgPct >= 0   ? 'Solid'
+                          : ($vsAvgPct >= -15  ? 'Developing'
+                          : 'Needs attention'));
+
+                // Veckotrender (för sparkline i frontend)
                 $weeklyBuckets = [];
-                foreach (array_slice($allShifts, 0) as $row) {
+                foreach ($allShifts as $row) {
                     if ((int)$row['op_nr'] !== $num) continue;
                     $yw = date('oW', strtotime($row['datum']));
                     $d  = (int)$row['drifttid'];
@@ -3802,60 +3821,28 @@ class RebotlingController {
                 ksort($weeklyBuckets);
                 $weeklyVals = [];
                 foreach ($weeklyBuckets as $bucket) {
-                    $weeklyVals[] = $bucket['min'] > 0 ? $bucket['ibc'] / ($bucket['min'] / 60.0) : 0;
+                    $weeklyVals[] = $bucket['min'] > 0 ? round($bucket['ibc'] / ($bucket['min'] / 60.0), 1) : 0;
                 }
                 $weeklyVals = array_slice($weeklyVals, -8);
-                $trendScore = 50.0; // neutral
-                $n = count($weeklyVals);
-                if ($n >= 3) {
-                    // Linear regression slope
-                    $xMean = ($n - 1) / 2.0;
-                    $yMean = array_sum($weeklyVals) / $n;
-                    $num2 = 0; $den = 0;
-                    for ($i = 0; $i < $n; $i++) {
-                        $num2 += ($i - $xMean) * ($weeklyVals[$i] - $yMean);
-                        $den  += ($i - $xMean) ** 2;
-                    }
-                    $slope = $den > 0 ? $num2 / $den : 0;
-                    // Normalize: slope of +1 IBC/h/week = +25 pts above 50
-                    $trendScore = max(0, min(100, 50 + $slope * 25));
-                }
 
-                // --- Composite score ---
-                $score = round($perfScore * 0.50 + $consistencyScore * 0.30 + $trendScore * 0.20);
-
-                // Per-position average IBC/h
-                $posStats = [];
-                foreach (($opShiftsByPos[$num] ?? []) as $pos => $pVals) {
-                    $teamAvg = $teamAvgPerPos[$pos] ?? 0;
-                    $opAvg   = round(array_sum($pVals) / count($pVals), 1);
-                    $posStats[$pos] = [
-                        'ibc_per_h'   => $opAvg,
-                        'team_avg'    => round($teamAvg, 1),
-                        'antal_skift' => count($pVals),
-                        'vs_avg_pct'  => $teamAvg > 0 ? round(($opAvg / $teamAvg - 1) * 100) : 0,
-                    ];
-                }
-
-                $rating = $score >= 75 ? 'Elite' : ($score >= 50 ? 'Solid' : ($score >= 25 ? 'Developing' : 'Needs attention'));
                 $results[] = [
-                    'number'            => $num,
-                    'name'              => $name,
-                    'score'             => (int)$score,
-                    'rating'            => $rating,
-                    'perf_score'        => round($perfScore),
-                    'consistency_score' => round($consistencyScore),
-                    'trend_score'       => round($trendScore),
-                    'antal_skift'       => count($vals),
-                    'ibc_per_h_avg'     => round($mean, 1),
-                    'best_shift'        => count($vals) > 0 ? round(max($vals), 1) : 0,
-                    'worst_shift'       => count($vals) > 0 ? round(min($vals), 1) : 0,
-                    'per_position'      => $posStats,
-                    'trend_weeks'       => $weeklyVals,
+                    'number'       => $num,
+                    'name'         => $name,
+                    'ibc_per_h'    => $ibc_per_h,
+                    'team_avg'     => round($teamTotal, 1),
+                    'vs_avg_pct'   => $vsAvgPct,
+                    'score'        => (int)$score,
+                    'rating'       => $rating,
+                    'antal_skift'  => count($vals),
+                    'best_shift'   => round(max($vals), 1),
+                    'worst_shift'  => round(min($vals), 1),
+                    'per_position' => $posStats,
+                    'trend_weeks'  => $weeklyVals,
                 ];
             }
 
-            usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
+            // Sortera på IBC/h — det enda som räknas
+            usort($results, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
 
             echo json_encode([
                 'success' => true,
@@ -3979,11 +3966,16 @@ class RebotlingController {
                 ];
             }
 
-            // Sort: total green count desc
+            // Sortera på totalt vägt IBC/h — det enda som räknas
             usort($results, function($a, $b) {
-                $ga = count(array_filter($a['positions'], fn($p) => $p && $p['rating'] === 'green'));
-                $gb = count(array_filter($b['positions'], fn($p) => $p && $p['rating'] === 'green'));
-                return $gb <=> $ga;
+                $calcAvg = function($op) {
+                    $sum = 0; $n = 0;
+                    foreach ($op['positions'] as $p) {
+                        if ($p) { $sum += $p['ibc_per_h'] * $p['antal_skift']; $n += $p['antal_skift']; }
+                    }
+                    return $n > 0 ? $sum / $n : 0;
+                };
+                return $calcAvg($b) <=> $calcAvg($a);
             });
 
             echo json_encode([
