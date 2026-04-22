@@ -1,91 +1,153 @@
 #!/bin/bash
-# lead-agent.sh — Autonomous mauserdb UI improvement agent
-# Runs 6 times daily: 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
+# lead-agent.sh — Mauserdb operator-intelligence agent
+# Runs every hour. One focused worker per run to stay within ~50% of token budget.
 
 cd /home/clawd/clawd/mauserdb
 
 LOGFILE="/home/clawd/clawd/logs/mauserdb_lead_agent.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+LOCKFILE="/tmp/mauserdb_lead_agent.lock"
+
+# Prevent overlapping runs
+if [ -f "$LOCKFILE" ]; then
+    OLD_PID=$(cat "$LOCKFILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "[$TIMESTAMP] Already running (PID $OLD_PID), skipping." >> "$LOGFILE"
+        exit 0
+    fi
+fi
+echo $$ > "$LOCKFILE"
+trap "rm -f $LOCKFILE" EXIT
 
 echo "" >> "$LOGFILE"
 echo "═══════════════════════════════════════" >> "$LOGFILE"
 echo "[$TIMESTAMP] lead-agent starting" >> "$LOGFILE"
 
-DEV_LOG=$(tail -n 100 dev-log.md 2>/dev/null || echo "No dev-log.md yet")
-GIT_LOG=$(git log --oneline -20 2>/dev/null || echo "No git log")
+DEV_LOG=$(tail -n 80 dev-log.md 2>/dev/null || echo "No dev-log.md yet")
+GIT_LOG=$(git log --oneline -15 2>/dev/null || echo "No git log")
 
-PROMPT="You are a senior full-stack UI developer working autonomously on the mauserdb project at /home/clawd/clawd/mauserdb/.
+PROMPT="You are a senior full-stack developer working autonomously on the mauserdb operator-intelligence project at /home/clawd/clawd/mauserdb/.
 
-This is an Angular 20+ + PHP monitoring system for an IBC washing/rebotling facility. Operators and managers use this daily to track production.
+This is an Angular 20+ + PHP/PDO system for an IBC washing facility. Managers use it to track operators and production.
 
 ## ABSOLUTE RULES
-- NEVER touch: tvattlinje-live, rebotling-live, saglinje-live, klassificeringslinje-live
-- All passwords use bcrypt (never change auth code)
+- NEVER touch: *-live pages (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live)
+- NEVER touch noreko-plcbackend/
+- All passwords: bcrypt only
 - Never git add dist/ or .env files
-- Build ALWAYS before committing: cd noreko-frontend && npx ng build
+- Build before commit: cd noreko-frontend && npx ng build
 - Fix ALL TypeScript errors before committing (warnings OK)
-- Push to GitHub: git push origin main
-- Write to dev-log.md after every session
 - All UI text in Swedish
+- Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
+- Components: implements OnInit, OnDestroy + destroy\$ = new Subject<void>() + takeUntil(this.destroy\$) + clearInterval in ngOnDestroy
+- HTTP: timeout(5000) + catchError(() => of(null)) + isFetching guard
+- New routes: add to app.routes.ts with canActivate: [adminGuard]
+- New pages: add menu item to menu/menu.html under Rebotling admin-section (after 'Operatörsanalys' line)
+- PDO named params in UNION ALL: unique names (:from1,:from2,:from3 etc.) — PDO forbids duplicates
+- Math in Angular templates: add Math = Math; as class property
+
+## DEPLOY COMMANDS (run after build, both are required)
+Frontend: sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --delete noreko-frontend/dist/noreko-frontend/ user@mauserdb.com:/var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/ -e 'ssh -o StrictHostKeyChecking=no -p 32546'
+Backend:  sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --exclude='db_config.php' noreko-backend/ user@mauserdb.com:/var/www/mauserdb-dev/noreko-backend/ -e 'ssh -o StrictHostKeyChecking=no -p 32546'
+
+## DATABASE (rebotling)
+Table: rebotling_skiftrapport
+  datum DATE, skiftraknare INT, op1 INT, op2 INT, op3 INT, product_id INT,
+  ibc_ok INT, ibc_ej_ok INT, bur_ej_ok INT, totalt INT,
+  drifttid INT (minutes), rasttime INT, lopnummer INT, driftstopptime INT, created_at DATETIME
+Positions: op1=Tvättplats, op2=Kontrollstation, op3=Truckförare
+op1/op2/op3 = operator number → operators table (number, name, active)
+
+## ALREADY BUILT — DO NOT REBUILD
+- /rebotling/operator-analys — Period A vs B comparison (OperatorAnalysPage)
+  API: ?action=rebotling&run=operator-analys (getOperatorAnalys, queryOperatorPeriodStats, queryOperatorWeeklyTrend)
 
 ## CURRENT STATE
-### Recent dev-log:
+### dev-log (last 80 lines):
 ${DEV_LOG}
 
 ### Recent commits:
 ${GIT_LOG}
 
-## YOUR MISSION — UI/UX QUALITY
+## YOUR MISSION — OPERATOR INTELLIGENCE (pick ONE unfinished feature and build it fully)
 
-Make the production statistics and shift reports genuinely useful and visually impressive. Think: a production manager opens this dashboard and immediately understands what's happening on the floor.
+The owner wants to identify which operators perform well vs. which ones don't.
+Goal: managers should quickly see who to schedule and who deserves bonus.
 
-### Priority focus areas:
+### FEATURE BACKLOG (build in order, skip if already done):
 
-**1. tvattlinje-statistik** — Make it visually excellent:
-   - Large, clear KPI cards at the top: IBC idag, Effektivitet %, Stopptid, OEE
-   - Color-coded status: green (≥85% OEE), yellow (60-85%), red (<60%)
-   - Production trend chart: smooth line chart showing IBC/hour over the shift
-   - Stoppage breakdown: horizontal bar chart showing top stop reasons with time
-   - Shift comparison: today vs yesterday vs week average
-   - All charts should use Chart.js with the dark theme (#1a202c bg, #2d3748 cards)
+**1. /rebotling/operator-scores — Reliability Score cards**
+Backend endpoint: ?action=rebotling&run=operator-scores
+- Query last 90 days. For each operator, per-position and overall:
+  * ibc_per_h: SUM(ibc_ok)/(SUM(drifttid)/60.0)
+  * vs_team: their ibc_per_h / team_avg_ibc_per_h_at_same_position * 100 (index)
+  * consistency: compute per-shift IBC/h, then 100 - (stddev/avg*100) capped 0-100
+  * trend: slope of weekly IBC/h (last 8 weeks) normalized to -50..+50 range
+  * score: vs_team*0.5 + consistency*0.3 + (trend+50)*0.2, capped 0-100
+  * rating: Elite(≥75), Solid(50-74), Developing(25-49), NeedsAttention(<25)
+  * antal_skift, best_shift_ibc_h, worst_shift_ibc_h
+- Minimum 3 shifts to include operator. Return sorted by score desc.
+Angular page OperatorScoresPage:
+- 4 summary badges at top: count per tier
+- Cards grid (auto-fill minmax(260px,1fr)): one card per operator
+  Card: name, rating badge (green/blue/yellow/red), score number, IBC/h vs snitt arrow, konsistens%, trend arrow, skift count
+- sortBy controls: score | ibc_per_h | name
+- Colors: Elite #68d391, Solid #63b3ed, Developing #f6ad55, NeedsAttention #fc8181
 
-**2. tvattlinje-skiftrapport** — Enhance the shift report view:
-   - Clear shift summary header with large numbers
-   - Timeline visualization showing when machine was running vs stopped
-   - Downloadable PDF with professional layout (logo, date, summary table)
-   - Color indicators: ok=green, ej_ok=red, omtvätt=yellow
+**2. /rebotling/operator-matcher — Scheduling Matrix**
+Backend endpoint: ?action=rebotling&run=operator-matcher&days=30
+- For each operator, per position (op1/op2/op3):
+  * avg_ibc_per_h, antal_skift
+  * rating: 'top'(≥110% team avg), 'avg'(90-109%), 'below'(<90%), 'none'(0 shifts)
+- Return: { operators: [...sorted by name], team_avg: { op1, op2, op3 } }
+Angular page OperatorMatcherPage:
+- Days selector: 14/30/60/90
+- Matrix table: operators as rows, 3 positions as columns
+  Cells: colored chip with IBC/h and shift count. top=green, avg=blue, below=red, none=gray
+- Team average row at bottom with different style
+- Summary below: 'Bäst på Tvättplats: Ted (22.5 IBC/h)'
+- Key UX: manager picks next shift team in 30 seconds by scanning colors
 
-**3. rebotling-statistik** — Check and fix any remaining issues:
-   - Verify all charts render correctly
-   - Fix any broken endpoints or missing data
-   - Ensure the efficiency calculation is correct
+**3. /rebotling/shift-dna — Shift fingerprint feed**
+Backend endpoint: ?action=rebotling&run=shift-dna&limit=50&offset=0
+- Return last N shifts with: datum, skiftraknare, operator names (join operators table),
+  ibc_ok, ibc_per_h (=ibc_ok/(drifttid/60.0)), vs_team_avg, drifttid, product_id
+  Mark each shift: 'great'(≥120% avg), 'good'(105-119%), 'avg'(90-104%), 'weak'(70-89%), 'poor'(<70%)
+Angular page ShiftDnaPage:
+- List/feed of recent shifts, newest first
+- Each shift row shows: date, shift#, operator badges (colored by name), IBC/h, vs-avg indicator, runtime
+- Shift rating color strip on left (green/blue/gray/yellow/red)
+- Click on shift to expand: show all details including stop time, kassation
+- Filter by operator (select dropdown) and rating
 
-### Design principles:
-- Dark theme throughout: bg #1a202c, cards #2d3748, text #e2e8f0
-- Use Bootstrap 5 grid for layout
-- Big numbers for KPIs (font-size 2-3rem)
-- Subtle animations on load (CSS transitions)
-- Mobile-friendly (responsive grid)
-- Status dots/badges: 🟢🟡🔴 or Bootstrap badges
-- Charts: Chart.js with matching dark colors
-
-### Technical patterns (MUST follow):
-- Components: implements OnInit, OnDestroy + destroy$ = new Subject<void>() + takeUntil(this.destroy$)
-- HTTP: timeout(5000) + catchError + isFetching guard
-- Math in templates: add Math = Math; as class property
-- API calls: api.php?action=tvattlinje&run=<method> or api.php?action=rebotling&run=<method>
+**4. /rebotling/operator/:number — Operator Profile**
+Backend endpoint: ?action=rebotling&run=operator-profile&op=NUMBER
+- All shifts for operator (as op1, op2, or op3), last 6 months
+- Per shift: datum, pos, ibc_ok, ibc_per_h, vs_team_avg_at_pos
+- Summary: avg_ibc_h, best_shift, worst_shift, most_common_pos, attendance_days
+Angular page OperatorProfilePage with route param :number
+- Scatter chart: all shifts as dots (x=date, y=IBC/h, color=position)
+- Running average line
+- Position breakdown tabs
+- Personal bests section
+- 'Effect on team': their avg vs team avg when they work vs when they don't
 
 ## WORKFLOW
-1. Read dev-log.md — find the most impactful UI improvement not yet done
-2. Read the current state of the target component (ts + html + css)
-3. Implement the improvement
-4. Run: cd noreko-frontend && npx ng build — fix all TypeScript errors
-5. git add <specific files> && git commit -m 'feat/fix: description' && git push origin main
-6. Append to dev-log.md: what you did, what's next
+1. Read dev-log.md — find first feature from backlog NOT yet built
+2. Read DESIGN_GUIDE.md for UI rules
+3. Read noreko-backend/classes/RebotlingController.php (bottom of file for context on existing methods)
+4. Implement backend method + add routing line
+5. Create src/app/pages/<name>/<name>.ts + .html + .css
+6. Add route to app.routes.ts + menu item to menu/menu.html
+7. Build: cd noreko-frontend && npx ng build — fix all errors
+8. Deploy both frontend + backend (commands above)
+9. Test backend via PHP CLI: ssh to dev and run php include test
+10. git add <specific files> && git commit -m 'feat: ...' && git push origin main
+11. Append one line to dev-log.md: $(date +%Y-%m-%d) | FEATURE NAME | status | what's next
 
-Read DESIGN_GUIDE.md first — it is the law for all UI work. Then implement the highest-priority improvement not yet done. Focus: simple primary view, chart view-switcher (dag/vecka/månad + linje/stapel), hide details under tabs or "Visa avancerat" button. Do not add more KPI cards — simplify if anything. Build, fix errors, commit, push, update dev-log.md.
+Build ONE complete feature end-to-end. Do not stop halfway. If you hit a blocker, document it in dev-log.md and move to the next feature."
 
-echo "[$TIMESTAMP] Running Claude CLI..." >> "$LOGFILE"
+echo "[$TIMESTAMP] Running worker agent..." >> "$LOGFILE"
 
 /home/clawd/.local/bin/claude \
     --dangerously-skip-permissions \
@@ -93,4 +155,4 @@ echo "[$TIMESTAMP] Running Claude CLI..." >> "$LOGFILE"
     "$PROMPT" >> "$LOGFILE" 2>&1
 
 EXIT_CODE=$?
-echo "[$TIMESTAMP] lead-agent done (exit: $EXIT_CODE)" >> "$LOGFILE"
+echo "[$TIMESTAMP] Worker done (exit: $EXIT_CODE)" >> "$LOGFILE"

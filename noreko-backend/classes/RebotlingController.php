@@ -3837,15 +3837,19 @@ class RebotlingController {
                     ];
                 }
 
+                $rating = $score >= 75 ? 'Elite' : ($score >= 50 ? 'Solid' : ($score >= 25 ? 'Developing' : 'Needs attention'));
                 $results[] = [
                     'number'            => $num,
                     'name'              => $name,
                     'score'             => (int)$score,
+                    'rating'            => $rating,
                     'perf_score'        => round($perfScore),
                     'consistency_score' => round($consistencyScore),
                     'trend_score'       => round($trendScore),
                     'antal_skift'       => count($vals),
                     'ibc_per_h_avg'     => round($mean, 1),
+                    'best_shift'        => count($vals) > 0 ? round(max($vals), 1) : 0,
+                    'worst_shift'       => count($vals) > 0 ? round(min($vals), 1) : 0,
                     'per_position'      => $posStats,
                     'trend_weeks'       => $weeklyVals,
                 ];
