@@ -134,6 +134,8 @@ export const routes: Routes = [
       { path: 'rebotling/bonus-admin', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
       { path: 'rebotling/plc-diagnostik', canActivate: [adminGuard], loadComponent: () => import('./pages/plc-diagnostik/plc-diagnostik').then(m => m.PlcDiagnostikPage) },
       { path: 'rebotling/operator-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-analys/operator-analys').then(m => m.OperatorAnalysPage) },
+      { path: 'rebotling/operator-scores', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-scores/operator-scores').then(m => m.OperatorScoresPage) },
+      { path: 'rebotling/operator-matcher', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-matcher/operator-matcher').then(m => m.OperatorMatcherPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

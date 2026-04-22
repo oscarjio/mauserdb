@@ -1,0 +1,156 @@
+<div class="matcher-page">
+  <div class="page-header">
+    <h2>Schemaläggningsmatris</h2>
+    <p class="page-subtitle">Grön = topprestanda, gul = snitt, röd = under snitt — välj rätt operatör på rätt position</p>
+  </div>
+
+  <!-- Filter-bar -->
+  <div class="filter-bar card-dark">
+    <div class="filter-row">
+      <div class="preset-btns">
+        <button class="btn-preset" [class.active]="selectedDays === 14" (click)="selectedDays = 14; fetchData()">14 dagar</button>
+        <button class="btn-preset" [class.active]="selectedDays === 30" (click)="selectedDays = 30; fetchData()">30 dagar</button>
+        <button class="btn-preset" [class.active]="selectedDays === 60" (click)="selectedDays = 60; fetchData()">60 dagar</button>
+        <button class="btn-preset" [class.active]="selectedDays === 90" (click)="selectedDays = 90; fetchData()">90 dagar</button>
+      </div>
+      <div class="sort-btns">
+        <span class="sort-label">Sortera efter:</span>
+        <button class="btn-sort" [class.active]="sortPos === 'all'" (click)="sortPos = 'all'">Bäst totalt</button>
+        <button class="btn-sort" [class.active]="sortPos === 'op1'" (click)="sortPos = 'op1'">Tvätt</button>
+        <button class="btn-sort" [class.active]="sortPos === 'op2'" (click)="sortPos = 'op2'">Kontroll</button>
+        <button class="btn-sort" [class.active]="sortPos === 'op3'" (click)="sortPos = 'op3'">Truck</button>
+      </div>
+      <label class="filter-label">
+        <input type="checkbox" [(ngModel)]="filterActive" /> Visa bara aktiva
+      </label>
+    </div>
+    <div *ngIf="fromDate" class="period-info">
+      Period: {{ formatDate(fromDate) }} – {{ formatDate(toDate) }}
+    </div>
+  </div>
+
+  <!-- Laddning / fel -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <span>Hämtar matchningsdata...</span>
+  </div>
+  <div *ngIf="!loading && error" class="error-state">{{ error }}</div>
+
+  <!-- Lagsnitt-rad -->
+  <div *ngIf="!loading && !error && operatorer.length > 0" class="team-avg-row card-dark">
+    <span class="avg-label">Lagsnitt:</span>
+    <span class="avg-item">Tvätt <strong>{{ teamAvg.op1 }}</strong> IBC/h</span>
+    <span class="avg-item">Kontroll <strong>{{ teamAvg.op2 }}</strong> IBC/h</span>
+    <span class="avg-item">Truck <strong>{{ teamAvg.op3 }}</strong> IBC/h</span>
+    <span class="avg-item pos-green-cnt">
+      Tvätt-toppar: {{ greenCountForPos('op1') }} &nbsp; Kontroll: {{ greenCountForPos('op2') }} &nbsp; Truck: {{ greenCountForPos('op3') }}
+    </span>
+  </div>
+
+  <!-- Matrisvy -->
+  <div *ngIf="!loading && !error && operatorer.length > 0" class="matrix-wrap">
+
+    <!-- Desktop: stor tabell -->
+    <div class="table-responsive d-none d-md-block">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="op-col">Operatör</th>
+            <th class="pos-col" [class.sort-active]="sortPos === 'op1'" (click)="sortPos = 'op1'">
+              Tvättplats (op1)
+            </th>
+            <th class="pos-col" [class.sort-active]="sortPos === 'op2'" (click)="sortPos = 'op2'">
+              Kontrollstation (op2)
+            </th>
+            <th class="pos-col" [class.sort-active]="sortPos === 'op3'" (click)="sortPos = 'op3'">
+              Truckförare (op3)
+            </th>
+            <th class="summary-col">Sammanfattning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of sorted">
+            <td class="op-name">{{ op.name }}</td>
+
+            <td class="pos-cell" [class]="ratingClass(op.positions.op1)"
+                [title]="tooltipText(op.positions.op1, 'op1')">
+              <ng-container *ngIf="op.positions.op1 as p">
+                <span class="cell-dot">{{ ratingIcon(op.positions.op1) }}</span>
+                <span class="cell-val">{{ p.ibc_per_h }}</span>
+                <span class="cell-vs">{{ p.vs_avg_pct > 0 ? '+' : '' }}{{ p.vs_avg_pct }}%</span>
+                <span class="cell-skift">{{ p.antal_skift }} skift</span>
+              </ng-container>
+              <span *ngIf="!op.positions.op1" class="cell-empty-txt">—</span>
+            </td>
+
+            <td class="pos-cell" [class]="ratingClass(op.positions.op2)"
+                [title]="tooltipText(op.positions.op2, 'op2')">
+              <ng-container *ngIf="op.positions.op2 as p">
+                <span class="cell-dot">{{ ratingIcon(op.positions.op2) }}</span>
+                <span class="cell-val">{{ p.ibc_per_h }}</span>
+                <span class="cell-vs">{{ p.vs_avg_pct > 0 ? '+' : '' }}{{ p.vs_avg_pct }}%</span>
+                <span class="cell-skift">{{ p.antal_skift }} skift</span>
+              </ng-container>
+              <span *ngIf="!op.positions.op2" class="cell-empty-txt">—</span>
+            </td>
+
+            <td class="pos-cell" [class]="ratingClass(op.positions.op3)"
+                [title]="tooltipText(op.positions.op3, 'op3')">
+              <ng-container *ngIf="op.positions.op3 as p">
+                <span class="cell-dot">{{ ratingIcon(op.positions.op3) }}</span>
+                <span class="cell-val">{{ p.ibc_per_h }}</span>
+                <span class="cell-vs">{{ p.vs_avg_pct > 0 ? '+' : '' }}{{ p.vs_avg_pct }}%</span>
+                <span class="cell-skift">{{ p.antal_skift }} skift</span>
+              </ng-container>
+              <span *ngIf="!op.positions.op3" class="cell-empty-txt">—</span>
+            </td>
+
+            <td class="summary-cell">
+              <div class="dots-row">
+                <span class="dot-pill" [class]="'dot-' + (op.positions.op1?.rating ?? 'empty')" title="Tvätt">T</span>
+                <span class="dot-pill" [class]="'dot-' + (op.positions.op2?.rating ?? 'empty')" title="Kontroll">K</span>
+                <span class="dot-pill" [class]="'dot-' + (op.positions.op3?.rating ?? 'empty')" title="Truck">Tr</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobil: compact card list -->
+    <div class="d-md-none mobile-list">
+      <div *ngFor="let op of sorted" class="mobile-op-card card-dark">
+        <div class="mobile-op-name">{{ op.name }}</div>
+        <div class="mobile-pos-row">
+          <div class="mobile-pos" [class]="ratingClass(op.positions.op1)">
+            <span class="mp-label">Tvätt</span>
+            <span class="mp-val" *ngIf="op.positions.op1">{{ op.positions.op1.ibc_per_h }} IBC/h</span>
+            <span class="mp-val" *ngIf="!op.positions.op1">—</span>
+          </div>
+          <div class="mobile-pos" [class]="ratingClass(op.positions.op2)">
+            <span class="mp-label">Kontroll</span>
+            <span class="mp-val" *ngIf="op.positions.op2">{{ op.positions.op2.ibc_per_h }} IBC/h</span>
+            <span class="mp-val" *ngIf="!op.positions.op2">—</span>
+          </div>
+          <div class="mobile-pos" [class]="ratingClass(op.positions.op3)">
+            <span class="mp-label">Truck</span>
+            <span class="mp-val" *ngIf="op.positions.op3">{{ op.positions.op3.ibc_per_h }} IBC/h</span>
+            <span class="mp-val" *ngIf="!op.positions.op3">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Förklaring -->
+    <div class="legend-row-bar card-dark">
+      <span class="leg-item green"><span class="leg-dot"></span>≥ 110% av snitt (topprestanda)</span>
+      <span class="leg-item yellow"><span class="leg-dot"></span>90–110% av snitt</span>
+      <span class="leg-item red"><span class="leg-dot"></span>&lt; 90% av snitt</span>
+      <span class="leg-item empty"><span class="leg-dot"></span>Ingen data denna period</span>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error && operatorer.length === 0" class="empty-state">
+    Ingen data hittades.
+  </div>
+</div>

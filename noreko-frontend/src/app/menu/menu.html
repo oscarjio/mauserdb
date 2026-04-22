@@ -33,6 +33,8 @@
           <li *ngIf="ff.canAccess('rebotling/bonus-admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus-admin"><i class="fas fa-sliders-h me-2"></i>Bonus Admin</a></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/plc-diagnostik"><i class="fas fa-terminal me-2"></i>PLC Diagnostik</a></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/operator-analys"><i class="fas fa-users me-2"></i>Operatörsanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/operator-scores"><i class="fas fa-star me-2"></i>Operatörspoäng</a></li>
+          <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/operator-matcher"><i class="fas fa-th me-2"></i>Schemaläggningsmatris</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Alla funktioner</li>
           <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-muted"></i>Topplista (live)</a></li>
