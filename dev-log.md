@@ -6490,3 +6490,4 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 
 [2026-04-18] Tvattlinje-statistik: Detaljerad Statistik är nu kollapsbar (dold som standard), matchar rebotling-mönstret. Build OK. Push OK.
 [2026-04-22] operator-scores + operator-matcher | LIVE på dev | CSS, routes, menu, build OK — backend returnerar 9 operatörer med score/trend/position-data
+2026-04-22 | operator-scores | deployed | Ranking baseras nu enbart på IBC/h vs teamsnitt per position. Tier-gränser: Elite ≥+15%, Solid 0-+15%, Developing -15-0%, Behöver stöd <-15%. Score/konsistens/trend borttagna.
