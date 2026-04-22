@@ -228,6 +228,8 @@ class RebotlingController {
                 $this->getOperatorMatcher();
             } elseif ($action === 'shift-dna') {
                 $this->getShiftDna();
+            } elseif ($action === 'operator-profile') {
+                $this->getOperatorProfile();
             } else {
                 $this->getLiveStats();
             }
@@ -4124,6 +4126,180 @@ class RebotlingController {
             error_log('RebotlingController::getShiftDna: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid shift-dna'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorProfile(): void
+    {
+        try {
+            $opNumber = (int)($_GET['op'] ?? 0);
+            if ($opNumber <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $from = date('Y-m-d', strtotime('-6 months'));
+            $to   = date('Y-m-d');
+
+            // Operator info
+            $stmtOp = $this->pdo->prepare("SELECT number, name FROM operators WHERE number = :num");
+            $stmtOp->execute([':num' => $opNumber]);
+            $opRow = $stmtOp->fetch(\PDO::FETCH_ASSOC);
+            if (!$opRow) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // All shifts for this operator in period
+            $stmtShifts = $this->pdo->prepare("
+                SELECT skiftraknare, datum, op1, op2, op3,
+                       ibc_ok, drifttid, driftstopptime
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from1 AND :to1
+                  AND drifttid > 0
+                  AND (op1 = :op1 OR op2 = :op2 OR op3 = :op3)
+                ORDER BY datum ASC, skiftraknare ASC
+            ");
+            $stmtShifts->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':op1' => $opNumber, ':op2' => $opNumber, ':op3' => $opNumber,
+            ]);
+            $opRows = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team data for position averages and "effect on team"
+            $stmtTeam = $this->pdo->prepare("
+                SELECT datum, skiftraknare, op1, op2, op3, ibc_ok, drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from2 AND :to2
+                  AND drifttid > 0
+                ORDER BY datum ASC
+            ");
+            $stmtTeam->execute([':from2' => $from, ':to2' => $to]);
+            $teamRows = $stmtTeam->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute team avg per position
+            $posVals = ['op1' => [], 'op2' => [], 'op3' => []];
+            foreach ($teamRows as $tr) {
+                $dt = (int)$tr['drifttid'];
+                if ($dt <= 0) continue;
+                $ibcH = (int)$tr['ibc_ok'] / ($dt / 60.0);
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    if ((int)$tr[$pos] > 0) $posVals[$pos][] = $ibcH;
+                }
+            }
+            $teamAvg = [];
+            foreach ($posVals as $pos => $vals) {
+                $teamAvg[$pos] = count($vals) > 0 ? array_sum($vals) / count($vals) : 0;
+            }
+
+            // Process operator's shifts
+            $shifts      = [];
+            $posShiftVals = ['op1' => [], 'op2' => [], 'op3' => []];
+            $opDates     = [];
+
+            foreach ($opRows as $row) {
+                $dt  = (int)$row['drifttid'];
+                $ibc = (int)$row['ibc_ok'];
+                if ($dt <= 0) continue;
+                $ibcH = round($ibc / ($dt / 60.0), 1);
+
+                $pos = null;
+                if ((int)$row['op1'] === $opNumber) $pos = 'op1';
+                elseif ((int)$row['op2'] === $opNumber) $pos = 'op2';
+                elseif ((int)$row['op3'] === $opNumber) $pos = 'op3';
+                if (!$pos) continue;
+
+                $tAvg  = $teamAvg[$pos] ?? 0;
+                $vsAvg = $tAvg > 0 ? (int)round(($ibcH / $tAvg - 1) * 100) : 0;
+
+                $shifts[]           = [
+                    'skiftraknare'   => (int)$row['skiftraknare'],
+                    'datum'          => $row['datum'],
+                    'pos'            => $pos,
+                    'ibc_ok'         => $ibc,
+                    'ibc_per_h'      => $ibcH,
+                    'vs_team_avg'    => $vsAvg,
+                    'drifttid'       => $dt,
+                    'driftstopptime' => (int)$row['driftstopptime'],
+                ];
+                $posShiftVals[$pos][] = $ibcH;
+                $opDates[$row['datum']] = true;
+            }
+
+            $opDates = array_keys($opDates);
+
+            // Summary stats
+            $allIbcH  = array_column($shifts, 'ibc_per_h');
+            $avgIbcH  = count($allIbcH) > 0 ? round(array_sum($allIbcH) / count($allIbcH), 1) : 0;
+            $bestShift  = count($allIbcH) > 0 ? round(max($allIbcH), 1) : 0;
+            $worstShift = count($allIbcH) > 0 ? round(min($allIbcH), 1) : 0;
+
+            $posCounts = array_map('count', $posShiftVals);
+            arsort($posCounts);
+            $mostCommonPos = (string)key($posCounts) ?? 'op1';
+
+            // Position breakdown
+            $posBreakdown = [];
+            foreach (['op1', 'op2', 'op3'] as $pos) {
+                $vals = $posShiftVals[$pos];
+                if (count($vals) === 0) {
+                    $posBreakdown[$pos] = null;
+                    continue;
+                }
+                $posBreakdown[$pos] = [
+                    'antal_skift'   => count($vals),
+                    'avg_ibc_per_h' => round(array_sum($vals) / count($vals), 1),
+                    'best'          => round(max($vals), 1),
+                    'worst'         => round(min($vals), 1),
+                    'team_avg'      => round($teamAvg[$pos], 1),
+                ];
+            }
+
+            // Effect on team: team avg IBC/h on days operator worked vs did not
+            $withOp    = [];
+            $withoutOp = [];
+            foreach ($teamRows as $tr) {
+                $dt = (int)$tr['drifttid'];
+                if ($dt <= 0) continue;
+                $ibcH = (int)$tr['ibc_ok'] / ($dt / 60.0);
+                if (in_array($tr['datum'], $opDates)) {
+                    $withOp[] = $ibcH;
+                } else {
+                    $withoutOp[] = $ibcH;
+                }
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'operator' => ['number' => (int)$opRow['number'], 'name' => $opRow['name']],
+                    'period'   => ['from' => $from, 'to' => $to],
+                    'summary'  => [
+                        'antal_skift'     => count($shifts),
+                        'attendance_days' => count($opDates),
+                        'avg_ibc_per_h'   => $avgIbcH,
+                        'best_shift'      => $bestShift,
+                        'worst_shift'     => $worstShift,
+                        'most_common_pos' => $mostCommonPos,
+                    ],
+                    'shifts'           => $shifts,
+                    'pos_breakdown'    => $posBreakdown,
+                    'team_avg_per_pos' => array_map(fn($v) => round($v, 1), $teamAvg),
+                    'effect_on_team'   => [
+                        'team_avg_with_op'    => count($withOp)    > 0 ? round(array_sum($withOp)    / count($withOp), 1)    : 0,
+                        'team_avg_without_op' => count($withoutOp) > 0 ? round(array_sum($withoutOp) / count($withoutOp), 1) : 0,
+                        'shift_count_with'    => count($withOp),
+                        'shift_count_without' => count($withoutOp),
+                    ],
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorProfile: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsprofil'], JSON_UNESCAPED_UNICODE);
         }
     }
 

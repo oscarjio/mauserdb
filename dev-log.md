@@ -6491,3 +6491,5 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 [2026-04-18] Tvattlinje-statistik: Detaljerad Statistik är nu kollapsbar (dold som standard), matchar rebotling-mönstret. Build OK. Push OK.
 [2026-04-22] operator-scores + operator-matcher | LIVE på dev | CSS, routes, menu, build OK — backend returnerar 9 operatörer med score/trend/position-data
 2026-04-22 | operator-scores | deployed | Ranking baseras nu enbart på IBC/h vs teamsnitt per position. Tier-gränser: Elite ≥+15%, Solid 0-+15%, Developing -15-0%, Behöver stöd <-15%. Score/konsistens/trend borttagna.
+2026-04-22 | shift-dna | deployed | Skift-fingeravtryck flöde: IBC/h vs teamsnitt (90d), betyg great/good/avg/weak/poor, klickbar expand-detalj, operator+betyg-filter, paginering med append. Nästa: operator-profile (/rebotling/operator/:number)
+2026-04-22 | operator-profile | deployed | Operatörsprofil (/rebotling/operator/:number): scatter-diagram IBC/h per skift (6 månader, färg per position), positionsuppdelning med skiftlista, teameffekt-jämförelse. Nås via "Visa profil →"-länk på operator-scores-kort.

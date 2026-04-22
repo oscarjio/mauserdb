@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
@@ -44,7 +45,7 @@ interface ApiResponse {
 @Component({
   standalone: true,
   selector: 'app-operator-scores',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './operator-scores.html',
   styleUrl: './operator-scores.css'
 })

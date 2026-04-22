@@ -1,0 +1,152 @@
+<div class="profile-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <button class="btn-back" (click)="goBack()">← Tillbaka</button>
+    <div class="header-info">
+      <h2 *ngIf="opName">{{ opName }}</h2>
+      <h2 *ngIf="!opName && !loading">Operatörsprofil</h2>
+      <p *ngIf="period" class="period-label">{{ period.from }} – {{ period.to }}</p>
+    </div>
+  </div>
+
+  <!-- Laddning / fel -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <span>Hämtar profildata...</span>
+  </div>
+  <div *ngIf="!loading && error" class="error-state">{{ error }}</div>
+
+  <!-- Innehåll -->
+  <ng-container *ngIf="!loading && !error && summary">
+
+    <!-- Sammanfattningskort -->
+    <div class="summary-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ summary.antal_skift }}</div>
+        <div class="stat-label">Skift</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ summary.attendance_days }}</div>
+        <div class="stat-label">Dagsnärvaro</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-value">{{ summary.avg_ibc_per_h }}</div>
+        <div class="stat-label">Snitt IBC/h</div>
+      </div>
+      <div class="stat-card best">
+        <div class="stat-value">{{ summary.best_shift }}</div>
+        <div class="stat-label">Bästa skift</div>
+      </div>
+      <div class="stat-card worst">
+        <div class="stat-value">{{ summary.worst_shift }}</div>
+        <div class="stat-label">Sämsta skift</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ posLabels[summary.most_common_pos] }}</div>
+        <div class="stat-label">Vanligaste position</div>
+      </div>
+    </div>
+
+    <!-- Scatter-diagram -->
+    <div class="card-dark chart-section">
+      <div class="section-title">Skifthistorik — IBC/h per skift</div>
+      <div class="chart-wrap">
+        <canvas id="scatterChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Positionsuppdelning -->
+    <div class="section-title">Positionsuppdelning</div>
+    <div class="pos-tabs">
+      <button *ngFor="let pos of ['op1','op2','op3']"
+              class="pos-tab"
+              [class.active]="activeTab === pos"
+              [style.borderColor]="posHasData(pos) ? posColors[pos] : 'transparent'"
+              [class.disabled]="!posHasData(pos)"
+              (click)="posHasData(pos) && setActiveTab(pos)">
+        <span class="pos-dot" [style.background]="posColors[pos]"></span>
+        {{ posLabels[pos] }}
+        <span *ngIf="posHasData(pos)" class="pos-cnt">{{ getPosBreakdown(pos)?.antal_skift }} skift</span>
+        <span *ngIf="!posHasData(pos)" class="pos-none">Ingen data</span>
+      </button>
+    </div>
+
+    <div class="card-dark pos-detail" *ngIf="posHasData(activeTab)">
+      <div class="pos-stats-row">
+        <div class="pos-stat">
+          <span class="ps-val">{{ getPosBreakdown(activeTab)?.avg_ibc_per_h }}</span>
+          <span class="ps-lbl">Snitt IBC/h</span>
+        </div>
+        <div class="pos-stat">
+          <span class="ps-val text-muted">{{ getPosBreakdown(activeTab)?.team_avg }}</span>
+          <span class="ps-lbl">Teamsnitt</span>
+        </div>
+        <div class="pos-stat">
+          <span class="ps-val best-val">{{ getPosBreakdown(activeTab)?.best }}</span>
+          <span class="ps-lbl">Bästa skift</span>
+        </div>
+        <div class="pos-stat">
+          <span class="ps-val worst-val">{{ getPosBreakdown(activeTab)?.worst }}</span>
+          <span class="ps-lbl">Sämsta skift</span>
+        </div>
+        <div class="pos-stat">
+          <span class="ps-val">{{ getPosBreakdown(activeTab)?.antal_skift }}</span>
+          <span class="ps-lbl">Antal skift</span>
+        </div>
+      </div>
+
+      <!-- Skiftlista för vald position -->
+      <div class="shift-list">
+        <table class="shift-table" *ngIf="shiftsForTab().length > 0">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Skift#</th>
+              <th>IBC/h</th>
+              <th>vs Snitt</th>
+              <th>Drifttid</th>
+              <th>Stopp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of shiftsForTab()">
+              <td>{{ s.datum }}</td>
+              <td>{{ s.skiftraknare }}</td>
+              <td><strong>{{ s.ibc_per_h }}</strong></td>
+              <td [class]="vsAvgClass(s.vs_team_avg)">
+                {{ s.vs_team_avg > 0 ? '+' : '' }}{{ s.vs_team_avg }}%
+              </td>
+              <td>{{ formatMinutes(s.drifttid) }}</td>
+              <td>{{ s.driftstopptime > 0 ? formatMinutes(s.driftstopptime) : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="shiftsForTab().length === 0" class="no-data">Inga skift för denna position.</p>
+      </div>
+    </div>
+
+    <!-- Teameffekt -->
+    <div class="card-dark effect-section" *ngIf="effectOnTeam">
+      <div class="section-title">Teameffekt</div>
+      <p class="effect-desc">Jämförelse av teamets snitt-IBC/h på dagar {{ opName || 'operatören' }} jobbade vs inte jobbade.</p>
+      <div class="effect-row">
+        <div class="effect-block with-op">
+          <div class="eff-val">{{ effectOnTeam.team_avg_with_op }}</div>
+          <div class="eff-lbl">IBC/h när {{ opName || 'op.' }} jobbar</div>
+          <div class="eff-cnt">{{ effectOnTeam.shift_count_with }} skift</div>
+        </div>
+        <div class="effect-diff" [class.positive]="effectDiff() >= 0" [class.negative]="effectDiff() < 0">
+          {{ effectDiff() > 0 ? '+' : '' }}{{ effectDiff() }}
+        </div>
+        <div class="effect-block without-op">
+          <div class="eff-val">{{ effectOnTeam.team_avg_without_op }}</div>
+          <div class="eff-lbl">IBC/h när {{ opName || 'op.' }} inte jobbar</div>
+          <div class="eff-cnt">{{ effectOnTeam.shift_count_without }} skift</div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
