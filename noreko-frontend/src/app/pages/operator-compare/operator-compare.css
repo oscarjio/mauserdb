@@ -1,0 +1,64 @@
+.card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+.card-header {
+  background: #1a202c;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+.form-select, .form-control {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+.form-select:focus { border-color: #63b3ed; box-shadow: none; }
+
+.select-a { border-left: 3px solid #63b3ed !important; }
+.select-b { border-left: 3px solid #f6ad55 !important; }
+
+/* VS banner */
+.vs-banner { border: 1px solid #4a5568; }
+.op-name { font-size: 1.4rem; font-weight: 700; }
+.text-a  { color: #63b3ed; }
+.text-b  { color: #f6ad55; }
+.vs-text { font-size: 2rem; font-weight: 800; color: #718096; }
+
+/* Tier badges */
+.badge-elite      { background: #276749; color: #68d391; }
+.badge-solid      { background: #2b4c7e; color: #63b3ed; }
+.badge-developing { background: #7b4a00; color: #f6ad55; }
+.badge-support    { background: #742a2a; color: #fc8181; }
+
+/* Metric cards */
+.metric-card { border-left: 3px solid #4a5568; }
+.metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #718096; font-weight: 600; }
+.metric-row { display: flex; flex-direction: column; gap: 6px; }
+.metric-op { display: flex; align-items: center; gap: 8px; }
+.metric-team { font-size: 0.75rem; }
+.metric-winner strong { color: #68d391; }
+.crown { color: #ffd700; font-size: 0.9rem; }
+
+/* Name chips */
+.name-chip {
+  font-size: 0.7rem;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chip-a { background: rgba(99,179,237,0.18); color: #63b3ed; }
+.chip-b { background: rgba(246,173,85,0.18); color: #f6ad55; }
+
+/* Position table */
+.table-dark { background: #2d3748; }
+.table-dark th { background: #1a202c; border-color: #4a5568; color: #a0aec0; font-size: 0.78rem; }
+.table-dark td { border-color: #4a5568; font-size: 0.88rem; }
+.text-a-col { color: #63b3ed; }
+.text-b-col { color: #f6ad55; }
+.winner-cell { background: rgba(104,211,145,0.1); }
+
+/* Recommendation */
+.recommendation-card { border-left: 3px solid #f6ad55; }
+.recommendation-card .card-body p { color: #e2e8f0; line-height: 1.6; }

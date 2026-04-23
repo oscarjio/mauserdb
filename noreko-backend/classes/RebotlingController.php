@@ -240,6 +240,8 @@ class RebotlingController {
                 $this->getOperatorPerformanceMap();
             } elseif ($action === 'operator-aktivitet') {
                 $this->getOperatorAktivitet();
+            } elseif ($action === 'operator-compare') {
+                $this->getOperatorCompare();
             } else {
                 $this->getLiveStats();
             }
@@ -5092,6 +5094,234 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorAktivitet: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsaktivitet'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE 11: Operator Head-to-Head Comparison ────────────────────────
+
+    private function getOperatorCompare(): void
+    {
+        try {
+            $opA  = (int)($_GET['op_a'] ?? 0);
+            $opB  = (int)($_GET['op_b'] ?? 0);
+            $days = max(14, min(365, (int)($_GET['days'] ?? 90)));
+
+            $to     = date('Y-m-d');
+            $from   = date('Y-m-d', strtotime("-{$days} days"));
+            $from6m = date('Y-m-d', strtotime('-6 months'));
+
+            // Operator list (always returned for the dropdowns)
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opRows  = $stmtOps->fetchAll(\PDO::FETCH_ASSOC);
+            $opNames = [];
+            foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
+
+            if ($opA <= 0 || $opB <= 0 || $opA === $opB) {
+                echo json_encode(['success' => true, 'operators' => $opRows, 'op_a' => null, 'op_b' => null], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Main period: unique shifts via GROUP BY skiftraknare
+            $stmt = $this->pdo->prepare("
+                SELECT skiftraknare, datum,
+                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(ibc_ej_ok) AS ibc_ej_ok,
+                       MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                GROUP BY skiftraknare
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // 6-month window for monthly trend charts
+            $stmt6m = $this->pdo->prepare("
+                SELECT skiftraknare, datum,
+                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from6m AND :to6m AND drifttid > 0
+                GROUP BY skiftraknare
+                ORDER BY datum ASC
+            ");
+            $stmt6m->execute([':from6m' => $from6m, ':to6m' => $to]);
+            $shifts6m = $stmt6m->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team averages (main period)
+            $tPosIbc = ['op1' => 0, 'op2' => 0, 'op3' => 0];
+            $tPosMin = ['op1' => 0, 'op2' => 0, 'op3' => 0];
+            $tIbc = 0; $tMin = 0;
+            foreach ($allShifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']); $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+                $tIbc += $ibc; $tMin += $min;
+                foreach (['op1', 'op2', 'op3'] as $p) {
+                    if ((int)$s[$p] > 0) { $tPosIbc[$p] += $ibc; $tPosMin[$p] += $min; }
+                }
+            }
+            $teamAvgPerPos = [];
+            foreach (['op1', 'op2', 'op3'] as $p) {
+                $teamAvgPerPos[$p] = $tPosMin[$p] > 0 ? round($tPosIbc[$p] / ($tPosMin[$p] / 60.0), 1) : 0;
+            }
+            $teamAvgIbcH = $tMin > 0 ? round($tIbc / ($tMin / 60.0), 1) : 0;
+
+            // Build stats for a single operator from shift data
+            $buildStats = function (int $opNum, array $shifts, array $teamAvgPerPos, float $teamAvgIbcH, int $days): ?array {
+                $totIbc = 0; $totMin = 0; $totKas = 0; $totTot = 0;
+                $perShiftH = [];
+                $posIbc = []; $posMin = []; $posCount = [];
+                $weekData = []; $activeDates = [];
+
+                foreach ($shifts as $s) {
+                    $ibc = max(0, (int)$s['ibc_ok']); $min = max(0, (int)$s['drifttid']);
+                    if ($min === 0) continue;
+                    foreach (['op1', 'op2', 'op3'] as $p) {
+                        if ((int)$s[$p] !== $opNum) continue;
+                        $ibcH = $ibc / ($min / 60.0);
+                        $totIbc += $ibc; $totMin += $min;
+                        $totKas += max(0, (int)($s['ibc_ej_ok'] ?? 0));
+                        $totTot += $ibc + max(0, (int)($s['ibc_ej_ok'] ?? 0));
+                        $perShiftH[] = $ibcH;
+                        $posIbc[$p]   = ($posIbc[$p]   ?? 0) + $ibc;
+                        $posMin[$p]   = ($posMin[$p]   ?? 0) + $min;
+                        $posCount[$p] = ($posCount[$p] ?? 0) + 1;
+                        $activeDates[$s['datum']] = true;
+                        $wk = date('oW', strtotime($s['datum']));
+                        $weekData[$wk]['ibc'] = ($weekData[$wk]['ibc'] ?? 0) + $ibc;
+                        $weekData[$wk]['min'] = ($weekData[$wk]['min'] ?? 0) + $min;
+                    }
+                }
+
+                if (count($perShiftH) < 1) return null;
+
+                $ibcPerH = $totMin > 0 ? round($totIbc / ($totMin / 60.0), 1) : 0;
+                $vsTeam  = $teamAvgIbcH > 0 ? round(($ibcPerH / $teamAvgIbcH - 1) * 100, 1) : 0;
+                $tier    = $vsTeam >= 15 ? 'Elite' : ($vsTeam >= 0 ? 'Solid' : ($vsTeam >= -15 ? 'Developing' : 'Behöver stöd'));
+
+                // Consistency via coefficient of variation
+                $mean = array_sum($perShiftH) / count($perShiftH);
+                $var  = 0;
+                foreach ($perShiftH as $v) $var += ($v - $mean) ** 2;
+                $stddev = count($perShiftH) > 1 ? sqrt($var / count($perShiftH)) : 0;
+                $cv     = $mean > 0 ? $stddev / $mean : 0;
+                $consistency = (int)round(max(0, min(100, (1 - $cv) * 100)));
+
+                // Trend: first-half vs second-half weekly IBC/h
+                ksort($weekData);
+                $weekVals = [];
+                foreach ($weekData as $b) {
+                    if ($b['min'] > 0) $weekVals[] = round($b['ibc'] / ($b['min'] / 60.0), 1);
+                }
+                $nw = count($weekVals);
+                $avgFirst = $avgSecond = 0;
+                if ($nw >= 2) {
+                    $half = (int)ceil($nw / 2);
+                    $fh = array_slice($weekVals, 0, $half); $sh = array_slice($weekVals, $half);
+                    $avgFirst  = $half > 0 ? array_sum($fh) / $half : 0;
+                    $avgSecond = count($sh) > 0 ? array_sum($sh) / count($sh) : 0;
+                }
+                $trendSlope = $avgFirst > 0 ? round(($avgSecond - $avgFirst) / $avgFirst * 100, 1) : 0;
+                $trendDir   = $trendSlope >= 5 ? 'okar' : ($trendSlope <= -5 ? 'minskar' : 'stabil');
+
+                // Per-position breakdown
+                $posBreakdown = [];
+                foreach (['op1', 'op2', 'op3'] as $p) {
+                    if (empty($posCount[$p])) { $posBreakdown[$p] = null; continue; }
+                    $pIbcH = $posMin[$p] > 0 ? round($posIbc[$p] / ($posMin[$p] / 60.0), 1) : 0;
+                    $tAvg  = $teamAvgPerPos[$p] ?? 0;
+                    $posBreakdown[$p] = [
+                        'ibc_per_h'   => $pIbcH,
+                        'team_avg'    => round($tAvg, 1),
+                        'antal_skift' => $posCount[$p],
+                        'vs_avg_pct'  => $tAvg > 0 ? round(($pIbcH / $tAvg - 1) * 100, 1) : 0,
+                    ];
+                }
+
+                // Radar scores (all 0–100)
+                $totalShifts   = count($perShiftH);
+                $shiftsPerWeek = max(1.0, $days / 7.0);
+                $narvaro       = (int)round(min(100, $totalShifts / $shiftsPerWeek * 20)); // 5/week = 100
+
+                return [
+                    'ibc_per_h'       => $ibcPerH,
+                    'vs_team_pct'     => $vsTeam,
+                    'tier'            => $tier,
+                    'total_shifts'    => $totalShifts,
+                    'active_days'     => count($activeDates),
+                    'consistency'     => $consistency,
+                    'trend_direction' => $trendDir,
+                    'trend_slope'     => $trendSlope,
+                    'best_shift'      => round(max($perShiftH), 1),
+                    'worst_shift'     => round(min($perShiftH), 1),
+                    'kassation_pct'   => $totTot > 0 ? round($totKas / $totTot * 100, 1) : null,
+                    'per_position'    => $posBreakdown,
+                    'weekly_vals'     => array_slice($weekVals, -12),
+                    'radar'           => [
+                        'fart'       => (int)round(max(0, min(100, 50 + $vsTeam))),
+                        'konsistens' => $consistency,
+                        'trend'      => (int)round(max(0, min(100, 50 + $trendSlope))),
+                        'narvaro'    => $narvaro,
+                    ],
+                ];
+            };
+
+            // Build monthly IBC/h series (6 months) for trend chart
+            $buildMonthly = function (int $opNum, array $shifts): array {
+                $byMonth = [];
+                foreach ($shifts as $s) {
+                    $ibc = max(0, (int)$s['ibc_ok']); $min = max(0, (int)$s['drifttid']);
+                    if ($min === 0) continue;
+                    foreach (['op1', 'op2', 'op3'] as $p) {
+                        if ((int)$s[$p] !== $opNum) continue;
+                        $m = substr($s['datum'], 0, 7);
+                        $byMonth[$m]['ibc']   = ($byMonth[$m]['ibc']   ?? 0) + $ibc;
+                        $byMonth[$m]['min']   = ($byMonth[$m]['min']   ?? 0) + $min;
+                        $byMonth[$m]['count'] = ($byMonth[$m]['count'] ?? 0) + 1;
+                    }
+                }
+                ksort($byMonth);
+                $result = [];
+                foreach ($byMonth as $m => $d) {
+                    $result[] = [
+                        'month'     => $m,
+                        'ibc_per_h' => $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 1) : 0,
+                        'shifts'    => $d['count'],
+                    ];
+                }
+                return $result;
+            };
+
+            $statsA = $buildStats($opA, $allShifts, $teamAvgPerPos, $teamAvgIbcH, $days);
+            $statsB = $buildStats($opB, $allShifts, $teamAvgPerPos, $teamAvgIbcH, $days);
+
+            if ($statsA) {
+                $statsA['name']    = $opNames[$opA] ?? "Op $opA";
+                $statsA['number']  = $opA;
+                $statsA['monthly'] = $buildMonthly($opA, $shifts6m);
+            }
+            if ($statsB) {
+                $statsB['name']    = $opNames[$opB] ?? "Op $opB";
+                $statsB['number']  = $opB;
+                $statsB['monthly'] = $buildMonthly($opB, $shifts6m);
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'operators'        => $opRows,
+                'op_a'             => $statsA,
+                'op_b'             => $statsB,
+                'team_avg_ibc_h'   => $teamAvgIbcH,
+                'team_avg_per_pos' => $teamAvgPerPos,
+                'days'             => $days,
+                'from'             => $from,
+                'to'               => $to,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorCompare: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsjämförelse'], JSON_UNESCAPED_UNICODE);
         }
     }
 
