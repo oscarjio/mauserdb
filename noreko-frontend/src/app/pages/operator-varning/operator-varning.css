@@ -1,0 +1,198 @@
+.varning-page {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.page-header { border-bottom: 1px solid #2d3748; padding-bottom: 1rem; }
+.page-title  { color: #e2e8f0; font-size: 1.5rem; font-weight: 700; margin: 0; }
+.page-sub    { color: #718096; font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+/* Summary badges */
+.summary-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: #2d3748;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 1;
+  min-width: 130px;
+}
+.badge-btn:hover { filter: brightness(1.15); }
+.badge-btn.active { border-color: currentColor; }
+
+.badge-red    { color: #fc8181; }
+.badge-orange { color: #f6ad55; }
+.badge-gray   { color: #a0aec0; }
+.badge-green  { color: #68d391; }
+
+.badge-num {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.badge-lbl {
+  font-size: 0.8rem;
+  text-align: left;
+  color: #e2e8f0;
+  line-height: 1.3;
+}
+.badge-lbl small { color: #718096; }
+
+/* No-alerts card */
+.no-alerts-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  color: #e2e8f0;
+}
+
+/* Operator list */
+.operator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.op-card {
+  display: flex;
+  background: #2d3748;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.color-strip { width: 6px; flex-shrink: 0; }
+.card-red    .color-strip { background: #fc8181; }
+.card-orange .color-strip { background: #f6ad55; }
+.card-gray   .color-strip { background: #4a5568; }
+.card-green  .color-strip { background: #68d391; }
+
+.card-body-inner {
+  padding: 0.85rem 1rem;
+  flex: 1;
+}
+
+.op-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.op-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-right: 0.5rem;
+}
+
+.kategori-pill {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.pill-red    { background: rgba(252,129,129,0.2); color: #fc8181; }
+.pill-orange { background: rgba(246,173,85,0.2);  color: #f6ad55; }
+.pill-gray   { background: rgba(74,85,104,0.4);   color: #a0aec0; }
+.pill-green  { background: rgba(104,211,145,0.2); color: #68d391; }
+
+.profile-link {
+  font-size: 0.8rem;
+  color: #63b3ed;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.profile-link:hover { text-decoration: underline; }
+
+/* IBC comparison bar */
+.ibc-comparison { display: flex; flex-direction: column; gap: 0.35rem; }
+.ibc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ibc-label {
+  font-size: 0.7rem;
+  color: #718096;
+  width: 90px;
+  flex-shrink: 0;
+}
+.ibc-bar-wrap {
+  flex: 1;
+  background: #1a202c;
+  border-radius: 3px;
+  height: 8px;
+  overflow: hidden;
+}
+.ibc-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.recent-bar   { background: #63b3ed; }
+.baseline-bar { background: #4a5568; }
+
+.ibc-val {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Meta row */
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.delta-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+.delta-red     { color: #fc8181; background: rgba(252,129,129,0.15); }
+.delta-green   { color: #68d391; background: rgba(104,211,145,0.15); }
+.delta-neutral { color: #a0aec0; background: rgba(74,85,104,0.3); }
+
+.streak-badge {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.streak-under { color: #fc8181; background: rgba(252,129,129,0.1); }
+.streak-over  { color: #68d391; background: rgba(104,211,145,0.1); }
+
+.skift-info {
+  font-size: 0.72rem;
+  color: #718096;
+  margin-left: auto;
+}
+
+.empty-state { color: #718096; text-align: center; padding: 2rem; }
+.footer-note { font-size: 0.75rem; color: #4a5568; text-align: center; }
+
+@media (max-width: 600px) {
+  .varning-page { padding: 1rem; }
+  .badge-btn { min-width: 100px; }
+  .ibc-label { width: 70px; }
+  .skift-info { display: none; }
+}

@@ -246,6 +246,8 @@ class RebotlingController {
                 $this->getBonusKalkylator();
             } elseif ($action === 'operator-inlarning') {
                 $this->getOperatorInlarning();
+            } elseif ($action === 'operator-varning') {
+                $this->getOperatorVarning();
             } else {
                 $this->getLiveStats();
             }
@@ -5568,6 +5570,150 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorInlarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid inlärningsanalys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE 14: Operator Performance Alert ──────────────────────────────
+    private function getOperatorVarning(): void {
+        try {
+            $today    = date('Y-m-d');
+            $recent14 = date('Y-m-d', strtotime('-14 days'));
+            $base90   = date('Y-m-d', strtotime('-90 days'));
+
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            // All deduplicated shifts in last 90 days, ordered oldest first (for streak)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)      AS op1,
+                    MAX(op2)      AS op2,
+                    MAX(op3)      AS op3,
+                    MAX(ibc_ok)   AS ibc_ok,
+                    MAX(drifttid) AS drifttid,
+                    MAX(datum)    AS datum
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
+                GROUP BY skiftraknare
+                ORDER BY MAX(datum) ASC
+            ");
+            $stmt->execute([':from' => $base90, ':to' => $today]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Accumulate per-operator: recent (0–14d) vs baseline (15–90d) + per-shift history
+            $opData = [];
+            foreach ($allShifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min <= 0) continue;
+
+                $ibcH     = $ibc / ($min / 60.0);
+                $isRecent = ($s['datum'] >= $recent14);
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+
+                    if (!isset($opData[$opNum])) {
+                        $opData[$opNum] = ['recent' => [], 'baseline' => [], 'shifts' => []];
+                    }
+                    $opData[$opNum]['shifts'][] = round($ibcH, 2);
+                    if ($isRecent) {
+                        $opData[$opNum]['recent'][]   = ['ibc' => $ibc, 'min' => $min];
+                    } else {
+                        $opData[$opNum]['baseline'][] = ['ibc' => $ibc, 'min' => $min];
+                    }
+                }
+            }
+
+            $results = [];
+            foreach ($opData as $opNum => $data) {
+                $baselineN = count($data['baseline']);
+                $recentN   = count($data['recent']);
+                if ($baselineN < 5 || $recentN < 2) continue;
+
+                $baseIbc  = array_sum(array_column($data['baseline'], 'ibc'));
+                $baseMin  = array_sum(array_column($data['baseline'], 'min'));
+                $baseIbcH = $baseMin > 0 ? $baseIbc / ($baseMin / 60.0) : 0;
+                if ($baseIbcH <= 0) continue;
+
+                $recIbc  = array_sum(array_column($data['recent'], 'ibc'));
+                $recMin  = array_sum(array_column($data['recent'], 'min'));
+                $recIbcH = $recMin > 0 ? $recIbc / ($recMin / 60.0) : 0;
+
+                $delta = ($recIbcH - $baseIbcH) / $baseIbcH * 100;
+
+                if ($delta <= -15)       { $kategori = 'forsämring';       $sortKey = 0; }
+                elseif ($delta <= -5)    { $kategori = 'lätt_försämring';  $sortKey = 1; }
+                elseif ($delta >= 10)    { $kategori = 'förbättring';      $sortKey = 3; }
+                else                     { $kategori = 'stabil';           $sortKey = 2; }
+
+                // Streak: consecutive shifts above/below overall 90d IBC/h avg
+                $allShiftIbcH = $data['shifts']; // ASC order
+                $n = count($allShiftIbcH);
+                $avg90 = $n > 0 ? array_sum($allShiftIbcH) / $n : 0;
+                $streak = 0;
+                $streakDir = 'ingen';
+                if ($n > 0 && $avg90 > 0) {
+                    $lastIsOver = ($allShiftIbcH[$n - 1] >= $avg90);
+                    $streakDir  = $lastIsOver ? 'over' : 'under';
+                    for ($i = $n - 1; $i >= 0; $i--) {
+                        $over = ($allShiftIbcH[$i] >= $avg90);
+                        if ($over === $lastIsOver) { $streak++; } else { break; }
+                    }
+                }
+
+                $results[] = [
+                    'op_number'      => $opNum,
+                    'name'           => $operatorNames[$opNum],
+                    'baseline_ibc_h' => round($baseIbcH, 2),
+                    'recent_ibc_h'   => round($recIbcH, 2),
+                    'delta_pct'      => round($delta, 1),
+                    'kategori'       => $kategori,
+                    'baseline_skift' => $baselineN,
+                    'recent_skift'   => $recentN,
+                    'streak'         => $streak,
+                    'streak_dir'     => $streakDir,
+                    '_sort'          => $sortKey,
+                ];
+            }
+
+            usort($results, function($a, $b) {
+                if ($a['_sort'] !== $b['_sort']) return $a['_sort'] - $b['_sort'];
+                return $a['delta_pct'] <=> $b['delta_pct'];
+            });
+
+            foreach ($results as &$r) { unset($r['_sort']); }
+            unset($r);
+
+            $counts = [
+                'forsämring'      => 0,
+                'lätt_försämring' => 0,
+                'stabil'          => 0,
+                'förbättring'     => 0,
+            ];
+            foreach ($results as $r) {
+                if (isset($counts[$r['kategori']])) $counts[$r['kategori']]++;
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'operators'    => $results,
+                'counts'       => $counts,
+                'from'         => $base90,
+                'to'           => $today,
+                'recent_from'  => $recent14,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorVarning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandavarning'], JSON_UNESCAPED_UNICODE);
         }
     }
 

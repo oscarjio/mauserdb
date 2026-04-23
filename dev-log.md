@@ -1,5 +1,6 @@
 # MauserDB Dev Log
 
+2026-04-23 | operator-varning | deployed | Prestandavarning (/rebotling/operator-varning): jämför senaste 14d IBC/h vs 90d baseline per operatör. 4 kategorier: Försämring (↓>15%, röd), Lätt försämring (↓5-15%, orange), Stabil, Förbättring (↑>10%, grön). Streak-detektion (hur många skift i rad under/över snittet). Klickbara filter-badges, IBC/h-staplar med visuell jämförelse, länk till operatörsprofil. Nås via Rebotling admin-menyn.
 2026-04-23 | operator-compare | deployed | Operatörsjämförelse head-to-head (/rebotling/operator-compare): välj 2 operatörer, välj period (30/60/90/180d). VS-banner med tier-badges, 6 metrikkort (IBC/h, vs-lag, konsistens, trend, skift, kassation) med vinnarhighlight (★), radardiagram (Fart/Konsistens/Trend/Närvaro), månadsvis IBC/h-trendlinje (6 månader), positionsuppdelningstabell (3 positioner × 2 operatörer), bästa/sämsta skift, auto-rekommendation. Nås via Rebotling admin-menyn.
 2026-04-23 | operator-aktivitet | deployed | Skiftfrekvens/närvaro per operatör (/rebotling/operator-aktivitet): antal skift, aktiva veckor, närvaro%, IBC/h, Flitig/Normal/Sällan-badge, veckosparkline, trendriktning. Svarar på "vem vill jobba". Nås via Rebotling admin-menyn.
 

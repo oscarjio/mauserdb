@@ -1,0 +1,158 @@
+<div class="varning-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <h2 class="page-title">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181;"></i>
+      Prestandavarning
+    </h2>
+    <p class="page-sub">
+      Jämför senaste 14 dagarna med 90-dagars baseline per operatör
+    </p>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="mt-2 text-muted">Analyserar prestandadata…</p>
+  </div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- Summary badges -->
+    <div class="summary-row mb-4">
+      <button
+        class="badge-btn badge-red"
+        [class.active]="filter === 'forsämring'"
+        (click)="setFilter(filter === 'forsämring' ? 'alla' : 'forsämring')">
+        <span class="badge-num">{{ counts['forsämring'] }}</span>
+        <span class="badge-lbl">Försämring<br><small>↓ &gt;15%</small></span>
+      </button>
+      <button
+        class="badge-btn badge-orange"
+        [class.active]="filter === 'lätt_försämring'"
+        (click)="setFilter(filter === 'lätt_försämring' ? 'alla' : 'lätt_försämring')">
+        <span class="badge-num">{{ counts['lätt_försämring'] }}</span>
+        <span class="badge-lbl">Lätt försämring<br><small>↓ 5–15%</small></span>
+      </button>
+      <button
+        class="badge-btn badge-gray"
+        [class.active]="filter === 'alla'"
+        (click)="setFilter('alla')">
+        <span class="badge-num">{{ counts['stabil'] }}</span>
+        <span class="badge-lbl">Stabil<br><small>±5%</small></span>
+      </button>
+      <button
+        class="badge-btn badge-green"
+        [class.active]="filter === 'förbättring'"
+        (click)="setFilter(filter === 'förbättring' ? 'alla' : 'förbättring')">
+        <span class="badge-num">{{ counts['förbättring'] }}</span>
+        <span class="badge-lbl">Förbättring<br><small>↑ &gt;10%</small></span>
+      </button>
+    </div>
+
+    <!-- No alerts message -->
+    <div *ngIf="!hasAlerts && filter === 'alla'" class="no-alerts-card mb-4">
+      <i class="fas fa-check-circle fa-2x mb-2" style="color:#68d391;"></i>
+      <p class="mb-0">Inga prestandavarningar — alla operatörer inom normalintervall.</p>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="operator-list">
+      <div
+        *ngFor="let op of filtered"
+        class="op-card"
+        [class.card-red]="op.kategori === 'forsämring'"
+        [class.card-orange]="op.kategori === 'lätt_försämring'"
+        [class.card-gray]="op.kategori === 'stabil'"
+        [class.card-green]="op.kategori === 'förbättring'">
+
+        <!-- Color strip -->
+        <div class="color-strip"></div>
+
+        <!-- Card body -->
+        <div class="card-body-inner">
+
+          <div class="op-header">
+            <div>
+              <span class="op-name">{{ op.name }}</span>
+              <span
+                class="kategori-pill"
+                [class.pill-red]="op.kategori === 'forsämring'"
+                [class.pill-orange]="op.kategori === 'lätt_försämring'"
+                [class.pill-gray]="op.kategori === 'stabil'"
+                [class.pill-green]="op.kategori === 'förbättring'">
+                {{ kategoriLabel(op.kategori) }}
+              </span>
+            </div>
+            <a [routerLink]="['/rebotling/operator', op.op_number]" class="profile-link">
+              Visa profil →
+            </a>
+          </div>
+
+          <!-- IBC/h comparison bar -->
+          <div class="ibc-comparison mt-2">
+            <div class="ibc-row">
+              <span class="ibc-label">Senaste 14 d</span>
+              <div class="ibc-bar-wrap">
+                <div
+                  class="ibc-bar recent-bar"
+                  [style.width.%]="Math.min(100, op.recent_ibc_h / Math.max(op.baseline_ibc_h, op.recent_ibc_h) * 100)">
+                </div>
+              </div>
+              <span class="ibc-val">{{ op.recent_ibc_h | number:'1.1-1' }} IBC/h</span>
+            </div>
+            <div class="ibc-row">
+              <span class="ibc-label">90d snitt</span>
+              <div class="ibc-bar-wrap">
+                <div
+                  class="ibc-bar baseline-bar"
+                  [style.width.%]="Math.min(100, op.baseline_ibc_h / Math.max(op.baseline_ibc_h, op.recent_ibc_h) * 100)">
+                </div>
+              </div>
+              <span class="ibc-val">{{ op.baseline_ibc_h | number:'1.1-1' }} IBC/h</span>
+            </div>
+          </div>
+
+          <!-- Delta + streak row -->
+          <div class="meta-row mt-2">
+            <span
+              class="delta-badge"
+              [class.delta-red]="op.delta_pct < -5"
+              [class.delta-green]="op.delta_pct > 5"
+              [class.delta-neutral]="op.delta_pct >= -5 && op.delta_pct <= 5">
+              {{ op.delta_pct > 0 ? '+' : '' }}{{ op.delta_pct | number:'1.1-1' }}%
+              <span *ngIf="op.delta_pct < 0">↓</span>
+              <span *ngIf="op.delta_pct > 0">↑</span>
+            </span>
+
+            <span *ngIf="streakLabel(op)" class="streak-badge"
+              [class.streak-under]="op.streak_dir === 'under'"
+              [class.streak-over]="op.streak_dir === 'over'">
+              <i class="fas fa-bolt me-1"></i>{{ streakLabel(op) }}
+            </span>
+
+            <span class="skift-info">
+              {{ op.recent_skift }} skift (14d) / {{ op.baseline_skift }} skift (90d)
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty filtered state -->
+    <div *ngIf="filtered.length === 0 && !loading" class="empty-state">
+      Inga operatörer i vald kategori.
+    </div>
+
+    <!-- Footer note -->
+    <p class="footer-note mt-4">
+      Baseline: {{ from }} – {{ recentFrom }} &nbsp;·&nbsp;
+      Senaste: {{ recentFrom }} – {{ to }}
+    </p>
+
+  </ng-container>
+
+</div>
