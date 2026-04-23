@@ -3722,120 +3722,103 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
-            // Per-shift IBC/h for each operator (for stddev + trend)
-            $shiftSql = "
-                SELECT op_nr, pos, datum,
-                       ibc_ok, drifttid
-                FROM (
-                    SELECT op1 AS op_nr, 'op1' AS pos, datum, ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
-                    UNION ALL
-                    SELECT op2, 'op2', datum, ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
-                    UNION ALL
-                    SELECT op3, 'op3', datum, ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
-                ) s
-                ORDER BY op_nr, datum ASC
-            ";
-            $stmtShifts = $this->pdo->prepare($shiftSql);
-            $stmtShifts->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
+            // Unika skift (en rad per skift via GROUP BY skiftraknare).
+            // Linjen är EN linje: op1+op2+op3 jobbar simultant. IBC/h är linjens output,
+            // inte summan av positionernas output. Korrekt: SUM(ibc)/SUM(tid), inte avg(kvoter).
+            $stmtShifts = $this->pdo->prepare("
+                SELECT skiftraknare, datum,
+                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                GROUP BY skiftraknare
+                ORDER BY datum ASC
+            ");
+            $stmtShifts->execute([':from' => $from, ':to' => $to]);
             $allShifts = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Group per-shift IBC/h values by operator
-            $opShifts = [];  // op_nr => [ibc_per_h values chronologically]
-            $opShiftsByPos = []; // op_nr => pos => [ibc_per_h values]
-            foreach ($allShifts as $row) {
-                $num = (int)$row['op_nr'];
-                $d   = (int)$row['drifttid'];
-                $val = $d > 0 ? round((int)$row['ibc_ok'] / ($d / 60.0), 2) : 0;
-                $opShifts[$num][] = $val;
-                $opShiftsByPos[$num][$row['pos']][] = $val;
-            }
+            $teamTotalIbc = 0;
+            $teamTotalMin = 0;
+            $opTotals    = []; // num => ['ibc'=>int, 'min'=>int, 'count'=>int]
+            $opPosTotals = []; // num => pos => ['ibc'=>int, 'min'=>int, 'count'=>int]
+            $opWeekly    = []; // num => week_key => ['ibc'=>int, 'min'=>int]
+            $opBestWorst = []; // num => [per-shift ibc_per_h for min/max]
+            $teamPosTotals = ['op1'=>['ibc'=>0,'min'=>0], 'op2'=>['ibc'=>0,'min'=>0], 'op3'=>['ibc'=>0,'min'=>0]];
 
-            // Team average IBC/h per position (for relative score)
-            $posAvgs = ['op1' => [], 'op2' => [], 'op3' => []];
-            foreach ($opShiftsByPos as $num => $positions) {
-                foreach ($positions as $pos => $vals) {
-                    $posAvgs[$pos] = array_merge($posAvgs[$pos], $vals);
+            foreach ($allShifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                $teamTotalIbc += $ibc;
+                $teamTotalMin += $min;
+
+                $shiftIbcH = round($ibc / ($min / 60.0), 2);
+                $yw        = date('oW', strtotime($s['datum']));
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $num = (int)$s[$pos];
+                    if ($num <= 0 || !isset($opNames[$num])) continue;
+
+                    $opTotals[$num]['ibc']   = ($opTotals[$num]['ibc']   ?? 0) + $ibc;
+                    $opTotals[$num]['min']   = ($opTotals[$num]['min']   ?? 0) + $min;
+                    $opTotals[$num]['count'] = ($opTotals[$num]['count'] ?? 0) + 1;
+
+                    $opPosTotals[$num][$pos]['ibc']   = ($opPosTotals[$num][$pos]['ibc']   ?? 0) + $ibc;
+                    $opPosTotals[$num][$pos]['min']   = ($opPosTotals[$num][$pos]['min']   ?? 0) + $min;
+                    $opPosTotals[$num][$pos]['count'] = ($opPosTotals[$num][$pos]['count'] ?? 0) + 1;
+
+                    $opWeekly[$num][$yw]['ibc'] = ($opWeekly[$num][$yw]['ibc'] ?? 0) + $ibc;
+                    $opWeekly[$num][$yw]['min'] = ($opWeekly[$num][$yw]['min'] ?? 0) + $min;
+
+                    $opBestWorst[$num][] = $shiftIbcH;
+                    $teamPosTotals[$pos]['ibc'] += $ibc;
+                    $teamPosTotals[$pos]['min'] += $min;
                 }
             }
+
             $teamAvgPerPos = [];
-            foreach ($posAvgs as $pos => $vals) {
-                $teamAvgPerPos[$pos] = count($vals) > 0 ? array_sum($vals) / count($vals) : 0;
+            foreach ($teamPosTotals as $pos => $t) {
+                $teamAvgPerPos[$pos] = $t['min'] > 0 ? $t['ibc'] / ($t['min'] / 60.0) : 0;
             }
+            $teamTotal = $teamTotalMin > 0 ? $teamTotalIbc / ($teamTotalMin / 60.0) : 1;
 
             $results = [];
 
             foreach ($opNames as $num => $name) {
-                if (!isset($opShifts[$num])) continue;
-                $vals = $opShifts[$num];
-                if (count($vals) < 1) continue;
+                if (!isset($opTotals[$num])) continue;
+                $tot = $opTotals[$num];
+                if ($tot['count'] < 3) continue;
 
-                // Ranking baseras enbart på IBC/h — enkelt och rättvist
-                // Viktad per position: väger ihop operatörens IBC/h relativt teamets snitt per position
-                $mean = array_sum($vals) / count($vals);
+                $ibc_per_h = round($tot['ibc'] / ($tot['min'] / 60.0), 1);
 
-                // Per-position stats
                 $posStats = [];
-                $weightedIbcSum = 0;
-                $weightedShifts = 0;
-                foreach (($opShiftsByPos[$num] ?? []) as $pos => $pVals) {
-                    $teamAvg = $teamAvgPerPos[$pos] ?? 0;
-                    $opAvg   = round(array_sum($pVals) / count($pVals), 1);
+                foreach (($opPosTotals[$num] ?? []) as $pos => $pt) {
+                    $posIbcH = $pt['min'] > 0 ? round($pt['ibc'] / ($pt['min'] / 60.0), 1) : 0;
+                    $tAvg    = $teamAvgPerPos[$pos] ?? 0;
                     $posStats[$pos] = [
-                        'ibc_per_h'   => $opAvg,
-                        'team_avg'    => round($teamAvg, 1),
-                        'antal_skift' => count($pVals),
-                        'vs_avg_pct'  => $teamAvg > 0 ? round(($opAvg / $teamAvg - 1) * 100) : 0,
+                        'ibc_per_h'   => $posIbcH,
+                        'team_avg'    => round($tAvg, 1),
+                        'antal_skift' => $pt['count'],
+                        'vs_avg_pct'  => $tAvg > 0 ? round(($posIbcH / $tAvg - 1) * 100) : 0,
                     ];
-                    $weightedIbcSum += $opAvg * count($pVals);
-                    $weightedShifts += count($pVals);
                 }
 
-                // Totalt vägt IBC/h (tar hänsyn till att operatören jobbat olika positioner)
-                $ibc_per_h = $weightedShifts > 0 ? round($weightedIbcSum / $weightedShifts, 1) : round($mean, 1);
-
-                // Teamets totala snitt (alla positioner)
-                $allTeamVals = array_merge(...array_values($posAvgs));
-                $teamTotal   = count($allTeamVals) > 0 ? array_sum($allTeamVals) / count($allTeamVals) : 1;
-
-                // Ranking: IBC/h jämfört med teamet. Skala: 0–100 där 50 = exakt teamsnitt
-                // +10 IBC/h över snitt = 100p, -10 IBC/h under snitt = 0p
-                $diff  = $ibc_per_h - $teamTotal;
-                $score = max(0, min(100, round(50 + $diff * 5)));
-
-                // Tiers baserade på IBC/h vs teamsnitt
                 $vsAvgPct = $teamTotal > 0 ? round(($ibc_per_h / $teamTotal - 1) * 100) : 0;
+                $score    = max(0, min(100, round(50 + ($ibc_per_h - $teamTotal) * 5)));
                 $rating   = $vsAvgPct >= 15  ? 'Elite'
                           : ($vsAvgPct >= 0   ? 'Solid'
                           : ($vsAvgPct >= -15  ? 'Developing'
                           : 'Needs attention'));
 
-                // Veckotrender (för sparkline i frontend)
-                $weeklyBuckets = [];
-                foreach ($allShifts as $row) {
-                    if ((int)$row['op_nr'] !== $num) continue;
-                    $yw = date('oW', strtotime($row['datum']));
-                    $d  = (int)$row['drifttid'];
-                    if ($d <= 0) continue;
-                    if (!isset($weeklyBuckets[$yw])) $weeklyBuckets[$yw] = ['ibc' => 0, 'min' => 0];
-                    $weeklyBuckets[$yw]['ibc'] += (int)$row['ibc_ok'];
-                    $weeklyBuckets[$yw]['min'] += $d;
-                }
-                ksort($weeklyBuckets);
+                ksort($opWeekly[$num]);
                 $weeklyVals = [];
-                foreach ($weeklyBuckets as $bucket) {
+                foreach ($opWeekly[$num] as $bucket) {
                     $weeklyVals[] = $bucket['min'] > 0 ? round($bucket['ibc'] / ($bucket['min'] / 60.0), 1) : 0;
                 }
                 $weeklyVals = array_slice($weeklyVals, -8);
+
+                $shiftVals = $opBestWorst[$num] ?? [0];
 
                 $results[] = [
                     'number'       => $num,
@@ -3845,15 +3828,14 @@ class RebotlingController {
                     'vs_avg_pct'   => $vsAvgPct,
                     'score'        => (int)$score,
                     'rating'       => $rating,
-                    'antal_skift'  => count($vals),
-                    'best_shift'   => round(max($vals), 1),
-                    'worst_shift'  => round(min($vals), 1),
+                    'antal_skift'  => $tot['count'],
+                    'best_shift'   => round(max($shiftVals), 1),
+                    'worst_shift'  => round(min($shiftVals), 1),
                     'per_position' => $posStats,
                     'trend_weeks'  => $weeklyVals,
                 ];
             }
 
-            // Sortera på IBC/h — det enda som räknas
             usort($results, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
 
             echo json_encode([
@@ -4699,7 +4681,7 @@ class RebotlingController {
             $months  = $bounds['months'];
 
             // All active operators
-            $opRows = $this->db->query(
+            $opRows = $this->pdo->query(
                 "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
             )->fetchAll(\PDO::FETCH_ASSOC);
             $operatorNames = [];
@@ -4708,7 +4690,7 @@ class RebotlingController {
             }
 
             // All shifts in quarter (one row per skiftraknare via MAX/GROUP BY)
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     MAX(op1)      AS op1,
                     MAX(op2)      AS op2,
@@ -4871,7 +4853,7 @@ class RebotlingController {
             $to   = date('Y-m-d');
 
             // Active operators
-            $opRows = $this->db->query(
+            $opRows = $this->pdo->query(
                 "SELECT number, name FROM operators WHERE active = 1"
             )->fetchAll(\PDO::FETCH_ASSOC);
             $operatorNames = [];
@@ -4880,7 +4862,7 @@ class RebotlingController {
             }
 
             // One row per skiftraknare (deduplicated)
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     MAX(op1)       AS op1,
                     MAX(op2)       AS op2,
