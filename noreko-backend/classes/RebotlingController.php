@@ -238,6 +238,8 @@ class RebotlingController {
                 $this->getOperatorKvartalReport();
             } elseif ($action === 'operator-performance-map') {
                 $this->getOperatorPerformanceMap();
+            } elseif ($action === 'operator-aktivitet') {
+                $this->getOperatorAktivitet();
             } else {
                 $this->getLiveStats();
             }
@@ -4956,6 +4958,140 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorPerformanceMap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandakarta'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorAktivitet(): void {
+        try {
+            $weeks = isset($_GET['weeks']) ? max(4, min(24, (int)$_GET['weeks'])) : 12;
+            $fromTs = strtotime("-{$weeks} weeks");
+            $from   = date('Y-m-d', $fromTs);
+            $to     = date('Y-m-d');
+
+            // Active operators
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            // Deduplicated shifts
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)       AS op1,
+                    MAX(op2)       AS op2,
+                    MAX(op3)       AS op3,
+                    MAX(ibc_ok)    AS ibc_ok,
+                    MAX(drifttid)  AS drifttid,
+                    MAX(datum)     AS datum
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build list of ISO week keys (YYYYWW) for the period
+            $allWeeks = [];
+            $cur = $fromTs;
+            while ($cur <= strtotime($to)) {
+                $wk = date('o', $cur) . date('W', $cur);
+                if (!in_array($wk, $allWeeks)) $allWeeks[] = $wk;
+                $cur = strtotime('+1 week', $cur);
+            }
+            $wkLast = date('o', strtotime($to)) . date('W', strtotime($to));
+            if (!in_array($wkLast, $allWeeks)) $allWeeks[] = $wkLast;
+            sort($allWeeks);
+            $totalWeeks = count($allWeeks);
+            $weekIndex  = array_flip($allWeeks); // weekKey => index
+
+            // Per-operator accumulation
+            $opWeekShifts = []; // [opNum][weekIdx] => shift count
+            $opTotals     = []; // [opNum] => [shifts, ibc, min]
+
+            foreach ($shifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                $ts   = strtotime($s['datum']);
+                $wKey = date('o', $ts) . date('W', $ts);
+                $wIdx = $weekIndex[$wKey] ?? null;
+                if ($wIdx === null) continue;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+
+                    if (!isset($opWeekShifts[$opNum])) {
+                        $opWeekShifts[$opNum] = array_fill(0, $totalWeeks, 0);
+                        $opTotals[$opNum]     = ['shifts' => 0, 'ibc' => 0, 'min' => 0];
+                    }
+                    $opWeekShifts[$opNum][$wIdx]++;
+                    $opTotals[$opNum]['shifts']++;
+                    $opTotals[$opNum]['ibc'] += $ibc;
+                    $opTotals[$opNum]['min'] += $min;
+                }
+            }
+
+            $results = [];
+            foreach ($opTotals as $opNum => $tot) {
+                if ($tot['shifts'] < 1) continue;
+
+                $weekly      = $opWeekShifts[$opNum];
+                $activeWeeks = count(array_filter($weekly, fn($c) => $c > 0));
+                $reliability = $totalWeeks > 0 ? round($activeWeeks / $totalWeeks * 100, 1) : 0;
+                $ibcH        = $tot['min'] > 0 ? round($tot['ibc'] / ($tot['min'] / 60.0), 2) : null;
+
+                // Trend: compare avg shifts/week in first vs second half
+                $half       = (int)ceil($totalWeeks / 2);
+                $firstHalf  = array_slice($weekly, 0, $half);
+                $secondHalf = array_slice($weekly, $half);
+                $avgFirst   = $half > 0 ? array_sum($firstHalf)  / $half : 0;
+                $avgSecond  = ($totalWeeks - $half) > 0 ? array_sum($secondHalf) / ($totalWeeks - $half) : 0;
+
+                if ($avgFirst > 0 && $avgSecond > $avgFirst * 1.15)       $trend = 'okar';
+                elseif ($avgFirst > 0 && $avgSecond < $avgFirst * 0.85)   $trend = 'minskar';
+                elseif ($avgFirst == 0 && $avgSecond > 0)                  $trend = 'okar';
+                else                                                        $trend = 'stabil';
+
+                // Activity badge
+                $avgShiftsPerWeek = $tot['shifts'] / $totalWeeks;
+                if ($avgShiftsPerWeek >= 3.5)       $badge = 'flitig';
+                elseif ($avgShiftsPerWeek >= 1.5)   $badge = 'normal';
+                else                                 $badge = 'sallan';
+
+                $results[] = [
+                    'op_number'    => $opNum,
+                    'name'         => $operatorNames[$opNum],
+                    'total_shifts' => $tot['shifts'],
+                    'active_weeks' => $activeWeeks,
+                    'reliability'  => $reliability,
+                    'ibc_per_h'    => $ibcH,
+                    'trend'        => $trend,
+                    'badge'        => $badge,
+                    'weekly'       => $weekly,
+                ];
+            }
+
+            usort($results, fn($a, $b) => $b['total_shifts'] - $a['total_shifts']);
+
+            echo json_encode([
+                'success'      => true,
+                'operators'    => $results,
+                'weeks'        => $allWeeks,
+                'total_weeks'  => $totalWeeks,
+                'period_weeks' => $weeks,
+                'from'         => $from,
+                'to'           => $to,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorAktivitet: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsaktivitet'], JSON_UNESCAPED_UNICODE);
         }
     }
 

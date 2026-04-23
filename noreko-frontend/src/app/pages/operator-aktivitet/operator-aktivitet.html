@@ -1,0 +1,133 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title"><i class="fas fa-user-clock me-2"></i>Operatörsaktivitet</h1>
+    <p class="page-subtitle">Skiftfrekvens och närvaro per operatör</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="period-selector">
+        <span class="ctrl-label">Period:</span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn" [class.active]="periodWeeks===8"  (click)="periodWeeks=8;  load()">8 v</button>
+          <button class="btn" [class.active]="periodWeeks===12" (click)="periodWeeks=12; load()">12 v</button>
+          <button class="btn" [class.active]="periodWeeks===16" (click)="periodWeeks=16; load()">16 v</button>
+          <button class="btn" [class.active]="periodWeeks===24" (click)="periodWeeks=24; load()">24 v</button>
+        </div>
+      </div>
+      <div class="sort-selector">
+        <span class="ctrl-label">Sortera:</span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn" [class.active]="sortBy==='shifts'"      (click)="sortBy='shifts'">Antal skift</button>
+          <button class="btn" [class.active]="sortBy==='reliability'" (click)="sortBy='reliability'">Närvaro %</button>
+          <button class="btn" [class.active]="sortBy==='namn'"        (click)="sortBy='namn'">Namn</button>
+        </div>
+      </div>
+    </div>
+    <div class="period-info" *ngIf="from && to">{{ from }} – {{ to }}</div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar aktivitetsdata...</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI cards -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-value">{{ activeCount }}</div>
+        <div class="kpi-label">Aktiva operatörer</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="kpi-value">{{ avgReliability }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Snitt närvaro</div>
+      </div>
+      <div class="kpi-card kpi-gold" *ngIf="mostActive">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-value">{{ mostActive.total_shifts }}</div>
+        <div class="kpi-label">Mest aktiv: {{ mostActive.name }}</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="fas fa-arrow-trend-up"></i></div>
+        <div class="kpi-value">{{ risingStars.length }}</div>
+        <div class="kpi-label">Ökande aktivitet</div>
+      </div>
+    </div>
+
+    <!-- No data -->
+    <div *ngIf="operators.length === 0" class="empty-state">
+      <i class="fas fa-user-slash fa-2x mb-2 text-muted"></i>
+      <p class="text-muted">Ingen data för vald period.</p>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="op-grid" *ngIf="operators.length > 0">
+      <div class="op-card" *ngFor="let op of sorted; trackBy: trackByOp">
+
+        <!-- Card header -->
+        <div class="op-card-header">
+          <div class="op-name">{{ op.name }}</div>
+          <span class="activity-badge" [class]="badgeClass(op.badge)">{{ badgeLabel(op.badge) }}</span>
+        </div>
+
+        <!-- Stats row -->
+        <div class="op-stats">
+          <div class="op-stat">
+            <div class="op-stat-value">{{ op.total_shifts }}</div>
+            <div class="op-stat-label">Skift</div>
+          </div>
+          <div class="op-stat">
+            <div class="op-stat-value">{{ op.active_weeks }}<span class="op-stat-sub">/{{ totalWeeks }}</span></div>
+            <div class="op-stat-label">Aktiva veckor</div>
+          </div>
+          <div class="op-stat">
+            <div class="op-stat-value" [class]="reliabilityClass(op.reliability)">{{ op.reliability }}<span class="op-stat-sub">%</span></div>
+            <div class="op-stat-label">Närvaro</div>
+          </div>
+          <div class="op-stat">
+            <div class="op-stat-value" *ngIf="op.ibc_per_h !== null">{{ op.ibc_per_h | number:'1.1-1' }}</div>
+            <div class="op-stat-value text-muted" *ngIf="op.ibc_per_h === null">–</div>
+            <div class="op-stat-label">IBC/h</div>
+          </div>
+        </div>
+
+        <!-- Reliability bar -->
+        <div class="rel-bar-wrap">
+          <div class="rel-bar" [style.width.%]="op.reliability" [class]="reliabilityClass(op.reliability)"></div>
+        </div>
+
+        <!-- Weekly sparkline -->
+        <div class="sparkline">
+          <div
+            class="spark-bar"
+            *ngFor="let cnt of op.weekly; let i = index"
+            [style.height.%]="cnt > 0 ? Math.max(15, cnt / maxWeeklyShifts(op) * 100) : 0"
+            [class.spark-empty]="cnt === 0"
+            [title]="weekLabel(weeks[i]) + ': ' + cnt + ' skift'"
+          ></div>
+        </div>
+        <div class="sparkline-labels">
+          <span class="spark-lbl">{{ weekLabel(weeks[0]) }}</span>
+          <span class="spark-lbl-end">{{ weekLabel(weeks[weeks.length-1]) }}</span>
+        </div>
+
+        <!-- Trend + profile link -->
+        <div class="op-card-footer">
+          <span class="trend-chip" [class]="trendClass(op.trend)">
+            {{ trendIcon(op.trend) }} {{ op.trend === 'okar' ? 'Ökande' : op.trend === 'minskar' ? 'Minskande' : 'Stabil' }}
+          </span>
+          <a class="profile-link" [routerLink]="['/rebotling/operator', op.op_number]">Profil →</a>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+</div>
