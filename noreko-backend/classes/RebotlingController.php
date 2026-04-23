@@ -244,6 +244,8 @@ class RebotlingController {
                 $this->getOperatorCompare();
             } elseif ($action === 'bonus-kalkylator') {
                 $this->getBonusKalkylator();
+            } elseif ($action === 'operator-inlarning') {
+                $this->getOperatorInlarning();
             } else {
                 $this->getLiveStats();
             }
@@ -5432,6 +5434,140 @@ class RebotlingController {
             error_log('RebotlingController::getBonusKalkylator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid bonuskalkylator'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorInlarning(): void {
+        try {
+            $maxShifts = max(10, min(50, (int)($_GET['max_shifts'] ?? 30)));
+
+            $opRows = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opNames = [];
+            foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
+
+            // All shifts per operator per position in chronological order (MAX per skiftraknare)
+            $stmt = $this->pdo->query("
+                SELECT datum, skiftraknare,
+                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE drifttid > 30
+                GROUP BY skiftraknare
+                ORDER BY datum ASC, skiftraknare ASC
+            ");
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Group into (op_num, pos_num) buckets
+            $byOpPos = [];
+            foreach ($allShifts as $r) {
+                $ibcH = $r['drifttid'] > 0 ? (float)$r['ibc_ok'] / ((float)$r['drifttid'] / 60.0) : 0;
+                foreach ([1, 2, 3] as $p) {
+                    $opNum = (int)$r["op$p"];
+                    if ($opNum <= 0) continue;
+                    $byOpPos[$opNum][$p][] = [
+                        'datum'  => $r['datum'],
+                        'ibc_h'  => round($ibcH, 2),
+                    ];
+                }
+            }
+
+            // Team average per position (all time)
+            $teamSums = [1 => 0.0, 2 => 0.0, 3 => 0.0];
+            $teamCnts = [1 => 0,   2 => 0,   3 => 0];
+            foreach ($byOpPos as $opNum => $positions) {
+                foreach ($positions as $posNum => $shifts) {
+                    foreach ($shifts as $s) {
+                        if ($s['ibc_h'] > 0) {
+                            $teamSums[$posNum] += $s['ibc_h'];
+                            $teamCnts[$posNum]++;
+                        }
+                    }
+                }
+            }
+            $teamAvg = [];
+            foreach ([1, 2, 3] as $p) {
+                $teamAvg[$p] = $teamCnts[$p] > 0 ? round($teamSums[$p] / $teamCnts[$p], 1) : 0.0;
+            }
+
+            $posNames = [1 => 'Tvättplats', 2 => 'Kontrollstation', 3 => 'Truckförare'];
+            $result   = [];
+
+            foreach ($byOpPos as $opNum => $positions) {
+                if (!isset($opNames[$opNum])) continue;
+                $opEntry = ['op_num' => $opNum, 'name' => $opNames[$opNum], 'positions' => []];
+
+                foreach ($positions as $posNum => $shifts) {
+                    $limited = array_slice($shifts, 0, $maxShifts);
+                    $n       = count($limited);
+                    if ($n < 3) continue;
+
+                    $withRolling = [];
+                    foreach ($limited as $i => $s) {
+                        $window = array_slice($limited, max(0, $i - 2), min(3, $i + 1));
+                        $vals   = array_filter(array_column($window, 'ibc_h'), fn($v) => $v > 0);
+                        $rolling = count($vals) > 0 ? round(array_sum($vals) / count($vals), 1) : 0.0;
+                        $withRolling[] = [
+                            'shift_nr'  => $i + 1,
+                            'datum'     => $s['datum'],
+                            'ibc_h'     => $s['ibc_h'],
+                            'rolling_3' => $rolling,
+                        ];
+                    }
+
+                    $avg = $teamAvg[$posNum];
+                    $reachedAt = null;
+                    foreach ($withRolling as $s) {
+                        if ($s['rolling_3'] >= $avg && $reachedAt === null) {
+                            $reachedAt = $s['shift_nr'];
+                        }
+                    }
+
+                    // Trend: first third vs last third
+                    $third  = max(1, (int)floor($n / 3));
+                    $first3 = array_column(array_slice($withRolling, 0, $third), 'ibc_h');
+                    $last3  = array_column(array_slice($withRolling, -$third), 'ibc_h');
+                    $fAvg   = count($first3) > 0 ? array_sum($first3) / count($first3) : 0;
+                    $lAvg   = count($last3)  > 0 ? array_sum($last3)  / count($last3)  : 0;
+                    $trend  = 'stabil';
+                    if ($fAvg > 0) {
+                        if ($lAvg > $fAvg * 1.08) $trend = 'okar';
+                        elseif ($lAvg < $fAvg * 0.92) $trend = 'minskar';
+                    }
+
+                    $opEntry['positions'][] = [
+                        'pos_num'       => $posNum,
+                        'pos_name'      => $posNames[$posNum],
+                        'total_shifts'  => $n,
+                        'team_avg'      => $avg,
+                        'reached_avg_at' => $reachedAt,
+                        'current_rolling' => $withRolling[$n - 1]['rolling_3'] ?? 0,
+                        'trend'         => $trend,
+                        'shifts'        => $withRolling,
+                    ];
+                }
+
+                if (!empty($opEntry['positions'])) {
+                    $result[] = $opEntry;
+                }
+            }
+
+            usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            echo json_encode([
+                'success'   => true,
+                'team_avg'  => $teamAvg,
+                'pos_names' => $posNames,
+                'operators' => $result,
+                'max_shifts' => $maxShifts,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorInlarning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid inlärningsanalys'], JSON_UNESCAPED_UNICODE);
         }
     }
 

@@ -1,0 +1,170 @@
+.page-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.card-dark {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.controls-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ctrl-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ctrl-value {
+  font-weight: 700;
+  color: #63b3ed;
+  min-width: 2rem;
+}
+
+.section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Operator chips */
+.op-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.op-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 2px solid #4a5568;
+  background: transparent;
+  color: #a0aec0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.op-chip.selected {
+  border-color: var(--chip-color, #63b3ed);
+  background: color-mix(in srgb, var(--chip-color, #63b3ed) 20%, transparent);
+  color: var(--chip-color, #63b3ed);
+}
+
+.op-chip:hover {
+  border-color: var(--chip-color, #63b3ed);
+  color: var(--chip-color, #e2e8f0);
+}
+
+/* Chart hint */
+.chart-hint {
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: #718096;
+  text-align: center;
+}
+
+/* Table styling */
+.table-dark {
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.table-dark thead th {
+  border-bottom: 1px solid #4a5568;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.table-dark td {
+  border-bottom: 1px solid #374151;
+  vertical-align: middle;
+  font-size: 0.88rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.table-dark tbody tr:hover td {
+  background: #374151;
+}
+
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.op-link:hover { text-decoration: underline; }
+
+/* IBC/h value colors */
+.ibc-val { font-weight: 700; }
+.ibc-val.elite          { color: #68d391; }
+.ibc-val.solid          { color: #63b3ed; }
+.ibc-val.developing     { color: #f6ad55; }
+.ibc-val.needs-attention{ color: #fc8181; }
+
+/* Pct badges */
+.pct-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pct-badge.elite          { background: #22543d55; color: #68d391; }
+.pct-badge.solid          { background: #2a4365aa; color: #63b3ed; }
+.pct-badge.developing     { background: #7b341e55; color: #f6ad55; }
+.pct-badge.needs-attention{ background: #63171b55; color: #fc8181; }
+
+/* Reached avg */
+.reached-yes { color: #68d391; font-size: 0.82rem; font-weight: 600; }
+.reached-no  { color: #718096; font-size: 0.82rem; }
+
+/* Trend */
+.trend-up     { color: #68d391; font-weight: 700; font-size: 1rem; }
+.trend-down   { color: #fc8181; font-weight: 700; font-size: 1rem; }
+.trend-stable { color: #a0aec0; font-weight: 700; font-size: 1rem; }
+
+.table-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+/* Range input styling */
+.form-range::-webkit-slider-thumb { background: #63b3ed; }
+.form-range::-moz-range-thumb     { background: #63b3ed; }

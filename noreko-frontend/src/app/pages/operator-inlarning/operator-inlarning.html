@@ -1,0 +1,142 @@
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <i class="fas fa-graduation-cap" style="font-size:1.8rem;color:#63b3ed;"></i>
+      <div>
+        <h1 class="page-title mb-0">Operatörsinlärning</h1>
+        <p class="page-subtitle mb-0">Inlärningskurva per operatör och position — hur snabbt når de teamsnitt?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card-dark mb-4">
+    <div class="controls-row">
+
+      <!-- Max shifts slider -->
+      <div class="ctrl-group">
+        <label class="ctrl-label">Visa max skift</label>
+        <div class="d-flex align-items-center gap-2">
+          <input type="range" class="form-range" min="10" max="50" step="5"
+                 [(ngModel)]="maxShifts" (change)="onMaxShiftsChange()" style="width:120px;">
+          <span class="ctrl-value">{{ maxShifts }}</span>
+        </div>
+      </div>
+
+      <!-- Position tabs -->
+      <div class="ctrl-group">
+        <label class="ctrl-label">Position</label>
+        <div class="btn-group btn-group-sm">
+          <button class="btn" [class.btn-primary]="selectedPos===1"
+                  [class.btn-outline-secondary]="selectedPos!==1"
+                  (click)="selectedPos=1; onPosChange()">Tvättplats</button>
+          <button class="btn" [class.btn-primary]="selectedPos===2"
+                  [class.btn-outline-secondary]="selectedPos!==2"
+                  (click)="selectedPos=2; onPosChange()">Kontrollstation</button>
+          <button class="btn" [class.btn-primary]="selectedPos===3"
+                  [class.btn-outline-secondary]="selectedPos!==3"
+                  (click)="selectedPos=3; onPosChange()">Truckförare</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary"></div>
+    <p class="mt-2" style="color:#a0aec0;">Laddar inlärningsdata…</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- Operator toggle chips -->
+    <div class="card-dark mb-4">
+      <div class="section-label mb-2">
+        Välj operatörer för diagram (max 8)
+        <span class="text-muted ms-2" style="font-size:0.75rem;">{{ posNames[selectedPos] }}</span>
+      </div>
+      <div class="op-chips">
+        <ng-container *ngFor="let op of opsForPos; let i = index">
+          <button class="op-chip"
+                  [class.selected]="selectedOps.has(op.op_num)"
+                  [style.--chip-color]="opColor(op.op_num)"
+                  (click)="toggleOp(op.op_num)">
+            {{ op.name }}
+          </button>
+        </ng-container>
+        <span *ngIf="opsForPos.length === 0" style="color:#718096;font-size:0.85rem;">
+          Inga operatörer med data för den här positionen.
+        </span>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card-dark mb-4" *ngIf="selectedOps.size > 0">
+      <div class="section-label mb-3">
+        Inlärningskurva — IBC/h (3-skifts glidande snitt) vs teamsnitt
+      </div>
+      <div style="position:relative;height:320px;">
+        <canvas #chartCanvas></canvas>
+      </div>
+      <p class="chart-hint">Streckad linje = teamsnitt för {{ posNames[selectedPos] }} ({{ teamAvg[selectedPos] | number:'1.1-1' }} IBC/h)</p>
+    </div>
+
+    <!-- Summary table -->
+    <div class="card-dark">
+      <div class="section-label mb-3">Sammanfattning — {{ posNames[selectedPos] }}</div>
+      <div class="table-responsive">
+        <table class="table table-dark table-sm table-hover">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="text-end">Antal skift</th>
+              <th class="text-end">Nuv. snitt</th>
+              <th class="text-end">vs teamsnitt</th>
+              <th class="text-center">Nådde teamsnitt</th>
+              <th class="text-center">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of tableRows">
+              <td>
+                <a [routerLink]="['/rebotling/operator', row.op_num]" class="op-link">{{ row.name }}</a>
+              </td>
+              <td class="text-end">{{ row.total_shifts }}</td>
+              <td class="text-end">
+                <span [class]="'ibc-val ' + vsAvgClass(row)">{{ row.current_rolling | number:'1.1-1' }}</span>
+              </td>
+              <td class="text-end">
+                <ng-container *ngIf="row.team_avg > 0">
+                  <span [class]="'pct-badge ' + vsAvgClass(row)">
+                    {{ ((row.current_rolling / row.team_avg) * 100 - 100) | number:'1.0-0' }}%
+                  </span>
+                </ng-container>
+              </td>
+              <td class="text-center">
+                <span *ngIf="row.reached_avg_at !== null" class="reached-yes">
+                  ✓ {{ reachedLabel(row) }}
+                </span>
+                <span *ngIf="row.reached_avg_at === null" class="reached-no">
+                  Ej nått
+                </span>
+              </td>
+              <td class="text-center">
+                <span [class]="trendClass(row.trend)">{{ trendIcon(row.trend) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-hint">
+        Trend jämför första tredjedelens medel-IBC/h mot sista tredjedelens — ↑ = förbättring ≥8%, ↓ = försämring ≥8%.
+      </p>
+    </div>
+
+  </ng-container>
+
+</div>
