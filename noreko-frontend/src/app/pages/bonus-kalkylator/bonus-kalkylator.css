@@ -1,0 +1,34 @@
+/* Tier badges */
+.badge-elite     { background-color: #68d391; color: #1a202c; }
+.badge-solid     { background-color: #63b3ed; color: #1a202c; }
+.badge-developing { background-color: #f6ad55; color: #1a202c; }
+.badge-behoever  { background-color: #fc8181; color: #1a202c; }
+
+/* Level badges */
+.badge-level-a    { background-color: #68d391; color: #1a202c; }
+.badge-level-b    { background-color: #63b3ed; color: #1a202c; }
+.badge-level-c    { background-color: #f6ad55; color: #1a202c; }
+.badge-level-ingen { background-color: #4a5568; color: #e2e8f0; }
+
+.budget-card {
+  border-color: #48bb78 !important;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  body { background: white !important; color: black !important; }
+  .card { border: 1px solid #ccc !important; background: white !important; }
+  .table-dark { --bs-table-bg: white; color: black; }
+  .table-dark th { color: black !important; }
+  .table-dark td { color: black !important; }
+  .text-muted { color: #555 !important; }
+  .text-success { color: #276749 !important; }
+  .fw-semibold, .fw-bold { color: black !important; }
+}
+
+@media screen {
+  .print-only { display: none; }
+}

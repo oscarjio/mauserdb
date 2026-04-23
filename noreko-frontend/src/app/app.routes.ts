@@ -145,6 +145,7 @@ export const routes: Routes = [
       { path: 'rebotling/operator-performance-map', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-performance-map/operator-performance-map').then(m => m.OperatorPerformanceMapPage) },
       { path: 'rebotling/operator-aktivitet', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-aktivitet/operator-aktivitet').then(m => m.OperatorAktivitetPage) },
       { path: 'rebotling/operator-compare', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-compare/operator-compare').then(m => m.OperatorComparePage) },
+      { path: 'rebotling/bonus-kalkylator', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-kalkylator/bonus-kalkylator').then(m => m.BonusKalkylatorPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

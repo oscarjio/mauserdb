@@ -1,0 +1,218 @@
+<div class="container-fluid py-3">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4 class="mb-0 text-warning">
+      <i class="fas fa-calculator me-2"></i>Bonuskalkylator
+    </h4>
+    <button class="btn btn-outline-light btn-sm" (click)="print()">
+      <i class="fas fa-print me-1"></i>Skriv ut
+    </button>
+  </div>
+
+  <!-- Print header (only visible when printing) -->
+  <div class="print-only mb-3">
+    <h4 class="text-dark">Bonusrekommendation — {{ fromDate }} – {{ toDate }}</h4>
+  </div>
+
+  <!-- Controls -->
+  <div class="card mb-3 no-print">
+    <div class="card-body py-2">
+      <div class="row align-items-end g-2">
+        <div class="col-12 col-md-auto">
+          <label class="form-label small mb-1">Från</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="fromDate">
+        </div>
+        <div class="col-12 col-md-auto">
+          <label class="form-label small mb-1">Till</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="toDate">
+        </div>
+        <div class="col-12 col-md-auto">
+          <button class="btn btn-primary btn-sm w-100" (click)="load()" [disabled]="isFetching">
+            <i class="fas fa-sync me-1" [class.fa-spin]="isFetching"></i>Hämta
+          </button>
+        </div>
+        <div class="col-12 col-md-auto">
+          <div class="btn-group btn-group-sm w-100">
+            <button class="btn btn-outline-secondary" (click)="setPreset('denna')">Denna månad</button>
+            <button class="btn btn-outline-secondary" (click)="setPreset('forra')">Förra månaden</button>
+            <button class="btn btn-outline-secondary" (click)="setPreset('kvartal')">Detta kvartal</button>
+          </div>
+        </div>
+        <div class="col-12 col-md-auto ms-md-auto">
+          <button class="btn btn-outline-warning btn-sm w-100" (click)="showSettings = !showSettings">
+            <i class="fas fa-cog me-1"></i>Bonusnivåer
+          </button>
+        </div>
+      </div>
+
+      <!-- Bonus settings panel -->
+      <div class="mt-3" *ngIf="showSettings">
+        <hr class="border-secondary my-2">
+        <p class="small text-muted mb-2">Ange bonus i SEK per nivå. Sparas lokalt i webbläsaren.</p>
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-sm-auto">
+            <label class="form-label small mb-1">
+              <span class="badge badge-level-a me-1">A</span> Elite (≥+15%)
+            </label>
+            <div class="input-group input-group-sm" style="width:140px">
+              <input type="number" class="form-control" [(ngModel)]="bonusA" min="0">
+              <span class="input-group-text">kr</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <label class="form-label small mb-1">
+              <span class="badge badge-level-b me-1">B</span> Solid (+5% – +15%)
+            </label>
+            <div class="input-group input-group-sm" style="width:140px">
+              <input type="number" class="form-control" [(ngModel)]="bonusB" min="0">
+              <span class="input-group-text">kr</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <label class="form-label small mb-1">
+              <span class="badge badge-level-c me-1">C</span> Solid (0% – +5%)
+            </label>
+            <div class="input-group input-group-sm" style="width:140px">
+              <input type="number" class="form-control" [(ngModel)]="bonusC" min="0">
+              <span class="input-group-text">kr</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <button class="btn btn-success btn-sm" (click)="saveSettings()">
+              <i class="fas fa-save me-1"></i>Spara &amp; uppdatera
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <!-- Loading spinner -->
+  <div class="text-center py-5" *ngIf="isFetching && !data">
+    <div class="spinner-border text-warning"></div>
+    <div class="mt-2 text-muted small">Hämtar bonusdata...</div>
+  </div>
+
+  <ng-container *ngIf="data">
+
+    <!-- Summary cards -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-2">
+            <div class="fs-2 fw-bold" style="color:#68d391">{{ data.summary.elite }}</div>
+            <div class="small fw-semibold" style="color:#68d391">Elite</div>
+            <div class="small text-muted">Nivå A — {{ bonusA | number:'1.0-0' }} kr</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-2">
+            <div class="fs-2 fw-bold" style="color:#63b3ed">{{ data.summary.solid }}</div>
+            <div class="small fw-semibold" style="color:#63b3ed">Solid</div>
+            <div class="small text-muted">Nivå B/C</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-2">
+            <div class="fs-2 fw-bold" style="color:#f6ad55">{{ data.summary.developing + data.summary.behoever_stod }}</div>
+            <div class="small fw-semibold" style="color:#f6ad55">Under snitt</div>
+            <div class="small text-muted">Ingen bonus</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center budget-card">
+          <div class="card-body py-2">
+            <div class="fs-2 fw-bold text-success">{{ getTotalBudget() | number:'1.0-0' }} kr</div>
+            <div class="small text-muted fw-semibold">Total bonusbudget</div>
+            <div class="small text-muted">{{ data.operators.length }} operatörer</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table meta + copy -->
+    <div class="d-flex justify-content-between align-items-center mb-2 no-print">
+      <small class="text-muted">
+        Period: {{ data.from }} – {{ data.to }} &nbsp;|&nbsp;
+        Teamsnitt: {{ data.team_avg_ibc_h }} IBC/h &nbsp;|&nbsp;
+        {{ data.total_shifts }} skift
+      </small>
+      <button class="btn btn-outline-secondary btn-sm" (click)="copyCSV()">
+        <i class="fas fa-copy me-1"></i>Kopiera CSV
+      </button>
+    </div>
+
+    <!-- Main table -->
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="text-center">Skift</th>
+              <th class="text-center">IBC/h</th>
+              <th class="text-center">Vs snitt</th>
+              <th class="text-center">Tier</th>
+              <th class="text-center">Bonusnivå</th>
+              <th class="text-end">Belopp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of data.operators">
+              <td class="fw-semibold">{{ op.name }}</td>
+              <td class="text-center text-muted small">{{ op.total_shifts }}</td>
+              <td class="text-center fw-semibold">{{ op.ibc_per_h }}</td>
+              <td class="text-center">
+                <span [class]="'badge ' + tierClass(op.tier)">
+                  {{ op.vs_team_pct >= 0 ? '+' : '' }}{{ op.vs_team_pct }}%
+                </span>
+              </td>
+              <td class="text-center">
+                <span [class]="'badge ' + tierClass(op.tier)">{{ op.tier }}</span>
+              </td>
+              <td class="text-center">
+                <span [class]="'badge ' + levelClass(op.bonus_level)">{{ op.bonus_level }}</span>
+              </td>
+              <td class="text-end fw-bold">
+                <span [class]="getBonusAmount(op.bonus_level) > 0 ? 'text-success' : 'text-muted'">
+                  {{ getBonusAmount(op.bonus_level) | number:'1.0-0' }} kr
+                </span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="fw-bold border-top border-secondary">
+              <td>TOTALT</td>
+              <td class="text-center text-muted">{{ data.total_shifts }}</td>
+              <td class="text-center">{{ data.team_avg_ibc_h }}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td class="text-end text-success">{{ getTotalBudget() | number:'1.0-0' }} kr</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bonus legend (print) -->
+    <div class="mt-3 print-only">
+      <small>
+        Nivå A = {{ bonusA | number:'1.0-0' }} kr (Elite, ≥+15%) &nbsp;|&nbsp;
+        Nivå B = {{ bonusB | number:'1.0-0' }} kr (Solid, +5–+15%) &nbsp;|&nbsp;
+        Nivå C = {{ bonusC | number:'1.0-0' }} kr (Solid, 0–+5%) &nbsp;|&nbsp;
+        Ingen = 0 kr (under teamsnitt)
+      </small>
+    </div>
+
+  </ng-container>
+</div>

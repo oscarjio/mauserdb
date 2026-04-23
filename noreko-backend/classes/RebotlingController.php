@@ -242,6 +242,8 @@ class RebotlingController {
                 $this->getOperatorAktivitet();
             } elseif ($action === 'operator-compare') {
                 $this->getOperatorCompare();
+            } elseif ($action === 'bonus-kalkylator') {
+                $this->getBonusKalkylator();
             } else {
                 $this->getLiveStats();
             }
@@ -5322,6 +5324,114 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorCompare: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsjämförelse'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getBonusKalkylator(): void
+    {
+        try {
+            $pdo  = $this->pdo;
+            $from = $_GET['from'] ?? date('Y-m-01');
+            $to   = $_GET['to']   ?? date('Y-m-t');
+
+            // Unique shifts in period
+            $stmt = $pdo->prepare(
+                "SELECT skiftraknare,
+                        MAX(datum) as datum,
+                        MAX(op1) as op1,
+                        MAX(op2) as op2,
+                        MAX(op3) as op3,
+                        MAX(COALESCE(ibc_ok,0)) as ibc_ok,
+                        MAX(COALESCE(drifttid,0)) as drifttid
+                 FROM rebotling_skiftrapport
+                 WHERE datum BETWEEN :from AND :to
+                 GROUP BY skiftraknare"
+            );
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Active operators
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // Team totals + per-operator aggregation
+            $teamIbc = 0;
+            $teamMin = 0;
+            $perOp   = [];
+
+            foreach ($shifts as $s) {
+                $ibc = (int)$s['ibc_ok'];
+                $min = (int)$s['drifttid'];
+                if ($min <= 0) continue;
+
+                $teamIbc += $ibc;
+                $teamMin += $min;
+
+                $seenInShift = [];
+                foreach (['op1', 'op2', 'op3'] as $p) {
+                    $opNum = (int)$s[$p];
+                    if ($opNum <= 0 || isset($seenInShift[$opNum])) continue;
+                    $seenInShift[$opNum] = true;
+
+                    if (!isset($perOp[$opNum])) {
+                        $perOp[$opNum] = ['ibc' => 0, 'min' => 0, 'shifts' => 0, 'dates' => []];
+                    }
+                    $perOp[$opNum]['ibc']    += $ibc;
+                    $perOp[$opNum]['min']    += $min;
+                    $perOp[$opNum]['shifts'] += 1;
+                    $perOp[$opNum]['dates'][$s['datum']] = true;
+                }
+            }
+
+            $teamAvg = $teamMin > 0 ? $teamIbc / ($teamMin / 60.0) : 0;
+            $summary = ['elite' => 0, 'solid' => 0, 'developing' => 0, 'behoever_stod' => 0];
+            $result  = [];
+
+            foreach ($perOp as $opNum => $d) {
+                if ($d['shifts'] < 3) continue;
+
+                $ibcH   = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 1) : 0;
+                $vsTeam = $teamAvg > 0 ? round(($ibcH / $teamAvg - 1) * 100, 1) : 0;
+
+                if ($vsTeam >= 15)       { $tier = 'Elite';        $level = 'A'; $sk = 'elite'; }
+                elseif ($vsTeam >= 5)    { $tier = 'Solid';        $level = 'B'; $sk = 'solid'; }
+                elseif ($vsTeam >= 0)    { $tier = 'Solid';        $level = 'C'; $sk = 'solid'; }
+                elseif ($vsTeam >= -15)  { $tier = 'Developing';   $level = 'Ingen'; $sk = 'developing'; }
+                else                     { $tier = 'Behöver stöd'; $level = 'Ingen'; $sk = 'behoever_stod'; }
+
+                $summary[$sk]++;
+
+                $result[] = [
+                    'number'       => $opNum,
+                    'name'         => $opNames[$opNum] ?? "Op $opNum",
+                    'total_shifts' => $d['shifts'],
+                    'active_days'  => count($d['dates']),
+                    'ibc_per_h'    => $ibcH,
+                    'vs_team_pct'  => $vsTeam,
+                    'tier'         => $tier,
+                    'bonus_level'  => $level,
+                ];
+            }
+
+            usort($result, fn($a, $b) => $b['vs_team_pct'] <=> $a['vs_team_pct']);
+
+            echo json_encode([
+                'success'        => true,
+                'from'           => $from,
+                'to'             => $to,
+                'team_avg_ibc_h' => round($teamAvg, 1),
+                'total_shifts'   => count($shifts),
+                'operators'      => $result,
+                'summary'        => $summary,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getBonusKalkylator: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid bonuskalkylator'], JSON_UNESCAPED_UNICODE);
         }
     }
 
