@@ -234,6 +234,8 @@ class RebotlingController {
                 $this->getOperatorTrendHeatmap();
             } elseif ($action === 'operator-monthly-report') {
                 $this->getOperatorMonthlyReport();
+            } elseif ($action === 'operator-kvartal') {
+                $this->getOperatorKvartalReport();
             } else {
                 $this->getLiveStats();
             }
@@ -4665,6 +4667,193 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorMonthlyReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid månadsrapport'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=operator-kvartal&quarter=2026Q2
+    private function getOperatorKvartalReport(): void {
+        try {
+            // Parse quarter param: "2026Q2"
+            $qParam = $_GET['quarter'] ?? '';
+            if (!preg_match('/^(\d{4})Q([1-4])$/', $qParam, $m)) {
+                // Default to current quarter
+                $year = (int)date('Y');
+                $qNum = (int)ceil((int)date('n') / 3);
+            } else {
+                $year = (int)$m[1];
+                $qNum = (int)$m[2];
+            }
+
+            $quarterBounds = [
+                1 => ['start' => '01-01', 'end' => '03-31', 'months' => [1,2,3]],
+                2 => ['start' => '04-01', 'end' => '06-30', 'months' => [4,5,6]],
+                3 => ['start' => '07-01', 'end' => '09-30', 'months' => [7,8,9]],
+                4 => ['start' => '10-01', 'end' => '12-31', 'months' => [10,11,12]],
+            ];
+
+            $bounds  = $quarterBounds[$qNum];
+            $from    = "{$year}-{$bounds['start']}";
+            $to      = "{$year}-{$bounds['end']}";
+            $months  = $bounds['months'];
+
+            // All active operators
+            $opRows = $this->db->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+            $operatorNames = [];
+            foreach ($opRows as $r) {
+                $operatorNames[(int)$r['number']] = $r['name'];
+            }
+
+            // All shifts in quarter (one row per skiftraknare via MAX/GROUP BY)
+            $stmt = $this->db->prepare("
+                SELECT
+                    MAX(op1)      AS op1,
+                    MAX(op2)      AS op2,
+                    MAX(op3)      AS op3,
+                    MAX(ibc_ok)   AS ibc_ok,
+                    MAX(drifttid) AS drifttid,
+                    datum
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team totals (for overall team avg IBC/h)
+            $teamTotalIbc = 0;
+            $teamTotalMin = 0;
+            foreach ($shifts as $s) {
+                $teamTotalIbc += max(0, (int)$s['ibc_ok']);
+                $teamTotalMin += max(0, (int)$s['drifttid']);
+            }
+            $teamAvgIbcH = $teamTotalMin > 0
+                ? round($teamTotalIbc / ($teamTotalMin / 60.0), 2)
+                : null;
+
+            // Build per-operator per-month data
+            // $opData[opNum][mo] = ['ibc'=>int, 'min'=>int, 'skift'=>int]
+            $opData = [];
+            foreach ($shifts as $s) {
+                $mo  = (int)date('n', strtotime($s['datum']));
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+                    if (!isset($opData[$opNum][$mo])) {
+                        $opData[$opNum][$mo] = ['ibc' => 0, 'min' => 0, 'skift' => 0];
+                    }
+                    $opData[$opNum][$mo]['ibc']   += $ibc;
+                    $opData[$opNum][$mo]['min']   += $min;
+                    $opData[$opNum][$mo]['skift'] += 1;
+                }
+            }
+
+            $results = [];
+            foreach ($opData as $opNum => $moData) {
+                $totalIbc   = 0;
+                $totalMin   = 0;
+                $totalSkift = 0;
+                $monthBreakdown = [];
+
+                foreach ($months as $mo) {
+                    if (isset($moData[$mo])) {
+                        $d = $moData[$mo];
+                        $ibcH = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 2) : null;
+                        $monthBreakdown[$mo] = ['ibc_per_h' => $ibcH, 'skift' => $d['skift']];
+                        $totalIbc   += $d['ibc'];
+                        $totalMin   += $d['min'];
+                        $totalSkift += $d['skift'];
+                    } else {
+                        $monthBreakdown[$mo] = ['ibc_per_h' => null, 'skift' => 0];
+                    }
+                }
+
+                if ($totalSkift < 3) continue;
+
+                $ibcPerH = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 2) : null;
+                $vsTeam  = ($ibcPerH !== null && $teamAvgIbcH !== null && $teamAvgIbcH > 0)
+                    ? round($ibcPerH / $teamAvgIbcH * 100, 1)
+                    : null;
+
+                $tier = null;
+                if ($vsTeam !== null) {
+                    if ($vsTeam >= 115)     $tier = 'Elite';
+                    elseif ($vsTeam >= 100) $tier = 'Solid';
+                    elseif ($vsTeam >= 85)  $tier = 'Developing';
+                    else                    $tier = 'Behöver stöd';
+                }
+
+                // Trend: compare last vs first month of quarter
+                $m1val = $monthBreakdown[$months[0]]['ibc_per_h'];
+                $m3val = $monthBreakdown[$months[2]]['ibc_per_h'];
+                $trend = null;
+                if ($m1val !== null && $m3val !== null && $m1val > 0) {
+                    $delta = ($m3val - $m1val) / $m1val * 100;
+                    if ($delta >= 5)      $trend = 'improving';
+                    elseif ($delta <= -5) $trend = 'declining';
+                    else                  $trend = 'stable';
+                } elseif ($m1val === null && $m3val !== null) {
+                    $trend = 'improving';
+                } elseif ($m1val !== null && $m3val === null) {
+                    $trend = 'declining';
+                }
+
+                $bonus = match ($tier) {
+                    'Elite'        => 'Bonusnivå A',
+                    'Solid'        => 'Bonusnivå B',
+                    'Developing'   => 'Bonusnivå C',
+                    'Behöver stöd' => 'Ingen bonus',
+                    default        => null,
+                };
+
+                $results[] = [
+                    'number'          => $opNum,
+                    'name'            => $operatorNames[$opNum],
+                    'antal_skift'     => $totalSkift,
+                    'ibc_per_h'       => $ibcPerH,
+                    'vs_team_pct'     => $vsTeam,
+                    'tier'            => $tier,
+                    'trend'           => $trend,
+                    'bonus'           => $bonus,
+                    'month_breakdown' => $monthBreakdown,
+                ];
+            }
+
+            usort($results, fn($a, $b) => ($b['ibc_per_h'] ?? 0) <=> ($a['ibc_per_h'] ?? 0));
+
+            // Summary
+            $allIbcH = array_filter(array_column($results, 'ibc_per_h'));
+            $summary = [
+                'antal_operatorer' => count($results),
+                'team_avg_ibc_h'   => $teamAvgIbcH,
+                'top_performer'    => count($results) > 0 ? $results[0]['name'] : null,
+                'total_skift'      => array_sum(array_column($results, 'antal_skift')),
+            ];
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'quarter'        => "Q{$qNum} {$year}",
+                    'quarter_code'   => "{$year}Q{$qNum}",
+                    'months'         => $months,
+                    'from'           => $from,
+                    'to'             => $to,
+                    'operators'      => $results,
+                    'team_avg_ibc_h' => $teamAvgIbcH,
+                    'summary'        => $summary,
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorKvartalReport: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kvartalsutvärdering'], JSON_UNESCAPED_UNICODE);
         }
     }
 

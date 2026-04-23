@@ -1,0 +1,207 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <h2 class="mb-0" style="color:#e2e8f0;">
+        <i class="fas fa-award me-2" style="color:#f6ad55;"></i>Kvartalsutvärdering
+      </h2>
+      <div class="text-muted small mt-1">Operatörsprestanda per kvartal — bonusunderlag</div>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <select class="form-select form-select-sm" style="width:auto;background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+              [(ngModel)]="selectedQuarter" (ngModelChange)="load()">
+        <option *ngFor="let q of availableQuarters" [value]="q">{{ q.replace('Q', ' Q') }}</option>
+      </select>
+      <div class="btn-group btn-group-sm" role="group">
+        <button class="btn btn-outline-secondary" [class.active]="sortBy==='ibc_per_h'"
+                (click)="sortBy='ibc_per_h'">IBC/h</button>
+        <button class="btn btn-outline-secondary" [class.active]="sortBy==='antal_skift'"
+                (click)="sortBy='antal_skift'">Skift</button>
+        <button class="btn btn-outline-secondary" [class.active]="sortBy==='name'"
+                (click)="sortBy='name'">Namn</button>
+      </div>
+      <button class="btn btn-sm btn-outline-light" (click)="printPage()">
+        <i class="fas fa-print me-1"></i>Skriv ut
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <div class="text-muted mt-2">Hämtar kvartalsutvärdering…</div>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <div *ngIf="!loading && !error && summary">
+
+    <!-- Summary badges -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:#2d3748;border-color:#4a5568;">
+          <div class="card-body text-center p-3">
+            <div class="text-muted small mb-1">Teamsnitt</div>
+            <div class="fw-bold" style="font-size:1.6rem;color:#63b3ed;">
+              {{ summary.team_avg_ibc_h !== null ? (summary.team_avg_ibc_h | number:'1.1-1') : '—' }}
+            </div>
+            <div class="text-muted small">IBC/h</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:#2d3748;border-color:#4a5568;">
+          <div class="card-body text-center p-3">
+            <div class="text-muted small mb-1">Toppoperatör</div>
+            <div class="fw-bold" style="font-size:1.1rem;color:#68d391;">
+              {{ summary.top_performer ?? '—' }}
+            </div>
+            <div class="text-muted small">{{ quarterLabel }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:#2d3748;border-color:#4a5568;">
+          <div class="card-body text-center p-3">
+            <div class="text-muted small mb-1">Operatörer</div>
+            <div class="fw-bold" style="font-size:1.6rem;color:#e2e8f0;">{{ summary.antal_operatorer }}</div>
+            <div class="text-muted small">aktiva detta kvartal</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:#2d3748;border-color:#4a5568;">
+          <div class="card-body text-center p-3">
+            <div class="text-muted small mb-1">Totalt skift</div>
+            <div class="fw-bold" style="font-size:1.6rem;color:#e2e8f0;">{{ summary.total_skift }}</div>
+            <div class="text-muted small">kvartalet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier summary strip -->
+    <div class="d-flex gap-2 flex-wrap mb-4">
+      <span class="badge fs-6 px-3 py-2" style="background:rgba(104,211,145,0.2);color:#68d391;border:1px solid #68d391;">
+        Elite <span class="ms-1 fw-bold">{{ tierCounts['Elite'] }}</span>
+      </span>
+      <span class="badge fs-6 px-3 py-2" style="background:rgba(99,179,237,0.2);color:#63b3ed;border:1px solid #63b3ed;">
+        Solid <span class="ms-1 fw-bold">{{ tierCounts['Solid'] }}</span>
+      </span>
+      <span class="badge fs-6 px-3 py-2" style="background:rgba(246,173,85,0.2);color:#f6ad55;border:1px solid #f6ad55;">
+        Developing <span class="ms-1 fw-bold">{{ tierCounts['Developing'] }}</span>
+      </span>
+      <span class="badge fs-6 px-3 py-2" style="background:rgba(252,129,129,0.2);color:#fc8181;border:1px solid #fc8181;">
+        Behöver stöd <span class="ms-1 fw-bold">{{ tierCounts['Behöver stöd'] }}</span>
+      </span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="table table-dark table-hover align-middle mb-0 kvartal-table">
+        <thead>
+          <tr style="border-bottom:2px solid #4a5568;color:#a0aec0;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">
+            <th class="text-center" style="width:2.5rem;">#</th>
+            <th>Operatör</th>
+            <th class="text-center" *ngFor="let mo of months">{{ monthNames[mo] }}</th>
+            <th class="text-center">Kvartal<br><span style="font-size:0.7rem;">IBC/h</span></th>
+            <th class="text-center">vs. team</th>
+            <th class="text-center">Tier</th>
+            <th class="text-center">Trend</th>
+            <th class="text-center">Skift</th>
+            <th class="text-center">Bonusrek.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of sortedOperators; let i = index; trackBy: trackByNum">
+            <td class="text-center text-muted small">{{ i + 1 }}</td>
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]"
+                 style="color:#e2e8f0;text-decoration:none;font-weight:500;">
+                {{ op.name }}
+              </a>
+            </td>
+            <!-- Month cells -->
+            <td class="text-center" *ngFor="let mo of months">
+              <ng-container [ngTemplateOutlet]="monthCellTpl"
+                            [ngTemplateOutletContext]="{cell: monthCell(op, mo)}"></ng-container>
+            </td>
+            <!-- Quarterly IBC/h -->
+            <td class="text-center fw-bold" style="color:#e2e8f0;font-size:1.0rem;">
+              {{ op.ibc_per_h !== null ? (op.ibc_per_h | number:'1.1-1') : '—' }}
+            </td>
+            <!-- vs team -->
+            <td class="text-center">
+              <span *ngIf="op.vs_team_pct !== null"
+                    [style.color]="op.vs_team_pct >= 100 ? '#68d391' : (op.vs_team_pct >= 85 ? '#f6ad55' : '#fc8181')"
+                    class="fw-bold">
+                {{ op.vs_team_pct >= 100 ? '+' : '' }}{{ (op.vs_team_pct - 100) | number:'1.0-0' }}%
+              </span>
+              <span *ngIf="op.vs_team_pct === null" class="text-muted">—</span>
+            </td>
+            <!-- Tier -->
+            <td class="text-center">
+              <span *ngIf="op.tier" class="badge px-2 py-1"
+                    [style.background]="'rgba(0,0,0,0.3)'"
+                    [style.color]="tierColors[op.tier]"
+                    [style.border]="'1px solid ' + tierColors[op.tier]"
+                    style="font-size:0.72rem;white-space:nowrap;">
+                {{ op.tier }}
+              </span>
+              <span *ngIf="!op.tier" class="text-muted">—</span>
+            </td>
+            <!-- Trend -->
+            <td class="text-center fs-5" [class]="trendClass(op.trend)">
+              {{ trendIcon(op.trend) }}
+            </td>
+            <!-- Skift count -->
+            <td class="text-center text-muted small">{{ op.antal_skift }}</td>
+            <!-- Bonus -->
+            <td class="text-center">
+              <span *ngIf="op.bonus" class="badge px-2 py-1"
+                    [style.background]="'rgba(0,0,0,0.3)'"
+                    [style.color]="bonusColors[op.bonus]"
+                    [style.border]="'1px solid ' + bonusColors[op.bonus]"
+                    style="font-size:0.72rem;white-space:nowrap;">
+                {{ op.bonus }}
+              </span>
+              <span *ngIf="!op.bonus" class="text-muted">—</span>
+            </td>
+          </tr>
+          <!-- Team avg row -->
+          <tr *ngIf="teamAvgIbcH" style="border-top:2px solid #4a5568;background:rgba(99,179,237,0.07);">
+            <td></td>
+            <td class="text-muted small fw-bold">Teamsnitt</td>
+            <td [attr.colspan]="months.length"></td>
+            <td class="text-center fw-bold" style="color:#63b3ed;">
+              {{ teamAvgIbcH | number:'1.1-1' }}
+            </td>
+            <td class="text-center text-muted small">100%</td>
+            <td colspan="4"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-4 d-flex gap-4 flex-wrap" style="font-size:0.8rem;color:#718096;">
+      <span><span style="color:#68d391;">↑</span> Förbättring ≥5% (M1→M3)</span>
+      <span><span style="color:#a0aec0;">→</span> Stabil (±5%)</span>
+      <span><span style="color:#fc8181;">↓</span> Nedgång ≥5%</span>
+      <span>· vs. team = operatörens IBC/h vs. teamets snitt</span>
+    </div>
+
+  </div><!-- end !loading -->
+
+</div>
+
+<!-- Month cell template -->
+<ng-template #monthCellTpl let-cell="cell">
+  <div *ngIf="cell.skift > 0">
+    <div class="fw-semibold" style="color:#e2e8f0;font-size:0.9rem;">
+      {{ cell.ibc_per_h !== null ? (cell.ibc_per_h | number:'1.1-1') : '—' }}
+    </div>
+    <div style="font-size:0.68rem;color:#718096;">{{ cell.skift }} skift</div>
+  </div>
+  <div *ngIf="cell.skift === 0" class="text-muted" style="font-size:0.8rem;">—</div>
+</ng-template>

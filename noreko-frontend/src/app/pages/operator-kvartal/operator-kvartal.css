@@ -1,0 +1,37 @@
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #4a5568;
+}
+
+.kvartal-table {
+  min-width: 700px;
+  background: #2d3748;
+  margin-bottom: 0;
+}
+
+.kvartal-table thead th {
+  background: #1a202c;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.kvartal-table tbody tr {
+  border-bottom: 1px solid #2d3748;
+}
+
+.kvartal-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.trend-up    { color: #68d391; }
+.trend-stable { color: #718096; }
+.trend-down  { color: #fc8181; }
+
+@media print {
+  .btn, select, .d-flex.gap-2 { display: none !important; }
+  .kvartal-table { font-size: 0.8rem; }
+  body { background: #fff !important; color: #000 !important; }
+  .card { border: 1px solid #ccc !important; background: #fff !important; }
+  h2, .text-muted, td, th { color: #000 !important; }
+}
