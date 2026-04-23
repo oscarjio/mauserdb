@@ -1,0 +1,127 @@
+.heatmap-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  min-width: 600px;
+  width: 100%;
+}
+
+.heatmap-table thead th {
+  background: #2d3748;
+  color: #a0aec0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+.op-name-col {
+  text-align: left !important;
+  min-width: 130px;
+  padding-left: 8px !important;
+}
+
+.week-col {
+  width: 52px;
+}
+
+.trend-col {
+  min-width: 60px;
+  text-align: center;
+}
+
+.op-name-cell {
+  background: #2d3748;
+  padding: 6px 8px;
+  white-space: nowrap;
+  border-radius: 4px;
+}
+
+.op-link {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.op-link:hover {
+  color: #f6ad55;
+  text-decoration: underline;
+}
+
+.heat-cell {
+  width: 52px;
+  height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 3px;
+  cursor: default;
+  transition: filter 0.15s;
+}
+
+.heat-cell:hover {
+  filter: brightness(1.25);
+}
+
+.cell-val {
+  font-size: 0.7rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  display: block;
+  line-height: 1;
+}
+
+.trend-cell {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  background: #2d3748;
+  border-radius: 4px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.separator-row td {
+  height: 6px;
+  background: transparent !important;
+}
+
+.team-avg-row .op-name-cell {
+  background: #1a2535;
+}
+
+.team-cell {
+  border-top: 1px solid #4a5568;
+}
+
+/* Legend chips */
+.legend-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Tooltip */
+.heat-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  max-width: 340px;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px #00000055;
+}

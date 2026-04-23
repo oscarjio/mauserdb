@@ -1,0 +1,116 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="fas fa-th me-2 text-warning"></i>Prestanda-trendkarta
+      </h4>
+      <small class="text-secondary" *ngIf="period">
+        {{ period.from }} — {{ period.to }}
+      </small>
+    </div>
+
+    <!-- Weeks selector -->
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-secondary small">Veckor:</span>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let w of weekOptions"
+          class="btn"
+          [class.btn-warning]="weeks === w"
+          [class.btn-outline-secondary]="weeks !== w"
+          (click)="weeks = w; fetchData()">
+          {{ w }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+    <span class="text-secondary small">Färgskala vs teamsnitt:</span>
+    <span class="legend-chip" style="background:#276749">≥+25%</span>
+    <span class="legend-chip" style="background:#38a169">+12%</span>
+    <span class="legend-chip" style="background:#48bb7877">+4%</span>
+    <span class="legend-chip" style="background:#4a5568">±4%</span>
+    <span class="legend-chip" style="background:#c0562188">−12%</span>
+    <span class="legend-chip" style="background:#c05621">−25%</span>
+    <span class="legend-chip" style="background:#9b2c2c">≤−25%</span>
+    <span class="legend-chip" style="background:#1a202c; border:1px solid #4a5568">Inga data</span>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <!-- Loading -->
+  <div class="text-center py-5" *ngIf="loading">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="text-secondary mt-2 small">Hämtar trenddata…</p>
+  </div>
+
+  <!-- Heatmap table -->
+  <div class="heatmap-wrapper" *ngIf="!loading && !error && operators.length > 0">
+    <table class="heatmap-table">
+      <thead>
+        <tr>
+          <th class="op-name-col">Operatör</th>
+          <th *ngFor="let wl of weekLabels" class="week-col">{{ wl }}</th>
+          <th class="trend-col">Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Operator rows -->
+        <tr *ngFor="let op of operators">
+          <td class="op-name-cell">
+            <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">
+              {{ op.name }}
+            </a>
+            <span class="text-secondary small d-block">{{ op.recent_avg | number:'1.1-1' }} IBC/h</span>
+          </td>
+          <td *ngFor="let cell of op.cells"
+              class="heat-cell"
+              [style.background]="cellBg(cell.vs_team_pct)"
+              (mouseenter)="showTooltip($event, cell, op.name)"
+              (mouseleave)="hideTooltip()">
+            <span *ngIf="cell.ibc_per_h !== null" class="cell-val">{{ cell.ibc_per_h | number:'1.1-1' }}</span>
+          </td>
+          <td class="trend-cell" [ngClass]="trendClass(op.trend_dir)">
+            {{ trendIcon(op.trend_dir) }}
+            <span class="small" *ngIf="op.trend_dir !== null">{{ op.trend_dir > 0 ? '+' : '' }}{{ op.trend_dir }}%</span>
+          </td>
+        </tr>
+
+        <!-- Separator -->
+        <tr class="separator-row">
+          <td [attr.colspan]="weekLabels.length + 2"></td>
+        </tr>
+
+        <!-- Team average row -->
+        <tr class="team-avg-row">
+          <td class="op-name-cell">
+            <span class="text-warning fw-bold">Teamsnitt</span>
+          </td>
+          <td *ngFor="let tc of teamAvgCells"
+              class="heat-cell team-cell"
+              [style.background]="teamBg(tc.ibc_per_h)">
+            <span *ngIf="tc.ibc_per_h !== null" class="cell-val text-warning">{{ tc.ibc_per_h | number:'1.1-1' }}</span>
+          </td>
+          <td class="trend-cell"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty state -->
+  <div class="text-center py-5 text-secondary" *ngIf="!loading && !error && operators.length === 0">
+    <i class="fas fa-th fa-3x mb-3 opacity-25"></i>
+    <p>Ingen data tillgänglig för vald period</p>
+  </div>
+
+</div>
+
+<!-- Tooltip -->
+<div class="heat-tooltip" *ngIf="tooltip.visible"
+     [style.left.px]="tooltip.x" [style.top.px]="tooltip.y">
+  {{ tooltip.text }}
+</div>

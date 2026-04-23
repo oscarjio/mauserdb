@@ -230,6 +230,8 @@ class RebotlingController {
                 $this->getShiftDna();
             } elseif ($action === 'operator-profile') {
                 $this->getOperatorProfile();
+            } elseif ($action === 'operator-trend-heatmap') {
+                $this->getOperatorTrendHeatmap();
             } else {
                 $this->getLiveStats();
             }
@@ -4300,6 +4302,180 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorProfile: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsprofil'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE 5: Operator Trend Heatmap ───────────────────────────────────
+
+    private function getOperatorTrendHeatmap(): void
+    {
+        try {
+            $weeks = min(24, max(4, (int)($_GET['weeks'] ?? 12)));
+
+            // Build week-start dates (ISO Mondays), oldest first
+            $weekStarts = [];
+            $monday = new \DateTime();
+            $dow = (int)$monday->format('N'); // 1=Mon … 7=Sun
+            $monday->modify('-' . ($dow - 1) . ' days');
+            $monday->modify('-' . ($weeks - 1) . ' weeks');
+            for ($i = 0; $i < $weeks; $i++) {
+                $weekStarts[] = $monday->format('Y-m-d');
+                $monday->modify('+1 week');
+            }
+
+            $from = $weekStarts[0];
+            $to   = date('Y-m-d');
+
+            // Active operators
+            $ops = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active=1 ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            // All shifts in period — group by operator + week Monday
+            $sql = "
+                SELECT op_nr,
+                       DATE(DATE_SUB(datum, INTERVAL (WEEKDAY(datum)) DAY)) AS week_monday,
+                       COUNT(*)       AS antal_skift,
+                       SUM(ibc_ok)    AS total_ibc,
+                       SUM(drifttid)  AS total_drifttid
+                FROM (
+                    SELECT op1 AS op_nr, datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    UNION ALL
+                    SELECT op2, datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    UNION ALL
+                    SELECT op3, datum, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                ) s
+                GROUP BY op_nr, week_monday
+                ORDER BY op_nr, week_monday
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Index by op_nr → week_monday
+            $byOp = [];
+            $teamByWeek = []; // week_monday => [ibc_per_h, ...]
+            foreach ($rows as $r) {
+                $num  = (int)$r['op_nr'];
+                $wm   = $r['week_monday'];
+                $d    = (int)$r['total_drifttid'];
+                $iph  = $d > 0 ? round((int)$r['total_ibc'] / ($d / 60.0), 1) : 0.0;
+                $byOp[$num][$wm] = [
+                    'ibc_per_h'   => $iph,
+                    'antal_skift' => (int)$r['antal_skift'],
+                ];
+                $teamByWeek[$wm][] = $iph;
+            }
+
+            // Team average IBC/h per week (across all operator slots)
+            $teamAvgByWeek = [];
+            foreach ($teamByWeek as $wm => $vals) {
+                $teamAvgByWeek[$wm] = count($vals) > 0
+                    ? round(array_sum($vals) / count($vals), 1)
+                    : null;
+            }
+
+            // Build operator rows
+            $opResults = [];
+            foreach ($ops as $op) {
+                $num = (int)$op['number'];
+                if (!isset($byOp[$num])) continue;
+
+                $cells   = [];
+                $vsVals  = [];
+                foreach ($weekStarts as $ws) {
+                    $cell = $byOp[$num][$ws] ?? null;
+                    if ($cell !== null) {
+                        $ta  = $teamAvgByWeek[$ws] ?? null;
+                        $pct = ($ta !== null && $ta > 0)
+                            ? round(($cell['ibc_per_h'] - $ta) / $ta * 100, 1)
+                            : null;
+                        $cells[] = [
+                            'week'        => $ws,
+                            'ibc_per_h'   => $cell['ibc_per_h'],
+                            'vs_team_pct' => $pct,
+                            'antal_skift' => $cell['antal_skift'],
+                        ];
+                        if ($pct !== null) $vsVals[] = $pct;
+                    } else {
+                        $cells[] = [
+                            'week'        => $ws,
+                            'ibc_per_h'   => null,
+                            'vs_team_pct' => null,
+                            'antal_skift' => 0,
+                        ];
+                    }
+                }
+
+                // Trend: avg(last 4 active weeks) − avg(first 4 active weeks)
+                $trendDir = null;
+                $recent4  = array_filter(
+                    array_slice(array_values(array_filter($vsVals, fn($v) => $v !== null)), -4),
+                    fn($v) => true
+                );
+                $early4   = array_slice(array_values(array_filter($vsVals, fn($v) => $v !== null)), 0, 4);
+                if (count($recent4) >= 2 && count($early4) >= 2) {
+                    $trendDir = round(
+                        array_sum($recent4) / count($recent4) -
+                        array_sum($early4)  / count($early4),
+                        1
+                    );
+                }
+
+                // Recent avg IBC/h for sorting
+                $recentCells = array_filter(
+                    array_slice($cells, -4),
+                    fn($c) => $c['ibc_per_h'] !== null
+                );
+                $recentAvg = count($recentCells) > 0
+                    ? array_sum(array_column($recentCells, 'ibc_per_h')) / count($recentCells)
+                    : -1;
+
+                $opResults[] = [
+                    'number'     => $num,
+                    'name'       => $op['name'],
+                    'cells'      => $cells,
+                    'trend_dir'  => $trendDir,
+                    'recent_avg' => round($recentAvg, 1),
+                ];
+            }
+
+            // Sort by recent avg IBC/h descending
+            usort($opResults, fn($a, $b) => $b['recent_avg'] <=> $a['recent_avg']);
+
+            // Team avg row
+            $teamAvgCells = [];
+            foreach ($weekStarts as $ws) {
+                $teamAvgCells[] = [
+                    'week'      => $ws,
+                    'ibc_per_h' => $teamAvgByWeek[$ws] ?? null,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data'    => [
+                    'weeks'          => $weekStarts,
+                    'operators'      => $opResults,
+                    'team_avg_cells' => $teamAvgCells,
+                    'period'         => ['from' => $from, 'to' => $to],
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorTrendHeatmap: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid trendkarta'], JSON_UNESCAPED_UNICODE);
         }
     }
 
