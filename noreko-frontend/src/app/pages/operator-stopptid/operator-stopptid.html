@@ -1,0 +1,136 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Stopptidsanalys per operatör</h1>
+      <p class="page-subtitle">
+        Hur stor andel av arbetstiden är driftstopp per operatör
+        <span *ngIf="from"> &mdash; {{ from }} till {{ to }}</span>
+      </p>
+    </div>
+    <div class="controls">
+      <div class="btn-group" role="group">
+        <button *ngFor="let d of [30,60,90,180]" type="button"
+          class="btn btn-sm"
+          [class.btn-warning]="days === d"
+          [class.btn-outline-secondary]="days !== d"
+          (click)="setDays(d)">{{ d }}d</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar data...</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- Summary badges -->
+    <div class="summary-row">
+      <div class="summary-card clickable" [class.active]="filter==='alla'" (click)="setFilter('alla')">
+        <span class="s-num">{{ operators.length }}</span>
+        <span class="s-label">Totalt</span>
+      </div>
+      <div class="summary-card bra clickable" [class.active]="filter==='bra'" (click)="setFilter('bra')">
+        <span class="s-num">{{ counts.bra }}</span>
+        <span class="s-label">Låg stoppgrad</span>
+      </div>
+      <div class="summary-card normal clickable" [class.active]="filter==='normal'" (click)="setFilter('normal')">
+        <span class="s-num">{{ counts.normal }}</span>
+        <span class="s-label">Normal</span>
+      </div>
+      <div class="summary-card hog clickable" [class.active]="filter==='hog'" (click)="setFilter('hog')">
+        <span class="s-num">{{ counts.hog }}</span>
+        <span class="s-label">Hög stoppgrad</span>
+      </div>
+      <div class="summary-card team">
+        <span class="s-num">{{ teamStoppgrad }}%</span>
+        <span class="s-label">Lagsnitt stoppgrad</span>
+      </div>
+    </div>
+
+    <!-- Sort controls -->
+    <div class="sort-bar">
+      <span class="text-muted me-2">Sortera:</span>
+      <button class="btn btn-sm" [class.btn-warning]="sortBy==='stoppgrad'" [class.btn-outline-secondary]="sortBy!=='stoppgrad'" (click)="setSort('stoppgrad')">Stoppgrad %</button>
+      <button class="btn btn-sm ms-1" [class.btn-warning]="sortBy==='stopp_procent'" [class.btn-outline-secondary]="sortBy!=='stopp_procent'" (click)="setSort('stopp_procent')">Skift med stopp</button>
+      <button class="btn btn-sm ms-1" [class.btn-warning]="sortBy==='snitt_stopp_min'" [class.btn-outline-secondary]="sortBy!=='snitt_stopp_min'" (click)="setSort('snitt_stopp_min')">Snitt min/skift</button>
+      <button class="btn btn-sm ms-1" [class.btn-warning]="sortBy==='name'" [class.btn-outline-secondary]="sortBy!=='name'" (click)="setSort('name')">Namn</button>
+    </div>
+
+    <!-- Operator rows -->
+    <div class="op-list">
+
+      <!-- Team reference row -->
+      <div class="op-row team-row">
+        <div class="op-name">
+          <span class="badge-status team-badge">LAG</span>
+          Lagsnitt
+        </div>
+        <div class="op-meta">
+          <span class="meta-item"><i class="fas fa-percentage"></i> {{ teamStoppgrad }}%</span>
+        </div>
+        <div class="op-bar-wrap">
+          <div class="bar-track">
+            <div class="bar-fill team-fill" [style.width.%]="teamBar()"></div>
+            <div class="bar-label">{{ teamStoppgrad }}% av drifttid</div>
+          </div>
+        </div>
+        <div class="op-actions"></div>
+      </div>
+
+      <div class="op-row" *ngFor="let op of filtered" [class.row-bra]="op.status==='bra'" [class.row-hog]="op.status==='hog'">
+        <div class="op-name">
+          <span class="badge-status" [class.badge-bra]="op.status==='bra'" [class.badge-normal]="op.status==='normal'" [class.badge-hog]="op.status==='hog'">
+            {{ op.status === 'bra' ? 'Låg' : op.status === 'hog' ? 'Hög' : 'Normal' }}
+          </span>
+          {{ op.name }}
+        </div>
+
+        <div class="op-meta">
+          <span class="meta-item" title="Stoppgrad">
+            <i class="fas fa-percentage"></i> {{ op.stoppgrad }}%
+          </span>
+          <span class="meta-item text-muted" title="Skift med stopp">
+            <i class="fas fa-pause-circle"></i> {{ op.stopp_procent }}% skift
+          </span>
+          <span class="meta-item text-muted" title="Snitt stopptid per skift">
+            <i class="fas fa-clock"></i> {{ op.snitt_stopp_min }} min/skift
+          </span>
+          <span class="meta-item text-muted" title="Antal skift">
+            <i class="fas fa-calendar-check"></i> {{ op.total_shifts }} skift
+          </span>
+          <span class="vs-snitt"
+            [class.vs-bra]="op.vs_snitt !== null && op.vs_snitt <= -2"
+            [class.vs-hog]="op.vs_snitt !== null && op.vs_snitt > 1"
+            *ngIf="op.vs_snitt !== null">
+            {{ op.vs_snitt > 0 ? '+' : '' }}{{ op.vs_snitt }}% vs snitt
+          </span>
+        </div>
+
+        <div class="op-bar-wrap">
+          <div class="bar-track">
+            <div class="bar-fill"
+              [class.fill-bra]="op.status==='bra'"
+              [class.fill-normal]="op.status==='normal'"
+              [class.fill-hog]="op.status==='hog'"
+              [style.width.%]="stoppgradBar(op)">
+            </div>
+            <div class="bar-label">{{ op.stoppgrad }}% av drifttid ({{ op.total_stopp_min }} min tot.)</div>
+          </div>
+        </div>
+
+        <div class="op-actions">
+          <a [routerLink]="['/rebotling/operator', op.op_number]" class="btn btn-sm btn-outline-secondary">Profil</a>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && operators.length === 0" class="empty-state">
+    Ingen data tillgänglig för vald period.
+  </div>
+</div>

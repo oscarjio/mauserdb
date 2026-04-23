@@ -250,6 +250,8 @@ class RebotlingController {
                 $this->getOperatorVarning();
             } elseif ($action === 'operator-produkt') {
                 $this->getOperatorProdukt();
+            } elseif ($action === 'operator-stopptid') {
+                $this->getOperatorStopptid();
             } else {
                 $this->getLiveStats();
             }
@@ -5869,6 +5871,130 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorProdukt: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Operator Stopptidsanalys ───────────────────────────────────
+
+    private function getOperatorStopptid(): void {
+        try {
+            $days = isset($_GET['days']) ? max(14, min(365, (int)$_GET['days'])) : 90;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)             AS op1,
+                    MAX(op2)             AS op2,
+                    MAX(op3)             AS op3,
+                    MAX(drifttid)        AS drifttid,
+                    MAX(driftstopptime)  AS driftstopptime
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Per-operator accumulation
+            $opData = []; // [opNum] => [shifts, stopp_shifts, total_stopp, total_drifttid]
+
+            foreach ($shifts as $s) {
+                $stoppMin  = max(0, (int)$s['driftstopptime']);
+                $drifttid  = max(1, (int)$s['drifttid']);
+                $hasStop   = $stoppMin > 0 ? 1 : 0;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+
+                    if (!isset($opData[$opNum])) {
+                        $opData[$opNum] = [
+                            'shifts'       => 0,
+                            'stopp_shifts' => 0,
+                            'total_stopp'  => 0,
+                            'total_drift'  => 0,
+                        ];
+                    }
+                    $opData[$opNum]['shifts']++;
+                    $opData[$opNum]['stopp_shifts'] += $hasStop;
+                    $opData[$opNum]['total_stopp']  += $stoppMin;
+                    $opData[$opNum]['total_drift']  += $drifttid;
+                }
+            }
+
+            // Team average stoppgrad (weighted)
+            $teamTotalStopp = 0;
+            $teamTotalDrift = 0;
+            foreach ($opData as $d) {
+                if ($d['shifts'] < 3) continue;
+                $teamTotalStopp += $d['total_stopp'];
+                $teamTotalDrift += $d['total_drift'];
+            }
+            $teamStoppgrad = $teamTotalDrift > 0
+                ? round($teamTotalStopp / $teamTotalDrift * 100, 1)
+                : 0;
+
+            $results = [];
+            foreach ($opData as $opNum => $d) {
+                if ($d['shifts'] < 3) continue;
+
+                $snittStoppMin  = round($d['total_stopp'] / $d['shifts'], 1);
+                $stoppProcent   = round($d['stopp_shifts'] / $d['shifts'] * 100, 1);
+                $stoppgrad      = $d['total_drift'] > 0
+                    ? round($d['total_stopp'] / $d['total_drift'] * 100, 1)
+                    : 0.0;
+                $vsSnitt        = $teamStoppgrad > 0
+                    ? round($stoppgrad - $teamStoppgrad, 1)
+                    : null;
+
+                // Status: green = well below avg, yellow = near avg, red = above avg
+                if ($vsSnitt !== null) {
+                    if ($vsSnitt <= -2)        $status = 'bra';
+                    elseif ($vsSnitt <= 1)     $status = 'normal';
+                    else                       $status = 'hog';
+                } else {
+                    $status = 'normal';
+                }
+
+                $results[] = [
+                    'op_number'      => $opNum,
+                    'name'           => $operatorNames[$opNum],
+                    'total_shifts'   => $d['shifts'],
+                    'stopp_shifts'   => $d['stopp_shifts'],
+                    'stopp_procent'  => $stoppProcent,
+                    'snitt_stopp_min'=> $snittStoppMin,
+                    'total_stopp_min'=> $d['total_stopp'],
+                    'stoppgrad'      => $stoppgrad,
+                    'vs_snitt'       => $vsSnitt,
+                    'status'         => $status,
+                ];
+            }
+
+            // Sort: lowest stoppgrad first (best operators)
+            usort($results, fn($a, $b) => $a['stoppgrad'] <=> $b['stoppgrad']);
+
+            echo json_encode([
+                'success'       => true,
+                'operators'     => $results,
+                'team_stoppgrad'=> $teamStoppgrad,
+                'days'          => $days,
+                'from'          => $from,
+                'to'            => $to,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorStopptid: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsanalys'], JSON_UNESCAPED_UNICODE);
         }
     }
 
