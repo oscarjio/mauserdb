@@ -1,0 +1,221 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h2 class="text-light mb-0">
+      <i class="fas fa-calendar-alt me-2 text-warning"></i>Månadsrapport Operatörer
+    </h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button class="btn btn-outline-secondary btn-sm" (click)="prevMonth()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <input type="month" class="form-control form-control-sm month-input"
+             [(ngModel)]="selectedMonth" (change)="load()" style="width:150px">
+      <button class="btn btn-outline-secondary btn-sm" (click)="nextMonth()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <span class="text-light fw-bold ms-1">{{ monthLabel(selectedMonth) }}</span>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-danger" *ngIf="error">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="load()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="text-center py-5" *ngIf="loading">
+    <div class="spinner-border text-warning" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="text-muted mt-2">Laddar månadsrapport...</p>
+  </div>
+
+  <ng-container *ngIf="!loading && summary">
+
+    <!-- Summary KPI cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">Totalt IBC</div>
+          <div class="kpi-value text-warning">{{ summary.total_ibc }}</div>
+          <div class="kpi-sub">producerade</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">Snitt IBC/h</div>
+          <div class="kpi-value text-info">{{ summary.team_avg_ibc_h ?? '—' }}</div>
+          <div class="kpi-sub">teamgenomsnitt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">Aktiva operatörer</div>
+          <div class="kpi-value text-light">{{ summary.antal_operatorer }}</div>
+          <div class="kpi-sub">{{ summary.total_skift }} skift totalt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">Bästa operatör</div>
+          <div class="kpi-value-name text-success">{{ summary.top_performer ?? '—' }}</div>
+          <div class="kpi-sub">högst IBC/h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tier summary badges -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <span class="tier-badge" style="color:#68d391;border-color:#68d391">
+        <i class="fas fa-crown me-1"></i>Elite: {{ tierCounts['Elite'] }}
+      </span>
+      <span class="tier-badge" style="color:#63b3ed;border-color:#63b3ed">
+        <i class="fas fa-check-circle me-1"></i>Solid: {{ tierCounts['Solid'] }}
+      </span>
+      <span class="tier-badge" style="color:#f6ad55;border-color:#f6ad55">
+        <i class="fas fa-arrow-up me-1"></i>Developing: {{ tierCounts['Developing'] }}
+      </span>
+      <span class="tier-badge" style="color:#fc8181;border-color:#fc8181">
+        <i class="fas fa-exclamation-circle me-1"></i>Behöver stöd: {{ tierCounts['Behöver stöd'] }}
+      </span>
+    </div>
+
+    <!-- Sort controls -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="text-muted small me-1">Sortera:</span>
+      <button class="btn btn-sm" [class.btn-warning]="sortBy==='ibc_per_h'" [class.btn-outline-secondary]="sortBy!=='ibc_per_h'"
+              (click)="sortBy='ibc_per_h'">IBC/h</button>
+      <button class="btn btn-sm" [class.btn-warning]="sortBy==='antal_skift'" [class.btn-outline-secondary]="sortBy!=='antal_skift'"
+              (click)="sortBy='antal_skift'">Antal skift</button>
+      <button class="btn btn-sm" [class.btn-warning]="sortBy==='name'" [class.btn-outline-secondary]="sortBy!=='name'"
+              (click)="sortBy='name'">Namn</button>
+    </div>
+
+    <!-- No data -->
+    <div class="text-center py-5" *ngIf="operators.length === 0">
+      <i class="fas fa-inbox" style="font-size:2.5rem;color:#718096"></i>
+      <p class="text-muted mt-2">Inga operatörsdata för {{ monthLabel(selectedMonth) }}.</p>
+    </div>
+
+    <!-- Operator cards grid -->
+    <div class="op-grid" *ngIf="operators.length > 0">
+      <div class="op-card"
+           *ngFor="let op of sortedOperators; trackBy: trackByNum"
+           [style.border-color]="op.tier ? tierColors[op.tier] : '#4a5568'"
+           [style.background]="op.tier ? tierBg[op.tier] : 'transparent'">
+
+        <!-- Card header -->
+        <div class="op-card-header">
+          <div>
+            <span class="op-name">{{ op.name }}</span>
+            <span class="tier-pill ms-2"
+                  *ngIf="op.tier"
+                  [style.color]="tierColors[op.tier]"
+                  [style.border-color]="tierColors[op.tier]">
+              {{ op.tier }}
+            </span>
+          </div>
+          <a [routerLink]="['/rebotling/operator', op.number]"
+             class="btn btn-xs btn-outline-secondary"
+             title="Visa profil">
+            <i class="fas fa-user"></i>
+          </a>
+        </div>
+
+        <!-- Main KPIs -->
+        <div class="op-kpis">
+          <div class="op-kpi-main">
+            <div class="op-kpi-num">{{ op.ibc_per_h }}</div>
+            <div class="op-kpi-lbl">IBC/h</div>
+          </div>
+          <div class="op-kpi-side">
+            <!-- vs team -->
+            <div class="op-vs" *ngIf="op.vs_team_pct !== null">
+              <span [class]="op.vs_team_pct >= 100 ? 'text-success' : 'text-danger'">
+                <i class="fas" [class.fa-arrow-up]="op.vs_team_pct >= 100" [class.fa-arrow-down]="op.vs_team_pct < 100"></i>
+                {{ op.vs_team_pct | number:'1.1-1' }}% av snitt
+              </span>
+            </div>
+            <!-- delta vs prev month -->
+            <div class="op-delta" *ngIf="op.delta_ibc_per_h !== null">
+              <span [class]="op.delta_ibc_per_h >= 0 ? 'text-success' : 'text-danger'">
+                <i class="fas" [class.fa-caret-up]="op.delta_ibc_per_h >= 0" [class.fa-caret-down]="op.delta_ibc_per_h < 0"></i>
+                {{ op.delta_ibc_per_h >= 0 ? '+' : '' }}{{ op.delta_ibc_per_h }} vs förra månaden
+              </span>
+            </div>
+            <div class="op-delta text-muted" *ngIf="op.delta_ibc_per_h === null">
+              <i class="fas fa-minus me-1"></i>Ingen prev. data
+            </div>
+          </div>
+        </div>
+
+        <!-- Position pills -->
+        <div class="op-positions">
+          <span class="pos-pill" *ngFor="let pos of posKeys(op.pos_breakdown)"
+                [class.pos-primary]="pos === op.primary_pos">
+            <i class="fas fa-circle me-1" style="font-size:0.5rem"></i>
+            {{ posLabels[pos] }}
+            <span class="pos-count">{{ op.pos_breakdown[pos].shifts }}sk</span>
+            <span class="pos-iph">{{ op.pos_breakdown[pos].ibc_per_h }}/h</span>
+          </span>
+        </div>
+
+        <!-- Footer stats -->
+        <div class="op-footer">
+          <span class="text-muted small">
+            <i class="fas fa-calendar-check me-1"></i>{{ op.antal_skift }} skift
+          </span>
+          <span class="text-muted small">
+            <i class="fas fa-box me-1"></i>{{ op.ibc_totalt }} IBC
+          </span>
+          <button class="btn btn-xs btn-outline-secondary" (click)="toggleExpand(op.number)">
+            <i class="fas" [class.fa-chevron-down]="expandedOp !== op.number" [class.fa-chevron-up]="expandedOp === op.number"></i>
+          </button>
+        </div>
+
+        <!-- Expanded details -->
+        <div class="op-expand" *ngIf="expandedOp === op.number">
+          <div class="expand-row" *ngIf="op.best_shift_ibc_h !== null">
+            <span class="text-muted">Bästa skift:</span>
+            <span class="text-success fw-bold">{{ op.best_shift_ibc_h }} IBC/h</span>
+          </div>
+          <div class="expand-row" *ngIf="op.worst_shift_ibc_h !== null">
+            <span class="text-muted">Sämsta skift:</span>
+            <span class="text-warning">{{ op.worst_shift_ibc_h }} IBC/h</span>
+          </div>
+          <div class="expand-row" *ngIf="op.prev_ibc_per_h !== null">
+            <span class="text-muted">Förra månaden:</span>
+            <span class="text-light">{{ op.prev_ibc_per_h }} IBC/h</span>
+          </div>
+          <hr class="expand-sep">
+          <div class="expand-row" *ngFor="let pos of posKeys(op.pos_breakdown)">
+            <span class="text-muted">{{ posLabels[pos] }}:</span>
+            <span class="text-light">
+              {{ op.pos_breakdown[pos].ibc_per_h }} IBC/h
+              <span class="text-muted">({{ op.pos_breakdown[pos].shifts }} skift)</span>
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Team avg reference -->
+    <div class="card mt-4 team-avg-card" *ngIf="operators.length > 0">
+      <div class="card-header text-muted small">
+        <i class="fas fa-users me-2"></i>Teamsnitt per position — {{ monthLabel(selectedMonth) }}
+      </div>
+      <div class="card-body py-2 d-flex gap-4 flex-wrap">
+        <div *ngFor="let pos of ['op1','op2','op3']" class="text-light small">
+          <span class="text-muted me-1">{{ posLabels[pos] }}:</span>
+          <strong>{{ teamAvgByPos[pos] !== null ? (teamAvgByPos[pos] + ' IBC/h') : '—' }}</strong>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

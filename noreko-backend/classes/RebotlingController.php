@@ -232,6 +232,8 @@ class RebotlingController {
                 $this->getOperatorProfile();
             } elseif ($action === 'operator-trend-heatmap') {
                 $this->getOperatorTrendHeatmap();
+            } elseif ($action === 'operator-monthly-report') {
+                $this->getOperatorMonthlyReport();
             } else {
                 $this->getLiveStats();
             }
@@ -4476,6 +4478,193 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorTrendHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid trendkarta'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorMonthlyReport(): void {
+        try {
+            $month = $_GET['month'] ?? date('Y-m');
+            if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $from    = $month . '-01';
+            $to      = date('Y-m-t', strtotime($from));
+            $prevFrom = date('Y-m-01', strtotime($from . ' -1 month'));
+            $prevTo   = date('Y-m-t', strtotime($prevFrom));
+
+            // Active operators
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            $shiftSql = "
+                SELECT op_nr, pos, ibc_ok, drifttid
+                FROM (
+                    SELECT op1 AS op_nr, 'op1' AS pos, ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    UNION ALL
+                    SELECT op2, 'op2', ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    UNION ALL
+                    SELECT op3, 'op3', ibc_ok, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                ) s
+            ";
+
+            // Current month
+            $stmtCur = $this->pdo->prepare($shiftSql);
+            $stmtCur->execute([':from1'=>$from,':to1'=>$to,':from2'=>$from,':to2'=>$to,':from3'=>$from,':to3'=>$to]);
+            $curShifts = $stmtCur->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Previous month
+            $stmtPrev = $this->pdo->prepare($shiftSql);
+            $stmtPrev->execute([':from1'=>$prevFrom,':to1'=>$prevTo,':from2'=>$prevFrom,':to2'=>$prevTo,':from3'=>$prevFrom,':to3'=>$prevTo]);
+            $prevShifts = $stmtPrev->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Process current month per operator
+            $opData = [];
+            foreach ($curShifts as $row) {
+                $num = (int)$row['op_nr'];
+                $h   = (int)$row['drifttid'] / 60.0;
+                $iph = $h > 0 ? (int)$row['ibc_ok'] / $h : 0;
+                if (!isset($opData[$num])) {
+                    $opData[$num] = ['shifts' => [], 'positions' => ['op1'=>[],'op2'=>[],'op3'=>[]]];
+                }
+                $opData[$num]['shifts'][]              = ['iph' => $iph, 'ibc' => (int)$row['ibc_ok'], 'h' => $h];
+                $opData[$num]['positions'][$row['pos']][] = $iph;
+            }
+
+            // Team averages per position (current month)
+            $posAllVals = ['op1'=>[],'op2'=>[],'op3'=>[]];
+            foreach ($opData as $d) {
+                foreach ($d['positions'] as $pos => $vals) {
+                    foreach ($vals as $v) { $posAllVals[$pos][] = $v; }
+                }
+            }
+            $teamAvgByPos = [];
+            foreach ($posAllVals as $pos => $vals) {
+                $teamAvgByPos[$pos] = count($vals) > 0 ? round(array_sum($vals) / count($vals), 2) : null;
+            }
+
+            // Process previous month (totals only)
+            $prevData = [];
+            foreach ($prevShifts as $row) {
+                $num = (int)$row['op_nr'];
+                $h   = (int)$row['drifttid'] / 60.0;
+                if (!isset($prevData[$num])) { $prevData[$num] = ['ibc'=>0,'h'=>0]; }
+                $prevData[$num]['ibc'] += (int)$row['ibc_ok'];
+                $prevData[$num]['h']   += $h;
+            }
+
+            // Build result rows
+            $results = [];
+            foreach ($opData as $num => $d) {
+                if (count($d['shifts']) === 0) continue;
+
+                $name       = $opNames[$num] ?? "Op $num";
+                $totalIbc   = array_sum(array_column($d['shifts'], 'ibc'));
+                $totalH     = array_sum(array_column($d['shifts'], 'h'));
+                $ibcPerH    = $totalH > 0 ? round($totalIbc / $totalH, 2) : 0;
+                $antalSkift = count($d['shifts']);
+                $allIph     = array_column($d['shifts'], 'iph');
+                $bestShift  = count($allIph) > 0 ? round(max($allIph), 2) : null;
+                $worstShift = count($allIph) > 0 ? round(min($allIph), 2) : null;
+
+                // Per-position breakdown
+                $posBreakdown = [];
+                $primaryPos   = null;
+                $maxPosShifts = 0;
+                foreach ($d['positions'] as $pos => $vals) {
+                    if (count($vals) > 0) {
+                        $posBreakdown[$pos] = [
+                            'shifts'    => count($vals),
+                            'ibc_per_h' => round(array_sum($vals) / count($vals), 2),
+                        ];
+                        if (count($vals) > $maxPosShifts) {
+                            $maxPosShifts = count($vals);
+                            $primaryPos   = $pos;
+                        }
+                    }
+                }
+
+                // vs team: weighted avg across positions
+                $vsVals = [];
+                foreach ($d['positions'] as $pos => $vals) {
+                    $ta = $teamAvgByPos[$pos] ?? null;
+                    if (count($vals) > 0 && $ta !== null && $ta > 0) {
+                        $vsVals[] = (array_sum($vals) / count($vals)) / $ta * 100;
+                    }
+                }
+                $vsTeam = count($vsVals) > 0 ? round(array_sum($vsVals) / count($vsVals), 1) : null;
+
+                // Tier
+                $tier = null;
+                if ($vsTeam !== null) {
+                    if ($vsTeam >= 115)     $tier = 'Elite';
+                    elseif ($vsTeam >= 100) $tier = 'Solid';
+                    elseif ($vsTeam >= 85)  $tier = 'Developing';
+                    else                    $tier = 'Behöver stöd';
+                }
+
+                // Previous month delta
+                $prevIbcPerH = null;
+                $delta       = null;
+                if (isset($prevData[$num]) && $prevData[$num]['h'] > 0) {
+                    $prevIbcPerH = round($prevData[$num]['ibc'] / $prevData[$num]['h'], 2);
+                    $delta       = round($ibcPerH - $prevIbcPerH, 2);
+                }
+
+                $results[] = [
+                    'number'          => $num,
+                    'name'            => $name,
+                    'antal_skift'     => $antalSkift,
+                    'ibc_totalt'      => $totalIbc,
+                    'ibc_per_h'       => $ibcPerH,
+                    'vs_team_pct'     => $vsTeam,
+                    'tier'            => $tier,
+                    'primary_pos'     => $primaryPos,
+                    'pos_breakdown'   => $posBreakdown,
+                    'best_shift_ibc_h'  => $bestShift,
+                    'worst_shift_ibc_h' => $worstShift,
+                    'prev_ibc_per_h'  => $prevIbcPerH,
+                    'delta_ibc_per_h' => $delta,
+                ];
+            }
+
+            usort($results, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+            $allIbcPerH = array_filter(array_column($results, 'ibc_per_h'), fn($v) => $v > 0);
+            $summary = [
+                'total_ibc'        => array_sum(array_column($results, 'ibc_totalt')),
+                'team_avg_ibc_h'   => count($allIbcPerH) > 0 ? round(array_sum($allIbcPerH) / count($allIbcPerH), 2) : null,
+                'total_skift'      => array_sum(array_column($results, 'antal_skift')),
+                'antal_operatorer' => count($results),
+                'top_performer'    => count($results) > 0 ? $results[0]['name'] : null,
+            ];
+
+            echo json_encode([
+                'success'   => true,
+                'data'      => [
+                    'month'           => $month,
+                    'prev_month'      => date('Y-m', strtotime($from . ' -1 month')),
+                    'operators'       => $results,
+                    'summary'         => $summary,
+                    'team_avg_by_pos' => $teamAvgByPos,
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorMonthlyReport: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid månadsrapport'], JSON_UNESCAPED_UNICODE);
         }
     }
 
