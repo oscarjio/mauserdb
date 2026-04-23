@@ -1,0 +1,44 @@
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.card {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: #1e2533;
+  --bs-table-hover-bg: #252f3f;
+  --bs-table-color: #e2e8f0;
+  --bs-table-border-color: #2d3748;
+}
+
+.table thead th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #4a5568;
+}
+
+.quadrant-hint {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #4a5568;
+  pointer-events: none;
+  z-index: 1;
+  font-style: italic;
+}
+
+.quadrant-hint.top-right  { top: 4px; right: 8px; }
+.quadrant-hint.top-left   { top: 4px; left: 8px; }
+.quadrant-hint.bottom-right { bottom: 4px; right: 8px; }
+.quadrant-hint.bottom-left  { bottom: 4px; left: 8px; }
+
+.quadrant-labels-overlay {
+  height: 0;
+}

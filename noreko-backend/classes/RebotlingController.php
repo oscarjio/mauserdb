@@ -236,6 +236,8 @@ class RebotlingController {
                 $this->getOperatorMonthlyReport();
             } elseif ($action === 'operator-kvartal') {
                 $this->getOperatorKvartalReport();
+            } elseif ($action === 'operator-performance-map') {
+                $this->getOperatorPerformanceMap();
             } else {
                 $this->getLiveStats();
             }
@@ -4854,6 +4856,124 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorKvartalReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kvartalsutvärdering'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * Prestandakarta: scatter-diagram IBC/h vs kassationsgrad per operatör.
+     * Delar in operatörer i 4 kvadranter: Stjärna/Snabb/Noggrann/Utmanad.
+     * GET ?action=rebotling&run=operator-performance-map&days=90
+     */
+    private function getOperatorPerformanceMap(): void {
+        try {
+            $days = max(14, min(365, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Active operators
+            $opRows = $this->db->query(
+                "SELECT number, name FROM operators WHERE active = 1"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+            $operatorNames = [];
+            foreach ($opRows as $r) {
+                $operatorNames[(int)$r['number']] = $r['name'];
+            }
+
+            // One row per skiftraknare (deduplicated)
+            $stmt = $this->db->prepare("
+                SELECT
+                    MAX(op1)       AS op1,
+                    MAX(op2)       AS op2,
+                    MAX(op3)       AS op3,
+                    MAX(ibc_ok)    AS ibc_ok,
+                    MAX(ibc_ej_ok) AS ibc_ej_ok,
+                    MAX(drifttid)  AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opStats  = [];
+            $teamIbc  = 0;
+            $teamEjOk = 0;
+            $teamMin  = 0;
+
+            foreach ($shifts as $s) {
+                $ibc  = max(0, (int)$s['ibc_ok']);
+                $ejOk = max(0, (int)$s['ibc_ej_ok']);
+                $min  = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                $teamIbc  += $ibc;
+                $teamEjOk += $ejOk;
+                $teamMin  += $min;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+                    if (!isset($opStats[$opNum])) {
+                        $opStats[$opNum] = ['ibc' => 0, 'ej_ok' => 0, 'min' => 0, 'skift' => 0];
+                    }
+                    $opStats[$opNum]['ibc']   += $ibc;
+                    $opStats[$opNum]['ej_ok'] += $ejOk;
+                    $opStats[$opNum]['min']   += $min;
+                    $opStats[$opNum]['skift'] += 1;
+                }
+            }
+
+            $teamIbcH      = $teamMin > 0 ? $teamIbc / ($teamMin / 60.0) : 0;
+            $teamTotal     = $teamIbc + $teamEjOk;
+            $teamRejectRate = $teamTotal > 0 ? round($teamEjOk / $teamTotal * 100, 2) : 0;
+
+            $results = [];
+            foreach ($opStats as $opNum => $d) {
+                if ($d['skift'] < 3) continue;
+
+                $ibcH    = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 2) : null;
+                $total   = $d['ibc'] + $d['ej_ok'];
+                $rejectRate = $total > 0 ? round($d['ej_ok'] / $total * 100, 2) : 0.0;
+
+                $vsTeam = ($ibcH !== null && $teamIbcH > 0)
+                    ? round($ibcH / $teamIbcH * 100, 1)
+                    : null;
+
+                $isHighSpeed = $vsTeam !== null && $vsTeam >= 100.0;
+                $isLowReject = $rejectRate <= $teamRejectRate;
+                if ($isHighSpeed && $isLowReject)   $quadrant = 'stjarna';
+                elseif ($isHighSpeed)               $quadrant = 'snabb';
+                elseif ($isLowReject)               $quadrant = 'noggrann';
+                else                                $quadrant = 'utmanad';
+
+                $results[] = [
+                    'op_number'   => $opNum,
+                    'name'        => $operatorNames[$opNum],
+                    'ibc_per_h'   => $ibcH,
+                    'vs_team'     => $vsTeam,
+                    'reject_rate' => $rejectRate,
+                    'antal_skift' => $d['skift'],
+                    'quadrant'    => $quadrant,
+                ];
+            }
+
+            usort($results, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            echo json_encode([
+                'success'          => true,
+                'operators'        => $results,
+                'team_ibc_per_h'   => round($teamIbcH, 2),
+                'team_reject_rate' => $teamRejectRate,
+                'period_days'      => $days,
+                'from'             => $from,
+                'to'               => $to,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorPerformanceMap: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandakarta'], JSON_UNESCAPED_UNICODE);
         }
     }
 
