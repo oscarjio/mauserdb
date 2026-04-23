@@ -248,6 +248,8 @@ class RebotlingController {
                 $this->getOperatorInlarning();
             } elseif ($action === 'operator-varning') {
                 $this->getOperatorVarning();
+            } elseif ($action === 'operator-produkt') {
+                $this->getOperatorProdukt();
             } else {
                 $this->getLiveStats();
             }
@@ -5714,6 +5716,159 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorVarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandavarning'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorProdukt(): void {
+        try {
+            $days = max(14, min(365, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Operator names
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            // Product names
+            $productNames = [];
+            try {
+                $pStmt = $this->pdo->query("SELECT id, name FROM rebotling_products ORDER BY id");
+                foreach ($pStmt->fetchAll(\PDO::FETCH_ASSOC) as $p) {
+                    $productNames[(int)$p['id']] = $p['name'];
+                }
+            } catch (\Exception $e) { /* table may not exist */ }
+
+            // Deduplicated shifts with product_id
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)        AS op1,
+                    MAX(op2)        AS op2,
+                    MAX(op3)        AS op3,
+                    MAX(ibc_ok)     AS ibc_ok,
+                    MAX(drifttid)   AS drifttid,
+                    MAX(product_id) AS product_id
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND drifttid > 0 AND ibc_ok > 0
+                  AND product_id IS NOT NULL AND product_id > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build matrix: opNum → prodId → [ibc, min, count]
+            $matrix     = [];
+            $productSet = [];
+
+            foreach ($shifts as $s) {
+                $prodId = (int)$s['product_id'];
+                $ibc    = max(0, (int)$s['ibc_ok']);
+                $min    = max(0, (int)$s['drifttid']);
+                if ($min <= 0 || $prodId <= 0) continue;
+
+                $productSet[$prodId] = true;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+
+                    if (!isset($matrix[$opNum][$prodId])) {
+                        $matrix[$opNum][$prodId] = ['ibc' => 0, 'min' => 0, 'count' => 0];
+                    }
+                    $matrix[$opNum][$prodId]['ibc']   += $ibc;
+                    $matrix[$opNum][$prodId]['min']   += $min;
+                    $matrix[$opNum][$prodId]['count'] += 1;
+                }
+            }
+
+            if (empty($productSet)) {
+                echo json_encode([
+                    'success' => true, 'operators' => [], 'products' => [],
+                    'best_per_product' => [], 'from' => $from, 'to' => $to, 'days' => $days,
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $productIds = array_keys($productSet);
+            sort($productIds);
+
+            // Team avg IBC/h per product (all operators combined)
+            $teamTotals = [];
+            foreach ($matrix as $prodData) {
+                foreach ($prodData as $prodId => $d) {
+                    if (!isset($teamTotals[$prodId])) $teamTotals[$prodId] = ['ibc' => 0, 'min' => 0];
+                    $teamTotals[$prodId]['ibc'] += $d['ibc'];
+                    $teamTotals[$prodId]['min'] += $d['min'];
+                }
+            }
+            $teamAvg = [];
+            foreach ($teamTotals as $prodId => $t) {
+                $teamAvg[$prodId] = $t['min'] > 0 ? $t['ibc'] / ($t['min'] / 60.0) : 0;
+            }
+
+            // Build operator rows (min 3 shifts per cell to show data)
+            $operators = [];
+            foreach ($matrix as $opNum => $prodData) {
+                $row = ['op_number' => $opNum, 'name' => $operatorNames[$opNum], 'products' => []];
+                foreach ($productIds as $prodId) {
+                    if (!isset($prodData[$prodId]) || $prodData[$prodId]['count'] < 3) {
+                        $row['products'][$prodId] = null;
+                        continue;
+                    }
+                    $d    = $prodData[$prodId];
+                    $ibcH = $d['min'] > 0 ? $d['ibc'] / ($d['min'] / 60.0) : 0;
+                    $tavg = $teamAvg[$prodId] ?? 0;
+                    $row['products'][$prodId] = [
+                        'ibc_per_h'   => round($ibcH, 2),
+                        'antal_skift' => $d['count'],
+                        'vs_team'     => $tavg > 0 ? round(($ibcH / $tavg - 1) * 100, 1) : 0,
+                    ];
+                }
+                $operators[] = $row;
+            }
+
+            usort($operators, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            // Best operator per product
+            $bestPerProduct = [];
+            foreach ($productIds as $prodId) {
+                $best = null; $bestIbcH = 0;
+                foreach ($operators as $op) {
+                    $cell = $op['products'][$prodId] ?? null;
+                    if ($cell && $cell['ibc_per_h'] > $bestIbcH) {
+                        $bestIbcH = $cell['ibc_per_h'];
+                        $best = ['op_number' => $op['op_number'], 'name' => $op['name'], 'ibc_per_h' => $bestIbcH];
+                    }
+                }
+                $bestPerProduct[$prodId] = $best;
+            }
+
+            $products = [];
+            foreach ($productIds as $prodId) {
+                $products[] = [
+                    'id'       => $prodId,
+                    'name'     => $productNames[$prodId] ?? "Produkt {$prodId}",
+                    'team_avg' => round($teamAvg[$prodId] ?? 0, 2),
+                ];
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'operators'        => $operators,
+                'products'         => $products,
+                'best_per_product' => $bestPerProduct,
+                'from'             => $from,
+                'to'               => $to,
+                'days'             => $days,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorProdukt: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], JSON_UNESCAPED_UNICODE);
         }
     }
 

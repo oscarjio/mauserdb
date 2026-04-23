@@ -1,0 +1,105 @@
+<div class="page-container">
+  <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="page-title mb-0">Produktanalys per operatör</h1>
+      <p class="text-secondary mb-0 small" *ngIf="fromDate">{{ fromDate }} – {{ toDate }}</p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap align-items-center">
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" [(ngModel)]="days" (change)="onDaysChange()" style="width:auto">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+      </select>
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" [(ngModel)]="sortBy" (change)="onSortChange()" style="width:auto">
+        <option value="name">Sortera: Namn</option>
+        <option value="best">Sortera: Bäst vs snitt</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isFetching" class="text-center py-5 text-secondary">
+    <div class="spinner-border spinner-border-sm me-2"></div>Hämtar data...
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !isFetching" class="alert alert-danger">{{ error }}</div>
+
+  <!-- No data -->
+  <div *ngIf="!isFetching && !error && products.length === 0" class="alert alert-secondary">
+    Ingen produktdata hittades för vald period. Kontrollera att product_id är ifyllt i skiftrapporterna.
+  </div>
+
+  <ng-container *ngIf="!isFetching && !error && products.length > 0">
+
+    <!-- Best per product -->
+    <div class="card mb-4">
+      <div class="card-header section-header">Bäst per produkttyp</div>
+      <div class="card-body d-flex flex-wrap gap-2">
+        <div *ngFor="let p of products" class="best-chip" [class.best-chip--no-data]="!bestPerProduct[p.id]">
+          <span class="best-chip__prod">{{ p.name }}</span>
+          <ng-container *ngIf="bestPerProduct[p.id]; else noChipData">
+            <span class="best-chip__name">{{ bestPerProduct[p.id]!.name }}</span>
+            <span class="best-chip__val">{{ bestPerProduct[p.id]!.ibc_per_h.toFixed(1) }} IBC/h</span>
+          </ng-container>
+          <ng-template #noChipData>
+            <span class="text-secondary small">– ingen data</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matrix table -->
+    <div class="card mb-4">
+      <div class="card-header section-header d-flex align-items-center justify-content-between">
+        <span>IBC/h per operatör och produkttyp</span>
+        <span class="legend d-flex gap-3">
+          <span class="legend-item legend-elite">Elite (≥+15%)</span>
+          <span class="legend-item legend-solid">Solid (0–+15%)</span>
+          <span class="legend-item legend-dev">Under (–15–0%)</span>
+          <span class="legend-item legend-low">Låg (&lt;–15%)</span>
+        </span>
+      </div>
+      <div class="card-body p-0" style="overflow-x:auto">
+        <table class="matrix-table w-100">
+          <thead>
+            <tr>
+              <th class="op-col">Operatör</th>
+              <th *ngFor="let p of products" class="prod-col">
+                <div>{{ p.name }}</div>
+                <div class="team-avg-label">Snitt: {{ p.team_avg.toFixed(1) }}</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of sortedOperators">
+              <td class="op-name">
+                <a [routerLink]="['/rebotling/operator', op.op_number]" class="op-link">{{ op.name }}</a>
+              </td>
+              <td *ngFor="let p of products" class="cell-td">
+                <div class="cell" [ngClass]="cellColor(op.products[p.id])" [class.cell--star]="isBestForProduct(op, p.id)">
+                  <ng-container *ngIf="op.products[p.id]; else emptyCell">
+                    <span class="cell__ibc">{{ op.products[p.id]!.ibc_per_h.toFixed(1) }}</span>
+                    <span class="cell__vs">{{ op.products[p.id]!.vs_team >= 0 ? '+' : '' }}{{ op.products[p.id]!.vs_team.toFixed(0) }}%</span>
+                    <span class="cell__skift">{{ op.products[p.id]!.antal_skift }}sk</span>
+                    <span *ngIf="isBestForProduct(op, p.id)" class="cell__star">★</span>
+                  </ng-container>
+                  <ng-template #emptyCell>
+                    <span class="cell__none">–</span>
+                  </ng-template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Legend note -->
+    <p class="text-secondary small mb-4">
+      Celler kräver minst 3 skift per operatör+produktkombination för att visas. ★ = bäst på denna produkttyp.
+    </p>
+
+  </ng-container>
+</div>

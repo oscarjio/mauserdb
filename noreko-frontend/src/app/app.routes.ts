@@ -148,6 +148,7 @@ export const routes: Routes = [
       { path: 'rebotling/bonus-kalkylator', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-kalkylator/bonus-kalkylator').then(m => m.BonusKalkylatorPage) },
       { path: 'rebotling/operator-inlarning', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-inlarning/operator-inlarning').then(m => m.OperatorInlarningPage) },
       { path: 'rebotling/operator-varning', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-varning/operator-varning').then(m => m.OperatorVarningPage) },
+      { path: 'rebotling/operator-produkt', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-produkt/operator-produkt').then(m => m.OperatorProduktPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
