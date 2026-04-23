@@ -1,0 +1,183 @@
+/* Operator selector */
+.op-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.op-checkbox-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  user-select: none;
+}
+
+.op-checkbox-row.op-selected {
+  background: #1f2d3d;
+  border-color: #4299e1;
+  color: #e2e8f0;
+}
+
+.op-checkbox-row input[type="checkbox"] {
+  accent-color: #4299e1;
+  width: 14px;
+  height: 14px;
+}
+
+.op-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* Position mini-badges in selector */
+.pos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #4a5568;
+  color: #a0aec0;
+}
+
+.pos-badge.pos-top { background: #276749; color: #9ae6b4; }
+.pos-badge.pos-avg { background: #744210; color: #fbd38d; }
+.pos-badge.pos-low { background: #742a2a; color: #feb2b2; }
+
+/* Combo cards */
+.combo-card {
+  border-radius: 10px;
+  padding: 18px;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+}
+
+.combo-card.combo-best {
+  background: #1a2f23;
+  border: 2px solid #38a169;
+}
+
+.combo-card.combo-alt {
+  background: #232d3f;
+  border: 1px solid #4a5568;
+  padding: 12px 16px;
+}
+
+/* Rank badge */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.rank-badge.rank-1 {
+  background: #68d391;
+  color: #1a202c;
+}
+
+.rank-badge.rank-other {
+  background: #4a5568;
+  color: #a0aec0;
+  width: 22px;
+  height: 22px;
+  font-size: 0.75rem;
+}
+
+.total-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #68d391;
+  background: #1f3a2a;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #38a169;
+}
+
+/* Position cards inside best combo */
+.pos-card {
+  border-radius: 8px;
+  padding: 14px;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  text-align: center;
+}
+
+.pos-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #718096;
+  margin-bottom: 6px;
+}
+
+.pos-op-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 6px;
+}
+
+.pos-ibc {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pos-avg-note {
+  font-size: 0.72rem;
+  color: #718096;
+}
+
+/* IBC/h chip colors */
+.chip-top  { color: #68d391; }
+.chip-avg  { color: #63b3ed; }
+.chip-below { color: #fc8181; }
+.chip-none { color: #718096; }
+
+/* Alt row */
+.alt-slot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+}
+
+.alt-pos {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+.alt-name {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.alt-ibc {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.alt-total {
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 55px;
+  text-align: right;
+}
