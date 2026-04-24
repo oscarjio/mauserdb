@@ -1,0 +1,271 @@
+.page-wrap {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 4px;
+}
+
+.page-sub {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Period bar */
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.period-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.period-range {
+  color: #718096;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  color: #a0aec0;
+  padding: 40px 0;
+}
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .kpi-row { grid-template-columns: 1fr; }
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 18px;
+  border-left: 4px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kpi-card.kpi-green  { border-left-color: #68d391; }
+.kpi-card.kpi-red    { border-left-color: #fc8181; }
+.kpi-card.kpi-yellow { border-left-color: #f6ad55; }
+.kpi-card.kpi-neutral{ border-left-color: #63b3ed; }
+
+.kpi-icon { color: #a0aec0; font-size: 1.1rem; }
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+.kpi-unit {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #a0aec0;
+  margin-left: 2px;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0aec0;
+}
+
+.kpi-badge { margin-top: 2px; }
+
+/* Filter / sort bar */
+.filter-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-group, .sort-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Content card */
+.content-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a0aec0;
+}
+
+/* Bar chart */
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bar-row-team {
+  border-top: 1px solid #4a5568;
+  border-bottom: 1px solid #4a5568;
+  padding: 6px 0;
+  margin-bottom: 4px;
+}
+
+.bar-name {
+  width: 120px;
+  min-width: 120px;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-track {
+  flex: 1;
+  height: 24px;
+  background: #1a202c;
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.bar-team {
+  background: #4299e1;
+  opacity: 0.7;
+}
+
+.bar-value {
+  position: absolute;
+  right: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* Op link */
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+}
+
+.op-link:hover {
+  color: #90cdf4;
+  text-decoration: underline;
+}
+
+/* Table */
+.kass-table {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.kass-table th {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-color: #4a5568;
+  background: #1a202c;
+}
+
+.kass-table td {
+  vertical-align: middle;
+  border-color: #4a5568;
+}
+
+/* Kassation badge in table */
+.kass-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1a202c;
+}
+
+/* VS team labels */
+.vs-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.vs-better { color: #68d391; }
+.vs-worse  { color: #fc8181; }
+.vs-neutral { color: #a0aec0; }
+
+/* Trend labels */
+.trend-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.trend-better { color: #68d391; }
+.trend-worse  { color: #fc8181; }
+.trend-stable { color: #a0aec0; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}

@@ -1,0 +1,166 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Kassationsanalys per operatör</h2>
+    <p class="page-sub">Kassationsgrad (IBC ej godkänd) per operatör — kvalitetsöverblick och trend</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <span class="period-label">Period:</span>
+    <div class="btn-group btn-group-sm" role="group">
+      <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="setDays(30)">30 dagar</button>
+      <button class="btn" [class.btn-primary]="days===60"  [class.btn-outline-secondary]="days!==60"  (click)="setDays(60)">60 dagar</button>
+      <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+      <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+    </div>
+    <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Hämtar kassationsdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI cards -->
+  <div *ngIf="!loading && operators.length" class="kpi-row">
+    <div class="kpi-card kpi-neutral">
+      <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+      <div class="kpi-value">{{ teamKassgrad | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-label">Lagets snitt kassationsgrad</div>
+      <div class="kpi-badge"><span class="badge bg-secondary">{{ operators.length }} operatörer</span></div>
+    </div>
+
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="kpi-value">{{ bestKassgrad | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-label">Bäst kvalitet (lägst kassation)</div>
+      <div class="kpi-badge"><span class="badge bg-success">{{ counts.bra }} operatör(er)</span></div>
+    </div>
+
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
+      <div class="kpi-value">{{ worstKassgrad | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-label">Sämst kvalitet (högst kassation)</div>
+      <div class="kpi-badge"><span class="badge bg-danger">{{ counts.hog }} operatör(er)</span></div>
+    </div>
+
+    <div class="kpi-card kpi-yellow">
+      <div class="kpi-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="kpi-value">{{ totalIbcEj | number }}</div>
+      <div class="kpi-label">Totalt kasserade IBC</div>
+      <div class="kpi-badge"><span class="badge bg-warning text-dark">{{ totalBurEj }} bur ej ok</span></div>
+    </div>
+  </div>
+
+  <!-- Filter + Sort bar -->
+  <div *ngIf="!loading && operators.length" class="filter-sort-bar">
+    <div class="filter-group">
+      <span class="filter-label">Visa:</span>
+      <button class="btn btn-sm" [class.btn-secondary]="filterStatus==='alla'"    [class.btn-outline-secondary]="filterStatus!=='alla'"    (click)="setFilter('alla')">Alla</button>
+      <button class="btn btn-sm" [class.btn-success]="filterStatus==='bra'"       [class.btn-outline-success]="filterStatus!=='bra'"       (click)="setFilter('bra')">Låg kassation ({{ counts.bra }})</button>
+      <button class="btn btn-sm" [class.btn-warning]="filterStatus==='normal'"    [class.btn-outline-warning]="filterStatus!=='normal'"    (click)="setFilter('normal')">Normal ({{ counts.normal }})</button>
+      <button class="btn btn-sm" [class.btn-danger]="filterStatus==='hog'"        [class.btn-outline-danger]="filterStatus!=='hog'"        (click)="setFilter('hog')">Hög kassation ({{ counts.hog }})</button>
+    </div>
+    <div class="sort-group">
+      <span class="filter-label">Sortera:</span>
+      <button class="btn btn-sm" [class.btn-primary]="sortBy==='kassationsgrad'" [class.btn-outline-secondary]="sortBy!=='kassationsgrad'" (click)="setSort('kassationsgrad')">Kassationsgrad</button>
+      <button class="btn btn-sm" [class.btn-primary]="sortBy==='ibc_ej_ok'"      [class.btn-outline-secondary]="sortBy!=='ibc_ej_ok'"      (click)="setSort('ibc_ej_ok')">IBC kasserade</button>
+      <button class="btn btn-sm" [class.btn-primary]="sortBy==='bur_ej_ok'"      [class.btn-outline-secondary]="sortBy!=='bur_ej_ok'"      (click)="setSort('bur_ej_ok')">Bur kasserade</button>
+      <button class="btn btn-sm" [class.btn-primary]="sortBy==='name'"           [class.btn-outline-secondary]="sortBy!=='name'"           (click)="setSort('name')">Namn</button>
+    </div>
+  </div>
+
+  <!-- Bar chart + Table -->
+  <div *ngIf="!loading && filtered.length" class="content-card">
+    <div class="section-title mb-3">Kassationsgrad per operatör</div>
+
+    <!-- Bar chart visualization -->
+    <div class="bar-chart">
+      <!-- Team average reference line -->
+      <div class="bar-row bar-row-team">
+        <div class="bar-name">Lagsnitt</div>
+        <div class="bar-track">
+          <div class="bar-fill bar-team" [style.width.%]="teamBar()"></div>
+          <span class="bar-value">{{ teamKassgrad | number:'1.1-2' }}%</span>
+        </div>
+      </div>
+
+      <div *ngFor="let op of filtered" class="bar-row">
+        <div class="bar-name">
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill"
+               [style.width.%]="kassBar(op)"
+               [style.background]="kassColor(op.kassationsgrad)">
+          </div>
+          <span class="bar-value">{{ op.kassationsgrad | number:'1.1-2' }}%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed table -->
+  <div *ngIf="!loading && filtered.length" class="content-card mt-3">
+    <div class="section-title mb-3">Detaljerad kassationsöversikt</div>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover kass-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th class="text-center">Kassationsgrad</th>
+            <th class="text-center">vs Lag</th>
+            <th class="text-center">IBC kasserade</th>
+            <th class="text-center">Bur ej ok</th>
+            <th class="text-center">IBC godkänd</th>
+            <th class="text-center">Skift</th>
+            <th class="text-center">Trend</th>
+            <th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of filtered">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td class="text-center">
+              <span class="kass-badge" [style.background]="kassColor(op.kassationsgrad)">
+                {{ op.kassationsgrad | number:'1.1-2' }}%
+              </span>
+            </td>
+            <td class="text-center">
+              <span [class]="vsTeamClass(op.vs_team)" class="vs-label">
+                {{ vsTeamLabel(op.vs_team) }}
+              </span>
+            </td>
+            <td class="text-center text-danger">{{ op.ibc_ej_ok }}</td>
+            <td class="text-center text-warning">{{ op.bur_ej_ok }}</td>
+            <td class="text-center text-success">{{ op.ibc_ok }}</td>
+            <td class="text-center text-muted">{{ op.total_shifts }}</td>
+            <td class="text-center">
+              <span [class]="trendClass(op.trend)" class="trend-label">
+                {{ trendLabel(op.trend) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="badge"
+                    [class.bg-success]="op.status==='bra'"
+                    [class.bg-warning]="op.status==='normal'"
+                    [class.text-dark]="op.status==='normal'"
+                    [class.bg-danger]="op.status==='hog'">
+                {{ statusLabel(op.status) }} kassation
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error && !operators.length" class="empty-state">
+    <i class="fas fa-box fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen kassationsdata hittad för vald period.</p>
+  </div>
+</div>

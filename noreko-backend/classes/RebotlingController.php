@@ -256,6 +256,8 @@ class RebotlingController {
                 $this->getSkiftKalender();
             } elseif ($action === 'operator-veckodag') {
                 $this->getOperatorVeckodag();
+            } elseif ($action === 'operator-kassation') {
+                $this->getOperatorKassation();
             } else {
                 $this->getLiveStats();
             }
@@ -6299,6 +6301,173 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorVeckodag: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckodag-analys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorKassation(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Half-period split for trend calculation
+            $mid     = date('Y-m-d', strtotime("-" . (int)($days / 2) . " days"));
+
+            // Fetch all operators
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            // Aggregate kassation per operator (union op1/op2/op3)
+            $sql = "
+                SELECT op_num,
+                       SUM(ibc_ok_val)     AS ibc_ok,
+                       SUM(ibc_ej_val)     AS ibc_ej_ok,
+                       SUM(bur_ej_val)     AS bur_ej_ok,
+                       COUNT(*)            AS total_shifts,
+                       SUM(CASE WHEN datum < :mid1 THEN ibc_ok_val  ELSE 0 END) AS early_ibc_ok,
+                       SUM(CASE WHEN datum < :mid2 THEN ibc_ej_val  ELSE 0 END) AS early_ibc_ej,
+                       SUM(CASE WHEN datum >= :mid3 THEN ibc_ok_val ELSE 0 END) AS late_ibc_ok,
+                       SUM(CASE WHEN datum >= :mid4 THEN ibc_ej_val ELSE 0 END) AS late_ibc_ej
+                FROM (
+                    SELECT op1    AS op_num,
+                           MAX(COALESCE(ibc_ok,0))      AS ibc_ok_val,
+                           MAX(COALESCE(ibc_ej_ok,0))   AS ibc_ej_val,
+                           MAX(COALESCE(bur_ej_ok,0))   AS bur_ej_val,
+                           datum
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL
+                    GROUP BY skiftraknare, datum, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           MAX(COALESCE(ibc_ok,0)),
+                           MAX(COALESCE(ibc_ej_ok,0)),
+                           MAX(COALESCE(bur_ej_ok,0)),
+                           datum
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL
+                    GROUP BY skiftraknare, datum, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           MAX(COALESCE(ibc_ok,0)),
+                           MAX(COALESCE(ibc_ej_ok,0)),
+                           MAX(COALESCE(bur_ej_ok,0)),
+                           datum
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL
+                    GROUP BY skiftraknare, datum, op3
+                ) u
+                GROUP BY op_num
+                HAVING total_shifts >= 3
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+                ':mid1'  => $mid,  ':mid2' => $mid,
+                ':mid3'  => $mid,  ':mid4' => $mid,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $operators = [];
+            $totalIbcOk  = 0;
+            $totalIbcEj  = 0;
+            $totalBurEj  = 0;
+
+            foreach ($rows as $r) {
+                $num     = (int)$r['op_num'];
+                if (!isset($opMap[$num])) continue;
+
+                $ibcOk  = (int)$r['ibc_ok'];
+                $ibcEj  = (int)$r['ibc_ej_ok'];
+                $burEj  = (int)$r['bur_ej_ok'];
+                $total  = $ibcOk + $ibcEj;
+                $kassGrad = $total > 0 ? round($ibcEj / $total * 100, 2) : 0.0;
+
+                // Trend: early half vs late half
+                $earlyOk  = (int)$r['early_ibc_ok'];
+                $earlyEj  = (int)$r['early_ibc_ej'];
+                $lateOk   = (int)$r['late_ibc_ok'];
+                $lateEj   = (int)$r['late_ibc_ej'];
+                $earlyTotal = $earlyOk + $earlyEj;
+                $lateTotal  = $lateOk  + $lateEj;
+                $earlyKass  = $earlyTotal > 0 ? $earlyEj / $earlyTotal * 100 : null;
+                $lateKass   = $lateTotal  > 0 ? $lateEj  / $lateTotal  * 100 : null;
+
+                $trend = 'stable';
+                if ($earlyKass !== null && $lateKass !== null) {
+                    $delta = $lateKass - $earlyKass;
+                    if ($delta > 1.0)       $trend = 'worse';
+                    elseif ($delta < -1.0)  $trend = 'better';
+                }
+
+                $totalIbcOk += $ibcOk;
+                $totalIbcEj += $ibcEj;
+                $totalBurEj += $burEj;
+
+                $operators[] = [
+                    'number'         => $num,
+                    'name'           => $opMap[$num],
+                    'ibc_ok'         => $ibcOk,
+                    'ibc_ej_ok'      => $ibcEj,
+                    'bur_ej_ok'      => $burEj,
+                    'total_shifts'   => (int)$r['total_shifts'],
+                    'kassationsgrad' => $kassGrad,
+                    'trend'          => $trend,
+                ];
+            }
+
+            // Team average kassationsgrad
+            $totalProd = $totalIbcOk + $totalIbcEj;
+            $teamKass  = $totalProd > 0 ? round($totalIbcEj / $totalProd * 100, 2) : 0.0;
+
+            // Compute vs_team for each operator
+            foreach ($operators as &$op) {
+                $op['vs_team'] = $teamKass > 0
+                    ? round($op['kassationsgrad'] - $teamKass, 2)
+                    : 0.0;
+                // quality status
+                $k = $op['kassationsgrad'];
+                if ($k <= max(1.0, $teamKass * 0.6))      $op['status'] = 'bra';
+                elseif ($k <= $teamKass * 1.3)            $op['status'] = 'normal';
+                else                                       $op['status'] = 'hog';
+            }
+            unset($op);
+
+            usort($operators, fn($a, $b) => $a['kassationsgrad'] <=> $b['kassationsgrad']);
+
+            $best  = count($operators) ? $operators[0]['kassationsgrad'] : 0.0;
+            $worst = count($operators) ? $operators[count($operators)-1]['kassationsgrad'] : 0.0;
+
+            echo json_encode([
+                'success'         => true,
+                'days'            => $days,
+                'from'            => $from,
+                'to'              => $to,
+                'operators'       => $operators,
+                'team_kassgrad'   => $teamKass,
+                'total_ibc_ok'    => $totalIbcOk,
+                'total_ibc_ej'    => $totalIbcEj,
+                'total_bur_ej'    => $totalBurEj,
+                'best_kassgrad'   => $best,
+                'worst_kassgrad'  => $worst,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorKassation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsanalys'], JSON_UNESCAPED_UNICODE);
         }
     }
 
