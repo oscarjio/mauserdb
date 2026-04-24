@@ -252,6 +252,8 @@ class RebotlingController {
                 $this->getOperatorProdukt();
             } elseif ($action === 'operator-stopptid') {
                 $this->getOperatorStopptid();
+            } elseif ($action === 'skift-kalender') {
+                $this->getSkiftKalender();
             } else {
                 $this->getLiveStats();
             }
@@ -5995,6 +5997,119 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorStopptid: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsanalys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getSkiftKalender(): void {
+        $year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
+        $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
+        $month = max(1, min(12, $month));
+        $year  = max(2020, min(2030, $year));
+
+        $from = sprintf('%04d-%02d-01', $year, $month);
+        $to   = date('Y-m-t', strtotime($from));
+
+        try {
+            $pdo = $this->pdo;
+
+            $opRows = $pdo->query("SELECT number, name FROM operators ORDER BY number")->fetchAll(\PDO::FETCH_ASSOC);
+            $opMap  = [];
+            foreach ($opRows as $r) $opMap[(int)$r['number']] = $r['name'];
+
+            $stmt = $pdo->prepare("
+                SELECT skiftraknare, datum, op1, op2, op3,
+                       ibc_ok, ibc_ej_ok, drifttid, driftstopptime, product_id
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                ORDER BY datum, skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $byDay      = [];
+            $totalIbc   = 0;
+            $totalDrift = 0;
+
+            foreach ($rows as $r) {
+                $d    = $r['datum'];
+                $ibc  = (int)($r['ibc_ok']   ?? 0);
+                $drft = (int)($r['drifttid']  ?? 0);
+                $ibcH = $drft > 0 ? round($ibc / ($drft / 60.0), 2) : 0.0;
+
+                if (!isset($byDay[$d])) $byDay[$d] = [];
+                $byDay[$d][] = [
+                    'skiftraknare'   => (int)$r['skiftraknare'],
+                    'op1_num'        => $r['op1'] ? (int)$r['op1'] : 0,
+                    'op2_num'        => $r['op2'] ? (int)$r['op2'] : 0,
+                    'op3_num'        => $r['op3'] ? (int)$r['op3'] : 0,
+                    'op1_name'       => $r['op1'] ? ($opMap[(int)$r['op1']] ?? '') : '',
+                    'op2_name'       => $r['op2'] ? ($opMap[(int)$r['op2']] ?? '') : '',
+                    'op3_name'       => $r['op3'] ? ($opMap[(int)$r['op3']] ?? '') : '',
+                    'ibc_ok'         => $ibc,
+                    'ibc_ej_ok'      => (int)($r['ibc_ej_ok']      ?? 0),
+                    'drifttid'       => $drft,
+                    'driftstopptime' => (int)($r['driftstopptime']  ?? 0),
+                    'product_id'     => (int)($r['product_id']      ?? 0),
+                    'ibc_per_h'      => $ibcH,
+                ];
+                $totalIbc   += $ibc;
+                $totalDrift += $drft;
+            }
+
+            $monthAvg     = $totalDrift > 0 ? round($totalIbc / ($totalDrift / 60.0), 2) : 0.0;
+            $daysInMonth  = (int)date('t', strtotime($from));
+            $firstWeekday = (int)date('N', strtotime($from));
+            $monthNames   = ['', 'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+                             'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
+
+            $days = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $d);
+                $shifts  = $byDay[$dateStr] ?? [];
+                $dayIbc  = array_sum(array_column($shifts, 'ibc_ok'));
+                $dayDrft = array_sum(array_column($shifts, 'drifttid'));
+                $dayIbcH = $dayDrft > 0 ? round($dayIbc / ($dayDrft / 60.0), 2) : 0.0;
+                $vsAvg   = ($monthAvg > 0 && count($shifts) > 0) ? round($dayIbcH / $monthAvg * 100, 1) : null;
+
+                $rating = 'tom';
+                if (count($shifts) > 0) {
+                    if ($vsAvg === null)    $rating = 'avg';
+                    elseif ($vsAvg >= 120) $rating = 'great';
+                    elseif ($vsAvg >= 105) $rating = 'good';
+                    elseif ($vsAvg >= 90)  $rating = 'avg';
+                    elseif ($vsAvg >= 70)  $rating = 'weak';
+                    else                   $rating = 'poor';
+                }
+
+                $days[] = [
+                    'date'          => $dateStr,
+                    'day'           => $d,
+                    'shifts'        => $shifts,
+                    'day_ibc_ok'    => $dayIbc,
+                    'day_drifttid'  => $dayDrft,
+                    'day_ibc_per_h' => $dayIbcH,
+                    'vs_avg'        => $vsAvg,
+                    'rating'        => $rating,
+                ];
+            }
+
+            echo json_encode([
+                'success'         => true,
+                'year'            => $year,
+                'month'           => $month,
+                'month_name'      => $monthNames[$month],
+                'days_in_month'   => $daysInMonth,
+                'first_weekday'   => $firstWeekday,
+                'month_avg_ibc_h' => $monthAvg,
+                'total_ibc_ok'    => $totalIbc,
+                'total_skift'     => count($rows),
+                'days'            => $days,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftKalender: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kalenderdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 

@@ -1,0 +1,161 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Skift-kalender</h1>
+      <p class="page-subtitle">Månadsvy — vilka operatörer jobbade varje dag och hur det gick</p>
+    </div>
+    <div class="month-nav">
+      <button class="btn btn-sm btn-outline-secondary" (click)="prevMonth()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="month-label">{{ monthName }} {{ year }}</span>
+      <button class="btn btn-sm btn-outline-secondary" (click)="nextMonth()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar kalenderdata...</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- Summary bar -->
+    <div class="summary-row" *ngIf="totalSkift > 0">
+      <div class="summary-card">
+        <span class="s-num">{{ totalSkift }}</span>
+        <span class="s-label">Skift totalt</span>
+      </div>
+      <div class="summary-card">
+        <span class="s-num">{{ totalIbcOk }}</span>
+        <span class="s-label">IBC producerade</span>
+      </div>
+      <div class="summary-card">
+        <span class="s-num">{{ monthAvgIbcH | number:'1.1-1' }}</span>
+        <span class="s-label">Snitt IBC/h</span>
+      </div>
+      <div class="summary-card great-card">
+        <span class="s-num">{{ monthStats.greatDays }}</span>
+        <span class="s-label">Toppdagar (≥120%)</span>
+      </div>
+      <div class="summary-card active-card">
+        <span class="s-num">{{ monthStats.active }}</span>
+        <span class="s-label">Aktiva dagar</span>
+      </div>
+      <div class="summary-card weak-card" *ngIf="monthStats.weakDays > 0">
+        <span class="s-num">{{ monthStats.weakDays }}</span>
+        <span class="s-label">Svaga dagar</span>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row">
+      <span class="legend-item"><span class="dot great"></span> Topp ≥120%</span>
+      <span class="legend-item"><span class="dot good"></span> Bra 105–119%</span>
+      <span class="legend-item"><span class="dot avg"></span> OK 90–104%</span>
+      <span class="legend-item"><span class="dot weak"></span> Svag 70–89%</span>
+      <span class="legend-item"><span class="dot poor"></span> Låg &lt;70%</span>
+    </div>
+
+    <!-- Calendar -->
+    <div class="calendar-wrap">
+      <!-- Weekday headers -->
+      <div class="cal-grid cal-header">
+        <div class="cal-head" *ngFor="let wd of weekdays">{{ wd }}</div>
+      </div>
+
+      <!-- Weeks -->
+      <div *ngFor="let row of calendarRows" class="cal-grid cal-week">
+        <ng-container *ngFor="let day of row">
+          <!-- Empty cell -->
+          <div *ngIf="!day" class="cal-cell cal-empty"></div>
+
+          <!-- Day cell -->
+          <div *ngIf="day"
+               [class]="'cal-cell rating-' + day.rating + (day.shifts.length > 0 ? ' has-shifts' : '') + (isToday(day.date) ? ' is-today' : '') + (expandedDate === day.date ? ' expanded' : '')"
+               (click)="day.shifts.length > 0 && toggleExpand(day.date)">
+
+            <div class="cell-top">
+              <span class="day-num" [class.today-badge]="isToday(day.date)">{{ day.day }}</span>
+              <span class="rating-badge" *ngIf="day.shifts.length > 0">{{ ratingLabel(day.rating) }}</span>
+            </div>
+
+            <ng-container *ngIf="day.shifts.length > 0">
+              <div class="cell-ibc">{{ day.day_ibc_ok }} IBC &bull; {{ day.day_ibc_per_h | number:'1.1-1' }}/h</div>
+              <div class="cell-ops">
+                <ng-container *ngFor="let s of day.shifts; let si = index">
+                  <div class="shift-ops" *ngIf="si < 2">
+                    <span class="op-chip" *ngFor="let n of opChips(s)">{{ n }}</span>
+                  </div>
+                </ng-container>
+                <div class="more-shifts" *ngIf="day.shifts.length > 2">+{{ day.shifts.length - 2 }} till</div>
+              </div>
+              <div class="expand-hint" *ngIf="expandedDate !== day.date">
+                <i class="fas fa-chevron-down"></i>
+              </div>
+            </ng-container>
+
+            <div *ngIf="day.shifts.length === 0" class="cell-empty-label">Ingen data</div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Expanded day detail panel -->
+    <div class="expand-panel" *ngIf="expandedDay">
+      <div class="expand-header">
+        <h3>{{ expandedDay.date }} &mdash; {{ expandedDay.shifts.length }} skift</h3>
+        <div class="expand-kpi">
+          <span><strong>{{ expandedDay.day_ibc_ok }}</strong> IBC</span>
+          <span><strong>{{ expandedDay.day_ibc_per_h | number:'1.1-1' }}</strong> IBC/h</span>
+          <span *ngIf="expandedDay.vs_avg !== null"
+                [class.text-success]="expandedDay.vs_avg >= 105"
+                [class.text-danger]="expandedDay.vs_avg < 90">
+            <strong>{{ expandedDay.vs_avg | number:'1.1-1' }}%</strong> vs månadssnitt
+          </span>
+          <span>{{ driftH(expandedDay.day_drifttid) }} körtid</span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" (click)="toggleExpand(expandedDay.date)">
+          <i class="fas fa-times"></i> Stäng
+        </button>
+      </div>
+
+      <div class="shift-cards">
+        <div class="shift-card" *ngFor="let s of expandedDay.shifts">
+          <div class="shift-card-head">
+            <span class="skift-num">Skift {{ s.skiftraknare }}</span>
+            <span class="shift-ibc">{{ s.ibc_ok }} IBC &bull; {{ s.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+          </div>
+          <div class="shift-positions">
+            <div class="pos-row" *ngIf="s.op1_name">
+              <span class="pos-label">Tvättplats</span>
+              <a class="op-link" [routerLink]="['/rebotling/operator', s.op1_num]">{{ s.op1_name }}</a>
+            </div>
+            <div class="pos-row" *ngIf="s.op2_name">
+              <span class="pos-label">Kontrollstation</span>
+              <a class="op-link" [routerLink]="['/rebotling/operator', s.op2_num]">{{ s.op2_name }}</a>
+            </div>
+            <div class="pos-row" *ngIf="s.op3_name">
+              <span class="pos-label">Truckförare</span>
+              <a class="op-link" [routerLink]="['/rebotling/operator', s.op3_num]">{{ s.op3_name }}</a>
+            </div>
+          </div>
+          <div class="shift-meta">
+            <span *ngIf="s.ibc_ej_ok > 0" class="meta-badge red">{{ s.ibc_ej_ok }} kasserade</span>
+            <span *ngIf="s.driftstopptime > 0" class="meta-badge yellow">{{ s.driftstopptime }} min stopp</span>
+            <span class="meta-badge gray">{{ driftH(s.drifttid) }} körtid</span>
+            <span class="meta-badge gray" *ngIf="s.product_id > 0">Produkt {{ s.product_id }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && totalSkift === 0" class="empty-state">
+      Inga skift registrerade för {{ monthName }} {{ year }}.
+    </div>
+
+  </ng-container>
+</div>
