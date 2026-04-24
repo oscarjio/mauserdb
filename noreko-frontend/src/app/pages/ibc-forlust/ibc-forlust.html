@@ -1,0 +1,192 @@
+<div class="container-fluid py-4 ibc-forlust-page">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h2 class="mb-0">IBC-förlustkalkyl</h2>
+      <p class="text-muted small mb-0" *ngIf="from">{{ from }} – {{ to }}</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <label class="text-muted small mb-0">Period:</label>
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:120px"
+              [(ngModel)]="days" (change)="load()">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="text-center py-5 text-muted">Laddar…</div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- Summary cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card stat-card border-danger">
+          <div class="card-body text-center p-3">
+            <div class="stat-val text-danger">{{ Math.abs(totalLoss).toFixed(1) }}</div>
+            <div class="stat-lbl">IBC förlorat</div>
+            <div class="stat-sub text-muted">vs om alla nådde snitt</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card border-success">
+          <div class="card-body text-center p-3">
+            <div class="stat-val text-success">+{{ totalGain.toFixed(1) }}</div>
+            <div class="stat-lbl">IBC vunnet</div>
+            <div class="stat-sub text-muted">bidrag över snittet</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card border-warning">
+          <div class="card-body text-center p-3">
+            <div class="stat-val text-warning">{{ projectedGain.toFixed(1) }}</div>
+            <div class="stat-lbl">Projicerad vinst</div>
+            <div class="stat-sub text-muted">om under-snitt → snitt</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card stat-card">
+          <div class="card-body text-center p-3">
+            <div class="stat-val">{{ belowAvgCount }} / {{ operators.length }}</div>
+            <div class="stat-lbl">Under snittet</div>
+            <div class="stat-sub text-muted">operatörer med negativ påverkan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Nettopåverkan per operatör (IBC)</span>
+        <span class="text-muted small">Grön = over snitt, röd = under snitt</span>
+      </div>
+      <div class="card-body p-3" style="height:260px">
+        <canvas #barCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Team averages info -->
+    <div class="card mb-4">
+      <div class="card-body p-3">
+        <div class="d-flex flex-wrap gap-4">
+          <div class="text-center" *ngFor="let pos of ['op1','op2','op3']">
+            <div class="fw-semibold small text-muted">
+              {{ pos === 'op1' ? 'Tvättplats' : pos === 'op2' ? 'Kontrollstation' : 'Truckförare' }}
+            </div>
+            <div class="fs-5 fw-bold">{{ (teamAvgByPos[pos] ?? 0).toFixed(1) }}</div>
+            <div class="text-muted small">IBC/h lagsnitt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sort bar -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="text-muted small">Sortera:</span>
+      <button class="btn btn-sm" [class.btn-secondary]="sortBy==='net'" [class.btn-outline-secondary]="sortBy!=='net'"
+              (click)="sortBy='net'">Sämst påverkan</button>
+      <button class="btn btn-sm" [class.btn-secondary]="sortBy==='gain'" [class.btn-outline-secondary]="sortBy!=='gain'"
+              (click)="sortBy='gain'">Bäst påverkan</button>
+      <button class="btn btn-sm" [class.btn-secondary]="sortBy==='name'" [class.btn-outline-secondary]="sortBy!=='name'"
+              (click)="sortBy='name'">Namn</button>
+    </div>
+
+    <!-- Operator table -->
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="text-center">Skift</th>
+              <th class="text-center text-success">IBC vunnet</th>
+              <th class="text-center text-danger">IBC förlorat</th>
+              <th class="text-center">Nettopåverkan</th>
+              <th class="text-center"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let op of sorted; trackBy: trackByOp">
+              <!-- Main row -->
+              <tr class="op-row" (click)="toggleExpand(op.op_num)" style="cursor:pointer">
+                <td>
+                  <a [routerLink]="['/rebotling/operator', op.op_num]" class="text-light fw-semibold"
+                     (click)="$event.stopPropagation()">{{ op.name }}</a>
+                </td>
+                <td class="text-center text-muted">{{ op.total_skift }}</td>
+                <td class="text-center text-success">+{{ op.total_gain.toFixed(1) }}</td>
+                <td class="text-center text-danger">{{ op.total_loss.toFixed(1) }}</td>
+                <td class="text-center">
+                  <span class="impact-badge" [ngClass]="impactClass(op.net_impact)">
+                    {{ op.net_impact >= 0 ? '+' : '' }}{{ op.net_impact.toFixed(1) }}
+                  </span>
+                </td>
+                <td class="text-center text-muted small">
+                  {{ expandedOp === op.op_num ? '▲' : '▼' }}
+                </td>
+              </tr>
+              <!-- Expanded position detail -->
+              <tr *ngIf="expandedOp === op.op_num" class="expand-row">
+                <td colspan="6" class="p-0">
+                  <div class="expand-inner">
+                    <table class="table table-sm mb-0 text-muted">
+                      <thead>
+                        <tr>
+                          <th>Position</th>
+                          <th class="text-center">Skift</th>
+                          <th class="text-center">IBC/h</th>
+                          <th class="text-center">Lagsnitt</th>
+                          <th class="text-center">Vs snitt</th>
+                          <th class="text-center">Timmar</th>
+                          <th class="text-center">IBC-påverkan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let p of op.positions">
+                          <td>{{ p.label }}</td>
+                          <td class="text-center">{{ p.antal_skift }}</td>
+                          <td class="text-center">{{ p.avg_ibc_h.toFixed(1) }}</td>
+                          <td class="text-center">{{ p.team_avg_ibc_h.toFixed(1) }}</td>
+                          <td class="text-center" [ngClass]="pctClass(p.vs_team_pct)">
+                            {{ p.vs_team_pct >= 0 ? '+' : '' }}{{ p.vs_team_pct.toFixed(1) }}%
+                          </td>
+                          <td class="text-center">{{ p.hours_worked.toFixed(1) }} h</td>
+                          <td class="text-center" [ngClass]="p.ibc_impact >= 0 ? 'text-success' : 'text-danger'">
+                            {{ p.ibc_impact >= 0 ? '+' : '' }}{{ p.ibc_impact.toFixed(1) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Methodology note -->
+    <p class="text-muted small mt-3">
+      IBC-påverkan = (operatörens snitt IBC/h − lagsnitt IBC/h) × totalt antal timmar vid positionen.
+      Positiv påverkan = operatören bidrar mer IBC än ett genomsnittligt byte skulle ge.
+      Kräver minst 3 skift per position för att inkluderas.
+    </p>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && operators.length === 0" class="text-center py-5 text-muted">
+    Ingen data att visa för vald period.
+  </div>
+
+</div>

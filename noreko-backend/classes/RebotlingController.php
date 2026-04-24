@@ -260,6 +260,8 @@ class RebotlingController {
                 $this->getOperatorKassation();
             } elseif ($action === 'skift-prognos') {
                 $this->getSkiftPrognos();
+            } elseif ($action === 'ibc-forlust') {
+                $this->getIbcForlust();
             } else {
                 $this->getLiveStats();
             }
@@ -6659,6 +6661,142 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftPrognos: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftprognos'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ── IBC-förlustkalkyl ──────────────────────────────────────────────────────
+    // GET ?action=rebotling&run=ibc-forlust[&days=90]
+    // For each operator+position: actual IBC/h vs team avg → IBC impact over period.
+    private function getIbcForlust(): void
+    {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(7, min(365, (int)$_GET['days'])) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // All unique shifts in period (one row per shift via GROUP BY skiftraknare)
+            $stmt = $pdo->prepare("
+                SELECT skiftraknare,
+                       MAX(op1)      AS op1,
+                       MAX(op2)      AS op2,
+                       MAX(op3)      AS op3,
+                       MAX(ibc_ok)   AS ibc_ok,
+                       MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Operator names
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active=1");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            // Accumulate per-operator+position and per-position totals
+            $opStats  = []; // [num][pos] = ['ibc'=>0,'min'=>0,'shifts'=>0]
+            $posStats = ['op1' => ['ibc' => 0, 'min' => 0], 'op2' => ['ibc' => 0, 'min' => 0], 'op3' => ['ibc' => 0, 'min' => 0]];
+
+            foreach ($allShifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $num = (int)$s[$pos];
+                    if ($num <= 0) continue;
+
+                    $opStats[$num][$pos]['ibc']    = ($opStats[$num][$pos]['ibc']    ?? 0) + $ibc;
+                    $opStats[$num][$pos]['min']    = ($opStats[$num][$pos]['min']    ?? 0) + $min;
+                    $opStats[$num][$pos]['shifts'] = ($opStats[$num][$pos]['shifts'] ?? 0) + 1;
+
+                    $posStats[$pos]['ibc'] += $ibc;
+                    $posStats[$pos]['min'] += $min;
+                }
+            }
+
+            // Team average IBC/h per position
+            $posLabels = ['op1' => 'Tvättplats', 'op2' => 'Kontrollstation', 'op3' => 'Truckförare'];
+            $teamAvg   = [];
+            foreach (['op1', 'op2', 'op3'] as $pos) {
+                $teamAvg[$pos] = $posStats[$pos]['min'] > 0
+                    ? round($posStats[$pos]['ibc'] / ($posStats[$pos]['min'] / 60.0), 2)
+                    : 0.0;
+            }
+
+            // Build per-operator result
+            $operators = [];
+            foreach ($opStats as $num => $positions) {
+                $totalGain   = 0.0;
+                $totalLoss   = 0.0;
+                $totalShifts = 0;
+                $posResults  = [];
+
+                foreach ($positions as $pos => $stats) {
+                    if ($stats['shifts'] < 3) continue;
+                    $avg = $teamAvg[$pos];
+                    if ($avg <= 0) continue;
+
+                    $opIbcH  = $stats['ibc'] / ($stats['min'] / 60.0);
+                    $hours   = $stats['min'] / 60.0;
+                    $impact  = round(($opIbcH - $avg) * $hours, 1);
+                    $vsPct   = round(($opIbcH / $avg - 1) * 100, 1);
+
+                    $posResults[] = [
+                        'pos'            => $pos,
+                        'label'          => $posLabels[$pos],
+                        'antal_skift'    => $stats['shifts'],
+                        'avg_ibc_h'      => round($opIbcH, 2),
+                        'team_avg_ibc_h' => $avg,
+                        'vs_team_pct'    => $vsPct,
+                        'hours_worked'   => round($hours, 1),
+                        'ibc_impact'     => $impact,
+                    ];
+
+                    if ($impact > 0) $totalGain += $impact;
+                    else             $totalLoss += $impact;
+                    $totalShifts += $stats['shifts'];
+                }
+
+                if (empty($posResults)) continue;
+
+                $operators[] = [
+                    'op_num'      => $num,
+                    'name'        => $opMap[$num] ?? "Op $num",
+                    'positions'   => $posResults,
+                    'total_gain'  => round($totalGain, 1),
+                    'total_loss'  => round($totalLoss, 1),
+                    'net_impact'  => round($totalGain + $totalLoss, 1),
+                    'total_skift' => $totalShifts,
+                ];
+            }
+
+            usort($operators, fn($a, $b) => $a['net_impact'] <=> $b['net_impact']);
+
+            $totalLoss     = round((float)array_sum(array_map(fn($o) => min(0.0, $o['net_impact']), $operators)), 1);
+            $totalGain     = round((float)array_sum(array_map(fn($o) => max(0.0, $o['net_impact']), $operators)), 1);
+            $projectedGain = round(abs($totalLoss), 1);
+
+            echo json_encode([
+                'success'         => true,
+                'days'            => $days,
+                'from'            => $from,
+                'to'              => $to,
+                'operators'       => $operators,
+                'team_avg_by_pos' => $teamAvg,
+                'total_loss'      => $totalLoss,
+                'total_gain'      => $totalGain,
+                'projected_gain'  => $projectedGain,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getIbcForlust: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid IBC-förlustkalkyl'], JSON_UNESCAPED_UNICODE);
         }
     }
 

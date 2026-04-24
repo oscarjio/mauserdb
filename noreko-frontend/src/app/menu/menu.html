@@ -52,6 +52,7 @@
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/operator-veckodag"><i class="fas fa-calendar-day me-2"></i>Prestanda per veckodag</a></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/operator-kassation"><i class="fas fa-recycle me-2"></i>Kassationsanalys per operatör</a></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/skift-prognos"><i class="fas fa-magic me-2"></i>Skift-prognos</a></li>
+          <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/ibc-forlust"><i class="fas fa-chart-bar me-2"></i>IBC-förlustkalkyl</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Alla funktioner</li>
           <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-muted"></i>Topplista (live)</a></li>
