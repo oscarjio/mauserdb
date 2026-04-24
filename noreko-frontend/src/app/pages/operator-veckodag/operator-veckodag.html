@@ -1,0 +1,118 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Prestanda per veckodag</h1>
+      <p class="page-subtitle">
+        Vilka operatörer presterar bäst på vilka veckodagar
+        <span *ngIf="from"> &mdash; {{ from }} till {{ to }}</span>
+      </p>
+    </div>
+    <div class="controls">
+      <div class="btn-group" role="group">
+        <button *ngFor="let d of [30, 60, 90, 180]" type="button"
+          class="btn btn-sm"
+          [class.btn-warning]="days === d"
+          [class.btn-outline-secondary]="days !== d"
+          (click)="setDays(d)">{{ d }}d</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar data...</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- Recommendations -->
+    <div *ngIf="recommendations.length > 0" class="reco-section">
+      <h6 class="section-label">Bäst per veckodag</h6>
+      <div class="reco-row">
+        <div class="reco-card" *ngFor="let r of recommendations">
+          <span class="reco-day">{{ r.name }}</span>
+          <span class="reco-name">{{ r.best_op_name }}</span>
+          <span class="reco-val">{{ r.best_op_ibc_h }} IBC/h</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row">
+      <span class="legend-title">Färgskala (vs lagsnitt):</span>
+      <span class="legend-chip great">≥120%</span>
+      <span class="legend-chip good">108–119%</span>
+      <span class="legend-chip avg">93–107%</span>
+      <span class="legend-chip weak">80–92%</span>
+      <span class="legend-chip poor">&lt;80%</span>
+      <span class="legend-chip empty">Ej data</span>
+    </div>
+
+    <!-- Heatmap table -->
+    <div class="table-scroll">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th class="op-col">Operatör</th>
+            <th *ngFor="let wd of weekdays" class="dow-col">
+              <div class="dow-header">
+                <span class="dow-name">{{ wd.name }}</span>
+                <span class="dow-team-avg" *ngIf="wd.team_avg > 0">{{ wd.team_avg }}</span>
+              </div>
+            </th>
+            <th class="stat-col">Bästa dag</th>
+            <th class="stat-col">Skift</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Team average row -->
+          <tr class="team-row">
+            <td class="op-cell">
+              <span class="team-badge">LAG</span> Lagsnitt
+            </td>
+            <td *ngFor="let wd of weekdays" class="dow-cell"
+              [style.background]="teamCellBg(wd)">
+              <span *ngIf="wd.team_avg > 0" class="cell-val">{{ wd.team_avg }}</span>
+              <span *ngIf="!wd.team_avg" class="cell-dash">—</span>
+            </td>
+            <td class="stat-cell">—</td>
+            <td class="stat-cell">{{ teamAvgOverall }} snitt</td>
+          </tr>
+
+          <!-- Operator rows -->
+          <tr *ngFor="let op of operators">
+            <td class="op-cell">
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td *ngFor="let wd of weekdays" class="dow-cell"
+              [style.background]="cellBg(op, wd.dow)"
+              [class]="cellTextCls(op, wd.dow)"
+              [class.best-day-cell]="isBestDay(op, wd.dow)">
+              <ng-container *ngIf="getDow(op, wd.dow) as d; else emptyCell">
+                <span class="cell-val">{{ d.avg_ibc_h }}</span>
+                <span class="cell-sub" *ngIf="d.vs_team !== null">{{ d.vs_team }}%</span>
+                <span class="cell-star" *ngIf="isBestDay(op, wd.dow)">★</span>
+              </ng-container>
+              <ng-template #emptyCell><span class="cell-dash">—</span></ng-template>
+            </td>
+            <td class="stat-cell">
+              <span class="best-day-badge" *ngIf="op.best_dow_name">{{ op.best_dow_name }}</span>
+            </td>
+            <td class="stat-cell text-muted">{{ op.total_shifts }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="help-text">
+      Celler visar genomsnittlig IBC/h för skift operatören deltog i, uppdelat per veckodag.
+      ★ markerar varje operatörs bästa dag. Minst 2 skift krävs per kombination.
+    </p>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && operators.length === 0" class="empty-state">
+    Ingen data tillgänglig för vald period.
+  </div>
+</div>

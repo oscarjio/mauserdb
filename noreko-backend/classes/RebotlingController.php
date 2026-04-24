@@ -254,6 +254,8 @@ class RebotlingController {
                 $this->getOperatorStopptid();
             } elseif ($action === 'skift-kalender') {
                 $this->getSkiftKalender();
+            } elseif ($action === 'operator-veckodag') {
+                $this->getOperatorVeckodag();
             } else {
                 $this->getLiveStats();
             }
@@ -6110,6 +6112,193 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftKalender: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kalenderdata'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorVeckodag(): void {
+        $days = max(14, min(365, (int)($_GET['days'] ?? 90)));
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            $pdo = $this->db->getConnection();
+
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            $dowNames = [1=>'Söndag',2=>'Måndag',3=>'Tisdag',4=>'Onsdag',5=>'Torsdag',6=>'Fredag',7=>'Lördag'];
+
+            // Team average per weekday
+            $teamStmt = $pdo->prepare("
+                SELECT DAYOFWEEK(datum) AS dow,
+                       AVG(ibc_ok / (drifttid / 60.0)) AS team_avg,
+                       COUNT(*) AS shifts
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                  AND drifttid > 0 AND ibc_ok > 0
+                GROUP BY dow
+                ORDER BY dow
+            ");
+            $teamStmt->execute([':from' => $from, ':to' => $to]);
+
+            $teamByDow = [];
+            $teamWeightedSum = 0.0;
+            $teamShiftsTotal = 0;
+            foreach ($teamStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $dow = (int)$r['dow'];
+                $avg = round((float)$r['avg'], 2);
+                $cnt = (int)$r['shifts'];
+                $teamByDow[$dow] = ['dow' => $dow, 'name' => $dowNames[$dow] ?? '', 'team_avg' => $avg, 'team_shifts' => $cnt];
+                $teamWeightedSum += $avg * $cnt;
+                $teamShiftsTotal += $cnt;
+            }
+            $teamAvgOverall = $teamShiftsTotal > 0 ? round($teamWeightedSum / $teamShiftsTotal, 2) : 0.0;
+
+            // Per-operator per-weekday (avg IBC/h of shifts they worked)
+            $opDowStmt = $pdo->prepare("
+                SELECT op_num, dow,
+                       AVG(ibc_per_h) AS avg_ibc_h,
+                       COUNT(*) AS shifts
+                FROM (
+                    SELECT op1 AS op_num, DAYOFWEEK(datum) AS dow,
+                           ibc_ok / (drifttid / 60.0) AS ibc_per_h
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    UNION ALL
+                    SELECT op2, DAYOFWEEK(datum),
+                           ibc_ok / (drifttid / 60.0)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    UNION ALL
+                    SELECT op3, DAYOFWEEK(datum),
+                           ibc_ok / (drifttid / 60.0)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                ) combined
+                GROUP BY op_num, dow
+                HAVING shifts >= 2
+                ORDER BY op_num, dow
+            ");
+            $opDowStmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+
+            $byOp = [];
+            foreach ($opDowStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $num = (int)$r['op_num'];
+                if (!isset($opMap[$num])) continue;
+                $dow     = (int)$r['dow'];
+                $avgIbcH = round((float)$r['avg_ibc_h'], 2);
+                $vsTeam  = (isset($teamByDow[$dow]) && $teamByDow[$dow]['team_avg'] > 0)
+                    ? round($avgIbcH / $teamByDow[$dow]['team_avg'] * 100, 1)
+                    : null;
+                if (!isset($byOp[$num])) $byOp[$num] = [];
+                $byOp[$num][$dow] = ['avg_ibc_h' => $avgIbcH, 'shifts' => (int)$r['shifts'], 'vs_team' => $vsTeam];
+            }
+
+            // Total shifts per operator
+            $totStmt = $pdo->prepare("
+                SELECT op_num, SUM(shifts) AS total
+                FROM (
+                    SELECT op1 AS op_num, COUNT(*) AS shifts
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND drifttid > 0
+                    GROUP BY op1
+                    UNION ALL
+                    SELECT op2, COUNT(*)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND drifttid > 0
+                    GROUP BY op2
+                    UNION ALL
+                    SELECT op3, COUNT(*)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND drifttid > 0
+                    GROUP BY op3
+                ) t
+                GROUP BY op_num
+            ");
+            $totStmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $totByOp = [];
+            foreach ($totStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $totByOp[(int)$r['op_num']] = (int)$r['total'];
+            }
+
+            $operators = [];
+            foreach ($byOp as $num => $dowMap) {
+                if (count($dowMap) < 2) continue;
+
+                $bestDow = null;
+                $bestAvg = -1.0;
+                foreach ($dowMap as $dow => $data) {
+                    if ($data['avg_ibc_h'] > $bestAvg) {
+                        $bestAvg = $data['avg_ibc_h'];
+                        $bestDow = $dow;
+                    }
+                }
+
+                $operators[] = [
+                    'number'        => $num,
+                    'name'          => $opMap[$num],
+                    'total_shifts'  => $totByOp[$num] ?? array_sum(array_column($dowMap, 'shifts')),
+                    'best_dow'      => $bestDow,
+                    'best_dow_name' => $bestDow !== null ? ($dowNames[$bestDow] ?? '') : '',
+                    'best_avg'      => round($bestAvg, 2),
+                    'by_dow'        => $dowMap,
+                ];
+            }
+
+            usort($operators, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            // Best operator per weekday (Mon–Fri)
+            $recommendations = [];
+            foreach ([2, 3, 4, 5, 6] as $dow) {
+                if (!isset($teamByDow[$dow]) || $teamByDow[$dow]['team_shifts'] < 3) continue;
+                $bestName  = '';
+                $bestIbcH  = 0.0;
+                foreach ($operators as $op) {
+                    if (isset($op['by_dow'][$dow]) && $op['by_dow'][$dow]['avg_ibc_h'] > $bestIbcH) {
+                        $bestIbcH = $op['by_dow'][$dow]['avg_ibc_h'];
+                        $bestName = $op['name'];
+                    }
+                }
+                if ($bestName) {
+                    $recommendations[] = ['dow' => $dow, 'name' => $dowNames[$dow], 'best_op_name' => $bestName, 'best_op_ibc_h' => round($bestIbcH, 2)];
+                }
+            }
+
+            // Weekdays ordered Mon–Sun
+            $weekdays = [];
+            foreach ([2, 3, 4, 5, 6, 7, 1] as $dow) {
+                $weekdays[] = $teamByDow[$dow] ?? ['dow' => $dow, 'name' => $dowNames[$dow] ?? '', 'team_avg' => 0.0, 'team_shifts' => 0];
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'days'             => $days,
+                'from'             => $from,
+                'to'               => $to,
+                'weekdays'         => $weekdays,
+                'operators'        => $operators,
+                'team_avg_overall' => $teamAvgOverall,
+                'recommendations'  => $recommendations,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorVeckodag: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid veckodag-analys'], JSON_UNESCAPED_UNICODE);
         }
     }
 
