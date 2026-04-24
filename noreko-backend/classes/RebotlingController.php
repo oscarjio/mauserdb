@@ -258,6 +258,8 @@ class RebotlingController {
                 $this->getOperatorVeckodag();
             } elseif ($action === 'operator-kassation') {
                 $this->getOperatorKassation();
+            } elseif ($action === 'skift-prognos') {
+                $this->getSkiftPrognos();
             } else {
                 $this->getLiveStats();
             }
@@ -6468,6 +6470,195 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorKassation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsanalys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ── Skift-prognos ──────────────────────────────────────────────────────────
+    // GET ?action=rebotling&run=skift-prognos[&op1=N&op2=N&op3=N]
+    // Without op params → returns active operator list for dropdowns.
+    // With op params    → returns per-position performance forecast.
+    private function getSkiftPrognos(): void
+    {
+        try {
+            $pdo  = $this->pdo;
+            $days = 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Fetch all active operators
+            $stmtOps = $pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opRows  = $stmtOps->fetchAll(\PDO::FETCH_ASSOC);
+            $opMap   = [];
+            foreach ($opRows as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            $op1 = isset($_GET['op1']) && $_GET['op1'] !== '' ? (int)$_GET['op1'] : null;
+            $op2 = isset($_GET['op2']) && $_GET['op2'] !== '' ? (int)$_GET['op2'] : null;
+            $op3 = isset($_GET['op3']) && $_GET['op3'] !== '' ? (int)$_GET['op3'] : null;
+
+            // Return operator list only if no team selected
+            if ($op1 === null && $op2 === null && $op3 === null) {
+                echo json_encode([
+                    'success'   => true,
+                    'operators' => $opRows,
+                    'forecast'  => null,
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // For each position: compute team avg IBC/h over 90d, and per-operator stats
+            // We aggregate per unique skiftraknare to avoid double-counting multi-row shifts.
+            $positions = [
+                ['col' => 'op1', 'label' => 'Tvättplats',      'op' => $op1],
+                ['col' => 'op2', 'label' => 'Kontrollstation', 'op' => $op2],
+                ['col' => 'op3', 'label' => 'Truckförare',      'op' => $op3],
+            ];
+
+            $posResults = [];
+
+            foreach ($positions as $idx => $pos) {
+                $col    = $pos['col'];
+                $opNum  = $pos['op'];
+                $suffix = (string)($idx + 1);
+
+                // Team avg at this position (all operators, last 90d)
+                // Aggregate per skiftraknare first, then average
+                $teamSql = "
+                    SELECT AVG(shift_ibc_h) AS team_avg_ibc_h,
+                           COUNT(*)          AS team_shifts
+                    FROM (
+                        SELECT skiftraknare,
+                               SUM(COALESCE(ibc_ok,0))                              AS ibc_ok_sum,
+                               SUM(COALESCE(drifttid,0))                            AS drifttid_sum,
+                               CASE WHEN SUM(COALESCE(drifttid,0)) > 0
+                                    THEN SUM(COALESCE(ibc_ok,0)) / (SUM(COALESCE(drifttid,0))/60.0)
+                                    ELSE 0 END                                      AS shift_ibc_h
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from{$suffix} AND :to{$suffix}
+                          AND {$col} IS NOT NULL
+                          AND drifttid > 0
+                        GROUP BY skiftraknare
+                    ) t
+                    WHERE shift_ibc_h > 0
+                ";
+                $stmtTeam = $pdo->prepare($teamSql);
+                $stmtTeam->execute([":from{$suffix}" => $from, ":to{$suffix}" => $to]);
+                $teamRow = $stmtTeam->fetch(\PDO::FETCH_ASSOC);
+
+                $teamAvg    = $teamRow ? round((float)$teamRow['team_avg_ibc_h'], 2) : 0.0;
+                $teamShifts = $teamRow ? (int)$teamRow['team_shifts'] : 0;
+
+                $opData = null;
+                if ($opNum !== null && isset($opMap[$opNum])) {
+                    // Per-shift IBC/h for this operator at this position
+                    $opSuffix = "op{$suffix}";
+                    $opSql = "
+                        SELECT shift_ibc_h
+                        FROM (
+                            SELECT skiftraknare,
+                                   CASE WHEN SUM(COALESCE(drifttid,0)) > 0
+                                        THEN SUM(COALESCE(ibc_ok,0)) / (SUM(COALESCE(drifttid,0))/60.0)
+                                        ELSE 0 END AS shift_ibc_h
+                            FROM rebotling_skiftrapport
+                            WHERE datum BETWEEN :{$opSuffix}_from AND :{$opSuffix}_to
+                              AND {$col} = :{$opSuffix}_num
+                              AND drifttid > 0
+                            GROUP BY skiftraknare
+                        ) t
+                        WHERE shift_ibc_h > 0
+                    ";
+                    $stmtOp = $pdo->prepare($opSql);
+                    $stmtOp->execute([
+                        ":{$opSuffix}_from" => $from,
+                        ":{$opSuffix}_to"   => $to,
+                        ":{$opSuffix}_num"  => $opNum,
+                    ]);
+                    $shiftRows = $stmtOp->fetchAll(\PDO::FETCH_COLUMN);
+                    $shiftRows = array_map('floatval', $shiftRows);
+
+                    $n = count($shiftRows);
+                    if ($n >= 1) {
+                        $avg = array_sum($shiftRows) / $n;
+
+                        // Stddev for consistency (population stddev)
+                        $variance = 0.0;
+                        foreach ($shiftRows as $v) {
+                            $variance += ($v - $avg) ** 2;
+                        }
+                        $stddev = $n > 1 ? sqrt($variance / $n) : 0.0;
+                        $consistency = $avg > 0 ? max(0, min(100, round(100 - ($stddev / $avg * 100), 1))) : 0.0;
+
+                        $vsTeam = $teamAvg > 0 ? round(($avg / $teamAvg - 1) * 100, 1) : 0.0;
+
+                        // Rating
+                        if ($vsTeam >= 10)        $rating = 'topp';
+                        elseif ($vsTeam >= -10)   $rating = 'snitt';
+                        else                       $rating = 'under';
+
+                        $opData = [
+                            'number'       => $opNum,
+                            'name'         => $opMap[$opNum],
+                            'avg_ibc_h'    => round($avg, 2),
+                            'antal_skift'  => $n,
+                            'consistency'  => $consistency,
+                            'vs_team'      => $vsTeam,
+                            'rating'       => $rating,
+                            'shifts'       => array_map(fn($v) => round($v, 2), $shiftRows),
+                        ];
+                    } else {
+                        $opData = [
+                            'number'      => $opNum,
+                            'name'        => $opMap[$opNum],
+                            'avg_ibc_h'   => 0.0,
+                            'antal_skift' => 0,
+                            'consistency' => 0.0,
+                            'vs_team'     => 0.0,
+                            'rating'      => 'ingen',
+                            'shifts'      => [],
+                        ];
+                    }
+                }
+
+                $posResults[] = [
+                    'position'    => $pos['label'],
+                    'col'         => $col,
+                    'team_avg'    => $teamAvg,
+                    'team_shifts' => $teamShifts,
+                    'operator'    => $opData,
+                ];
+            }
+
+            // Predicted team IBC/h = average of positions that have data (simple mean)
+            $predicted = [];
+            foreach ($posResults as $p) {
+                if ($p['operator'] && $p['operator']['avg_ibc_h'] > 0) {
+                    $predicted[] = $p['operator']['avg_ibc_h'];
+                }
+            }
+            $predictedTeamIbcH  = count($predicted) > 0 ? round(array_sum($predicted) / count($predicted), 2) : 0.0;
+            $teamAvgAll = array_filter(array_column($posResults, 'team_avg'));
+            $teamAvgOverall = count($teamAvgAll) > 0 ? round(array_sum($teamAvgAll) / count($teamAvgAll), 2) : 0.0;
+            $vsTeamOverall = $teamAvgOverall > 0 ? round(($predictedTeamIbcH / $teamAvgOverall - 1) * 100, 1) : 0.0;
+
+            echo json_encode([
+                'success'            => true,
+                'operators'          => $opRows,
+                'days'               => $days,
+                'from'               => $from,
+                'to'                 => $to,
+                'forecast'           => [
+                    'positions'          => $posResults,
+                    'predicted_team_ibc_h' => $predictedTeamIbcH,
+                    'team_avg_overall'   => $teamAvgOverall,
+                    'vs_team_overall'    => $vsTeamOverall,
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftPrognos: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftprognos'], JSON_UNESCAPED_UNICODE);
         }
     }
 

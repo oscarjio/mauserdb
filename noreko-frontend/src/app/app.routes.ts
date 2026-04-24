@@ -153,6 +153,7 @@ export const routes: Routes = [
       { path: 'rebotling/skift-kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-kalender/skift-kalender').then(m => m.SkiftKalenderPage) },
       { path: 'rebotling/operator-veckodag', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-veckodag/operator-veckodag').then(m => m.OperatorVeckodagPage) },
       { path: 'rebotling/operator-kassation', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-kassation/operator-kassation').then(m => m.OperatorKassationPage) },
+      { path: 'rebotling/skift-prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-prognos/skift-prognos').then(m => m.SkiftPrognosPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

@@ -1,0 +1,153 @@
+<div class="prognos-page">
+  <div class="page-header">
+    <h1 class="page-title">Skift-prognos</h1>
+    <p class="page-subtitle">Välj operatörer för ett kommande skift och se förväntad produktion baserat på historisk data (senaste 90 dagarna).</p>
+  </div>
+
+  <!-- Operator selector -->
+  <div class="selector-card">
+    <div class="selector-grid">
+      <div class="selector-col">
+        <label class="pos-label pos-op1">Tvättplats (op1)</label>
+        <select class="form-select dark-select" [(ngModel)]="op1">
+          <option [ngValue]="null">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="selector-col">
+        <label class="pos-label pos-op2">Kontrollstation (op2)</label>
+        <select class="form-select dark-select" [(ngModel)]="op2">
+          <option [ngValue]="null">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="selector-col">
+        <label class="pos-label pos-op3">Truckförare (op3)</label>
+        <select class="form-select dark-select" [(ngModel)]="op3">
+          <option [ngValue]="null">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="selector-actions">
+      <button class="btn-berakna" (click)="berakna()" [disabled]="loading || !hasAnyOp()">
+        <span *ngIf="!loading">Beräkna prognos</span>
+        <span *ngIf="loading">Beräknar...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert-error">{{ error }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-row">
+    <div class="spinner"></div>
+    <span>Hämtar historisk data...</span>
+  </div>
+
+  <!-- Results -->
+  <ng-container *ngIf="forecast && !loading">
+
+    <!-- Overall summary card -->
+    <div class="summary-card" [ngClass]="overallClass(forecast.vs_team_overall)">
+      <div class="summary-inner">
+        <div class="summary-stat">
+          <div class="summary-label">Prognostiserad IBC/h</div>
+          <div class="summary-value">{{ forecast.predicted_team_ibc_h | number:'1.1-1' }}</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+          <div class="summary-label">Teamsnitt (90d)</div>
+          <div class="summary-value muted">{{ forecast.team_avg_overall | number:'1.1-1' }}</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+          <div class="summary-label">Vs teamsnitt</div>
+          <div class="summary-value" [ngClass]="vsTeamClass(forecast.vs_team_overall)">
+            {{ vsTeamArrow(forecast.vs_team_overall) }}
+            {{ forecast.vs_team_overall > 0 ? '+' : '' }}{{ forecast.vs_team_overall | number:'1.1-1' }}%
+          </div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+          <div class="summary-label">Dataperiod</div>
+          <div class="summary-value-sm">{{ from }} – {{ to }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-position cards -->
+    <div class="positions-grid">
+      <div class="pos-card" *ngFor="let pos of forecast.positions; let i = index">
+        <div class="pos-header">
+          <span class="pos-badge" [ngClass]="'badge-' + pos.col">{{ pos.position }}</span>
+          <span class="team-avg-tag">Teamsnitt: {{ pos.team_avg | number:'1.1-1' }} IBC/h</span>
+        </div>
+
+        <!-- No operator selected -->
+        <div *ngIf="!pos.operator" class="no-op">
+          <span class="no-op-icon">—</span>
+          <p>Ingen operatör vald</p>
+        </div>
+
+        <!-- Operator data -->
+        <ng-container *ngIf="pos.operator">
+          <!-- No data -->
+          <div *ngIf="pos.operator.rating === 'ingen'" class="no-data-msg">
+            <div class="op-name">{{ pos.operator.name }}</div>
+            <p class="muted-text">Inga skift på denna position de senaste 90 dagarna.</p>
+          </div>
+
+          <!-- Has data -->
+          <ng-container *ngIf="pos.operator.rating !== 'ingen'">
+            <div class="op-name-row">
+              <span class="op-name">{{ pos.operator.name }}</span>
+              <span class="rating-badge" [style.background-color]="ratingColor(pos.operator.rating)">
+                {{ ratingLabel(pos.operator.rating) }}
+              </span>
+            </div>
+
+            <div class="kpi-row">
+              <div class="kpi-block">
+                <div class="kpi-label">Snitt IBC/h</div>
+                <div class="kpi-val" [style.color]="ratingColor(pos.operator.rating)">
+                  {{ pos.operator.avg_ibc_h | number:'1.1-1' }}
+                </div>
+              </div>
+              <div class="kpi-block">
+                <div class="kpi-label">Vs snitt</div>
+                <div class="kpi-val" [ngClass]="vsTeamClass(pos.operator.vs_team)">
+                  {{ vsTeamArrow(pos.operator.vs_team) }}
+                  {{ pos.operator.vs_team > 0 ? '+' : '' }}{{ pos.operator.vs_team | number:'1.1-1' }}%
+                </div>
+              </div>
+              <div class="kpi-block">
+                <div class="kpi-label">Konsekvens</div>
+                <div class="kpi-val">
+                  {{ pos.operator.consistency | number:'1.0-0' }}%
+                  <span class="consistency-lbl">{{ consistencyLabel(pos.operator.consistency) }}</span>
+                </div>
+              </div>
+              <div class="kpi-block">
+                <div class="kpi-label">Skift (90d)</div>
+                <div class="kpi-val muted">{{ pos.operator.antal_skift }}</div>
+              </div>
+            </div>
+
+            <!-- Mini history chart -->
+            <div *ngIf="pos.operator.shifts.length > 1" class="chart-wrap">
+              <canvas #chartCanvas></canvas>
+            </div>
+
+            <a class="profile-link" [routerLink]="['/rebotling/operator', pos.operator.number]">
+              Visa operatörsprofil →
+            </a>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+
+    <p class="data-note">Data baserad på {{ days }} dagars historik ({{ from }} – {{ to }}). Minst 1 skift krävs för prognos per position.</p>
+  </ng-container>
+</div>
