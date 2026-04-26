@@ -1709,13 +1709,15 @@ class RebotlingController {
             $countToday = (int)$stmt->fetchColumn();
 
             if ($countToday > 0) {
-                $dateFilter = "s.datum = :dateFrom";
-                $dateParam  = ['dateFrom' => $today];
+                $dateFilter  = "s.datum = :dateFrom";
+                $dateParam   = ['dateFrom' => $today];
                 $periodLabel = $today;
+                $isHistorik  = false;
             } else {
-                $dateFilter = "s.datum >= :dateFrom";
-                $dateParam  = ['dateFrom' => date('Y-m-d', strtotime('-7 days'))];
-                $periodLabel = 'senaste 7 dagarna';
+                $dateFilter  = "s.datum >= :dateFrom";
+                $dateParam   = ['dateFrom' => date('Y-m-d', strtotime('-7 days'))];
+                $periodLabel = 'Historik — senaste 7 dagarna (inga skiftrapporter idag)';
+                $isHistorik  = true;
             }
 
             // Aggregera per operatör (op1/op2/op3 lagras som operator-nummer)
@@ -1777,11 +1779,19 @@ class RebotlingController {
                 ];
             }
 
-            // Summera ibc_idag_total från ranking-listan
-            $ibcIdagTotal = 0;
-            foreach ($ranking as $r) {
-                $ibcIdagTotal += $r['ibc_ok'];
-            }
+            // Räkna ibcIdagTotal från UNIKA skift (GROUP BY skiftraknare).
+            // Får INTE summeras från ranking-listan — op1/op2/op3 delar samma ibc_ok,
+            // summering per operatör ger 3x det verkliga värdet.
+            $sqlTotal = str_replace(':dateFrom', '?',
+                "SELECT COALESCE(SUM(s2.ibc_ok),0) FROM (
+                    SELECT MAX(ibc_ok) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE {$dateFilter}
+                    GROUP BY skiftraknare
+                ) s2");
+            $stmtTotal = $this->pdo->prepare($sqlTotal);
+            $stmtTotal->execute([$d]);
+            $ibcIdagTotal = (int)$stmtTotal->fetchColumn();
 
             // Hämta historiskt rekord (bästa dag senaste 365 dagar, exkl idag)
             $rekordIbc = 0;
@@ -6127,7 +6137,7 @@ class RebotlingController {
         $from = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            $pdo = $this->db->getConnection();
+            $pdo = $this->pdo;
 
             $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
             $opMap  = [];
