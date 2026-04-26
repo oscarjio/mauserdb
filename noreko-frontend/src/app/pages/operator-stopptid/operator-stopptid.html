@@ -66,7 +66,7 @@
       <!-- Team reference row -->
       <div class="op-row team-row">
         <div class="op-name">
-          <span class="badge-status team-badge">LAG</span>
+          <span class="badge-status team-badge">TEAM</span>
           Lagsnitt
         </div>
         <div class="op-meta">
@@ -84,7 +84,7 @@
       <div class="op-row" *ngFor="let op of filtered" [class.row-bra]="op.status==='bra'" [class.row-hog]="op.status==='hog'">
         <div class="op-name">
           <span class="badge-status" [class.badge-bra]="op.status==='bra'" [class.badge-normal]="op.status==='normal'" [class.badge-hog]="op.status==='hog'">
-            {{ op.status === 'bra' ? 'Låg' : op.status === 'hog' ? 'Hög' : 'Normal' }}
+            {{ op.status === 'bra' ? 'Låg-snitt' : op.status === 'hog' ? 'Hög' : 'Normal' }}
           </span>
           {{ op.name }}
         </div>
