@@ -36,6 +36,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   }
   
   // Rebotling data
+  Math = Math;
   rebotlingToday: number = 0;
   rebotlingTarget: number = 0;
   rebotlingThisHour: number = 0;
@@ -45,9 +46,10 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   utetemperatur: number | null = null;
   
   // Speedometer properties
-  needleRotation: number = -150; // Start position
-  statusText: string = 'Bra produktion';
-  statusBadgeClass: string = 'bg-success';
+  needleRotation: number = -180; // Far left = 0%
+  statusText: string = 'Hämtar data...';
+  statusBadgeClass: string = 'bg-secondary';
+  gaugeColor: string = '#4a5568'; // neutral until first data arrives
   
   // Löpnummer (nästa IBC-nummer)
   nextLopnummer: number | null = null;
@@ -194,18 +196,18 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.hourlyTarget = res.data.hourlyTarget;
           this.ibcToday = res.data.ibcToday || 0;
           this.nextLopnummer = res.data.nextLopnummer ?? null;
-          this.productionPercentage = res.data.productionPercentage || 0;
+          this.productionPercentage = res.data.productionPercentage ?? 0;
 
-          // Calculate daily goal from hourly target * shift hours
           if (this.hourlyTarget > 0) {
             this.dailyGoal = Math.round(this.hourlyTarget * this.shiftHours);
           }
 
-          // Hämta utetemperatur
           this.utetemperatur = res.data.utetemperatur ?? null;
-
-          this.updateSpeedometer();
+        } else {
+          // API failed or returned no data — show neutral/unknown state
+          this.productionPercentage = -1;
         }
+        this.updateSpeedometer();
       });
   }
 
@@ -305,29 +307,39 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   }
 
   private updateSpeedometer() {
-    // Använd samma produktionsprocent som visas i "Produktion"
-    // Max 200% för speedometern
+    if (this.productionPercentage < 0) {
+      // No data / API error
+      this.needleRotation = -180;
+      this.statusText = 'Ingen data';
+      this.statusBadgeClass = 'bg-secondary';
+      this.gaugeColor = '#4a5568';
+      return;
+    }
+
     const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
-    
-    // Convert percentage to needle rotation (-180 to 0 degrees)
-    // -180 degrees är vänster (0%), 0 degrees är höger (200%)
-    // Mappar 0-200% till -180 till 0 grader
-    // Start position är -100 (ungefär 25% på speedometern)
-    this.needleRotation = -100 + (percentage / 200) * 180;
-    
-    // Update status based on performance
+    // Map 0-200% to -180 to 0 degrees
+    this.needleRotation = -180 + (percentage / 200) * 180;
+
     if (percentage >= 120) {
       this.statusText = 'Mycket bra produktion';
       this.statusBadgeClass = 'bg-success';
+      this.gaugeColor = '#27ae60';
     } else if (percentage >= 100) {
       this.statusText = 'Bra produktion';
       this.statusBadgeClass = 'bg-success';
+      this.gaugeColor = '#27ae60';
     } else if (percentage >= 60) {
-      this.statusText = 'Produktion under målet';
+      this.statusText = 'Under målet';
       this.statusBadgeClass = 'bg-warning';
-    } else {
+      this.gaugeColor = '#f1c40f';
+    } else if (percentage > 0) {
       this.statusText = 'Låg produktion';
       this.statusBadgeClass = 'bg-danger';
+      this.gaugeColor = '#e74c3c';
+    } else {
+      this.statusText = 'Ingen produktion';
+      this.statusBadgeClass = 'bg-danger';
+      this.gaugeColor = '#e74c3c';
     }
   }
 }
