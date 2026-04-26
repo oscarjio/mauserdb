@@ -181,8 +181,13 @@ class BonusAdminController {
                 $config['weights_nonun'] = is_array($wnuDec) ? $wnuDec : [];
                 $wtvDec = json_decode($config['weights_tvattade'], true);
                 $config['weights_tvattade'] = is_array($wtvDec) ? $wtvDec : [];
-                $tmDec = json_decode($config['tier_multipliers'], true);
-                $config['tier_multipliers'] = is_array($tmDec) ? $tmDec : [];
+                $tmDec = json_decode($config['tier_multipliers'] ?? '', true);
+                $config['tier_multipliers'] = (is_array($tmDec) && count($tmDec) > 0) ? $tmDec : [
+                    ['threshold' => 95, 'multiplier' => 2.0,  'name' => 'Outstanding'],
+                    ['threshold' => 90, 'multiplier' => 1.5,  'name' => 'Excellent'],
+                    ['threshold' => 80, 'multiplier' => 1.25, 'name' => 'God prestanda'],
+                    ['threshold' => 70, 'multiplier' => 1.0,  'name' => 'Basbonus'],
+                ];
             }
 
             $this->sendSuccess($config);
