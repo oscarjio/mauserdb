@@ -133,6 +133,7 @@ export const routes: Routes = [
       { path: 'rebotling/bonus', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-dashboard/bonus-dashboard').then(m => m.BonusDashboardPage) },
       { path: 'rebotling/bonus-admin', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
       { path: 'rebotling/plc-diagnostik', canActivate: [adminGuard], loadComponent: () => import('./pages/plc-diagnostik/plc-diagnostik').then(m => m.PlcDiagnostikPage) },
+      { path: 'rebotling/operator-prestation', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-prestation/operator-prestation').then(m => m.OperatorPrestationPage) },
       { path: 'rebotling/operator-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-analys/operator-analys').then(m => m.OperatorAnalysPage) },
       { path: 'rebotling/operator-scores', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-scores/operator-scores').then(m => m.OperatorScoresPage) },
       { path: 'rebotling/operator-matcher', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-matcher/operator-matcher').then(m => m.OperatorMatcherPage) },

@@ -1,6 +1,6 @@
 #!/bin/bash
-# lead-agent.sh — Mauserdb operator-intelligence agent
-# Runs every hour. One focused worker per run to stay within ~50% of token budget.
+# lead-agent.sh — Mauserdb multi-worker development agent
+# Runs every hour. Spawns 2-3 parallel workers: one builds features, one audits/fixes bugs.
 
 cd /home/clawd/clawd/mauserdb
 
@@ -8,7 +8,6 @@ LOGFILE="/home/clawd/clawd/logs/mauserdb_lead_agent.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 LOCKFILE="/tmp/mauserdb_lead_agent.lock"
 
-# Prevent overlapping runs
 if [ -f "$LOCKFILE" ]; then
     OLD_PID=$(cat "$LOCKFILE")
     if kill -0 "$OLD_PID" 2>/dev/null; then
@@ -21,18 +20,21 @@ trap "rm -f $LOCKFILE" EXIT
 
 echo "" >> "$LOGFILE"
 echo "═══════════════════════════════════════" >> "$LOGFILE"
-echo "[$TIMESTAMP] lead-agent starting" >> "$LOGFILE"
+echo "[$TIMESTAMP] lead-agent starting (multi-worker mode)" >> "$LOGFILE"
 
-DEV_LOG=$(tail -n 80 dev-log.md 2>/dev/null || echo "No dev-log.md yet")
-GIT_LOG=$(git log --oneline -15 2>/dev/null || echo "No git log")
+DEV_LOG=$(tail -n 100 dev-log.md 2>/dev/null || echo "No dev-log.md yet")
+GIT_LOG=$(git log --oneline -20 2>/dev/null || echo "No git log")
+ROUTES=$(grep "path:" noreko-frontend/src/app/app.routes.ts | grep -v "^//" | head -80)
 
-PROMPT="You are a senior full-stack developer working autonomously on the mauserdb operator-intelligence project at /home/clawd/clawd/mauserdb/.
+# ─── WORKER 1: Feature builder ───────────────────────────────────────────────
+PROMPT_WORKER1="You are a senior full-stack developer working autonomously on the mauserdb operator-intelligence project at /home/clawd/clawd/mauserdb/.
 
 This is an Angular 20+ + PHP/PDO system for an IBC washing facility. Managers use it to track operators and production.
 
 ## ABSOLUTE RULES
 - NEVER touch: *-live pages (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live)
 - NEVER touch noreko-plcbackend/
+- NEVER add items to the main navigation menu (menu/menu.html) — new features go to the Alla Funktioner page (/funktioner) only
 - All passwords: bcrypt only
 - Never git add dist/ or .env files
 - Build before commit: cd noreko-frontend && npx ng build
@@ -42,9 +44,11 @@ This is an Angular 20+ + PHP/PDO system for an IBC washing facility. Managers us
 - Components: implements OnInit, OnDestroy + destroy\$ = new Subject<void>() + takeUntil(this.destroy\$) + clearInterval in ngOnDestroy
 - HTTP: timeout(5000) + catchError(() => of(null)) + isFetching guard
 - New routes: add to app.routes.ts with canActivate: [adminGuard]
-- New pages: add menu item to menu/menu.html under Rebotling admin-section (after 'Operatörsanalys' line)
+- NEW PAGES: Do NOT add to menu/menu.html — routes are accessible via /rebotling/operator-prestation hub or /funktioner
 - PDO named params in UNION ALL: unique names (:from1,:from2,:from3 etc.) — PDO forbids duplicates
 - Math in Angular templates: add Math = Math; as class property
+- IBC/h aggregation: use SUM(ibc_ok)/SUM(drifttid/60) on unique shifts (GROUP BY skiftraknare), NOT average-of-ratios
+- All 3 positions work simultaneously on the same shift — ibc_ok is shared, NOT additive per position
 
 ## DEPLOY COMMANDS (run after build, both are required)
 Frontend: sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --delete noreko-frontend/dist/noreko-frontend/ user@mauserdb.com:/var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/ -e 'ssh -o StrictHostKeyChecking=no -p 32546'
@@ -58,101 +62,124 @@ Table: rebotling_skiftrapport
 Positions: op1=Tvättplats, op2=Kontrollstation, op3=Truckförare
 op1/op2/op3 = operator number → operators table (number, name, active)
 
-## ALREADY BUILT — DO NOT REBUILD
-- /rebotling/operator-analys — Period A vs B comparison (OperatorAnalysPage)
-  API: ?action=rebotling&run=operator-analys (getOperatorAnalys, queryOperatorPeriodStats, queryOperatorWeeklyTrend)
+## ROUTE HUB — operator-prestation
+All operator analysis tools are accessible via /rebotling/operator-prestation hub page.
+Existing routes built so far (do NOT rebuild these):
+- operator-scores, operator-analys, operator-matcher, shift-dna, operator-trend-heatmap
+- team-optimizer, operator-monthly-report, operator-kvartal, operator-performance-map
+- operator-aktivitet, operator-compare, bonus-kalkylator, operator-inlarning, operator-varning
+- operator-produkt, operator-stopptid, skift-kalender, operator-veckodag, operator-kassation
+- skift-prognos, ibc-forlust, operator/:number (profile)
 
 ## CURRENT STATE
-### dev-log (last 80 lines):
+### dev-log (last 100 lines):
 ${DEV_LOG}
 
 ### Recent commits:
 ${GIT_LOG}
 
-## YOUR MISSION — OPERATOR INTELLIGENCE (pick ONE unfinished feature and build it fully)
+## YOUR MISSION — pick ONE task and complete it fully
 
-The owner wants to identify which operators perform well vs. which ones don't.
-Goal: managers should quickly see who to schedule and who deserves bonus.
+### PRIORITY 1: Fix broken/stub pages
+Many pages were scaffolded by the lead agent but may be stubs (empty or non-functional).
+Check these pages one by one and if they are stubs/broken, implement them properly:
+- operator-trend-heatmap, team-optimizer, operator-monthly-report, operator-aktivitet
+- operator-compare, bonus-kalkylator, operator-inlarning, operator-varning
+- operator-produkt, operator-stopptid, skift-kalender, operator-veckodag
+- operator-kassation, skift-prognos, ibc-forlust
+Pick ONE broken/stub page and implement it fully with real backend data.
 
-### FEATURE BACKLOG (build in order, skip if already done):
-
-**1. /rebotling/operator-scores — Reliability Score cards**
-Backend endpoint: ?action=rebotling&run=operator-scores
-- Query last 90 days. For each operator, per-position and overall:
-  * ibc_per_h: SUM(ibc_ok)/(SUM(drifttid)/60.0)
-  * vs_team: their ibc_per_h / team_avg_ibc_per_h_at_same_position * 100 (index)
-  * consistency: compute per-shift IBC/h, then 100 - (stddev/avg*100) capped 0-100
-  * trend: slope of weekly IBC/h (last 8 weeks) normalized to -50..+50 range
-  * score: vs_team*0.5 + consistency*0.3 + (trend+50)*0.2, capped 0-100
-  * rating: Elite(≥75), Solid(50-74), Developing(25-49), NeedsAttention(<25)
-  * antal_skift, best_shift_ibc_h, worst_shift_ibc_h
-- Minimum 3 shifts to include operator. Return sorted by score desc.
-Angular page OperatorScoresPage:
-- 4 summary badges at top: count per tier
-- Cards grid (auto-fill minmax(260px,1fr)): one card per operator
-  Card: name, rating badge (green/blue/yellow/red), score number, IBC/h vs snitt arrow, konsistens%, trend arrow, skift count
-- sortBy controls: score | ibc_per_h | name
-- Colors: Elite #68d391, Solid #63b3ed, Developing #f6ad55, NeedsAttention #fc8181
-
-**2. /rebotling/operator-matcher — Scheduling Matrix**
-Backend endpoint: ?action=rebotling&run=operator-matcher&days=30
-- For each operator, per position (op1/op2/op3):
-  * avg_ibc_per_h, antal_skift
-  * rating: 'top'(≥110% team avg), 'avg'(90-109%), 'below'(<90%), 'none'(0 shifts)
-- Return: { operators: [...sorted by name], team_avg: { op1, op2, op3 } }
-Angular page OperatorMatcherPage:
-- Days selector: 14/30/60/90
-- Matrix table: operators as rows, 3 positions as columns
-  Cells: colored chip with IBC/h and shift count. top=green, avg=blue, below=red, none=gray
-- Team average row at bottom with different style
-- Summary below: 'Bäst på Tvättplats: Ted (22.5 IBC/h)'
-- Key UX: manager picks next shift team in 30 seconds by scanning colors
-
-**3. /rebotling/shift-dna — Shift fingerprint feed**
-Backend endpoint: ?action=rebotling&run=shift-dna&limit=50&offset=0
-- Return last N shifts with: datum, skiftraknare, operator names (join operators table),
-  ibc_ok, ibc_per_h (=ibc_ok/(drifttid/60.0)), vs_team_avg, drifttid, product_id
-  Mark each shift: 'great'(≥120% avg), 'good'(105-119%), 'avg'(90-104%), 'weak'(70-89%), 'poor'(<70%)
-Angular page ShiftDnaPage:
-- List/feed of recent shifts, newest first
-- Each shift row shows: date, shift#, operator badges (colored by name), IBC/h, vs-avg indicator, runtime
-- Shift rating color strip on left (green/blue/gray/yellow/red)
-- Click on shift to expand: show all details including stop time, kassation
-- Filter by operator (select dropdown) and rating
-
-**4. /rebotling/operator/:number — Operator Profile**
-Backend endpoint: ?action=rebotling&run=operator-profile&op=NUMBER
-- All shifts for operator (as op1, op2, or op3), last 6 months
-- Per shift: datum, pos, ibc_ok, ibc_per_h, vs_team_avg_at_pos
-- Summary: avg_ibc_h, best_shift, worst_shift, most_common_pos, attendance_days
-Angular page OperatorProfilePage with route param :number
-- Scatter chart: all shifts as dots (x=date, y=IBC/h, color=position)
-- Running average line
-- Position breakdown tabs
-- Personal bests section
-- 'Effect on team': their avg vs team avg when they work vs when they don't
+### PRIORITY 2: New useful features (if all above are working)
+Ideas that would genuinely help managers:
+- Shift efficiency calendar (heatmap by date, color = IBC/h vs avg)
+- Operator head-to-head: pick two operators, see all their shifts on the same chart
+- 'Who works best with whom' — team composition analysis
+- Position specialty index: which operator's average at each position vs their overall avg
 
 ## WORKFLOW
-1. Read dev-log.md — find first feature from backlog NOT yet built
-2. Read DESIGN_GUIDE.md for UI rules
-3. Read noreko-backend/classes/RebotlingController.php (bottom of file for context on existing methods)
-4. Implement backend method + add routing line
-5. Create src/app/pages/<name>/<name>.ts + .html + .css
-6. Add route to app.routes.ts + menu item to menu/menu.html
-7. Build: cd noreko-frontend && npx ng build — fix all errors
-8. Deploy both frontend + backend (commands above)
-9. Test backend via PHP CLI: ssh to dev and run php include test
-10. git add <specific files> && git commit -m 'feat: ...' && git push origin main
-11. Append one line to dev-log.md: $(date +%Y-%m-%d) | FEATURE NAME | status | what's next
+1. Read dev-log.md — find what's NOT yet built or is broken
+2. Pick ONE task. Read the relevant source files (backend + frontend).
+3. Implement backend method + add routing line (if new endpoint needed)
+4. Fix or create Angular page + route in app.routes.ts (NOT in menu.html)
+5. Build: cd noreko-frontend && npx ng build — fix ALL errors
+6. Deploy both frontend + backend
+7. git add <specific files> && git commit -m 'feat/fix: ...' && git push origin main
+8. Append to dev-log.md: \$(date +%Y-%m-%d) | TASK | status | notes
 
-Build ONE complete feature end-to-end. Do not stop halfway. If you hit a blocker, document it in dev-log.md and move to the next feature."
+Build ONE complete feature end-to-end. Do not stop halfway."
 
-echo "[$TIMESTAMP] Running worker agent..." >> "$LOGFILE"
+# ─── WORKER 2: Audit & bug fixer ─────────────────────────────────────────────
+PROMPT_WORKER2="You are a QA engineer + bug fixer working autonomously on mauserdb at /home/clawd/clawd/mauserdb/.
 
+Angular 20+ + PHP/PDO system for an IBC washing facility.
+
+## ABSOLUTE RULES
+- NEVER touch: *-live pages, noreko-plcbackend/
+- NEVER add items to menu/menu.html
+- All passwords: bcrypt only
+- Never git add dist/ or .env files
+- Build before commit: cd noreko-frontend && npx ng build
+
+## DEPLOY COMMANDS
+Frontend: sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --delete noreko-frontend/dist/noreko-frontend/ user@mauserdb.com:/var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/ -e 'ssh -o StrictHostKeyChecking=no -p 32546'
+Backend:  sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --exclude='db_config.php' noreko-backend/ user@mauserdb.com:/var/www/mauserdb-dev/noreko-backend/ -e 'ssh -o StrictHostKeyChecking=no -p 32546'
+
+## YOUR MISSION — Audit and fix existing functionality
+
+### AUDIT CHECKLIST — work through this systematically:
+
+**Backend audit** (check each endpoint returns correct JSON):
+- Does each PHP controller method handle missing params gracefully?
+- Are PDO named params unique in UNION ALL queries? (duplicates cause SQLSTATE[HY093])
+- Does every controller use \$this->pdo (NOT \$this->db)?
+- Are IBC/h calculations using SUM(ibc)/SUM(min/60) on unique shifts (GROUP BY skiftraknare)?
+- Does every catch block use error_log() and return proper JSON error?
+
+**Frontend audit** (check each Angular component):
+- Does every component implement OnInit + OnDestroy with destroy\$ + takeUntil?
+- Does every HTTP call have timeout(15000) + catchError?
+- Are there any references to non-existent fields (ibc_per_h_avg, perf_score, consistency_score, tierKey, scoreBg)?
+- Do all charts get destroyed in ngOnDestroy?
+- Are there TypeScript errors? Run: cd noreko-frontend && npx ng build 2>&1 | grep error
+
+**Specific known issues to fix:**
+1. TypeScript build: run ng build and fix any type errors
+2. Check all pages that were recently added (operator-kvartal, operator-performance-map, operator-aktivitet, etc.) — do they actually load data or show empty/error state?
+3. Tvättlinje statistik: 'Detaljerad Statistik' should be collapsed by default (user must click to expand) — check if this is implemented
+4. Check rebotling-statistik for similar collapse behavior
+
+## WORKFLOW
+1. Run: cd noreko-frontend && npx ng build 2>&1 | grep -E 'error|Error' to find TypeScript errors
+2. Pick the most impactful bugs to fix
+3. Fix them, build, deploy
+4. git add + commit + push
+5. Append to dev-log.md: \$(date +%Y-%m-%d) | AUDIT | what was fixed | what still needs work
+
+Fix as many bugs as possible. Prioritize breaking bugs over cosmetic ones."
+
+echo "[$TIMESTAMP] Launching Worker 1 (feature builder)..." >> "$LOGFILE"
 /home/clawd/.local/bin/claude \
     --dangerously-skip-permissions \
     --print \
-    "$PROMPT" >> "$LOGFILE" 2>&1
+    "$PROMPT_WORKER1" >> "$LOGFILE" 2>&1 &
+W1_PID=$!
+echo "[$TIMESTAMP] Worker 1 PID: $W1_PID" >> "$LOGFILE"
 
-EXIT_CODE=$?
-echo "[$TIMESTAMP] Worker done (exit: $EXIT_CODE)" >> "$LOGFILE"
+# Small stagger to avoid git conflicts
+sleep 30
+
+echo "[$TIMESTAMP] Launching Worker 2 (audit/bugfix)..." >> "$LOGFILE"
+/home/clawd/.local/bin/claude \
+    --dangerously-skip-permissions \
+    --print \
+    "$PROMPT_WORKER2" >> "$LOGFILE" 2>&1 &
+W2_PID=$!
+echo "[$TIMESTAMP] Worker 2 PID: $W2_PID" >> "$LOGFILE"
+
+# Wait for both workers
+wait $W1_PID
+W1_EXIT=$?
+wait $W2_PID
+W2_EXIT=$?
+
+echo "[$TIMESTAMP] Worker 1 done (exit: $W1_EXIT), Worker 2 done (exit: $W2_EXIT)" >> "$LOGFILE"

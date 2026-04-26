@@ -1,0 +1,22 @@
+<div class="hub-page">
+  <div class="hub-header">
+    <h2><i class="fas fa-chart-line me-2"></i>Operatörsprestation</h2>
+    <p class="hub-subtitle">Alla verktyg för att analysera, jämföra och belöna operatörer</p>
+  </div>
+
+  <div *ngFor="let group of groups" class="tool-group">
+    <div class="group-label">{{ group.label }}</div>
+    <div class="tool-grid">
+      <a *ngFor="let tool of group.tools" [routerLink]="tool.route" class="tool-card">
+        <div class="tool-icon" [style.color]="tool.color">
+          <i [class]="tool.icon"></i>
+        </div>
+        <div class="tool-info">
+          <div class="tool-title">{{ tool.title }}</div>
+          <div class="tool-desc">{{ tool.desc }}</div>
+        </div>
+        <i class="fas fa-chevron-right tool-arrow"></i>
+      </a>
+    </div>
+  </div>
+</div>
