@@ -5466,6 +5466,8 @@ class RebotlingController {
     private function getOperatorInlarning(): void {
         try {
             $maxShifts = max(10, min(50, (int)($_GET['max_shifts'] ?? 30)));
+            // Cap lookback to 2 years — sufficient for any learning curve
+            $fromDate = date('Y-m-d', strtotime('-2 years'));
 
             $opRows = $this->pdo->query(
                 "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
@@ -5474,48 +5476,61 @@ class RebotlingController {
             $opNames = [];
             foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
 
-            // All shifts per operator per position in chronological order (MAX per skiftraknare)
-            $stmt = $this->pdo->query("
+            // Team avg per position via SQL (SUM/SUM on unique shifts) — avoids PHP triple-loop
+            $teamAvgStmt = $this->pdo->prepare("
+                SELECT pos, SUM(ibc_ok) / GREATEST(SUM(drifttid) / 60.0, 0.01) AS avg_ibc_h
+                FROM (
+                    SELECT 1 AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND datum >= :from1 AND op1 IS NOT NULL
+                    GROUP BY skiftraknare
+                    UNION ALL
+                    SELECT 2, MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND datum >= :from2 AND op2 IS NOT NULL
+                    GROUP BY skiftraknare
+                    UNION ALL
+                    SELECT 3, MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND datum >= :from3 AND op3 IS NOT NULL
+                    GROUP BY skiftraknare
+                ) t
+                GROUP BY pos
+            ");
+            $teamAvgStmt->execute([':from1' => $fromDate, ':from2' => $fromDate, ':from3' => $fromDate]);
+            $teamAvg = [1 => 0.0, 2 => 0.0, 3 => 0.0];
+            foreach ($teamAvgStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $teamAvg[(int)$r['pos']] = round((float)$r['avg_ibc_h'], 1);
+            }
+
+            // Fetch shifts in chronological order — date-capped to avoid full table scan
+            $stmt = $this->pdo->prepare("
                 SELECT datum, skiftraknare,
                        MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
                        MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                 FROM rebotling_skiftrapport
-                WHERE drifttid > 30
+                WHERE drifttid > 30 AND datum >= :fromDate
                 GROUP BY skiftraknare
                 ORDER BY datum ASC, skiftraknare ASC
+                LIMIT 5000
             ");
+            $stmt->execute([':fromDate' => $fromDate]);
             $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Group into (op_num, pos_num) buckets
+            // Group into (op_num, pos_num) buckets; stop collecting once maxShifts reached per bucket
             $byOpPos = [];
             foreach ($allShifts as $r) {
                 $ibcH = $r['drifttid'] > 0 ? (float)$r['ibc_ok'] / ((float)$r['drifttid'] / 60.0) : 0;
                 foreach ([1, 2, 3] as $p) {
                     $opNum = (int)$r["op$p"];
                     if ($opNum <= 0) continue;
+                    if (!isset($byOpPos[$opNum][$p])) $byOpPos[$opNum][$p] = [];
+                    if (count($byOpPos[$opNum][$p]) >= $maxShifts) continue;
                     $byOpPos[$opNum][$p][] = [
                         'datum'  => $r['datum'],
                         'ibc_h'  => round($ibcH, 2),
                     ];
                 }
-            }
-
-            // Team average per position (all time)
-            $teamSums = [1 => 0.0, 2 => 0.0, 3 => 0.0];
-            $teamCnts = [1 => 0,   2 => 0,   3 => 0];
-            foreach ($byOpPos as $opNum => $positions) {
-                foreach ($positions as $posNum => $shifts) {
-                    foreach ($shifts as $s) {
-                        if ($s['ibc_h'] > 0) {
-                            $teamSums[$posNum] += $s['ibc_h'];
-                            $teamCnts[$posNum]++;
-                        }
-                    }
-                }
-            }
-            $teamAvg = [];
-            foreach ([1, 2, 3] as $p) {
-                $teamAvg[$p] = $teamCnts[$p] > 0 ? round($teamSums[$p] / $teamCnts[$p], 1) : 0.0;
             }
 
             $posNames = [1 => 'Tvättplats', 2 => 'Kontrollstation', 3 => 'Truckförare'];
@@ -5526,13 +5541,12 @@ class RebotlingController {
                 $opEntry = ['op_num' => $opNum, 'name' => $opNames[$opNum], 'positions' => []];
 
                 foreach ($positions as $posNum => $shifts) {
-                    $limited = array_slice($shifts, 0, $maxShifts);
-                    $n       = count($limited);
+                    $n = count($shifts);
                     if ($n < 3) continue;
 
                     $withRolling = [];
-                    foreach ($limited as $i => $s) {
-                        $window = array_slice($limited, max(0, $i - 2), min(3, $i + 1));
+                    foreach ($shifts as $i => $s) {
+                        $window = array_slice($shifts, max(0, $i - 2), min(3, $i + 1));
                         $vals   = array_filter(array_column($window, 'ibc_h'), fn($v) => $v > 0);
                         $rolling = count($vals) > 0 ? round(array_sum($vals) / count($vals), 1) : 0.0;
                         $withRolling[] = [
