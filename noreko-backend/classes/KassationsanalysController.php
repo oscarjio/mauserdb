@@ -1163,6 +1163,28 @@ class KassationsanalysController {
                 $prevMap[(int)$pr['id']] = (int)$pr['prev_antal'];
             }
 
+            // Fallback: om inga orsaker registrerats men PLC visar kasserade IBCs,
+            // lägg till en "Oregistrerade" rad så Pareto-diagrammet inte är tomt.
+            if ($total === 0) {
+                $plcTotal = $this->getTotalKasserade($fromDate, $toDate);
+                if ($plcTotal > 0) {
+                    $this->sendSuccess([
+                        'days'    => $days,
+                        'total'   => $plcTotal,
+                        'orsaker' => [[
+                            'id'            => 0,
+                            'namn'          => 'Oregistrerade',
+                            'antal'         => $plcTotal,
+                            'andel_pct'     => 100.0,
+                            'kumulativ_pct' => 100.0,
+                            'prev_antal'    => 0,
+                            'trend'         => 'stable',
+                        ]],
+                    ]);
+                    return;
+                }
+            }
+
             $cumulative = 0.0;
             $result     = [];
             foreach ($orsaker as $o) {
@@ -1181,6 +1203,33 @@ class KassationsanalysController {
                     'prev_antal'    => $prevAntal,
                     'trend'         => $trend,
                 ];
+            }
+
+            // Om kassationsregistrering < ibc_ej_ok: visa oregistrerade som extra rad
+            $plcTotal = $this->getTotalKasserade($fromDate, $toDate);
+            $oregistrerade = max(0, $plcTotal - $total);
+            if ($oregistrerade > 0) {
+                $totalMedOregistrerade = $total + $oregistrerade;
+                // Räkna om andelar för befintliga rader
+                $cumulative2 = 0.0;
+                foreach ($result as &$r) {
+                    $r['andel_pct']     = round($r['antal'] / $totalMedOregistrerade * 100, 1);
+                    $cumulative2       += $r['andel_pct'];
+                    $r['kumulativ_pct'] = round($cumulative2, 1);
+                }
+                unset($r);
+                $andel = round($oregistrerade / $totalMedOregistrerade * 100, 1);
+                $cumulative2 += $andel;
+                $result[] = [
+                    'id'            => 0,
+                    'namn'          => 'Oregistrerade',
+                    'antal'         => $oregistrerade,
+                    'andel_pct'     => $andel,
+                    'kumulativ_pct' => round($cumulative2, 1),
+                    'prev_antal'    => 0,
+                    'trend'         => 'stable',
+                ];
+                $total = $totalMedOregistrerade;
             }
 
             $this->sendSuccess([
