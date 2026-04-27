@@ -353,7 +353,7 @@ class KassationskvotAlarmController {
             return;
         }
         if ($varning >= $alarm) {
-            $this->sendError('Varningstroskeln maste vara lagre an alarmtroskeln');
+            $this->sendError('Varningstöskeln måste vara lägre än alarmtröskeln');
             return;
         }
 

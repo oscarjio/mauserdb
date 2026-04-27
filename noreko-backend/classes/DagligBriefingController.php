@@ -372,7 +372,7 @@ class DagligBriefingController {
             $this->sendSuccess($responseData);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::sammanfattning: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta sammanfattning', 500);
+            $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
     }
 
@@ -428,7 +428,7 @@ class DagligBriefingController {
             ]);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stopporsaker', 500);
+            $this->sendError('Kunde inte hämta stopporsaker', 500);
         }
     }
 
@@ -471,7 +471,7 @@ class DagligBriefingController {
             ]);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::stationsstatus: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stationsstatus', 500);
+            $this->sendError('Kunde inte hämta stationsstatus', 500);
         }
     }
 
@@ -523,7 +523,7 @@ class DagligBriefingController {
             ]);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::veckotrend: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta veckotrend', 500);
+            $this->sendError('Kunde inte hämta veckotrend', 500);
         }
     }
 
@@ -577,7 +577,7 @@ class DagligBriefingController {
             ]);
         } catch (\Exception $e) {
             error_log('DagligBriefingController::bemanning: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta bemanning', 500);
+            $this->sendError('Kunde inte hämta bemanning', 500);
         }
     }
 }

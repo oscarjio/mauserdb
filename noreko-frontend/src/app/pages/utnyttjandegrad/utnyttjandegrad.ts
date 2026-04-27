@@ -207,7 +207,7 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
             borderRadius: 2,
           },
           {
-            label: 'Okand tid (h)',
+            label: 'Okänd tid (h)',
             data: okandTid,
             backgroundColor: '#8fa3b8',
             borderRadius: 2,

@@ -561,9 +561,9 @@ class DagligSammanfattningController {
 
         // Trendkommentar
         if ($trendDir === 'up') {
-            $delar[] = "Produktionen ar {$trendPct}% hogre an samma dag forra veckan.";
+            $delar[] = "Produktionen är {$trendPct}% högre än samma dag förra veckan.";
         } elseif ($trendDir === 'down') {
-            $delar[] = "Produktionen ar {$trendPct}% lagre an samma dag forra veckan.";
+            $delar[] = "Produktionen är {$trendPct}% lägre än samma dag förra veckan.";
         } else {
             $delar[] = "Produktionen ligger i linje med samma dag forra veckan.";
         }

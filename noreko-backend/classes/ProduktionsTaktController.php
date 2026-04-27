@@ -182,7 +182,7 @@ class ProduktionsTaktController {
                 'target_ratio'    => round($ratio * 100, 1),
                 'alert_active'    => $alertActive,
                 'alert_message'   => $alertActive
-                    ? 'Takten har legat under 70% av maltal i mer an ' . self::ALERT_THRESHOLD_MINUTES . ' minuter'
+                    ? 'Takten har legat under 70% av måltal i mer än ' . self::ALERT_THRESHOLD_MINUTES . ' minuter'
                     : null,
             ]);
 
@@ -269,7 +269,7 @@ class ProduktionsTaktController {
             $this->sendSuccess(['target' => $target]);
         } catch (\Exception $e) {
             error_log('ProduktionsTaktController::getTarget: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta maltal', 500);
+            $this->sendError('Kunde inte hämta måltal', 500);
         }
     }
 
@@ -296,7 +296,7 @@ class ProduktionsTaktController {
         $newTarget = isset($input['target']) ? (float)$input['target'] : null;
 
         if ($newTarget === null || $newTarget <= 0 || $newTarget > 100) {
-            $this->sendError('Ogiltigt maltal (maste vara 1-100)');
+            $this->sendError('Ogiltigt måltal (måste vara 1-100)');
             return;
         }
 
@@ -320,7 +320,7 @@ class ProduktionsTaktController {
 
         } catch (\Exception $e) {
             error_log('ProduktionsTaktController::setTarget: ' . $e->getMessage());
-            $this->sendError('Kunde inte spara maltal', 500);
+            $this->sendError('Kunde inte spara måltal', 500);
         }
     }
 }

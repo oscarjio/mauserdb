@@ -478,7 +478,7 @@ class UnderhallsloggController {
             }
 
             if ($varaktighetMin <= 0) {
-                $this->sendError('Varaktighet maste vara storre an 0');
+                $this->sendError('Varaktighet måste vara större än 0');
                 return;
             }
 

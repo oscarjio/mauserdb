@@ -134,10 +134,10 @@ class AvvikelselarmController {
                 $this->pdo->exec("
                     INSERT INTO larmregler (typ, allvarlighetsgrad, grans_varde, aktiv, beskrivning) VALUES
                     ('oee',             'varning', 65.00, 1, 'OEE under 65% — varning vid lag anlaggningseffektivitet'),
-                    ('kassation',       'varning',  5.00, 1, 'Kassation over 5% — varning vid hog kassationsgrad'),
-                    ('produktionstakt', 'varning', 10.00, 1, 'Produktionstakt under 10 IBC/h — varning vid lag takt'),
-                    ('maskinstopp',     'kritisk', 30.00, 1, 'Maskinstopp langre an 30 minuter — kritiskt larm'),
-                    ('produktionsmal',  'info',     0.00, 1, 'Produktionsmal ej uppnatt vid skiftslut — informationslarm')
+                    ('kassation',       'varning',  5.00, 1, 'Kassation över 5% — varning vid hög kassationsgrad'),
+                    ('produktionstakt', 'varning', 10.00, 1, 'Produktionstakt under 10 IBC/h — varning vid låg takt'),
+                    ('maskinstopp',     'kritisk', 30.00, 1, 'Maskinstopp längre än 30 minuter — kritiskt larm'),
+                    ('produktionsmal',  'info',     0.00, 1, 'Produktionsmål ej uppnått vid skiftslut — informationslarm')
                 ");
             }
 
@@ -478,7 +478,7 @@ class AvvikelselarmController {
 
             // Begränsa grans_varde till rimligt intervall
             if ($gransVarde !== null && ($gransVarde < 0 || $gransVarde > 99999)) {
-                $this->sendError('grans_varde maste vara mellan 0 och 99999');
+                $this->sendError('grans_varde måste vara mellan 0 och 99999');
                 return;
             }
 
