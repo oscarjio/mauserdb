@@ -3838,8 +3838,16 @@ class RebotlingController {
                     ];
                 }
 
-                $vsAvgPct = $teamTotal > 0 ? round(($ibc_per_h / $teamTotal - 1) * 100) : 0;
-                $score    = max(0, min(100, round(50 + ($ibc_per_h - $teamTotal) * 5)));
+                // Position-weighted team baseline (same baseline as per-position stats)
+                $wMin = 0; $wAvg = 0.0;
+                foreach (array_keys($posStats) as $pos) {
+                    $pm = $opPosTotals[$num][$pos]['min'] ?? 0;
+                    $wAvg += ($teamAvgPerPos[$pos] ?? 0) * $pm;
+                    $wMin += $pm;
+                }
+                $posWeightedTeamAvg = $wMin > 0 ? $wAvg / $wMin : $teamTotal;
+                $vsAvgPct = $posWeightedTeamAvg > 0 ? round(($ibc_per_h / $posWeightedTeamAvg - 1) * 100) : 0;
+                $score    = max(0, min(100, round(50 + ($ibc_per_h - $posWeightedTeamAvg) * 5)));
                 $rating   = $vsAvgPct >= 15  ? 'Elite'
                           : ($vsAvgPct >= 0   ? 'Solid'
                           : ($vsAvgPct >= -15  ? 'Developing'

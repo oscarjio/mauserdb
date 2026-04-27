@@ -56,16 +56,15 @@
           <div class="tier-badge" [class]="tierClass(op.rating)">{{ tierLabel(op.rating) }}</div>
         </div>
         <div class="ibc-main">
-          <span class="ibc-val">{{ op.ibc_per_h }}</span>
-          <span class="ibc-unit">IBC/h</span>
+          <span class="ibc-val">{{ op.ibc_per_h }}</span>&nbsp;<span class="ibc-unit">IBC/h</span>
           <span class="ibc-vs" [class]="vsAvgClass(op.vs_avg_pct)">
             {{ op.vs_avg_pct > 0 ? '+' : '' }}{{ op.vs_avg_pct }}% vs snitt
           </span>
         </div>
         <div class="card-meta">
           <span>{{ op.antal_skift }} skift</span>
-          <span>Bäst: {{ op.best_shift }}</span>
-          <span>Sämst: {{ op.worst_shift }}</span>
+          <span>Bäst: {{ op.best_shift }} IBC/h</span>
+          <span>Sämst: {{ op.worst_shift }} IBC/h</span>
         </div>
         <!-- Trend mini-chart -->
         <canvas *ngIf="op.trend_weeks.length > 1"

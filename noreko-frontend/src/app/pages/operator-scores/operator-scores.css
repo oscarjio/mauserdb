@@ -122,13 +122,37 @@
   border-radius: 10px;
   border: 1px solid #4a5568;
   display: flex;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 1rem;
+  min-width: 0;
+  overflow: hidden;
 }
 .score-card.tier-elite { border-left: 3px solid #68d391; }
 .score-card.tier-solid { border-left: 3px solid #63b3ed; }
 .score-card.tier-developing { border-left: 3px solid #f6ad55; }
 .score-card.tier-attention { border-left: 3px solid #fc8181; }
+
+.card-top { display: flex; flex-direction: column; gap: 0.2rem; }
+
+.ibc-main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.ibc-val { font-size: 1.6rem; font-weight: 700; color: #e2e8f0; line-height: 1; }
+.ibc-unit { font-size: 0.8rem; color: #a0aec0; }
+.ibc-vs { font-size: 0.8rem; font-weight: 600; margin-left: 0.2rem; }
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+.card-meta span { white-space: nowrap; }
 
 .score-circle {
   flex-shrink: 0;
