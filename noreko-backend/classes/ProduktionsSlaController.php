@@ -245,9 +245,9 @@ class ProduktionsSlaController {
         try {
             $today = date('Y-m-d');
 
-            // Dagligt mål
+            // Dagligt mål — produktions_mal om satt, annars rebotling_weekday_goals
             $dagligtMal = $this->getActiveGoal('dagligt', $today);
-            $dagligtTarget = $dagligtMal ? (int)$dagligtMal['target_ibc'] : 80;
+            $dagligtTarget = $dagligtMal ? (int)$dagligtMal['target_ibc'] : $this->getWeekdayGoal($today);
             $dagligtKassTarget = $dagligtMal ? (float)$dagligtMal['target_kassation_pct'] : 5.0;
 
             // Dagens produktion
@@ -343,7 +343,7 @@ class ProduktionsSlaController {
             }
 
             $goal = $this->getActiveGoal('dagligt', $date);
-            $target = $goal ? (int)$goal['target_ibc'] : 80;
+            $target = $goal ? (int)$goal['target_ibc'] : $this->getWeekdayGoal($date);
 
             // Produktion per timme
             $hourlyData = $this->getProductionPerHour($date);
@@ -404,7 +404,7 @@ class ProduktionsSlaController {
             $veckoTarget = $goal ? (int)$goal['target_ibc'] : 400;
 
             $dagligtGoal = $this->getActiveGoal('dagligt', $bounds['monday']);
-            $dagligtTarget = $dagligtGoal ? (int)$dagligtGoal['target_ibc'] : 80;
+            $dagligtTarget = $dagligtGoal ? (int)$dagligtGoal['target_ibc'] : $this->getWeekdayGoal($bounds['monday']);
 
             // Per-dag produktion
             $perDag = $this->getProductionPerDay($bounds['monday'], $bounds['sunday']);
@@ -470,7 +470,7 @@ class ProduktionsSlaController {
 
             // Hämta dagligt mål (kan variera)
             $defaultGoal = $this->getActiveGoal('dagligt', $today);
-            $defaultTarget = $defaultGoal ? (int)$defaultGoal['target_ibc'] : 80;
+            $defaultTarget = $defaultGoal ? (int)$defaultGoal['target_ibc'] : $this->getWeekdayGoal($today);
 
             $history = [];
             foreach ($perDag as $d) {
@@ -629,5 +629,24 @@ class ProduktionsSlaController {
             error_log('ProduktionsSlaController::setGoal: ' . $e->getMessage());
             $this->sendError('Kunde inte spara mål', 500);
         }
+    }
+
+    /**
+     * Hämta dagsmål från rebotling_weekday_goals för en given dag.
+     * Fallback-kedja: weekday_goals → 1000.
+     */
+    private function getWeekdayGoal(string $date): int {
+        $wd = (int)date('N', strtotime($date));
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = :wd LIMIT 1"
+            );
+            $stmt->execute([':wd' => $wd]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row && (int)$row['daily_goal'] > 0) return (int)$row['daily_goal'];
+        } catch (\Exception $e) {
+            error_log('ProduktionsSlaController::getWeekdayGoal: ' . $e->getMessage());
+        }
+        return 1000;
     }
 }

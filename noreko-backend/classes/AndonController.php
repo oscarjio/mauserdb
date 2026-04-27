@@ -62,19 +62,8 @@ class AndonController {
                 $skift = 'Natt';
             }
 
-            // ---- Dagsmål från rebotling_settings ----
-            $malIdag = 1000; // fallback (DB default är 1000)
-            try {
-                $stmt = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
-                );
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && is_numeric($row['rebotling_target']) && (int)$row['rebotling_target'] > 0) {
-                    $malIdag = (int)$row['rebotling_target'];
-                }
-            } catch (\Exception $e) {
-                error_log('AndonController::dagmal: ' . $e->getMessage());
-            }
+            // ---- Dagsmål från rebotling_weekday_goals ----
+            $malIdag = $this->getDagsMal($datum);
 
             // ---- Dagens IBC och runtime från rebotling_ibc ----
             // Hämta senaste skiftraknaren för idag och MAX(ibc_ok) per skiftraknare
@@ -292,18 +281,7 @@ class AndonController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta dagsmål
-            $malIdag = 1000;
-            try {
-                $stmtMal = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
-                );
-                $malRad = $stmtMal->fetch(PDO::FETCH_ASSOC);
-                if ($malRad && is_numeric($malRad['rebotling_target']) && (int)$malRad['rebotling_target'] > 0) {
-                    $malIdag = (int)$malRad['rebotling_target'];
-                }
-            } catch (\Exception $e) {
-                error_log('AndonController::hourly-today dagmal: ' . $e->getMessage());
-            }
+            $malIdag = $this->getDagsMal($datum);
 
             // Bygg upp kumulativ data per timme 6–22
             // ibc_ok är kumulativt i tabellen — MAX per timme ger oss värdet vid slutet av timmen
@@ -367,16 +345,7 @@ class AndonController {
             $datum = date('Y-m-d');
 
             // Hämta dagsmål
-            $malIdag = 1000;
-            try {
-                $stmt = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
-                );
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && intval($row['rebotling_target']) > 0) $malIdag = intval($row['rebotling_target']);
-            } catch (\Exception $e) {
-                error_log('AndonController::getDailyChallenge dagmal: ' . $e->getMessage());
-            }
+            $malIdag = $this->getDagsMal($datum);
 
             // Hämta dagens IBC
             $stmt = $this->pdo->prepare("
@@ -598,18 +567,7 @@ class AndonController {
             $timme = (int)$nu->format('H');
 
             // ---- 1. Dagsmål ----
-            $malIdag = 1000;
-            try {
-                $stmt = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
-                );
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && is_numeric($row['rebotling_target']) && (int)$row['rebotling_target'] > 0) {
-                    $malIdag = (int)$row['rebotling_target'];
-                }
-            } catch (\Exception $e) {
-                error_log('AndonController::dagmal: ' . $e->getMessage());
-            }
+            $malIdag = $this->getDagsMal($datum);
 
             // ---- 2. Dagens IBC + runtime ----
             $stmt = $this->pdo->prepare("
@@ -810,5 +768,32 @@ class AndonController {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    /**
+     * Hämtar dagsmål från rebotling_weekday_goals för dagens veckodag.
+     * Faller tillbaka på rebotling_settings.rebotling_target, sen 1000.
+     */
+    private function getDagsMal(string $datum = ''): int {
+        if ($datum === '') $datum = date('Y-m-d');
+        $wd = (int)date('N', strtotime($datum));
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = :wd LIMIT 1"
+            );
+            $stmt->execute([':wd' => $wd]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && (int)$row['daily_goal'] > 0) return (int)$row['daily_goal'];
+        } catch (\Exception $e) {
+            error_log('AndonController::getDagsMal weekday: ' . $e->getMessage());
+        }
+        try {
+            $stmt2 = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1");
+            $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($row2 && (int)$row2['rebotling_target'] > 0) return (int)$row2['rebotling_target'];
+        } catch (\Exception $e) {
+            error_log('AndonController::getDagsMal settings: ' . $e->getMessage());
+        }
+        return 1000;
     }
 }
