@@ -121,7 +121,7 @@
     <div class="st-card-header">
       <span>
         <i class="fas fa-chart-bar me-2" style="color: #ed8936;"></i>
-        Veckovis stopporsaksvolym — topp {{ weeklyData.top_reasons.length }} orsaker
+        Veckovis stopporsaksvolym — topp {{ weeklyData.top_reasons.length || 5 }} orsaker
       </span>
       <span class="text-muted small">{{ getPeriodLabel() }}</span>
     </div>

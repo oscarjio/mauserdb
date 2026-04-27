@@ -1,4 +1,4 @@
-.hub-page { padding: 1.5rem; max-width: 900px; }
+.hub-page { padding: 1.5rem; }
 .hub-header { margin-bottom: 2rem; }
 .hub-header h2 { color: #e2e8f0; font-size: 1.5rem; }
 .hub-subtitle { color: #718096; margin: 0; }
@@ -14,7 +14,7 @@
   border-bottom: 1px solid #2d3748;
 }
 
-.tool-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0.5rem; }
 
 .tool-card {
   display: flex;

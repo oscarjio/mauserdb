@@ -199,7 +199,7 @@ class StopporsakTrendController {
         try {
             $veckonycklar = $this->byggVeckonycklar($weeks);
             $stoppdata    = $this->hämtaStoppdata($weeks);
-            $topRsn       = $this->topOrsaker($stoppdata, 7);
+            $topRsn       = $this->topOrsaker($stoppdata, 5);
 
             // Beräkna totalt antal stopp och stopptid senaste veckan
             $sistaVecka = !empty($veckonycklar) ? end($veckonycklar) : null;
