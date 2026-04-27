@@ -165,6 +165,18 @@ class KassationsDrilldownController {
             error_log('KassationsDrilldownController::getOverview reasons: ' . $e->getMessage());
         }
 
+        // Fallback: om inga orsaker registrerats men PLC visar kasserade IBCs,
+        // lägg till "Oregistrerade" så vyn inte visar "Inga kassationer".
+        if (empty($reasons) && $totalKasserade > 0) {
+            $reasons[] = [
+                'reason'         => 'Oregistrerade',
+                'reason_id'      => 0,
+                'antal'          => $totalKasserade,
+                'registreringar' => 0,
+                'andel'          => 100.0,
+            ];
+        }
+
         // Vanligaste orsaken
         $topReason = !empty($reasons) ? $reasons[0]['reason'] : null;
 
