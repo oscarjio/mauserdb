@@ -483,7 +483,7 @@ class GamificationController {
                 $badges[] = [
                     'id'          => 'perfektionist',
                     'namn'        => 'Perfektionist',
-                    'beskrivning' => '0% kassation pa ett skift',
+                    'beskrivning' => '0% kassation på ett skift',
                     'ikon'        => 'fas fa-gem',
                     'farg'        => '#4fd1c5',
                     'tilldelad'   => $row['dag'],
@@ -638,7 +638,7 @@ class GamificationController {
             [
                 'id'          => 'perfektionist',
                 'namn'        => 'Perfektionist',
-                'beskrivning' => '0% kassation pa ett skift',
+                'beskrivning' => '0% kassation på ett skift',
                 'ikon'        => 'fas fa-gem',
                 'farg'        => '#4fd1c5',
             ],

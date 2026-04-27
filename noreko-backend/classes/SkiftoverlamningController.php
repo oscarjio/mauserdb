@@ -1036,7 +1036,7 @@ class SkiftoverlamningController {
     private function skiftTypLabel(string $typ): string {
         switch ($typ) {
             case 'dag':   return 'Dag (06-14)';
-            case 'kvall': return 'Kvall (14-22)';
+            case 'kvall': return 'Kväll (14-22)';
             case 'natt':  return 'Natt (22-06)';
             default:      return $typ;
         }

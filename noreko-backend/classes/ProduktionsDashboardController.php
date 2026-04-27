@@ -124,7 +124,7 @@ class ProduktionsDashboardController {
             $start->setTime(14, 0, 0);
             $slut  = clone $now;
             $slut->setTime(22, 0, 0);
-            $namn = 'Kvall';
+            $namn = 'Kväll';
         // Natt 22-06 — kan spanna over midnatt
         } else {
             $namn = 'Natt';

@@ -481,7 +481,7 @@ class AndonController {
             // Utmaning 2: Slå igårs rekord
             if ($ibcIgar > 0) {
                 $challenges[] = [
-                    'text'     => "Sla igars rekord: {$ibcIgar} IBC!",
+                    'text'     => "Slå igårs rekord: {$ibcIgar} IBC!",
                     'icon'     => 'fa-trophy',
                     'target'   => $ibcIgar,
                     'type'     => 'ibc_total',
@@ -501,7 +501,7 @@ class AndonController {
             // Utmaning 4: Teamrekord
             if ($bestShift > 0) {
                 $challenges[] = [
-                    'text'     => "Teamrekord att sla: {$bestShift} IBC pa ett skift!",
+                    'text'     => "Teamrekord att slå: {$bestShift} IBC på ett skift!",
                     'icon'     => 'fa-users',
                     'target'   => $bestShift,
                     'type'     => 'ibc_total',
@@ -510,7 +510,7 @@ class AndonController {
 
             // Utmaning 5: Nå dagsmålet
             $challenges[] = [
-                'text'     => "Na dagsmalet: {$malIdag} IBC!",
+                'text'     => "Nå dagsmålet: {$malIdag} IBC!",
                 'icon'     => 'fa-bullseye',
                 'target'   => $malIdag,
                 'type'     => 'ibc_total',

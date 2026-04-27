@@ -770,7 +770,7 @@ class MorgonrapportController {
                 'typ'       => 'produktion_under_mal',
                 'severity'  => $severity,
                 'meddelande' => sprintf(
-                    'Produktionen uppnadde bara %s%% av dagsmalet (%s av %s IBC).',
+                    'Produktionen uppnådde bara %s%% av dagsmålet (%s av %s IBC).',
                     $pct,
                     $produktion['totalt_ibc'],
                     $produktion['mal']
