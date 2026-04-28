@@ -38,6 +38,7 @@ export class OperatorPrestationPage {
       label: 'Djupanalys',
       tools: [
         { title: 'Skift-DNA', desc: 'Feed med alla senaste skift', route: '/rebotling/shift-dna', icon: 'fas fa-dna', color: '#f6ad55' },
+        { title: 'Skift-insikt', desc: 'Slå upp ett specifikt skift — fullständig analys per datum eller skiftnummer', route: '/rebotling/skift-insikt', icon: 'fas fa-search', color: '#63b3ed' },
         { title: 'Trendkarta', desc: 'Värmekarta IBC/h per vecka', route: '/rebotling/operator-trend-heatmap', icon: 'fas fa-fire', color: '#fc8181' },
         { title: 'Prestandakarta', desc: 'Scatter IBC/h per operatör', route: '/rebotling/operator-performance-map', icon: 'fas fa-crosshairs', color: '#f6ad55' },
         { title: 'Prestanda per veckodag', desc: 'Vilken dag presterar bäst?', route: '/rebotling/operator-veckodag', icon: 'fas fa-calendar-day', color: '#f6ad55' },

@@ -294,6 +294,8 @@ class RebotlingController {
                 $this->getCoachView();
             } elseif ($action === 'produktions-tidsserie') {
                 $this->getProduktionsTidsserie();
+            } elseif ($action === 'skift-insikt') {
+                $this->getSkiftInsikt();
             } else {
                 $this->getLiveStats();
             }
@@ -9306,6 +9308,225 @@ class RebotlingController {
             error_log('RebotlingController::getProduktionsTidsserie: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionspuls'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getSkiftInsikt(): void {
+        try {
+            $skiftraknare = isset($_GET['skiftraknare']) ? (int)$_GET['skiftraknare'] : 0;
+            $datum        = isset($_GET['datum']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['datum'])
+                            ? $_GET['datum'] : null;
+
+            // List all shifts on a given date
+            if ($datum && !$skiftraknare) {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        s.skiftraknare,
+                        MAX(s.datum)                     AS datum,
+                        MAX(COALESCE(s.ibc_ok, 0))       AS ibc_ok,
+                        MAX(COALESCE(s.drifttid, 0))     AS drifttid,
+                        MAX(s.op1)                       AS op1,
+                        MAX(s.op2)                       AS op2,
+                        MAX(s.op3)                       AS op3,
+                        MAX(o1.name)                     AS op1_name,
+                        MAX(o2.name)                     AS op2_name,
+                        MAX(o3.name)                     AS op3_name
+                    FROM rebotling_skiftrapport s
+                    LEFT JOIN operators o1 ON o1.number = s.op1
+                    LEFT JOIN operators o2 ON o2.number = s.op2
+                    LEFT JOIN operators o3 ON o3.number = s.op3
+                    WHERE s.datum = :datum AND s.drifttid >= 30
+                    GROUP BY s.skiftraknare
+                    ORDER BY s.skiftraknare
+                ");
+                $stmt->execute([':datum' => $datum]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                $shifts = [];
+                foreach ($rows as $r) {
+                    $dt = (int)$r['drifttid'];
+                    $shifts[] = [
+                        'skiftraknare' => (int)$r['skiftraknare'],
+                        'datum'        => $r['datum'],
+                        'ibc_ok'       => (int)$r['ibc_ok'],
+                        'drifttid_min' => $dt,
+                        'ibc_per_h'    => $dt > 0 ? round($r['ibc_ok'] / ($dt / 60.0), 2) : 0,
+                        'op1'          => $r['op1'] ? (int)$r['op1'] : null,
+                        'op2'          => $r['op2'] ? (int)$r['op2'] : null,
+                        'op3'          => $r['op3'] ? (int)$r['op3'] : null,
+                        'op1_name'     => $r['op1_name'],
+                        'op2_name'     => $r['op2_name'],
+                        'op3_name'     => $r['op3_name'],
+                    ];
+                }
+                echo json_encode(['success' => true, 'mode' => 'list', 'datum' => $datum, 'shifts' => $shifts], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            if (!$skiftraknare) {
+                echo json_encode(['success' => false, 'error' => 'Ange skiftraknare eller datum'], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Fetch the specific shift (dedup via GROUP BY skiftraknare)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(datum)                         AS datum,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok, 0))           AS ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok, 0))        AS ibc_ej_ok,
+                    MAX(COALESCE(bur_ej_ok, 0))        AS bur_ej_ok,
+                    MAX(COALESCE(drifttid, 0))         AS drifttid,
+                    MAX(COALESCE(driftstopptime, 0))   AS driftstopptime,
+                    MAX(product_id)                    AS product_id,
+                    MAX(op1)                           AS op1,
+                    MAX(op2)                           AS op2,
+                    MAX(op3)                           AS op3
+                FROM rebotling_skiftrapport
+                WHERE skiftraknare = :sk
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':sk' => $skiftraknare]);
+            $shift = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$shift) {
+                echo json_encode(['success' => false, 'error' => 'Skift #' . $skiftraknare . ' hittades inte'], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $datum       = $shift['datum'];
+            $drifttimmar = $shift['drifttid'] / 60.0;
+            $ibcH        = $drifttimmar > 0 ? round($shift['ibc_ok'] / $drifttimmar, 2) : 0;
+            $totIbc      = (int)$shift['ibc_ok'] + (int)$shift['ibc_ej_ok'];
+            $kassgrad    = $totIbc > 0 ? round($shift['ibc_ej_ok'] / $totIbc * 100, 1) : 0.0;
+            $stoppgrad   = $shift['drifttid'] > 0
+                           ? round($shift['driftstopptime'] / $shift['drifttid'] * 100, 1)
+                           : 0.0;
+
+            // Operator names
+            $opNums  = array_values(array_filter([(int)$shift['op1'], (int)$shift['op2'], (int)$shift['op3']]));
+            $opNames = [];
+            if (!empty($opNums)) {
+                $ph = implode(',', array_fill(0, count($opNums), '?'));
+                $stmtO = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
+                $stmtO->execute($opNums);
+                foreach ($stmtO->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                    $opNames[$op['number']] = $op['name'];
+                }
+            }
+
+            // Product name
+            $productName = null;
+            if ($shift['product_id']) {
+                try {
+                    $stmtP = $this->pdo->prepare("SELECT name FROM rebotling_products WHERE id = :id");
+                    $stmtP->execute([':id' => $shift['product_id']]);
+                    $prod = $stmtP->fetch(\PDO::FETCH_ASSOC);
+                    if ($prod) $productName = $prod['name'];
+                } catch (\Exception $e) {}
+            }
+
+            // 90-day context window ending on shift date
+            $fromCtx = date('Y-m-d', strtotime($datum . ' -90 days'));
+            $toCtx   = $datum;
+
+            // Team average over context window
+            $stmtTeam = $this->pdo->prepare("
+                SELECT
+                    ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0), 2)        AS team_avg_ibc_h,
+                    ROUND(SUM(ibc_ej_ok) / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0) * 100, 1) AS team_avg_kass
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok,
+                           MAX(COALESCE(drifttid, 0))  AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :fromCtx AND :toCtx
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) dedup
+            ");
+            $stmtTeam->execute([':fromCtx' => $fromCtx, ':toCtx' => $toCtx]);
+            $teamRow = $stmtTeam->fetch(\PDO::FETCH_ASSOC);
+            $teamAvgIbcH = $teamRow['team_avg_ibc_h'] ? (float)$teamRow['team_avg_ibc_h'] : null;
+            $teamAvgKass = $teamRow['team_avg_kass']  ? (float)$teamRow['team_avg_kass']  : null;
+            $vsTeam      = ($teamAvgIbcH && $teamAvgIbcH > 0)
+                           ? round(($ibcH - $teamAvgIbcH) / $teamAvgIbcH * 100, 1)
+                           : null;
+
+            // Per-operator personal average at their position (90d context)
+            $positions  = [
+                ['field' => 'op1', 'label' => 'Tvättplats'],
+                ['field' => 'op2', 'label' => 'Kontrollstation'],
+                ['field' => 'op3', 'label' => 'Truckförare'],
+            ];
+            $opDetails = [];
+            foreach ($positions as $pos) {
+                $opNum = (int)$shift[$pos['field']];
+                if (!$opNum) continue;
+
+                $stmtPers = $this->pdo->prepare("
+                    SELECT
+                        ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0), 2) AS personal_avg,
+                        COUNT(*) AS antal_skift
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                               MAX(COALESCE(drifttid, 0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE {$pos['field']} = :opNum
+                          AND datum BETWEEN :fromCtx AND :toCtx
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) d
+                ");
+                $stmtPers->execute([':opNum' => $opNum, ':fromCtx' => $fromCtx, ':toCtx' => $toCtx]);
+                $pers = $stmtPers->fetch(\PDO::FETCH_ASSOC);
+
+                $personalAvg = $pers['personal_avg'] ? (float)$pers['personal_avg'] : null;
+                $vsPers      = ($personalAvg && $personalAvg > 0)
+                               ? round(($ibcH - $personalAvg) / $personalAvg * 100, 1)
+                               : null;
+
+                $opDetails[] = [
+                    'position'           => $pos['field'],
+                    'label'              => $pos['label'],
+                    'op_number'          => $opNum,
+                    'op_name'            => $opNames[$opNum] ?? 'Okänd',
+                    'personal_avg_ibc_h' => $personalAvg,
+                    'vs_personal'        => $vsPers,
+                    'antal_skift_ctx'    => (int)($pers['antal_skift'] ?? 0),
+                ];
+            }
+
+            echo json_encode([
+                'success'             => true,
+                'mode'                => 'detail',
+                'skiftraknare'        => $skiftraknare,
+                'datum'               => $datum,
+                'ibc_ok'              => (int)$shift['ibc_ok'],
+                'ibc_ej_ok'           => (int)$shift['ibc_ej_ok'],
+                'bur_ej_ok'           => (int)$shift['bur_ej_ok'],
+                'drifttid_min'        => (int)$shift['drifttid'],
+                'driftstopptime_min'  => (int)$shift['driftstopptime'],
+                'ibc_per_h'           => $ibcH,
+                'kassationsgrad'      => $kassgrad,
+                'stoppgrad'           => $stoppgrad,
+                'product_id'          => $shift['product_id'] ? (int)$shift['product_id'] : null,
+                'product_name'        => $productName,
+                'operators'           => $opDetails,
+                'context'             => [
+                    'from'            => $fromCtx,
+                    'to'              => $toCtx,
+                    'team_avg_ibc_h'  => $teamAvgIbcH,
+                    'team_avg_kass'   => $teamAvgKass,
+                    'vs_team_pct'     => $vsTeam,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftInsikt: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-insikt'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

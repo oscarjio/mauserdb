@@ -1,0 +1,246 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" class="back-link">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="page-title mt-2 mb-1">
+      <i class="fas fa-search me-2 title-icon"></i>Skift-insikt
+    </h1>
+    <p class="page-subtitle">
+      Slå upp ett specifikt skift — fullständig analys med operatörsdata och jämförelsekontext
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row mb-4">
+
+    <!-- Date browser -->
+    <div class="ctrl-group">
+      <label class="ctrl-label">Bläddra per datum</label>
+      <div class="d-flex gap-2 align-items-center">
+        <input type="date" [(ngModel)]="selectedDate" (change)="loadByDate()"
+               class="form-control form-control-sm date-input" />
+        <button (click)="loadByDate()" class="btn btn-sm btn-lookup" [disabled]="listLoading">
+          <i class="fas fa-calendar-day me-1"></i>Visa skift
+        </button>
+      </div>
+    </div>
+
+    <!-- Direct shift number lookup -->
+    <div class="ctrl-group">
+      <label class="ctrl-label">Sök direkt på skiftnummer</label>
+      <div class="d-flex gap-2 align-items-center">
+        <input type="number" [(ngModel)]="skiftNrInput" placeholder="t.ex. 4217"
+               class="form-control form-control-sm nr-input"
+               (keyup.enter)="loadByNr()" />
+        <button (click)="loadByNr()" class="btn btn-sm btn-lookup"
+                [disabled]="!skiftNrInput || detailLoading">
+          <i class="fas fa-search me-1"></i>Slå upp
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Shift list for selected date ── -->
+  <div class="section mb-4">
+
+    <div *ngIf="listLoading" class="text-center py-3">
+      <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+      <span class="text-muted">Hämtar skift för {{ selectedDate }}…</span>
+    </div>
+
+    <div *ngIf="listError && !listLoading" class="alert-err">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ listError }}
+    </div>
+
+    <ng-container *ngIf="!listLoading && !listError">
+      <div *ngIf="shiftList.length === 0" class="empty-state">
+        <i class="fas fa-calendar-times"></i>
+        <p>Inga skift hittades för {{ selectedDate }}</p>
+      </div>
+
+      <div *ngIf="shiftList.length > 0">
+        <div class="section-header mb-2">
+          <i class="fas fa-list me-2 text-info"></i>
+          {{ shiftList.length }} skift — {{ formatDate(selectedDate) }}
+        </div>
+        <div class="shift-list">
+          <div *ngFor="let s of shiftList"
+               class="shift-list-item"
+               [class.shift-list-item--active]="detail?.skiftraknare === s.skiftraknare"
+               (click)="loadDetail(s.skiftraknare)">
+            <div class="shift-list-left">
+              <span class="shift-nr">#{{ s.skiftraknare }}</span>
+              <span class="shift-ops">{{ ops(s) }}</span>
+            </div>
+            <div class="shift-list-right">
+              <span class="ibc-h-val">{{ s.ibc_per_h | number:'1.1-1' }}<span class="ibc-h-unit"> IBC/h</span></span>
+              <span class="shift-ibc text-muted">{{ s.ibc_ok }} ok · {{ drifttidLabel(s.drifttid_min) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ── Detail panel ── -->
+  <div *ngIf="detailLoading" class="text-center py-4">
+    <div class="spinner-border" style="color:#63b3ed;" role="status"></div>
+    <p class="text-muted mt-2">Hämtar skiftdetaljer…</p>
+  </div>
+
+  <div *ngIf="detailError && !detailLoading" class="alert-err mb-4">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ detailError }}
+  </div>
+
+  <ng-container *ngIf="detail && !detailLoading">
+
+    <!-- Detail header -->
+    <div class="detail-header mb-4">
+      <div class="detail-title-row">
+        <div>
+          <span class="detail-shift-nr">Skift #{{ detail.skiftraknare }}</span>
+          <span class="detail-datum">{{ formatDate(detail.datum) }}</span>
+        </div>
+        <div *ngIf="detail.product_name" class="product-badge">
+          <i class="fas fa-box me-1"></i>{{ detail.product_name }}
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="kpi-grid mb-4">
+
+      <div class="kpi-card kpi-main"
+           [style.background]="vsBg(detail.context.vs_team_pct)">
+        <div class="kpi-label">IBC/h</div>
+        <div class="kpi-value kpi-big" [style.color]="vsColor(detail.context.vs_team_pct)">
+          {{ detail.ibc_per_h | number:'1.1-1' }}
+        </div>
+        <div class="kpi-sub" *ngIf="detail.context.vs_team_pct !== null">
+          <span [style.color]="vsColor(detail.context.vs_team_pct)">
+            {{ detail.context.vs_team_pct >= 0 ? '+' : '' }}{{ detail.context.vs_team_pct }}% vs lag
+          </span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Godkänd IBC</div>
+        <div class="kpi-value">{{ detail.ibc_ok }}</div>
+        <div class="kpi-sub text-muted" *ngIf="detail.ibc_ej_ok > 0">
+          {{ detail.ibc_ej_ok }} ej ok
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Kassationsgrad</div>
+        <div class="kpi-value" [style.color]="kassColor(detail.kassationsgrad)">
+          {{ detail.kassationsgrad | number:'1.1-1' }}%
+        </div>
+        <div class="kpi-sub text-muted" *ngIf="detail.context.team_avg_kass !== null">
+          Lagsnitt {{ detail.context.team_avg_kass | number:'1.1-1' }}%
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Drifttid</div>
+        <div class="kpi-value">{{ drifttidLabel(detail.drifttid_min) }}</div>
+        <div class="kpi-sub text-muted" *ngIf="detail.driftstopptime_min > 0">
+          {{ detail.driftstopptime_min }} min stopp
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Stoppgrad</div>
+        <div class="kpi-value" [style.color]="stoppColor(detail.stoppgrad)">
+          {{ detail.stoppgrad | number:'1.1-1' }}%
+        </div>
+        <div class="kpi-sub text-muted">av drifttid</div>
+      </div>
+
+      <div class="kpi-card" *ngIf="detail.bur_ej_ok > 0">
+        <div class="kpi-label">Kasserade burar</div>
+        <div class="kpi-value" style="color:#fbd38d;">{{ detail.bur_ej_ok }}</div>
+        <div class="kpi-sub text-muted">bur_ej_ok</div>
+      </div>
+
+    </div>
+
+    <!-- Team context bar -->
+    <div class="context-bar mb-4" *ngIf="detail.context.team_avg_ibc_h">
+      <i class="fas fa-info-circle me-2" style="color:#63b3ed;"></i>
+      <span class="text-muted">Kontext (90d till skiftdatum):</span>
+      <span class="ms-2">Lagsnitt {{ detail.context.team_avg_ibc_h | number:'1.1-1' }} IBC/h</span>
+      <span class="ms-2" *ngIf="detail.context.vs_team_pct !== null">
+        · Detta skift:
+        <strong [style.color]="vsColor(detail.context.vs_team_pct)">
+          {{ detail.context.vs_team_pct >= 0 ? '+' : '' }}{{ detail.context.vs_team_pct }}%
+        </strong>
+      </span>
+      <span class="ms-2 text-muted small">({{ detail.context.from }} – {{ detail.context.to }})</span>
+    </div>
+
+    <!-- Operators section -->
+    <div class="section-header mb-3">
+      <i class="fas fa-users me-2" style="color:#a78bfa;"></i>Operatörer detta skift
+    </div>
+
+    <div class="ops-grid mb-4">
+      <div *ngFor="let op of detail.operators" class="op-card">
+
+        <div class="op-position-label">{{ op.label }}</div>
+
+        <div class="op-name-row">
+          <a [routerLink]="['/rebotling/operator', op.op_number]" class="op-name-link">
+            {{ op.op_name }}
+          </a>
+          <span class="op-number text-muted">#{{ op.op_number }}</span>
+        </div>
+
+        <div class="op-metrics">
+          <div class="op-metric-row">
+            <span class="op-metric-label">Skiftets IBC/h</span>
+            <span class="op-metric-val">{{ detail.ibc_per_h | number:'1.1-1' }}</span>
+          </div>
+          <div class="op-metric-row" *ngIf="op.personal_avg_ibc_h !== null">
+            <span class="op-metric-label">Eget snitt vid pos. (90d)</span>
+            <span class="op-metric-val text-muted">{{ op.personal_avg_ibc_h | number:'1.1-1' }}</span>
+          </div>
+          <div class="op-metric-row" *ngIf="op.personal_avg_ibc_h === null">
+            <span class="op-metric-label">Eget snitt</span>
+            <span class="op-metric-val text-muted small">Otillräcklig data</span>
+          </div>
+        </div>
+
+        <!-- vs personal bar -->
+        <div *ngIf="op.vs_personal !== null" class="vs-personal-row">
+          <span class="vs-label" [style.color]="vsColor(op.vs_personal)">
+            {{ op.vs_personal >= 0 ? '+' : '' }}{{ op.vs_personal }}% vs eget snitt
+          </span>
+          <div class="vs-bar-track">
+            <div class="vs-bar-fill"
+                 [style.left.%]="op.vs_personal >= 0 ? 50 : Math.max(0, 50 + op.vs_personal)"
+                 [style.width.%]="Math.min(50, Math.abs(op.vs_personal))"
+                 [style.background]="vsColor(op.vs_personal)">
+            </div>
+            <div class="vs-bar-center"></div>
+          </div>
+        </div>
+
+        <div class="op-ctx text-muted small" *ngIf="op.antal_skift_ctx > 0">
+          Baserat på {{ op.antal_skift_ctx }} skift
+        </div>
+
+        <a [routerLink]="['/rebotling/operator', op.op_number]" class="op-profile-link mt-2">
+          <i class="fas fa-user me-1"></i>Visa profil →
+        </a>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
