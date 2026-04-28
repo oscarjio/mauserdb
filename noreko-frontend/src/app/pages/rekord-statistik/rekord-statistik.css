@@ -1,0 +1,316 @@
+.page-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 1rem;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #f6c90e, #e67e22);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+/* ── Tabs ── */
+.tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #718096;
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.tab-btn:hover { color: #a0aec0; }
+.tab-btn.active { color: #63b3ed; border-bottom-color: #63b3ed; font-weight: 600; }
+
+/* ── Cards ── */
+.card-dark {
+  background: #2d3748;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-header-dark {
+  padding: 0.75rem 1rem;
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-bottom: 1px solid #4a5568;
+}
+
+/* ── Best shifts table ── */
+.table-dark {
+  color: #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.table-dark thead tr th {
+  background: #1a202c;
+  color: #718096;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-color: #4a5568;
+  padding: 0.6rem 0.75rem;
+}
+
+.table-dark tbody tr td {
+  border-color: #2d3748;
+  padding: 0.6rem 0.75rem;
+  vertical-align: middle;
+}
+
+.table-dark tbody tr.top-row { background: rgba(246, 201, 14, 0.04); }
+.table-dark tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+.rank-cell { font-size: 1.1rem; }
+
+.rank-badge {
+  font-size: 1.1rem;
+}
+
+.text-gold { color: #f6c90e; }
+
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+}
+.op-link:hover { color: #90cdf4; text-decoration: underline; }
+
+/* ── Record highlight ── */
+.record-highlight {
+  background: linear-gradient(135deg, #1a202c, #2d3748);
+  border: 2px solid #f6c90e44;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.record-crown {
+  font-size: 2.5rem;
+  color: #f6c90e;
+  line-height: 1;
+}
+
+.record-label {
+  color: #718096;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.record-ibc {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f6c90e;
+  line-height: 1.1;
+}
+
+.record-meta {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Career list ── */
+.career-list {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.career-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: #1a202c;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.career-row:hover { background: #283046; }
+.career-row.career-top3 { border-left: 3px solid #f6c90e44; }
+
+.career-rank {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.career-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.career-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.career-bar-wrap {
+  height: 4px;
+  background: #2d3748;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.career-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+
+.career-stats {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.career-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 60px;
+}
+
+.career-stat-val {
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.career-stat-lbl {
+  color: #718096;
+  font-size: 0.7rem;
+}
+
+/* ── Monthly grid ── */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.month-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.month-card:hover { border-color: #4a5568; }
+.month-card.month-current { border-color: #3182ce44; background: #1e3a5f22; }
+.month-card.month-empty { opacity: 0.5; }
+
+.month-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.month-crown {
+  font-size: 1.3rem;
+  color: #f6c90e;
+  margin-bottom: 0.25rem;
+}
+
+.month-winner {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.month-ibc {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #68d391;
+}
+
+.month-shifts {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.month-no-data {
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.champ-star { font-size: 0.8rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-container { padding: 1rem; }
+
+  .career-stats { gap: 0.5rem; }
+  .career-stat { min-width: 50px; }
+  .career-stat-val { font-size: 0.8rem; }
+
+  .table-dark { font-size: 0.75rem; }
+  .table-dark thead tr th,
+  .table-dark tbody tr td { padding: 0.4rem 0.5rem; }
+
+  .record-ibc { font-size: 1.5rem; }
+
+  .month-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 576px) {
+  .month-grid { grid-template-columns: repeat(2, 1fr); }
+  .tab-btn { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+}

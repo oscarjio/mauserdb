@@ -164,6 +164,7 @@ export const routes: Routes = [
       { path: 'rebotling/produktion-heatmap', canActivate: [adminGuard], loadComponent: () => import('./pages/produktion-heatmap/produktion-heatmap').then(m => m.ProduktionHeatmapPage) },
       { path: 'rebotling/operator-skifttyp', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-skifttyp/operator-skifttyp').then(m => m.OperatorSkifttypPage) },
       { path: 'rebotling/operator-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-trend/operator-trend').then(m => m.OperatorTrendPage) },
+      { path: 'rebotling/rekord-statistik', canActivate: [adminGuard], loadComponent: () => import('./pages/rekord-statistik/rekord-statistik').then(m => m.RekordStatistikPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

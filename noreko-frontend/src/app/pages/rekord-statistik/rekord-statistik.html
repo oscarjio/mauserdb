@@ -1,0 +1,218 @@
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="header-icon">
+        <i class="fas fa-trophy"></i>
+      </div>
+      <div>
+        <h1 class="page-title mb-0">Rekord &amp; Karriärstatistik</h1>
+        <p class="page-subtitle mb-0">Bästa skift genom tiderna, karriärtotaler och månadsrekord</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Beräknar rekord…</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="alert alert-danger">
+    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="load()">Försök igen</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- Tabs -->
+    <div class="tab-bar mb-4">
+      <button class="tab-btn" [class.active]="activeTab === 'skift'" (click)="setTab('skift')">
+        <i class="fas fa-star me-1"></i>Bästa skift
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'karriar'" (click)="setTab('karriar')">
+        <i class="fas fa-medal me-1"></i>Karriärstatistik
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'manader'" (click)="setTab('manader')">
+        <i class="fas fa-calendar-alt me-1"></i>Månadsrekord
+      </button>
+    </div>
+
+    <!-- ── TAB 1: Bästa skift ── -->
+    <div *ngIf="activeTab === 'skift'">
+      <div class="card-dark mb-3">
+        <div class="card-header-dark">
+          <i class="fas fa-bolt me-2 text-warning"></i>
+          Topp 10 — Högsta IBC/h per skift (alla tider)
+        </div>
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th class="text-center" style="width:60px">Rank</th>
+                <th>Datum</th>
+                <th class="text-end">IBC/h</th>
+                <th class="text-end">IBC</th>
+                <th class="text-end">Drifttid</th>
+                <th>Tvättplats</th>
+                <th>Kontrollstation</th>
+                <th>Truckförare</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of bestShifts" [class.top-row]="s.rank <= 3">
+                <td class="text-center rank-cell">
+                  <span class="rank-badge" [class.rank-gold]="s.rank===1" [class.rank-silver]="s.rank===2" [class.rank-bronze]="s.rank===3">
+                    {{ s.rank <= 3 ? rankMedal(s.rank) : '#' + s.rank }}
+                  </span>
+                </td>
+                <td class="text-muted">{{ s.datum }}</td>
+                <td class="text-end fw-bold">
+                  <span [class.text-gold]="s.rank===1" [class.text-info]="s.rank>1">{{ s.ibc_per_h }} IBC/h</span>
+                </td>
+                <td class="text-end">{{ s.ibc_ok }}</td>
+                <td class="text-end text-muted small">{{ drifttidLabel(s.drifttid) }}</td>
+                <td>
+                  <a [routerLink]="['/rebotling/operator', s.op1]" class="op-link">{{ s.op1_name }}</a>
+                </td>
+                <td>
+                  <a [routerLink]="['/rebotling/operator', s.op2]" class="op-link">{{ s.op2_name }}</a>
+                </td>
+                <td>
+                  <a [routerLink]="['/rebotling/operator', s.op3]" class="op-link">{{ s.op3_name }}</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="bestShifts.length === 0" class="text-center py-4 text-muted">
+          Ingen data tillgänglig.
+        </div>
+      </div>
+
+      <!-- Highlight #1 -->
+      <div *ngIf="bestShifts.length > 0" class="record-highlight mb-3">
+        <div class="record-crown"><i class="fas fa-crown"></i></div>
+        <div class="record-body">
+          <div class="record-label">Allra bästa skiftet</div>
+          <div class="record-ibc">{{ bestShifts[0].ibc_per_h }} IBC/h</div>
+          <div class="record-meta">
+            {{ bestShifts[0].datum }} &bull;
+            {{ bestShifts[0].op1_name }}, {{ bestShifts[0].op2_name }}, {{ bestShifts[0].op3_name }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: Karriärstatistik ── -->
+    <div *ngIf="activeTab === 'karriar'">
+      <p class="text-muted small mb-3">
+        Karriär-IBC = totalt antal IBC producerat under skift där operatören deltog (i valfri position).
+        Sorterat efter totalt producerade IBC.
+      </p>
+      <div class="card-dark">
+        <div class="card-header-dark">
+          <i class="fas fa-award me-2 text-warning"></i>
+          Karriärranking — Alla operatörer
+        </div>
+
+        <div class="career-list">
+          <div *ngFor="let op of careerStats" class="career-row" [class.career-top3]="op.rank <= 3">
+            <!-- Rank -->
+            <div class="career-rank" [style.background]="rankColor(op.rank)">
+              {{ op.rank <= 3 ? rankMedal(op.rank) : op.rank }}
+            </div>
+            <!-- Name + bar -->
+            <div class="career-info">
+              <div class="career-name">
+                <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+              </div>
+              <div class="career-bar-wrap">
+                <div class="career-bar-fill" [style.width.%]="careerBar(op.career_ibc)"></div>
+              </div>
+            </div>
+            <!-- Stats -->
+            <div class="career-stats">
+              <div class="career-stat">
+                <span class="career-stat-val">{{ op.career_ibc | number:'1.0-0' }}</span>
+                <span class="career-stat-lbl">IBC totalt</span>
+              </div>
+              <div class="career-stat">
+                <span class="career-stat-val">{{ op.career_ibc_h | number:'1.1-1' }}</span>
+                <span class="career-stat-lbl">IBC/h snitt</span>
+              </div>
+              <div class="career-stat">
+                <span class="career-stat-val text-info">{{ op.best_ibc_h | number:'1.1-1' }}</span>
+                <span class="career-stat-lbl">Bäst IBC/h</span>
+              </div>
+              <div class="career-stat">
+                <span class="career-stat-val">{{ op.career_shifts }}</span>
+                <span class="career-stat-lbl">Skift</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="careerStats.length === 0" class="text-center py-4 text-muted">
+          Ingen data tillgänglig.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: Månadsrekord ── -->
+    <div *ngIf="activeTab === 'manader'">
+      <p class="text-muted small mb-3">
+        Månadsvinnare = operatören med högst IBC/h den månaden (min 3 skift).
+      </p>
+
+      <div class="month-grid">
+        <div *ngFor="let mc of monthlyChampions"
+             class="month-card"
+             [class.month-current]="isCurrentMonth(mc.month)"
+             [class.month-empty]="mc.champion_num === null">
+          <div class="month-label">{{ monthLabel(mc.month) }}</div>
+          <ng-container *ngIf="mc.champion_num !== null; else noWinner">
+            <div class="month-crown">
+              <i class="fas fa-crown"></i>
+            </div>
+            <div class="month-winner">
+              <a [routerLink]="['/rebotling/operator', mc.champion_num]" class="op-link">
+                {{ mc.champion_name }}
+              </a>
+            </div>
+            <div class="month-ibc">{{ mc.ibc_h | number:'1.1-1' }} IBC/h</div>
+            <div class="month-shifts text-muted small">{{ mc.month_shifts }} skift</div>
+          </ng-container>
+          <ng-template #noWinner>
+            <div class="month-no-data text-muted">
+              <i class="fas fa-minus-circle"></i><br>Ingen data
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Champion count summary -->
+      <div *ngIf="monthlyChampions.length > 0" class="card-dark mt-4">
+        <div class="card-header-dark">
+          <i class="fas fa-trophy me-2 text-warning"></i>
+          Flest månadsvinster
+        </div>
+        <div class="p-3">
+          <div *ngFor="let op of championRanking"
+               class="d-flex align-items-center gap-3 mb-2">
+            <a [routerLink]="['/rebotling/operator', op.number]" class="op-link flex-grow-1">{{ op.name }}</a>
+            <div class="d-flex gap-1">
+              <span *ngFor="let _ of crownArray(op.wins)" class="champ-star">
+                <i class="fas fa-crown text-warning small"></i>
+              </span>
+            </div>
+            <span class="badge bg-warning text-dark">{{ op.wins }} månader</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

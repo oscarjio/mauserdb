@@ -270,6 +270,8 @@ class RebotlingController {
                 $this->getProduktionHeatmap();
             } elseif ($action === 'operator-skifttyp') {
                 $this->getOperatorSkifttyp();
+            } elseif ($action === 'rekord-statistik') {
+                $this->getRekordsStatistik();
             } else {
                 $this->getLiveStats();
             }
@@ -7424,6 +7426,225 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorSkifttyp: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttyp-analys'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // rekord-statistik — All-time records, career stats, monthly champions
+    // ─────────────────────────────────────────────────────────────────────────
+    private function getRekordsStatistik(): void {
+        try {
+            $pdo = $this->pdo;
+
+            // ── 1. All-time top-10 shifts by IBC/h ───────────────────────────
+            $bestSql = "
+                SELECT
+                    t.skiftraknare,
+                    t.datum,
+                    t.ibc_ok,
+                    t.drifttid,
+                    t.ibc_per_h,
+                    t.op1, t.op2, t.op3,
+                    COALESCE(o1.name, CONCAT('#', t.op1)) AS op1_name,
+                    COALESCE(o2.name, CONCAT('#', t.op2)) AS op2_name,
+                    COALESCE(o3.name, CONCAT('#', t.op3)) AS op3_name
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum)    AS datum,
+                        MAX(ibc_ok)   AS ibc_ok,
+                        MAX(drifttid) AS drifttid,
+                        MAX(op1)      AS op1,
+                        MAX(op2)      AS op2,
+                        MAX(op3)      AS op3,
+                        MAX(ibc_ok) / (MAX(drifttid) / 60.0) AS ibc_per_h
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                    HAVING MAX(drifttid) >= 30 AND MAX(ibc_ok) > 0
+                    ORDER BY ibc_per_h DESC
+                    LIMIT 10
+                ) t
+                LEFT JOIN operators o1 ON o1.number = t.op1
+                LEFT JOIN operators o2 ON o2.number = t.op2
+                LEFT JOIN operators o3 ON o3.number = t.op3
+                ORDER BY t.ibc_per_h DESC
+            ";
+            $bestStmt = $pdo->prepare($bestSql);
+            $bestStmt->execute();
+            $bestRaw = $bestStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $bestShifts = [];
+            foreach ($bestRaw as $i => $r) {
+                $bestShifts[] = [
+                    'rank'      => $i + 1,
+                    'datum'     => $r['datum'],
+                    'ibc_ok'    => (int)$r['ibc_ok'],
+                    'drifttid'  => (int)$r['drifttid'],
+                    'ibc_per_h' => round((float)$r['ibc_per_h'], 1),
+                    'op1'       => (int)$r['op1'],
+                    'op2'       => (int)$r['op2'],
+                    'op3'       => (int)$r['op3'],
+                    'op1_name'  => $r['op1_name'],
+                    'op2_name'  => $r['op2_name'],
+                    'op3_name'  => $r['op3_name'],
+                ];
+            }
+
+            // ── 2. Career stats per operator (all-time) ──────────────────────
+            // Each operator credited for every shift they appeared in (any position).
+            // ibc_ok is team-shared; we use MAX per skiftraknare per position-session.
+            $careerSql = "
+                SELECT
+                    src.op_num,
+                    COALESCE(o.name, CONCAT('#', src.op_num)) AS op_name,
+                    COUNT(DISTINCT src.skiftraknare)           AS career_shifts,
+                    SUM(src.ibc_ok)                            AS career_ibc,
+                    SUM(src.drifttid_h)                        AS career_hours,
+                    CASE WHEN SUM(src.drifttid_h) > 0
+                         THEN SUM(src.ibc_ok) / SUM(src.drifttid_h)
+                         ELSE 0 END                            AS career_ibc_h,
+                    MAX(src.shift_ibc_h)                       AS best_ibc_h
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           MAX(ibc_ok)                                            AS ibc_ok,
+                           MAX(drifttid) / 60.0                                   AS drifttid_h,
+                           MAX(ibc_ok) / NULLIF(MAX(drifttid) / 60.0, 0)         AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2 AS op_num, skiftraknare,
+                           MAX(ibc_ok)                                            AS ibc_ok,
+                           MAX(drifttid) / 60.0                                   AS drifttid_h,
+                           MAX(ibc_ok) / NULLIF(MAX(drifttid) / 60.0, 0)         AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3 AS op_num, skiftraknare,
+                           MAX(ibc_ok)                                            AS ibc_ok,
+                           MAX(drifttid) / 60.0                                   AS drifttid_h,
+                           MAX(ibc_ok) / NULLIF(MAX(drifttid) / 60.0, 0)         AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare
+                ) src
+                LEFT JOIN operators o ON o.number = src.op_num
+                GROUP BY src.op_num, o.name
+                ORDER BY career_ibc DESC
+            ";
+            $careerStmt = $pdo->prepare($careerSql);
+            $careerStmt->execute();
+            $careerRaw = $careerStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $careerStats = [];
+            foreach ($careerRaw as $idx => $r) {
+                $careerStats[] = [
+                    'rank'          => $idx + 1,
+                    'number'        => (int)$r['op_num'],
+                    'name'          => $r['op_name'],
+                    'career_shifts' => (int)$r['career_shifts'],
+                    'career_ibc'    => (int)$r['career_ibc'],
+                    'career_hours'  => round((float)$r['career_hours'], 1),
+                    'career_ibc_h'  => round((float)$r['career_ibc_h'], 2),
+                    'best_ibc_h'    => round((float)$r['best_ibc_h'], 1),
+                ];
+            }
+
+            // ── 3. Monthly champions (last 12 months) ────────────────────────
+            $monthFrom = date('Y-m-01', strtotime('-11 months'));
+
+            $monthlySql = "
+                SELECT
+                    src.month_str,
+                    src.op_num,
+                    COALESCE(o.name, CONCAT('#', src.op_num)) AS op_name,
+                    SUM(src.ibc_ok)    AS month_ibc,
+                    SUM(src.drifttid_h) AS month_hours,
+                    CASE WHEN SUM(src.drifttid_h) > 0
+                         THEN SUM(src.ibc_ok) / SUM(src.drifttid_h)
+                         ELSE 0 END    AS month_ibc_h,
+                    COUNT(DISTINCT src.skiftraknare) AS month_shifts
+                FROM (
+                    SELECT DATE_FORMAT(datum, '%Y-%m') AS month_str,
+                           op1 AS op_num, skiftraknare,
+                           MAX(ibc_ok)   AS ibc_ok,
+                           MAX(drifttid) / 60.0 AS drifttid_h
+                    FROM rebotling_skiftrapport
+                    WHERE op1 > 0 AND datum >= :mfrom1 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m'), op1, skiftraknare
+                    UNION ALL
+                    SELECT DATE_FORMAT(datum, '%Y-%m') AS month_str,
+                           op2 AS op_num, skiftraknare,
+                           MAX(ibc_ok)   AS ibc_ok,
+                           MAX(drifttid) / 60.0 AS drifttid_h
+                    FROM rebotling_skiftrapport
+                    WHERE op2 > 0 AND datum >= :mfrom2 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m'), op2, skiftraknare
+                    UNION ALL
+                    SELECT DATE_FORMAT(datum, '%Y-%m') AS month_str,
+                           op3 AS op_num, skiftraknare,
+                           MAX(ibc_ok)   AS ibc_ok,
+                           MAX(drifttid) / 60.0 AS drifttid_h
+                    FROM rebotling_skiftrapport
+                    WHERE op3 > 0 AND datum >= :mfrom3 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m'), op3, skiftraknare
+                ) src
+                LEFT JOIN operators o ON o.number = src.op_num
+                GROUP BY src.month_str, src.op_num, o.name
+                HAVING month_shifts >= 3
+                ORDER BY src.month_str ASC, month_ibc_h DESC
+            ";
+            $monthlyStmt = $pdo->prepare($monthlySql);
+            $monthlyStmt->execute([':mfrom1' => $monthFrom, ':mfrom2' => $monthFrom, ':mfrom3' => $monthFrom]);
+            $monthlyRaw = $monthlyStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Pick champion per month (first row = highest IBC/h due to ORDER BY)
+            $byMonth = [];
+            foreach ($monthlyRaw as $r) {
+                $m = $r['month_str'];
+                if (!isset($byMonth[$m])) {
+                    $byMonth[$m] = [
+                        'month'          => $m,
+                        'champion_num'   => (int)$r['op_num'],
+                        'champion_name'  => $r['op_name'],
+                        'ibc_h'          => round((float)$r['month_ibc_h'], 2),
+                        'month_shifts'   => (int)$r['month_shifts'],
+                        'month_ibc'      => (int)$r['month_ibc'],
+                    ];
+                }
+            }
+
+            // Build full 12-month array (oldest → newest)
+            $monthlyChampions = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $m = date('Y-m', strtotime("-{$i} months"));
+                if (isset($byMonth[$m])) {
+                    $monthlyChampions[] = $byMonth[$m];
+                } else {
+                    $monthlyChampions[] = [
+                        'month'         => $m,
+                        'champion_num'  => null,
+                        'champion_name' => null,
+                        'ibc_h'         => null,
+                        'month_shifts'  => 0,
+                        'month_ibc'     => 0,
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'success'           => true,
+                'best_shifts'       => $bestShifts,
+                'career_stats'      => $careerStats,
+                'monthly_champions' => $monthlyChampions,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getRekordsStatistik: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid rekord-statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
