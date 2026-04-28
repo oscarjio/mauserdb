@@ -262,6 +262,8 @@ class RebotlingController {
                 $this->getSkiftPrognos();
             } elseif ($action === 'ibc-forlust') {
                 $this->getIbcForlust();
+            } elseif ($action === 'operator-synergy') {
+                $this->getOperatorSynergy();
             } else {
                 $this->getLiveStats();
             }
@@ -6844,6 +6846,150 @@ class RebotlingController {
             error_log('RebotlingController::getIbcForlust: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid IBC-förlustkalkyl'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Teamkemi — vilka operatörer presterar bättre ihop? ────────────
+
+    private function getOperatorSynergy(): void
+    {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(365, (int)$_GET['days'])) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opShifts     = [];
+            $pairTogether = [];
+
+            foreach ($shifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min <= 0 || $ibc <= 0) continue;
+
+                $ibcH = $ibc / ($min / 60.0);
+
+                $ops = [];
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $n = (int)($s[$pos] ?? 0);
+                    if ($n > 0 && isset($opNames[$n])) $ops[] = $n;
+                }
+                $ops = array_values(array_unique($ops));
+
+                foreach ($ops as $op) {
+                    $opShifts[$op][] = $ibcH;
+                }
+
+                sort($ops);
+                for ($i = 0; $i < count($ops); $i++) {
+                    for ($j = $i + 1; $j < count($ops); $j++) {
+                        $key = $ops[$i] . '-' . $ops[$j];
+                        $pairTogether[$key][] = $ibcH;
+                    }
+                }
+            }
+
+            $opAvg = [];
+            foreach ($opShifts as $opNum => $vals) {
+                if (count($vals) >= 3) {
+                    $opAvg[$opNum] = array_sum($vals) / count($vals);
+                }
+            }
+
+            $pairs = [];
+            foreach ($pairTogether as $key => $vals) {
+                if (count($vals) < 3) continue;
+                [$aStr, $bStr] = explode('-', $key);
+                $opA = (int)$aStr;
+                $opB = (int)$bStr;
+                if (!isset($opAvg[$opA], $opAvg[$opB])) continue;
+
+                $togetherIbcH = array_sum($vals) / count($vals);
+                $avgBaseline  = ($opAvg[$opA] + $opAvg[$opB]) / 2.0;
+                $synergy      = $togetherIbcH - $avgBaseline;
+                $synergyPct   = $avgBaseline > 0 ? $synergy / $avgBaseline * 100.0 : 0.0;
+
+                $pairs[] = [
+                    'op_a'            => $opA,
+                    'name_a'          => $opNames[$opA],
+                    'op_b'            => $opB,
+                    'name_b'          => $opNames[$opB],
+                    'together_shifts' => count($vals),
+                    'together_ibc_h'  => round($togetherIbcH, 2),
+                    'a_avg_ibc_h'     => round($opAvg[$opA], 2),
+                    'b_avg_ibc_h'     => round($opAvg[$opB], 2),
+                    'avg_baseline'    => round($avgBaseline, 2),
+                    'synergy'         => round($synergy, 2),
+                    'synergy_pct'     => round($synergyPct, 1),
+                ];
+            }
+
+            usort($pairs, fn($a, $b) => $b['synergy_pct'] <=> $a['synergy_pct']);
+
+            $bestPartner = [];
+            foreach ($pairs as $p) {
+                $a = $p['op_a']; $b = $p['op_b'];
+                if (!isset($bestPartner[$a]) || $p['synergy_pct'] > $bestPartner[$a]['synergy_pct']) {
+                    $bestPartner[$a] = [
+                        'partner_num'     => $b,
+                        'partner_name'    => $opNames[$b],
+                        'synergy_pct'     => $p['synergy_pct'],
+                        'together_ibc_h'  => $p['together_ibc_h'],
+                        'together_shifts' => $p['together_shifts'],
+                    ];
+                }
+                if (!isset($bestPartner[$b]) || $p['synergy_pct'] > $bestPartner[$b]['synergy_pct']) {
+                    $bestPartner[$b] = [
+                        'partner_num'     => $a,
+                        'partner_name'    => $opNames[$a],
+                        'synergy_pct'     => $p['synergy_pct'],
+                        'together_ibc_h'  => $p['together_ibc_h'],
+                        'together_shifts' => $p['together_shifts'],
+                    ];
+                }
+            }
+
+            $operators = [];
+            foreach ($opAvg as $opNum => $avg) {
+                $bp = $bestPartner[$opNum] ?? null;
+                $operators[] = [
+                    'number'       => $opNum,
+                    'name'         => $opNames[$opNum],
+                    'total_shifts' => count($opShifts[$opNum]),
+                    'avg_ibc_h'    => round($avg, 2),
+                    'best_partner' => $bp,
+                ];
+            }
+            usort($operators, fn($a, $b) => $b['avg_ibc_h'] <=> $a['avg_ibc_h']);
+
+            echo json_encode([
+                'success'   => true,
+                'from'      => $from,
+                'to'        => $to,
+                'days'      => $days,
+                'operators' => $operators,
+                'pairs'     => $pairs,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorSynergy: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid teamkemi'], JSON_UNESCAPED_UNICODE);
         }
     }
 

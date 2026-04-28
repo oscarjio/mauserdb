@@ -39,6 +39,7 @@ export class OperatorPrestationPage {
         { title: 'Inlärningskurva', desc: 'Prestanda över tid för nya', route: '/rebotling/operator-inlarning', icon: 'fas fa-graduation-cap', color: '#63b3ed' },
         { title: 'Prestandavarning', desc: 'Flaggar operatörer med trend ned', route: '/rebotling/operator-varning', icon: 'fas fa-exclamation-triangle', color: '#fc8181' },
         { title: 'Positionsindex', desc: 'Bästa position per operatör vs eget snitt', route: '/rebotling/operator-positioner', icon: 'fas fa-map-pin', color: '#f6ad55' },
+        { title: 'Teamkemi', desc: 'Vilka operatörer presterar bättre ihop?', route: '/rebotling/operator-synergy', icon: 'fas fa-heart', color: '#fc8181' },
       ]
     },
     {

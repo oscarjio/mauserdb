@@ -1,0 +1,189 @@
+<div class="syn-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <h2 class="page-title">
+      <i class="fas fa-heart me-2" style="color:#fc8181;"></i>Teamkemi
+    </h2>
+    <p class="page-sub">Vilka operatörer presterar bättre ihop? Synergijämförelse mot individuellt snitt.</p>
+  </div>
+
+  <!-- Period + view controls -->
+  <div class="controls-bar mb-4">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-outline-secondary" [class.active]="days===60"  (click)="setDays(60)">60 d</button>
+        <button class="btn btn-outline-secondary" [class.active]="days===90"  (click)="setDays(90)">90 d</button>
+        <button class="btn btn-outline-secondary" [class.active]="days===180" (click)="setDays(180)">180 d</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Vy:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-outline-secondary" [class.active]="view==='pairs'"     (click)="view='pairs'">Parranking</button>
+        <button class="btn btn-outline-secondary" [class.active]="view==='operators'" (click)="view='operators'">Per operatör</button>
+      </div>
+    </div>
+    <div class="period-range" *ngIf="from && to">{{ from }} – {{ to }}</div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Analyserar teamkemi…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI row -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-value">{{ totalPairs }}</div>
+        <div class="kpi-label">Par analyserade</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="fas fa-plus-circle"></i></div>
+        <div class="kpi-value">{{ positivePairs }}</div>
+        <div class="kpi-label">Par med positiv kemi</div>
+      </div>
+      <div class="kpi-card" [class.kpi-green]="topPair && topPair.synergy_pct > 5" [class.kpi-neutral]="!topPair || topPair.synergy_pct <= 5" *ngIf="topPair">
+        <div class="kpi-icon"><i class="fas fa-fire"></i></div>
+        <div class="kpi-value">+{{ topPair.synergy_pct | number:'1.1-1' }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Bästa kemi: {{ topPair.name_a }} + {{ topPair.name_b }}</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-value">{{ avgSynergy > 0 ? '+' : '' }}{{ avgSynergy | number:'1.1-1' }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Snittsynergi alla par</div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="pairs.length === 0" class="empty-state">
+      <i class="fas fa-users-slash fa-2x mb-3 text-muted"></i>
+      <p class="text-muted">Inte tillräckligt med gemensamma skift för att beräkna kemi.<br>Välj längre period.</p>
+    </div>
+
+    <!-- VIEW: Pairs ranking -->
+    <div *ngIf="view === 'pairs' && pairs.length > 0">
+      <div class="content-card">
+        <div class="section-header mb-3">
+          <span class="section-title">Parranking — IBC/h ihop vs individuellt snitt</span>
+          <span class="pair-count text-muted ms-2">{{ totalPairs }} par</span>
+        </div>
+
+        <div class="pair-list">
+          <div
+            class="pair-row"
+            *ngFor="let p of visiblePairs; trackBy: trackByPair; let i = index">
+
+            <div class="pair-rank">{{ i + 1 }}</div>
+
+            <div class="pair-names">
+              <a class="op-link" [routerLink]="['/rebotling/operator', p.op_a]">{{ p.name_a }}</a>
+              <span class="pair-plus">+</span>
+              <a class="op-link" [routerLink]="['/rebotling/operator', p.op_b]">{{ p.name_b }}</a>
+              <span class="pair-shifts text-muted ms-2">({{ p.together_shifts }} skift)</span>
+            </div>
+
+            <div class="pair-bars">
+              <!-- Together bar -->
+              <div class="bar-row">
+                <span class="bar-label">Ihop</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-together"
+                    [style.width.%]="barWidth(p.together_ibc_h, Math.max(p.together_ibc_h, p.avg_baseline) * 1.1)">
+                  </div>
+                  <span class="bar-val">{{ p.together_ibc_h | number:'1.1-1' }} IBC/h</span>
+                </div>
+              </div>
+              <!-- Baseline bar -->
+              <div class="bar-row">
+                <span class="bar-label">Snitt</span>
+                <div class="bar-track">
+                  <div class="bar-fill bar-baseline"
+                    [style.width.%]="barWidth(p.avg_baseline, Math.max(p.together_ibc_h, p.avg_baseline) * 1.1)">
+                  </div>
+                  <span class="bar-val">{{ p.avg_baseline | number:'1.1-1' }} IBC/h</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pair-synergy">
+              <span class="syn-badge" [class]="synergyClass(p.synergy_pct)"
+                [style.background]="synergyColor(p.synergy_pct) + '22'"
+                [style.color]="synergyColor(p.synergy_pct)"
+                [style.borderColor]="synergyColor(p.synergy_pct)">
+                {{ p.synergy_pct > 0 ? '+' : '' }}{{ p.synergy_pct | number:'1.1-1' }}%
+              </span>
+              <div class="syn-label" [style.color]="synergyColor(p.synergy_pct)">
+                {{ synergyLabel(p.synergy_pct) }}
+              </div>
+              <div class="syn-delta text-muted">
+                {{ p.synergy > 0 ? '+' : '' }}{{ p.synergy | number:'1.1-1' }} IBC/h
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!showAll && pairs.length > 15" class="show-more-row">
+          <button class="btn btn-sm btn-outline-secondary" (click)="showAll = true">
+            Visa alla {{ totalPairs }} par
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Per operator -->
+    <div *ngIf="view === 'operators' && operators.length > 0">
+      <div class="content-card">
+        <div class="section-header mb-3">
+          <span class="section-title">Bästa partner per operatör</span>
+        </div>
+
+        <div class="op-partner-grid">
+          <div class="op-partner-card" *ngFor="let op of operators; trackBy: trackByOp">
+            <div class="op-partner-header">
+              <a class="op-name-link" [routerLink]="['/rebotling/operator', op.number]">{{ op.name }}</a>
+              <span class="op-shifts text-muted">{{ op.total_shifts }} skift · {{ op.avg_ibc_h | number:'1.1-1' }} IBC/h snitt</span>
+            </div>
+
+            <div class="op-partner-body" *ngIf="op.best_partner">
+              <div class="best-partner-label">Bäst ihop med:</div>
+              <div class="best-partner-name">
+                <i class="fas fa-heart me-1" style="color:#fc8181; font-size:0.8rem;"></i>
+                <a class="op-link" [routerLink]="['/rebotling/operator', op.best_partner.partner_num]">
+                  {{ op.best_partner.partner_name }}
+                </a>
+              </div>
+              <div class="best-partner-stats">
+                <span class="syn-chip"
+                  [style.color]="synergyColor(op.best_partner.synergy_pct)"
+                  [style.background]="synergyColor(op.best_partner.synergy_pct) + '22'">
+                  {{ op.best_partner.synergy_pct > 0 ? '+' : '' }}{{ op.best_partner.synergy_pct | number:'1.1-1' }}%
+                </span>
+                <span class="text-muted together-info">
+                  {{ op.best_partner.together_ibc_h | number:'1.1-1' }} IBC/h ihop
+                  ({{ op.best_partner.together_shifts }} skift)
+                </span>
+              </div>
+            </div>
+            <div class="op-partner-body text-muted" *ngIf="!op.best_partner">
+              <i class="fas fa-question-circle me-1"></i>Ej tillräckligt med gemensamma skift.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Methodology note -->
+    <p class="method-note mt-4 text-muted">
+      <i class="fas fa-info-circle me-1"></i>
+      Synergiprocent = (IBC/h ihop − medel av operatörernas individuella snitt) ÷ medel. Kräver minst 3 gemensamma skift per par.
+    </p>
+
+  </ng-container>
+</div>
