@@ -268,6 +268,8 @@ class RebotlingController {
                 $this->getSkiftTopplista();
             } elseif ($action === 'produktion-heatmap') {
                 $this->getProduktionHeatmap();
+            } elseif ($action === 'operator-skifttyp') {
+                $this->getOperatorSkifttyp();
             } else {
                 $this->getLiveStats();
             }
@@ -7183,6 +7185,219 @@ class RebotlingController {
             error_log('RebotlingController::getProduktionHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsheatmap'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ── Skifttyp-analys per operatör ─────────────────────────────────────────
+    // GET ?action=rebotling&run=operator-skifttyp[&days=90]
+    // Returns per-operator IBC/h broken down by dag/kvall/natt shift type.
+    // Uses SUM/SUM on unique shifts (GROUP BY skiftraknare) per position.
+    private function getOperatorSkifttyp(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(14, min(365, (int)$_GET['days'])) : 90;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Active operator names keyed by number
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            if (empty($opMap)) {
+                echo json_encode([
+                    'success' => true, 'days' => $days,
+                    'from' => $from, 'to' => $to,
+                    'operators' => [], 'team_by_skifttyp' => [],
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Aggregate per-operator per-shift-type, deduplicating by skiftraknare within each position.
+            // ibc_ok is shared across all 3 positions in a shift — each operator gets credit for the full shift output.
+            $sql = "
+                SELECT
+                    op_num,
+                    skift_typ,
+                    SUM(ibc_ok)                                     AS tot_ibc,
+                    SUM(drifttid_min)                               AS tot_min,
+                    SUM(ibc_ok) / NULLIF(SUM(drifttid_min) / 60.0, 0) AS ibc_per_h,
+                    COUNT(*)                                        AS antal_skift
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END AS skift_typ,
+                           MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
+                           MAX(COALESCE(drifttid, 0))  AS drifttid_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare,
+                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                  ELSE 'natt' END
+
+                    UNION ALL
+
+                    SELECT op2, skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END,
+                           MAX(COALESCE(ibc_ok, 0)), MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare,
+                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                  ELSE 'natt' END
+
+                    UNION ALL
+
+                    SELECT op3, skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END,
+                           MAX(COALESCE(ibc_ok, 0)), MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare,
+                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                  ELSE 'natt' END
+                ) u
+                WHERE op_num IS NOT NULL
+                GROUP BY op_num, skift_typ
+                HAVING antal_skift >= 2
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Structure: [op_num => [skift_typ => {ibc_per_h, antal_skift, tot_ibc, tot_min}]]
+            $byOp = [];
+            foreach ($rows as $r) {
+                $num = (int)$r['op_num'];
+                if (!isset($opMap[$num])) continue;
+                if (!isset($byOp[$num])) $byOp[$num] = [];
+                $byOp[$num][$r['skift_typ']] = [
+                    'ibc_per_h'  => $r['ibc_per_h'] !== null ? round((float)$r['ibc_per_h'], 2) : 0.0,
+                    'antal_skift'=> (int)$r['antal_skift'],
+                    'tot_ibc'    => (int)$r['tot_ibc'],
+                    'tot_min'    => (int)$r['tot_min'],
+                ];
+            }
+
+            // Build operator array with overall IBC/h and per-type breakdown
+            $operators = [];
+            $skifttyper = ['dag', 'kvall', 'natt'];
+            foreach ($byOp as $num => $typer) {
+                // Overall: SUM across all shift types
+                $totIbc = array_sum(array_column($typer, 'tot_ibc'));
+                $totMin = array_sum(array_column($typer, 'tot_min'));
+                $overallIbcH = $totMin > 0 ? round($totIbc / ($totMin / 60.0), 2) : 0.0;
+
+                // Per-type enriched with vs_overall
+                $enriched = [];
+                $bestTyp = null;
+                $bestDelta = null;
+                foreach ($skifttyper as $typ) {
+                    if (!isset($typer[$typ])) {
+                        $enriched[$typ] = null;
+                        continue;
+                    }
+                    $d = $typer[$typ];
+                    $vsOverall = $overallIbcH > 0
+                        ? round($d['ibc_per_h'] - $overallIbcH, 2)
+                        : 0.0;
+                    $enriched[$typ] = [
+                        'ibc_per_h'   => $d['ibc_per_h'],
+                        'antal_skift' => $d['antal_skift'],
+                        'vs_overall'  => $vsOverall,
+                    ];
+                    if ($bestDelta === null || $vsOverall > $bestDelta) {
+                        $bestDelta = $vsOverall;
+                        $bestTyp   = $typ;
+                    }
+                }
+
+                $operators[] = [
+                    'number'       => $num,
+                    'name'         => $opMap[$num],
+                    'overall_ibc_h'=> $overallIbcH,
+                    'best_skifttyp'=> $bestTyp,
+                    'skifttyper'   => $enriched,
+                ];
+            }
+
+            // Sort by name
+            usort($operators, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            // Team-level: per shift type across all operators (deduplicated shifts)
+            $teamSql = "
+                SELECT
+                    skift_typ,
+                    SUM(ibc_ok) / NULLIF(SUM(drifttid_min) / 60.0, 0) AS ibc_per_h,
+                    COUNT(DISTINCT skiftraknare) AS antal_skift
+                FROM (
+                    SELECT skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END AS skift_typ,
+                           MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                           MAX(COALESCE(drifttid, 0)) AS drifttid_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from4 AND :to4
+                      AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare,
+                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                  ELSE 'natt' END
+                ) u
+                GROUP BY skift_typ
+            ";
+            $tStmt = $pdo->prepare($teamSql);
+            $tStmt->execute([':from4' => $from, ':to4' => $to]);
+            $teamRows = $tStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $teamBySkifttyp = [];
+            foreach ($teamRows as $r) {
+                $teamBySkifttyp[$r['skift_typ']] = [
+                    'ibc_per_h'  => $r['ibc_per_h'] !== null ? round((float)$r['ibc_per_h'], 2) : 0.0,
+                    'antal_skift'=> (int)$r['antal_skift'],
+                ];
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'days'             => $days,
+                'from'             => $from,
+                'to'               => $to,
+                'operators'        => $operators,
+                'team_by_skifttyp' => $teamBySkifttyp,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorSkifttyp: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttyp-analys'], JSON_UNESCAPED_UNICODE);
         }
     }
 

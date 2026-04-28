@@ -1,0 +1,195 @@
+<div class="skifttyp-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <h2 class="page-title">
+      <i class="fas fa-sun me-2" style="color:#f6ad55;"></i>
+      Skifttyp-analys per operatör
+    </h2>
+    <p class="page-sub">
+      IBC/h uppdelat på dag-, kväll- och nattskift — identifiera vilken skifttyp varje operatör presterar bäst i
+    </p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="controls-bar mb-4">
+    <div class="period-group">
+      <span class="ctrl-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="setDays(30)">30 dagar</button>
+        <button class="btn" [class.btn-primary]="days===60"  [class.btn-outline-secondary]="days!==60"  (click)="setDays(60)">60 dagar</button>
+        <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+        <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+      </div>
+    </div>
+    <div class="sort-group">
+      <span class="ctrl-label">Sortera:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="sortBy==='name'"    [class.btn-outline-secondary]="sortBy!=='name'"    (click)="setSort('name')">Namn</button>
+        <button class="btn" [class.btn-primary]="sortBy==='overall'" [class.btn-outline-secondary]="sortBy!=='overall'" (click)="setSort('overall')">Totalt</button>
+        <button class="btn" [class.btn-primary]="sortBy==='dag'"     [class.btn-outline-secondary]="sortBy!=='dag'"     (click)="setSort('dag')">Dag</button>
+        <button class="btn" [class.btn-primary]="sortBy==='kvall'"   [class.btn-outline-secondary]="sortBy!=='kvall'"   (click)="setSort('kvall')">Kväll</button>
+        <button class="btn" [class.btn-primary]="sortBy==='natt'"    [class.btn-outline-secondary]="sortBy!=='natt'"    (click)="setSort('natt')">Natt</button>
+      </div>
+    </div>
+    <span class="date-range" *ngIf="from">{{ from }} – {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-warning" role="status"></div>
+    <span class="ms-2 text-muted">Analyserar skiftdata…</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- Team summary row -->
+  <div *ngIf="!loading && operators.length" class="team-summary mb-4">
+    <div class="team-card">
+      <div class="team-label"><i class="fas fa-sun me-1"></i> Lag Dagskift</div>
+      <div class="team-ibc">{{ teamIbcH('dag') }} <small>IBC/h</small></div>
+      <div class="team-sub">{{ teamSkifts('dag') }} skift</div>
+    </div>
+    <div class="team-card">
+      <div class="team-label"><i class="fas fa-cloud-moon me-1"></i> Lag Kvällsskift</div>
+      <div class="team-ibc">{{ teamIbcH('kvall') }} <small>IBC/h</small></div>
+      <div class="team-sub">{{ teamSkifts('kvall') }} skift</div>
+    </div>
+    <div class="team-card">
+      <div class="team-label"><i class="fas fa-moon me-1"></i> Lag Nattskift</div>
+      <div class="team-ibc">{{ teamIbcH('natt') }} <small>IBC/h</small></div>
+      <div class="team-sub">{{ teamSkifts('natt') }} skift</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div *ngIf="!loading && operators.length" class="legend-row mb-3">
+    <span class="legend-chip chip-great">≥ +1.5 IBC/h</span>
+    <span class="legend-chip chip-good">0 – +1.5</span>
+    <span class="legend-chip chip-weak">-1.5 – 0</span>
+    <span class="legend-chip chip-bad">< -1.5 IBC/h</span>
+    <span class="legend-text">vs operatörens eget snitt</span>
+  </div>
+
+  <!-- Operator cards -->
+  <div *ngIf="!loading && sorted.length" class="op-grid">
+    <div *ngFor="let op of sorted" class="op-card">
+
+      <!-- Card header -->
+      <div class="op-card-header">
+        <div class="op-name-wrap">
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-name">{{ op.name }}</a>
+          <span class="overall-badge">{{ op.overall_ibc_h | number:'1.1-1' }} IBC/h totalt</span>
+        </div>
+        <span class="best-badge" *ngIf="op.best_skifttyp">
+          Bäst: {{ bestLabel(op.best_skifttyp) }}
+        </span>
+      </div>
+
+      <!-- Shift type bars -->
+      <div class="shift-bars">
+        <ng-container *ngFor="let typ of ['dag', 'kvall', 'natt']">
+          <div class="shift-row" *ngIf="skifttypOf(op, typ) as st; else noData">
+            <div class="shift-label">{{ skiftShort[typ] }}</div>
+            <div class="bar-track">
+              <div
+                class="bar-fill"
+                [style.width.%]="barWidth(st.ibc_per_h)"
+                [style.background]="vsColor(st.vs_overall)">
+              </div>
+            </div>
+            <div class="shift-val">
+              <span class="ibc-num">{{ st.ibc_per_h | number:'1.1-1' }}</span>
+              <span class="ibc-unit"> IBC/h</span>
+              <span class="vs-span"
+                    [class.vs-pos]="st.vs_overall >= 0"
+                    [class.vs-neg]="st.vs_overall < 0">
+                {{ st.vs_overall >= 0 ? '+' : '' }}{{ st.vs_overall | number:'1.1-1' }}
+              </span>
+            </div>
+            <div class="skift-count">{{ st.antal_skift }} skift</div>
+          </div>
+          <ng-template #noData>
+            <div class="shift-row shift-row-empty">
+              <div class="shift-label">{{ skiftShort[typ] }}</div>
+              <span class="no-data">Ej tillräcklig data</span>
+            </div>
+          </ng-template>
+        </ng-container>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && !operators.length" class="empty-state">
+    <i class="fas fa-moon fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen skiftdata hittad för vald period.</p>
+  </div>
+
+  <!-- Table view for dense comparison -->
+  <div *ngIf="!loading && sorted.length" class="content-card mt-4">
+    <div class="section-title mb-3">Tabellöversikt</div>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover skift-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th class="text-center">Totalt IBC/h</th>
+            <th class="text-center">
+              <i class="fas fa-sun me-1 text-warning"></i>Dag (06–14)
+            </th>
+            <th class="text-center">
+              <i class="fas fa-cloud-moon me-1" style="color:#a78bfa;"></i>Kväll (14–22)
+            </th>
+            <th class="text-center">
+              <i class="fas fa-moon me-1 text-info"></i>Natt (22–06)
+            </th>
+            <th class="text-center">Bäst på</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of sorted">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td class="text-center fw-bold">{{ op.overall_ibc_h | number:'1.1-1' }}</td>
+            <ng-container *ngFor="let typ of ['dag', 'kvall', 'natt']">
+              <td class="text-center">
+                <ng-container *ngIf="skifttypOf(op, typ) as st; else dash">
+                  <span class="tbl-ibc"
+                        [style.background]="vsColor(st.vs_overall) + '33'"
+                        [style.border-color]="vsColor(st.vs_overall)"
+                        [style.color]="vsColor(st.vs_overall)">
+                    {{ st.ibc_per_h | number:'1.1-1' }}
+                  </span>
+                  <br>
+                  <small class="text-muted">{{ st.antal_skift }} skift</small>
+                </ng-container>
+                <ng-template #dash><span class="text-muted">—</span></ng-template>
+              </td>
+            </ng-container>
+            <td class="text-center">
+              <span *ngIf="op.best_skifttyp" class="best-pill">{{ bestLabel(op.best_skifttyp) }}</span>
+              <span *ngIf="!op.best_skifttyp" class="text-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="team-row">
+            <td><strong>Lagsnitt</strong></td>
+            <td class="text-center">—</td>
+            <td class="text-center">{{ teamIbcH('dag') }}</td>
+            <td class="text-center">{{ teamIbcH('kvall') }}</td>
+            <td class="text-center">{{ teamIbcH('natt') }}</td>
+            <td class="text-center">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <p *ngIf="!loading && operators.length" class="footer-note mt-3">
+    Skifttyp baseras på starttid (HOUR(datum)). Operatörer med &lt; 2 skift per typ visas som "Ej tillräcklig data".
+  </p>
+
+</div>
