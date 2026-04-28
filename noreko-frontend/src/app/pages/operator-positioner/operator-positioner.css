@@ -1,0 +1,63 @@
+.op-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #4a5568;
+  height: 100%;
+}
+
+.typ-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.pos-row {
+  margin-bottom: 14px;
+}
+
+.index-val {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+}
+
+.bar-track {
+  background: #1a202c;
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: #4a5568;
+}
+
+.bar-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.bar-right {
+  border-radius: 0 4px 4px 0;
+}
+
+.bar-left {
+  border-radius: 4px 0 0 4px;
+}
+
+.card-footer-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #4a5568;
+}

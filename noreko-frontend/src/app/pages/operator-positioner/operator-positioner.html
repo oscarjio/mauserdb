@@ -1,0 +1,195 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-map-pin me-2" style="color:#f6ad55;"></i>Positionsindex
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      Vilken position passar varje operatör bäst — IBC/h jämfört med deras eget totala snitt
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:140px;">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+      </select>
+    </div>
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Sortera på</label>
+      <select [(ngModel)]="sortBy" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:180px;">
+        <option value="spread">Specialiseringsgrad</option>
+        <option value="overall">Totalt IBC/h</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#63b3ed;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p style="color:#a0aec0;margin-top:12px;">Hämtar positionsdata...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <!-- Content -->
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- KPI Summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#f6ad55;">{{ specialists }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Specialister</div>
+          <div style="color:#718096;font-size:11px;">spread ≥15%</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#68d391;">{{ allroundare }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Allroundare</div>
+          <div style="color:#718096;font-size:11px;">spread &lt;15%</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#e2e8f0;">{{ operators.length }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Totalt</div>
+          <div style="color:#718096;font-size:11px;">≥3 skift totalt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;border:1px solid #4a5568;">
+          <div style="color:#a0aec0;font-size:12px;font-weight:600;margin-bottom:6px;">
+            <i class="fas fa-info-circle me-1" style="color:#63b3ed;"></i>Tolkning
+          </div>
+          <div style="color:#718096;font-size:11px;line-height:1.5;">
+            <span style="color:#68d391;">+%</span> = bättre än eget snitt vid den positionen<br>
+            <span style="color:#fc8181;">−%</span> = sämre än eget snitt<br>
+            Spread = max − min position
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Position tabs -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button (click)="activeTab='alla'" class="btn btn-sm"
+              [style.background]="activeTab==='alla' ? '#63b3ed' : '#2d3748'"
+              [style.color]="activeTab==='alla' ? '#1a202c' : '#e2e8f0'"
+              style="border:1px solid #4a5568;font-weight:600;">
+        <i class="fas fa-list me-1"></i>Alla ({{ operators.length }})
+      </button>
+      <button (click)="activeTab='op1'" class="btn btn-sm"
+              [style.background]="activeTab==='op1' ? '#63b3ed' : '#2d3748'"
+              [style.color]="activeTab==='op1' ? '#1a202c' : '#e2e8f0'"
+              style="border:1px solid #4a5568;">
+        Tvättplats ({{ posTabCount('op1') }})
+      </button>
+      <button (click)="activeTab='op2'" class="btn btn-sm"
+              [style.background]="activeTab==='op2' ? '#63b3ed' : '#2d3748'"
+              [style.color]="activeTab==='op2' ? '#1a202c' : '#e2e8f0'"
+              style="border:1px solid #4a5568;">
+        Kontrollstation ({{ posTabCount('op2') }})
+      </button>
+      <button (click)="activeTab='op3'" class="btn btn-sm"
+              [style.background]="activeTab==='op3' ? '#63b3ed' : '#2d3748'"
+              [style.color]="activeTab==='op3' ? '#1a202c' : '#e2e8f0'"
+              style="border:1px solid #4a5568;">
+        Truckförare ({{ posTabCount('op3') }})
+      </button>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="row g-3">
+      <div class="col-12 col-lg-6" *ngFor="let op of filteredOperators">
+        <div class="op-card">
+
+          <!-- Card header -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <a [routerLink]="['/rebotling/operator', op.number]"
+                 style="color:#e2e8f0;font-weight:700;font-size:1.05rem;text-decoration:none;">
+                {{ op.name }}
+              </a>
+              <div style="color:#a0aec0;font-size:12px;margin-top:2px;">
+                {{ op.antal_skift }} skift&nbsp;·&nbsp;{{ op.overall_ibch | number:'1.1-1' }} IBC/h totalt
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-1">
+              <span class="typ-badge" [style.color]="typColor(op.typ)">
+                {{ op.typ }}
+              </span>
+              <span style="color:#718096;font-size:11px;" *ngIf="op.spread > 0">
+                spread {{ op.spread }}%
+              </span>
+            </div>
+          </div>
+
+          <!-- Position bars -->
+          <div *ngFor="let pos of op.positions" class="pos-row">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span style="color:#a0aec0;font-size:12px;min-width:120px;">{{ pos.label }}</span>
+              <div class="d-flex gap-2 align-items-center">
+                <span style="color:#718096;font-size:11px;">{{ pos.skift }} skift · {{ pos.ibch | number:'1.1-1' }} IBC/h</span>
+                <span class="index-val" [style.color]="indexColor(pos.index)">
+                  {{ pos.index >= 0 ? '+' : '' }}{{ pos.index }}%
+                </span>
+              </div>
+            </div>
+            <!-- Diverging bar centered at 0 -->
+            <div class="bar-track">
+              <div class="bar-center"></div>
+              <div *ngIf="pos.index >= 0" class="bar-fill bar-right"
+                   [style.left.%]="50"
+                   [style.width.%]="Math.min(50, pos.index)"
+                   [style.background]="indexColor(pos.index)">
+              </div>
+              <div *ngIf="pos.index < 0" class="bar-fill bar-left"
+                   [style.left.%]="Math.max(0, 50 + pos.index)"
+                   [style.width.%]="Math.min(50, -pos.index)"
+                   [style.background]="indexColor(pos.index)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer: favorite position -->
+          <div *ngIf="op.positions.length >= 2" class="card-footer-row">
+            <span style="color:#718096;font-size:12px;">Starkaste position: </span>
+            <span style="color:#68d391;font-size:12px;font-weight:600;">{{ op.favoritPos }}</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-chart-bar" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen data för vald period.</p>
+  </div>
+
+</div>

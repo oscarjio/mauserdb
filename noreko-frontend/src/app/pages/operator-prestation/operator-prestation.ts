@@ -38,6 +38,7 @@ export class OperatorPrestationPage {
         { title: 'Operatörsaktivitet', desc: 'Närvaro och aktivitetstrender', route: '/rebotling/operator-aktivitet', icon: 'fas fa-user-clock', color: '#63b3ed' },
         { title: 'Inlärningskurva', desc: 'Prestanda över tid för nya', route: '/rebotling/operator-inlarning', icon: 'fas fa-graduation-cap', color: '#63b3ed' },
         { title: 'Prestandavarning', desc: 'Flaggar operatörer med trend ned', route: '/rebotling/operator-varning', icon: 'fas fa-exclamation-triangle', color: '#fc8181' },
+        { title: 'Positionsindex', desc: 'Bästa position per operatör vs eget snitt', route: '/rebotling/operator-positioner', icon: 'fas fa-map-pin', color: '#f6ad55' },
       ]
     },
     {
@@ -47,6 +48,8 @@ export class OperatorPrestationPage {
         { title: 'Kvartalsutvärdering', desc: 'Tier + bonusnivå per kvartal', route: '/rebotling/operator-kvartal', icon: 'fas fa-award', color: '#68d391' },
         { title: 'Produktanalys', desc: 'IBC/h per produkt per operatör', route: '/rebotling/operator-produkt', icon: 'fas fa-box', color: '#63b3ed' },
         { title: 'Stopptidsanalys', desc: 'Stopptid kopplad till operatör', route: '/rebotling/operator-stopptid', icon: 'fas fa-stop-circle', color: '#fc8181' },
+        { title: 'Kassationsanalys', desc: 'Kassationsgrad per operatör', route: '/rebotling/operator-kassation', icon: 'fas fa-trash-alt', color: '#fc8181' },
+        { title: 'IBC-förlustkalkyl', desc: 'IBC vunnet/förlorat vs lagsnitt', route: '/rebotling/ibc-forlust', icon: 'fas fa-tint-slash', color: '#fc8181' },
       ]
     },
     {
