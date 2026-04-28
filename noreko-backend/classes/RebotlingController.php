@@ -7256,8 +7256,8 @@ class RebotlingController {
                 FROM (
                     SELECT op1 AS op_num, skiftraknare,
                            CASE
-                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
-                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                               WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
                                ELSE 'natt'
                            END AS skift_typ,
                            MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
@@ -7265,44 +7265,35 @@ class RebotlingController {
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from1 AND :to1
                       AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY op1, skiftraknare,
-                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                                  ELSE 'natt' END
+                    GROUP BY op1, skiftraknare
 
                     UNION ALL
 
                     SELECT op2, skiftraknare,
                            CASE
-                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
-                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                               WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
                                ELSE 'natt'
                            END,
                            MAX(COALESCE(ibc_ok, 0)), MAX(COALESCE(drifttid, 0))
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from2 AND :to2
                       AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY op2, skiftraknare,
-                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                                  ELSE 'natt' END
+                    GROUP BY op2, skiftraknare
 
                     UNION ALL
 
                     SELECT op3, skiftraknare,
                            CASE
-                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
-                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                               WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
                                ELSE 'natt'
                            END,
                            MAX(COALESCE(ibc_ok, 0)), MAX(COALESCE(drifttid, 0))
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from3 AND :to3
                       AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY op3, skiftraknare,
-                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                                  ELSE 'natt' END
+                    GROUP BY op3, skiftraknare
                 ) u
                 WHERE op_num IS NOT NULL
                 GROUP BY op_num, skift_typ
@@ -7385,8 +7376,8 @@ class RebotlingController {
                 FROM (
                     SELECT skiftraknare,
                            CASE
-                               WHEN HOUR(datum) >=  6 AND HOUR(datum) < 14 THEN 'dag'
-                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                               WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
                                ELSE 'natt'
                            END AS skift_typ,
                            MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
@@ -7394,10 +7385,7 @@ class RebotlingController {
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from4 AND :to4
                       AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY skiftraknare,
-                             CASE WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                                  WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                                  ELSE 'natt' END
+                    GROUP BY skiftraknare
                 ) u
                 GROUP BY skift_typ
             ";
