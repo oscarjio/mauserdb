@@ -1,0 +1,155 @@
+<div class="vt-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <h2 class="page-title">
+      <i class="fas fa-crown me-2" style="color:#f6c90e;"></i>
+      Veckans Topplista
+    </h2>
+    <p class="page-sub">
+      Vem vann varje vecka? De senaste {{ weeks }} veckornas topprankade operatörer.
+    </p>
+  </div>
+
+  <!-- Week selector -->
+  <div class="period-bar mb-4">
+    <span class="period-label">Veckor:</span>
+    <div class="btn-group btn-group-sm">
+      <button
+        *ngFor="let w of WEEKS_OPTIONS"
+        class="btn"
+        [class.btn-primary]="weeks === w"
+        [class.btn-outline-secondary]="weeks !== w"
+        (click)="setWeeks(w)">
+        {{ w }}v
+      </button>
+    </div>
+    <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-warning" role="status"></div>
+    <span class="ms-3 text-muted">Beräknar veckovinnare…</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && weekResults.length">
+
+    <!-- KPI row -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card kpi-gold">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-value">{{ topWinner?.name ?? '–' }}</div>
+        <div class="kpi-label">Flest veckovinster</div>
+        <div class="kpi-sub">{{ topWinner?.wins ?? 0 }} vinst(er)</div>
+      </div>
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="fas fa-calendar-week"></i></div>
+        <div class="kpi-value">{{ totalWeeks }}</div>
+        <div class="kpi-label">Veckor analyserade</div>
+        <div class="kpi-sub">{{ from }} → {{ to }}</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-value">{{ uniqueWinners }}</div>
+        <div class="kpi-label">Unika veckovinnare</div>
+        <div class="kpi-sub">av {{ opOverall.length }} operatörer</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-value">{{ overallTeamIbch | number:'1.1-1' }}</div>
+        <div class="kpi-label">Periodsnitt IBC/h</div>
+        <div class="kpi-sub">lagets genomsnitt</div>
+      </div>
+    </div>
+
+    <!-- Two-column layout: weekly results + hall of fame -->
+    <div class="main-grid">
+
+      <!-- Weekly results -->
+      <div class="weekly-col">
+        <div class="section-title mb-3">
+          <i class="fas fa-list-ol me-2"></i>Veckovis vinnare
+        </div>
+
+        <div class="week-card" *ngFor="let wr of weekResults">
+          <div class="week-header">
+            <span class="week-label">{{ wr.week_label }}</span>
+            <span class="team-avg">Lag: {{ wr.team_ibc_h | number:'1.1-1' }} IBC/h</span>
+          </div>
+
+          <!-- Winner row -->
+          <div class="winner-row">
+            <span class="medal gold-medal"><i class="fas fa-crown"></i></span>
+            <a [routerLink]="['/rebotling/operator', wr.winner.number]" class="winner-name">
+              {{ wr.winner.name }}
+            </a>
+            <span class="winner-ibc">{{ wr.winner.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+            <span class="vs-pill"
+              [style.background]="vsColor(wr.winner.vs_team)"
+              [style.color]="'#1a202c'">
+              {{ wr.winner.vs_team > 0 ? '+' : '' }}{{ wr.winner.vs_team | number:'1.0-0' }}%
+            </span>
+          </div>
+
+          <!-- Runners-up -->
+          <div *ngFor="let ru of wr.runners_up; let i = index" class="runner-row">
+            <span class="runner-rank text-muted">{{ i === 0 ? '2.' : '3.' }}</span>
+            <a [routerLink]="['/rebotling/operator', ru.number]" class="runner-name text-muted">
+              {{ ru.name }}
+            </a>
+            <span class="runner-ibc text-muted">{{ ru.ibc_per_h | number:'1.1-1' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hall of fame + overall ranking -->
+      <div class="stats-col">
+
+        <!-- Hall of fame (wins leaderboard) -->
+        <div class="section-title mb-3">
+          <i class="fas fa-medal me-2"></i>Hall of Fame
+        </div>
+        <div class="hof-card mb-4">
+          <div class="hof-row" *ngFor="let wc of winCounts; let i = index">
+            <span class="hof-rank" [style.color]="medalColor(i)">
+              <i class="fas fa-medal"></i> {{ i + 1 }}.
+            </span>
+            <a [routerLink]="['/rebotling/operator', wc.number]" class="hof-name">{{ wc.name }}</a>
+            <div class="hof-bar-wrap">
+              <div class="hof-bar" [style.width.%]="winsBarWidth(wc.wins)"
+                   [style.background]="medalColor(i)"></div>
+            </div>
+            <span class="hof-wins">{{ wc.wins }}v</span>
+          </div>
+          <div *ngIf="!winCounts.length" class="text-muted text-center py-3">
+            Ingen data
+          </div>
+        </div>
+
+        <!-- Overall IBC/h ranking for period -->
+        <div class="section-title mb-3">
+          <i class="fas fa-chart-bar me-2"></i>Periodsnitt IBC/h
+        </div>
+        <div class="overall-card">
+          <div class="overall-row" *ngFor="let op of opOverall; let i = index">
+            <span class="overall-rank text-muted">{{ i + 1 }}.</span>
+            <a [routerLink]="['/rebotling/operator', op.number]" class="overall-name">{{ op.name }}</a>
+            <span class="overall-ibch">{{ op.ibc_per_h | number:'1.1-1' }}</span>
+            <span class="overall-unit">IBC/h</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && weekResults.length === 0" class="empty-state">
+    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen data hittad för vald period.</p>
+  </div>
+
+</div>

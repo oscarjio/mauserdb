@@ -1,0 +1,281 @@
+.vt-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.page-sub {
+  color: #a0aec0;
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.period-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.period-range {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-left: auto;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  padding: 3rem 0;
+  color: #a0aec0;
+}
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .kpi-row { grid-template-columns: 1fr; }
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-top: 3px solid transparent;
+}
+
+.kpi-gold  { border-color: #f6c90e; }
+.kpi-blue  { border-color: #63b3ed; }
+.kpi-green { border-color: #68d391; }
+.kpi-neutral { border-color: #a0aec0; }
+
+.kpi-icon { font-size: 1.1rem; color: #a0aec0; }
+.kpi-gold .kpi-icon  { color: #f6c90e; }
+.kpi-blue .kpi-icon  { color: #63b3ed; }
+.kpi-green .kpi-icon { color: #68d391; }
+
+.kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-label { font-size: 0.75rem; color: #a0aec0; }
+.kpi-sub   { font-size: 0.7rem; color: #718096; }
+
+/* Main grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Week cards */
+.week-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.week-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.team-avg {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.winner-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+
+.medal {
+  font-size: 0.85rem;
+  min-width: 1.2rem;
+}
+
+.gold-medal { color: #f6c90e; }
+
+.winner-name {
+  flex: 1;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.winner-name:hover { color: #63b3ed; }
+
+.winner-ibc {
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.vs-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.runner-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0 0.1rem 1.7rem;
+  font-size: 0.82rem;
+}
+
+.runner-rank { min-width: 1.2rem; }
+.runner-name { flex: 1; text-decoration: none; }
+.runner-name:hover { color: #63b3ed; }
+.runner-ibc { white-space: nowrap; }
+
+/* Hall of fame */
+.hof-card,
+.overall-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.hof-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #3d4a5c;
+}
+
+.hof-row:last-child { border-bottom: none; }
+
+.hof-rank {
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 2rem;
+}
+
+.hof-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  text-decoration: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hof-name:hover { color: #63b3ed; }
+
+.hof-bar-wrap {
+  width: 60px;
+  height: 6px;
+  background: #4a5568;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hof-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.hof-wins {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  min-width: 2rem;
+  text-align: right;
+}
+
+/* Overall ranking */
+.overall-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #3d4a5c;
+  font-size: 0.85rem;
+}
+
+.overall-row:last-child { border-bottom: none; }
+.overall-rank { min-width: 1.5rem; font-size: 0.78rem; }
+.overall-name {
+  flex: 1;
+  color: #e2e8f0;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overall-name:hover { color: #63b3ed; }
+.overall-ibch { font-weight: 700; color: #e2e8f0; }
+.overall-unit { font-size: 0.72rem; color: #718096; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 4rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

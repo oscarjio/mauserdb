@@ -280,6 +280,8 @@ class RebotlingController {
                 $this->getOperatorKonsistens();
             } elseif ($action === 'produkt-analys') {
                 $this->getProduktAnalys();
+            } elseif ($action === 'veckans-topplista') {
+                $this->getVeckansTopplista();
             } else {
                 $this->getLiveStats();
             }
@@ -8203,6 +8205,175 @@ class RebotlingController {
             error_log('RebotlingController::getProduktAnalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getVeckansTopplista(): void
+    {
+        try {
+            $weeks = isset($_GET['weeks']) ? max(4, min(26, (int)$_GET['weeks'])) : 12;
+
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$weeks} weeks Monday", strtotime('Monday this week')));
+
+            // Fetch operator names
+            $opRows  = $this->pdo->query("SELECT number, name FROM operators ORDER BY number")->fetchAll(\PDO::FETCH_ASSOC);
+            $opNames = [];
+            foreach ($opRows as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // One row per unique shift: use MAX to dedup PLC multi-rows
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    YEARWEEK(datum, 1)       AS yw,
+                    MIN(datum)               AS week_start,
+                    op1, op2, op3,
+                    MAX(ibc_ok)              AS ibc_ok,
+                    MAX(drifttid)            AS drifttid
+                FROM (
+                    SELECT
+                        datum,
+                        MAX(op1)      AS op1,
+                        MAX(op2)      AS op2,
+                        MAX(op3)      AS op3,
+                        MAX(ibc_ok)   AS ibc_ok,
+                        MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) AS deduped
+                GROUP BY YEARWEEK(datum, 1), op1, op2, op3
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Accumulate per-week per-operator: sum IBC and hours
+            $weekInfo  = [];  // yw => ['week_start' => ..., 'ops' => [opNum => ['ibc'=>sum,'min'=>sum]]]
+            $teamByWeek = []; // yw => ['ibc'=>sum,'min'=>sum]
+
+            foreach ($rows as $r) {
+                $yw  = $r['yw'];
+                $ibc = max(0, (int)$r['ibc_ok']);
+                $min = max(0, (int)$r['drifttid']);
+                if ($min <= 0 || $ibc <= 0) continue;
+
+                if (!isset($weekInfo[$yw])) {
+                    $weekInfo[$yw]   = ['yw' => $yw, 'week_start' => $r['week_start'], 'ops' => []];
+                    $teamByWeek[$yw] = ['ibc' => 0, 'min' => 0];
+                }
+
+                $teamByWeek[$yw]['ibc'] += $ibc;
+                $teamByWeek[$yw]['min'] += $min;
+
+                $seen = [];
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $n = (int)($r[$pos] ?? 0);
+                    if ($n <= 0 || !isset($opNames[$n]) || in_array($n, $seen, true)) continue;
+                    $seen[] = $n;
+                    if (!isset($weekInfo[$yw]['ops'][$n])) {
+                        $weekInfo[$yw]['ops'][$n] = ['ibc' => 0, 'min' => 0];
+                    }
+                    $weekInfo[$yw]['ops'][$n]['ibc'] += $ibc;
+                    $weekInfo[$yw]['ops'][$n]['min'] += $min;
+                }
+            }
+
+            // Build per-week result
+            $weekResults = [];
+            $winCounts   = [];
+            $allOpIbc    = [];  // opNum => ['ibc'=>sum,'min'=>sum] across all weeks
+            $totalIbc    = 0;
+            $totalMin    = 0;
+
+            foreach ($weekInfo as $yw => $wi) {
+                $teamIbc = $teamByWeek[$yw]['ibc'];
+                $teamMin = $teamByWeek[$yw]['min'];
+                $teamIbcH = $teamMin > 0 ? $teamIbc / ($teamMin / 60.0) : 0.0;
+
+                $totalIbc += $teamIbc;
+                $totalMin += $teamMin;
+
+                $opResults = [];
+                foreach ($wi['ops'] as $opNum => $agg) {
+                    if ($agg['min'] < 30) continue;
+                    $ibcH = $agg['ibc'] / ($agg['min'] / 60.0);
+                    $opResults[] = [
+                        'number'   => $opNum,
+                        'name'     => $opNames[$opNum],
+                        'ibc_ok'   => $agg['ibc'],
+                        'ibc_per_h' => round($ibcH, 1),
+                        'min'      => $agg['min'],
+                        'vs_team'  => $teamIbcH > 0 ? round(($ibcH / $teamIbcH - 1) * 100, 1) : 0.0,
+                    ];
+
+                    if (!isset($allOpIbc[$opNum])) $allOpIbc[$opNum] = ['ibc' => 0, 'min' => 0];
+                    $allOpIbc[$opNum]['ibc'] += $agg['ibc'];
+                    $allOpIbc[$opNum]['min'] += $agg['min'];
+                }
+
+                if (empty($opResults)) continue;
+
+                usort($opResults, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+                $winner = $opResults[0];
+
+                if (!isset($winCounts[$winner['number']])) {
+                    $winCounts[$winner['number']] = ['number' => $winner['number'], 'name' => $winner['name'], 'wins' => 0];
+                }
+                $winCounts[$winner['number']]['wins']++;
+
+                // ISO week number from YEARWEEK(...,1): last 2 digits
+                $isoWeek  = (int)substr((string)$yw, 4, 2);
+                $isoYear  = (int)substr((string)$yw, 0, 4);
+                $weekLabel = "v{$isoWeek} {$isoYear}";
+
+                $weekResults[] = [
+                    'yw'         => $yw,
+                    'week_label' => $weekLabel,
+                    'week_start' => $wi['week_start'],
+                    'winner'     => $winner,
+                    'runners_up' => array_slice($opResults, 1, 2),
+                    'team_ibc_h' => round($teamIbcH, 1),
+                    'team_ibc'   => $teamIbc,
+                ];
+            }
+
+            // Sort weeks newest first
+            usort($weekResults, fn($a, $b) => $b['yw'] <=> $a['yw']);
+
+            // Sort win-counts highest first
+            usort($winCounts, fn($a, $b) => $b['wins'] <=> $a['wins']);
+
+            // Overall per-operator IBC/h for the period
+            $opOverall = [];
+            foreach ($allOpIbc as $opNum => $agg) {
+                if ($agg['min'] < 30) continue;
+                $opOverall[] = [
+                    'number'    => $opNum,
+                    'name'      => $opNames[$opNum],
+                    'ibc_per_h' => round($agg['ibc'] / ($agg['min'] / 60.0), 1),
+                ];
+            }
+            usort($opOverall, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+            $overallTeamIbcH = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 1) : 0.0;
+
+            echo json_encode([
+                'success'          => true,
+                'weeks'            => $weeks,
+                'from'             => $from,
+                'to'               => $to,
+                'week_results'     => $weekResults,
+                'win_counts'       => array_values($winCounts),
+                'op_overall'       => $opOverall,
+                'overall_team_ibch' => $overallTeamIbcH,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getVeckansTopplista: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid veckans topplista'], \JSON_UNESCAPED_UNICODE);
         }
     }
 
