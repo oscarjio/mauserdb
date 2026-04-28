@@ -76,7 +76,7 @@ export class OperatorMatcherPage implements OnInit, OnDestroy {
     const url = `${environment.apiUrl}?action=rebotling&run=operator-matcher&days=${this.selectedDays}`;
     this.http.get<ApiResponse>(url, { withCredentials: true })
       .pipe(
-        timeout(10000),
+        timeout(15000),
         catchError(() => { this.error = 'Kunde inte hämta data'; return of(null); }),
         finalize(() => { this.loading = false; }),
         takeUntil(this.destroy$)
