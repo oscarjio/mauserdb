@@ -95,7 +95,7 @@ export class OperatorPositionerPage implements OnInit, OnDestroy {
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
     this.http.get<any>(
-      `${environment.apiUrl}?action=operator-scores&run=scores&from=${fmt(from)}&to=${fmt(to)}`
+      `${environment.apiUrl}?action=rebotling&run=operator-scores&from=${fmt(from)}&to=${fmt(to)}`
     )
       .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {

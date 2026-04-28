@@ -73,8 +73,13 @@
       <i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-diagram — Kassationsorsaker
       <small class="text-muted ms-2">(klicka på en stapel för drilldown)</small>
     </h5>
-    <div class="chart-wrapper">
+    <div class="chart-wrapper" *ngIf="paretoData.pareto.length > 0">
       <canvas id="paretoChart"></canvas>
+    </div>
+    <div *ngIf="paretoData.pareto.length === 0" class="text-center py-4 text-muted">
+      <i class="fas fa-check-circle fa-2x mb-2 d-block" style="opacity:.4;color:#68d391"></i>
+      Inga kassationsorsaker registrerade för perioden.
+      <div class="mt-1" style="font-size:.85rem">Registrera kassationsorsaker via Kassationsorsak-sidan.</div>
     </div>
   </div>
 

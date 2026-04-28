@@ -94,17 +94,17 @@
       <span>Pareto-diagram: Kassationsorsaker (80/20)</span>
       <span *ngIf="loadingOrsaker" role="status" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
     </div>
-    <div *ngIf="!loadingOrsaker && orsaker.length > 0" class="kas-chart-wrap">
+    <div *ngIf="!loadingOrsaker && orsakerTotal > 0" class="kas-chart-wrap">
       <canvas id="kasParetoChart"></canvas>
     </div>
-    <div *ngIf="!loadingOrsaker && orsaker.length === 0 && !errorOrsaker" class="kas-empty">
+    <div *ngIf="!loadingOrsaker && orsakerTotal === 0 && !errorOrsaker" class="kas-empty">
       <i class="fas fa-check-circle fa-2x mb-2" style="color:#48bb78;opacity:.5"></i>
       <p>Inga kassationsorsaker registrerade för perioden.</p>
     </div>
     <div *ngIf="errorOrsaker" class="kas-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsaksdata.</div>
 
     <!-- Orsaks-tabell under diagrammet -->
-    <div *ngIf="!loadingOrsaker && orsaker.length > 0" class="table-responsive mt-3">
+    <div *ngIf="!loadingOrsaker && orsakerTotal > 0" class="table-responsive mt-3">
       <table class="table table-sm kas-table mb-0">
         <thead>
           <tr>
