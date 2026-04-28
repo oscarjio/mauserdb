@@ -4575,28 +4575,34 @@ class RebotlingController {
             $prevShifts = $stmtPrev->fetchAll(\PDO::FETCH_ASSOC);
 
             // Process current month per operator
-            $opData = [];
+            // Track raw ibc/min per position for SUM/SUM aggregation (not AVG-of-ratios)
+            $opData    = [];
+            $posTeamRaw = ['op1'=>['ibc'=>0,'min'=>0],'op2'=>['ibc'=>0,'min'=>0],'op3'=>['ibc'=>0,'min'=>0]];
             foreach ($curShifts as $row) {
                 $num = (int)$row['op_nr'];
-                $h   = (int)$row['drifttid'] / 60.0;
-                $iph = $h > 0 ? (int)$row['ibc_ok'] / $h : 0;
+                $ibc = (int)$row['ibc_ok'];
+                $min = (int)$row['drifttid'];
+                $h   = $min / 60.0;
+                $iph = $h > 0 ? $ibc / $h : 0;
+                $pos = $row['pos'];
                 if (!isset($opData[$num])) {
-                    $opData[$num] = ['shifts' => [], 'positions' => ['op1'=>[],'op2'=>[],'op3'=>[]]];
+                    $opData[$num] = [
+                        'shifts'    => [],
+                        'positions' => ['op1'=>['ibc'=>0,'min'=>0,'count'=>0],'op2'=>['ibc'=>0,'min'=>0,'count'=>0],'op3'=>['ibc'=>0,'min'=>0,'count'=>0]],
+                    ];
                 }
-                $opData[$num]['shifts'][]              = ['iph' => $iph, 'ibc' => (int)$row['ibc_ok'], 'h' => $h];
-                $opData[$num]['positions'][$row['pos']][] = $iph;
+                $opData[$num]['shifts'][]              = ['iph' => $iph, 'ibc' => $ibc, 'h' => $h];
+                $opData[$num]['positions'][$pos]['ibc']   += $ibc;
+                $opData[$num]['positions'][$pos]['min']   += $min;
+                $opData[$num]['positions'][$pos]['count'] += 1;
+                $posTeamRaw[$pos]['ibc'] += $ibc;
+                $posTeamRaw[$pos]['min'] += $min;
             }
 
-            // Team averages per position (current month)
-            $posAllVals = ['op1'=>[],'op2'=>[],'op3'=>[]];
-            foreach ($opData as $d) {
-                foreach ($d['positions'] as $pos => $vals) {
-                    foreach ($vals as $v) { $posAllVals[$pos][] = $v; }
-                }
-            }
+            // Team averages per position (SUM/SUM — not AVG-of-ratios)
             $teamAvgByPos = [];
-            foreach ($posAllVals as $pos => $vals) {
-                $teamAvgByPos[$pos] = count($vals) > 0 ? round(array_sum($vals) / count($vals), 2) : null;
+            foreach ($posTeamRaw as $pos => $raw) {
+                $teamAvgByPos[$pos] = $raw['min'] > 0 ? round($raw['ibc'] / ($raw['min'] / 60.0), 2) : null;
             }
 
             // Process previous month (totals only)
@@ -4623,29 +4629,30 @@ class RebotlingController {
                 $bestShift  = count($allIph) > 0 ? round(max($allIph), 2) : null;
                 $worstShift = count($allIph) > 0 ? round(min($allIph), 2) : null;
 
-                // Per-position breakdown
+                // Per-position breakdown (SUM/SUM)
                 $posBreakdown = [];
                 $primaryPos   = null;
                 $maxPosShifts = 0;
-                foreach ($d['positions'] as $pos => $vals) {
-                    if (count($vals) > 0) {
+                foreach ($d['positions'] as $pos => $p) {
+                    if ($p['count'] > 0) {
                         $posBreakdown[$pos] = [
-                            'shifts'    => count($vals),
-                            'ibc_per_h' => round(array_sum($vals) / count($vals), 2),
+                            'shifts'    => $p['count'],
+                            'ibc_per_h' => $p['min'] > 0 ? round($p['ibc'] / ($p['min'] / 60.0), 2) : 0,
                         ];
-                        if (count($vals) > $maxPosShifts) {
-                            $maxPosShifts = count($vals);
+                        if ($p['count'] > $maxPosShifts) {
+                            $maxPosShifts = $p['count'];
                             $primaryPos   = $pos;
                         }
                     }
                 }
 
-                // vs team: weighted avg across positions
+                // vs team: SUM/SUM per position, weighted avg across positions
                 $vsVals = [];
-                foreach ($d['positions'] as $pos => $vals) {
+                foreach ($d['positions'] as $pos => $p) {
                     $ta = $teamAvgByPos[$pos] ?? null;
-                    if (count($vals) > 0 && $ta !== null && $ta > 0) {
-                        $vsVals[] = (array_sum($vals) / count($vals)) / $ta * 100;
+                    if ($p['count'] > 0 && $ta !== null && $ta > 0 && $p['min'] > 0) {
+                        $opPosH = $p['ibc'] / ($p['min'] / 60.0);
+                        $vsVals[] = $opPosH / $ta * 100;
                     }
                 }
                 $vsTeam = count($vsVals) > 0 ? round(array_sum($vsVals) / count($vsVals), 1) : null;
