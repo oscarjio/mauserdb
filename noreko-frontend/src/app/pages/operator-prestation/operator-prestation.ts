@@ -59,6 +59,7 @@ export class OperatorPrestationPage {
         { title: 'Skift-topplista', desc: 'Bästa och sämsta skift rankade', route: '/rebotling/skift-topplista', icon: 'fas fa-trophy', color: '#f6ad55' },
         { title: 'Rekord & Karriär', desc: 'Bästa skift, karriärtotaler, månadsrekord', route: '/rebotling/rekord-statistik', icon: 'fas fa-crown', color: '#f6c90e' },
         { title: 'Skiftlag-historik', desc: 'Vilka tremannalag har presterat bäst historiskt?', route: '/rebotling/skiftlag-historik', icon: 'fas fa-users', color: '#68d391' },
+        { title: 'Produktanalys', desc: 'Effektivitet och kassation per produkt', route: '/rebotling/produkt-analys', icon: 'fas fa-flask', color: '#a78bfa' },
       ]
     },
     {

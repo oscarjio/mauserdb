@@ -1,0 +1,193 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Produktanalys</h2>
+    <p class="page-sub">Effektivitet och kassation per produkt — vilka produkter är snabbast och enklast att tvätta?</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <span class="period-label">Period:</span>
+    <div class="btn-group btn-group-sm" role="group">
+      <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="setDays(30)">30 dagar</button>
+      <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+      <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+      <button class="btn" [class.btn-primary]="days===365" [class.btn-outline-secondary]="days!==365" (click)="setDays(365)">365 dagar</button>
+    </div>
+    <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Hämtar produktdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI cards -->
+  <div *ngIf="!loading && products.length" class="kpi-row">
+    <div class="kpi-card kpi-neutral">
+      <div class="kpi-icon"><i class="fas fa-box-open"></i></div>
+      <div class="kpi-value">{{ products.length }}</div>
+      <div class="kpi-label">Produkttyper analyserade</div>
+      <div class="kpi-badge"><span class="badge bg-secondary">{{ overallIbcH | number:'1.1-2' }} IBC/h snitt</span></div>
+    </div>
+
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="fas fa-rocket"></i></div>
+      <div class="kpi-value">{{ bestProduct?.ibc_per_h | number:'1.1-2' }}<span class="kpi-unit">IBC/h</span></div>
+      <div class="kpi-label">Snabbaste produkt</div>
+      <div class="kpi-badge"><span class="badge bg-success">{{ bestProduct?.name }}</span></div>
+    </div>
+
+    <div class="kpi-card kpi-yellow">
+      <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
+      <div class="kpi-value">{{ totalIbcOk | number }}</div>
+      <div class="kpi-label">Totalt godkända IBC</div>
+      <div class="kpi-badge"><span class="badge bg-warning text-dark">{{ totalIbcEj }} kasserade</span></div>
+    </div>
+
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="kpi-value">{{ worstKassProduct?.kassgrad | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-label">Högst kassationsgrad</div>
+      <div class="kpi-badge"><span class="badge bg-danger">{{ worstKassProduct?.name }}</span></div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div *ngIf="!loading && products.length" class="tab-bar mt-3">
+    <button class="tab-btn" [class.active]="activeTab==='tabell'" (click)="setTab('tabell')">
+      <i class="fas fa-table me-1"></i> Tabell & stapeldiagram
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='trend'" (click)="setTab('trend')">
+      <i class="fas fa-chart-line me-1"></i> Månadsvis trend
+    </button>
+  </div>
+
+  <!-- Tab: Tabell & bar chart -->
+  <div *ngIf="!loading && products.length && activeTab==='tabell'">
+
+    <!-- Horizontal bar chart -->
+    <div class="content-card mt-3">
+      <div class="section-title mb-3">IBC/h per produkt (faktisk vs förväntat)</div>
+      <div class="chart-wrap">
+        <canvas #barCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Inline bar chart (CSS bars) -->
+    <div class="content-card mt-3">
+      <div class="section-title mb-3">Ranking — IBC/h vs periodsnitt</div>
+      <div class="bar-list">
+        <div class="bar-row bar-row-avg">
+          <div class="bar-name text-muted">Periodsnitt</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-avg" [style.width.%]="barPct(overallIbcH)"></div>
+            <span class="bar-val">{{ overallIbcH | number:'1.1-2' }} IBC/h</span>
+          </div>
+        </div>
+        <div *ngFor="let p of sorted" class="bar-row">
+          <div class="bar-name">{{ p.name }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" [style.width.%]="barPct(p.ibc_per_h)" [style.background]="ibchColor(p.vs_avg_pct)"></div>
+            <ng-container *ngIf="p.expected_ibc_h && p.expected_ibc_h > 0">
+              <div class="bar-expected" [style.left.%]="barPct(p.expected_ibc_h)" title="Förväntat {{ p.expected_ibc_h }} IBC/h"></div>
+            </ng-container>
+            <span class="bar-val">{{ p.ibc_per_h | number:'1.1-2' }} IBC/h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed table -->
+    <div class="content-card mt-3">
+      <div class="section-title d-flex align-items-center gap-2 mb-3">
+        Detaljerad produktöversikt
+        <small class="text-muted fw-normal">(klicka kolumntitel för att sortera)</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover prod-table">
+          <thead>
+            <tr>
+              <th (click)="setSort('name')" class="sort-col">
+                Produkt <i class="fas fa-sort ms-1 text-muted"></i>
+              </th>
+              <th (click)="setSort('ibc_per_h')" class="sort-col text-center">
+                IBC/h <i class="fas fa-sort ms-1 text-muted"></i>
+              </th>
+              <th class="text-center">Förväntat</th>
+              <th class="text-center">Effektivitet</th>
+              <th (click)="setSort('kassgrad')" class="sort-col text-center">
+                Kassationsgrad <i class="fas fa-sort ms-1 text-muted"></i>
+              </th>
+              <th (click)="setSort('total_ibc_ok')" class="sort-col text-center">
+                Total IBC ok <i class="fas fa-sort ms-1 text-muted"></i>
+              </th>
+              <th class="text-center">IBC kasserade</th>
+              <th class="text-center">Bur ej ok</th>
+              <th class="text-center">Stopptid</th>
+              <th (click)="setSort('antal_skift')" class="sort-col text-center">
+                Skift <i class="fas fa-sort ms-1 text-muted"></i>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of sorted">
+              <td class="prod-name">{{ p.name }}</td>
+              <td class="text-center">
+                <span class="ibch-badge" [style.background]="ibchColor(p.vs_avg_pct)">
+                  {{ p.ibc_per_h | number:'1.1-2' }}
+                </span>
+                <div class="vs-text" [class]="vsClass(p.vs_avg_pct)">{{ vsLabel(p.vs_avg_pct) }}</div>
+              </td>
+              <td class="text-center text-muted">
+                <span *ngIf="p.expected_ibc_h">{{ p.expected_ibc_h | number:'1.1-2' }}</span>
+                <span *ngIf="!p.expected_ibc_h">—</span>
+              </td>
+              <td class="text-center">
+                <ng-container *ngIf="efficiencyPct(p) !== null">
+                  <span class="badge" [class.bg-success]="efficiencyPct(p)! >= 90"
+                        [class.bg-warning]="efficiencyPct(p)! >= 70 && efficiencyPct(p)! < 90"
+                        [class.text-dark]="efficiencyPct(p)! >= 70 && efficiencyPct(p)! < 90"
+                        [class.bg-danger]="efficiencyPct(p)! < 70">
+                    {{ efficiencyPct(p) }}%
+                  </span>
+                </ng-container>
+                <span *ngIf="efficiencyPct(p) === null" class="text-muted">—</span>
+              </td>
+              <td class="text-center">
+                <span class="kass-badge" [style.background]="kassgradColor(p.kassgrad)">
+                  {{ p.kassgrad | number:'1.1-2' }}%
+                </span>
+              </td>
+              <td class="text-center text-success">{{ p.total_ibc_ok | number }}</td>
+              <td class="text-center text-danger">{{ p.total_ibc_ej | number }}</td>
+              <td class="text-center text-warning">{{ p.total_bur_ej | number }}</td>
+              <td class="text-center">
+                <span *ngIf="stopptidPct(p) > 10" class="text-danger">{{ stopptidPct(p) }}%</span>
+                <span *ngIf="stopptidPct(p) <= 10" class="text-muted">{{ stopptidPct(p) }}%</span>
+              </td>
+              <td class="text-center text-muted">{{ p.antal_skift }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Trend -->
+  <div *ngIf="!loading && products.length && activeTab==='trend'">
+    <div class="content-card mt-3">
+      <div class="section-title mb-1">Månadsvis IBC/h per produkt (senaste 6 månader)</div>
+      <p class="text-muted small mb-3">Oberoende av vald period ovan — visar alltid de 6 senaste månaderna.</p>
+      <div class="chart-wrap chart-wrap-tall">
+        <canvas #trendCanvas></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error && !products.length" class="empty-state">
+    <i class="fas fa-box fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen produktdata hittad för vald period. Kontrollera att produkter är registrerade i skiftrapporter.</p>
+  </div>
+</div>

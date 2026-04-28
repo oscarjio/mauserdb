@@ -1,0 +1,135 @@
+.page-wrap {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header { margin-bottom: 1.25rem; }
+.page-title { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin: 0 0 0.25rem; }
+.page-sub { color: #a0aec0; font-size: 0.9rem; margin: 0; }
+
+/* Period bar */
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.period-label { color: #a0aec0; font-size: 0.875rem; }
+.period-range { color: #718096; font-size: 0.8rem; margin-left: auto; }
+
+/* Loading */
+.loading-state { display: flex; align-items: center; color: #a0aec0; padding: 2rem; }
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-left: 4px solid #4a5568;
+}
+.kpi-card.kpi-green  { border-left-color: #68d391; }
+.kpi-card.kpi-red    { border-left-color: #fc8181; }
+.kpi-card.kpi-yellow { border-left-color: #f6ad55; }
+.kpi-card.kpi-neutral{ border-left-color: #63b3ed; }
+.kpi-icon { color: #a0aec0; font-size: 1.1rem; }
+.kpi-value { font-size: 1.6rem; font-weight: 700; color: #e2e8f0; }
+.kpi-unit  { font-size: 0.9rem; font-weight: 400; color: #a0aec0; margin-left: 0.25rem; }
+.kpi-label { font-size: 0.8rem; color: #a0aec0; }
+.kpi-badge { margin-top: 0.25rem; }
+
+/* Tab bar */
+.tab-bar { display: flex; gap: 0.5rem; border-bottom: 2px solid #2d3748; padding-bottom: 0; }
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #a0aec0;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn.active { color: #63b3ed; border-bottom-color: #63b3ed; }
+.tab-btn:hover:not(.active) { color: #e2e8f0; }
+
+/* Content card */
+.content-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+.section-title { font-size: 1rem; font-weight: 600; color: #e2e8f0; }
+
+/* Chart */
+.chart-wrap { position: relative; height: 300px; }
+.chart-wrap-tall { height: 360px; }
+
+/* CSS bar chart */
+.bar-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.bar-row { display: flex; align-items: center; gap: 0.75rem; }
+.bar-row-avg { opacity: 0.75; }
+.bar-name { width: 130px; min-width: 130px; font-size: 0.85rem; color: #e2e8f0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; background: #1a202c; border-radius: 4px; height: 24px; position: relative; display: flex; align-items: center; }
+.bar-fill { height: 100%; border-radius: 4px; background: #63b3ed; min-width: 2px; transition: width 0.3s; }
+.bar-avg  { background: #718096 !important; }
+.bar-expected {
+  position: absolute;
+  top: 2px; bottom: 2px;
+  width: 2px;
+  background: #a0aec0;
+  border-radius: 2px;
+}
+.bar-val { position: absolute; right: 8px; font-size: 0.8rem; color: #e2e8f0; font-weight: 600; }
+
+/* Table */
+.prod-table th { font-size: 0.78rem; color: #a0aec0; border-bottom: 1px solid #4a5568; white-space: nowrap; }
+.prod-table td { font-size: 0.85rem; vertical-align: middle; border-bottom: 1px solid #2d3748; }
+.prod-name { font-weight: 600; color: #e2e8f0; }
+.sort-col { cursor: pointer; user-select: none; }
+.sort-col:hover { color: #e2e8f0; }
+
+.ibch-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1a202c;
+}
+.kass-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #1a202c;
+}
+.vs-text { font-size: 0.72rem; margin-top: 2px; }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #718096;
+}
+
+@media (max-width: 768px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .bar-name { width: 80px; min-width: 80px; }
+  .chart-wrap { height: 240px; }
+}

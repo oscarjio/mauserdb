@@ -278,6 +278,8 @@ class RebotlingController {
                 $this->getMomentum();
             } elseif ($action === 'operator-konsistens') {
                 $this->getOperatorKonsistens();
+            } elseif ($action === 'produkt-analys') {
+                $this->getProduktAnalys();
             } else {
                 $this->getLiveStats();
             }
@@ -8064,6 +8066,143 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorKonsistens: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid konsistensanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getProduktAnalys(): void {
+        try {
+            $days = max(30, min(730, (int)($_GET['days'] ?? 90)));
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Deduplicate by skiftraknare, then aggregate per product
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    d.product_id,
+                    COALESCE(p.name, CONCAT('Produkt ', d.product_id))         AS product_name,
+                    COALESCE(p.cycle_time_minutes, 0)                           AS cycle_time_minutes,
+                    COUNT(*)                                                    AS antal_skift,
+                    SUM(d.ibc_ok)                                               AS total_ibc_ok,
+                    SUM(d.ibc_ej_ok)                                            AS total_ibc_ej,
+                    SUM(d.bur_ej_ok)                                            AS total_bur_ej,
+                    SUM(d.drifttid)                                             AS total_drifttid_min,
+                    SUM(d.driftstopptime)                                       AS total_stopptid_min,
+                    SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid) / 60.0, 0)         AS ibc_per_h,
+                    CASE WHEN SUM(d.ibc_ok) + SUM(d.ibc_ej_ok) > 0
+                         THEN SUM(d.ibc_ej_ok) * 100.0 / (SUM(d.ibc_ok) + SUM(d.ibc_ej_ok))
+                         ELSE 0 END                                             AS kassgrad
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(product_id)      AS product_id,
+                        MAX(ibc_ok)          AS ibc_ok,
+                        MAX(ibc_ej_ok)       AS ibc_ej_ok,
+                        MAX(bur_ej_ok)       AS bur_ej_ok,
+                        MAX(drifttid)        AS drifttid,
+                        MAX(driftstopptime)  AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to
+                      AND drifttid >= 30
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare
+                ) d
+                LEFT JOIN rebotling_products p ON p.id = d.product_id
+                GROUP BY d.product_id, p.name, p.cycle_time_minutes
+                HAVING antal_skift >= 1
+                ORDER BY ibc_per_h DESC
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                echo json_encode([
+                    'success' => true, 'products' => [], 'trend' => [],
+                    'overall_ibc_h' => 0, 'from' => $from, 'to' => $to, 'days' => $days,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Overall IBC/h across all products for vs-comparison
+            $totalIbc = array_sum(array_column($rows, 'total_ibc_ok'));
+            $totalMin = array_sum(array_column($rows, 'total_drifttid_min'));
+            $overallIbcH = $totalMin > 0 ? $totalIbc / ($totalMin / 60.0) : 0.0;
+
+            $products = [];
+            foreach ($rows as $r) {
+                $ibcH    = $r['total_drifttid_min'] > 0 ? (float)$r['ibc_per_h'] : 0.0;
+                $vsAvg   = $overallIbcH > 0 ? round(($ibcH / $overallIbcH - 1) * 100, 1) : 0.0;
+                $cycleM  = (float)$r['cycle_time_minutes'];
+                $expectedH = $cycleM > 0 ? round(60.0 / $cycleM, 2) : null;
+                $products[] = [
+                    'product_id'         => (int)$r['product_id'],
+                    'name'               => $r['product_name'],
+                    'cycle_time_minutes' => $cycleM,
+                    'expected_ibc_h'     => $expectedH,
+                    'antal_skift'        => (int)$r['antal_skift'],
+                    'total_ibc_ok'       => (int)$r['total_ibc_ok'],
+                    'total_ibc_ej'       => (int)$r['total_ibc_ej'],
+                    'total_bur_ej'       => (int)$r['total_bur_ej'],
+                    'total_drifttid_h'   => round((float)$r['total_drifttid_min'] / 60.0, 1),
+                    'total_stopptid_h'   => round((float)$r['total_stopptid_min'] / 60.0, 1),
+                    'ibc_per_h'          => round($ibcH, 2),
+                    'kassgrad'           => round((float)$r['kassgrad'], 2),
+                    'vs_avg_pct'         => $vsAvg,
+                ];
+            }
+
+            // Monthly trend (last 6 months, fixed window regardless of $days)
+            $from6 = date('Y-m-d', strtotime('-180 days'));
+            $tStmt = $this->pdo->prepare("
+                SELECT
+                    d.product_id,
+                    YEAR(d.datum)  AS yr,
+                    MONTH(d.datum) AS mo,
+                    COUNT(*)       AS antal_skift,
+                    SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid) / 60.0, 0) AS ibc_per_h
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(datum)        AS datum,
+                        MAX(product_id)   AS product_id,
+                        MAX(ibc_ok)       AS ibc_ok,
+                        MAX(drifttid)     AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from6 AND datum <= :to6
+                      AND drifttid >= 30
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare
+                ) d
+                GROUP BY d.product_id, yr, mo
+                ORDER BY d.product_id, yr, mo
+            ");
+            $tStmt->execute([':from6' => $from6, ':to6' => $to]);
+
+            $trend = [];
+            foreach ($tStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $pid = (int)$r['product_id'];
+                if (!isset($trend[$pid])) $trend[$pid] = [];
+                $trend[$pid][] = [
+                    'yr'          => (int)$r['yr'],
+                    'mo'          => (int)$r['mo'],
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'ibc_per_h'   => round((float)$r['ibc_per_h'], 2),
+                ];
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'products'      => $products,
+                'trend'         => $trend,
+                'overall_ibc_h' => round($overallIbcH, 2),
+                'from'          => $from,
+                'to'            => $to,
+                'days'          => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktAnalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 
