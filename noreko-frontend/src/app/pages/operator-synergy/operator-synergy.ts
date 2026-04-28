@@ -109,7 +109,7 @@ export class OperatorSynergyPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=operator-synergy&days=${this.days}`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {

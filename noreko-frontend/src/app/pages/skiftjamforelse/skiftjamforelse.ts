@@ -99,14 +99,14 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     const d = this.selectedPeriod;
 
     this.service.getSammanfattning(d)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.sammanfattning = res?.success ? res.data : null;
         this.lastRefreshed = new Date();
       });
 
     this.service.getJamforelse(d)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.jamforelse = res?.success ? res.data : null;
         this.loading = false;
@@ -117,7 +117,7 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       });
 
     this.service.getTrend(d)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.trendData = res?.success ? res.data : null;
         if (this.trendData) {
@@ -126,13 +126,13 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
       });
 
     this.service.getBestPractices(d)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.bestPractices = res?.success ? res.data : null;
       });
 
     this.service.getDetaljer(d)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.detaljer = res?.success ? res.data : null;
         this.rebuildSortedDetaljer();

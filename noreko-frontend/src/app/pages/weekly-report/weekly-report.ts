@@ -1004,7 +1004,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         { withCredentials: true }
       )
       .pipe(
-        timeout(12000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -1042,7 +1042,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         { withCredentials: true }
       )
       .pipe(
-        timeout(10000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )

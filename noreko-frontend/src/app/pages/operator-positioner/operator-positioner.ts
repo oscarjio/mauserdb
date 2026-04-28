@@ -98,7 +98,7 @@ export class OperatorPositionerPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=operator-scores&from=${fmt(from)}&to=${fmt(to)}`,
       { withCredentials: true }
     )
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;
         if (!res?.success) { this.error = 'Kunde inte ladda data.'; return; }

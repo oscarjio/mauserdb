@@ -110,7 +110,7 @@ export class OperatorMonthlyReportPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=operator-monthly-report&month=${this.selectedMonth}`,
       { withCredentials: true }
     )
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.isFetching = false;
         this.loading = false;
