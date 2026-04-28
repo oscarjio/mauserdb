@@ -1,0 +1,163 @@
+<div class="pt-page">
+  <div class="pt-header">
+    <div class="pt-title-row">
+      <h1 class="pt-title">
+        <i class="fas fa-chart-area"></i> Produktionspuls
+      </h1>
+      <span class="pt-subtitle" *ngIf="from && to">{{ formatDate(from) }} – {{ formatDate(to) }}</span>
+    </div>
+
+    <!-- Period selector -->
+    <div class="pt-controls">
+      <div class="btn-group">
+        <button *ngFor="let d of [90, 180, 365, 730]"
+                class="btn-period"
+                [class.active]="days === d"
+                (click)="setDays(d)">
+          {{ d === 90 ? '3 mån' : d === 180 ? '6 mån' : d === 365 ? '1 år' : '2 år' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="pt-loading" *ngIf="loading">
+    <i class="fas fa-spinner fa-spin"></i> Hämtar produktionsdata...
+  </div>
+
+  <!-- Error -->
+  <div class="pt-error" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading && !error && kpis">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Periodens IBC/h-snitt</div>
+        <div class="kpi-value">{{ kpis.avg_ibc_h | number:'1.1-1' }}</div>
+        <div class="kpi-sub">IBC per timme</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Totalt godkänd IBC</div>
+        <div class="kpi-value">{{ kpis.total_ibc | number:'1.0-0':'sv' }}</div>
+        <div class="kpi-sub">under perioden</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Produktionsdagar</div>
+        <div class="kpi-value">{{ kpis.prod_days }}</div>
+        <div class="kpi-sub">dagar med data</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Bästa dag (IBC/h)</div>
+        <div class="kpi-value">{{ kpis.best_ibc_h | number:'1.1-1' }}</div>
+        <div class="kpi-sub">{{ formatDate(kpis.best_day ?? '') }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Dagar över snitt</div>
+        <div class="kpi-value">{{ kpis.days_above }} <span class="kpi-pct">({{ daysAbovePct() }}%)</span></div>
+        <div class="kpi-sub">av {{ kpis.prod_days }} produktionsdagar</div>
+      </div>
+      <div class="kpi-card" [ngClass]="trendClass()">
+        <div class="kpi-label">Periodutveckling</div>
+        <div class="kpi-value trend-val">
+          <span *ngIf="kpis.trend_arrow === 'up'">↑</span>
+          <span *ngIf="kpis.trend_arrow === 'down'">↓</span>
+          <span *ngIf="kpis.trend_arrow === 'flat'">→</span>
+          {{ Math.abs(kpis.trend_pct) | number:'1.1-1' }}%
+        </div>
+        <div class="kpi-sub">{{ trendLabel() }}</div>
+      </div>
+    </div>
+
+    <!-- View toggle -->
+    <div class="view-toggle">
+      <button class="btn-view" [class.active]="activeView === 'daglig'" (click)="setView('daglig')">
+        <i class="fas fa-chart-line"></i> Daglig tidsserie
+      </button>
+      <button class="btn-view" [class.active]="activeView === 'manadsvis'" (click)="setView('manadsvis')">
+        <i class="fas fa-chart-bar"></i> Månadsöversikt
+      </button>
+    </div>
+
+    <!-- Daily line chart -->
+    <div class="chart-card" [style.display]="activeView === 'daglig' ? 'block' : 'none'">
+      <div class="chart-header">
+        <span class="chart-title">Daglig IBC/h + 7-dagars glidande snitt</span>
+        <span class="chart-legend-note">
+          <span class="leg leg-daily"></span> Daglig &nbsp;
+          <span class="leg leg-ma7"></span> 7-dag MA &nbsp;
+          <span class="leg leg-avg"></span> Periodssnitt
+        </span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Monthly bar chart -->
+    <div class="chart-card" [style.display]="activeView === 'manadsvis' ? 'block' : 'none'">
+      <div class="chart-header">
+        <span class="chart-title">IBC/h per månad</span>
+        <span class="chart-legend-note">
+          <span class="leg leg-above"></span> Över periodssnitt &nbsp;
+          <span class="leg leg-below"></span> Under periodssnitt
+        </span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Monthly summary table (always visible) -->
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-title">Månadssammanfattning</span>
+      </div>
+      <div class="table-scroll">
+        <table class="pt-table">
+          <thead>
+            <tr>
+              <th>Månad</th>
+              <th>IBC/h</th>
+              <th>vs periodssnitt</th>
+              <th>Total IBC</th>
+              <th>Skift</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of monthly">
+              <td class="month-col">{{ monthLabel(m.yearmonth) }}</td>
+              <td class="num-col">
+                <span class="ibch-val">{{ m.ibc_per_h !== null ? (m.ibc_per_h | number:'1.1-1') : '–' }}</span>
+              </td>
+              <td class="num-col">
+                <ng-container *ngIf="kpis && m.ibc_per_h !== null">
+                  <span class="vs-badge"
+                        [class.vs-pos]="m.ibc_per_h >= kpis.avg_ibc_h"
+                        [class.vs-neg]="m.ibc_per_h < kpis.avg_ibc_h">
+                    {{ m.ibc_per_h >= kpis.avg_ibc_h ? '+' : '' }}{{ ((m.ibc_per_h - kpis.avg_ibc_h) / kpis.avg_ibc_h * 100) | number:'1.1-1' }}%
+                  </span>
+                </ng-container>
+                <span *ngIf="!kpis || m.ibc_per_h === null" class="muted">–</span>
+              </td>
+              <td class="num-col">{{ m.total_ibc | number:'1.0-0':'sv' }}</td>
+              <td class="num-col">{{ m.antal_skift }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr *ngIf="kpis">
+              <td><strong>Totalt</strong></td>
+              <td><strong>{{ kpis.avg_ibc_h | number:'1.1-1' }}</strong></td>
+              <td>—</td>
+              <td><strong>{{ kpis.total_ibc | number:'1.0-0':'sv' }}</strong></td>
+              <td>—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

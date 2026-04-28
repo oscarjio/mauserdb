@@ -71,6 +71,7 @@ export class OperatorPrestationPage {
         { title: 'Skiftlag-historik', desc: 'Vilka tremannalag har presterat bäst historiskt?', route: '/rebotling/skiftlag-historik', icon: 'fas fa-users', color: '#68d391' },
         { title: 'Produkteffektivitet', desc: 'Effektivitet och kassation per produkt', route: '/rebotling/produkt-analys', icon: 'fas fa-flask', color: '#a78bfa' },
         { title: 'Veckans Topplista', desc: 'Vem vann varje vecka? Veckovis mästare', route: '/rebotling/veckans-topplista', icon: 'fas fa-crown', color: '#f6c90e' },
+        { title: 'Produktionspuls', desc: 'Anläggningens IBC/h-tidsserie med 7-dagars MA och månadsöversikt', route: '/rebotling/produktions-tidsserie', icon: 'fas fa-chart-area', color: '#63b3ed' },
       ]
     },
     {

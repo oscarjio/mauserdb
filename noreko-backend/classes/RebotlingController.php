@@ -292,6 +292,8 @@ class RebotlingController {
                 $this->getKassationsorsakPerOperator();
             } elseif ($action === 'coach-view') {
                 $this->getCoachView();
+            } elseif ($action === 'produktions-tidsserie') {
+                $this->getProduktionsTidsserie();
             } else {
                 $this->getLiveStats();
             }
@@ -9164,6 +9166,146 @@ class RebotlingController {
             error_log('RebotlingController::getCoachView: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid tränarvy'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=produktions-tidsserie&days=365
+     * Facility-wide production time series — daily IBC/h, monthly aggregation, KPIs.
+     * SUM/SUM on shifts deduplicated by skiftraknare.
+     */
+    private function getProduktionsTidsserie(): void {
+        try {
+            $days = max(30, min(730, (int)($_GET['days'] ?? 365)));
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Daily totals — inner GROUP BY skiftraknare deduplicates same-shift data
+            $sqlDaily = "
+                SELECT
+                    datum,
+                    SUM(ibc_ok)            AS total_ibc,
+                    SUM(hours)             AS total_hours,
+                    ROUND(SUM(ibc_ok) / NULLIF(SUM(hours), 0), 2) AS ibc_per_h,
+                    COUNT(*)               AS antal_skift
+                FROM (
+                    SELECT datum,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))       AS ibc_ok,
+                           MAX(COALESCE(drifttid, 0))/60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) dedup
+                GROUP BY datum
+                ORDER BY datum
+            ";
+            $stmtD = $this->pdo->prepare($sqlDaily);
+            $stmtD->execute([':from1' => $from, ':to1' => $to]);
+            $daily = $stmtD->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Monthly aggregation
+            $sqlMonthly = "
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m')   AS yearmonth,
+                    SUM(ibc_ok)                    AS total_ibc,
+                    SUM(hours)                     AS total_hours,
+                    ROUND(SUM(ibc_ok) / NULLIF(SUM(hours), 0), 2) AS ibc_per_h,
+                    COUNT(*)                       AS antal_skift
+                FROM (
+                    SELECT datum,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))       AS ibc_ok,
+                           MAX(COALESCE(drifttid, 0))/60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) dedup
+                GROUP BY yearmonth
+                ORDER BY yearmonth
+            ";
+            $stmtM = $this->pdo->prepare($sqlMonthly);
+            $stmtM->execute([':from2' => $from, ':to2' => $to]);
+            $monthly = $stmtM->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute 7-day moving average on PHP side
+            $dailyFinal = [];
+            $window = [];
+            foreach ($daily as $row) {
+                $val = (float)$row['ibc_per_h'];
+                $window[] = $val;
+                if (count($window) > 7) array_shift($window);
+                $ma7 = count($window) > 0 ? round(array_sum($window) / count($window), 2) : null;
+                $dailyFinal[] = [
+                    'datum'      => $row['datum'],
+                    'ibc_per_h'  => $val > 0 ? $val : null,
+                    'total_ibc'  => (int)$row['total_ibc'],
+                    'antal_skift'=> (int)$row['antal_skift'],
+                    'ma7'        => $ma7,
+                ];
+            }
+
+            // KPIs
+            $totalIbc   = array_sum(array_column($daily, 'total_ibc'));
+            $totalHours = array_sum(array_column($daily, 'total_hours'));
+            $avgIbcH    = $totalHours > 0 ? round($totalIbc / $totalHours, 2) : 0;
+            $prodDays   = count($daily);
+
+            $bestDay    = null;
+            $bestIbcH   = 0;
+            foreach ($dailyFinal as $d) {
+                if ($d['ibc_per_h'] !== null && $d['ibc_per_h'] > $bestIbcH) {
+                    $bestIbcH = $d['ibc_per_h'];
+                    $bestDay  = $d['datum'];
+                }
+            }
+
+            // Trend: compare first half vs second half avg IBC/h
+            $trendArrow = 'flat';
+            if (count($dailyFinal) >= 10) {
+                $half = (int)(count($dailyFinal) / 2);
+                $firstHalf  = array_slice($dailyFinal, 0, $half);
+                $secondHalf = array_slice($dailyFinal, -$half);
+                $avgFirst   = array_sum(array_map(fn($d) => $d['ibc_per_h'] ?? 0, $firstHalf))
+                              / max(1, count(array_filter($firstHalf, fn($d) => $d['ibc_per_h'] !== null)));
+                $avgSecond  = array_sum(array_map(fn($d) => $d['ibc_per_h'] ?? 0, $secondHalf))
+                              / max(1, count(array_filter($secondHalf, fn($d) => $d['ibc_per_h'] !== null)));
+                $deltaPct   = $avgFirst > 0 ? round(($avgSecond - $avgFirst) / $avgFirst * 100, 1) : 0;
+                if ($deltaPct >= 3)       $trendArrow = 'up';
+                elseif ($deltaPct <= -3)  $trendArrow = 'down';
+                else                      $trendArrow = 'flat';
+            } else {
+                $deltaPct = 0;
+            }
+
+            // Days above/below period average
+            $daysAbove = count(array_filter($dailyFinal, fn($d) => $d['ibc_per_h'] !== null && $d['ibc_per_h'] > $avgIbcH));
+
+            echo json_encode([
+                'success'     => true,
+                'from'        => $from,
+                'to'          => $to,
+                'days'        => $days,
+                'daily'       => $dailyFinal,
+                'monthly'     => array_values($monthly),
+                'kpis'        => [
+                    'total_ibc'   => (int)$totalIbc,
+                    'avg_ibc_h'   => $avgIbcH,
+                    'prod_days'   => $prodDays,
+                    'best_ibc_h'  => round($bestIbcH, 2),
+                    'best_day'    => $bestDay,
+                    'trend_arrow' => $trendArrow,
+                    'trend_pct'   => $deltaPct,
+                    'days_above'  => $daysAbove,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktionsTidsserie: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionspuls'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
