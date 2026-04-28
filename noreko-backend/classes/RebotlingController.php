@@ -6070,10 +6070,19 @@ class RebotlingController {
             foreach ($opRows as $r) $opMap[(int)$r['number']] = $r['name'];
 
             $stmt = $pdo->prepare("
-                SELECT skiftraknare, datum, op1, op2, op3,
-                       ibc_ok, ibc_ej_ok, drifttid, driftstopptime, product_id
+                SELECT skiftraknare,
+                       MAX(datum)          AS datum,
+                       MAX(op1)            AS op1,
+                       MAX(op2)            AS op2,
+                       MAX(op3)            AS op3,
+                       MAX(ibc_ok)         AS ibc_ok,
+                       MAX(ibc_ej_ok)      AS ibc_ej_ok,
+                       MAX(drifttid)       AS drifttid,
+                       MAX(driftstopptime) AS driftstopptime,
+                       MAX(product_id)     AS product_id
                 FROM rebotling_skiftrapport
                 WHERE datum BETWEEN :from AND :to
+                GROUP BY skiftraknare
                 ORDER BY datum, skiftraknare
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
@@ -6215,28 +6224,32 @@ class RebotlingController {
             $teamAvgOverall = $teamShiftsTotal > 0 ? round($teamWeightedSum / $teamShiftsTotal, 2) : 0.0;
 
             // Per-operator per-weekday (avg IBC/h of shifts they worked)
+            // Dedup by skiftraknare first to avoid counting PLC partial-shift rows
             $opDowStmt = $pdo->prepare("
                 SELECT op_num, dow,
                        AVG(ibc_per_h) AS avg_ibc_h,
                        COUNT(*) AS shifts
                 FROM (
-                    SELECT op1 AS op_num, DAYOFWEEK(datum) AS dow,
-                           ibc_ok / (drifttid / 60.0) AS ibc_per_h
+                    SELECT op1 AS op_num, DAYOFWEEK(MAX(datum)) AS dow,
+                           MAX(ibc_ok) / (MAX(drifttid) / 60.0) AS ibc_per_h
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from1 AND :to1
                       AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
                     UNION ALL
-                    SELECT op2, DAYOFWEEK(datum),
-                           ibc_ok / (drifttid / 60.0)
+                    SELECT op2, DAYOFWEEK(MAX(datum)),
+                           MAX(ibc_ok) / (MAX(drifttid) / 60.0)
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from2 AND :to2
                       AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
                     UNION ALL
-                    SELECT op3, DAYOFWEEK(datum),
-                           ibc_ok / (drifttid / 60.0)
+                    SELECT op3, DAYOFWEEK(MAX(datum)),
+                           MAX(ibc_ok) / (MAX(drifttid) / 60.0)
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from3 AND :to3
                       AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
                 ) combined
                 GROUP BY op_num, dow
                 HAVING shifts >= 2
@@ -6261,24 +6274,24 @@ class RebotlingController {
                 $byOp[$num][$dow] = ['avg_ibc_h' => $avgIbcH, 'shifts' => (int)$r['shifts'], 'vs_team' => $vsTeam];
             }
 
-            // Total shifts per operator
+            // Total unique shifts per operator (dedup by skiftraknare)
             $totStmt = $pdo->prepare("
-                SELECT op_num, SUM(shifts) AS total
+                SELECT op_num, COUNT(*) AS total
                 FROM (
-                    SELECT op1 AS op_num, COUNT(*) AS shifts
+                    SELECT op1 AS op_num
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND drifttid > 0
-                    GROUP BY op1
+                    GROUP BY skiftraknare
                     UNION ALL
-                    SELECT op2, COUNT(*)
+                    SELECT op2
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND drifttid > 0
-                    GROUP BY op2
+                    GROUP BY skiftraknare
                     UNION ALL
-                    SELECT op3, COUNT(*)
+                    SELECT op3
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND drifttid > 0
-                    GROUP BY op3
+                    GROUP BY skiftraknare
                 ) t
                 GROUP BY op_num
             ");
