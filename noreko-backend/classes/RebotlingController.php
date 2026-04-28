@@ -286,6 +286,8 @@ class RebotlingController {
                 $this->getOperatorAvsaknad();
             } elseif ($action === 'kassations-karta') {
                 $this->getKassationsKarta();
+            } elseif ($action === 'kassation-trend') {
+                $this->getKassationTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -6969,15 +6971,14 @@ class RebotlingController {
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $opShifts     = [];
-            $pairTogether = [];
+            // SUM/SUM accumulators — avoids the AVG-of-ratios bias
+            $opTotals   = [];   // opNum => ['ibc'=>int, 'min'=>int, 'count'=>int]
+            $pairTotals = [];   // 'a-b'  => ['ibc'=>int, 'min'=>int, 'count'=>int]
 
             foreach ($shifts as $s) {
                 $ibc = max(0, (int)$s['ibc_ok']);
                 $min = max(0, (int)$s['drifttid']);
                 if ($min <= 0 || $ibc <= 0) continue;
-
-                $ibcH = $ibc / ($min / 60.0);
 
                 $ops = [];
                 foreach (['op1', 'op2', 'op3'] as $pos) {
@@ -6987,34 +6988,40 @@ class RebotlingController {
                 $ops = array_values(array_unique($ops));
 
                 foreach ($ops as $op) {
-                    $opShifts[$op][] = $ibcH;
+                    if (!isset($opTotals[$op])) $opTotals[$op] = ['ibc' => 0, 'min' => 0, 'count' => 0];
+                    $opTotals[$op]['ibc']   += $ibc;
+                    $opTotals[$op]['min']   += $min;
+                    $opTotals[$op]['count'] += 1;
                 }
 
                 sort($ops);
                 for ($i = 0; $i < count($ops); $i++) {
                     for ($j = $i + 1; $j < count($ops); $j++) {
                         $key = $ops[$i] . '-' . $ops[$j];
-                        $pairTogether[$key][] = $ibcH;
+                        if (!isset($pairTotals[$key])) $pairTotals[$key] = ['ibc' => 0, 'min' => 0, 'count' => 0];
+                        $pairTotals[$key]['ibc']   += $ibc;
+                        $pairTotals[$key]['min']   += $min;
+                        $pairTotals[$key]['count'] += 1;
                     }
                 }
             }
 
             $opAvg = [];
-            foreach ($opShifts as $opNum => $vals) {
-                if (count($vals) >= 3) {
-                    $opAvg[$opNum] = array_sum($vals) / count($vals);
+            foreach ($opTotals as $opNum => $t) {
+                if ($t['count'] >= 3 && $t['min'] > 0) {
+                    $opAvg[$opNum] = $t['ibc'] / ($t['min'] / 60.0);
                 }
             }
 
             $pairs = [];
-            foreach ($pairTogether as $key => $vals) {
-                if (count($vals) < 3) continue;
+            foreach ($pairTotals as $key => $t) {
+                if ($t['count'] < 3) continue;
                 [$aStr, $bStr] = explode('-', $key);
                 $opA = (int)$aStr;
                 $opB = (int)$bStr;
                 if (!isset($opAvg[$opA], $opAvg[$opB])) continue;
 
-                $togetherIbcH = array_sum($vals) / count($vals);
+                $togetherIbcH = $t['min'] > 0 ? $t['ibc'] / ($t['min'] / 60.0) : 0;
                 $avgBaseline  = ($opAvg[$opA] + $opAvg[$opB]) / 2.0;
                 $synergy      = $togetherIbcH - $avgBaseline;
                 $synergyPct   = $avgBaseline > 0 ? $synergy / $avgBaseline * 100.0 : 0.0;
@@ -7024,7 +7031,7 @@ class RebotlingController {
                     'name_a'          => $opNames[$opA],
                     'op_b'            => $opB,
                     'name_b'          => $opNames[$opB],
-                    'together_shifts' => count($vals),
+                    'together_shifts' => $t['count'],
                     'together_ibc_h'  => round($togetherIbcH, 2),
                     'a_avg_ibc_h'     => round($opAvg[$opA], 2),
                     'b_avg_ibc_h'     => round($opAvg[$opB], 2),
@@ -7065,7 +7072,7 @@ class RebotlingController {
                 $operators[] = [
                     'number'       => $opNum,
                     'name'         => $opNames[$opNum],
-                    'total_shifts' => count($opShifts[$opNum]),
+                    'total_shifts' => $opTotals[$opNum]['count'],
                     'avg_ibc_h'    => round($avg, 2),
                     'best_partner' => $bp,
                 ];
@@ -8621,6 +8628,186 @@ class RebotlingController {
             error_log('RebotlingController::getKassationsKarta: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationskarta'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Kassation Trend (weekly rejection rate per operator) ──────────
+    private function getKassationTrend(): void {
+        try {
+            $weeks = isset($_GET['weeks']) ? max(4, min(26, (int)$_GET['weeks'])) : 12;
+            $to    = date('Y-m-d');
+            $from  = date('Y-m-d', strtotime("-{$weeks} weeks"));
+
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            // Per-op per-week kassation (dedup per skiftraknare)
+            $sql = "
+                SELECT u.op_num,
+                       YEARWEEK(u.datum, 1)  AS yw,
+                       SUM(u.ibc_ej)         AS total_ej,
+                       SUM(u.total_ibc)      AS total_ibc,
+                       COUNT(*)              AS skift_count
+                FROM (
+                    SELECT op1                                                          AS op_num,
+                           datum,
+                           MAX(COALESCE(ibc_ej_ok, 0))                                AS ibc_ej,
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))         AS total_ibc
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1 AND op1 IS NOT NULL
+                    GROUP BY skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           datum,
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2 AND op2 IS NOT NULL
+                    GROUP BY skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           datum,
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3 AND op3 IS NOT NULL
+                    GROUP BY skiftraknare, op3
+                ) u
+                GROUP BY u.op_num, YEARWEEK(u.datum, 1)
+                HAVING total_ibc >= 5
+                ORDER BY u.op_num, yw
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rawRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team-level per-week (aggregate all ops)
+            $teamByYw = [];
+            $opData   = [];  // opNum => [yw => [ej, total, shifts]]
+
+            foreach ($rawRows as $r) {
+                $yw    = (int)$r['yw'];
+                $opNum = (int)$r['op_num'];
+                $ej    = (int)$r['total_ej'];
+                $total = (int)$r['total_ibc'];
+                if (!isset($opMap[$opNum])) continue;
+
+                $opData[$opNum][$yw] = [
+                    'total_ej'  => $ej,
+                    'total_ibc' => $total,
+                    'skifter'   => (int)$r['skift_count'],
+                ];
+
+                if (!isset($teamByYw[$yw])) $teamByYw[$yw] = ['ej' => 0, 'total' => 0];
+                $teamByYw[$yw]['ej']    += $ej;
+                $teamByYw[$yw]['total'] += $total;
+            }
+
+            // Build sorted week labels
+            $allYws = array_unique(array_merge(
+                array_keys($teamByYw),
+                ...array_map('array_keys', $opData)
+            ));
+            sort($allYws);
+
+            $weekLabels = [];
+            foreach ($allYws as $yw) {
+                $isoYear = (int)substr((string)$yw, 0, 4);
+                $isoWeek = (int)substr((string)$yw, 4, 2);
+                $weekLabels[] = ['yw' => $yw, 'label' => "v{$isoWeek}"];
+            }
+
+            // Team avg per week
+            $teamAvgByWeek = [];
+            foreach ($allYws as $yw) {
+                $t = $teamByYw[$yw] ?? ['ej' => 0, 'total' => 0];
+                $teamAvgByWeek[] = [
+                    'yw'       => $yw,
+                    'kassgrad' => $t['total'] > 0 ? round($t['ej'] / $t['total'] * 100.0, 2) : null,
+                ];
+            }
+
+            // Per-operator results
+            $operators = [];
+            foreach ($opData as $opNum => $weekMap) {
+                $weekSeries = [];
+                $earlyEj = 0; $earlyTotal = 0; $lateEj = 0; $lateTotal = 0;
+                $midIdx  = (int)floor(count($allYws) / 2);
+
+                foreach ($allYws as $idx => $yw) {
+                    $w = $weekMap[$yw] ?? null;
+                    $kassgrad = ($w && $w['total_ibc'] > 0)
+                        ? round($w['total_ej'] / $w['total_ibc'] * 100.0, 2)
+                        : null;
+
+                    $weekSeries[] = [
+                        'yw'        => $yw,
+                        'kassgrad'  => $kassgrad,
+                        'total_ibc' => $w ? (int)$w['total_ibc'] : 0,
+                        'total_ej'  => $w ? (int)$w['total_ej'] : 0,
+                        'skifter'   => $w ? (int)$w['skifter'] : 0,
+                    ];
+
+                    if ($w) {
+                        if ($idx < $midIdx) { $earlyEj += $w['total_ej']; $earlyTotal += $w['total_ibc']; }
+                        else                { $lateEj  += $w['total_ej']; $lateTotal  += $w['total_ibc']; }
+                    }
+                }
+
+                $earlyRate = $earlyTotal > 0 ? round($earlyEj / $earlyTotal * 100.0, 2) : null;
+                $lateRate  = $lateTotal  > 0 ? round($lateEj  / $lateTotal  * 100.0, 2) : null;
+
+                $trend = 'stable';
+                if ($earlyRate !== null && $lateRate !== null) {
+                    $diff = $lateRate - $earlyRate;
+                    if ($diff < -1.0)     $trend = 'better';
+                    elseif ($diff > 1.0)  $trend = 'worse';
+                }
+
+                $totalEj    = array_sum(array_column(array_filter($weekSeries, fn($w) => $w['total_ej'] !== null), 'total_ej'));
+                $totalIbc   = array_sum(array_column(array_filter($weekSeries, fn($w) => $w['total_ibc'] !== null), 'total_ibc'));
+                $overallKass = $totalIbc > 0 ? round($totalEj / $totalIbc * 100.0, 2) : null;
+
+                $operators[] = [
+                    'number'          => $opNum,
+                    'name'            => $opMap[$opNum],
+                    'weeks'           => $weekSeries,
+                    'trend'           => $trend,
+                    'current_kassgrad' => $lateRate,
+                    'prev_kassgrad'    => $earlyRate,
+                    'overall_kassgrad' => $overallKass,
+                    'total_ibc'        => $totalIbc,
+                    'total_ej'         => $totalEj,
+                ];
+            }
+
+            usort($operators, fn($a, $b) => ($a['overall_kassgrad'] ?? 999) <=> ($b['overall_kassgrad'] ?? 999));
+
+            echo json_encode([
+                'success'        => true,
+                'from'           => $from,
+                'to'             => $to,
+                'weeks'          => $weeks,
+                'week_labels'    => $weekLabels,
+                'operators'      => $operators,
+                'team_avg_by_week' => $teamAvgByWeek,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getKassationTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationstrender'], \JSON_UNESCAPED_UNICODE);
         }
     }
 
