@@ -56,6 +56,7 @@ export class OperatorPrestationPage {
         { title: 'Produktanalys', desc: 'IBC/h per produkt per operatör', route: '/rebotling/operator-produkt', icon: 'fas fa-box', color: '#63b3ed' },
         { title: 'Stopptidsanalys', desc: 'Stopptid kopplad till operatör', route: '/rebotling/operator-stopptid', icon: 'fas fa-stop-circle', color: '#fc8181' },
         { title: 'Kassationsanalys', desc: 'Kassationsgrad per operatör', route: '/rebotling/operator-kassation', icon: 'fas fa-trash-alt', color: '#fc8181' },
+        { title: 'Kassationskarta', desc: 'Operator × Produkt kassationsmatris', route: '/rebotling/kassations-karta', icon: 'fas fa-table', color: '#fc8181' },
         { title: 'IBC-förlustkalkyl', desc: 'IBC vunnet/förlorat vs lagsnitt', route: '/rebotling/ibc-forlust', icon: 'fas fa-tint-slash', color: '#fc8181' },
         { title: 'Skift-topplista', desc: 'Bästa och sämsta skift rankade', route: '/rebotling/skift-topplista', icon: 'fas fa-trophy', color: '#f6ad55' },
         { title: 'Rekord & Karriär', desc: 'Bästa skift, karriärtotaler, månadsrekord', route: '/rebotling/rekord-statistik', icon: 'fas fa-crown', color: '#f6c90e' },

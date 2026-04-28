@@ -1,0 +1,150 @@
+<div class="karta-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <a routerLink="/rebotling/operator-prestation" class="back-link">← Operatörsprestanda</a>
+    <h2 class="page-title">
+      <i class="fas fa-table me-2" style="color:#fc8181;"></i>
+      Kassationskarta
+    </h2>
+    <p class="page-sub">Operator × Produkt — kassationsgrad per kombination</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar mb-4">
+    <span class="period-label">Period:</span>
+    <div class="btn-group btn-group-sm" role="group">
+      <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="setDays(30)">30 dagar</button>
+      <button class="btn" [class.btn-primary]="days===60"  [class.btn-outline-secondary]="days!==60"  (click)="setDays(60)">60 dagar</button>
+      <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+      <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+    </div>
+    <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <p class="mt-2 text-muted">Bygger kassationskarta…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI row -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+        <div class="kpi-value">{{ teamKassgrad | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Lagsnitt kassation</div>
+      </div>
+      <div class="kpi-card" *ngIf="worstCell">
+        <div class="kpi-icon" style="color:#fc8181;"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="kpi-value" style="color:#fc8181;">{{ worstCell.kassation_pct | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Högst kassation</div>
+        <div class="kpi-sub">{{ worstCell.opName }} × {{ worstCell.prodName }}</div>
+      </div>
+      <div class="kpi-card" *ngIf="bestCell">
+        <div class="kpi-icon" style="color:#68d391;"><i class="fas fa-check-circle"></i></div>
+        <div class="kpi-value" style="color:#68d391;">{{ bestCell.kassation_pct | number:'1.1-2' }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-label">Lägst kassation</div>
+        <div class="kpi-sub">{{ bestCell.opName }} × {{ bestCell.prodName }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#a0aec0;"><i class="fas fa-table"></i></div>
+        <div class="kpi-value">{{ totalCells }}</div>
+        <div class="kpi-label">Kombinations-celler</div>
+        <div class="kpi-sub">{{ operators.length }} op × {{ products.length }} produkter</div>
+      </div>
+    </div>
+
+    <!-- Color legend -->
+    <div class="legend-row mb-3">
+      <span class="legend-label">Färgskala:</span>
+      <div class="legend-cell" style="background:#22543d; color:#9ae6b4;">Mycket låg</div>
+      <div class="legend-cell" style="background:#276749; color:#9ae6b4;">Låg</div>
+      <div class="legend-cell" style="background:#2f855a; color:#9ae6b4;">Under snitt</div>
+      <div class="legend-cell" style="background:#b7791f; color:#fbd38d;">Över snitt</div>
+      <div class="legend-cell" style="background:#c05621; color:#fc8181;">Hög</div>
+      <div class="legend-cell" style="background:#9b2c2c; color:#fc8181;">Kritisk</div>
+      <div class="legend-cell legend-empty">–</div>
+      <span class="legend-label ms-1">= ej tillräcklig data</span>
+    </div>
+
+    <!-- Matrix table -->
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="corner-cell">Operatör</th>
+            <th *ngFor="let prod of products" class="prod-header">
+              <div class="prod-name-wrap">{{ prod.name }}</div>
+            </th>
+            <th class="total-header">Totalt</th>
+          </tr>
+          <!-- Product col total row -->
+          <tr class="col-total-row">
+            <td class="corner-cell corner-sub">Lagsnitt</td>
+            <td *ngFor="let prod of products" class="total-cell">
+              <ng-container *ngIf="prodColTotal(prod.id) as ct">
+                <span class="total-kass" [style.color]="cellTextColor(ct.kassation_pct)">
+                  {{ ct.kassation_pct | number:'1.1-1' }}%
+                </span>
+                <span class="total-skift">({{ ct.skift_count }})</span>
+              </ng-container>
+              <span *ngIf="!prodColTotal(prod.id)" class="empty-total">–</span>
+            </td>
+            <td class="total-cell">
+              <span class="total-kass" [style.color]="cellTextColor(teamKassgrad)">
+                {{ teamKassgrad | number:'1.1-2' }}%
+              </span>
+            </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operators">
+            <td class="op-name-cell">
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td *ngFor="let prod of products" class="data-cell">
+              <ng-container *ngIf="cell(op.number, prod.id) as c; else emptyCell">
+                <div class="cell-inner"
+                     [style.background]="cellColor(c.kassation_pct)"
+                     [title]="op.name + ' × ' + prod.name + ': ' + c.kassation_pct + '% kassation (' + c.skift_count + ' skift, ' + c.total_ibc_ej + '/' + c.total_ibc + ' IBC)'">
+                  <span class="cell-kass" [style.color]="cellTextColor(c.kassation_pct)">
+                    {{ c.kassation_pct | number:'1.1-1' }}%
+                  </span>
+                  <span class="cell-skift">{{ c.skift_count }} s</span>
+                </div>
+              </ng-container>
+              <ng-template #emptyCell>
+                <div class="cell-empty">–</div>
+              </ng-template>
+            </td>
+            <td class="total-cell">
+              <ng-container *ngIf="opRowTotal(op.number) as rt">
+                <span class="total-kass" [style.color]="cellTextColor(rt.kassation_pct)">
+                  {{ rt.kassation_pct | number:'1.1-1' }}%
+                </span>
+                <span class="total-skift">({{ rt.skift_count }})</span>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Explanation note -->
+    <p class="note mt-3">
+      <i class="fas fa-info-circle me-1"></i>
+      Kassationsgrad = IBC ej godkänd ÷ (IBC ok + IBC ej ok). Celler kräver minst 5 IBC totalt. Siffran inom parentes = antal skift. Resultat är en korrelation — alla 3 positioner delas på samma kassation per skift.
+    </p>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && !operators.length" class="empty-state">
+    <i class="fas fa-table fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen kassationsdata hittad för vald period. Kontrollera att product_id är ifyllt i skiftrapporten.</p>
+  </div>
+
+</div>

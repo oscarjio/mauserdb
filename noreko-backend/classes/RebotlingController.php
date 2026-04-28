@@ -284,6 +284,8 @@ class RebotlingController {
                 $this->getVeckansTopplista();
             } elseif ($action === 'operator-avsaknad') {
                 $this->getOperatorAvsaknad();
+            } elseif ($action === 'kassations-karta') {
+                $this->getKassationsKarta();
             } else {
                 $this->getLiveStats();
             }
@@ -8482,6 +8484,143 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorAvsaknad: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid frånvaroanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getKassationsKarta(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            $pStmt = $pdo->query("SELECT id, name FROM rebotling_products ORDER BY name");
+            $prodMap = [];
+            foreach ($pStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $prodMap[(int)$r['id']] = $r['name'];
+            }
+
+            // Dedup per (op, skiftraknare, product), then aggregate
+            $sql = "
+                SELECT u.op_num,
+                       u.product_id,
+                       SUM(u.ibc_ej)    AS total_ej,
+                       SUM(u.total_ibc) AS total_ibc,
+                       COUNT(*)         AS skift_count
+                FROM (
+                    SELECT op1                                                         AS op_num,
+                           MAX(COALESCE(product_id, 0))                               AS product_id,
+                           MAX(COALESCE(ibc_ej_ok, 0))                                AS ibc_ej,
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))         AS total_ibc
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare, op3
+                ) u
+                WHERE u.product_id > 0
+                GROUP BY u.op_num, u.product_id
+                HAVING total_ibc >= 5
+                ORDER BY u.op_num
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $cells    = [];
+            $usedOps  = [];
+            $usedProds = [];
+            $totalEj  = 0;
+            $totalIbc = 0;
+
+            foreach ($rows as $r) {
+                $opNum  = (int)$r['op_num'];
+                $prodId = (int)$r['product_id'];
+                if (!isset($opMap[$opNum]) || !isset($prodMap[$prodId])) continue;
+
+                $ej       = (int)$r['total_ej'];
+                $total    = (int)$r['total_ibc'];
+                $kassation = $total > 0 ? round($ej / $total * 100, 2) : 0.0;
+
+                $cells[] = [
+                    'op_num'        => $opNum,
+                    'product_id'    => $prodId,
+                    'kassation_pct' => $kassation,
+                    'skift_count'   => (int)$r['skift_count'],
+                    'total_ibc'     => $total,
+                    'total_ibc_ej'  => $ej,
+                ];
+
+                $usedOps[$opNum]    = $opMap[$opNum];
+                $usedProds[$prodId] = $prodMap[$prodId];
+                $totalEj  += $ej;
+                $totalIbc += $total;
+            }
+
+            asort($usedOps);
+            asort($usedProds);
+
+            $teamKass = $totalIbc > 0 ? round($totalEj / $totalIbc * 100, 2) : 0.0;
+
+            $operators = array_map(
+                fn($num, $name) => ['number' => $num, 'name' => $name],
+                array_keys($usedOps), array_values($usedOps)
+            );
+            $products  = array_map(
+                fn($id, $name) => ['id' => $id, 'name' => $name],
+                array_keys($usedProds), array_values($usedProds)
+            );
+
+            echo json_encode([
+                'success'       => true,
+                'from'          => $from,
+                'to'            => $to,
+                'days'          => $days,
+                'operators'     => $operators,
+                'products'      => $products,
+                'cells'         => $cells,
+                'team_kassgrad' => $teamKass,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getKassationsKarta: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationskarta'], \JSON_UNESCAPED_UNICODE);
         }
     }
 

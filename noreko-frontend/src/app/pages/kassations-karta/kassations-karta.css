@@ -1,0 +1,210 @@
+.karta-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.back-link {
+  color: #63b3ed;
+  text-decoration: none;
+  font-size: 13px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.back-link:hover { text-decoration: underline; }
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 4px;
+}
+.page-sub {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.period-label { color: #a0aec0; font-size: 0.85rem; }
+.period-range { color: #718096; font-size: 0.8rem; margin-left: 8px; }
+
+/* KPI cards */
+.kpi-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px 20px;
+  min-width: 180px;
+  flex: 1;
+}
+.kpi-icon { font-size: 1.4rem; color: #a0aec0; margin-bottom: 6px; }
+.kpi-value { font-size: 1.8rem; font-weight: 700; color: #e2e8f0; line-height: 1; }
+.kpi-unit  { font-size: 1rem; font-weight: 400; color: #a0aec0; }
+.kpi-label { color: #a0aec0; font-size: 0.8rem; margin-top: 4px; }
+.kpi-sub   { color: #718096; font-size: 0.75rem; margin-top: 2px; }
+
+/* Legend */
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.legend-label { color: #a0aec0; font-size: 0.8rem; }
+.legend-cell {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.legend-empty {
+  background: #2d3748;
+  color: #4a5568;
+  border: 1px solid #4a5568;
+}
+
+/* Matrix */
+.matrix-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #2d3748;
+}
+
+.matrix-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 600px;
+}
+
+.corner-cell {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-right: 1px solid #4a5568;
+  border-bottom: 1px solid #4a5568;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.corner-sub { font-size: 0.75rem; color: #718096; font-weight: 400; }
+
+.prod-header {
+  background: #1a202c;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  padding: 10px 8px;
+  text-align: center;
+  border-right: 1px solid #4a5568;
+  border-bottom: 1px solid #4a5568;
+  white-space: nowrap;
+  min-width: 90px;
+}
+.prod-name-wrap {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.total-header {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid #4a5568;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.col-total-row td {
+  border-bottom: 2px solid #63b3ed;
+  background: #1a202c;
+}
+
+.op-name-cell {
+  background: #2d3748;
+  padding: 8px 14px;
+  white-space: nowrap;
+  border-right: 1px solid #4a5568;
+  border-bottom: 1px solid #3a4556;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.op-link:hover { text-decoration: underline; }
+
+.data-cell {
+  padding: 4px;
+  border-right: 1px solid #3a4556;
+  border-bottom: 1px solid #3a4556;
+  text-align: center;
+}
+
+.cell-inner {
+  border-radius: 6px;
+  padding: 6px 4px;
+  cursor: default;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s;
+}
+.cell-inner:hover { filter: brightness(1.2); }
+
+.cell-kass  { font-size: 0.85rem; font-weight: 700; line-height: 1; }
+.cell-skift { font-size: 0.68rem; color: #cbd5e0; margin-top: 2px; }
+
+.cell-empty {
+  color: #4a5568;
+  font-size: 0.8rem;
+  padding: 6px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-cell {
+  background: #1a202c;
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 1px solid #3a4556;
+  white-space: nowrap;
+}
+.total-kass   { font-size: 0.85rem; font-weight: 600; }
+.total-skift  { font-size: 0.72rem; color: #718096; margin-left: 4px; }
+.empty-total  { color: #4a5568; font-size: 0.8rem; }
+
+.note {
+  color: #718096;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
