@@ -43,6 +43,7 @@ export class OperatorPrestationPage {
         { title: 'Produktionsintensitet', desc: 'Daglig IBC/h-heatmap (GitHub-stil)', route: '/rebotling/produktion-heatmap', icon: 'fas fa-th', color: '#63b3ed' },
         { title: 'Skifttyp-analys', desc: 'IBC/h per dag-, kväll- och nattskift', route: '/rebotling/operator-skifttyp', icon: 'fas fa-clock', color: '#a78bfa' },
         { title: 'Veckovis trend', desc: 'IBC/h per vecka vs lagsnitt + prognos', route: '/rebotling/operator-trend', icon: 'fas fa-chart-line', color: '#63b3ed' },
+        { title: 'Skiftmomentum', desc: 'Löpande form — streak av skift över/under snitt', route: '/rebotling/operator-momentum', icon: 'fas fa-bolt', color: '#f6ad55' },
       ]
     },
     {

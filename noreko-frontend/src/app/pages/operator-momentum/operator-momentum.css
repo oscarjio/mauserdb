@@ -1,0 +1,198 @@
+.momentum-page {
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.back-link {
+  color: #63b3ed;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.page-sub {
+  color: #a0aec0;
+  font-size: 14px;
+  margin: 0;
+}
+
+.ctrl-label {
+  color: #a0aec0;
+  font-size: 12px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ctrl-select {
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  width: 180px;
+}
+
+.team-avg-badge {
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* KPI cards */
+.kpi-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  border-top-width: 3px;
+}
+
+.kpi-icon {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.kpi-count {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Operator card */
+.op-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-left-width: 4px;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.op-name-link {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+
+.op-name-link:hover {
+  color: #63b3ed;
+}
+
+.op-meta {
+  color: #718096;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.status-badge {
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Streak box */
+.streak-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.streak-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px 14px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.streak-num {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #e2e8f0;
+}
+
+.streak-txt {
+  color: #a0aec0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.streak-meta {
+  display: flex;
+  gap: 16px;
+}
+
+.streak-meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.streak-meta-lbl {
+  color: #718096;
+  font-size: 11px;
+}
+
+.streak-meta-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Recent shifts dots */
+.recent-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.recent-lbl {
+  color: #718096;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.recent-hint {
+  color: #4a5568;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.85;
+  cursor: default;
+}

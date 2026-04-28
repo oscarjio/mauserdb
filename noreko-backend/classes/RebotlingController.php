@@ -274,6 +274,8 @@ class RebotlingController {
                 $this->getRekordsStatistik();
             } elseif ($action === 'skiftlag-historik') {
                 $this->getSkiftlagHistorik();
+            } elseif ($action === 'operator-momentum') {
+                $this->getMomentum();
             } else {
                 $this->getLiveStats();
             }
@@ -6269,29 +6271,28 @@ class RebotlingController {
             }
             $teamAvgOverall = $teamShiftsTotal > 0 ? round($teamWeightedSum / $teamShiftsTotal, 2) : 0.0;
 
-            // Per-operator per-weekday (avg IBC/h of shifts they worked)
-            // Dedup by skiftraknare first to avoid counting PLC partial-shift rows
+            // Per-operator per-weekday — SUM/SUM aggregation to match team query
             $opDowStmt = $pdo->prepare("
                 SELECT op_num, dow,
-                       AVG(ibc_per_h) AS avg_ibc_h,
+                       SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0) AS avg_ibc_h,
                        COUNT(*) AS shifts
                 FROM (
                     SELECT op1 AS op_num, DAYOFWEEK(MAX(datum)) AS dow,
-                           MAX(ibc_ok) / (MAX(drifttid) / 60.0) AS ibc_per_h
+                           MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from1 AND :to1
                       AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
                     GROUP BY skiftraknare
                     UNION ALL
                     SELECT op2, DAYOFWEEK(MAX(datum)),
-                           MAX(ibc_ok) / (MAX(drifttid) / 60.0)
+                           MAX(ibc_ok), MAX(drifttid)
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from2 AND :to2
                       AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
                     GROUP BY skiftraknare
                     UNION ALL
                     SELECT op3, DAYOFWEEK(MAX(datum)),
-                           MAX(ibc_ok) / (MAX(drifttid) / 60.0)
+                           MAX(ibc_ok), MAX(drifttid)
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from3 AND :to3
                       AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
@@ -7771,6 +7772,167 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftlagHistorik: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftlag-historik'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // =========================================================
+    // Skiftmomentum — streak analysis per operator
+    // GET ?action=rebotling&run=operator-momentum&days=90
+    // Returns current streak, max streak, last-20-shifts array per operator
+    // =========================================================
+    private function getMomentum(): void {
+        try {
+            $days = max(30, min(365, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Active operator names
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            // Team avg IBC/h for the period (SUM/SUM on deduplicated skiftraknare)
+            $ts = $this->pdo->prepare("
+                SELECT SUM(ibc_ok) AS total_ibc, SUM(drifttid) AS total_min
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) t
+            ");
+            $ts->execute([':from' => $from, ':to' => $to]);
+            $teamRow = $ts->fetch(\PDO::FETCH_ASSOC);
+            $teamAvg = ($teamRow && (float)$teamRow['total_min'] > 0)
+                ? (float)$teamRow['total_ibc'] / ((float)$teamRow['total_min'] / 60.0) : 0.0;
+
+            if ($teamAvg <= 0) {
+                echo json_encode(['success' => true, 'operators' => [], 'team_avg' => 0, 'days' => $days], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Per-operator, per-shift data (chronological) — unique named params for HY093 safety
+            $stmt = $this->pdo->prepare("
+                SELECT op_num, skiftraknare, datum, ibc_ok, drifttid
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare, MIN(datum) AS datum,
+                           MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from1 AND datum <= :to1
+                      AND op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2, skiftraknare, MIN(datum),
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from2 AND datum <= :to2
+                      AND op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3, skiftraknare, MIN(datum),
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from3 AND datum <= :to3
+                      AND op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare
+                ) sub
+                ORDER BY op_num, datum
+            ");
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Group shifts by operator
+            $byOp = [];
+            foreach ($rows as $r) {
+                $opNum = (int)$r['op_num'];
+                if (!isset($operatorNames[$opNum])) continue;
+                $min = (float)$r['drifttid'];
+                $ibcH = $min > 0 ? round((float)$r['ibc_ok'] / ($min / 60.0), 2) : 0.0;
+                $byOp[$opNum][] = [
+                    'datum'      => substr($r['datum'], 0, 10),
+                    'ibc_per_h'  => $ibcH,
+                    'above_avg'  => $ibcH >= $teamAvg,
+                ];
+            }
+
+            // Calculate streaks per operator
+            $operators = [];
+            foreach ($byOp as $opNum => $shifts) {
+                $n = count($shifts);
+                if ($n < 2) continue;
+
+                // Current streak — count backwards from last shift
+                $currentDir = $shifts[$n - 1]['above_avg'];
+                $current = 0;
+                for ($i = $n - 1; $i >= 0; $i--) {
+                    if ($shifts[$i]['above_avg'] === $currentDir) $current++;
+                    else break;
+                }
+
+                // Max above-avg streak
+                $maxStreak = 0;
+                $runLen = 0;
+                foreach ($shifts as $s) {
+                    if ($s['above_avg']) { $runLen++; $maxStreak = max($maxStreak, $runLen); }
+                    else { $runLen = 0; }
+                }
+
+                // Hit rate (% shifts above avg)
+                $totalAbove = 0;
+                foreach ($shifts as $s) { if ($s['above_avg']) $totalAbove++; }
+                $hitRate = (int)round($totalAbove / $n * 100);
+
+                // Last 20 shifts as 0/1 array (oldest to newest)
+                $last20 = array_slice($shifts, -20);
+                $recent = array_map(fn($s) => $s['above_avg'] ? 1 : 0, $last20);
+
+                // Status badge
+                if ($current >= 5 && $currentDir)  $status = 'het';
+                elseif ($current >= 2 && $currentDir)  $status = 'varm';
+                elseif ($current >= 5 && !$currentDir) $status = 'kall';
+                elseif ($current >= 2 && !$currentDir) $status = 'sval';
+                else $status = 'neutral';
+
+                $operators[] = [
+                    'number'         => $opNum,
+                    'name'           => $operatorNames[$opNum],
+                    'antal_skift'    => $n,
+                    'current_streak' => $current,
+                    'current_above'  => $currentDir,
+                    'max_streak'     => $maxStreak,
+                    'hit_rate'       => $hitRate,
+                    'recent'         => $recent,
+                    'last_datum'     => $shifts[$n - 1]['datum'],
+                    'status'         => $status,
+                ];
+            }
+
+            // Sort: hot/cold first (by status priority), then by streak length
+            $prio = ['het' => 0, 'kall' => 1, 'varm' => 2, 'sval' => 3, 'neutral' => 4];
+            usort($operators, function ($a, $b) use ($prio) {
+                $pa = $prio[$a['status']] ?? 4;
+                $pb = $prio[$b['status']] ?? 4;
+                if ($pa !== $pb) return $pa - $pb;
+                return $b['current_streak'] - $a['current_streak'];
+            });
+
+            echo json_encode([
+                'success'   => true,
+                'operators' => $operators,
+                'team_avg'  => round($teamAvg, 2),
+                'days'      => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getMomentum: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid momentumanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 

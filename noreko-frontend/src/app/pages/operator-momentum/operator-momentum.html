@@ -1,0 +1,152 @@
+<div class="momentum-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <a routerLink="/rebotling/operator-prestation" class="back-link">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h2 class="page-title mt-2 mb-1">
+      <i class="fas fa-bolt me-2" style="color:#f6ad55;"></i>Skiftmomentum
+    </h2>
+    <p class="page-sub">Löpande form per operatör — streak av skift över/under lagsnitt</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label class="ctrl-label">Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="form-select form-select-sm ctrl-select">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+        <option [value]="365">365 dagar</option>
+      </select>
+    </div>
+    <div>
+      <label class="ctrl-label">Sortera</label>
+      <select [(ngModel)]="sortBy" class="form-select form-select-sm ctrl-select">
+        <option value="status">Status (het/kall först)</option>
+        <option value="hitrate">Träffsäkerhet</option>
+        <option value="maxstreak">Rekordstreak</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+    <div class="ms-auto" *ngIf="teamAvg > 0">
+      <span class="team-avg-badge">
+        Lagsnitt: <strong>{{ teamAvg | number:'1.1-1' }} IBC/h</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isFetching" class="text-center py-5">
+    <div class="spinner-border" style="color:#63b3ed;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="text-muted mt-3">Beräknar streaks...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !isFetching" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <ng-container *ngIf="!isFetching && !error && operators.length > 0">
+
+    <!-- KPI row -->
+    <div class="row g-2 mb-4">
+      <div class="col-6 col-sm-4 col-md-2" *ngFor="let s of [
+        {label:'Hetast',  count:hetCount,     color:'#fc8181',  icon:'fas fa-fire'},
+        {label:'Varm',    count:varmCount,    color:'#f6ad55',  icon:'fas fa-arrow-up'},
+        {label:'Neutral', count:neutralCount, color:'#a0aec0',  icon:'fas fa-minus'},
+        {label:'Sval',    count:svalCount,    color:'#63b3ed',  icon:'fas fa-arrow-down'},
+        {label:'Kall',    count:kallCount,    color:'#76e4f7',  icon:'fas fa-snowflake'}
+      ]">
+        <div class="kpi-card" [style.border-color]="s.color">
+          <i [class]="s.icon" [style.color]="s.color" class="kpi-icon"></i>
+          <div class="kpi-count" [style.color]="s.color">{{ s.count }}</div>
+          <div class="kpi-label">{{ s.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="row g-3">
+      <div class="col-12 col-lg-6" *ngFor="let op of sorted">
+        <div class="op-card" [style.background]="statusBg(op.status)"
+             [style.border-color]="statusColor(op.status)">
+
+          <!-- Card header -->
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-name-link">
+                {{ op.name }}
+              </a>
+              <div class="op-meta">
+                {{ op.antal_skift }} skift&nbsp;·&nbsp;senast {{ op.last_datum }}
+              </div>
+            </div>
+            <div class="status-badge" [style.color]="statusColor(op.status)"
+                 [style.border-color]="statusColor(op.status)">
+              <i [class]="statusIcon(op.status)" class="me-1"></i>
+              {{ statusLabel(op.status) }}
+            </div>
+          </div>
+
+          <!-- Streak row -->
+          <div class="streak-row mb-2">
+            <div class="streak-box" [class.streak-box--up]="op.current_above"
+                 [class.streak-box--down]="!op.current_above">
+              <span class="streak-num">{{ op.current_streak }}</span>
+              <span class="streak-txt">
+                skift i rad
+                <strong [style.color]="op.current_above ? '#68d391' : '#fc8181'">
+                  {{ op.current_above ? 'ÖVER' : 'UNDER' }}
+                </strong>
+                snitt
+              </span>
+            </div>
+            <div class="streak-meta">
+              <div class="streak-meta-item">
+                <span class="streak-meta-lbl">Rekordstreak</span>
+                <span class="streak-meta-val" style="color:#f6ad55;">{{ op.max_streak }}</span>
+              </div>
+              <div class="streak-meta-item">
+                <span class="streak-meta-lbl">Träffsäkerhet</span>
+                <span class="streak-meta-val" [style.color]="op.hit_rate >= 60 ? '#68d391' : op.hit_rate >= 40 ? '#f6ad55' : '#fc8181'">
+                  {{ op.hit_rate }}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent shifts mini-strip -->
+          <div class="recent-strip">
+            <span class="recent-lbl">Senaste {{ op.recent.length }} skift</span>
+            <div class="dots">
+              <span *ngFor="let d of op.recent" class="dot"
+                    [style.background]="dotColor(d)"
+                    [title]="d === 1 ? 'Över snitt' : 'Under snitt'">
+              </span>
+            </div>
+            <span class="recent-hint">(äldst → nyast)</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty -->
+  <div *ngIf="!isFetching && !error && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-chart-line" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen data för vald period. Minst 2 skift per operatör krävs.</p>
+  </div>
+
+</div>
