@@ -106,30 +106,34 @@ class MyStatsController {
 
     /**
      * Bygg UNION ALL-subquery: op1/op2/op3 → rader med (op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc)
-     * Filtrerad på datum-intervall via :from_date/:to_date.
+     * Datum injiceras direkt (PHP-genererade värden, ej användarinput) — undviker HY093 med EMULATE_PREPARES=false.
      * @param int|null $onlyOpNum  Om satt filtreras även på operatörsnumret.
+     * @param string   $fromDate   Start-datum 'YYYY-MM-DD' (från date()-anrop).
+     * @param string   $toDate     Slut-datum 'YYYY-MM-DD' (från date()-anrop).
      */
-    private function buildUnion(?int $onlyOpNum = null): string {
+    private function buildUnion(?int $onlyOpNum = null, string $fromDate = '', string $toDate = ''): string {
         $opFilter = $onlyOpNum !== null ? "AND op_num = {$onlyOpNum}" : '';
+        $f = $this->pdo->quote($fromDate);
+        $t = $this->pdo->quote($toDate);
         return "
             SELECT op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
             FROM (
                 SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op1 IS NOT NULL AND op1 > 0
-                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
 
                 UNION ALL
                 SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op2 IS NOT NULL AND op2 > 0
-                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
 
                 UNION ALL
                 SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
                 FROM rebotling_ibc
                 WHERE op3 IS NOT NULL AND op3 > 0
-                  AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
 
             ) AS u
             WHERE 1=1 {$opFilter}
@@ -178,14 +182,14 @@ class MyStatsController {
                                MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                                MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                                MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                        FROM ({$this->buildUnion($opNum)}) AS u2
+                        FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u2
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_shift
                     GROUP BY DATE(datum)
                 ) AS per_dag
             ";
             $stmtOp = $this->pdo->prepare($sqlOp);
-            $stmtOp->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtOp->execute([]);
             $rowOp = $stmtOp->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $totalIbc     = (int)($rowOp['total_ibc']     ?? 0);
@@ -211,7 +215,7 @@ class MyStatsController {
                     FROM (
                         SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM ({$this->buildUnion($opNum)}) AS u3
+                        FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u3
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps
                     GROUP BY DATE(datum)
@@ -220,7 +224,7 @@ class MyStatsController {
                 LIMIT 1
             ";
             $stmtBast = $this->pdo->prepare($sqlBast);
-            $stmtBast->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtBast->execute([]);
             $rowBast = $stmtBast->fetch(PDO::FETCH_ASSOC) ?: null;
             $bastDag    = $rowBast ? $rowBast['dag']     : null;
             $bastDagIbc = $rowBast ? (int)$rowBast['dag_ibc'] : 0;
@@ -237,13 +241,13 @@ class MyStatsController {
                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                            MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion()}) AS tall
+                    FROM ({$this->buildUnion(null, $fromDate, $today)}) AS tall
                     GROUP BY op_num, DATE(datum), skiftraknare
                 ) AS tall2
                 GROUP BY op_num
             ";
             $stmtTeam = $this->pdo->prepare($sqlTeam);
-            $stmtTeam->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtTeam->execute([]);
             $teamRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
 
             $teamIbcPerHList  = [];
@@ -349,14 +353,14 @@ class MyStatsController {
                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                            MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion($opNum)}) AS u
+                    FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u
                     GROUP BY DATE(datum), skiftraknare
                 ) AS ps
                 GROUP BY dag
                 ORDER BY dag
             ";
             $stmtMy = $this->pdo->prepare($sqlMy);
-            $stmtMy->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtMy->execute([]);
             $myRows = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
 
             // Bygg lookup dag → data
@@ -376,14 +380,14 @@ class MyStatsController {
                     SELECT op_num, DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion()}) AS tall
+                    FROM ({$this->buildUnion(null, $fromDate, $today)}) AS tall
                     GROUP BY op_num, DATE(datum), skiftraknare
                 ) AS tall2
                 GROUP BY dag
                 ORDER BY dag
             ";
             $stmtTeam = $this->pdo->prepare($sqlTeamDag);
-            $stmtTeam->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtTeam->execute([]);
             $teamDagRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
 
             $teamDagMap = [];
@@ -531,6 +535,8 @@ class MyStatsController {
             // ---- Streak: dagar i rad med > 0 IBC (bakåt från idag) ----
             // Hämta senaste 90 dagar, kolla bakåt
             $fromStreak = date('Y-m-d', strtotime('-90 days'));
+            $fs = $this->pdo->quote($fromStreak);
+            $ts = $this->pdo->quote($today);
             $sqlStreak  = "
                 SELECT dag, SUM(dag_ibc) AS tot
                 FROM (
@@ -540,21 +546,21 @@ class MyStatsController {
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                         FROM rebotling_ibc
                         WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                     ) AS u
                     GROUP BY DATE(datum)
@@ -564,11 +570,9 @@ class MyStatsController {
             ";
             $stmtStreak = $this->pdo->prepare($sqlStreak);
             $stmtStreak->execute([
-                ':op_num_a'  => $opNum,
-                ':op_num_b'  => $opNum,
-                ':op_num_c'  => $opNum,
-                ':from_date' => $fromStreak,
-                ':to_date'   => $today,
+                ':op_num_a' => $opNum,
+                ':op_num_b' => $opNum,
+                ':op_num_c' => $opNum,
             ]);
             $streakRows = $stmtStreak->fetchAll(PDO::FETCH_ASSOC);
 
@@ -598,6 +602,8 @@ class MyStatsController {
             $week2Start = date('Y-m-d', strtotime('-13 days'));
 
             $getWeekIbcPerH = function(string $from, string $to) use ($opNum): float {
+                $qf = $this->pdo->quote($from);
+                $qt = $this->pdo->quote($to);
                 $sql = "
                     SELECT ROUND(
                         SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0)
@@ -610,17 +616,17 @@ class MyStatsController {
                             SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
                             UNION ALL
                             SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
                             UNION ALL
                             SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
                             FROM rebotling_ibc
                             WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
                         ) AS u
                         GROUP BY DATE(datum), skiftraknare
                     ) AS ps
@@ -628,11 +634,9 @@ class MyStatsController {
                 try {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([
-                        ':op_num_a'  => $opNum,
-                        ':op_num_b'  => $opNum,
-                        ':op_num_c'  => $opNum,
-                        ':from_date' => $from,
-                        ':to_date'   => $to,
+                        ':op_num_a' => $opNum,
+                        ':op_num_b' => $opNum,
+                        ':op_num_c' => $opNum,
                     ]);
                     $val = $stmt->fetchColumn();
                     return $val !== null ? (float)$val : 0.0;
