@@ -148,6 +148,8 @@ export class OperatorProduktPage implements OnInit, OnDestroy {
 
   isBestForProduct(op: OperatorRow, prodId: number): boolean {
     const best = this.bestPerProduct[prodId];
-    return !!best && best.op_number === op.op_number;
+    if (!best || best.op_number !== op.op_number) return false;
+    const cell = op.products[prodId];
+    return !!cell && cell.vs_team >= 0;
   }
 }

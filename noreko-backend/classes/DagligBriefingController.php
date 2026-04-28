@@ -2,10 +2,10 @@
 /**
  * DagligBriefingController.php
  * Daglig briefing — VD:ns morgonrapport.
- * Komplett sammanfattning av gardasgens resultat och dagens plan.
+ * Komplett sammanfattning av gårdagens resultat och dagens plan.
  *
  * Endpoints via ?action=daglig-briefing&run=XXX:
- *   run=sammanfattning   — gardasgens KPI:er + autogenererad textsummering
+ *   run=sammanfattning   — gårdagens KPI:er + autogenererad textsummering
  *   run=stopporsaker     — top stopporsaker med minuter och procent
  *   run=stationsstatus   — station-tabell med OEE och status
  *   run=veckotrend       — 7 dagars produktion
@@ -308,7 +308,7 @@ class DagligBriefingController {
             }
 
             // Framsta stopporsak for textsummering
-            $framstaOrsak = 'okand orsak';
+            $framstaOrsak = 'okänd orsak';
             if ($this->tableExists('stopporsak_registreringar')) {
                 try {
                     $sql = "
@@ -339,18 +339,18 @@ class DagligBriefingController {
             $malOk = $malProcent >= 90;
 
             if ($malOk && $oeeOk && $kassOk) {
-                $bedomning = 'Gardasgen gick bra.';
+                $bedomning = 'Gårdagens produktion gick bra.';
             } elseif ($malProcent >= 70 && $oeePercent >= 50) {
-                $bedomning = 'Gardasgen var acceptabel men kan forbattras.';
+                $bedomning = 'Gårdagens produktion var acceptabel men kan förbättras.';
             } else {
-                $bedomning = 'Gardasgen var under mal.';
+                $bedomning = 'Gårdagens produktion var under mål.';
             }
 
             $summering = $bedomning
-                . ' Produktion: ' . $totalIbc . ' IBC (' . $malProcent . '% av mal).'
+                . ' Produktion: ' . $totalIbc . ' IBC (' . $malProcent . '% av mål).'
                 . ' OEE: ' . $oeePercent . '%.'
                 . ' Stopp: ' . $stoppMinuter . ' min'
-                . ($stoppMinuter > 0 ? ', framst pga ' . $framstaOrsak . '.' : '.');
+                . ($stoppMinuter > 0 ? ', främst pga ' . $framstaOrsak . '.' : '.');
 
             $responseData = [
                 'datum'           => $datum,

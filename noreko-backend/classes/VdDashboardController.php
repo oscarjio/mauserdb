@@ -144,28 +144,21 @@ class VdDashboardController {
         $schemaSek = 8 * 3600;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
-        // IBC via kumulativa PLC-fält
+        // ibc_count = sekventiell daglig räknare (startar om varje dag).
+        // MAX(ibc_count) ger korrekt dagstotal. ibc_ok nollställs inte per skift → oanvändbar för dagssumma.
         $totalIbc = 0;
         $okIbc = 0;
         try {
-            $sql = "
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+            $sql = "SELECT COALESCE(MAX(ibc_count), 0) AS total_ibc,
+                           COALESCE(MAX(ibc_ok), 0)    AS ok_ibc
                     FROM rebotling_ibc
-                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-
-                    GROUP BY skiftraknare
-                ) sub
-            ";
+                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':date' => $date, ':dateb' => $date]);
-            $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
-            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
+            $ibcRow   = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
+            $rawOk    = (int)($ibcRow['ok_ibc'] ?? 0);
+            $okIbc    = $rawOk > 0 ? min($totalIbc, $rawOk) : $totalIbc;
         } catch (\Exception $e) {
             error_log('VdDashboardController::calcOeeForDay (ibc): ' . $e->getMessage());
         }

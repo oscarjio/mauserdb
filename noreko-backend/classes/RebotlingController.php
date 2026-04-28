@@ -1725,8 +1725,8 @@ class RebotlingController {
             // Vi slår ihop dem via UNION och aggregerar sedan.
             $sql = "
                 SELECT
-                    o.number        AS op_number,
-                    o.name          AS name,
+                    sub.op_num                                        AS op_number,
+                    COALESCE(o.name, CONCAT('Operatör ', sub.op_num)) AS name,
                     SUM(sub.ibc_ok)   AS ibc_ok,
                     SUM(sub.totalt)   AS totalt,
                     SUM(sub.drifttid) AS drifttid,
@@ -1734,18 +1734,18 @@ class RebotlingController {
                 FROM (
                     SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
                     FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op1 IS NOT NULL
+                    WHERE {$dateFilter} AND s.op1 IS NOT NULL AND s.op1 > 0
                     UNION ALL
                     SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
                     FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op2 IS NOT NULL
+                    WHERE {$dateFilter} AND s.op2 IS NOT NULL AND s.op2 > 0
                     UNION ALL
                     SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
                     FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op3 IS NOT NULL
+                    WHERE {$dateFilter} AND s.op3 IS NOT NULL AND s.op3 > 0
                 ) sub
-                JOIN operators o ON o.number = sub.op_num
-                GROUP BY o.number, o.name
+                LEFT JOIN operators o ON o.number = sub.op_num
+                GROUP BY sub.op_num, o.name
                 ORDER BY (SUM(sub.ibc_ok) / GREATEST(SUM(sub.drifttid)/60, 0.01)) DESC
                 LIMIT 10
             ";
@@ -2060,23 +2060,23 @@ class RebotlingController {
             // rebotling_skiftrapport: op1/op2/op3 = operator number, ibc_ok, totalt, drifttid
             $sql = "
                 SELECT
-                    o.number AS op_number,
-                    o.name   AS op_name,
+                    t.op_num AS op_number,
+                    COALESCE(o.name, CONCAT('Operatör ', t.op_num)) AS op_name,
                     MAX(CASE WHEN t.drifttid > 0 THEN ROUND(t.ibc_ok / (t.drifttid / 60.0), 2) ELSE NULL END) AS best_ibc_h,
                     MAX(CASE WHEN t.totalt   > 0 THEN ROUND(t.ibc_ok / t.totalt * 100, 1) ELSE NULL END)     AS best_kvalitet,
                     COUNT(DISTINCT t.skift_id) AS total_skift
                 FROM (
                     SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op1 IS NOT NULL AND s.ibc_ok > 0
+                    FROM rebotling_skiftrapport s WHERE s.op1 IS NOT NULL AND s.op1 > 0 AND s.ibc_ok > 0
                     UNION ALL
                     SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op2 IS NOT NULL AND s.ibc_ok > 0
+                    FROM rebotling_skiftrapport s WHERE s.op2 IS NOT NULL AND s.op2 > 0 AND s.ibc_ok > 0
                     UNION ALL
                     SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op3 IS NOT NULL AND s.ibc_ok > 0
+                    FROM rebotling_skiftrapport s WHERE s.op3 IS NOT NULL AND s.op3 > 0 AND s.ibc_ok > 0
                 ) t
-                JOIN operators o ON o.number = t.op_num
-                GROUP BY o.number, o.name
+                LEFT JOIN operators o ON o.number = t.op_num
+                GROUP BY t.op_num, o.name
                 ORDER BY best_ibc_h DESC
             ";
             $stmt = $pdo->prepare($sql);
@@ -3792,7 +3792,8 @@ class RebotlingController {
 
                 foreach (['op1', 'op2', 'op3'] as $pos) {
                     $num = (int)$s[$pos];
-                    if ($num <= 0 || !isset($opNames[$num])) continue;
+                    if ($num <= 0) continue;
+                    if (!isset($opNames[$num])) { $opNames[$num] = "Operatör $num"; }
 
                     $opTotals[$num]['ibc']   = ($opTotals[$num]['ibc']   ?? 0) + $ibc;
                     $opTotals[$num]['min']   = ($opTotals[$num]['min']   ?? 0) + $min;
@@ -4530,20 +4531,28 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
+            // GROUP BY skiftraknare + HAVING drifttid >= 30 prevents bogus entries (test records
+            // with drifttid=1-10 min) from inflating IBC/h and causing vs_team_pct > 1000%.
             $shiftSql = "
                 SELECT op_nr, pos, ibc_ok, drifttid
                 FROM (
-                    SELECT op1 AS op_nr, 'op1' AS pos, ibc_ok, drifttid
+                    SELECT op1 AS op_nr, 'op1' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1
+                    GROUP BY skiftraknare, op1
+                    HAVING MAX(drifttid) >= 30
                     UNION ALL
-                    SELECT op2, 'op2', ibc_ok, drifttid
+                    SELECT op2 AS op_nr, 'op2' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2
+                    GROUP BY skiftraknare, op2
+                    HAVING MAX(drifttid) >= 30
                     UNION ALL
-                    SELECT op3, 'op3', ibc_ok, drifttid
+                    SELECT op3 AS op_nr, 'op3' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3
+                    GROUP BY skiftraknare, op3
+                    HAVING MAX(drifttid) >= 30
                 ) s
             ";
 

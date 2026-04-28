@@ -11,7 +11,8 @@ export function formatDuration(minutes: number | null | undefined): string {
 }
 
 export function formatCost(cost: number | null | undefined): string {
-  if (cost === null || cost === undefined || +cost === 0) return '';
+  if (cost === null || cost === undefined) return '–';
+  if (+cost === 0) return '0 kr';
   return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(+cost);
 }
 

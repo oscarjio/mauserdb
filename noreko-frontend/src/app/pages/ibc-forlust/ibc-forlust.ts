@@ -5,9 +5,10 @@ import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { Chart, registerables } from 'chart.js';
 import { environment } from '../../../environments/environment';
 
-declare const Chart: any;
+Chart.register(...registerables);
 
 interface PosResult {
   pos: string;
@@ -165,7 +166,7 @@ export class IbcForlustPage implements OnInit, OnDestroy, AfterViewInit {
         scales: {
           x: { ticks: { color: '#e2e8f0', font: { size: 11 } }, grid: { color: '#2d3748' } },
           y: {
-            ticks: { color: '#e2e8f0', callback: (v: number) => `${v >= 0 ? '+' : ''}${v}` },
+            ticks: { color: '#e2e8f0', callback: (v: number | string) => { const n = +v; return `${n >= 0 ? '+' : ''}${n}`; } },
             grid: { color: '#2d3748' },
           }
         }

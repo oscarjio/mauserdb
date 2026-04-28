@@ -18,6 +18,7 @@ export const routes: Routes = [
       // Public live views
       { path: 'rebotling/live', loadComponent: () => import('./pages/rebotling-live/rebotling-live').then(m => m.RebotlingLivePage) },
       { path: 'rebotling/live-ranking', loadComponent: () => import('./pages/live-ranking/live-ranking').then(m => m.LiveRankingPage) },
+      { path: 'rebotling/topplista', redirectTo: 'rebotling/live-ranking', pathMatch: 'full' },
       { path: 'tvattlinje/live', loadComponent: () => import('./pages/tvattlinje-live/tvattlinje-live').then(m => m.TvattlinjeLivePage) },
       { path: 'saglinje/live', loadComponent: () => import('./pages/saglinje-live/saglinje-live').then(m => m.SaglinjeLivePage) },
       { path: 'klassificeringslinje/live', loadComponent: () => import('./pages/klassificeringslinje-live/klassificeringslinje-live').then(m => m.KlassificeringslinjeLivePage) },
@@ -31,6 +32,7 @@ export const routes: Routes = [
       { path: 'rebotling/benchmarking', canActivate: [authGuard], loadComponent: () => import('./pages/benchmarking/benchmarking').then(m => m.BenchmarkingPage) },
       { path: 'tvattlinje/skiftrapport', loadComponent: () => import('./pages/tvattlinje-skiftrapport/tvattlinje-skiftrapport').then(m => m.TvattlinjeSkiftrapportPage) },
       { path: 'tvattlinje/statistik', loadComponent: () => import('./pages/tvattlinje-statistik/tvattlinje-statistik').then(m => m.TvattlinjeStatistikPage) },
+      { path: 'saglinje', redirectTo: 'saglinje/statistik', pathMatch: 'full' },
       { path: 'saglinje/skiftrapport', loadComponent: () => import('./pages/saglinje-skiftrapport/saglinje-skiftrapport').then(m => m.SaglinjeSkiftrapportPage) },
       { path: 'saglinje/statistik', loadComponent: () => import('./pages/saglinje-statistik/saglinje-statistik').then(m => m.SaglinjeStatistikPage) },
       { path: 'klassificeringslinje/skiftrapport', loadComponent: () => import('./pages/klassificeringslinje-skiftrapport/klassificeringslinje-skiftrapport').then(m => m.KlassificeringslinjeSkiftrapportPage) },

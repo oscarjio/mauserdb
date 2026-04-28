@@ -27,7 +27,7 @@ import { environment } from '../../../environments/environment';
             <input type="password" class="form-control" id="login-password" placeholder="Ange lösenord"
                    [(ngModel)]="password" name="password" required minlength="8" maxlength="128" [disabled]="loading" autocomplete="current-password" />
           </div>
-          <button type="submit" class="btn btn-primary w-100" [disabled]="loading || !username || !password">
+          <button type="submit" class="btn btn-primary w-100" [disabled]="loading">
             <span *ngIf="loading"><i class="fas fa-spinner fa-spin me-1"></i>Loggar in...</span>
             <span *ngIf="!loading">Logga in</span>
           </button>
@@ -98,6 +98,10 @@ export class LoginPage implements OnDestroy {
   }
 
   login() {
+    if (!this.username.trim() || !this.password) {
+      this.error = 'Fyll i användarnamn och lösenord.';
+      return;
+    }
     this.error = '';
     this.loading = true;
 

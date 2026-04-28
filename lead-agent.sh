@@ -157,8 +157,10 @@ Backend:  sshpass -p '5vBtkUS6tfLVoAor' rsync -avz --exclude='db_config.php' nor
 
 Fix as many bugs as possible. Prioritize breaking bugs over cosmetic ones."
 
+WORKER_TIMEOUT=3600  # 1 hour max per worker
+
 echo "[$TIMESTAMP] Launching Worker 1 (feature builder)..." >> "$LOGFILE"
-/home/clawd/.local/bin/claude \
+timeout $WORKER_TIMEOUT /home/clawd/.local/bin/claude \
     --dangerously-skip-permissions \
     --print \
     "$PROMPT_WORKER1" >> "$LOGFILE" 2>&1 &
@@ -169,17 +171,23 @@ echo "[$TIMESTAMP] Worker 1 PID: $W1_PID" >> "$LOGFILE"
 sleep 30
 
 echo "[$TIMESTAMP] Launching Worker 2 (audit/bugfix)..." >> "$LOGFILE"
-/home/clawd/.local/bin/claude \
+timeout $WORKER_TIMEOUT /home/clawd/.local/bin/claude \
     --dangerously-skip-permissions \
     --print \
     "$PROMPT_WORKER2" >> "$LOGFILE" 2>&1 &
 W2_PID=$!
 echo "[$TIMESTAMP] Worker 2 PID: $W2_PID" >> "$LOGFILE"
 
-# Wait for both workers
+# Wait for both workers (bounded by WORKER_TIMEOUT)
 wait $W1_PID
 W1_EXIT=$?
 wait $W2_PID
 W2_EXIT=$?
 
-echo "[$TIMESTAMP] Worker 1 done (exit: $W1_EXIT), Worker 2 done (exit: $W2_EXIT)" >> "$LOGFILE"
+if [ $W1_EXIT -eq 124 ]; then
+    echo "[$TIMESTAMP] Worker 1 TIMED OUT after ${WORKER_TIMEOUT}s" >> "$LOGFILE"
+fi
+if [ $W2_EXIT -eq 124 ]; then
+    echo "[$TIMESTAMP] Worker 2 TIMED OUT after ${WORKER_TIMEOUT}s" >> "$LOGFILE"
+fi
+echo "[$TIMESTAMP] Workers done (W1 exit: $W1_EXIT, W2 exit: $W2_EXIT)" >> "$LOGFILE"

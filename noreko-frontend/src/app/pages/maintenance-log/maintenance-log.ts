@@ -323,11 +323,11 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
         this.isLoading = false;
         if (data?.stats) {
           this.stats = {
-            total_events: +data.stats.total_events,
-            total_minutes: +data.stats.total_minutes,
-            total_cost: +data.stats.total_cost,
-            akut_count: +data.stats.akut_count,
-            pagaende_count: +data.stats.pagaende_count
+            total_events: +(data.stats.total_events ?? 0),
+            total_minutes: +(data.stats.total_minutes ?? 0),
+            total_cost: +(data.stats.total_cost ?? 0),
+            akut_count: +(data.stats.akut_count ?? 0),
+            pagaende_count: +(data.stats.pagaende_count ?? 0)
           };
         }
       });
