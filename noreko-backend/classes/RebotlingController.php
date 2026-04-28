@@ -2594,7 +2594,7 @@ class RebotlingController {
         $weeks = intval($_GET['weeks']  ?? 8);
 
         // Tillåtna veckovärden
-        if (!in_array($weeks, [8, 16, 26], true)) $weeks = 8;
+        if (!in_array($weeks, [8, 16, 26, 52], true)) $weeks = 8;
         if ($opId <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt op_id'], JSON_UNESCAPED_UNICODE);
@@ -2617,28 +2617,37 @@ class RebotlingController {
             // Datumgräns: N veckor bakåt (måndag i startveckan)
             $startDate = date('Y-m-d', strtotime("-{$weeks} weeks"));
 
-            // --- Operatörens veckovisa IBC/h ---
-            // rebotling_skiftrapport: ibc_ok (godk), totalt, drifttid (minuter), datum, op1/op2/op3
+            // --- Operatörens veckovisa IBC/h (dedup per skiftraknare) ---
             $sql = "
                 SELECT
-                    YEAR(s.datum)                                           AS yr,
-                    WEEK(s.datum, 3)                                        AS wk,
-                    MIN(CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0')))    AS vecka_label,
-                    SUM(s.ibc_ok)                                           AS total_ibc,
-                    SUM(COALESCE(s.drifttid, 0))                            AS total_drifttid_min,
+                    YEAR(datum)                                              AS yr,
+                    WEEK(datum, 3)                                           AS wk,
+                    MIN(CONCAT('V.', LPAD(WEEK(datum, 3), 2, '0')))       AS vecka_label,
+                    SUM(ibc_ok)                                              AS total_ibc,
+                    SUM(drifttid_min)                                        AS total_drifttid_min,
                     ROUND(
-                        SUM(s.ibc_ok) / NULLIF(SUM(COALESCE(s.drifttid,0)) / 60.0, 0),
+                        SUM(ibc_ok) / NULLIF(SUM(drifttid_min) / 60.0, 0),
                         2
-                    )                                                       AS ibc_per_h,
+                    )                                                        AS ibc_per_h,
                     ROUND(
-                        SUM(s.ibc_ok) / NULLIF(SUM(s.totalt), 0) * 100,
+                        SUM(ibc_ok) / NULLIF(SUM(totalt), 0) * 100,
                         1
-                    )                                                       AS kvalitet_pct,
-                    COUNT(DISTINCT s.id)                                    AS antal_skift
-                FROM rebotling_skiftrapport s
-                WHERE s.datum >= ?
-                  AND (s.op1 = ? OR s.op2 = ? OR s.op3 = ?)
-                  AND s.ibc_ok > 0
+                    )                                                        AS kvalitet_pct,
+                    COUNT(*)                                                  AS antal_skift
+                FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(ibc_ok)                AS ibc_ok,
+                        MAX(COALESCE(totalt,  0))  AS totalt,
+                        MAX(COALESCE(drifttid,0))  AS drifttid_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= ?
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND ibc_ok > 0
+                    GROUP BY datum, skiftraknare
+                    HAVING MAX(COALESCE(drifttid,0)) >= 30
+                ) AS deduped
                 GROUP BY yr, wk
                 ORDER BY yr ASC, wk ASC
             ";
@@ -2647,33 +2656,34 @@ class RebotlingController {
             $opStmt2->execute([$startDate, $opNumber, $opNumber, $opNumber]);
             $opRows = $opStmt2->fetchAll(PDO::FETCH_ASSOC);
 
-            // --- Lagsnitt per vecka (alla operatörer UNION, exkl. denna) ---
+            // --- Lagsnitt per vecka (alla skift, dedup per skiftraknare) ---
             $teamSql = "
                 SELECT
-                    YEAR(s.datum)                                           AS yr,
-                    WEEK(s.datum, 3)                                        AS wk,
-                    MIN(CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0')))    AS vecka_label,
+                    YEAR(datum)                                              AS yr,
+                    WEEK(datum, 3)                                           AS wk,
+                    MIN(CONCAT('V.', LPAD(WEEK(datum, 3), 2, '0')))       AS vecka_label,
                     ROUND(
-                        SUM(t.ibc_ok) / NULLIF(SUM(COALESCE(t.drifttid_min, 0)) / 60.0, 0),
+                        SUM(ibc_ok) / NULLIF(SUM(drifttid_min) / 60.0, 0),
                         2
-                    )                                                       AS team_ibc_per_h,
-                    COUNT(DISTINCT s.id)                                    AS team_skift
-                FROM rebotling_skiftrapport s
-                JOIN (
-                    SELECT rs.id AS skift_id,
-                           rs.ibc_ok,
-                           COALESCE(rs.drifttid, 0) AS drifttid_min
-                    FROM rebotling_skiftrapport rs
-                    WHERE rs.datum >= ?
-                      AND rs.ibc_ok > 0
-                ) t ON t.skift_id = s.id
-                WHERE s.datum >= ?
-                  AND s.ibc_ok > 0
+                    )                                                        AS team_ibc_per_h,
+                    COUNT(*)                                                  AS team_skift
+                FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(ibc_ok)                AS ibc_ok,
+                        MAX(COALESCE(drifttid,0))  AS drifttid_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= ?
+                      AND ibc_ok > 0
+                    GROUP BY datum, skiftraknare
+                    HAVING MAX(COALESCE(drifttid,0)) >= 30
+                ) AS deduped
                 GROUP BY yr, wk
                 ORDER BY yr ASC, wk ASC
             ";
             $teamStmt = $this->pdo->prepare($teamSql);
-            $teamStmt->execute([$startDate, $startDate]);
+            $teamStmt->execute([$startDate]);
             $teamRows = $teamStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Indexera lagsnitt per vecka-nyckel
