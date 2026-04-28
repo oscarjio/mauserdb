@@ -80,7 +80,7 @@ export class OperatorVeckodagPage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     const url = `${environment.apiUrl}?action=rebotling&run=operator-veckodag&days=${this.days}`;
-    this.http.get<VeckodagResponse>(url).pipe(
+    this.http.get<VeckodagResponse>(url, { withCredentials: true }).pipe(
       timeout(5000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)

@@ -264,6 +264,8 @@ class RebotlingController {
                 $this->getIbcForlust();
             } elseif ($action === 'operator-synergy') {
                 $this->getOperatorSynergy();
+            } elseif ($action === 'skift-topplista') {
+                $this->getSkiftTopplista();
             } else {
                 $this->getLiveStats();
             }
@@ -6990,6 +6992,113 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorSynergy: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid teamkemi'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Skift-topplista — best/worst shifts leaderboard ────────────
+
+    private function getSkiftTopplista(): void {
+        try {
+            $daysParam  = $_GET['days']  ?? '365';
+            $limit      = max(5, min(50, (int)($_GET['limit'] ?? 20)));
+            $minDrifttid = 30;
+
+            if ($daysParam === 'all') {
+                $dateFilter = '';
+                $bindParams = [];
+                $from = null;
+                $to   = null;
+            } else {
+                $days = max(30, min(730, (int)$daysParam));
+                $from = date('Y-m-d', strtotime("-{$days} days"));
+                $to   = date('Y-m-d');
+                $dateFilter = 'AND datum BETWEEN :from AND :to';
+                $bindParams = [':from' => $from, ':to' => $to];
+            }
+
+            // Operator names
+            $opRows  = $this->pdo->query("SELECT number, name FROM operators ORDER BY number")->fetchAll(\PDO::FETCH_ASSOC);
+            $opNames = [];
+            foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
+
+            // Deduplicated shifts, ordered best→worst
+            $sql = "
+                SELECT
+                    skiftraknare,
+                    MAX(datum)              AS datum,
+                    MAX(op1)                AS op1,
+                    MAX(op2)                AS op2,
+                    MAX(op3)                AS op3,
+                    MAX(ibc_ok)             AS ibc_ok,
+                    MAX(ibc_ej_ok)          AS ibc_ej_ok,
+                    MAX(drifttid)           AS drifttid,
+                    MAX(driftstopptime)     AS driftstopptime
+                FROM rebotling_skiftrapport
+                WHERE drifttid >= :mindt {$dateFilter}
+                GROUP BY skiftraknare
+                HAVING MAX(ibc_ok) >= 1
+                ORDER BY MAX(ibc_ok) / (MAX(drifttid) / 60.0) DESC
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':mindt', $minDrifttid, \PDO::PARAM_INT);
+            foreach ($bindParams as $k => $v) $stmt->bindValue($k, $v);
+            $stmt->execute();
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build rows with computed fields
+            $rows = [];
+            foreach ($allShifts as $s) {
+                $ibc = (int)$s['ibc_ok'];
+                $min = (int)$s['drifttid'];
+                if ($min <= 0) continue;
+                $kas = max(0, (int)($s['ibc_ej_ok'] ?? 0));
+                $tot = $ibc + $kas;
+                $stopp = max(0, (int)($s['driftstopptime'] ?? 0));
+                $rows[] = [
+                    'skiftraknare'  => (int)$s['skiftraknare'],
+                    'datum'         => $s['datum'],
+                    'ibc_ok'        => $ibc,
+                    'ibc_per_h'     => round($ibc / ($min / 60.0), 1),
+                    'drifttid_min'  => $min,
+                    'kassation_pct' => $tot > 0 ? round($kas / $tot * 100, 1) : 0.0,
+                    'stopp_pct'     => round($stopp / $min * 100, 1),
+                    'op1_name'      => $opNames[(int)$s['op1']] ?? null,
+                    'op2_name'      => $opNames[(int)$s['op2']] ?? null,
+                    'op3_name'      => $opNames[(int)$s['op3']] ?? null,
+                ];
+            }
+
+            // Team average IBC/h for the period
+            $totalIbc = 0; $totalMin = 0;
+            foreach ($rows as $r) { $totalIbc += $r['ibc_ok']; $totalMin += $r['drifttid_min']; }
+            $teamAvg = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 1) : 0.0;
+
+            // Annotate vs team
+            foreach ($rows as &$r) {
+                $r['vs_team_pct'] = $teamAvg > 0 ? round(($r['ibc_per_h'] / $teamAvg - 1) * 100, 1) : 0.0;
+            }
+            unset($r);
+
+            // Top N (already sorted best→worst), Bottom N (worst first)
+            $top    = array_slice($rows, 0, $limit);
+            $bottom = array_slice(array_reverse($rows), 0, $limit);
+
+            echo json_encode([
+                'success'       => true,
+                'top'           => $top,
+                'bottom'        => $bottom,
+                'team_avg'      => $teamAvg,
+                'total_shifts'  => count($rows),
+                'from'          => $from,
+                'to'            => $to,
+                'days'          => $daysParam,
+                'limit'         => $limit,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftTopplista: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-topplista'], JSON_UNESCAPED_UNICODE);
         }
     }
 

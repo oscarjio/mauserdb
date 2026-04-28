@@ -160,6 +160,7 @@ export const routes: Routes = [
       { path: 'rebotling/ibc-forlust', canActivate: [adminGuard], loadComponent: () => import('./pages/ibc-forlust/ibc-forlust').then(m => m.IbcForlustPage) },
       { path: 'rebotling/operator-positioner', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-positioner/operator-positioner').then(m => m.OperatorPositionerPage) },
       { path: 'rebotling/operator-synergy', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-synergy/operator-synergy').then(m => m.OperatorSynergyPage) },
+      { path: 'rebotling/skift-topplista', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-topplista/skift-topplista').then(m => m.SkiftTopplista) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

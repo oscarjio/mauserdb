@@ -51,6 +51,7 @@ export class OperatorPrestationPage {
         { title: 'Stopptidsanalys', desc: 'Stopptid kopplad till operatör', route: '/rebotling/operator-stopptid', icon: 'fas fa-stop-circle', color: '#fc8181' },
         { title: 'Kassationsanalys', desc: 'Kassationsgrad per operatör', route: '/rebotling/operator-kassation', icon: 'fas fa-trash-alt', color: '#fc8181' },
         { title: 'IBC-förlustkalkyl', desc: 'IBC vunnet/förlorat vs lagsnitt', route: '/rebotling/ibc-forlust', icon: 'fas fa-tint-slash', color: '#fc8181' },
+        { title: 'Skift-topplista', desc: 'Bästa och sämsta skift rankade', route: '/rebotling/skift-topplista', icon: 'fas fa-trophy', color: '#f6ad55' },
       ]
     },
     {

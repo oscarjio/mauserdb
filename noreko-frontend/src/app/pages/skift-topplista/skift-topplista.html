@@ -1,0 +1,157 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h1 class="page-title"><i class="fas fa-trophy me-2 text-warning"></i>Skift-topplista</h1>
+      <p class="page-subtitle text-muted">Bästa och sämsta skift rankade på IBC/h</p>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+
+      <!-- View toggle -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="ctrl-label">Visa:</span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn" [class.btn-warning]="view==='top'" [class.btn-outline-secondary]="view!=='top'"
+                  (click)="view='top'">
+            <i class="fas fa-arrow-up me-1"></i>Bästa skift
+          </button>
+          <button class="btn" [class.btn-danger]="view==='bottom'" [class.btn-outline-secondary]="view!=='bottom'"
+                  (click)="view='bottom'">
+            <i class="fas fa-arrow-down me-1"></i>Sämsta skift
+          </button>
+        </div>
+      </div>
+
+      <!-- Period -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="ctrl-label">Period:</span>
+        <div class="btn-group btn-group-sm">
+          <button *ngFor="let d of daysOptions" class="btn"
+                  [class.active]="days===d.value"
+                  (click)="days=d.value; load()">{{ d.label }}</button>
+        </div>
+      </div>
+
+      <!-- Limit -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="ctrl-label">Antal:</span>
+        <select class="form-select form-select-sm limit-select" [(ngModel)]="limit" (change)="load()">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="30">30</option>
+          <option [ngValue]="50">50</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="period-info text-muted small" *ngIf="from && to">{{ from }} – {{ to }}</div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar skiftdata…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI bar -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-list-ol"></i></div>
+        <div class="kpi-value">{{ totalShifts }}</div>
+        <div class="kpi-label">Analyserade skift</div>
+      </div>
+      <div class="kpi-card kpi-gold">
+        <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
+        <div class="kpi-value">{{ top[0]?.ibc_per_h | number:'1.1-1' }}</div>
+        <div class="kpi-label">Bästa IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="fas fa-equals"></i></div>
+        <div class="kpi-value">{{ teamAvg | number:'1.1-1' }}</div>
+        <div class="kpi-label">Lagsnitt IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+        <div class="kpi-value">{{ bottom[bottom.length-1]?.ibc_per_h | number:'1.1-1' }}</div>
+        <div class="kpi-label">Lägsta IBC/h</div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="rows.length === 0" class="empty-state text-center py-5">
+      <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+      <p class="text-muted">Ingen data för vald period.</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive" *ngIf="rows.length > 0">
+      <table class="table table-dark table-hover align-middle">
+        <thead>
+          <tr>
+            <th class="rank-col">#</th>
+            <th>Datum</th>
+            <th class="text-end">IBC/h</th>
+            <th class="text-end">vs Lag</th>
+            <th class="text-end">Total IBC</th>
+            <th class="text-end d-none d-md-table-cell">Drifttid</th>
+            <th class="text-end d-none d-md-table-cell">Kassation</th>
+            <th class="d-none d-lg-table-cell">Operatörer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; let i = index" class="shift-row">
+            <td>
+              <span class="rank-badge" [class.rank-gold]="view==='top' && i===0"
+                    [class.rank-silver]="view==='top' && i===1"
+                    [class.rank-bronze]="view==='top' && i===2">
+                {{ i + 1 }}
+              </span>
+            </td>
+            <td class="date-cell">
+              <span class="date-txt">{{ formatDate(row.datum) }}</span>
+              <span class="shift-id text-muted">skift #{{ row.skiftraknare }}</span>
+            </td>
+            <td class="text-end">
+              <span class="ibc-h-badge" [ngClass]="ibcHClass(row.vs_team_pct)">
+                {{ row.ibc_per_h | number:'1.1-1' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <span [class.text-success]="row.vs_team_pct >= 0" [class.text-danger]="row.vs_team_pct < 0">
+                {{ vsSign(row.vs_team_pct) }}
+              </span>
+            </td>
+            <td class="text-end fw-semibold">{{ row.ibc_ok }}</td>
+            <td class="text-end d-none d-md-table-cell text-muted">{{ drifttidLabel(row.drifttid_min) }}</td>
+            <td class="text-end d-none d-md-table-cell">
+              <span *ngIf="row.kassation_pct > 0" [class.text-warning]="row.kassation_pct > 5">
+                {{ row.kassation_pct | number:'1.1-1' }}%
+              </span>
+              <span *ngIf="row.kassation_pct === 0" class="text-muted">–</span>
+            </td>
+            <td class="d-none d-lg-table-cell ops-cell text-muted small">{{ ops(row) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row mt-3" *ngIf="rows.length > 0">
+      <span class="legend-item"><span class="tier-dot tier-elite"></span>≥+15% (Elite)</span>
+      <span class="legend-item"><span class="tier-dot tier-solid"></span>+5–+15%</span>
+      <span class="legend-item"><span class="tier-dot tier-ok"></span>±5%</span>
+      <span class="legend-item"><span class="tier-dot tier-developing"></span>-5–-15%</span>
+      <span class="legend-item"><span class="tier-dot tier-low"></span>≤-15%</span>
+    </div>
+
+  </ng-container>
+</div>

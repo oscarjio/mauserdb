@@ -104,7 +104,7 @@ export class SkiftPrognosPage implements OnInit, OnDestroy, AfterViewInit {
 
   private loadOperators(): void {
     const url = `${environment.apiUrl}?action=rebotling&run=skift-prognos`;
-    this.http.get<PrognoseResponse>(url).pipe(
+    this.http.get<PrognoseResponse>(url, { withCredentials: true }).pipe(
       timeout(5000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
@@ -129,7 +129,7 @@ export class SkiftPrognosPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.op3 !== null) params.push(`op3=${this.op3}`);
 
     const url = `${environment.apiUrl}?action=rebotling&run=skift-prognos&${params.join('&')}`;
-    this.http.get<PrognoseResponse>(url).pipe(
+    this.http.get<PrognoseResponse>(url, { withCredentials: true }).pipe(
       timeout(10000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
