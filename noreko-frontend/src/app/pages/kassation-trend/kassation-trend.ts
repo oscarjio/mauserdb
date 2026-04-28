@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 Chart.register(...registerables);
 
 interface WeekPoint {
@@ -100,7 +101,7 @@ export class KassationTrendPage implements OnInit, OnDestroy, AfterViewInit {
     this.chart = null;
 
     this.http.get<ApiResponse>(
-      `/noreko-backend/api.php?action=kassation-trend&weeks=${this.selectedWeeks}`,
+      `${environment.apiUrl}?action=rebotling&run=kassation-trend&weeks=${this.selectedWeeks}`,
       { withCredentials: true }
     ).pipe(
       timeout(15000),
