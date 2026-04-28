@@ -1,0 +1,159 @@
+.kpi-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #4a5568;
+  text-align: center;
+}
+
+.kpi-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-lbl {
+  color: #a0aec0;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.content-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #4a5568;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+}
+
+.op-link:hover {
+  text-decoration: underline;
+}
+
+/* Impact bar rows */
+.impact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #1a202c;
+}
+
+.impact-row:last-child {
+  border-bottom: none;
+}
+
+.impact-name {
+  min-width: 130px;
+  font-size: 13px;
+}
+
+.impact-bar-wrap {
+  flex: 1;
+  height: 14px;
+  background: #1a202c;
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.impact-bar {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.3s ease;
+}
+
+.impact-pos {
+  background: linear-gradient(90deg, #48bb78, #68d391);
+}
+
+.impact-neg {
+  background: linear-gradient(90deg, #fc8181, #e53e3e);
+  margin-left: auto;
+}
+
+.impact-val {
+  min-width: 48px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.impact-badge {
+  min-width: 100px;
+  text-align: right;
+}
+
+.badge-impact {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Attendance badge */
+.att-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-high { background: rgba(72,187,120,0.15); color: #68d391; }
+.badge-med  { background: rgba(246,173,85,0.15);  color: #f6ad55; }
+.badge-low  { background: rgba(160,174,192,0.15); color: #a0aec0; }
+
+/* Status pill */
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+}
+
+/* Disclaimer */
+.disclaimer {
+  background: rgba(99,179,237,0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #a0aec0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Table tweaks */
+.table-dark th {
+  color: #a0aec0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: #4a5568;
+}
+
+.table-dark td {
+  border-color: #2d3748;
+}
+
+.table-dark tbody tr:hover td {
+  background: rgba(99,179,237,0.06);
+}

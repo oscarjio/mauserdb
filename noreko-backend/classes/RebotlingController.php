@@ -282,6 +282,8 @@ class RebotlingController {
                 $this->getProduktAnalys();
             } elseif ($action === 'veckans-topplista') {
                 $this->getVeckansTopplista();
+            } elseif ($action === 'operator-avsaknad') {
+                $this->getOperatorAvsaknad();
             } else {
                 $this->getLiveStats();
             }
@@ -3968,56 +3970,62 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
-            // Per-shift data per operator per position
-            $sql = "
-                SELECT op_nr, pos,
-                       COUNT(*)       AS antal_skift,
-                       SUM(ibc_ok)    AS ibc_ok,
-                       SUM(drifttid)  AS drifttid_min
-                FROM (
-                    SELECT op1 AS op_nr, 'op1' AS pos, ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
-                    UNION ALL
-                    SELECT op2, 'op2', ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
-                    UNION ALL
-                    SELECT op3, 'op3', ibc_ok, drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
-                ) s
-                GROUP BY op_nr, pos
-                HAVING antal_skift >= 1
-            ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            // Deduplicated shifts: one row per skiftraknare (GROUP BY dedup like other analytics methods)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)      AS op1,
+                    MAX(op2)      AS op2,
+                    MAX(op3)      AS op3,
+                    MAX(ibc_ok)   AS ibc_ok,
+                    MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Collect all IBC/h per position for team averages
-            $allPosData = ['op1' => [], 'op2' => [], 'op3' => []];
-            $opPosData  = [];
-            foreach ($rows as $row) {
-                $num = (int)$row['op_nr'];
-                $pos = $row['pos'];
-                $d   = (int)$row['drifttid_min'];
-                $ibc = (int)$row['ibc_ok'];
-                $rate = $d > 0 ? $ibc / ($d / 60.0) : 0;
-                $opPosData[$num][$pos] = [
-                    'ibc_per_h'   => round($rate, 1),
-                    'antal_skift' => (int)$row['antal_skift'],
-                ];
-                $allPosData[$pos][] = $rate;
+            // Accumulate per operator per position (SUM/SUM, not AVG-of-rates)
+            $opPosAcc = [];
+            $teamAcc  = ['op1' => ['ibc'=>0,'min'=>0], 'op2' => ['ibc'=>0,'min'=>0], 'op3' => ['ibc'=>0,'min'=>0]];
+
+            foreach ($shifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $num = (int)$s[$pos];
+                    if ($num <= 0 || !isset($opNames[$num])) continue;
+
+                    if (!isset($opPosAcc[$num][$pos])) {
+                        $opPosAcc[$num][$pos] = ['ibc' => 0, 'min' => 0, 'skift' => 0];
+                    }
+                    $opPosAcc[$num][$pos]['ibc']   += $ibc;
+                    $opPosAcc[$num][$pos]['min']   += $min;
+                    $opPosAcc[$num][$pos]['skift'] += 1;
+
+                    $teamAcc[$pos]['ibc'] += $ibc;
+                    $teamAcc[$pos]['min'] += $min;
+                }
             }
 
-            // Team averages per position
+            // Team averages: SUM(total_ibc) / SUM(total_hours) per position
             $teamAvg = [];
-            foreach ($allPosData as $pos => $vals) {
-                $teamAvg[$pos] = count($vals) > 0 ? array_sum($vals) / count($vals) : 0;
+            foreach ($teamAcc as $pos => $t) {
+                $teamAvg[$pos] = $t['min'] > 0 ? $t['ibc'] / ($t['min'] / 60.0) : 0;
+            }
+
+            // Build per-operator per-position data
+            $opPosData = [];
+            foreach ($opPosAcc as $num => $posData) {
+                foreach ($posData as $pos => $acc) {
+                    $rate = $acc['min'] > 0 ? $acc['ibc'] / ($acc['min'] / 60.0) : 0;
+                    $opPosData[$num][$pos] = [
+                        'ibc_per_h'   => round($rate, 1),
+                        'antal_skift' => $acc['skift'],
+                    ];
+                }
             }
 
             // Build result — for each operator, rating per position
@@ -4236,15 +4244,22 @@ class RebotlingController {
                 return;
             }
 
-            // All shifts for this operator in period
+            // All shifts for this operator in period (dedup by skiftraknare)
             $stmtShifts = $this->pdo->prepare("
-                SELECT skiftraknare, datum, op1, op2, op3,
-                       ibc_ok, drifttid, driftstopptime
+                SELECT skiftraknare,
+                       MAX(datum)          AS datum,
+                       MAX(op1)            AS op1,
+                       MAX(op2)            AS op2,
+                       MAX(op3)            AS op3,
+                       MAX(ibc_ok)         AS ibc_ok,
+                       MAX(drifttid)       AS drifttid,
+                       MAX(driftstopptime) AS driftstopptime
                 FROM rebotling_skiftrapport
                 WHERE datum BETWEEN :from1 AND :to1
                   AND drifttid > 0
                   AND (op1 = :op1 OR op2 = :op2 OR op3 = :op3)
-                ORDER BY datum ASC, skiftraknare ASC
+                GROUP BY skiftraknare
+                ORDER BY MAX(datum) ASC, skiftraknare ASC
             ");
             $stmtShifts->execute([
                 ':from1' => $from, ':to1' => $to,
@@ -4252,13 +4267,20 @@ class RebotlingController {
             ]);
             $opRows = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Team data for position averages and "effect on team"
+            // Team data for position averages and "effect on team" (dedup by skiftraknare)
             $stmtTeam = $this->pdo->prepare("
-                SELECT datum, skiftraknare, op1, op2, op3, ibc_ok, drifttid
+                SELECT skiftraknare,
+                       MAX(datum) AS datum,
+                       MAX(op1)   AS op1,
+                       MAX(op2)   AS op2,
+                       MAX(op3)   AS op3,
+                       MAX(ibc_ok)    AS ibc_ok,
+                       MAX(drifttid)  AS drifttid
                 FROM rebotling_skiftrapport
                 WHERE datum BETWEEN :from2 AND :to2
                   AND drifttid > 0
-                ORDER BY datum ASC
+                GROUP BY skiftraknare
+                ORDER BY MAX(datum) ASC
             ");
             $stmtTeam->execute([':from2' => $from, ':to2' => $to]);
             $teamRows = $stmtTeam->fetchAll(\PDO::FETCH_ASSOC);
@@ -4413,7 +4435,7 @@ class RebotlingController {
                 "SELECT number, name FROM operators WHERE active=1 ORDER BY name"
             )->fetchAll(\PDO::FETCH_ASSOC);
 
-            // All shifts in period — group by operator + week Monday
+            // All shifts in period — deduplicate per skiftraknare in each branch, then group by operator + week Monday
             $sql = "
                 SELECT op_nr,
                        DATE(DATE_SUB(datum, INTERVAL (WEEKDAY(datum)) DAY)) AS week_monday,
@@ -4421,17 +4443,20 @@ class RebotlingController {
                        SUM(ibc_ok)    AS total_ibc,
                        SUM(drifttid)  AS total_drifttid
                 FROM (
-                    SELECT op1 AS op_nr, datum, ibc_ok, drifttid
+                    SELECT op1 AS op_nr, MAX(datum) AS datum, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
                     FROM rebotling_skiftrapport
                     WHERE op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                    GROUP BY skiftraknare, op1
                     UNION ALL
-                    SELECT op2, datum, ibc_ok, drifttid
+                    SELECT op2, MAX(datum), MAX(ibc_ok), MAX(drifttid)
                     FROM rebotling_skiftrapport
                     WHERE op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    GROUP BY skiftraknare, op2
                     UNION ALL
-                    SELECT op3, datum, ibc_ok, drifttid
+                    SELECT op3, MAX(datum), MAX(ibc_ok), MAX(drifttid)
                     FROM rebotling_skiftrapport
                     WHERE op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                    GROUP BY skiftraknare, op3
                 ) s
                 GROUP BY op_nr, week_monday
                 ORDER BY op_nr, week_monday
@@ -8367,6 +8392,96 @@ class RebotlingController {
             error_log('RebotlingController::getVeckansTopplista: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckans topplista'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Operator Absence Impact ────────────────────────────────────
+    private function getOperatorAvsaknad(): void {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(365, (int)$_GET['days'])) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Active operators
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            // Deduplicated shifts for the period
+            $stmt = $this->pdo->prepare("
+                SELECT MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                  AND drifttid >= 30 AND ibc_ok > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $totalShifts = count($shifts);
+
+            // For each operator: partition shifts into with/without
+            $results = [];
+            foreach ($opMap as $num => $name) {
+                $wIbc = 0; $wMin = 0; $wCnt = 0;
+                $nIbc = 0; $nMin = 0; $nCnt = 0;
+
+                foreach ($shifts as $s) {
+                    $ibc = (int)$s['ibc_ok'];
+                    $min = (int)$s['drifttid'];
+                    $ops = [(int)($s['op1'] ?? 0), (int)($s['op2'] ?? 0), (int)($s['op3'] ?? 0)];
+
+                    if (in_array($num, $ops, true)) {
+                        $wIbc += $ibc; $wMin += $min; $wCnt++;
+                    } else {
+                        $nIbc += $ibc; $nMin += $min; $nCnt++;
+                    }
+                }
+
+                if ($wCnt < 3) continue; // Need minimum presence to be meaningful
+
+                $withIbcH    = $wMin > 0 ? round($wIbc / ($wMin / 60.0), 2) : 0.0;
+                $withoutIbcH = $nMin > 0 ? round($nIbc / ($nMin / 60.0), 2) : 0.0;
+                $impact      = round($withIbcH - $withoutIbcH, 2);
+                $attendance  = $totalShifts > 0 ? round($wCnt / $totalShifts * 100.0, 1) : 0.0;
+
+                $results[] = [
+                    'number'       => $num,
+                    'name'         => $name,
+                    'with_shifts'  => $wCnt,
+                    'with_ibc_h'   => $withIbcH,
+                    'without_shifts' => $nCnt,
+                    'without_ibc_h'  => $withoutIbcH > 0 ? $withoutIbcH : null,
+                    'impact'       => $impact,
+                    'attendance'   => $attendance,
+                ];
+            }
+
+            // Sort highest impact first
+            usort($results, fn($a, $b) => $b['impact'] <=> $a['impact']);
+
+            // Period team average (all shifts)
+            $totIbc = 0; $totMin = 0;
+            foreach ($shifts as $s) { $totIbc += (int)$s['ibc_ok']; $totMin += (int)$s['drifttid']; }
+            $teamAvg = $totMin > 0 ? round($totIbc / ($totMin / 60.0), 2) : 0.0;
+
+            echo json_encode([
+                'success'       => true,
+                'from'          => $from,
+                'to'            => $to,
+                'days'          => $days,
+                'total_shifts'  => $totalShifts,
+                'team_avg'      => $teamAvg,
+                'operators'     => $results,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorAvsaknad: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid frånvaroanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 

@@ -1,0 +1,189 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-user-minus me-2" style="color:#fc8181;"></i>Operatörsvärde
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      Hur påverkas lagets IBC/h när en operatör är frånvarande? Visar korrelation — påverkas av vem som ersätter.
+    </p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="d-flex align-items-center gap-3 flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let d of [30,60,90,180]" class="btn"
+                [style.background]="days===d ? '#fc8181' : '#2d3748'"
+                [style.color]="days===d ? '#1a202c' : '#e2e8f0'"
+                style="border:1px solid #4a5568;font-weight:600;"
+                (click)="days=d; load()">{{ d }}d</button>
+      </div>
+    </div>
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Sortera</label>
+      <select [(ngModel)]="sortBy" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:180px;">
+        <option value="impact">Påverkan (IBC/h)</option>
+        <option value="with_ibc_h">IBC/h när närv.</option>
+        <option value="attendance">Närvaro%</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+    <div *ngIf="from" style="color:#718096;font-size:12px;margin-top:16px;">
+      {{ from }} → {{ to }} &nbsp;·&nbsp; {{ totalShifts }} skift analyserade
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#fc8181;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p style="color:#a0aec0;margin-top:12px;">Beräknar operatörsvärde...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#68d391;">{{ topOperator?.name ?? '–' }}</div>
+          <div class="kpi-lbl">Störst positiv påverkan</div>
+          <div class="kpi-sub" *ngIf="topOperator">+{{ topOperator.impact.toFixed(1) }} IBC/h</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#63b3ed;">{{ teamAvg | number:'1.1-1' }}</div>
+          <div class="kpi-lbl">Periodens lagssnitt IBC/h</div>
+          <div class="kpi-sub">{{ totalShifts }} skift</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#f6ad55;">{{ operators.length }}</div>
+          <div class="kpi-lbl">Operatörer analyserade</div>
+          <div class="kpi-sub">≥3 skift krävs</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#a0aec0;">{{ avgAttendance }}%</div>
+          <div class="kpi-lbl">Snitt närvaro</div>
+          <div class="kpi-sub">per operatör</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact bar chart -->
+    <div class="content-card mb-4">
+      <div class="section-title mb-3">Påverkan på lagets IBC/h (med – utan operatör)</div>
+      <div *ngFor="let op of sorted" class="impact-row">
+        <div class="impact-name">
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+        </div>
+        <div class="impact-bar-wrap">
+          <!-- Positive bar -->
+          <div *ngIf="op.impact >= 0" class="impact-bar impact-pos"
+               [style.width.%]="barWidth(op.impact)">
+          </div>
+          <!-- Negative bar -->
+          <div *ngIf="op.impact < 0" class="impact-bar impact-neg"
+               [style.width.%]="barWidth(op.impact)">
+          </div>
+        </div>
+        <div class="impact-val" [style.color]="impactColor(op.impact)">
+          {{ impactSign(op.impact) }}
+        </div>
+        <div class="impact-badge">
+          <span class="badge-impact" [style.color]="impactColor(op.impact)">
+            {{ impactLabel(op.impact) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed table -->
+    <div class="content-card">
+      <div class="section-title mb-3">Detaljerad jämförelsetabell</div>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle" style="font-size:13px;">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="text-center">Närvaro</th>
+              <th class="text-center">Skift<br><small class="text-muted">med</small></th>
+              <th class="text-center">IBC/h<br><small class="text-muted">när närv.</small></th>
+              <th class="text-center">Skift<br><small class="text-muted">utan</small></th>
+              <th class="text-center">IBC/h<br><small class="text-muted">när frånv.</small></th>
+              <th class="text-center">Påverkan</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of sorted">
+              <td>
+                <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+              </td>
+              <td class="text-center">
+                <span class="att-badge" [class]="attendanceBadge(op.attendance)">
+                  {{ op.attendance }}%
+                </span>
+              </td>
+              <td class="text-center text-muted">{{ op.with_shifts }}</td>
+              <td class="text-center" style="color:#e2e8f0;font-weight:600;">
+                {{ op.with_ibc_h | number:'1.1-1' }}
+              </td>
+              <td class="text-center text-muted">{{ op.without_shifts }}</td>
+              <td class="text-center text-muted">{{ withoutDisplay(op) }}</td>
+              <td class="text-center">
+                <span [style.color]="impactColor(op.impact)" style="font-weight:700;font-size:14px;">
+                  {{ impactSign(op.impact) }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="status-pill" [style.color]="impactColor(op.impact)"
+                      [style.borderColor]="impactColor(op.impact)">
+                  {{ impactLabel(op.impact) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer mt-3">
+        <i class="fas fa-info-circle me-1" style="color:#63b3ed;"></i>
+        <span>
+          Påverkan = lagets IBC/h under operatörens skift minus lagets IBC/h under skift utan hen.
+          Värdet påverkas av vem som ersätter och vilka produkter som körs — använd som indikation, inte absolut sanning.
+        </span>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && !operators.length" class="text-center py-5">
+    <i class="fas fa-user-slash" style="font-size:2.5rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen data för vald period (minst 3 skift per operatör krävs).</p>
+  </div>
+
+</div>

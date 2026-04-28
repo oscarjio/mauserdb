@@ -45,6 +45,7 @@ export class OperatorPrestationPage {
         { title: 'Veckovis trend', desc: 'IBC/h per vecka vs lagsnitt + prognos', route: '/rebotling/operator-trend', icon: 'fas fa-chart-line', color: '#63b3ed' },
         { title: 'Skiftmomentum', desc: 'Löpande form — streak av skift över/under snitt', route: '/rebotling/operator-momentum', icon: 'fas fa-bolt', color: '#f6ad55' },
         { title: 'Konsistensanalys', desc: 'Vem är mest pålitlig skift för skift? (CV)', route: '/rebotling/operator-konsistens', icon: 'fas fa-ruler', color: '#a78bfa' },
+        { title: 'Operatörsvärde', desc: 'Hur påverkas IBC/h när operatören är frånvarande?', route: '/rebotling/operator-avsaknad', icon: 'fas fa-user-minus', color: '#fc8181' },
       ]
     },
     {
