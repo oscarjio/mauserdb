@@ -276,6 +276,8 @@ class RebotlingController {
                 $this->getSkiftlagHistorik();
             } elseif ($action === 'operator-momentum') {
                 $this->getMomentum();
+            } elseif ($action === 'operator-konsistens') {
+                $this->getOperatorKonsistens();
             } else {
                 $this->getLiveStats();
             }
@@ -7933,6 +7935,135 @@ class RebotlingController {
             error_log('RebotlingController::getMomentum: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid momentumanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getOperatorKonsistens(): void
+    {
+        try {
+            $days = max(30, min(365, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            $opStmt = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $opNames[(int)$op['number']] = $op['name'];
+            }
+
+            // Team avg IBC/h (SUM/SUM on deduplicated skiftraknare)
+            $ts = $this->pdo->prepare("
+                SELECT SUM(ibc_ok) AS total_ibc, SUM(drifttid) AS total_min
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) t
+            ");
+            $ts->execute([':from' => $from, ':to' => $to]);
+            $teamRow = $ts->fetch(\PDO::FETCH_ASSOC);
+            $teamAvgIbch = ($teamRow && (float)$teamRow['total_min'] > 0)
+                ? (float)$teamRow['total_ibc'] / ((float)$teamRow['total_min'] / 60.0)
+                : 0.0;
+
+            // Per-operator per-shift IBC/h (unique named params: HY093-safe)
+            $stmt = $this->pdo->prepare("
+                SELECT op_num, ibc_ok, drifttid
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from1 AND datum <= :to1
+                      AND op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from2 AND datum <= :to2
+                      AND op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from3 AND datum <= :to3
+                      AND op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare
+                ) sub
+            ");
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Collect per-shift IBC/h values per operator
+            $opVals = [];
+            foreach ($rows as $r) {
+                $opNum = (int)$r['op_num'];
+                $dt    = (float)$r['drifttid'];
+                if ($dt <= 0 || !isset($opNames[$opNum])) continue;
+                $opVals[$opNum][] = (float)$r['ibc_ok'] / ($dt / 60.0);
+            }
+
+            $operators = [];
+            foreach ($opVals as $opNum => $vals) {
+                if (count($vals) < 3) continue;
+
+                $n    = count($vals);
+                $mean = array_sum($vals) / $n;
+                $var  = array_sum(array_map(fn($v) => ($v - $mean) ** 2, $vals)) / $n;
+                $std  = sqrt($var);
+                $cv   = $mean > 0 ? ($std / $mean * 100.0) : 0.0;
+
+                $sorted = $vals;
+                sort($sorted);
+                $minVal = $sorted[0];
+                $maxVal = $sorted[$n - 1];
+
+                if ($cv <= 15)      $badge = 'mycket_konsekvent';
+                elseif ($cv <= 25)  $badge = 'konsekvent';
+                elseif ($cv <= 35)  $badge = 'variabel';
+                else                $badge = 'oforutsagbar';
+
+                $operators[] = [
+                    'number'    => $opNum,
+                    'name'      => $opNames[$opNum],
+                    'avg_ibc_h' => round($mean, 2),
+                    'stddev'    => round($std, 2),
+                    'cv'        => round($cv, 1),
+                    'min_ibc_h' => round($minVal, 2),
+                    'max_ibc_h' => round($maxVal, 2),
+                    'range'     => round($maxVal - $minVal, 2),
+                    'shifts'    => $n,
+                    'badge'     => $badge,
+                    'vs_team'   => $teamAvgIbch > 0 ? round(($mean - $teamAvgIbch) / $teamAvgIbch * 100.0, 1) : 0.0,
+                ];
+            }
+
+            usort($operators, fn($a, $b) => $a['cv'] <=> $b['cv']);
+
+            $teamCv = count($operators) > 0
+                ? array_sum(array_column($operators, 'cv')) / count($operators)
+                : 0.0;
+
+            echo json_encode([
+                'success'      => true,
+                'from'         => $from,
+                'to'           => $to,
+                'days'         => $days,
+                'team_avg_ibch'=> round($teamAvgIbch, 2),
+                'team_avg_cv'  => round($teamCv, 1),
+                'operators'    => $operators,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorKonsistens: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid konsistensanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 

@@ -44,6 +44,7 @@ export class OperatorPrestationPage {
         { title: 'Skifttyp-analys', desc: 'IBC/h per dag-, kväll- och nattskift', route: '/rebotling/operator-skifttyp', icon: 'fas fa-clock', color: '#a78bfa' },
         { title: 'Veckovis trend', desc: 'IBC/h per vecka vs lagsnitt + prognos', route: '/rebotling/operator-trend', icon: 'fas fa-chart-line', color: '#63b3ed' },
         { title: 'Skiftmomentum', desc: 'Löpande form — streak av skift över/under snitt', route: '/rebotling/operator-momentum', icon: 'fas fa-bolt', color: '#f6ad55' },
+        { title: 'Konsistensanalys', desc: 'Vem är mest pålitlig skift för skift? (CV)', route: '/rebotling/operator-konsistens', icon: 'fas fa-ruler', color: '#a78bfa' },
       ]
     },
     {

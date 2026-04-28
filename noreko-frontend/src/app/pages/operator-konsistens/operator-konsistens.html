@@ -1,0 +1,140 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h2><i class="fas fa-ruler me-2"></i>Konsistensanalys</h2>
+      <p class="page-sub">Hur pålitlig är varje operatör skift för skift? Låg variation = förutsägbar produktion.</p>
+    </div>
+    <div class="period-btns">
+      <button *ngFor="let d of [30, 60, 90, 180]"
+              [class.active]="days === d"
+              (click)="setDays(d)">{{ d }}d</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-light" role="status"></div>
+    <span>Beräknar konsistens…</span>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI Cards -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Lag-snitt IBC/h</div>
+        <div class="kpi-value">{{ teamAvgIbch | number:'1.1-1' }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Lag-snitt CV</div>
+        <div class="kpi-value" [style.color]="cvColor(teamAvgCv)">{{ teamAvgCv | number:'1.1-1' }}%</div>
+      </div>
+      <div class="kpi-card highlight-green" *ngIf="mostConsistent">
+        <div class="kpi-label">Mest konsekvent</div>
+        <div class="kpi-value kpi-name">{{ mostConsistent.name }}</div>
+        <div class="kpi-sub">CV {{ mostConsistent.cv | number:'1.1-1' }}%</div>
+      </div>
+      <div class="kpi-card highlight-red" *ngIf="mostVariable">
+        <div class="kpi-label">Mest variabel</div>
+        <div class="kpi-value kpi-name">{{ mostVariable.name }}</div>
+        <div class="kpi-sub">CV {{ mostVariable.cv | number:'1.1-1' }}%</div>
+      </div>
+    </div>
+
+    <!-- Badge filter pills -->
+    <div class="filter-row">
+      <button class="pill" [class.active]="badgeFilter === 'alla'" (click)="setBadgeFilter('alla')">
+        Alla ({{ operators.length }})
+      </button>
+      <button class="pill pill-mk" [class.active]="badgeFilter === 'mycket_konsekvent'" (click)="setBadgeFilter('mycket_konsekvent')">
+        Mycket konsekvent ({{ countPerBadge.mycket_konsekvent }})
+      </button>
+      <button class="pill pill-k" [class.active]="badgeFilter === 'konsekvent'" (click)="setBadgeFilter('konsekvent')">
+        Konsekvent ({{ countPerBadge.konsekvent }})
+      </button>
+      <button class="pill pill-v" [class.active]="badgeFilter === 'variabel'" (click)="setBadgeFilter('variabel')">
+        Variabel ({{ countPerBadge.variabel }})
+      </button>
+      <button class="pill pill-o" [class.active]="badgeFilter === 'oforutsagbar'" (click)="setBadgeFilter('oforutsagbar')">
+        Oförutsägbar ({{ countPerBadge.oforutsagbar }})
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table class="kons-table">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="setSort('name')">Operatör{{ sortIndicator('name') }}</th>
+            <th>Badge</th>
+            <th class="sortable" (click)="setSort('cv')">CV %{{ sortIndicator('cv') }} <span class="th-hint">(lägre = bättre)</span></th>
+            <th class="sortable num-col" (click)="setSort('avg_ibc_h')">Snitt IBC/h{{ sortIndicator('avg_ibc_h') }}</th>
+            <th class="num-col">StdDev</th>
+            <th class="num-col">Min IBC/h</th>
+            <th class="num-col">Max IBC/h</th>
+            <th class="num-col">Spann</th>
+            <th class="num-col">Vs lag</th>
+            <th class="sortable num-col" (click)="setSort('shifts')">Skift{{ sortIndicator('shifts') }}</th>
+            <th class="num-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of filtered">
+            <td class="op-name">{{ op.name }}</td>
+            <td>
+              <span class="badge-pill" [class]="badgeClass(op.badge)">
+                {{ badgeLabel(op.badge) }}
+              </span>
+            </td>
+            <td>
+              <div class="cv-bar-wrap">
+                <div class="cv-bar" [style.width.%]="cvBarWidth(op.cv)" [style.background]="cvColor(op.cv)"></div>
+                <span class="cv-val" [style.color]="cvColor(op.cv)">{{ op.cv | number:'1.1-1' }}%</span>
+              </div>
+            </td>
+            <td class="num-col bold">{{ op.avg_ibc_h | number:'1.1-1' }}</td>
+            <td class="num-col dim">± {{ op.stddev | number:'1.1-1' }}</td>
+            <td class="num-col dim">{{ op.min_ibc_h | number:'1.1-1' }}</td>
+            <td class="num-col dim">{{ op.max_ibc_h | number:'1.1-1' }}</td>
+            <td class="num-col dim">{{ op.range | number:'1.1-1' }}</td>
+            <td class="num-col" [class]="vsTeamClass(op.vs_team)">
+              {{ op.vs_team >= 0 ? '+' : '' }}{{ op.vs_team | number:'1.1-1' }}%
+            </td>
+            <td class="num-col dim">{{ op.shifts }}</td>
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="profile-link" title="Visa profil">
+                <i class="fas fa-user-circle"></i>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Explanation -->
+    <div class="explainer-card">
+      <h5><i class="fas fa-info-circle me-2"></i>Vad mäter CV?</h5>
+      <p>
+        <strong>CV (Variationskoefficient)</strong> = standardavvikelse ÷ medelvärde × 100.
+        Det visar hur stor spridningen i IBC/h är <em>relativt</em> till snittet.
+        En operatör med CV 10% har mycket jämna skift medan CV 40% innebär stora upp- och nedgångar.
+      </p>
+      <div class="legend-row">
+        <span class="leg-item leg-mk">≤ 15% — Mycket konsekvent</span>
+        <span class="leg-item leg-k">16–25% — Konsekvent</span>
+        <span class="leg-item leg-v">26–35% — Variabel</span>
+        <span class="leg-item leg-o">> 35% — Oförutsägbar</span>
+      </div>
+    </div>
+
+    <div class="period-note">Period: {{ from }} → {{ to }} | Minst 3 skift per operatör krävs</div>
+  </ng-container>
+
+  <div *ngIf="!loading && !error && operators.length === 0" class="empty-state">
+    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+    <div>Inga operatörer med tillräckligt med data för vald period.</div>
+  </div>
+</div>
