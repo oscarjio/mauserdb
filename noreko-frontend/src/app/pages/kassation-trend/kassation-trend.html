@@ -7,7 +7,7 @@
     </div>
     <div class="kt-controls">
       <label>Period</label>
-      <select [(ngModel)]="selectedWeeks" (change)="load()">
+      <select [(ngModel)]="selectedWeeks" (ngModelChange)="load()">
         <option *ngFor="let w of weeksOptions" [value]="w">{{ w }} veckor</option>
       </select>
     </div>
