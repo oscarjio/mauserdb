@@ -1,5 +1,7 @@
 # MauserDB Dev Log
 
+2026-04-28 | bugfix-batch | committed+pushed | VD-dashboard visade 0 IBC → använder nu MAX(ibc_count) istf SUM(MAX(ibc_ok)) per skiftraknare (ibc_ok nollställs inte korrekt). Daglig-briefing "Gardasgen" → "Gårdagens" + övriga saknade å/ä/ö. Login-knapp reagerar inte på klick → tog bort [disabled] när fälten är tomma (autocomplete bug). Lade till lead-agent-watchdog.sh (cron var 20min, dödar hängd agent >95min, stat mtime för ålderskoll). lead-agent.sh: timeout 3600s på worker-anrop.
+
 2026-04-24 | operator-kassation | deployed | Kassationsanalys per operatör (/rebotling/operator-kassation): kassationsgrad % (ibc_ej_ok / totalt), bur ej ok, IBC godkänd, trend (förbättring/stabil/försämring jämfört med första vs andra halvperioden), vs-lagsnitt (pp). 4 KPI-kort: lagets snittgrad, bäst/sämst, totalt kasserade. Horisontella staplar med färgkodning (grön<laget×0.6, gul<laget×1.3, röd övriga). Detaljerad tabell med länk till operatörsprofil. Status-badge: Låg/Normal/Hög kassation. Välj 30/60/90/180 dagar. Nås via Rebotling admin-menyn.
 
 2026-04-24 | operator-veckodag | deployed | Prestanda per veckodag (/rebotling/operator-veckodag): färgkodad heatmap med operatörer som rader och veckodagar (Mån–Sön) som kolumner. Celler visar IBC/h + % vs lagsnitt. ★ markerar varje operatörs bästa dag. Rekommendationskort högst upp: "Bäst måndag: Ted (22.5 IBC/h)". Lagsnitt-rad som referens. Klickbar operatörslänk till profil. Välj 30/60/90/180 dagar. Nås via Rebotling admin-menyn.
