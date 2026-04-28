@@ -3625,6 +3625,8 @@ class RebotlingController {
     }
 
     private function queryOperatorPeriodStats(string $from, string $to): array {
+        // GROUP BY skiftraknare in each branch deduplicates PLC multi-rows per shift.
+        // HAVING MAX(drifttid) >= 30 filters out test/bogus entries.
         $sql = "
             SELECT op_nr, pos,
                    COUNT(*)                            AS antal_skift,
@@ -3633,25 +3635,34 @@ class RebotlingController {
                    SUM(bur_ej_ok)                      AS bur_ej_ok,
                    SUM(totalt)                         AS totalt,
                    SUM(drifttid)                       AS drifttid_min,
-                   SUM(COALESCE(rasttime,0))            AS rasttime_min
+                   SUM(rasttime)                       AS rasttime_min
             FROM (
                 SELECT op1 AS op_nr, 'op1' AS pos,
-                       ibc_ok, COALESCE(ibc_ej_ok,0) AS ibc_ej_ok, COALESCE(bur_ej_ok,0) AS bur_ej_ok,
-                       COALESCE(totalt,0) AS totalt, COALESCE(drifttid,0) AS drifttid, COALESCE(rasttime,0) AS rasttime
+                       MAX(ibc_ok) AS ibc_ok, MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                       MAX(COALESCE(bur_ej_ok,0)) AS bur_ej_ok, MAX(COALESCE(totalt,0)) AS totalt,
+                       MAX(COALESCE(drifttid,0)) AS drifttid, MAX(COALESCE(rasttime,0)) AS rasttime
                 FROM rebotling_skiftrapport
-                WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
+                WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1
+                GROUP BY skiftraknare, op1
+                HAVING MAX(drifttid) >= 30
                 UNION ALL
                 SELECT op2, 'op2',
-                       ibc_ok, COALESCE(ibc_ej_ok,0), COALESCE(bur_ej_ok,0),
-                       COALESCE(totalt,0), COALESCE(drifttid,0), COALESCE(rasttime,0)
+                       MAX(ibc_ok), MAX(COALESCE(ibc_ej_ok,0)),
+                       MAX(COALESCE(bur_ej_ok,0)), MAX(COALESCE(totalt,0)),
+                       MAX(COALESCE(drifttid,0)), MAX(COALESCE(rasttime,0))
                 FROM rebotling_skiftrapport
-                WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2
+                GROUP BY skiftraknare, op2
+                HAVING MAX(drifttid) >= 30
                 UNION ALL
                 SELECT op3, 'op3',
-                       ibc_ok, COALESCE(ibc_ej_ok,0), COALESCE(bur_ej_ok,0),
-                       COALESCE(totalt,0), COALESCE(drifttid,0), COALESCE(rasttime,0)
+                       MAX(ibc_ok), MAX(COALESCE(ibc_ej_ok,0)),
+                       MAX(COALESCE(bur_ej_ok,0)), MAX(COALESCE(totalt,0)),
+                       MAX(COALESCE(drifttid,0)), MAX(COALESCE(rasttime,0))
                 FROM rebotling_skiftrapport
-                WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3
+                GROUP BY skiftraknare, op3
+                HAVING MAX(drifttid) >= 30
             ) combined
             GROUP BY op_nr, pos
             HAVING antal_skift > 0
@@ -3708,6 +3719,7 @@ class RebotlingController {
     }
 
     private function queryOperatorWeeklyTrend(int $opNr, string $from, string $to): array {
+        // GROUP BY skiftraknare deduplicates PLC multi-rows; HAVING >= 30 filters test records.
         $sql = "
             SELECT YEARWEEK(datum, 1) AS yw,
                    MIN(datum)         AS week_start,
@@ -3715,14 +3727,23 @@ class RebotlingController {
                    SUM(ibc_ok)        AS ibc_ok,
                    SUM(drifttid)      AS drifttid_min
             FROM (
-                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
-                WHERE op1 = :op AND datum BETWEEN :from AND :to AND drifttid > 0
+                SELECT datum, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE op1 = :op AND datum BETWEEN :from AND :to
+                GROUP BY skiftraknare, datum
+                HAVING MAX(drifttid) >= 30
                 UNION ALL
-                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
-                WHERE op2 = :op2 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                SELECT datum, MAX(ibc_ok), MAX(drifttid)
+                FROM rebotling_skiftrapport
+                WHERE op2 = :op2 AND datum BETWEEN :from2 AND :to2
+                GROUP BY skiftraknare, datum
+                HAVING MAX(drifttid) >= 30
                 UNION ALL
-                SELECT datum, ibc_ok, drifttid FROM rebotling_skiftrapport
-                WHERE op3 = :op3 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
+                SELECT datum, MAX(ibc_ok), MAX(drifttid)
+                FROM rebotling_skiftrapport
+                WHERE op3 = :op3 AND datum BETWEEN :from3 AND :to3
+                GROUP BY skiftraknare, datum
+                HAVING MAX(drifttid) >= 30
             ) combined
             GROUP BY yw
             ORDER BY yw ASC
