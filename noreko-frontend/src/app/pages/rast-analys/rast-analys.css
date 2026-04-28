@@ -1,0 +1,180 @@
+.ra-page {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  color: #e2e8f0;
+}
+
+/* Header */
+.ra-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.ra-header-left { flex: 1; }
+.ra-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.25rem;
+}
+.ra-subtitle { color: #8fa3b8; font-size: 0.9rem; margin: 0; }
+
+/* Period buttons */
+.ra-period-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.ra-period-btn {
+  padding: 0.35rem 0.8rem;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+.ra-period-btn.active,
+.ra-period-btn:hover { background: #3a7bd5; border-color: #3a7bd5; color: #fff; }
+
+/* Error / loading */
+.ra-error {
+  background: rgba(252, 129, 129, 0.15);
+  border: 1px solid rgba(252, 129, 129, 0.35);
+  color: #fc8181;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.ra-loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: #8fa3b8;
+}
+
+/* KPI row */
+.ra-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.ra-kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-left: 4px solid #4a5568;
+}
+.ra-kpi-card.kpi-good  { border-left-color: #68d391; }
+.ra-kpi-card.kpi-bad   { border-left-color: #fc8181; }
+.ra-kpi-card.kpi-neutral { border-left-color: #63b3ed; }
+
+.kpi-icon { font-size: 1.5rem; color: #a0aec0; min-width: 1.8rem; text-align: center; }
+.kpi-body { flex: 1; }
+.kpi-value { font-size: 1.25rem; font-weight: 700; color: #e2e8f0; }
+.kpi-label { font-size: 0.78rem; color: #a0aec0; margin: 0.1rem 0; }
+.kpi-sub   { font-size: 0.72rem; color: #718096; }
+
+/* Compare banner */
+.ra-compare-banner {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 0.75rem 1.2rem;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+.compare-note {
+  display: block;
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.3rem;
+}
+
+/* Charts row */
+.ra-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 900px) { .ra-charts-row { grid-template-columns: 1fr; } }
+
+/* Cards */
+.ra-card {
+  background: #2d3748;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.ra-full-card { margin-bottom: 1rem; }
+.ra-chart-card { display: flex; flex-direction: column; }
+
+.ra-card-header {
+  padding: 0.75rem 1.2rem;
+  background: #243040;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid #1a202c;
+  flex-wrap: wrap;
+}
+.header-sub { font-size: 0.78rem; color: #718096; font-weight: 400; }
+
+.ra-card-body { padding: 1rem 1.2rem; flex: 1; }
+
+/* Distribution table */
+.dist-table { display: flex; flex-direction: column; gap: 0.6rem; }
+.dist-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 40px 40px;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.dist-label { color: #a0aec0; }
+.dist-bar-wrap {
+  background: #1a202c;
+  border-radius: 4px;
+  height: 14px;
+  overflow: hidden;
+}
+.dist-bar {
+  background: linear-gradient(90deg, #4299e1, #63b3ed);
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.dist-count { text-align: right; color: #e2e8f0; font-weight: 600; }
+.dist-pct   { text-align: right; color: #8fa3b8; font-size: 0.78rem; }
+
+/* Chart wrap */
+.chart-wrap { height: 300px; position: relative; }
+.chart-wrap-tall { height: 240px; }
+
+/* Disclaimer */
+.ra-disclaimer {
+  font-size: 0.78rem;
+  color: #718096;
+  padding: 0.6rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Empty state */
+.ra-empty {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #8fa3b8;
+}
+.ra-empty p { margin: 0.3rem 0; }

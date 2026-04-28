@@ -1,0 +1,170 @@
+<div class="ra-page">
+
+  <!-- Rubrik -->
+  <div class="ra-header">
+    <div class="ra-header-left">
+      <h1 class="ra-title">
+        <i class="fas fa-coffee me-2 text-warning"></i>
+        Rastanalys
+      </h1>
+      <p class="ra-subtitle">Rastmönster per skift — korrelation med IBC/h och veckovis trend</p>
+    </div>
+    <div class="ra-period-btns">
+      <button *ngFor="let d of dayOptions; trackBy: trackByIndex"
+              class="ra-period-btn"
+              [class.active]="days === d"
+              (click)="setDays(d)">
+        {{ d }}d
+      </button>
+    </div>
+  </div>
+
+  <!-- Felmeddelande -->
+  <div *ngIf="error" class="ra-error" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="load()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loading" class="ra-loading">
+    <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+    <p>Hämtar rastdata…</p>
+  </div>
+
+  <ng-container *ngIf="!loading && team">
+
+    <!-- KPI-rad -->
+    <div class="ra-kpi-row">
+
+      <div class="ra-kpi-card kpi-neutral">
+        <div class="kpi-icon"><i class="fas fa-coffee"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ team.avg_rast_min | number:'1.0-1' }} min</div>
+          <div class="kpi-label">Snitt rast per skift</div>
+          <div class="kpi-sub">av {{ team.avg_drifttid_min | number:'1.0-0' }} min drifttid</div>
+        </div>
+      </div>
+
+      <div class="ra-kpi-card kpi-neutral">
+        <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ team.avg_rast_pct | number:'1.0-1' }}%</div>
+          <div class="kpi-label">Andel rastid av drifttid</div>
+          <div class="kpi-sub">{{ team.skift_med_rast }} av {{ team.total_skift }} skift har rast</div>
+        </div>
+      </div>
+
+      <div class="ra-kpi-card" [ngClass]="team.ibc_h_kort_rast && team.ibc_h_kort_rast >= team.avg_ibc_h ? 'kpi-good' : 'kpi-neutral'">
+        <div class="kpi-icon"><i class="fas fa-forward"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">
+            {{ team.ibc_h_kort_rast !== null ? (team.ibc_h_kort_rast | number:'1.1-1') + ' IBC/h' : '–' }}
+          </div>
+          <div class="kpi-label">IBC/h vid kort rast</div>
+          <div class="kpi-sub">Skift under snittrasten</div>
+        </div>
+      </div>
+
+      <div class="ra-kpi-card" [ngClass]="team.ibc_h_lang_rast && team.ibc_h_lang_rast >= team.avg_ibc_h ? 'kpi-good' : 'kpi-neutral'">
+        <div class="kpi-icon"><i class="fas fa-pause"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">
+            {{ team.ibc_h_lang_rast !== null ? (team.ibc_h_lang_rast | number:'1.1-1') + ' IBC/h' : '–' }}
+          </div>
+          <div class="kpi-label">IBC/h vid lång rast</div>
+          <div class="kpi-sub">Skift över snittrasten</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Jämförelsebanner: kort vs lång rast -->
+    <div class="ra-compare-banner" *ngIf="ibcDelta() !== null">
+      <ng-container *ngIf="ibcDelta()! >= 0">
+        <i class="fas fa-arrow-up me-2 text-success"></i>
+        Skift med <strong>kortare</strong> raster producerar i snitt
+        <strong class="text-success">+{{ Math.abs(ibcDelta()!) | number:'1.1-1' }} IBC/h</strong>
+        mer än skift med längre raster.
+      </ng-container>
+      <ng-container *ngIf="ibcDelta()! < 0">
+        <i class="fas fa-arrow-down me-2 text-warning"></i>
+        Skift med <strong>längre</strong> raster producerar i snitt
+        <strong class="text-warning">+{{ Math.abs(ibcDelta()!) | number:'1.1-1' }} IBC/h</strong>
+        mer — möjlig effekt av återhämtning.
+      </ng-container>
+      <span class="compare-note">Notera att korrelation ≠ kausalitet — andra faktorer kan påverka.</span>
+    </div>
+
+    <!-- Rad: fördelningsdiagram + scatter -->
+    <div class="ra-charts-row">
+
+      <!-- Fördelning -->
+      <div class="ra-card">
+        <div class="ra-card-header">
+          <i class="fas fa-chart-bar me-2 text-info"></i>
+          Fördelning av rasttider
+          <span class="header-sub ms-auto">{{ team.total_skift }} skift</span>
+        </div>
+        <div class="ra-card-body">
+          <div class="dist-table">
+            <div *ngFor="let bk of BUCKETS; trackBy: trackByIndex" class="dist-row">
+              <div class="dist-label">{{ BUCKET_LABELS[bk] }}</div>
+              <div class="dist-bar-wrap">
+                <div class="dist-bar" [style.width]="bucketBarWidth(bk)"></div>
+              </div>
+              <div class="dist-count">{{ distribution[bk] ?? 0 }}</div>
+              <div class="dist-pct">{{ bucketPct(bk) }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scatter: rasttid vs IBC/h -->
+      <div class="ra-card ra-chart-card">
+        <div class="ra-card-header">
+          <i class="fas fa-dot-circle me-2 text-primary"></i>
+          Rasttid vs IBC/h per skift
+          <span class="header-sub ms-auto">ett punkt = ett skift</span>
+        </div>
+        <div class="ra-card-body">
+          <div class="chart-wrap">
+            <canvas id="rastScatterChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Veckovis trend -->
+    <div class="ra-card ra-full-card" *ngIf="trend.length > 0">
+      <div class="ra-card-header">
+        <i class="fas fa-chart-line me-2 text-warning"></i>
+        Veckovis snittrasttid
+        <span class="header-sub ms-auto">{{ trend.length }} veckor</span>
+      </div>
+      <div class="ra-card-body">
+        <div class="chart-wrap chart-wrap-tall">
+          <canvas id="rastTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="ra-disclaimer">
+      <i class="fas fa-info-circle me-2"></i>
+      Rasttid hämtas direkt från PLC-data (register D4008) och representerar faktisk nedtid på linjen.
+      Korrelationsanalys visar samband, inte orsakssamband. Produktmix, operatörer och maskinskick påverkar IBC/h.
+    </div>
+
+  </ng-container>
+
+  <!-- Tom state -->
+  <div *ngIf="!loading && !team && !error" class="ra-empty">
+    <i class="fas fa-inbox fa-3x mb-3"></i>
+    <p>Ingen rastdata tillgänglig för de senaste {{ days }} dagarna.</p>
+    <p class="text-muted">Data kräver att rasttime &gt; 0 registrerats från PLC.</p>
+  </div>
+
+</div>

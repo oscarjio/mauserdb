@@ -296,6 +296,8 @@ class RebotlingController {
                 $this->getProduktionsTidsserie();
             } elseif ($action === 'skift-insikt') {
                 $this->getSkiftInsikt();
+            } elseif ($action === 'rast-analys') {
+                $this->getRastAnalys();
             } else {
                 $this->getLiveStats();
             }
@@ -9527,6 +9529,144 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftInsikt: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-insikt'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=rast-analys&days=90
+    // Returns break-time statistics per shift: scatter data, distribution, weekly trend
+    // =========================================================
+    private function getRastAnalys(): void {
+        try {
+            $days = max(30, min(365, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // One row per unique shift — MAX dedup for all columns
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    skiftraknare,
+                    MIN(datum)                          AS datum,
+                    MAX(COALESCE(ibc_ok, 0))            AS ibc_ok,
+                    MAX(COALESCE(drifttid, 0))          AS drifttid,
+                    MAX(COALESCE(rasttime, 0))          AS rasttime,
+                    MAX(COALESCE(driftstopptime, 0))    AS driftstopptime
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND drifttid >= 30
+                  AND ibc_ok > 0
+                GROUP BY skiftraknare
+                ORDER BY datum
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($shifts)) {
+                echo json_encode([
+                    'success' => true, 'days' => $days,
+                    'team' => null, 'distribution' => [], 'scatter' => [], 'trend' => []
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $scatter      = [];
+            $totalRast    = 0;
+            $totalDrift   = 0;
+            $totalIbc     = 0;
+            $withRast     = 0;
+            $buckets      = ['0-15' => 0, '15-30' => 0, '30-45' => 0, '45-60' => 0, '60+' => 0];
+            $weeklyTrend  = []; // isoWeekKey => [label, rast_sum, count]
+
+            foreach ($shifts as $s) {
+                $rast    = (int)$s['rasttime'];
+                $drift   = (int)$s['drifttid'];
+                $ibc     = (int)$s['ibc_ok'];
+                $stopp   = (int)$s['driftstopptime'];
+                $ibcH    = $drift > 0 ? round($ibc / ($drift / 60.0), 2) : 0.0;
+                $rastPct = $drift > 0 ? round($rast / $drift * 100.0, 1) : 0.0;
+
+                $scatter[] = [
+                    'skiftraknare' => (int)$s['skiftraknare'],
+                    'datum'        => $s['datum'],
+                    'rasttime'     => $rast,
+                    'rastpct'      => $rastPct,
+                    'ibc_per_h'    => $ibcH,
+                    'drifttid'     => $drift,
+                    'driftstopp'   => $stopp,
+                ];
+
+                $totalRast  += $rast;
+                $totalDrift += $drift;
+                $totalIbc   += $ibc;
+                if ($rast > 0) $withRast++;
+
+                // Distribution buckets
+                if      ($rast <= 15) $buckets['0-15']++;
+                elseif  ($rast <= 30) $buckets['15-30']++;
+                elseif  ($rast <= 45) $buckets['30-45']++;
+                elseif  ($rast <= 60) $buckets['45-60']++;
+                else                  $buckets['60+']++;
+
+                // ISO-week key for trend
+                $ts   = strtotime($s['datum']);
+                $key  = date('oW', $ts);
+                if (!isset($weeklyTrend[$key])) {
+                    $weeklyTrend[$key] = [
+                        'label'    => 'V' . ltrim(date('W', $ts), '0'),
+                        'rast_sum' => 0,
+                        'count'    => 0,
+                    ];
+                }
+                $weeklyTrend[$key]['rast_sum'] += $rast;
+                $weeklyTrend[$key]['count']++;
+            }
+
+            $n       = count($scatter);
+            $avgRast = $n > 0 ? round($totalRast / $n, 1) : 0.0;
+            $avgDrift= $n > 0 ? round($totalDrift / $n, 1) : 0.0;
+            $teamIbcH= $totalDrift > 0 ? round($totalIbc / ($totalDrift / 60.0), 2) : 0.0;
+            $avgRastPct = $avgDrift > 0 ? round($avgRast / $avgDrift * 100.0, 1) : 0.0;
+
+            // IBC/h comparison: short-break skift vs long-break skift
+            $shortIbcH = []; $longIbcH = [];
+            foreach ($scatter as $p) {
+                if ($p['rasttime'] < $avgRast) $shortIbcH[] = $p['ibc_per_h'];
+                else                            $longIbcH[]  = $p['ibc_per_h'];
+            }
+            $ibcHShort = count($shortIbcH) > 0 ? round(array_sum($shortIbcH) / count($shortIbcH), 2) : null;
+            $ibcHLong  = count($longIbcH)  > 0 ? round(array_sum($longIbcH)  / count($longIbcH),  2) : null;
+
+            ksort($weeklyTrend);
+            $trend = [];
+            foreach ($weeklyTrend as $data) {
+                $trend[] = [
+                    'label'    => $data['label'],
+                    'avg_rast' => round($data['rast_sum'] / $data['count'], 1),
+                    'count'    => $data['count'],
+                ];
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'days'         => $days,
+                'team' => [
+                    'total_skift'      => $n,
+                    'skift_med_rast'   => $withRast,
+                    'avg_rast_min'     => $avgRast,
+                    'avg_drifttid_min' => $avgDrift,
+                    'avg_rast_pct'     => $avgRastPct,
+                    'avg_ibc_h'        => $teamIbcH,
+                    'ibc_h_kort_rast'  => $ibcHShort,
+                    'ibc_h_lang_rast'  => $ibcHLong,
+                ],
+                'distribution' => $buckets,
+                'scatter'      => $scatter,
+                'trend'        => $trend,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getRastAnalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid rastanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
