@@ -288,6 +288,8 @@ class RebotlingController {
                 $this->getKassationsKarta();
             } elseif ($action === 'kassation-trend') {
                 $this->getKassationTrend();
+            } elseif ($action === 'kassationsorsak-per-operator') {
+                $this->getKassationsorsakPerOperator();
             } else {
                 $this->getLiveStats();
             }
@@ -8811,4 +8813,138 @@ class RebotlingController {
         }
     }
 
+    private function getKassationsorsakPerOperator(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Graceful fallback if kassationsregistrering table doesn't exist
+            $check = $pdo->query("SHOW TABLES LIKE 'kassationsregistrering'");
+            if (!$check->fetch()) {
+                echo json_encode([
+                    'success'      => true,
+                    'operators'    => [],
+                    'all_causes'   => [],
+                    'total_events' => 0,
+                    'from'         => $from,
+                    'to'           => $to,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Active operators
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            // Kassation cause names
+            $causeStmt = $pdo->query("SELECT id, namn FROM kassationsorsak_typer WHERE aktiv = 1 ORDER BY namn");
+            $causeMap  = [];
+            foreach ($causeStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $causeMap[(int)$r['id']] = $r['namn'];
+            }
+
+            // Join kassationsregistrering → rebotling_skiftrapport → operators (UNION ALL per position)
+            // Each kassation event is attributed to every operator who worked that shift (correlation view).
+            // DISTINCT within each branch prevents double-counting from multi-row skiftrapport entries.
+            $sql = "
+                SELECT ops.op_num, kr.orsak_id, SUM(kr.antal) AS antal
+                FROM kassationsregistrering kr
+                JOIN (
+                    SELECT DISTINCT skiftraknare, op1 AS op_num
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1 AND op1 IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT DISTINCT skiftraknare, op2
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2 AND op2 IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT DISTINCT skiftraknare, op3
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3 AND op3 IS NOT NULL
+                ) ops ON ops.skiftraknare = kr.skiftraknare
+                WHERE kr.datum BETWEEN :from4 AND :to4
+                GROUP BY ops.op_num, kr.orsak_id
+                ORDER BY ops.op_num, antal DESC
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+                ':from4' => $from, ':to4' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build per-operator aggregation
+            $opData      = [];
+            $totalEvents = 0;
+
+            foreach ($rows as $r) {
+                $num = (int)$r['op_num'];
+                if (!isset($opMap[$num])) continue;
+                if (!isset($opData[$num])) {
+                    $opData[$num] = [
+                        'number'          => $num,
+                        'name'            => $opMap[$num],
+                        'total_kassation' => 0,
+                        'causes'          => [],
+                    ];
+                }
+                $antal    = (int)$r['antal'];
+                $orsakId  = (int)$r['orsak_id'];
+                $opData[$num]['total_kassation'] += $antal;
+                $opData[$num]['causes'][]         = [
+                    'orsak_id' => $orsakId,
+                    'namn'     => $causeMap[$orsakId] ?? 'Okänd',
+                    'antal'    => $antal,
+                    'pct'      => 0.0,
+                ];
+            }
+
+            // Add per-cause percentage and top_cause
+            foreach ($opData as &$op) {
+                $tot = $op['total_kassation'];
+                foreach ($op['causes'] as &$c) {
+                    $c['pct'] = $tot > 0 ? round($c['antal'] / $tot * 100, 1) : 0.0;
+                }
+                unset($c);
+                $op['top_cause'] = count($op['causes']) > 0 ? $op['causes'][0]['namn'] : '';
+                $totalEvents += $tot;
+            }
+            unset($op);
+
+            // Sort operators: highest total kassation first
+            usort($opData, fn($a, $b) => $b['total_kassation'] - $a['total_kassation']);
+
+            // All causes list for legend
+            $allCauses = [];
+            foreach ($causeMap as $id => $namn) {
+                $allCauses[] = ['id' => $id, 'namn' => $namn];
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'operators'    => array_values($opData),
+                'all_causes'   => $allCauses,
+                'total_events' => $totalEvents,
+                'from'         => $from,
+                'to'           => $to,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getKassationsorsakPerOperator: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
 }

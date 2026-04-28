@@ -58,6 +58,7 @@ export class OperatorPrestationPage {
         { title: 'Kassationsanalys', desc: 'Kassationsgrad per operatör', route: '/rebotling/operator-kassation', icon: 'fas fa-trash-alt', color: '#fc8181' },
         { title: 'Kassationskarta', desc: 'Operator × Produkt kassationsmatris', route: '/rebotling/kassations-karta', icon: 'fas fa-table', color: '#fc8181' },
         { title: 'Kassationstrender', desc: 'Veckovis kassationsgrad — identifiera kvalitetsglidning', route: '/rebotling/kassation-trend', icon: 'fas fa-chart-line', color: '#fc8181' },
+        { title: 'Kassationsorsaker / Op', desc: 'Vilka orsaker kopplas till varje operatörs skift?', route: '/rebotling/kassationsorsak-per-operator', icon: 'fas fa-microscope', color: '#f6ad55' },
         { title: 'IBC-förlustkalkyl', desc: 'IBC vunnet/förlorat vs lagsnitt', route: '/rebotling/ibc-forlust', icon: 'fas fa-tint-slash', color: '#fc8181' },
         { title: 'Skift-topplista', desc: 'Bästa och sämsta skift rankade', route: '/rebotling/skift-topplista', icon: 'fas fa-trophy', color: '#f6ad55' },
         { title: 'Rekord & Karriär', desc: 'Bästa skift, karriärtotaler, månadsrekord', route: '/rebotling/rekord-statistik', icon: 'fas fa-crown', color: '#f6c90e' },
