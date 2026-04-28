@@ -48,7 +48,7 @@ export class IbcForlustPage implements OnInit, OnDestroy, AfterViewInit {
   error = '';
 
   operators: OperatorResult[] = [];
-  teamAvgByPos: Record<string, number> = {};
+  teamAvgByPos: Record<string, number | undefined> = {};
   totalLoss = 0;
   totalGain = 0;
   projectedGain = 0;

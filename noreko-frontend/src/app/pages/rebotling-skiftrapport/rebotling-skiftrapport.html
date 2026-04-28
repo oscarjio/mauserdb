@@ -358,9 +358,9 @@
                     <td>
                       <span *ngIf="day.avgEfficiency != null"
                         class="badge"
-                        [class.bg-success]="(day.avgEfficiency ?? 0) >= 90"
-                        [class.bg-warning]="(day.avgEfficiency ?? 0) >= 70 && (day.avgEfficiency ?? 0) < 90"
-                        [class.bg-danger]="(day.avgEfficiency ?? 0) < 70">
+                        [class.bg-success]="day.avgEfficiency >= 90"
+                        [class.bg-warning]="day.avgEfficiency >= 70 && day.avgEfficiency < 90"
+                        [class.bg-danger]="day.avgEfficiency < 70">
                         {{ day.avgEfficiency }}%
                       </span>
                       <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
