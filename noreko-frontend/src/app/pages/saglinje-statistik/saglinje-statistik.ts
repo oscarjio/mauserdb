@@ -140,7 +140,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
     this.oeeTrendLoading = true;
     this.saglinjeService.getOeeTrend(this.oeeTrendDagar)
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 } })),
         takeUntil(this.destroy$)
       )

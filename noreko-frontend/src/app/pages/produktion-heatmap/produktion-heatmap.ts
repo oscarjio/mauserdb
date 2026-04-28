@@ -93,7 +93,7 @@ export class ProduktionHeatmapPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=produktion-heatmap&months=${this.months}`,
       { withCredentials: true }
     )
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.isFetching = false;
         this.loading = false;

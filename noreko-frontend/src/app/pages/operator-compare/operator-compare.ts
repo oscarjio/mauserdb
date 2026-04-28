@@ -122,7 +122,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   loadOperators(): void {
     this.http
       .get<ApiResponse>(`${environment.apiUrl}?action=rebotling&run=operator-compare`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) this.operators = res.operators;
       });
