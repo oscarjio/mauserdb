@@ -1,0 +1,97 @@
+<div class="kt-page">
+  <div class="kt-header">
+    <div class="kt-title-row">
+      <a routerLink="/rebotling/operator-prestation" class="back-link">← Operatörsprestanda</a>
+      <h1>Kassationstrender</h1>
+      <p class="kt-subtitle">Veckovis kassationsgrad per operatör — identifiera kvalitetsglidning tidigt</p>
+    </div>
+    <div class="kt-controls">
+      <label>Period</label>
+      <select [(ngModel)]="selectedWeeks" (change)="load()">
+        <option *ngFor="let w of weeksOptions" [value]="w">{{ w }} veckor</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="kt-loading">Laddar kassationstrender...</div>
+  <div *ngIf="error && !isLoading" class="kt-error">Kunde inte hämta data. Försök igen.</div>
+
+  <ng-container *ngIf="!isLoading && !error && operators.length > 0">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Operatörer analyserade</div>
+        <div class="kpi-value">{{ operators.length }}</div>
+      </div>
+      <div class="kpi-card trend-worse-bg">
+        <div class="kpi-label">Försämras</div>
+        <div class="kpi-value">{{ worsening }}</div>
+      </div>
+      <div class="kpi-card trend-better-bg">
+        <div class="kpi-label">Förbättras</div>
+        <div class="kpi-value">{{ improving }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Bäst kassation</div>
+        <div class="kpi-value">
+          <span *ngIf="operators[0]">{{ operators[0].name }}: {{ operators[0].overall_kassgrad?.toFixed(1) }}%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Sämst kassation</div>
+        <div class="kpi-value">
+          <span *ngIf="operators.length > 1">{{ operators[operators.length-1].name }}: {{ operators[operators.length-1].overall_kassgrad?.toFixed(1) }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <canvas #chartCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th>Trend</th>
+            <th>Kassation (hela perioden)</th>
+            <th>Förra halvperioden</th>
+            <th>Denna halvperioden</th>
+            <th>Förändring</th>
+            <th>Total IBC</th>
+            <th>Kasserade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operators">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td>
+              <span class="trend-badge" [ngClass]="trendClass(op.trend)">
+                {{ trendIcon(op.trend) }} {{ trendLabel(op.trend) }}
+              </span>
+            </td>
+            <td class="num">{{ op.overall_kassgrad != null ? (op.overall_kassgrad | number:'1.1-1') + '%' : '—' }}</td>
+            <td class="num">{{ op.prev_kassgrad != null ? (op.prev_kassgrad | number:'1.1-1') + '%' : '—' }}</td>
+            <td class="num">{{ op.current_kassgrad != null ? (op.current_kassgrad | number:'1.1-1') + '%' : '—' }}</td>
+            <td class="num" [ngClass]="trendClass(op.trend)">{{ delta(op) }}</td>
+            <td class="num">{{ op.total_ibc | number }}</td>
+            <td class="num">{{ op.total_ej | number }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!isLoading && !error && operators.length === 0" class="kt-empty">
+    Ingen kassationsdata hittades för perioden.
+  </div>
+</div>
