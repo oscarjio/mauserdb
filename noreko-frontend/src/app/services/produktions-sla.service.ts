@@ -135,7 +135,7 @@ export class ProduktionsSlaService {
     return this.http.get<SlaOverviewResponse>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDailyProgress(date?: string): Observable<DailyProgressResponse | null> {
@@ -143,7 +143,7 @@ export class ProduktionsSlaService {
     if (date) url += `&date=${date}`;
     return this.http.get<DailyProgressResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeeklyProgress(week?: string): Observable<WeeklyProgressResponse | null> {
@@ -151,21 +151,21 @@ export class ProduktionsSlaService {
     if (week) url += `&week=${week}`;
     return this.http.get<WeeklyProgressResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHistory(period: number = 30): Observable<HistoryResponse | null> {
     return this.http.get<HistoryResponse>(
       `${this.api}&run=history&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getGoals(): Observable<GoalsResponse | null> {
     return this.http.get<GoalsResponse>(
       `${this.api}&run=goals`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   setGoal(data: SetGoalData): Observable<any> {
@@ -174,7 +174,7 @@ export class ProduktionsSlaService {
       data,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }

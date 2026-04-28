@@ -104,7 +104,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.getActiveAlerts()
       .pipe(
-        timeout(10_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -124,7 +124,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.acknowledgeAlert(alert.id)
       .pipe(
-        timeout(10_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -142,7 +142,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.checkAlerts()
       .pipe(
-        timeout(15_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -170,7 +170,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.getAlertHistory(this.historyDays)
       .pipe(
-        timeout(10_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -202,7 +202,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.getAlertSettings()
       .pipe(
-        timeout(10_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -221,7 +221,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
     this.alertsService.saveAlertSettings(this.settings)
       .pipe(
-        timeout(10_000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )

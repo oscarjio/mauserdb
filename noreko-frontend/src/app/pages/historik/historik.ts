@@ -479,7 +479,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
 
     const monthlyUrl = `${this.apiBase}?action=historik&run=monthly&manader=${this.valdaManader}`;
     this.http.get<any>(monthlyUrl, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => {
         console.error('Fel vid hämtning av månadsdata:', err);
         return of(null);
@@ -501,7 +501,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
 
     const yearlyUrl = `${this.apiBase}?action=historik&run=yearly`;
     this.http.get<any>(yearlyUrl, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => {
         console.error('Fel vid hämtning av årsdata:', err);
         return of(null);

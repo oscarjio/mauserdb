@@ -538,7 +538,7 @@ export class NewsAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate 
       `${this.apiBase}?action=news&run=admin-list`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -614,7 +614,7 @@ export class NewsAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate 
       payload,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => { console.error('saveNews failed', err); return of(null); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -638,7 +638,7 @@ export class NewsAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate 
       { id: item.id },
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => { console.error('deleteNews failed', err); return of(null); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {

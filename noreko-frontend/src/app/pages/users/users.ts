@@ -67,7 +67,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   fetchOperators() {
     this.operatorsService.getOperators().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of({ operators: [] })), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => { this.operators = res.operators || []; },
@@ -83,7 +83,7 @@ export class UsersPage implements OnInit, OnDestroy {
   fetchUsers() {
     this.loading = true;
     this.usersService.getUsers().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
@@ -226,7 +226,7 @@ export class UsersPage implements OnInit, OnDestroy {
     }
     this.savingUser = true;
     this.usersService.updateUser(user).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
@@ -252,7 +252,7 @@ export class UsersPage implements OnInit, OnDestroy {
     }
 
     this.usersService.deleteUser(user.id).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
@@ -272,7 +272,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleAdmin(user: any) {
     this.usersService.toggleAdmin(user.id).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
@@ -293,7 +293,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleActive(user: any) {
     this.usersService.toggleActive(user.id).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {

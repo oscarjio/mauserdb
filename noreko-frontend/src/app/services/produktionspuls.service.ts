@@ -84,7 +84,7 @@ export class ProduktionspulsService {
     return this.http.get<PulsLatestResponse>(
       `${this.api}&run=latest&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // Legacy
@@ -92,7 +92,7 @@ export class ProduktionspulsService {
     return this.http.get<PulsHourlyResponse>(
       `${this.api}&run=hourly-stats`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // Ny: kronologisk handelsefeed
@@ -100,7 +100,7 @@ export class ProduktionspulsService {
     return this.http.get<PulseResponse>(
       `${this.api}&run=pulse&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   // Ny: realtids-KPI:er
@@ -108,6 +108,6 @@ export class ProduktionspulsService {
     return this.http.get<LiveKpiResponse>(
       `${this.api}&run=live-kpi`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

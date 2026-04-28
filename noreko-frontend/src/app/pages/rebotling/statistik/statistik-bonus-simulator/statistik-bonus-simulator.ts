@@ -143,7 +143,7 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
     this.error = null;
 
     this.rebotlingService.getBonusSimulator(this.days, this.buildParams()).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(resp => {
@@ -204,7 +204,7 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
     };
 
     this.rebotlingService.saveBonusSimulatorParams(payload).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(resp => {

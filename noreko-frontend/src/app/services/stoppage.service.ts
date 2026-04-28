@@ -65,7 +65,7 @@ export class StoppageService {
 
   getReasons(): Observable<{ success: boolean; data: StoppageReason[] } | null> {
     return this.http.get<{ success: boolean; data: StoppageReason[] }>(`${this.base}&run=reasons`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -83,25 +83,25 @@ export class StoppageService {
 
   create(entry: { line: string; reason_id: number; start_time: string; end_time?: string; comment?: string }): Observable<any> {
     return this.http.post<any>(this.base, { action: 'create', ...entry }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
   update(id: number, data: any): Observable<any> {
     return this.http.post<any>(this.base, { action: 'update', id, ...data }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
   delete(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'delete', id }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
   getWeeklySummary(line: string = 'rebotling'): Observable<{ success: boolean; data: StoppageWeeklySummary } | null> {
     return this.http.get<{ success: boolean; data: StoppageWeeklySummary }>(`${this.base}&run=weekly_summary&line=${line}`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 

@@ -83,32 +83,32 @@ export class BonusAdminService {
   getConfig(): Observable<BonusConfigResponse | null> {
     return this.http.get<BonusConfigResponse>(this.baseUrl + '&run=get_config', {
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   updateWeights(produkt: number, weights: { eff: number; prod: number; qual: number }): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=update_weights', {
       produkt,
       weights
-    }, { withCredentials: true }).pipe(timeout(10000), catchError(err => { console.error('updateWeights failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
+    }, { withCredentials: true }).pipe(timeout(15000), catchError(err => { console.error('updateWeights failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   setTargets(targets: { foodgrade: number; nonun: number; tvattade: number }): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=set_targets', {
       targets
-    }, { withCredentials: true }).pipe(timeout(10000), catchError(err => { console.error('setTargets failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
+    }, { withCredentials: true }).pipe(timeout(15000), catchError(err => { console.error('setTargets failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   getPeriods(): Observable<BonusPeriodsResponse | null> {
     return this.http.get<BonusPeriodsResponse>(this.baseUrl + '&run=get_periods', {
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   approveBonuses(period: string): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=approve_bonuses', {
       period
-    }, { withCredentials: true }).pipe(timeout(10000), catchError(err => { console.error('approveBonuses failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
+    }, { withCredentials: true }).pipe(timeout(15000), catchError(err => { console.error('approveBonuses failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   exportReport(period: string, format: string = 'csv'): Observable<any> {
@@ -126,19 +126,19 @@ export class BonusAdminService {
   getSystemStats(): Observable<BonusSystemStatsResponse | null> {
     return this.http.get<BonusSystemStatsResponse>(this.baseUrl + '&run=get_stats', {
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   setWeeklyGoal(weeklyGoal: number): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=set_weekly_goal', {
       weekly_goal: weeklyGoal
-    }, { withCredentials: true }).pipe(timeout(10000), catchError(err => { console.error('setWeeklyGoal failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
+    }, { withCredentials: true }).pipe(timeout(15000), catchError(err => { console.error('setWeeklyGoal failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
   getOperatorForecast(operatorId: number): Observable<OperatorForecastResponse | null> {
     return this.http.get<OperatorForecastResponse>(
       this.baseUrl + '&run=operator_forecast&id=' + operatorId,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

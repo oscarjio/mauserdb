@@ -312,7 +312,7 @@ export class Menu implements OnInit, OnDestroy {
     this.savingProfile = true;
     this.http.post<ProfileApiResponse>(`${environment.apiUrl}?action=profile`, payload, { withCredentials: true })
       .pipe(
-        timeout(10000),
+        timeout(15000),
         catchError((error) => {
           this.profileError = error?.error?.message || 'Ett fel inträffade.';
           this.savingProfile = false;

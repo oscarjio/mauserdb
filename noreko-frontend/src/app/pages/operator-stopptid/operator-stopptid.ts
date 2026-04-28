@@ -93,7 +93,7 @@ export class OperatorStopptidPage implements OnInit, OnDestroy {
 
     const url = `${environment.apiUrl}?action=rebotling&run=operator-stopptid&days=${this.days}`;
     this.http.get<StopptidResponse>(url, { withCredentials: true }).pipe(
-      timeout(5000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {

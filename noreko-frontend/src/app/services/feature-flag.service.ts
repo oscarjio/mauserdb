@@ -33,7 +33,7 @@ export class FeatureFlagService {
         `${environment.apiUrl}?action=feature-flags&run=list`,
         { withCredentials: true }
       ).pipe(
-        timeout(8000),
+        timeout(15000),
         retry(1),
         catchError(() => of(null))
       )

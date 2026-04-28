@@ -33,14 +33,14 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
     if (this.productionEventsLoading) return; this.productionEventsLoading = true;
     const endDate = new Date(); const startDate = new Date(); startDate.setDate(startDate.getDate() - 89);
     const fmt = (d: Date) => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    this.rebotlingService.getProductionEvents(fmt(startDate), fmt(endDate)).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.rebotlingService.getProductionEvents(fmt(startDate), fmt(endDate)).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { this.productionEventsLoading = false; if (res?.success && res.events) { this.productionEvents = res.events; } });
   }
 
   saveNewEvent(): void {
     if (!this.newEvent.event_date || !this.newEvent.title.trim()) { this.eventsAdminError = 'Datum och titel krävs.'; return; }
     this.eventsAdminSaving = true; this.eventsAdminError = ''; this.eventsAdminMessage = '';
-    this.rebotlingService.addProductionEvent(this.newEvent).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.rebotlingService.addProductionEvent(this.newEvent).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { this.eventsAdminSaving = false;
       if (res?.success) { const added: ProductionEvent = { id: res.id, event_date: this.newEvent.event_date, title: this.newEvent.title, description: this.newEvent.description, event_type: this.newEvent.event_type as ProductionEvent['event_type'] };
         this.productionEvents = [...this.productionEvents, added].sort((a, b) => a.event_date.localeCompare(b.event_date));
@@ -50,7 +50,7 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
 
   removeEvent(id: number): void {
     if (!confirm('Ta bort denna handelse?')) return;
-    this.rebotlingService.deleteProductionEvent(id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.rebotlingService.deleteProductionEvent(id).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { if (res?.success) { this.productionEvents = this.productionEvents.filter(e => e.id !== id); } });
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }

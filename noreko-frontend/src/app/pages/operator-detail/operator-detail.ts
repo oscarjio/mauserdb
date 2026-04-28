@@ -489,7 +489,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
 
     this.http.get<ProfileResponse>(`${environment.apiUrl}?action=operator&run=profile&id=${id}`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )

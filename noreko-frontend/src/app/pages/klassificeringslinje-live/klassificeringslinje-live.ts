@@ -78,7 +78,7 @@ export class KlassificeringslinjeLivePage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.service.getReports(this.line)
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         finalize(() => { this.isFetching = false; })
       )

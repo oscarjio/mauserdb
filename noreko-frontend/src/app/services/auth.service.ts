@@ -64,7 +64,7 @@ export class AuthService {
 
   fetchStatus(): Observable<void> {
     return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null; csrfToken?: string }>(`${environment.apiUrl}?action=status`, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null)), // null = transient error, ändra inte auth-state
       tap(res => {
@@ -103,7 +103,7 @@ export class AuthService {
 
     this.logoutSub?.unsubscribe();
     this.logoutSub = this.http.get(`${environment.apiUrl}?action=login&run=logout`, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null))
     ).subscribe(() => {
       this.router.navigate(['/login']);

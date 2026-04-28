@@ -12,7 +12,7 @@ export class UsersService {
 
   getUsers(): Observable<any> {
     return this.http.get<any>(this.base, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, data: [] }))
     );
@@ -20,35 +20,35 @@ export class UsersService {
 
   updateUser(user: any): Observable<any> {
     return this.http.post<any>(this.base, user, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   deleteUser(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'delete', id }, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   toggleAdmin(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'toggleAdmin', id }, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   toggleActive(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'toggleActive', id }, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }
 
   createUser(user: any): Observable<any> {
     return this.http.post<any>(this.base, { action: 'create', ...user }, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' }))
     );
   }

@@ -711,7 +711,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
 
     this.http.get<DashboardData>(`${environment.apiUrl}?action=operator-dashboard&run=today`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -745,7 +745,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     this.laddarVecka = true;
 
     this.http.get<WeeklyData>(`${environment.apiUrl}?action=operator-dashboard&run=weekly`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           this.weeklyData = res.operatorer || [];
@@ -754,7 +754,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
       });
 
     this.http.get<SummaryData>(`${environment.apiUrl}?action=operator-dashboard&run=summary`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           this.summaryData = res;
@@ -762,7 +762,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
       });
 
     this.http.get<HistoryData>(`${environment.apiUrl}?action=operator-dashboard&run=history&days=7`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) {
           this.historyData = res;
@@ -782,7 +782,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (this.feedbackLoading) return;
     this.feedbackLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=feedback&run=summary`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.feedbackLoading = false;
         if (res?.success) this.feedbackSummary = res;

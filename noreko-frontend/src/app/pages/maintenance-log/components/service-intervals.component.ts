@@ -228,7 +228,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
     this.serviceLoading = true;
     this.serviceLoadError = false;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=service-intervals`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.serviceLoading = false;
         if (data?.intervals) {
@@ -290,7 +290,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
     }
 
     this.http.post<any>(`${this.apiBase}?action=maintenance&run=set-service-interval`, payload, { withCredentials: true })
-      .pipe(timeout(10000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
       .subscribe(data => {
         this.isSavingService = false;
         if (data?.success) {
@@ -307,7 +307,7 @@ export class ServiceIntervalsComponent implements OnDestroy {
     if (!confirm(`Registrera utförd service för "${si.maskin_namn}"?\nDetta nollställer IBC-räknaren.`)) return;
 
     this.http.post<any>(`${this.apiBase}?action=maintenance&run=reset-service-counter`, { id: si.id }, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         if (data?.success) {
           this.showSuccess.emit('Serviceräknare nollställd!');

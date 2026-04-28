@@ -61,7 +61,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy, ComponentCanDeac
       `${environment.apiUrl}?action=feature-flags&run=list`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => {
         this.error = 'Kunde inte ladda funktionsflaggor.';
         this.loading = false;
@@ -123,7 +123,7 @@ export class FeatureFlagAdminPage implements OnInit, OnDestroy, ComponentCanDeac
       { flags },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => {
         this.error = err?.error?.error || 'Kunde inte spara ändringar.';
         this.saving = false;

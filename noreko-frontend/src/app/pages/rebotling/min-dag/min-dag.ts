@@ -78,9 +78,9 @@ export class MinDagPage implements OnInit, OnDestroy {
     const opId = this.operatorId ?? undefined;
 
     forkJoin({
-      summary: this.rebotlingService.getMinDagSummary(opId).pipe(timeout(10000), catchError(() => of(null))),
-      goals:   this.rebotlingService.getMinDagGoalsProgress(opId).pipe(timeout(10000), catchError(() => of(null))),
-      trend:   this.rebotlingService.getMinDagCycleTrend(opId).pipe(timeout(10000), catchError(() => of(null))),
+      summary: this.rebotlingService.getMinDagSummary(opId).pipe(timeout(15000), catchError(() => of(null))),
+      goals:   this.rebotlingService.getMinDagGoalsProgress(opId).pipe(timeout(15000), catchError(() => of(null))),
+      trend:   this.rebotlingService.getMinDagCycleTrend(opId).pipe(timeout(15000), catchError(() => of(null))),
     }).pipe(timeout(15000), catchError(() => of({ summary: null, goals: null, trend: null })), takeUntil(this.destroy$)).subscribe(({ summary, goals, trend }) => {
       this.loading = false;
       this.isFetching = false;

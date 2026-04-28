@@ -87,7 +87,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
     this.operatorsLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=skiftrapport&run=operator-list`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -138,7 +138,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
 
     this.http.get<any>(url, { withCredentials: true })
       .pipe(
-        timeout(10000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )

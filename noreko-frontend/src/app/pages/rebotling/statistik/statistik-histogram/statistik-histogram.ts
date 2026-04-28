@@ -42,7 +42,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
     this.histogramLoading = true;
 
     this.rebotlingService.getCycleHistogram(this.histogramDate).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res: CycleHistogramResponse | null) => {

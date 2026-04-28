@@ -168,7 +168,7 @@ export class EquipmentStatsComponent implements OnDestroy {
     this.statsLoading = true;
     this.statsError = false;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-stats`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.statsLoading = false;
         if (data?.stats) {

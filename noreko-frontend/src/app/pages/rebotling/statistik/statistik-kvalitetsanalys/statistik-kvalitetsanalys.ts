@@ -38,7 +38,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
   loadRejectionAnalysis(): void {
     if (this.rejectionAnalysisLoading) return;
     this.rejectionAnalysisLoading = true; this.rejectionAnalysisLoaded = false;
-    this.rebotlingService.getRejectionAnalysis(this.rejectionAnalysisDays).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.rebotlingService.getRejectionAnalysis(this.rejectionAnalysisDays).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe((res: RejectionAnalysisResponse | null) => {
       this.rejectionAnalysisLoading = false; this.rejectionAnalysisLoaded = true;
       if (res?.success) {

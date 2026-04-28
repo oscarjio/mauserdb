@@ -100,7 +100,7 @@ export class RegisterPage implements OnDestroy {
       phone: this.user.phone.trim(),
       code: this.user.code.trim()
     }, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => {
         console.error('Registrering misslyckades:', err);
         this.isLoading = false;

@@ -18,7 +18,7 @@ export class SkiftrapportService {
 
   getProducts(): Observable<any> {
     return this.http.get<any>(`${environment.apiUrl}?action=rebotlingproduct`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -36,7 +36,7 @@ export class SkiftrapportService {
       action: 'delete',
       id
     }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -55,7 +55,7 @@ export class SkiftrapportService {
       id,
       inlagd
     }, { withCredentials: true }).pipe(
-      timeout(10000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
+      timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Nätverksfel' }))
     );
   }
 
@@ -83,7 +83,7 @@ export class SkiftrapportService {
     let url = `${this.api}&run=lopnummer&skiftraknare=${skiftraknare}`;
     if (datum) url += `&datum=${encodeURIComponent(datum)}`;
     return this.http.get<any>(url, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 

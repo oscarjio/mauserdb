@@ -35,7 +35,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
     this.oeeWaterfallLoading = true;
     this.oeeWaterfallLoaded = false;
     this.rebotlingService.getOeeWaterfall(this.oeeWaterfallDays).pipe(
-      timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: OeeWaterfallResponse | null) => {
       this.oeeWaterfallLoading = false;
       if (res?.success) {

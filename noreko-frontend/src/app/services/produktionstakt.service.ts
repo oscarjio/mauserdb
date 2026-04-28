@@ -94,7 +94,7 @@ export class ProduktionsTaktService {
       `${this.api}&run=get-target`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -106,7 +106,7 @@ export class ProduktionsTaktService {
       { target },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => { console.error('setTarget failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' } as any); })
     );
   }

@@ -318,7 +318,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   loadStats(): void {
     this.isLoading = true;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=stats`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.isLoading = false;
         if (data?.stats) {
@@ -335,7 +335,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
 
   loadEquipmentList(): void {
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-list`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         if (data?.equipment) {
           this.equipmentList = data.equipment;
@@ -345,7 +345,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
 
   loadServiceKritiskCount(): void {
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=service-intervals`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         if (data?.intervals) {
           this.serviceKritiskCount = data.intervals.filter((s: any) => s.status === 'kritisk').length;

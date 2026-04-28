@@ -114,7 +114,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   loadStoppagePareto(): void {
     this.paretoLoading = true;
     this.rebotlingService.getParetoStoppage(this.paretoDays)
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.paretoLoading = false;
         if (!res) return;
@@ -144,7 +144,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     this.drilldownStops = [];
 
     this.rebotlingService.getStopCauseDrilldown(cause, this.paretoDays)
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.drilldownLoading = false;
         if (!res || !res.success) return;

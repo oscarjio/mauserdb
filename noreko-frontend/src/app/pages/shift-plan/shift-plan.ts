@@ -284,7 +284,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   loadOperators() {
     this.http.get<any>(`${API}&run=operators`, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -305,7 +305,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     const dateParam = this.formatDate(this.currentWeekStart);
     this.http.get<any>(`${API}&run=week&date=${dateParam}`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -341,7 +341,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   loadOperatorsList() {
     this.http.get<any>(`${API}&run=operators-list`, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -358,7 +358,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     const weekStartParam = this.formatDate(this.weekViewStart);
     this.http.get<any>(`${API}&run=week-view&week_start=${weekStartParam}`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -451,7 +451,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     };
     this.http.post<any>(`${API}&run=assign`, body, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -484,7 +484,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     const body = { datum: slot.datum, skift_nr: slot.skift_nr, op_number: op.op_number };
     this.http.post<any>(`${API}&run=remove`, body, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -538,7 +538,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     };
     this.http.post<any>(`${API}&run=assign`, body, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -574,7 +574,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     };
     this.http.post<any>(`${API}&run=remove`, body, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -608,7 +608,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     this.staffingWarningLoading = true;
     this.http.get<any>(`${API}&run=staffing-warning`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -681,7 +681,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     const body = { target_week_start: this.formatDate(this.currentWeekStart) };
     this.http.post<any>(`${API}&run=copy-week`, body, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )

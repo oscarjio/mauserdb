@@ -113,7 +113,7 @@ export class BatchSparningService {
       `${this.api}&run=overview`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -124,7 +124,7 @@ export class BatchSparningService {
       `${this.api}&run=active-batches`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -135,7 +135,7 @@ export class BatchSparningService {
       `${this.api}&run=batch-detail&batch_id=${batchId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -150,7 +150,7 @@ export class BatchSparningService {
       url,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -162,7 +162,7 @@ export class BatchSparningService {
       data,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -173,7 +173,7 @@ export class BatchSparningService {
       { batch_id: batchId },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }

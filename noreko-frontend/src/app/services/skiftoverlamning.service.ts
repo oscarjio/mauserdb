@@ -276,7 +276,7 @@ export class SkiftoverlamningService {
 
   getDetail(id: number): Observable<DetailResponse> {
     return this.http.get<DetailResponse>(`${API}&run=detail&id=${id}`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
@@ -284,7 +284,7 @@ export class SkiftoverlamningService {
 
   getShiftKpis(): Observable<ShiftKpisResponse> {
     return this.http.get<ShiftKpisResponse>(`${API}&run=shift-kpis`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', kpis: null } as ShiftKpisResponse))
     );
@@ -292,7 +292,7 @@ export class SkiftoverlamningService {
 
   getSummary(): Observable<SummaryResponse> {
     return this.http.get<SummaryResponse>(`${API}&run=summary`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({
         success: false, error: 'Nätverksfel',
@@ -305,7 +305,7 @@ export class SkiftoverlamningService {
 
   getOperators(): Observable<OperatorsResponse> {
     return this.http.get<OperatorsResponse>(`${API}&run=operators`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', operators: [] } as OperatorsResponse))
     );
@@ -313,7 +313,7 @@ export class SkiftoverlamningService {
 
   getAktuelltSkift(): Observable<AktuelltSkiftResponse> {
     return this.http.get<AktuelltSkiftResponse>(`${API}&run=aktuellt-skift`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
@@ -321,7 +321,7 @@ export class SkiftoverlamningService {
 
   getSkiftSammanfattning(): Observable<SkiftSammanfattningResponse> {
     return this.http.get<SkiftSammanfattningResponse>(`${API}&run=skift-sammanfattning`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
@@ -329,7 +329,7 @@ export class SkiftoverlamningService {
 
   getOppnaProblem(): Observable<OppnaProblemResponse> {
     return this.http.get<OppnaProblemResponse>(`${API}&run=oppna-problem`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', problem: [], antal: 0 } as OppnaProblemResponse))
     );
@@ -337,7 +337,7 @@ export class SkiftoverlamningService {
 
   getChecklista(): Observable<ChecklistaResponse> {
     return this.http.get<ChecklistaResponse>(`${API}&run=checklista`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', checklista: [] } as ChecklistaResponse))
     );
@@ -345,7 +345,7 @@ export class SkiftoverlamningService {
 
   getHistorik(limit: number = 10): Observable<HistorikResponse> {
     return this.http.get<HistorikResponse>(`${API}&run=historik&limit=${limit}`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', items: [] } as HistorikResponse))
     );

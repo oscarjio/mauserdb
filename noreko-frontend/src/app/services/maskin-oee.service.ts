@@ -197,6 +197,6 @@ export class MaskinOeeService {
     return this.http.get<MaskinerResponse>(
       `${this.api}&run=maskiner`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

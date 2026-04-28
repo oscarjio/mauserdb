@@ -33,7 +33,7 @@ export class StopporsakRegistreringService {
 
   getCategories(): Observable<{ success: boolean; data: StopporsakKategori[] } | null> {
     return this.http.get<{ success: boolean; data: StopporsakKategori[] }>(`${this.base}&run=categories`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -43,13 +43,13 @@ export class StopporsakRegistreringService {
       { category_id: categoryId, kommentar: kommentar ?? '', linje },
       { withCredentials: true }
     ).pipe(
-      timeout(10000), catchError(err => { console.error('registerStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
+      timeout(15000), catchError(err => { console.error('registerStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
   getActiveStops(linje: string = 'rebotling'): Observable<{ success: boolean; data: StopporsakRegistrering[] } | null> {
     return this.http.get<{ success: boolean; data: StopporsakRegistrering[] }>(`${this.base}&run=active&linje=${linje}`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 
@@ -59,13 +59,13 @@ export class StopporsakRegistreringService {
       { id },
       { withCredentials: true }
     ).pipe(
-      timeout(10000), catchError(err => { console.error('endStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
+      timeout(15000), catchError(err => { console.error('endStop failed', err); return of({ success: false, message: err?.error?.error || 'Nätverksfel' }); })
     );
   }
 
   getRecent(limit: number = 20, linje: string = 'rebotling'): Observable<{ success: boolean; data: StopporsakRegistrering[] } | null> {
     return this.http.get<{ success: boolean; data: StopporsakRegistrering[] }>(`${this.base}&run=recent&limit=${limit}&linje=${linje}`, { withCredentials: true }).pipe(
-      timeout(10000), retry(1), catchError(() => of(null))
+      timeout(15000), retry(1), catchError(() => of(null))
     );
   }
 }

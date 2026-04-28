@@ -80,7 +80,7 @@ export class IbcForlustPage implements OnInit, OnDestroy, AfterViewInit {
     this.http.get<any>(
       `${environment.apiUrl}?action=rebotling&run=ibc-forlust&days=${this.days}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;
         if (res?.success) {

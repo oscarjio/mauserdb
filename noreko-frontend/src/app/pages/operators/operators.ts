@@ -250,7 +250,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   private loadTrend(s: any) {
     const id = s.id;
     this.trendLoading[id] = true;
-    this.operatorsService.getTrend(s.number).pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getTrend(s.number).pipe(timeout(15000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.trendLoading[id] = false;
         this.trendData[id] = res.success ? res.data : [];
@@ -358,7 +358,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   fetchOperators() {
     this.loading = true;
-    this.operatorsService.getOperators().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getOperators().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.error = 'Kunde inte hämta operatörer.'; this.loading = false; return; }
         this.operators = res.operators || [];
@@ -376,7 +376,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   }
 
   saveOperator(op: any) {
-    this.operatorsService.updateOperator({ id: op.id, name: op.name, number: op.number }).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.updateOperator({ id: op.id, name: op.name, number: op.number }).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte spara operatör.'); return; }
         if (res.success) {
@@ -398,7 +398,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
     if (!confirm(`Är du säker på att du vill ta bort operatören "${op.name}"?`)) {
       return;
     }
-    this.operatorsService.deleteOperator(op.id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.deleteOperator(op.id).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte ta bort operatör'); return; }
         if (res.success) {
@@ -416,7 +416,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   }
 
   toggleActive(op: any) {
-    this.operatorsService.toggleActive(op.id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.toggleActive(op.id).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte ändra status'); return; }
         if (res.success) {
@@ -434,7 +434,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   loadOpStats() {
     this.opStatsLoading = true;
-    this.operatorsService.getStats().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getStats().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.opStatsLoading = false; return; }
         this.opStats = res.stats || [];
@@ -450,7 +450,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   loadPairs() {
     this.pairsLoading = true;
     this.operatorsService.getPairs().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of({ success: false, pairs: [] })), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
@@ -481,7 +481,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
       this.toast.error('Namn och giltigt nummer krävs');
       return;
     }
-    this.operatorsService.createOperator({ name: this.addForm.name.trim(), number: this.addForm.number }).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.createOperator({ name: this.addForm.name.trim(), number: this.addForm.number }).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) { this.toast.error('Kunde inte skapa operatör.'); return; }
         if (res.success) {
@@ -549,7 +549,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   loadCompatibility() {
     this.compatLoading = true;
     this.operatorsService.getMachineCompatibility(90).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {

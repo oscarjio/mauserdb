@@ -84,7 +84,7 @@ export class SkiftTopplista implements OnInit, OnDestroy {
 
     const url = `${environment.apiUrl}?action=rebotling&run=skift-topplista&days=${this.days}&limit=${this.limit}`;
     this.http.get<TopResponse>(url, { withCredentials: true })
-      .pipe(timeout(12000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.isFetching = false;
         this.loading = false;

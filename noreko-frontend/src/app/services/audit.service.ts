@@ -68,7 +68,7 @@ export class AuditService {
 
   getActions(): Observable<{ success: boolean; data: string[] }> {
     return this.http.get<any>(`${this.base}&run=actions`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, data: [] }))
     );

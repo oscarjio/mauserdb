@@ -78,7 +78,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
     this.isFetching = true;
 
     this.taktService.getCurrentRate().pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -102,7 +102,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
     });
 
     this.taktService.getHourlyHistory().pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -228,7 +228,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
     if (this.newTarget <= 0 || this.newTarget > 100) return;
     this.savingTarget = true;
     this.taktService.setTarget(this.newTarget).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {

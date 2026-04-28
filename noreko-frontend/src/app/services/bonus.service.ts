@@ -270,7 +270,7 @@ export class BonusService {
   getDailySummary(): Observable<BonusSummaryResponse | null> {
     return this.http.get<BonusSummaryResponse>(this.baseUrl + '&run=summary', {
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOperatorStats(operatorId: string, period?: string, start?: string, end?: string): Observable<OperatorStatsResponse | null> {
@@ -282,7 +282,7 @@ export class BonusService {
     return this.http.get<OperatorStatsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRanking(period?: string, limit: number = 10, start?: string, end?: string): Observable<RankingResponse | null> {
@@ -294,7 +294,7 @@ export class BonusService {
     return this.http.get<RankingResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTeamStats(period?: string, start?: string, end?: string): Observable<TeamStatsResponse | null> {
@@ -306,7 +306,7 @@ export class BonusService {
     return this.http.get<TeamStatsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getKPIDetails(operatorId: string, period?: string): Observable<KPIDetailsResponse | null> {
@@ -316,7 +316,7 @@ export class BonusService {
     return this.http.get<KPIDetailsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getOperatorHistory(operatorId: string, limit: number = 50): Observable<OperatorHistoryResponse | null> {
@@ -325,7 +325,7 @@ export class BonusService {
     return this.http.get<OperatorHistoryResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeeklyHistory(operatorId: string): Observable<WeeklyHistoryResponse | null> {
@@ -333,7 +333,7 @@ export class BonusService {
     return this.http.get<WeeklyHistoryResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHallOfFame(): Observable<HallOfFameResponse | null> {
@@ -341,7 +341,7 @@ export class BonusService {
     return this.http.get<HallOfFameResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getLoneprognos(): Observable<LoneprognosResponse | null> {
@@ -349,14 +349,14 @@ export class BonusService {
     return this.http.get<LoneprognosResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
   getWeekTrend(): Observable<any> {
     const params = new HttpParams().set('run', 'week-trend');
     return this.http.get<any>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getRankingPosition(): Observable<RankingPositionResponse | null> {
@@ -364,7 +364,7 @@ export class BonusService {
     return this.http.get<RankingPositionResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    }).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
 }

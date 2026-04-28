@@ -34,7 +34,7 @@ export class StatistikPrediktionComponent implements OnInit, OnDestroy {
     if (this.prediktionLoading) return;
     this.prediktionLoading = true;
     this.rebotlingService.getLiveStats().pipe(
-      timeout(6000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((liveRes: any) => {

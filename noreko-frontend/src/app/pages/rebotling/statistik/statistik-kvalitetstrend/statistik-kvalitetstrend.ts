@@ -39,7 +39,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
     this.qualityTrendLoading = true;
     this.qualityTrendLoaded = false;
     this.rebotlingService.getQualityTrend(this.qualityTrendDays).pipe(
-      timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$)
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: QualityTrendResponse | null) => {
       this.qualityTrendLoading = false;
       if (res?.success && res.days) {

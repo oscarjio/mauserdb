@@ -131,7 +131,7 @@ export class KvalitetscertifikatService {
     return this.http.get<DetaljResponse>(
       `${this.api}&run=detalj&id=${id}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   generera(data: {
@@ -148,7 +148,7 @@ export class KvalitetscertifikatService {
       data,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -159,7 +159,7 @@ export class KvalitetscertifikatService {
       { id, status, kommentar },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -168,7 +168,7 @@ export class KvalitetscertifikatService {
     return this.http.get<KriterierResponse>(
       `${this.api}&run=kriterier`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   uppdateraKriterier(items: any[]): Observable<any> {
@@ -177,7 +177,7 @@ export class KvalitetscertifikatService {
       items,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -186,6 +186,6 @@ export class KvalitetscertifikatService {
     return this.http.get<StatistikResponse>(
       `${this.api}&run=statistik&limit=${limit}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

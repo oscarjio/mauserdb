@@ -115,7 +115,7 @@ export class SkiftplaneringService {
       `${this.api}&run=overview`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -128,7 +128,7 @@ export class SkiftplaneringService {
       url,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -139,7 +139,7 @@ export class SkiftplaneringService {
       `${this.api}&run=shift-detail&shift=${shift}&date=${date}`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -150,7 +150,7 @@ export class SkiftplaneringService {
       `${this.api}&run=capacity`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -161,7 +161,7 @@ export class SkiftplaneringService {
       `${this.api}&run=operators`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -173,7 +173,7 @@ export class SkiftplaneringService {
       { operator_id: operatorId, skift_typ: skiftTyp, datum },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -184,7 +184,7 @@ export class SkiftplaneringService {
       { schema_id: schemaId },
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }

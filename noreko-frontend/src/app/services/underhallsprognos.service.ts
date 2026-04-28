@@ -89,7 +89,7 @@ export class UnderhallsprognosService {
       `${this.api}&run=overview`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -100,7 +100,7 @@ export class UnderhallsprognosService {
       `${this.api}&run=schedule`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -111,7 +111,7 @@ export class UnderhallsprognosService {
       `${this.api}&run=history&days=${days}&limit=${limit}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );

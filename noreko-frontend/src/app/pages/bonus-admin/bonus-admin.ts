@@ -351,7 +351,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
 
   // ========== System Stats ==========
   loadSystemStats() {
-    this.bonusAdmin.getSystemStats().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getSystemStats().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.systemStats = res.data;
@@ -364,7 +364,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
   // ========== Config ==========
   loadConfig() {
     this.loading = true;
-    this.bonusAdmin.getConfig().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getConfig().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.config = res.data;
@@ -517,7 +517,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
     this.forecastError = '';
     this.operatorForecast = null;
 
-    this.bonusAdmin.getOperatorForecast(id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getOperatorForecast(id).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.operatorForecast = res.data;
@@ -543,7 +543,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
 
   // ========== Periods ==========
   loadPeriods() {
-    this.bonusAdmin.getPeriods().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getPeriods().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.periods = res.data.periods || [];
@@ -597,7 +597,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonus&run=simulate`,
       payload,
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
+    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.simResult = res.data;
@@ -648,7 +648,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       basePay,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -666,7 +666,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
           newPay,
           { withCredentials: true }
         ).pipe(
-          timeout(8000),
+          timeout(15000),
           catchError(() => of(null)),
           takeUntil(this.destroy$)
         ).subscribe({
@@ -783,7 +783,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       basePayload,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -793,7 +793,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
           simPayload,
           { withCredentials: true }
         ).pipe(
-          timeout(8000),
+          timeout(15000),
           catchError(() => of(null)),
           takeUntil(this.destroy$)
         ).subscribe({
@@ -903,7 +903,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonusadmin&run=getAmounts`,
       { withCredentials: true }
     ).pipe(
-      timeout(5000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -952,7 +952,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       this.amountsForm,
       { withCredentials: true }
     ).pipe(
-      timeout(5000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1034,7 +1034,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonusadmin&run=list-operators`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1057,7 +1057,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonusadmin&run=list-payouts&${params.toString()}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1076,7 +1076,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonusadmin&run=payout-summary&year=${this.payoutSummaryYear}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1115,7 +1115,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       this.payoutForm,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1145,7 +1145,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       { id },
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1191,7 +1191,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       url += `&status=${encodeURIComponent(this.payoutHistoryStatusFilter)}`;
     }
     this.http.get<ApiResponse<{ payouts: PayoutRecord[] }>>(url, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1213,7 +1213,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       JSON.stringify({ id, status }),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1318,7 +1318,7 @@ export class BonusAdminPage implements OnInit, OnDestroy, ComponentCanDeactivate
       `${environment.apiUrl}?action=bonusadmin&run=fairness&period=${encodeURIComponent(this.auditPeriod)}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({

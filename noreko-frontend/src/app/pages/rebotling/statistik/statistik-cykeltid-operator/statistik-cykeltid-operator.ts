@@ -56,7 +56,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     startDate.setDate(startDate.getDate() - (this.cycleByOpDays - 1));
 
     this.rebotlingService.getCycleByOperator(fmt(startDate), fmt(endDate)).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res: CycleByOperatorResponse | null) => {

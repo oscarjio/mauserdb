@@ -67,7 +67,7 @@ export class ProduktionsPrognosService {
       `${this.api}&run=forecast`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -78,7 +78,7 @@ export class ProduktionsPrognosService {
       `${this.api}&run=shift-history`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );

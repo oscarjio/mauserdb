@@ -254,7 +254,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.error = '';
 
     this.bonusService.getOperatorStats(this.savedOperatorId, this.selectedPeriod).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of({ _networkError: true } as any)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -281,7 +281,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
     // Historik: hämta 20 senaste skift för historikgraf + ibcTrend
     this.bonusService.getOperatorHistory(this.savedOperatorId, 20).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -300,7 +300,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     // Veckohistorik: senaste 8 ISO-veckor
     this.weeklyLoading = true;
     this.bonusService.getWeeklyHistory(this.savedOperatorId).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -343,7 +343,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonus&run=personal-best&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -367,7 +367,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonus&run=streak&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -391,7 +391,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonus&run=achievements&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -422,7 +422,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   loadRankingPosition(): void {
     this.rankingPositionLoading = true;
     this.bonusService.getRankingPosition().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -464,7 +464,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonus&run=my-ranking&op_id=${this.savedOperatorId}&period=${period}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -525,7 +525,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonus&run=peer-ranking&operator_id=${this.savedOperatorId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -751,7 +751,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=bonusadmin&run=getAmounts`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1356,7 +1356,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   loadFeedbackHistory(): void {
     this.feedbackHistoryLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=feedback&run=my-history`, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -1381,7 +1381,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     const body = { stamning: this.feedbackMood, kommentar: this.feedbackKommentar.trim() };
 
     this.http.post<any>(`${environment.apiUrl}?action=feedback&run=submit`, body, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError((err) => {
         const msg = err?.error?.error || 'Fel vid sparning av feedback';
         return of({ success: false, error: msg });

@@ -102,7 +102,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     this.tvattlinjeService
       .getRunningStatus()
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError((err) => {
           console.error('Fel vid hämtning av tvättlinje linjestatus:', err);
           return of<LineStatusResponse | null>(null);
@@ -129,7 +129,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     this.tvattlinjeService
       .getLiveStats()
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError((err) => {
           console.error('Fel vid hämtning av tvättlinje live stats:', err);
           // Fortsätt strömmen men utan att uppdatera data

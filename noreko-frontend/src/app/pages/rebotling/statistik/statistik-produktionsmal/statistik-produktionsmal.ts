@@ -248,7 +248,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
     this.saving = true;
     this.saveMsg = null;
     this.rebotlingService.setProductionGoal(type, target).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of({ success: false, error: 'Nätverksfel' })),
       takeUntil(this.destroy$)
     ).subscribe((res: any) => {

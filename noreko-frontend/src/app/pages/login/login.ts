@@ -109,7 +109,7 @@ export class LoginPage implements OnDestroy {
       username: this.username.trim(),
       password: this.password
     }, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => {
         console.error('Inloggning misslyckades:', err);
         this.error = err?.error?.error || 'Inloggningen misslyckades. Försök igen.';
@@ -134,7 +134,7 @@ export class LoginPage implements OnDestroy {
           this.auth.onLoginSuccess();
           this.router.navigateByUrl(this.returnUrl);
           this.auth.fetchStatus().pipe(
-            timeout(8000),
+            timeout(15000),
             catchError(err => {
               console.error('Verifiering av inloggningsstatus misslyckades:', err);
               return of(null);

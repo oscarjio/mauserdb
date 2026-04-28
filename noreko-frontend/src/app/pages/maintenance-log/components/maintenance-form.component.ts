@@ -298,7 +298,7 @@ export class MaintenanceFormComponent implements OnDestroy {
       : `${this.apiBase}?action=maintenance&run=add`;
 
     this.http.post<any>(url, payload, { withCredentials: true })
-      .pipe(timeout(10000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
       .subscribe(data => {
         this.isSaving = false;
         if (data?.success) {

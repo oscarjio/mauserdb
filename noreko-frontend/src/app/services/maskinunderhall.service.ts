@@ -104,7 +104,7 @@ export class MaskinunderhallService {
       `${this.api}&run=overview`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -115,7 +115,7 @@ export class MaskinunderhallService {
       `${this.api}&run=machines`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -126,7 +126,7 @@ export class MaskinunderhallService {
       `${this.api}&run=machine-history&maskin_id=${maskinId}`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -137,7 +137,7 @@ export class MaskinunderhallService {
       `${this.api}&run=timeline`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );
@@ -149,7 +149,7 @@ export class MaskinunderhallService {
       data,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -160,7 +160,7 @@ export class MaskinunderhallService {
       data,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError((err) => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }

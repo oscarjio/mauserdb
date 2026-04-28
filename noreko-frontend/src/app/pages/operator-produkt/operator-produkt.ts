@@ -85,7 +85,7 @@ export class OperatorProduktPage implements OnInit, OnDestroy {
     const url = `${environment.apiUrl}?action=rebotling&run=operator-produkt&days=${this.days}`;
     this.http.get<ApiResponse>(url, { withCredentials: true })
       .pipe(
-        timeout(10000),
+        timeout(15000),
         catchError(() => of({ success: false, error: 'Kunde inte hämta data' } as any)),
         takeUntil(this.destroy$),
       )

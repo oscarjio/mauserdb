@@ -96,7 +96,7 @@ export class CreateUserPage implements OnInit, OnDestroy, ComponentCanDeactivate
     };
 
     this.usersService.createUser(trimmedUser).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => {
         console.error('Skapande av användare misslyckades:', err);
         this.isLoading = false;

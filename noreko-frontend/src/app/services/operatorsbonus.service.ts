@@ -155,7 +155,7 @@ export class OperatorsbonusService {
     return this.http.get<KonfigResponse>(
       `${this.api}&run=konfiguration`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   sparaKonfiguration(items: { faktor: string; vikt: number; mal_varde: number; max_bonus_kr: number }[]): Observable<any> {
@@ -164,7 +164,7 @@ export class OperatorsbonusService {
       items,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }
@@ -176,7 +176,7 @@ export class OperatorsbonusService {
     if (to) url += `&to=${to}`;
     return this.http.get<HistorikResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(operatorId: number, days: number = 30): Observable<TrendResponse | null> {
@@ -190,6 +190,6 @@ export class OperatorsbonusService {
     return this.http.get<SimuleringResponse>(
       `${this.api}&run=simulering&ibc_per_timme=${ibcPerTimme}&kvalitet=${kvalitet}&narvaro=${narvaro}&team_mal=${teamMal}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

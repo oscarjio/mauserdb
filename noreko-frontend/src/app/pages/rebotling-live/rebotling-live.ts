@@ -176,7 +176,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
       .getLiveStats()
       .pipe(
         // Sätt en timeout så anropet inte hänger för evigt om backend inte svarar
-        timeout(5000),
+        timeout(15000),
         catchError((err) => {
           console.error('Fel vid hämtning av rebotling live stats:', err);
           // Fortsätt strömmen men utan att uppdatera data
@@ -221,7 +221,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.rebotlingService
       .getRunningStatus()
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError((err) => {
           console.error('Fel vid hämtning av rebotling linjestatus:', err);
           return of<LineStatusResponse | null>(null);
@@ -244,7 +244,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.rebotlingService
       .getRastStatus()
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of<RastStatusResponse | null>(null)),
         finalize(() => { this.isFetchingRast = false; })
       )
@@ -263,7 +263,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.rebotlingService
       .getDriftstoppStatus()
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         finalize(() => { this.isFetchingDriftstopp = false; })
       )
@@ -285,7 +285,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.rebotlingService
       .getOEE('today')
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError((err) => {
           console.error('Fel vid hämtning av OEE:', err);
           return of<OEEResponse | null>(null);

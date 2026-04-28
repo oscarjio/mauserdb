@@ -162,7 +162,7 @@ export class LeveransplaneringService {
     return this.http.get<KonfigurationResponse>(
       `${this.api}&run=konfiguration`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   skapaOrder(order: any): Observable<SkapaOrderResponse | null> {

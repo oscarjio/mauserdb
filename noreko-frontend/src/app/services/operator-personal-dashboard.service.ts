@@ -83,41 +83,41 @@ export class OperatorPersonalDashboardService {
     return this.http.get<{ success: boolean; operatorer: OperatorItem[] }>(
       `${this.api}&run=operatorer`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinProduktion(opId: number): Observable<MinProduktionData | null> {
     return this.http.get<MinProduktionData>(
       `${this.api}&run=min-produktion&op=${opId}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMittTempo(opId: number): Observable<MittTempoData | null> {
     return this.http.get<MittTempoData>(
       `${this.api}&run=mitt-tempo&op=${opId}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinBonus(opId: number): Observable<MinBonusData | null> {
     return this.http.get<MinBonusData>(
       `${this.api}&run=min-bonus&op=${opId}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinaStopp(opId: number): Observable<MinaStoppData | null> {
     return this.http.get<MinaStoppData>(
       `${this.api}&run=mina-stopp&op=${opId}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMinVeckotrend(opId: number): Observable<MinVeckotrendData | null> {
     return this.http.get<MinVeckotrendData>(
       `${this.api}&run=min-veckotrend&op=${opId}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

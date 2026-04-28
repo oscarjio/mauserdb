@@ -69,7 +69,7 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
     this.loadError = false;
     this.http
       .get<any>(`${environment.apiUrl}?action=rebotling&run=production-rate`, { withCredentials: true })
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;
         if (res?.success && res.data) {

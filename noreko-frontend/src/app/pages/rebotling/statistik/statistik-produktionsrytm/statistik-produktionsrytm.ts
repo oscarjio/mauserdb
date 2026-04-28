@@ -26,7 +26,7 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
   getHourlyRhythmMax(): number { return this.hourlyRhythm.length ? Math.max(...this.hourlyRhythm.map(h => h.avg_ibc_h)) : 0; }
   loadHourlyRhythm(): void {
     this.hourlyRhythmLoading = true;
-    this.rebotlingService.getHourlyRhythm(this.hourlyRhythmDays).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.rebotlingService.getHourlyRhythm(this.hourlyRhythmDays).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { this.hourlyRhythmLoading = false; if (res?.success) { this.hourlyRhythm = res.data; this._timers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildHourlyRhythmChart(); }, 100)); } });
   }
   private buildHourlyRhythmChart(): void {

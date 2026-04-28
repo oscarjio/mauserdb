@@ -119,7 +119,7 @@ export class BonusKalkylatorPage implements OnInit, OnDestroy {
 
     const url = `${environment.apiUrl}?action=rebotling&run=bonus-kalkylator&from=${this.fromDate}&to=${this.toDate}`;
     this.http.get<ApiResponse>(url, { withCredentials: true })
-      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.isFetching = false;
         if (!res || !res.success) {

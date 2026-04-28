@@ -93,7 +93,7 @@ export class SkiftoverlamningProtokollService {
 
   getSkiftdata(): Observable<SkiftdataResponse> {
     return this.http.get<SkiftdataResponse>(`${API}&run=skiftdata`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );
@@ -108,7 +108,7 @@ export class SkiftoverlamningProtokollService {
 
   getHistorik(limit: number = 10): Observable<HistorikResponse> {
     return this.http.get<HistorikResponse>(`${API}&run=protokoll-historik&limit=${limit}`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel', items: [] } as HistorikResponse))
     );
@@ -116,7 +116,7 @@ export class SkiftoverlamningProtokollService {
 
   getDetalj(id: number): Observable<DetaljResponse> {
     return this.http.get<DetaljResponse>(`${API}&run=protokoll-detalj&id=${id}`, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of({ success: false, error: 'Nätverksfel' } as any))
     );

@@ -144,7 +144,7 @@ export class AvvikelselarmService {
     return this.http.get<ReglerResponse>(
       `${this.api}&run=regler`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   uppdateraRegel(regelId: number, gransVarde?: number, aktiv?: boolean): Observable<UppdateraRegelResponse | null> {

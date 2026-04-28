@@ -31,7 +31,7 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
   loadOeeComponents(): void {
     this.oeeComponentsLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=oee-components&days=`+this.oeeComponentsDays, { withCredentials: true })
-    .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+    .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { this.oeeComponentsLoading = false; if (res?.success) { this.oeeComponentsData = res.data || []; this.buildOeeComponentsChart(); } });
   }
 

@@ -83,7 +83,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
   loadKategorier() {
     this.loadingKategorier = true;
     this.service.getCategories()
-      .pipe(timeout(10000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingKategorier = false;
@@ -97,7 +97,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     if (this.loadingAktiva) return;
     this.loadingAktiva = true;
     this.service.getActiveStops()
-      .pipe(timeout(10000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingAktiva = false;
@@ -113,7 +113,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
   loadHistorik() {
     this.loadingHistorik = true;
     this.service.getRecent(20)
-      .pipe(timeout(10000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.loadingHistorik = false;
@@ -143,7 +143,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.service.registerStop(this.valdKategori.id, this.kommentar)
-      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.submitting = false;
@@ -170,7 +170,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
     this.endingStopId = stopp.id;
 
     this.service.endStop(stopp.id)
-      .pipe(timeout(10000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(err => of({ success: false, message: err?.error?.error || 'Anslutningsfel' })), takeUntil(this.destroy$))
       .subscribe({
         next: res => {
           this.endingStopId = null;

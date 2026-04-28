@@ -43,7 +43,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
   loadWeekdayStats(): void {
     this.weekdayLoading = true;
     this.rebotlingService.getWeekdayStats(this.weekdayDagar).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of({ success: false, veckodagar: [] })),
       takeUntil(this.destroy$)
     ).subscribe((r: any) => {

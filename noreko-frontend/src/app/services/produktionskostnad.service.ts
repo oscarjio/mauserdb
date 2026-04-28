@@ -136,7 +136,7 @@ export class ProduktionskostnadService {
     return this.http.get<KostnadOverviewResponse>(
       `${this.api}&run=overview`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getBreakdown(period: string = 'dag', date?: string): Observable<KostnadBreakdownResponse | null> {
@@ -144,14 +144,14 @@ export class ProduktionskostnadService {
     if (date) url += `&date=${date}`;
     return this.http.get<KostnadBreakdownResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getTrend(period: number = 30): Observable<KostnadTrendResponse | null> {
     return this.http.get<KostnadTrendResponse>(
       `${this.api}&run=trend&period=${period}`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getDailyTable(from?: string, to?: string): Observable<DailyTableResponse | null> {
@@ -160,7 +160,7 @@ export class ProduktionskostnadService {
     if (to)   url += `&to=${to}`;
     return this.http.get<DailyTableResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getShiftComparison(period: string = 'dag', date?: string): Observable<ShiftComparisonResponse | null> {
@@ -168,14 +168,14 @@ export class ProduktionskostnadService {
     if (date) url += `&date=${date}`;
     return this.http.get<ShiftComparisonResponse>(
       url, { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getConfig(): Observable<KostnadConfigResponse | null> {
     return this.http.get<KostnadConfigResponse>(
       `${this.api}&run=config`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   updateConfig(items: { faktor: string; varde: number }[]): Observable<any> {
@@ -184,7 +184,7 @@ export class ProduktionskostnadService {
       items,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(err => of({ success: false, error: err?.error?.error || 'Okänt fel' }))
     );
   }

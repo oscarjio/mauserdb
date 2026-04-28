@@ -82,7 +82,7 @@ export class FavoriterService {
 
   list(): Observable<FavoriterResponse> {
     return this.http.get<FavoriterResponse>(`${this.api}&run=list`, { withCredentials: true })
-      .pipe(timeout(8000), retry(1), catchError(() => of({ success: false, data: [] })));
+      .pipe(timeout(15000), retry(1), catchError(() => of({ success: false, data: [] })));
   }
 
   add(route: string, label: string, icon: string, color: string): Observable<FavoritMutationResponse> {
@@ -90,7 +90,7 @@ export class FavoriterService {
       `${this.api}&run=add`,
       { route, label, icon, color },
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte spara' })));
+    ).pipe(timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte spara' })));
   }
 
   remove(id: number): Observable<FavoritMutationResponse> {
@@ -98,7 +98,7 @@ export class FavoriterService {
       `${this.api}&run=remove`,
       { id },
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ta bort' })));
+    ).pipe(timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ta bort' })));
   }
 
   reorder(ids: number[]): Observable<FavoritMutationResponse> {
@@ -106,6 +106,6 @@ export class FavoriterService {
       `${this.api}&run=reorder`,
       { ids },
       { withCredentials: true }
-    ).pipe(timeout(8000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ordna om' })));
+    ).pipe(timeout(15000), catchError(err => of({ success: false, error: err?.error?.error || 'Kunde inte ordna om' })));
   }
 }

@@ -341,7 +341,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   loadOverview() {
     this.overviewLoading = true;
     this.rebotlingService.getExecDashboard().pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => {
         this.overviewLoading = false;
         return of(null);

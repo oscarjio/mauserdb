@@ -275,7 +275,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
     const url = `${this.apiBase}?action=maintenance&run=list${paramStr ? '&' + paramStr : ''}`;
 
     this.http.get<any>(url, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.isLoading = false;
         if (data?.entries) {
@@ -299,7 +299,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
 
     this.deleteError = '';
     this.http.post<any>(`${this.apiBase}?action=maintenance&run=delete&id=${entry.id}`, {}, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         if (data?.success) {
           this.deleteError = '';

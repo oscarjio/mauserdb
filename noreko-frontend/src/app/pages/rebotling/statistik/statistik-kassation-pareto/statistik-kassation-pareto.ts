@@ -32,7 +32,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
   loadKassationPareto(): void {
     this.kassationLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=kassation-pareto&days=`+this.kassationDays, { withCredentials: true })
-    .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+    .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe((res: any) => {
       this.kassationLoading = false;
       if (res?.success) { this.kassationPareto = res.pareto || []; this.kassationTotalAntal = res.total_kassation ?? 0; this.kassationTotalProduktion = res.total_produktion ?? 0; this.kassationPct = res.kassation_pct ?? 0;

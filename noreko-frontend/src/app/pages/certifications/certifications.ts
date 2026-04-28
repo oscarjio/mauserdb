@@ -144,7 +144,7 @@ export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeacti
     this.error = '';
     this.http.get<any>(`${environment.apiUrl}?action=certifications&run=all`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => {
           this.error = 'Kunde inte hämta certifieringar. Försök igen.';
           this.loading = false;
@@ -165,7 +165,7 @@ export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeacti
   loadOperatorOptions() {
     this.http.get<any>(`${environment.apiUrl}?action=operators&run=list`, { withCredentials: true })
       .pipe(
-        timeout(5000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
@@ -181,7 +181,7 @@ export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeacti
     this.matrixError = '';
     this.http.get<any>(`${environment.apiUrl}?action=certifications&run=matrix`, { withCredentials: true })
       .pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => {
           this.matrixError = 'Kunde inte hämta kompetensmatris.';
           this.matrixLoading = false;
@@ -460,7 +460,7 @@ export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeacti
       { id: certId },
       { withCredentials: true }
     ).pipe(
-      timeout(5000),
+      timeout(15000),
       catchError(err => { console.error('revoke failed', err); return of({ success: false, error: 'Nätverksfel' }); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -517,7 +517,7 @@ export class CertificationsPage implements OnInit, OnDestroy, ComponentCanDeacti
       payload,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(err => { console.error('submitAdd failed', err); return of({ success: false, error: 'Nätverksfel' }); }),
       takeUntil(this.destroy$)
     ).subscribe(res => {

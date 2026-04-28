@@ -63,7 +63,7 @@ export class OperatorAttendancePage implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=attendance&month=${this.selectedMonth}`,
       { withCredentials: true }
     )
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loading = false;
         if (res?.success) {

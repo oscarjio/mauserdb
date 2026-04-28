@@ -117,7 +117,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=quality-rejection-breakdown&days=` + this.days,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res) => {
@@ -143,7 +143,7 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
       `${environment.apiUrl}?action=rebotling&run=quality-rejection-trend&days=` + this.days,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res) => {

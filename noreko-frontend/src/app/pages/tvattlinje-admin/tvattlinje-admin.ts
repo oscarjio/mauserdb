@@ -152,7 +152,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.loading = true;
     this.settingsError = '';
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=admin-settings`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -181,7 +181,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.settingsSaving = true;
     this.settingsError = '';
     this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=admin-settings`, this.settings, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -211,7 +211,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.newSettingsLoading = true;
     this.newSettingsError = '';
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=settings`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.newSettingsLoading = false;
@@ -241,7 +241,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.newSettingsSaving = true;
     this.newSettingsError = '';
     this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=settings`, this.newSettings, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.newSettingsSaving = false;
@@ -264,7 +264,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError = '';
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=weekday-goals`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsLoading = false;
@@ -291,7 +291,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.weekdayGoalsError = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
     this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=weekday-goals`, payload, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of({ success: false })), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsSaving = false;
@@ -323,7 +323,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
       this.systemStatusError = '';
     }
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=system-status`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.isFetchingStatus = false;
@@ -371,7 +371,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.isFetchingSnapshot = true;
     if (!silent) this.todaySnapshotLoading = true;
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=today-snapshot`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           this.isFetchingSnapshot = false;
@@ -407,7 +407,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.alertThresholdsLoading = true;
     this.alertThresholdsError   = '';
     this.http.get<any>(`${environment.apiUrl}?action=tvattlinje&run=alert-thresholds`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res?.success && res.data) {
@@ -425,7 +425,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.alertThresholdsError  = '';
     this.http.post<any>(`${environment.apiUrl}?action=tvattlinje&run=save-alert-thresholds`,
       this.alertThresholds, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res?.success) {

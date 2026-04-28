@@ -52,7 +52,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
     this.loadAnnotations(fmt(startDate), fmt(endDate));
 
     this.rebotlingService.getOEE('month').pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((oeeRes: any) => {
@@ -60,7 +60,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         this.oeeData = oeeRes.data;
       }
       this.rebotlingService.getOEETrend(30, this.oeeGranularity).pipe(
-        timeout(8000),
+        timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       ).subscribe((trendRes: any) => {
@@ -78,7 +78,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
 
   private loadAnnotations(startDate: string, endDate: string) {
     this.rebotlingService.getAnnotations(startDate, endDate).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe((res: any) => {

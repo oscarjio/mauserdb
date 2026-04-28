@@ -129,7 +129,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   private loadWeeklyGoal() {
-    this.bonusAdminService.getConfig().pipe(timeout(8000), catchError(() => { return of(null); }), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdminService.getConfig().pipe(timeout(15000), catchError(() => { return of(null); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res?.success && res.data) {
           this.weeklyGoal = (res.data as any).weekly_bonus_goal || 80;
@@ -141,7 +141,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private loadHallOfFame() {
     this.hallOfFameLoading = true;
     this.bonusService.getHallOfFame().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -162,7 +162,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private loadLoneprognos() {
     this.loneprognosLoading = true;
     this.bonusService.getLoneprognos().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -185,7 +185,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
     // Ladda summary
     this.bonusService.getDailySummary().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -200,7 +200,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
     // Ladda ranking (controls loading flag) + previous period for trend arrows
     this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -235,7 +235,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       undefined, 10,
       prevPeriod.start, prevPeriod.end
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({
@@ -328,7 +328,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.teamStatsSub?.unsubscribe();
 
     this.teamLoading = true;
-    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).pipe(timeout(8000), catchError(() => { this.error = 'Kunde inte ladda skiftdata. Försök igen.'; this.teamLoading = false; return of(null); }), takeUntil(this.destroy$)).subscribe({
+    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).pipe(timeout(15000), catchError(() => { this.error = 'Kunde inte ladda skiftdata. Försök igen.'; this.teamLoading = false; return of(null); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) return;
         if (res.success && res.data) {
@@ -356,7 +356,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     let pending = 2;
     const done = () => { if (--pending === 0) this.searchLoading = false; };
 
-    this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).pipe(timeout(8000), catchError(() => { this.error = 'Kunde inte hämta operatörsdata. Försök igen.'; done(); return of(null); }), takeUntil(this.destroy$)).subscribe({
+    this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).pipe(timeout(15000), catchError(() => { this.error = 'Kunde inte hämta operatörsdata. Försök igen.'; done(); return of(null); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) return;
         if (res.success && res.data) {
@@ -369,7 +369,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       }
     });
 
-    this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).pipe(timeout(8000), catchError(() => { done(); return of(null); }), takeUntil(this.destroy$)).subscribe({
+    this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).pipe(timeout(15000), catchError(() => { done(); return of(null); }), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (!res) return;
         if (res.success && res.data) {
@@ -475,7 +475,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   loadWeekTrend() {
     this.weekTrendLoading = true;
     this.bonusService.getWeekTrend().pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe({

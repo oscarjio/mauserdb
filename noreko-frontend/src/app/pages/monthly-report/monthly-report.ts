@@ -277,7 +277,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     );
 
     const stops$ = this.http.get<any>(reportUrl2, { withCredentials: true }).pipe(
-      timeout(10000),
+      timeout(15000),
       catchError(() => of(null))
     );
 

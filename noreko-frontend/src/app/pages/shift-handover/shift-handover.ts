@@ -265,7 +265,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, Comp
     if (showLoader) this.isLoading = true;
 
     this.http.get<any>(`${API}&run=recent`, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -302,7 +302,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, Comp
     note.acknowledged_time_ago = 'Just nu';
 
     this.http.post<any>(`${API}&run=acknowledge`, { id: note.id }, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -348,7 +348,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, Comp
     };
 
     this.http.post<any>(`${API}&run=add`, body, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -384,7 +384,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, Comp
     if (!confirm(`Ta bort anteckning från ${note.time_ago}?`)) return;
 
     this.http.post<any>(`${API}&run=delete&id=${note.id}`, {}, { withCredentials: true }).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {

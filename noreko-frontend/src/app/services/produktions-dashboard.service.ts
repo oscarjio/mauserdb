@@ -167,13 +167,13 @@ export class ProduktionsDashboardService {
     return this.http.get<ApiResponse<SenasteAlarmData>>(
       `${this.api}&run=senaste-alarm`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getSenasteIbc(): Observable<ApiResponse<SenasteIbcData> | null> {
     return this.http.get<ApiResponse<SenasteIbcData>>(
       `${this.api}&run=senaste-ibc`,
       { withCredentials: true }
-    ).pipe(timeout(10000), retry(1), catchError(() => of(null)));
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

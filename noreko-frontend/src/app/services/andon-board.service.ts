@@ -63,7 +63,7 @@ export class AndonBoardService {
       `${this.api}&run=board-status`,
       { withCredentials: true }
     ).pipe(
-      timeout(10000),
+      timeout(15000),
       retry(1),
       catchError(() => of(null))
     );

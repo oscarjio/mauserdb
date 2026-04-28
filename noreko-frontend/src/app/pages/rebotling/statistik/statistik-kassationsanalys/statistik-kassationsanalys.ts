@@ -85,7 +85,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     this.loadingSummary = true;
     this.errorSummary = false;
     this.rebotlingService.getKassationsSummary(this.days)
-      .pipe(timeout(12000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingSummary = false;
         if (res?.success) {
@@ -100,7 +100,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     this.loadingByCause = true;
     this.errorByCause = false;
     this.rebotlingService.getKassationsByCause(this.days)
-      .pipe(timeout(12000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingByCause = false;
         if (res?.success) {
@@ -116,7 +116,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     this.loadingStacked = true;
     this.errorStacked = false;
     this.rebotlingService.getKassationsDailyStacked(this.days)
-      .pipe(timeout(12000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStacked = false;
         if (res?.success) {
@@ -151,7 +151,7 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     this.errorDrilldown = false;
     this.drilldown = null;
     this.rebotlingService.getKassationsDrilldown(causeId, this.days)
-      .pipe(timeout(12000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDrilldown = false;
         if (res?.success) {

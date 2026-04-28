@@ -95,7 +95,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     this.progressLoading = true;
     this.progressError = false;
     this.service.getProgress()
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.progressLoading = false;
         if (res?.success) {
@@ -119,7 +119,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy, ComponentCanD
     this.historikLoading = true;
     this.historikError = false;
     this.service.getMalHistorik(12)
-      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.historikLoading = false;
         if (res?.success) {

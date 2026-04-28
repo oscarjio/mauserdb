@@ -266,7 +266,7 @@ export class News implements OnInit, OnDestroy {
       `${this.apiBase}?action=news&run=events&antal=15`,
       { withCredentials: true }
     ).pipe(
-      timeout(8000),
+      timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {

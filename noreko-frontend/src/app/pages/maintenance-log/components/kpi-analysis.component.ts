@@ -123,7 +123,7 @@ export class KpiAnalysisComponent implements OnDestroy {
     this.kpiError = false;
     const url = `${this.apiBase}?action=maintenance&run=mttr-mtbf&days=${this.kpiDays}`;
     this.http.get<any>(url, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
         this.kpiLoading = false;
         if (data?.kpis) {
