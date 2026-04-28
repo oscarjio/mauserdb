@@ -82,7 +82,7 @@ export class OperatorVarningPage implements OnInit, OnDestroy {
     this.error = '';
 
     const url = `${environment.apiUrl}?action=rebotling&run=operator-varning`;
-    this.http.get<VarningResponse>(url).pipe(
+    this.http.get<VarningResponse>(url, { withCredentials: true }).pipe(
       timeout(5000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)

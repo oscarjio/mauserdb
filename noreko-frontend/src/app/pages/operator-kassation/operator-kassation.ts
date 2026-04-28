@@ -104,7 +104,7 @@ export class OperatorKassationPage implements OnInit, OnDestroy {
     this.error = '';
 
     const url = `${environment.apiUrl}?action=rebotling&run=operator-kassation&days=${this.days}`;
-    this.http.get<KassationResponse>(url).pipe(
+    this.http.get<KassationResponse>(url, { withCredentials: true }).pipe(
       timeout(5000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
