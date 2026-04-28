@@ -6169,14 +6169,20 @@ class RebotlingController {
 
             $dowNames = [1=>'Söndag',2=>'Måndag',3=>'Tisdag',4=>'Onsdag',5=>'Torsdag',6=>'Fredag',7=>'Lördag'];
 
-            // Team average per weekday
+            // Team average per weekday (SUM/SUM with skiftraknare dedup)
             $teamStmt = $pdo->prepare("
-                SELECT DAYOFWEEK(datum) AS dow,
-                       AVG(ibc_ok / (drifttid / 60.0)) AS team_avg,
+                SELECT dow,
+                       SUM(ibc_ok) / (SUM(drifttid) / 60.0) AS team_avg,
                        COUNT(*) AS shifts
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to
-                  AND drifttid > 0 AND ibc_ok > 0
+                FROM (
+                    SELECT DAYOFWEEK(MAX(datum)) AS dow,
+                           MAX(ibc_ok) AS ibc_ok,
+                           MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) deduped
                 GROUP BY dow
                 ORDER BY dow
             ");
@@ -6187,7 +6193,7 @@ class RebotlingController {
             $teamShiftsTotal = 0;
             foreach ($teamStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                 $dow = (int)$r['dow'];
-                $avg = round((float)$r['avg'], 2);
+                $avg = round((float)$r['team_avg'], 2);
                 $cnt = (int)$r['shifts'];
                 $teamByDow[$dow] = ['dow' => $dow, 'name' => $dowNames[$dow] ?? '', 'team_avg' => $avg, 'team_shifts' => $cnt];
                 $teamWeightedSum += $avg * $cnt;
