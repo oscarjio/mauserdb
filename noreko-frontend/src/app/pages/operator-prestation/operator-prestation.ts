@@ -20,6 +20,12 @@ interface ToolCard {
 export class OperatorPrestationPage {
   groups: { label: string; tools: ToolCard[] }[] = [
     {
+      label: 'Träning & Uppföljning',
+      tools: [
+        { title: 'Tränarvy', desc: 'Prioriterad coachingöversikt — vem behöver stöd, beröm eller bevakning?', route: '/rebotling/coach-view', icon: 'fas fa-chalkboard-teacher', color: '#a78bfa' },
+      ]
+    },
+    {
       label: 'Ranking & Jämförelse',
       tools: [
         { title: 'Operatörsranking', desc: 'Ranking på IBC/h vs teamsnitt', route: '/rebotling/operator-scores', icon: 'fas fa-star', color: '#68d391' },

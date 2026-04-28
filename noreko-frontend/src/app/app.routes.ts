@@ -174,6 +174,7 @@ export const routes: Routes = [
       { path: 'rebotling/kassations-karta', canActivate: [adminGuard], loadComponent: () => import('./pages/kassations-karta/kassations-karta').then(m => m.KassationsKartaPage) },
       { path: 'rebotling/kassation-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/kassation-trend/kassation-trend').then(m => m.KassationTrendPage) },
       { path: 'rebotling/kassationsorsak-per-operator', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsorsak-per-operator/kassationsorsak-per-operator').then(m => m.KassationsorsakPerOperatorPage) },
+      { path: 'rebotling/coach-view', canActivate: [adminGuard], loadComponent: () => import('./pages/tranar-vy/tranar-vy').then(m => m.TranarVyPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

@@ -1,0 +1,143 @@
+<div class="tv-page">
+  <div class="tv-header">
+    <div>
+      <h1 class="tv-title"><i class="fas fa-chalkboard-teacher"></i> Tränarvy</h1>
+      <p class="tv-subtitle">Syntes av prestandatrend, kassation och form — prioriterad lista för coachingåtgärder</p>
+    </div>
+    <a routerLink="/rebotling/operator-prestation" class="tv-back-btn">
+      <i class="fas fa-arrow-left"></i> Tillbaka
+    </a>
+  </div>
+
+  <div *ngIf="loading" class="tv-loading">
+    <i class="fas fa-spinner fa-spin"></i> Laddar coachingöversikt...
+  </div>
+
+  <div *ngIf="error" class="tv-error">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- KPI row -->
+    <div class="tv-kpi-row">
+      <div class="tv-kpi tv-kpi--red">
+        <div class="tv-kpi-val">{{ counts['behöver_stöd'] }}</div>
+        <div class="tv-kpi-lbl"><i class="fas fa-exclamation-circle"></i> Behöver stöd</div>
+      </div>
+      <div class="tv-kpi tv-kpi--yellow">
+        <div class="tv-kpi-val">{{ counts['bevaka'] }}</div>
+        <div class="tv-kpi-lbl"><i class="fas fa-eye"></i> Bevaka</div>
+      </div>
+      <div class="tv-kpi tv-kpi--gray">
+        <div class="tv-kpi-val">{{ counts['stabil'] }}</div>
+        <div class="tv-kpi-lbl"><i class="fas fa-check-circle"></i> Stabil</div>
+      </div>
+      <div class="tv-kpi tv-kpi--green">
+        <div class="tv-kpi-val">{{ counts['erkänn_framgång'] }}</div>
+        <div class="tv-kpi-lbl"><i class="fas fa-star"></i> Erkänn framgång</div>
+      </div>
+      <div class="tv-kpi tv-kpi--blue">
+        <div class="tv-kpi-val">{{ teamIbcH | number:'1.1-1' }}</div>
+        <div class="tv-kpi-lbl"><i class="fas fa-tachometer-alt"></i> Lagsnitt IBC/h</div>
+      </div>
+    </div>
+
+    <!-- Filter buttons -->
+    <div class="tv-filters">
+      <button class="tv-filter-btn" [class.active]="filter === 'alla'" (click)="setFilter('alla')">
+        Alla ({{ operators.length }})
+      </button>
+      <button class="tv-filter-btn tv-filter-btn--red" [class.active]="filter === 'behöver_stöd'" (click)="setFilter('behöver_stöd')">
+        <i class="fas fa-exclamation-circle"></i> Behöver stöd ({{ counts['behöver_stöd'] }})
+      </button>
+      <button class="tv-filter-btn tv-filter-btn--yellow" [class.active]="filter === 'bevaka'" (click)="setFilter('bevaka')">
+        <i class="fas fa-eye"></i> Bevaka ({{ counts['bevaka'] }})
+      </button>
+      <button class="tv-filter-btn tv-filter-btn--green" [class.active]="filter === 'erkänn_framgång'" (click)="setFilter('erkänn_framgång')">
+        <i class="fas fa-star"></i> Erkänn ({{ counts['erkänn_framgång'] }})
+      </button>
+      <button class="tv-filter-btn tv-filter-btn--gray" [class.active]="filter === 'stabil'" (click)="setFilter('stabil')">
+        <i class="fas fa-check-circle"></i> Stabil ({{ counts['stabil'] }})
+      </button>
+    </div>
+
+    <!-- Period note -->
+    <p class="tv-period-note">Analys: {{ from }} — {{ to }} &nbsp;|&nbsp; Senaste 14 dagar jämförs mot 15–90 dagars baseline</p>
+
+    <!-- Operator cards -->
+    <div class="tv-cards">
+      <div
+        *ngFor="let op of filtered"
+        class="tv-card"
+        [class.tv-card--red]="op.action_type === 'behöver_stöd'"
+        [class.tv-card--yellow]="op.action_type === 'bevaka'"
+        [class.tv-card--green]="op.action_type === 'erkänn_framgång'"
+        [class.tv-card--gray]="op.action_type === 'stabil'"
+      >
+        <div class="tv-card-top">
+          <div class="tv-card-name-row">
+            <span class="tv-card-name">{{ op.name }}</span>
+            <span class="tv-card-badge tv-badge--{{ op.action_type.replace('_','') }}">
+              <i [class]="actionIcon(op.action_type)"></i> {{ actionLabel(op.action_type) }}
+            </span>
+          </div>
+          <a [routerLink]="['/rebotling/operator', op.op_number]" class="tv-profile-link">
+            Visa profil <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+
+        <!-- Metric chips -->
+        <div class="tv-metrics">
+          <div class="tv-metric">
+            <span class="tv-metric-lbl">IBC/h senaste</span>
+            <span class="tv-metric-val">{{ op.ibc_h_recent | number:'1.1-1' }}</span>
+          </div>
+          <div class="tv-metric">
+            <span class="tv-metric-lbl">Baseline</span>
+            <span class="tv-metric-val">{{ op.ibc_h_baseline | number:'1.1-1' }}</span>
+          </div>
+          <div class="tv-metric" [class.tv-metric--pos]="op.delta_pct > 0" [class.tv-metric--neg]="op.delta_pct < 0">
+            <span class="tv-metric-lbl">Delta</span>
+            <span class="tv-metric-val">{{ sign(op.delta_pct) }}{{ op.delta_pct | number:'1.1-1' }}%</span>
+          </div>
+          <div class="tv-metric" [class.tv-metric--pos]="op.vs_team_pct > 0" [class.tv-metric--neg]="op.vs_team_pct < 0">
+            <span class="tv-metric-lbl">vs lag</span>
+            <span class="tv-metric-val">{{ sign(op.vs_team_pct) }}{{ op.vs_team_pct | number:'1.1-1' }}%</span>
+          </div>
+          <div class="tv-metric" [class.tv-metric--neg]="op.kass_delta_pp > 1" [class.tv-metric--pos]="op.kass_delta_pp < -1">
+            <span class="tv-metric-lbl">Kassation Δ</span>
+            <span class="tv-metric-val">{{ sign(op.kass_delta_pp) }}{{ op.kass_delta_pp | number:'1.1-1' }} pp</span>
+          </div>
+          <div class="tv-metric" *ngIf="op.streak >= 2">
+            <span class="tv-metric-lbl">Streak</span>
+            <span class="tv-metric-val" [class.streak-hot]="op.streak_dir === 'over'" [class.streak-cold]="op.streak_dir === 'under'">
+              {{ streakLabel(op) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="tv-rek">
+          <i [class]="actionIcon(op.action_type)"></i>
+          <span>{{ op.rekommendation }}</span>
+        </div>
+
+        <!-- Shift count footnote -->
+        <div class="tv-shifts-note">
+          {{ op.recent_skift }} skift senaste 14d &nbsp;·&nbsp; {{ op.baseline_skift }} skift baseline
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty filter state -->
+    <div *ngIf="filtered.length === 0" class="tv-empty">
+      Inga operatörer matchar valt filter.
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && operators.length === 0" class="tv-empty">
+    Inte tillräckligt med data för coachinganalys. Minst 3 baseline-skift + 1 skift senaste 14 dagarna krävs per operatör.
+  </div>
+</div>

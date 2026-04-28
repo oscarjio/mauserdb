@@ -290,6 +290,8 @@ class RebotlingController {
                 $this->getKassationTrend();
             } elseif ($action === 'kassationsorsak-per-operator') {
                 $this->getKassationsorsakPerOperator();
+            } elseif ($action === 'coach-view') {
+                $this->getCoachView();
             } else {
                 $this->getLiveStats();
             }
@@ -8945,6 +8947,223 @@ class RebotlingController {
             error_log('RebotlingController::getKassationsorsakPerOperator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getCoachView(): void {
+        try {
+            $today    = date('Y-m-d');
+            $recent14 = date('Y-m-d', strtotime('-14 days'));
+            $base90   = date('Y-m-d', strtotime('-90 days'));
+
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $operatorNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $operatorNames[(int)$op['number']] = $op['name'];
+            }
+
+            // Deduplicated shifts last 90 days, ordered ASC for streak calculation
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(op1)       AS op1,
+                    MAX(op2)       AS op2,
+                    MAX(op3)       AS op3,
+                    MAX(ibc_ok)    AS ibc_ok,
+                    MAX(ibc_ej_ok) AS ibc_ej_ok,
+                    MAX(drifttid)  AS drifttid,
+                    MAX(datum)     AS datum
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to AND drifttid > 0
+                GROUP BY skiftraknare
+                ORDER BY MAX(datum) ASC
+            ");
+            $stmt->execute([':from' => $base90, ':to' => $today]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team IBC/h over 90d (SUM/SUM on deduplicated shifts)
+            $teamIbc = 0;
+            $teamMin = 0;
+            foreach ($allShifts as $s) {
+                $teamIbc += max(0, (int)$s['ibc_ok']);
+                $teamMin += max(0, (int)$s['drifttid']);
+            }
+            $teamIbcH = $teamMin > 0 ? $teamIbc / ($teamMin / 60.0) : 0;
+
+            // Accumulate per-operator: recent (0–14d) vs baseline (15–90d)
+            $opData = [];
+            foreach ($allShifts as $s) {
+                $ibc   = max(0, (int)$s['ibc_ok']);
+                $ibcEj = max(0, (int)$s['ibc_ej_ok']);
+                $min   = max(0, (int)$s['drifttid']);
+                if ($min <= 0) continue;
+
+                $ibcH     = $ibc / ($min / 60.0);
+                $isRecent = ($s['datum'] >= $recent14);
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($operatorNames[$opNum])) continue;
+
+                    if (!isset($opData[$opNum])) {
+                        $opData[$opNum] = ['recent' => [], 'baseline' => [], 'shifts' => []];
+                    }
+                    $entry = ['ibc' => $ibc, 'min' => $min, 'ej_ok' => $ibcEj, 'ibc_h' => round($ibcH, 2)];
+                    $opData[$opNum]['shifts'][] = $entry;
+                    if ($isRecent) {
+                        $opData[$opNum]['recent'][] = $entry;
+                    } else {
+                        $opData[$opNum]['baseline'][] = $entry;
+                    }
+                }
+            }
+
+            $results = [];
+            foreach ($opData as $opNum => $data) {
+                $baselineN = count($data['baseline']);
+                $recentN   = count($data['recent']);
+                if ($baselineN < 3 || $recentN < 1) continue;
+
+                // Performance delta (SUM/SUM)
+                $baseIbc  = array_sum(array_column($data['baseline'], 'ibc'));
+                $baseMin  = array_sum(array_column($data['baseline'], 'min'));
+                $baseIbcH = $baseMin > 0 ? $baseIbc / ($baseMin / 60.0) : 0;
+                if ($baseIbcH <= 0) continue;
+
+                $recIbc  = array_sum(array_column($data['recent'], 'ibc'));
+                $recMin  = array_sum(array_column($data['recent'], 'min'));
+                $recIbcH = $recMin > 0 ? $recIbc / ($recMin / 60.0) : 0;
+
+                $deltaPct = ($recIbcH - $baseIbcH) / $baseIbcH * 100;
+
+                // Overall 90d IBC/h and vs-team
+                $allIbc  = array_sum(array_column($data['shifts'], 'ibc'));
+                $allMin  = array_sum(array_column($data['shifts'], 'min'));
+                $ibcH90  = $allMin > 0 ? $allIbc / ($allMin / 60.0) : 0;
+                $vsTeam  = $teamIbcH > 0 ? ($ibcH90 - $teamIbcH) / $teamIbcH * 100 : 0;
+
+                // Kassation trend (pp change)
+                $baseKassIbc  = array_sum(array_column($data['baseline'], 'ibc'));
+                $baseKassEj   = array_sum(array_column($data['baseline'], 'ej_ok'));
+                $baseKassTotal = $baseKassIbc + $baseKassEj;
+                $baseKassPct  = $baseKassTotal > 0 ? $baseKassEj / $baseKassTotal * 100 : 0;
+
+                $recKassIbc  = array_sum(array_column($data['recent'], 'ibc'));
+                $recKassEj   = array_sum(array_column($data['recent'], 'ej_ok'));
+                $recKassTotal = $recKassIbc + $recKassEj;
+                $recKassPct  = $recKassTotal > 0 ? $recKassEj / $recKassTotal * 100 : 0;
+                $kassDelta   = $recKassPct - $baseKassPct;
+
+                // Streak (consecutive shifts over/under own 90d avg, ASC order)
+                $shiftIbcH = array_column($data['shifts'], 'ibc_h');
+                $n = count($shiftIbcH);
+                $avg90 = $n > 0 ? array_sum($shiftIbcH) / $n : 0;
+                $streak = 0;
+                $streakDir = 'ingen';
+                if ($n > 0 && $avg90 > 0) {
+                    $lastIsOver = ($shiftIbcH[$n - 1] >= $avg90);
+                    $streakDir  = $lastIsOver ? 'over' : 'under';
+                    for ($i = $n - 1; $i >= 0; $i--) {
+                        if (($shiftIbcH[$i] >= $avg90) === $lastIsOver) { $streak++; } else { break; }
+                    }
+                }
+
+                // Priority score (positive = needs intervention, negative = deserves praise)
+                $scorePerf   = 0;
+                $scoreStreak = 0;
+                $scoreKass   = 0;
+
+                if     ($deltaPct <= -20) $scorePerf = 45;
+                elseif ($deltaPct <= -10) $scorePerf = 28;
+                elseif ($deltaPct <=  -5) $scorePerf = 14;
+                elseif ($deltaPct >=  15) $scorePerf = -25;
+                elseif ($deltaPct >=   8) $scorePerf = -14;
+
+                if     ($streakDir === 'under' && $streak >= 4) $scoreStreak = 25;
+                elseif ($streakDir === 'under' && $streak >= 2) $scoreStreak = 12;
+                elseif ($streakDir === 'over'  && $streak >= 4) $scoreStreak = -20;
+                elseif ($streakDir === 'over'  && $streak >= 2) $scoreStreak = -10;
+
+                if     ($kassDelta >=  5) $scoreKass =  25;
+                elseif ($kassDelta >=  2) $scoreKass =  12;
+                elseif ($kassDelta <= -3) $scoreKass = -10;
+
+                $priorityScore = $scorePerf + $scoreStreak + $scoreKass;
+
+                // Action type and Swedish recommendation
+                $reasons = [];
+                if ($priorityScore >= 45) {
+                    $actionType = 'behöver_stöd';
+                    if ($deltaPct <= -10) $reasons[] = 'prestandan fallit ' . abs(round($deltaPct)) . '% mot baseline';
+                    if ($kassDelta >= 2)  $reasons[] = 'kassation steg ' . round($kassDelta, 1) . ' pp';
+                    if ($streakDir === 'under' && $streak >= 3) $reasons[] = $streak . ' skift i rad under snitt';
+                    $rek = 'Prioriterat samtal rekommenderas: ' . implode(', ', $reasons ?: ['kontrollera operatörens status']) . '.';
+                } elseif ($priorityScore >= 15) {
+                    $actionType = 'bevaka';
+                    if ($deltaPct < -5)  $reasons[] = 'viss prestationsnedgång (' . round($deltaPct, 1) . '%)';
+                    if ($kassDelta >= 2) $reasons[] = 'kassation stiger';
+                    if ($streakDir === 'under' && $streak >= 2) $reasons[] = $streak . ' skift under snitt';
+                    $rek = 'Bevaka nästa 2–3 veckor: ' . implode(', ', $reasons ?: ['inga alarmerande signaler']) . '.';
+                } elseif ($priorityScore <= -20) {
+                    $actionType = 'erkänn_framgång';
+                    if ($deltaPct >= 10)  $reasons[] = 'prestandan stigit ' . round($deltaPct) . '% mot baseline';
+                    if ($streakDir === 'over' && $streak >= 3) $reasons[] = $streak . ' skift i rad över snitt';
+                    if ($kassDelta <= -2) $reasons[] = 'kassationen sjunkit ' . abs(round($kassDelta, 1)) . ' pp';
+                    $rek = 'Bra tillfälle att ge positiv feedback: ' . implode(', ', $reasons ?: ['generellt god form']) . '.';
+                } else {
+                    $actionType = 'stabil';
+                    $rek = 'Prestandan är stabil. Ingen åtgärd krävs för tillfället.';
+                }
+
+                $results[] = [
+                    'op_number'          => $opNum,
+                    'name'               => $operatorNames[$opNum],
+                    'action_type'        => $actionType,
+                    'rekommendation'     => $rek,
+                    'ibc_h_90d'          => round($ibcH90, 2),
+                    'ibc_h_recent'       => round($recIbcH, 2),
+                    'ibc_h_baseline'     => round($baseIbcH, 2),
+                    'delta_pct'          => round($deltaPct, 1),
+                    'vs_team_pct'        => round($vsTeam, 1),
+                    'kass_pct_recent'    => round($recKassPct, 1),
+                    'kass_pct_baseline'  => round($baseKassPct, 1),
+                    'kass_delta_pp'      => round($kassDelta, 1),
+                    'streak'             => $streak,
+                    'streak_dir'         => $streakDir,
+                    'recent_skift'       => $recentN,
+                    'baseline_skift'     => $baselineN,
+                    'priority_score'     => $priorityScore,
+                ];
+            }
+
+            // Sort: behöver_stöd → bevaka → stabil → erkänn_framgång
+            $order = ['behöver_stöd' => 0, 'bevaka' => 1, 'stabil' => 2, 'erkänn_framgång' => 3];
+            usort($results, function ($a, $b) use ($order) {
+                $ao = $order[$a['action_type']] ?? 99;
+                $bo = $order[$b['action_type']] ?? 99;
+                if ($ao !== $bo) return $ao - $bo;
+                return $b['priority_score'] <=> $a['priority_score'];
+            });
+
+            $counts = ['behöver_stöd' => 0, 'bevaka' => 0, 'stabil' => 0, 'erkänn_framgång' => 0];
+            foreach ($results as $r) {
+                if (isset($counts[$r['action_type']])) $counts[$r['action_type']]++;
+            }
+
+            echo json_encode([
+                'success'    => true,
+                'operators'  => $results,
+                'counts'     => $counts,
+                'team_ibc_h' => round($teamIbcH, 2),
+                'from'       => $base90,
+                'to'         => $today,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getCoachView: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid tränarvy'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
