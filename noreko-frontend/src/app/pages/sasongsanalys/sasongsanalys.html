@@ -1,0 +1,158 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Säsongsanalys</h2>
+    <p class="page-sub">IBC/h per månad — identifiera säsongsmönster och jämför år för år</p>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Hämtar säsongsdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI row -->
+    <div class="kpi-row" *ngIf="bestMonth">
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">Bästa månad</div>
+        <div class="kpi-value">{{ bestMonth?.name }}</div>
+        <div class="kpi-sub">{{ bestMonth?.ibch | number:'1.1-1' }} IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-label">Svagaste månad</div>
+        <div class="kpi-value">{{ worstMonth?.name }}</div>
+        <div class="kpi-sub">{{ worstMonth?.ibch | number:'1.1-1' }} IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-label">Säsongsskillnad</div>
+        <div class="kpi-value">{{ seasonalSpread | number:'1.1-1' }}</div>
+        <div class="kpi-sub">IBC/h (max − min)</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-label">Periodssnitt</div>
+        <div class="kpi-value">{{ periodAvg | number:'1.1-1' }}</div>
+        <div class="kpi-sub">IBC/h totalt</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-label">Dataomfång</div>
+        <div class="kpi-value">{{ dataSpan }}</div>
+        <div class="kpi-sub">{{ years.length }} {{ years.length === 1 ? 'år' : 'år' }} data</div>
+      </div>
+    </div>
+
+    <!-- Bar chart: seasonal average -->
+    <div class="card-dark" *ngIf="Object.keys(monthlyAvg).length">
+      <div class="card-title-row">
+        <h4 class="card-title">Säsongsgenomsnitt per månad</h4>
+        <span class="badge-muted">Alla år kombinerat · SUM/SUM-aggregering</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas #barChartRef></canvas>
+      </div>
+    </div>
+
+    <!-- Year-over-year line chart -->
+    <div class="card-dark" *ngIf="years.length >= 2">
+      <div class="card-title-row">
+        <h4 class="card-title">År-för-år-jämförelse</h4>
+        <span class="badge-muted">IBC/h per månad uppdelat på år</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas #lineChartRef></canvas>
+      </div>
+    </div>
+
+    <!-- Heatmap grid: rows = years, cols = months -->
+    <div class="card-dark" *ngIf="years.length">
+      <div class="card-title-row">
+        <h4 class="card-title">Heatmap — IBC/h per år × månad</h4>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:#22543d"></span><span class="legend-label">≥+20%</span>
+          <span class="legend-dot" style="background:#2f855a"></span><span class="legend-label">+3..+20%</span>
+          <span class="legend-dot" style="background:#4a5568"></span><span class="legend-label">±3%</span>
+          <span class="legend-dot" style="background:#744210"></span><span class="legend-label">−3..−20%</span>
+          <span class="legend-dot" style="background:#63171b"></span><span class="legend-label">≤−20%</span>
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="heatmap-table">
+          <!-- Header -->
+          <div class="hm-header">
+            <div class="hm-year-cell"></div>
+            <div class="hm-month-cell" *ngFor="let m of MONTHS">{{ m }}</div>
+          </div>
+          <!-- Rows per year -->
+          <div class="hm-row" *ngFor="let yr of years">
+            <div class="hm-year-cell">{{ yr }}</div>
+            <div class="hm-cell"
+                 *ngFor="let mn of MONTH_NUMS"
+                 [style.background]="heatColor(byYear[yr]?.[mn]?.ibc_per_h)"
+                 [style.color]="heatTextColor(byYear[yr]?.[mn]?.ibc_per_h)"
+                 [title]="byYear[yr]?.[mn] ? MONTHS[mn-1] + ' ' + yr + ': ' + (byYear[yr][mn].ibc_per_h | number:'1.1-1') + ' IBC/h · ' + byYear[yr][mn].skift_count + ' skift' : MONTHS[mn-1] + ' ' + yr + ': ingen data'">
+              {{ byYear[yr]?.[mn]?.ibc_per_h ? (byYear[yr][mn].ibc_per_h | number:'1.0-1') : '—' }}
+            </div>
+          </div>
+          <!-- Seasonal average row -->
+          <div class="hm-row hm-avg-row">
+            <div class="hm-year-cell">Snitt</div>
+            <div class="hm-cell hm-avg-cell"
+                 *ngFor="let mn of MONTH_NUMS"
+                 [title]="MONTHS[mn-1] + ': ' + (monthlyAvg[mn]?.ibc_per_h ? (monthlyAvg[mn].ibc_per_h | number:'1.1-1') + ' IBC/h' : 'ingen data')">
+              {{ monthlyAvg[mn]?.ibc_per_h ? (monthlyAvg[mn].ibc_per_h | number:'1.0-1') : '—' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly detail table -->
+    <div class="card-dark" *ngIf="Object.keys(monthlyAvg).length">
+      <div class="card-title-row">
+        <h4 class="card-title">Detaljtabell — säsongssnitt</h4>
+      </div>
+      <div class="table-responsive">
+        <table class="table-dark-custom">
+          <thead>
+            <tr>
+              <th>Månad</th>
+              <th class="text-end">IBC/h</th>
+              <th class="text-end">vs periodssnitt</th>
+              <th class="text-end">Antal skift</th>
+              <th class="text-end">Total IBC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mn of MONTH_NUMS">
+              <td class="fw-500">{{ MONTHS[mn - 1] }}</td>
+              <ng-container *ngIf="monthlyAvg[mn]; else noData">
+                <td class="text-end">{{ monthlyAvg[mn].ibc_per_h | number:'1.1-1' }}</td>
+                <td class="text-end">
+                  <span [class]="(monthlyAvg[mn].ibc_per_h - periodAvg) >= 0 ? 'badge-pos' : 'badge-neg'">
+                    {{ (monthlyAvg[mn].ibc_per_h - periodAvg) >= 0 ? '+' : '' }}{{ (monthlyAvg[mn].ibc_per_h - periodAvg) | number:'1.1-1' }}
+                  </span>
+                </td>
+                <td class="text-end">{{ monthlyAvg[mn].skift_count }}</td>
+                <td class="text-end">{{ monthlyAvg[mn].total_ibc | number }}</td>
+              </ng-container>
+              <ng-template #noData>
+                <td class="text-end text-muted">—</td>
+                <td class="text-end text-muted">—</td>
+                <td class="text-end text-muted">—</td>
+                <td class="text-end text-muted">—</td>
+              </ng-template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!Object.keys(monthlyAvg).length && !loading" class="empty-state">
+      <i class="fas fa-chart-bar"></i>
+      <p>Ingen produktionsdata tillgänglig.</p>
+    </div>
+
+  </ng-container>
+</div>

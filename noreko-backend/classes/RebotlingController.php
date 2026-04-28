@@ -298,6 +298,8 @@ class RebotlingController {
                 $this->getSkiftInsikt();
             } elseif ($action === 'rast-analys') {
                 $this->getRastAnalys();
+            } elseif ($action === 'sasongsanalys') {
+                $this->getSasongsanalys();
             } else {
                 $this->getLiveStats();
             }
@@ -9667,6 +9669,119 @@ class RebotlingController {
             error_log('RebotlingController::getRastAnalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rastanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=sasongsanalys
+     * Säsongsmönster: IBC/h per månad (1–12) samt år-för-år-jämförelse.
+     * Deduplicerar per skiftraknare med MAX(ibc_ok)/MAX(drifttid).
+     * SUM/SUM-aggregering — ej average-of-ratios.
+     */
+    private function getSasongsanalys(): void {
+        try {
+            // Per year+month
+            $sqlYearMonth = "
+                SELECT
+                    YEAR(datum)  AS ar,
+                    MONTH(datum) AS man,
+                    SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0) AS ibc_per_h,
+                    COUNT(*)                                        AS skift_count,
+                    SUM(ibc_ok)                                     AS total_ibc
+                FROM (
+                    SELECT datum, skiftraknare,
+                           MAX(ibc_ok)               AS ibc_ok,
+                           MAX(COALESCE(drifttid,0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) AS deduped
+                GROUP BY YEAR(datum), MONTH(datum)
+                ORDER BY ar, man
+            ";
+            $yearMonthRows = $this->pdo->query($sqlYearMonth)->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Per month-of-year only (seasonal average across all years, correct SUM/SUM)
+            $sqlMonthly = "
+                SELECT
+                    MONTH(datum) AS man,
+                    SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0) AS ibc_per_h,
+                    COUNT(*)                                        AS skift_count,
+                    SUM(ibc_ok)                                     AS total_ibc
+                FROM (
+                    SELECT datum, skiftraknare,
+                           MAX(ibc_ok)               AS ibc_ok,
+                           MAX(COALESCE(drifttid,0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) AS deduped
+                GROUP BY MONTH(datum)
+                ORDER BY man
+            ";
+            $monthlyRows = $this->pdo->query($sqlMonthly)->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($monthlyRows)) {
+                echo json_encode([
+                    'success'     => true,
+                    'monthly_avg' => [],
+                    'by_year'     => [],
+                    'years'       => [],
+                    'period_avg'  => 0,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Build monthly_avg: indexed by month 1..12
+            $monthlyAvg = [];
+            foreach ($monthlyRows as $r) {
+                $monthlyAvg[(int)$r['man']] = [
+                    'ibc_per_h'   => round((float)$r['ibc_per_h'], 2),
+                    'skift_count' => (int)$r['skift_count'],
+                    'total_ibc'   => (int)$r['total_ibc'],
+                ];
+            }
+
+            // Build by_year: [year => [month => ibc_per_h]]
+            $byYear = [];
+            $yearSet = [];
+            foreach ($yearMonthRows as $r) {
+                $ar  = (int)$r['ar'];
+                $man = (int)$r['man'];
+                $yearSet[$ar] = true;
+                $byYear[$ar][$man] = [
+                    'ibc_per_h'   => round((float)$r['ibc_per_h'], 2),
+                    'skift_count' => (int)$r['skift_count'],
+                    'total_ibc'   => (int)$r['total_ibc'],
+                ];
+            }
+            $years = array_keys($yearSet);
+            sort($years);
+
+            // Overall period average (SUM/SUM across all data)
+            $sqlAvg = "
+                SELECT SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0) AS period_avg
+                FROM (
+                    SELECT MAX(ibc_ok) AS ibc_ok, MAX(COALESCE(drifttid,0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) AS d
+            ";
+            $periodAvg = (float)($this->pdo->query($sqlAvg)->fetchColumn() ?? 0);
+
+            echo json_encode([
+                'success'     => true,
+                'monthly_avg' => $monthlyAvg,
+                'by_year'     => $byYear,
+                'years'       => $years,
+                'period_avg'  => round($periodAvg, 2),
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSasongsanalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid säsongsanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

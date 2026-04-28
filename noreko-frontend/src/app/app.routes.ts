@@ -178,6 +178,7 @@ export const routes: Routes = [
       { path: 'rebotling/produktions-tidsserie', canActivate: [adminGuard], loadComponent: () => import('./pages/produktions-tidsserie/produktions-tidsserie').then(m => m.ProduktionsTidsseriePage) },
       { path: 'rebotling/skift-insikt', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-insikt/skift-insikt').then(m => m.SkiftInsiktPage) },
       { path: 'rebotling/rast-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/rast-analys/rast-analys').then(m => m.RastAnalysPage) },
+      { path: 'rebotling/sasongsanalys', canActivate: [adminGuard], loadComponent: () => import('./pages/sasongsanalys/sasongsanalys').then(m => m.SasongsanalysPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
