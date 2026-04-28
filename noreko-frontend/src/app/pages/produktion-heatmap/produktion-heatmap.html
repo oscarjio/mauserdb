@@ -1,0 +1,148 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h1 class="page-title"><i class="fas fa-th me-2"></i>Produktionsintensitet</h1>
+    <p class="page-subtitle">Daglig IBC/h vs periodsnitt — {{ from }} till {{ to }}</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <span class="ctrl-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn ctrl-btn" [class.active]="months===3"  (click)="months=3;  load()">3 mån</button>
+        <button class="btn ctrl-btn" [class.active]="months===6"  (click)="months=6;  load()">6 mån</button>
+        <button class="btn ctrl-btn" [class.active]="months===9"  (click)="months=9;  load()">9 mån</button>
+        <button class="btn ctrl-btn" [class.active]="months===12" (click)="months=12; load()">12 mån</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar produktionsdata...</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI row -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <div class="kpi-value">{{ teamAvg | number:'1.1-1' }}</div>
+        <div class="kpi-label">Snitt IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-value">{{ daysAboveAvg }}</div>
+        <div class="kpi-label">Dagar över snitt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ totalDaysWithProduction }}</div>
+        <div class="kpi-label">Produktionsdagar</div>
+      </div>
+      <div class="kpi-card kpi-gold" *ngIf="bestDay">
+        <div class="kpi-value">{{ bestDay.ibc_per_h | number:'1.1-1' }}</div>
+        <div class="kpi-label">Bästa dag ({{ formatDate(bestDay.datum) }})</div>
+      </div>
+    </div>
+
+    <!-- No data -->
+    <div *ngIf="days.length === 0" class="empty-state">
+      <i class="fas fa-calendar-times fa-2x mb-2 text-muted"></i>
+      <p class="text-muted">Ingen produktionsdata för vald period.</p>
+    </div>
+
+    <!-- Heatmap grid -->
+    <div *ngIf="weekRows.length > 0" class="heatmap-wrap">
+      <!-- Weekday header -->
+      <div class="heatmap-header">
+        <div class="week-label-spacer"></div>
+        <div class="day-header" *ngFor="let lbl of weekdayLabels">{{ lbl }}</div>
+      </div>
+
+      <!-- Weeks -->
+      <div class="heatmap-body">
+        <div class="week-row" *ngFor="let row of weekRows; trackBy: trackByWeek">
+          <div class="week-label">{{ row.weekLabel }}</div>
+          <div
+            *ngFor="let cell of row.cells"
+            class="heat-cell"
+            [style.background]="cellColor(cell)"
+            [title]="cellTitle(cell)"
+            [class.has-data]="cell !== null"
+            (mouseenter)="hoveredDay = cell"
+            (mouseleave)="hoveredDay = null"
+          >
+            <span *ngIf="cell" class="cell-text">{{ cell.ibc_per_h | number:'1.0-1' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row mt-3">
+      <span class="legend-label text-muted small">Lägre</span>
+      <span class="legend-cell" style="background:var(--cell-worst)"></span>
+      <span class="legend-cell" style="background:var(--cell-bad)"></span>
+      <span class="legend-cell" style="background:var(--cell-weak)"></span>
+      <span class="legend-cell" style="background:var(--cell-ok)"></span>
+      <span class="legend-cell" style="background:var(--cell-good)"></span>
+      <span class="legend-cell" style="background:var(--cell-great)"></span>
+      <span class="legend-label text-muted small">Högre</span>
+      <span class="legend-sep"></span>
+      <span class="legend-cell" style="background:var(--cell-empty);border:1px solid #4a5568"></span>
+      <span class="legend-label text-muted small">Ingen prod.</span>
+    </div>
+
+    <!-- Hover tooltip panel -->
+    <div class="tooltip-panel mt-3" *ngIf="hoveredDay">
+      <strong>{{ hoveredDay.datum }}</strong>
+      &nbsp;—&nbsp;
+      <span class="fw-bold">{{ hoveredDay.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+      &nbsp;
+      <span [class.text-success]="hoveredDay.vs_avg >= 0" [class.text-danger]="hoveredDay.vs_avg < 0">
+        ({{ hoveredDay.vs_avg >= 0 ? '+' : '' }}{{ hoveredDay.vs_avg }}% vs snitt)
+      </span>
+      &nbsp;·&nbsp;
+      <span class="text-muted">{{ hoveredDay.skift_count }} skift</span>
+    </div>
+
+    <!-- Top / bottom tables -->
+    <div class="row g-3 mt-2" *ngIf="days.length > 0">
+      <div class="col-12 col-md-6">
+        <div class="insight-card">
+          <div class="insight-title"><i class="fas fa-arrow-up text-success me-1"></i>Topp 5 dagar</div>
+          <table class="table table-sm table-dark mb-0">
+            <thead><tr><th>Datum</th><th>IBC/h</th><th>vs Snitt</th><th>Skift</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let d of top5Best">
+                <td>{{ d.datum }}</td>
+                <td class="text-success fw-bold">{{ d.ibc_per_h | number:'1.1-1' }}</td>
+                <td class="text-success">+{{ d.vs_avg }}%</td>
+                <td class="text-muted">{{ d.skift_count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="insight-card">
+          <div class="insight-title"><i class="fas fa-arrow-down text-danger me-1"></i>Svagaste 5 dagar</div>
+          <table class="table table-sm table-dark mb-0">
+            <thead><tr><th>Datum</th><th>IBC/h</th><th>vs Snitt</th><th>Skift</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let d of top5Worst">
+                <td>{{ d.datum }}</td>
+                <td class="text-danger fw-bold">{{ d.ibc_per_h | number:'1.1-1' }}</td>
+                <td class="text-danger">{{ d.vs_avg }}%</td>
+                <td class="text-muted">{{ d.skift_count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

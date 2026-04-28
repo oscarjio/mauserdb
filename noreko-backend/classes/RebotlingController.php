@@ -266,6 +266,8 @@ class RebotlingController {
                 $this->getOperatorSynergy();
             } elseif ($action === 'skift-topplista') {
                 $this->getSkiftTopplista();
+            } elseif ($action === 'produktion-heatmap') {
+                $this->getProduktionHeatmap();
             } else {
                 $this->getLiveStats();
             }
@@ -4058,7 +4060,7 @@ class RebotlingController {
 
             // Team average IBC/h over last 90 days — baseline for relative comparison
             $stmtAvg = $this->pdo->query("
-                SELECT AVG(ibc_ok / (drifttid / 60.0)) AS team_avg
+                SELECT SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0) AS team_avg
                 FROM rebotling_skiftrapport
                 WHERE drifttid > 0 AND ibc_ok > 0
                   AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
@@ -7112,6 +7114,75 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftTopplista: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-topplista'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getProduktionHeatmap(): void
+    {
+        try {
+            $months = max(3, min(12, (int)($_GET['months'] ?? 6)));
+            $from   = date('Y-m-d', strtotime("-{$months} months"));
+            $to     = date('Y-m-d');
+
+            // Aggregate per day using deduped skiftraknare
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum,
+                    SUM(ibc_ok)   AS day_ibc,
+                    SUM(drifttid) AS day_min,
+                    COUNT(*)      AS skift_count
+                FROM (
+                    SELECT
+                        datum,
+                        MAX(ibc_ok)   AS ibc_ok,
+                        MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) AS uniq
+                GROUP BY datum
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Overall team average IBC/h for the period
+            $totalIbc = 0;
+            $totalMin = 0;
+            foreach ($rows as $r) {
+                $totalIbc += (float)$r['day_ibc'];
+                $totalMin += (float)$r['day_min'];
+            }
+            $teamAvg = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 1) : 0;
+
+            $days = [];
+            foreach ($rows as $r) {
+                $ibcH   = (float)$r['day_min'] > 0
+                    ? round((float)$r['day_ibc'] / ((float)$r['day_min'] / 60.0), 1)
+                    : 0;
+                $vsAvg  = $teamAvg > 0 ? (int)round(($ibcH / $teamAvg - 1) * 100) : 0;
+                $days[] = [
+                    'datum'       => $r['datum'],
+                    'ibc_per_h'   => $ibcH,
+                    'skift_count' => (int)$r['skift_count'],
+                    'vs_avg'      => $vsAvg,
+                ];
+            }
+
+            echo json_encode([
+                'success'  => true,
+                'days'     => $days,
+                'team_avg' => $teamAvg,
+                'from'     => $from,
+                'to'       => $to,
+                'months'   => $months,
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktionHeatmap: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsheatmap'], JSON_UNESCAPED_UNICODE);
         }
     }
 
