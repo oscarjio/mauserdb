@@ -27,6 +27,7 @@
   color: #e2e8f0;
   transition: background 0.15s, transform 0.1s;
   border: 1px solid transparent;
+  overflow: hidden;
 }
 .tool-card:hover {
   background: #364156;
@@ -36,7 +37,7 @@
   text-decoration: none;
 }
 .tool-icon { font-size: 1.2rem; width: 28px; text-align: center; flex-shrink: 0; }
-.tool-info { flex: 1; }
+.tool-info { flex: 1; min-width: 0; }
 .tool-title { font-weight: 600; font-size: 0.95rem; }
 .tool-desc { color: #718096; font-size: 0.8rem; margin-top: 1px; }
 .tool-arrow { color: #4a5568; font-size: 0.75rem; }
