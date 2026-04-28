@@ -272,6 +272,8 @@ class RebotlingController {
                 $this->getOperatorSkifttyp();
             } elseif ($action === 'rekord-statistik') {
                 $this->getRekordsStatistik();
+            } elseif ($action === 'skiftlag-historik') {
+                $this->getSkiftlagHistorik();
             } else {
                 $this->getLiveStats();
             }
@@ -7645,6 +7647,130 @@ class RebotlingController {
             error_log('RebotlingController::getRekordsStatistik: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rekord-statistik'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // skiftlag-historik — Historical 3-person team composition performance
+    // ─────────────────────────────────────────────────────────────────────────
+    private function getSkiftlagHistorik(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = (int)($_GET['days'] ?? 365);
+            $days = in_array($days, [90, 180, 365, 730]) ? $days : 365;
+
+            // Deduplicate by skiftraknare, then canonically sort the 3 operators
+            // so team {3,5,7} and {5,3,7} are treated as the same team.
+            $sql = "
+                SELECT
+                    d.min_op, d.mid_op, d.max_op,
+                    SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid / 60.0), 0) AS avg_ibc_h,
+                    SUM(d.ibc_ok)            AS total_ibc,
+                    SUM(d.drifttid / 60.0)   AS total_hours,
+                    COUNT(*)                 AS total_shifts,
+                    MIN(d.datum)             AS first_shift,
+                    MAX(d.datum)             AS last_shift
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum)    AS datum,
+                        MAX(ibc_ok)   AS ibc_ok,
+                        MAX(drifttid) AS drifttid,
+                        LEAST(MAX(op1), MAX(op2), MAX(op3))       AS min_op,
+                        CASE
+                            WHEN MAX(op1) NOT IN (LEAST(MAX(op1),MAX(op2),MAX(op3)), GREATEST(MAX(op1),MAX(op2),MAX(op3))) THEN MAX(op1)
+                            WHEN MAX(op2) NOT IN (LEAST(MAX(op1),MAX(op2),MAX(op3)), GREATEST(MAX(op1),MAX(op2),MAX(op3))) THEN MAX(op2)
+                            ELSE MAX(op3)
+                        END                                        AS mid_op,
+                        GREATEST(MAX(op1), MAX(op2), MAX(op3))    AS max_op
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND drifttid >= 30
+                      AND ibc_ok  >  0
+                      AND op1     >  0 AND op2 > 0 AND op3 > 0
+                      AND op1    <> op2 AND op2 <> op3 AND op1 <> op3
+                    GROUP BY skiftraknare
+                ) d
+                GROUP BY d.min_op, d.mid_op, d.max_op
+                HAVING total_shifts >= 2
+                ORDER BY avg_ibc_h DESC
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':days', $days, \PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Collect all operator numbers to look up names
+            $nums = [];
+            foreach ($rows as $r) {
+                $nums[] = (int)$r['min_op'];
+                $nums[] = (int)$r['mid_op'];
+                $nums[] = (int)$r['max_op'];
+            }
+            $nums = array_values(array_unique($nums));
+            $opNames = [];
+            if (!empty($nums)) {
+                $ph    = implode(',', array_fill(0, count($nums), '?'));
+                $nStmt = $pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
+                $nStmt->execute($nums);
+                foreach ($nStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $opNames[(int)$r['number']] = $r['name'];
+                }
+            }
+
+            // Global average IBC/h for the same period (for vs_team %)
+            $gStmt = $pdo->prepare("
+                SELECT SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0) AS global_avg
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :gdays DAY)
+                      AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) g
+            ");
+            $gStmt->bindValue(':gdays', $days, \PDO::PARAM_INT);
+            $gStmt->execute();
+            $globalAvg = (float)($gStmt->fetchColumn() ?? 0);
+
+            $teams = [];
+            foreach ($rows as $r) {
+                $minOp    = (int)$r['min_op'];
+                $midOp    = (int)$r['mid_op'];
+                $maxOp    = (int)$r['max_op'];
+                $avgIbcH  = round((float)$r['avg_ibc_h'], 2);
+                $vsTeam   = $globalAvg > 0 ? round(($avgIbcH - $globalAvg) / $globalAvg * 100, 1) : 0.0;
+                $teams[]  = [
+                    'min_op'       => $minOp,
+                    'mid_op'       => $midOp,
+                    'max_op'       => $maxOp,
+                    'min_name'     => $opNames[$minOp] ?? "#$minOp",
+                    'mid_name'     => $opNames[$midOp] ?? "#$midOp",
+                    'max_name'     => $opNames[$maxOp] ?? "#$maxOp",
+                    'avg_ibc_h'    => $avgIbcH,
+                    'total_ibc'    => (int)$r['total_ibc'],
+                    'total_hours'  => round((float)$r['total_hours'], 1),
+                    'total_shifts' => (int)$r['total_shifts'],
+                    'first_shift'  => $r['first_shift'],
+                    'last_shift'   => $r['last_shift'],
+                    'vs_team'      => $vsTeam,
+                ];
+            }
+
+            echo json_encode([
+                'success'     => true,
+                'teams'       => $teams,
+                'global_avg'  => round($globalAvg, 2),
+                'days'        => $days,
+                'from'        => date('Y-m-d', strtotime("-{$days} days")),
+                'to'          => date('Y-m-d'),
+                'total_teams' => count($teams),
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftlagHistorik: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftlag-historik'], JSON_UNESCAPED_UNICODE);
         }
     }
 

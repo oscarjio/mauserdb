@@ -1,0 +1,155 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2><i class="fas fa-users"></i> Skiftlag-historik</h2>
+    <p class="page-sub">Vilka tremannalag har historiskt presterat bäst?</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="btn-group">
+      <button *ngFor="let d of [90,180,365,730]"
+              class="btn-ctrl" [class.active]="days === d"
+              (click)="setDays(d)">
+        {{ d === 730 ? '2 år' : d + 'd' }}
+      </button>
+    </div>
+    <div class="btn-group">
+      <button class="btn-ctrl" [class.active]="sortBy === 'avg_ibc_h'"    (click)="setSort('avg_ibc_h')">IBC/h</button>
+      <button class="btn-ctrl" [class.active]="sortBy === 'total_shifts'" (click)="setSort('total_shifts')">Antal skift</button>
+      <button class="btn-ctrl" [class.active]="sortBy === 'last_shift'"   (click)="setSort('last_shift')">Senaste</button>
+      <button class="btn-ctrl" [class.active]="sortBy === 'vs_team'"      (click)="setSort('vs_team')">vs lag</button>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="loading-box">
+    <i class="fas fa-spinner fa-spin"></i> Laddar skiftlag…
+  </div>
+  <div *ngIf="error && !loading" class="error-box">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading && !error && teams.length > 0">
+
+    <!-- KPI bar -->
+    <div class="kpi-bar">
+      <div class="kpi-card">
+        <span class="kpi-val">{{ totalTeams }}</span>
+        <span class="kpi-lbl">Unika lag</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">{{ totalShifts }}</span>
+        <span class="kpi-lbl">Skift analyserade</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">{{ globalAvg | number:'1.1-1' }}</span>
+        <span class="kpi-lbl">Periodnitt IBC/h</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-val">{{ sorted[0]?.avg_ibc_h | number:'1.1-1' }}</span>
+        <span class="kpi-lbl">Bästa lags IBC/h</span>
+      </div>
+    </div>
+
+    <!-- Podium top 3 -->
+    <div class="podium-section" *ngIf="top3.length >= 2">
+      <h4 class="section-title">Topp 3 lag</h4>
+      <div class="podium">
+        <!-- Silver (2nd) -->
+        <div class="podium-slot silver" *ngIf="top3[1]">
+          <div class="podium-medal">🥈</div>
+          <div class="podium-names">
+            <span class="op-tag">{{ top3[1].min_name }}</span>
+            <span class="op-tag">{{ top3[1].mid_name }}</span>
+            <span class="op-tag">{{ top3[1].max_name }}</span>
+          </div>
+          <div class="podium-ibc">{{ top3[1].avg_ibc_h | number:'1.1-1' }} IBC/h</div>
+          <div class="podium-meta">{{ top3[1].total_shifts }} skift</div>
+          <div class="podium-block silver-block"></div>
+        </div>
+        <!-- Gold (1st) -->
+        <div class="podium-slot gold" *ngIf="top3[0]">
+          <div class="podium-medal">🥇</div>
+          <div class="podium-names">
+            <span class="op-tag">{{ top3[0].min_name }}</span>
+            <span class="op-tag">{{ top3[0].mid_name }}</span>
+            <span class="op-tag">{{ top3[0].max_name }}</span>
+          </div>
+          <div class="podium-ibc">{{ top3[0].avg_ibc_h | number:'1.1-1' }} IBC/h</div>
+          <div class="podium-meta">{{ top3[0].total_shifts }} skift</div>
+          <div class="podium-block gold-block"></div>
+        </div>
+        <!-- Bronze (3rd) -->
+        <div class="podium-slot bronze" *ngIf="top3[2]">
+          <div class="podium-medal">🥉</div>
+          <div class="podium-names">
+            <span class="op-tag">{{ top3[2].min_name }}</span>
+            <span class="op-tag">{{ top3[2].mid_name }}</span>
+            <span class="op-tag">{{ top3[2].max_name }}</span>
+          </div>
+          <div class="podium-ibc">{{ top3[2].avg_ibc_h | number:'1.1-1' }} IBC/h</div>
+          <div class="podium-meta">{{ top3[2].total_shifts }} skift</div>
+          <div class="podium-block bronze-block"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full table -->
+    <div class="table-section">
+      <h4 class="section-title">Alla lag</h4>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-rank">#</th>
+              <th class="col-team">Lagmedlemmar</th>
+              <th class="col-ibc">IBC/h</th>
+              <th class="col-vs">vs lag</th>
+              <th class="col-shifts">Skift</th>
+              <th class="col-total">Total IBC</th>
+              <th class="col-last">Senast</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of sorted; let i = index" [class]="tier(t)">
+              <td class="col-rank">
+                <span class="rank-badge" [class]="tier(t)">{{ i + 1 }}</span>
+              </td>
+              <td class="col-team">
+                <div class="team-names">
+                  <span class="op-name">{{ t.min_name }}</span>
+                  <span class="sep">+</span>
+                  <span class="op-name">{{ t.mid_name }}</span>
+                  <span class="sep">+</span>
+                  <span class="op-name">{{ t.max_name }}</span>
+                </div>
+                <div class="team-period">{{ formatDate(t.first_shift) }} – {{ formatDate(t.last_shift) }}</div>
+              </td>
+              <td class="col-ibc">
+                <span class="ibc-val">{{ t.avg_ibc_h | number:'1.1-1' }}</span>
+              </td>
+              <td class="col-vs">
+                <span class="vs-badge" [style.background]="vsColor(t.vs_team)">
+                  {{ t.vs_team >= 0 ? '+' : '' }}{{ t.vs_team | number:'1.1-1' }}%
+                </span>
+              </td>
+              <td class="col-shifts">
+                <span class="shifts-val">{{ t.total_shifts }}</span>
+              </td>
+              <td class="col-total">
+                <span class="total-ibc">{{ t.total_ibc }}</span>
+              </td>
+              <td class="col-last">{{ formatDate(t.last_shift) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && teams.length === 0" class="empty-box">
+    <i class="fas fa-users-slash"></i>
+    <p>Inga lag med minst 2 gemensamma skift hittades för perioden.</p>
+  </div>
+</div>
