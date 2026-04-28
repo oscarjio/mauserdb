@@ -8223,28 +8223,21 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
-            // One row per unique shift: use MAX to dedup PLC multi-rows
+            // One row per unique shift (deduped by skiftraknare)
             $stmt = $this->pdo->prepare("
                 SELECT
-                    YEARWEEK(datum, 1)       AS yw,
-                    MIN(datum)               AS week_start,
-                    op1, op2, op3,
-                    MAX(ibc_ok)              AS ibc_ok,
-                    MAX(drifttid)            AS drifttid
-                FROM (
-                    SELECT
-                        datum,
-                        MAX(op1)      AS op1,
-                        MAX(op2)      AS op2,
-                        MAX(op3)      AS op3,
-                        MAX(ibc_ok)   AS ibc_ok,
-                        MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from AND :to
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare
-                ) AS deduped
-                GROUP BY YEARWEEK(datum, 1), op1, op2, op3
+                    YEARWEEK(datum, 1)  AS yw,
+                    datum               AS week_start,
+                    MAX(op1)            AS op1,
+                    MAX(op2)            AS op2,
+                    MAX(op3)            AS op3,
+                    MAX(ibc_ok)         AS ibc_ok,
+                    MAX(drifttid)       AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                  AND drifttid >= 30
+                GROUP BY skiftraknare
+                ORDER BY datum ASC
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
