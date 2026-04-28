@@ -30,6 +30,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
   stats: MyStatsData | null = null;
   trend: MyTrendData | null = null;
   bonus: MyBonusData | null = null;
+  noOperator = false;
 
   // UI state
   loadingStats = true;
@@ -64,10 +65,11 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
     this.errorStats = '';
     this.service.getMyStats().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingStats = false;
+      if ((res as any)?.no_operator) { this.noOperator = true; return; }
       if (res?.success && res.data) {
         this.stats = res.data;
       } else {
-        this.errorStats = 'Kunde inte ladda din statistik. Kontrollera att du är inloggad och kopplad till ett operatorskonto.';
+        this.errorStats = 'Kunde inte ladda din statistik.';
       }
     });
   }
@@ -77,6 +79,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
     this.errorTrend = '';
     this.service.getMyTrend(this.trendDays).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
+      if ((res as any)?.no_operator) { this.noOperator = true; return; }
       if (res?.success && res.data) {
         this.trend = res.data;
         this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
@@ -91,6 +94,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
     this.errorBonus = '';
     this.service.getMyBonus().pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingBonus = false;
+      if ((res as any)?.no_operator) { this.noOperator = true; return; }
       if (res?.success && res.data) {
         this.bonus = res.data;
       } else {

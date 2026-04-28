@@ -35,7 +35,9 @@ class OperatorsportalController {
 
         $opId = $_SESSION['operator_id'] ?? null;
         if (!$opId || (int)$opId <= 0) {
-            $this->sendError('Inget operatörskonto kopplat till din användare', 403);
+            // HTTP 200 — inte ett behörighetsfel, bara saknad operatörskoppling (t.ex. admin)
+            echo json_encode(['success' => false, 'no_operator' => true,
+                'error' => 'Ditt konto är inte kopplat till en operatör.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
