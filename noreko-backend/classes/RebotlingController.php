@@ -338,6 +338,8 @@ class RebotlingController {
                 $this->getManadsJamforelse();
             } elseif ($action === 'skifttyps-matris') {
                 $this->getSkifttypsMatris();
+            } elseif ($action === 'kassationstyper') {
+                $this->getKassationstyper();
             } else {
                 $this->getLiveStats();
             }
@@ -12814,6 +12816,215 @@ class RebotlingController {
             error_log('RebotlingController::getSkifttypsMatris: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttypsmatris'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=kassationstyper&days=180
+    private function getKassationstyper(): void {
+        try {
+            $days = max(30, min(730, (int)($_GET['days'] ?? 180)));
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Monthly aggregation: IBC kassation vs Bur kassation
+            // Dedup per skiftraknare using MAX(), then SUM per month
+            $sqlMonthly = "
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m') AS month,
+                    SUM(shift_ibc_ok)     AS ibc_ok,
+                    SUM(shift_ibc_ej_ok)  AS ibc_ej_ok,
+                    SUM(shift_bur_ej_ok)  AS bur_ej_ok,
+                    SUM(shift_totalt)     AS totalt
+                FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok, 0)) AS shift_bur_ej_ok,
+                        MAX(COALESCE(totalt,    0)) AS shift_totalt
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                    GROUP BY datum, skiftraknare
+                ) dedup
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                ORDER BY month ASC
+            ";
+            $stmtM = $this->pdo->prepare($sqlMonthly);
+            $stmtM->execute([':from1' => $from, ':to1' => $to]);
+            $monthlyRows = $stmtM->fetchAll(\PDO::FETCH_ASSOC);
+
+            $monthly = [];
+            foreach ($monthlyRows as $r) {
+                $ibcTotal = (int)$r['ibc_ok'] + (int)$r['ibc_ej_ok'];
+                $allTotal = $ibcTotal + (int)$r['bur_ej_ok'];
+                $monthly[] = [
+                    'month'        => $r['month'],
+                    'ibc_ok'       => (int)$r['ibc_ok'],
+                    'ibc_ej_ok'    => (int)$r['ibc_ej_ok'],
+                    'bur_ej_ok'    => (int)$r['bur_ej_ok'],
+                    'ibc_kass_pct' => $ibcTotal > 0
+                        ? round((int)$r['ibc_ej_ok'] / $ibcTotal * 100, 2) : 0.0,
+                    'bur_kass_pct' => $allTotal > 0
+                        ? round((int)$r['bur_ej_ok'] / $allTotal * 100, 2) : 0.0,
+                ];
+            }
+
+            // Per-product breakdown
+            $sqlProd = "
+                SELECT
+                    COALESCE(p.name, CONCAT('Produkt ', r.product_id)) AS product_name,
+                    r.product_id,
+                    SUM(r.shift_ibc_ok)     AS ibc_ok,
+                    SUM(r.shift_ibc_ej_ok)  AS ibc_ej_ok,
+                    SUM(r.shift_bur_ej_ok)  AS bur_ej_ok,
+                    COUNT(*)                AS skift_count
+                FROM (
+                    SELECT
+                        product_id,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok, 0)) AS shift_bur_ej_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND product_id IS NOT NULL
+                    GROUP BY product_id, skiftraknare
+                ) r
+                LEFT JOIN rebotling_products p ON p.id = r.product_id
+                GROUP BY r.product_id, p.name
+                HAVING skift_count >= 3
+                ORDER BY (ibc_ej_ok + bur_ej_ok) DESC
+            ";
+            $stmtP = $this->pdo->prepare($sqlProd);
+            $stmtP->execute([':from2' => $from, ':to2' => $to]);
+            $prodRows = $stmtP->fetchAll(\PDO::FETCH_ASSOC);
+
+            $byProduct = [];
+            foreach ($prodRows as $r) {
+                $ibcTotal = (int)$r['ibc_ok'] + (int)$r['ibc_ej_ok'];
+                $allTotal = $ibcTotal + (int)$r['bur_ej_ok'];
+                $byProduct[] = [
+                    'product_id'   => (int)$r['product_id'],
+                    'product_name' => $r['product_name'],
+                    'ibc_ok'       => (int)$r['ibc_ok'],
+                    'ibc_ej_ok'    => (int)$r['ibc_ej_ok'],
+                    'bur_ej_ok'    => (int)$r['bur_ej_ok'],
+                    'skift_count'  => (int)$r['skift_count'],
+                    'ibc_kass_pct' => $ibcTotal > 0
+                        ? round((int)$r['ibc_ej_ok'] / $ibcTotal * 100, 2) : 0.0,
+                    'bur_kass_pct' => $allTotal > 0
+                        ? round((int)$r['bur_ej_ok'] / $allTotal * 100, 2) : 0.0,
+                ];
+            }
+
+            // Per-operator breakdown: UNION ALL op1/op2/op3, dedup per (op_num, skiftraknare)
+            $sqlOp = "
+                SELECT
+                    op_num,
+                    o.name AS op_name,
+                    SUM(ibc_ok)     AS ibc_ok,
+                    SUM(ibc_ej_ok)  AS ibc_ej_ok,
+                    SUM(bur_ej_ok)  AS bur_ej_ok,
+                    COUNT(*)        AS skift_count
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           MAX(COALESCE(ibc_ok,0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                           MAX(COALESCE(bur_ej_ok,0)) AS bur_ej_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op1 IS NOT NULL
+                    GROUP BY op1, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2 AS op_num, skiftraknare,
+                           MAX(COALESCE(ibc_ok,0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                           MAX(COALESCE(bur_ej_ok,0)) AS bur_ej_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from4 AND :to4
+                      AND op2 IS NOT NULL
+                    GROUP BY op2, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3 AS op_num, skiftraknare,
+                           MAX(COALESCE(ibc_ok,0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                           MAX(COALESCE(bur_ej_ok,0)) AS bur_ej_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from5 AND :to5
+                      AND op3 IS NOT NULL
+                    GROUP BY op3, skiftraknare
+                ) t
+                LEFT JOIN operators o ON o.number = t.op_num
+                GROUP BY op_num, o.name
+                HAVING skift_count >= 3
+                ORDER BY (ibc_ej_ok + bur_ej_ok) DESC
+            ";
+            $stmtO = $this->pdo->prepare($sqlOp);
+            $stmtO->execute([
+                ':from3' => $from, ':to3' => $to,
+                ':from4' => $from, ':to4' => $to,
+                ':from5' => $from, ':to5' => $to,
+            ]);
+            $opRows = $stmtO->fetchAll(\PDO::FETCH_ASSOC);
+
+            $byOperator = [];
+            foreach ($opRows as $r) {
+                $ibcTotal = (int)$r['ibc_ok'] + (int)$r['ibc_ej_ok'];
+                $allTotal = $ibcTotal + (int)$r['bur_ej_ok'];
+                $byOperator[] = [
+                    'number'       => (int)$r['op_num'],
+                    'name'         => $r['op_name'] ?? "Op {$r['op_num']}",
+                    'ibc_ok'       => (int)$r['ibc_ok'],
+                    'ibc_ej_ok'    => (int)$r['ibc_ej_ok'],
+                    'bur_ej_ok'    => (int)$r['bur_ej_ok'],
+                    'skift_count'  => (int)$r['skift_count'],
+                    'ibc_kass_pct' => $ibcTotal > 0
+                        ? round((int)$r['ibc_ej_ok'] / $ibcTotal * 100, 2) : 0.0,
+                    'bur_kass_pct' => $allTotal > 0
+                        ? round((int)$r['bur_ej_ok'] / $allTotal * 100, 2) : 0.0,
+                ];
+            }
+
+            // Overall KPIs for the period
+            $totalIbcOk  = array_sum(array_column($monthly, 'ibc_ok'));
+            $totalIbcEj  = array_sum(array_column($monthly, 'ibc_ej_ok'));
+            $totalBurEj  = array_sum(array_column($monthly, 'bur_ej_ok'));
+            $totalIbcAll = $totalIbcOk + $totalIbcEj;
+            $totalAll    = $totalIbcAll + $totalBurEj;
+
+            $kpi = [
+                'ibc_ok'              => $totalIbcOk,
+                'ibc_ej_ok'           => $totalIbcEj,
+                'bur_ej_ok'           => $totalBurEj,
+                'ibc_kass_pct'        => $totalIbcAll > 0
+                    ? round($totalIbcEj / $totalIbcAll * 100, 2) : 0.0,
+                'bur_kass_pct'        => $totalAll > 0
+                    ? round($totalBurEj / $totalAll * 100, 2) : 0.0,
+                'combined_kass_pct'   => $totalAll > 0
+                    ? round(($totalIbcEj + $totalBurEj) / $totalAll * 100, 2) : 0.0,
+                'ibc_vs_bur_ratio'    => $totalBurEj > 0
+                    ? round($totalIbcEj / $totalBurEj, 1) : null,
+            ];
+
+            echo json_encode([
+                'success'     => true,
+                'days'        => $days,
+                'from'        => $from,
+                'to'          => $to,
+                'kpi'         => $kpi,
+                'monthly'     => $monthly,
+                'by_product'  => $byProduct,
+                'by_operator' => $byOperator,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKassationstyper: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationstyper'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

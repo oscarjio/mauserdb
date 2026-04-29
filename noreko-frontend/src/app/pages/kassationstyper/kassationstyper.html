@@ -1,0 +1,183 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/rebotling/operator-prestation" class="back-link">← Alla verktyg</a>
+      <h1>Kassationstyper</h1>
+      <p class="subtitle">IBC-kassation vs Bur-kassation — två olika feltyper analyserade separat</p>
+    </div>
+    <div class="period-selector">
+      <button *ngFor="let opt of daysOptions"
+              (click)="setDays(opt.value)"
+              [class.active]="days === opt.value"
+              class="period-btn">{{ opt.label }}</button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">Laddar kassationsdata...</div>
+  <div *ngIf="error && !loading" class="error-state">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && kpi">
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">IBC kassation</div>
+        <div class="kpi-value" [style.color]="ibcColor(kpi.ibc_kass_pct)">{{ kpi.ibc_kass_pct | number:'1.2-2' }}%</div>
+        <div class="kpi-sub">{{ kpi.ibc_ej_ok | number }} kasserade IBC</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Bur kassation</div>
+        <div class="kpi-value" [style.color]="burColor(kpi.bur_kass_pct)">{{ kpi.bur_kass_pct | number:'1.2-2' }}%</div>
+        <div class="kpi-sub">{{ kpi.bur_ej_ok | number }} kasserade burars</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Kombinerad kassation</div>
+        <div class="kpi-value" [style.color]="ibcColor(kpi.combined_kass_pct)">{{ kpi.combined_kass_pct | number:'1.2-2' }}%</div>
+        <div class="kpi-sub">av alla processade enheter</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">IBC:Bur-kvot</div>
+        <div class="kpi-value" [style.color]="'#76e4f7'">
+          <ng-container *ngIf="kpi.ibc_vs_bur_ratio !== null">{{ kpi.ibc_vs_bur_ratio | number:'1.1-1' }}:1</ng-container>
+          <ng-container *ngIf="kpi.ibc_vs_bur_ratio === null">—</ng-container>
+        </div>
+        <div class="kpi-sub">IBC-kassationer per Bur-kassation</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Godkända IBC</div>
+        <div class="kpi-value" [style.color]="'#68d391'">{{ kpi.ibc_ok | number }}</div>
+        <div class="kpi-sub">perioden {{ from }} – {{ to }}</div>
+      </div>
+    </div>
+
+    <!-- Explanation banner -->
+    <div class="explain-banner">
+      <strong>IBC kassation</strong> = containern (plastbehållaren) godkändes ej vid kontroll (ibc_ej_ok). &nbsp;
+      <strong>Bur kassation</strong> = ramverket (stålburen) godkändes ej (bur_ej_ok). &nbsp;
+      Olika feltyper kan ha olika orsaker — IBC-kassation beror ofta på kontaminering eller skador, Bur-kassation på mekanisk deformation.
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button (click)="setTab('trend')"    [class.active]="activeTab==='trend'">Månadsvis trend</button>
+      <button (click)="setTab('produkt')"  [class.active]="activeTab==='produkt'">Per produkt</button>
+      <button (click)="setTab('operator')" [class.active]="activeTab==='operator'">Per operatör</button>
+    </div>
+
+    <!-- TREND TAB -->
+    <div *ngIf="activeTab === 'trend'">
+      <div class="chart-card">
+        <h3>Kassationsgrad per månad — IBC vs Bur</h3>
+        <div class="chart-wrap">
+          <canvas #chartTrendRef></canvas>
+        </div>
+      </div>
+      <div class="table-card" *ngIf="monthly.length">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Månad</th>
+              <th class="num">Godkända IBC</th>
+              <th class="num">IBC kass.</th>
+              <th class="num">IBC kass.%</th>
+              <th class="num">Bur kass.</th>
+              <th class="num">Bur kass.%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of monthly">
+              <td>{{ m.month }}</td>
+              <td class="num">{{ m.ibc_ok | number }}</td>
+              <td class="num">{{ m.ibc_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="ibcColor(m.ibc_kass_pct) + '33'" [style.color]="ibcColor(m.ibc_kass_pct)">{{ m.ibc_kass_pct | number:'1.2-2' }}%</span></td>
+              <td class="num">{{ m.bur_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="burColor(m.bur_kass_pct) + '33'" [style.color]="burColor(m.bur_kass_pct)">{{ m.bur_kass_pct | number:'1.2-2' }}%</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="!monthly.length" class="empty-state">Ingen månadsdata tillgänglig för perioden.</div>
+    </div>
+
+    <!-- PRODUKT TAB -->
+    <div *ngIf="activeTab === 'produkt'">
+      <div class="chart-card">
+        <h3>Kassationsgrad per produkt (topp 8)</h3>
+        <div class="chart-wrap">
+          <canvas #chartProductRef></canvas>
+        </div>
+      </div>
+      <div class="table-card" *ngIf="byProduct.length">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Produkt</th>
+              <th class="num">Skift</th>
+              <th class="num">Godkända IBC</th>
+              <th class="num">IBC kasserade</th>
+              <th class="num">IBC kass.%</th>
+              <th class="num">Bur kasserade</th>
+              <th class="num">Bur kass.%</th>
+              <th>Dominerande typ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of byProduct">
+              <td>{{ p.product_name }}</td>
+              <td class="num">{{ p.skift_count }}</td>
+              <td class="num">{{ p.ibc_ok | number }}</td>
+              <td class="num">{{ p.ibc_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="ibcColor(p.ibc_kass_pct) + '33'" [style.color]="ibcColor(p.ibc_kass_pct)">{{ p.ibc_kass_pct | number:'1.2-2' }}%</span></td>
+              <td class="num">{{ p.bur_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="burColor(p.bur_kass_pct) + '33'" [style.color]="burColor(p.bur_kass_pct)">{{ p.bur_kass_pct | number:'1.2-2' }}%</span></td>
+              <td><span class="type-badge" [class.badge-ibc]="dominantType(p)==='IBC'" [class.badge-bur]="dominantType(p)==='Bur'">{{ dominantType(p) }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="!byProduct.length" class="empty-state">Ingen produktdata tillgänglig (kräver minst 3 skift per produkt).</div>
+    </div>
+
+    <!-- OPERATOR TAB -->
+    <div *ngIf="activeTab === 'operator'">
+      <div class="sort-bar">
+        <span>Sortera:</span>
+        <button (click)="sortOp='combined'" [class.active]="sortOp==='combined'">Kombinerat</button>
+        <button (click)="sortOp='ibc'"      [class.active]="sortOp==='ibc'">IBC kass.%</button>
+        <button (click)="sortOp='bur'"      [class.active]="sortOp==='bur'">Bur kass.%</button>
+        <button (click)="sortOp='name'"     [class.active]="sortOp==='name'">Namn</button>
+      </div>
+      <div class="table-card" *ngIf="sortedOperators.length">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="num">Skift</th>
+              <th class="num">Godkända IBC</th>
+              <th class="num">IBC kasserade</th>
+              <th class="num">IBC kass.%</th>
+              <th class="num">Bur kasserade</th>
+              <th class="num">Bur kass.%</th>
+              <th>Dominerande typ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of sortedOperators">
+              <td><a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a></td>
+              <td class="num">{{ op.skift_count }}</td>
+              <td class="num">{{ op.ibc_ok | number }}</td>
+              <td class="num">{{ op.ibc_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="ibcColor(op.ibc_kass_pct) + '33'" [style.color]="ibcColor(op.ibc_kass_pct)">{{ op.ibc_kass_pct | number:'1.2-2' }}%</span></td>
+              <td class="num">{{ op.bur_ej_ok | number }}</td>
+              <td class="num"><span class="pill" [style.background-color]="burColor(op.bur_kass_pct) + '33'" [style.color]="burColor(op.bur_kass_pct)">{{ op.bur_kass_pct | number:'1.2-2' }}%</span></td>
+              <td><span class="type-badge" [class.badge-ibc]="dominantType(op)==='IBC'" [class.badge-bur]="dominantType(op)==='Bur'">{{ dominantType(op) }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="table-note">Kräver minst 3 skift under perioden. Kassationsdata är kumulativ per skift — operatören var aktiv vid dessa skift men är inte nödvändigtvis ensam ansvarig.</p>
+      </div>
+      <div *ngIf="!sortedOperators.length" class="empty-state">Ingen operatörsdata tillgänglig (kräver minst 3 skift per operatör).</div>
+    </div>
+  </ng-container>
+</div>
