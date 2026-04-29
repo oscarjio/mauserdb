@@ -12050,17 +12050,15 @@ class RebotlingController {
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $shifts     = [];
-            $monthBuckets = []; // 'YYYY-MM' => {sumA, sumP, sumQ, sumOEE, count, countP}
-            $totalA = $totalQ = 0.0;
-            $totalACount = $totalQCount = 0;
+            $monthBuckets = [];
             $totalIbc = $totalHours = 0.0;
             $totalIbcEjOk = 0;
             $totalStop = $totalScheduled = 0.0;
+            $totalProcessedP = $totalTheoreticalP = 0.0;
 
             foreach ($rows as $row) {
                 $ibc_ok    = (int)$row['ibc_ok'];
                 $ibc_ej_ok = (int)$row['ibc_ej_ok'];
-                $totalt    = (int)$row['totalt'];
                 $drifttid  = (float)$row['drifttid'];  // minutes
                 $stopptime = (float)$row['driftstopptime'];
                 $ct        = (float)$row['cycle_time_minutes'];
@@ -12089,23 +12087,33 @@ class RebotlingController {
                 $mon = substr($row['datum'], 0, 7);
                 if (!isset($monthBuckets[$mon])) {
                     $monthBuckets[$mon] = [
-                        'sumA' => 0.0, 'cntA' => 0,
-                        'sumP' => 0.0, 'cntP' => 0,
-                        'sumQ' => 0.0, 'cntQ' => 0,
-                        'sumOEE' => 0.0, 'cntOEE' => 0,
-                        'ibc' => 0, 'hours' => 0.0,
+                        'drifttid'    => 0.0,
+                        'scheduled'   => 0.0,
+                        'good'        => 0,
+                        'processed'   => 0,
+                        'processedP'  => 0.0,
+                        'theoretical' => 0.0,
+                        'ibc'         => 0,
+                        'hours'       => 0.0,
                     ];
                 }
                 $b = &$monthBuckets[$mon];
-                if ($avail !== null) { $b['sumA'] += $avail; $b['cntA']++; $totalA += $avail; $totalACount++; }
-                if ($perf !== null)  { $b['sumP'] += $perf;  $b['cntP']++; }
-                if ($qual !== null)  { $b['sumQ'] += $qual;  $b['cntQ']++; $totalQ += $qual; $totalQCount++; }
-                if ($oee !== null)   { $b['sumOEE'] += $oee; $b['cntOEE']++; }
+                $b['drifttid']  += $drifttid;
+                $b['scheduled'] += $scheduled;
+                $b['good']      += $ibc_ok;
+                $b['processed'] += $processed;
+                if ($ct > 0 && $drifttid > 0) {
+                    $th = $drifttid / $ct;
+                    $b['processedP']   += (float)$processed;
+                    $b['theoretical']  += $th;
+                    $totalProcessedP   += (float)$processed;
+                    $totalTheoreticalP += $th;
+                }
                 $b['ibc']   += $ibc_ok;
                 $b['hours'] += $drifttid / 60.0;
 
-                $totalIbc    += $ibc_ok;
-                $totalHours  += $drifttid / 60.0;
+                $totalIbc     += $ibc_ok;
+                $totalHours   += $drifttid / 60.0;
                 $totalIbcEjOk += $ibc_ej_ok;
                 $totalStop    += $stopptime;
                 $totalScheduled += $scheduled;
@@ -12127,30 +12135,35 @@ class RebotlingController {
             }
             unset($b);
 
-            // Build monthly trend
+            // Build monthly trend — SUM/SUM aggregation per month
             ksort($monthBuckets);
             $monthly = [];
             foreach ($monthBuckets as $mon => $b) {
+                $mAvail = $b['scheduled']   > 0 ? round($b['drifttid']   / $b['scheduled']   * 100, 1) : null;
+                $mQual  = $b['processed']   > 0 ? round($b['good']       / $b['processed']   * 100, 1) : null;
+                $mPerf  = $b['theoretical'] > 0 ? round(min($b['processedP'] / $b['theoretical'], 1.5) * 100, 1) : null;
+                $mOEE   = ($mAvail !== null && $mPerf !== null && $mQual !== null)
+                          ? round($mAvail/100 * $mPerf/100 * $mQual/100 * 100, 1) : null;
                 $monthly[] = [
-                    'month'    => $mon,
-                    'avail'    => $b['cntA']   > 0 ? round($b['sumA']   / $b['cntA']   * 100, 1) : null,
-                    'perf'     => $b['cntP']   > 0 ? round($b['sumP']   / $b['cntP']   * 100, 1) : null,
-                    'qual'     => $b['cntQ']   > 0 ? round($b['sumQ']   / $b['cntQ']   * 100, 1) : null,
-                    'oee'      => $b['cntOEE'] > 0 ? round($b['sumOEE'] / $b['cntOEE'] * 100, 1) : null,
-                    'ibc'      => $b['ibc'],
-                    'hours'    => round($b['hours'], 1),
+                    'month' => $mon,
+                    'avail' => $mAvail,
+                    'perf'  => $mPerf,
+                    'qual'  => $mQual,
+                    'oee'   => $mOEE,
+                    'ibc'   => $b['ibc'],
+                    'hours' => round($b['hours'], 1),
                 ];
             }
 
-            // Overall KPIs
-            $kpiAvail = $totalACount > 0 ? round($totalA / $totalACount * 100, 1) : null;
-            $kpiQual  = $totalQCount > 0 ? round($totalQ / $totalQCount * 100, 1) : null;
-            $kpiIbcH  = $totalHours > 0  ? round($totalIbc / $totalHours, 2) : null;
+            // Overall KPIs — SUM/SUM aggregation
+            $kpiAvail = $totalScheduled   > 0 ? round(($totalHours * 60.0) / $totalScheduled * 100, 1) : null;
+            $kpiQual  = ($totalIbc + $totalIbcEjOk) > 0 ? round($totalIbc / ($totalIbc + $totalIbcEjOk) * 100, 1) : null;
+            $kpiPerf  = $totalTheoreticalP > 0 ? round(min($totalProcessedP / $totalTheoreticalP, 1.5) * 100, 1) : null;
+            $kpiOEE   = ($kpiAvail !== null && $kpiPerf !== null && $kpiQual !== null)
+                        ? round($kpiAvail/100 * $kpiPerf/100 * $kpiQual/100 * 100, 1) : null;
+            $kpiIbcH  = $totalHours > 0 ? round($totalIbc / $totalHours, 2) : null;
             $kpiKass  = ($totalIbc + $totalIbcEjOk) > 0
                         ? round($totalIbcEjOk / ($totalIbc + $totalIbcEjOk) * 100, 1) : null;
-            // For overall OEE compute from monthly averages
-            $oeeVals = array_filter(array_column($monthly, 'oee'), fn($v) => $v !== null);
-            $kpiOEE  = count($oeeVals) > 0 ? round(array_sum($oeeVals) / count($oeeVals), 1) : null;
 
             // Product breakdown: avg OEE per product (only where perf calculable)
             $prodMap = [];
