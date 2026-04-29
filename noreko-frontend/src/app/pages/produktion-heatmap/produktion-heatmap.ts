@@ -56,14 +56,21 @@ export class ProduktionHeatmapPage implements OnInit, OnDestroy {
     return this.days.length;
   }
 
+  private get completedDays(): DayData[] {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.days.filter(d => d.datum < today);
+  }
+
   get bestDay(): DayData | null {
-    if (!this.days.length) return null;
-    return this.days.reduce((best, d) => d.ibc_per_h > best.ibc_per_h ? d : best);
+    const cd = this.completedDays;
+    if (!cd.length) return null;
+    return cd.reduce((best, d) => d.ibc_per_h > best.ibc_per_h ? d : best);
   }
 
   get worstDay(): DayData | null {
-    if (!this.days.length) return null;
-    return this.days.filter(d => d.ibc_per_h > 0).reduce((worst, d) => d.ibc_per_h < worst.ibc_per_h ? d : worst);
+    const cd = this.completedDays.filter(d => d.ibc_per_h > 0);
+    if (!cd.length) return null;
+    return cd.reduce((worst, d) => d.ibc_per_h < worst.ibc_per_h ? d : worst);
   }
 
   get daysAboveAvg(): number {
@@ -71,11 +78,11 @@ export class ProduktionHeatmapPage implements OnInit, OnDestroy {
   }
 
   get top5Best(): DayData[] {
-    return [...this.days].sort((a, b) => b.ibc_per_h - a.ibc_per_h).slice(0, 5);
+    return [...this.completedDays].sort((a, b) => b.ibc_per_h - a.ibc_per_h).slice(0, 5);
   }
 
   get top5Worst(): DayData[] {
-    return [...this.days].sort((a, b) => a.ibc_per_h - b.ibc_per_h).slice(0, 5);
+    return [...this.completedDays].filter(d => d.ibc_per_h > 0).sort((a, b) => a.ibc_per_h - b.ibc_per_h).slice(0, 5);
   }
 
   constructor(private http: HttpClient) {}
