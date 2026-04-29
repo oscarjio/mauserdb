@@ -1,0 +1,130 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Milstolpar &amp; Karriärrekord</h1>
+    <p class="page-sub">Karriär-IBC, personliga rekord och framsteg mot nästa milstolpe</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-box">Hämtar karriärdata…</div>
+  <div *ngIf="error" class="error-box">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-value">{{ kpi.total_operators }}</div>
+        <div class="kpi-label">Operatörer totalt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ kpi.active_operators }}</div>
+        <div class="kpi-label">Aktiva</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ kpi.total_career_ibc | number:'1.0-0' }}</div>
+        <div class="kpi-label">Total karriär-IBC</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ kpi.avg_career_ibc | number:'1.0-0' }}</div>
+        <div class="kpi-label">Snitt karriär-IBC/op</div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="kpi-value">{{ closeToNextCount }}</div>
+        <div class="kpi-label">Nära nästa milstolpe</div>
+      </div>
+    </div>
+
+    <!-- Milestone legend -->
+    <div class="ms-legend">
+      <span class="ms-legend-label">Milstolpar:</span>
+      <span *ngFor="let m of milestones" class="ms-pill" [style.borderColor]="msColor(m)">
+        {{ msIcon(m) }} {{ m | number:'1.0-0' }}
+      </span>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="btn-group">
+        <button [class.active]="filter === 'alla'"   (click)="filter = 'alla'">Alla</button>
+        <button [class.active]="filter === 'aktiva'" (click)="filter = 'aktiva'">Aktiva</button>
+        <button [class.active]="filter === 'nara'"   (click)="filter = 'nara'">Nära milstolpe (≥80%)</button>
+      </div>
+      <div class="sort-row">
+        <label>Sortera:</label>
+        <select [(ngModel)]="sortBy" class="ctrl-select">
+          <option value="career_ibc">Karriär-IBC</option>
+          <option value="best_shift_ibch">Bästa skift IBC/h</option>
+          <option value="anniversary">Äldst anställd</option>
+          <option value="namn">Namn</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Operator cards grid -->
+    <div class="op-grid">
+      <div *ngFor="let op of filtered" class="op-card" [class.inactive]="!op.active">
+
+        <!-- Card header -->
+        <div class="card-head" [style.borderLeftColor]="msColor(op.current_ms)">
+          <div class="card-name">
+            <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+            <span *ngIf="!op.active" class="inactive-badge">Inaktiv</span>
+          </div>
+          <div class="ms-badge" [style.background]="msColor(op.current_ms)">
+            {{ msIcon(op.current_ms) }} {{ op.ms_label }}
+          </div>
+        </div>
+
+        <!-- Career IBC + progress bar -->
+        <div class="career-ibc-row">
+          <span class="career-ibc-num">{{ op.career_ibc | number:'1.0-0' }} IBC</span>
+          <span class="career-sub">{{ op.career_shifts }} skift · {{ op.career_hours | number:'1.0-1' }}h · {{ op.career_ibc_h | number:'1.1-1' }} IBC/h</span>
+        </div>
+
+        <!-- Next milestone progress -->
+        <div class="ms-progress" *ngIf="op.next_ms !== null">
+          <div class="ms-progress-label">
+            <span>Nästa: <strong>{{ msIcon(op.next_ms!) }} {{ op.next_ms | number:'1.0-0' }}</strong></span>
+            <span class="ibc-to-next">{{ op.ibc_to_next }} IBC kvar ({{ op.progress_pct | number:'1.0-1' }}%)</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill"
+                 [style.width.%]="op.progress_pct"
+                 [style.background]="progressBarColor(op.progress_pct)">
+            </div>
+          </div>
+        </div>
+        <div class="ms-progress" *ngIf="op.next_ms === null">
+          <div class="ms-progress-label all-done">
+            🌟 Hall of Fame — alla milstolpar nådda!
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-val">{{ op.best_shift_ibch | number:'1.1-1' }}</div>
+            <div class="stat-lbl">Bästa skift (IBC/h)</div>
+          </div>
+          <div class="stat" *ngIf="op.best_month">
+            <div class="stat-val">{{ op.best_month.ibc }}</div>
+            <div class="stat-lbl">Bästa månad ({{ formatMonth(op.best_month.ym) }})</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val">{{ tenureLabel(op) }}</div>
+            <div class="stat-lbl">Anställningstid</div>
+          </div>
+          <div class="stat" *ngIf="op.this_month">
+            <div class="stat-val">{{ op.this_month.ibc }}</div>
+            <div class="stat-lbl">Denna månad</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div *ngIf="filtered.length === 0" class="empty-msg">
+      Inga operatörer matchar det valda filtret.
+    </div>
+
+  </ng-container>
+</div>

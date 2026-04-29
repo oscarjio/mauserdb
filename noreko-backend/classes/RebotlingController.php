@@ -350,6 +350,8 @@ class RebotlingController {
                 $this->getStjarnoperatorer();
             } elseif ($action === 'produkt-kvalitetstrender') {
                 $this->getProduktKvalitetstrender();
+            } elseif ($action === 'milstolpar') {
+                $this->getMilstolpar();
             } else {
                 $this->getLiveStats();
             }
@@ -14068,6 +14070,226 @@ class RebotlingController {
             error_log('RebotlingController::getProduktKvalitetstrender: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktkvalitetstrender'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // getMilstolpar — Career milestones, personal records, progress
+    // GET ?action=rebotling&run=milstolpar
+    // ─────────────────────────────────────────────────────────────────────────
+    private function getMilstolpar(): void {
+        try {
+            $pdo   = $this->pdo;
+            $today = date('Y-m-d');
+            $thisMonth = date('Y-m');
+
+            // ── 1. Career totals per operator (all-time, no date filter) ──────
+            // UNION ALL op1/op2/op3, dedup per (op_num, skiftraknare), then aggregate.
+            $careerSql = "
+                SELECT
+                    src.op_num,
+                    COALESCE(o.name, CONCAT('#', src.op_num)) AS op_name,
+                    COALESCE(o.active, 1)                      AS op_active,
+                    COUNT(DISTINCT src.skiftraknare)            AS career_shifts,
+                    SUM(src.ibc_ok)                             AS career_ibc,
+                    SUM(src.drifttid_h)                         AS career_hours,
+                    CASE WHEN SUM(src.drifttid_h) > 0
+                         THEN SUM(src.ibc_ok) / SUM(src.drifttid_h)
+                         ELSE 0 END                             AS career_ibc_h,
+                    MAX(src.shift_ibc_h)                        AS best_shift_ibc_h,
+                    MIN(src.datum)                              AS first_shift_date,
+                    MAX(src.datum)                              AS last_shift_date
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           MIN(datum)                                         AS datum,
+                           MAX(ibc_ok)                                        AS ibc_ok,
+                           MAX(drifttid) / 60.0                               AS drifttid_h,
+                           CASE WHEN MAX(drifttid) > 0
+                                THEN MAX(ibc_ok) / (MAX(drifttid) / 60.0)
+                                ELSE 0 END                                    AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2 AS op_num, skiftraknare,
+                           MIN(datum)                                         AS datum,
+                           MAX(ibc_ok)                                        AS ibc_ok,
+                           MAX(drifttid) / 60.0                               AS drifttid_h,
+                           CASE WHEN MAX(drifttid) > 0
+                                THEN MAX(ibc_ok) / (MAX(drifttid) / 60.0)
+                                ELSE 0 END                                    AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3 AS op_num, skiftraknare,
+                           MIN(datum)                                         AS datum,
+                           MAX(ibc_ok)                                        AS ibc_ok,
+                           MAX(drifttid) / 60.0                               AS drifttid_h,
+                           CASE WHEN MAX(drifttid) > 0
+                                THEN MAX(ibc_ok) / (MAX(drifttid) / 60.0)
+                                ELSE 0 END                                    AS shift_ibc_h
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op3, skiftraknare
+                ) src
+                LEFT JOIN operators o ON o.number = src.op_num
+                GROUP BY src.op_num, o.name, o.active
+                HAVING career_shifts >= 1
+                ORDER BY career_ibc DESC
+            ";
+            $careerStmt = $pdo->prepare($careerSql);
+            $careerStmt->execute();
+            $careerRows = $careerStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ── 2. Best month + this-month IBC per operator ───────────────────
+            $monthSql = "
+                SELECT
+                    src.op_num,
+                    DATE_FORMAT(src.datum, '%Y-%m') AS ym,
+                    SUM(src.ibc_ok)                 AS month_ibc,
+                    COUNT(DISTINCT src.skiftraknare) AS month_shifts
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare, MIN(datum) AS datum, MAX(ibc_ok) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2 AS op_num, skiftraknare, MIN(datum) AS datum, MAX(ibc_ok) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3 AS op_num, skiftraknare, MIN(datum) AS datum, MAX(ibc_ok) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE op3 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op3, skiftraknare
+                ) src
+                GROUP BY src.op_num, ym
+            ";
+            $monthStmt = $pdo->prepare($monthSql);
+            $monthStmt->execute();
+            $monthRows = $monthStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $bestMonths    = [];
+            $thisMonthData = [];
+            foreach ($monthRows as $r) {
+                $op  = (int)$r['op_num'];
+                $ibc = (int)$r['month_ibc'];
+                if (!isset($bestMonths[$op]) || $ibc > $bestMonths[$op]['ibc']) {
+                    $bestMonths[$op] = [
+                        'ym'     => $r['ym'],
+                        'ibc'    => $ibc,
+                        'shifts' => (int)$r['month_shifts'],
+                    ];
+                }
+                if ($r['ym'] === $thisMonth) {
+                    $thisMonthData[$op] = ['ibc' => $ibc, 'shifts' => (int)$r['month_shifts']];
+                }
+            }
+
+            // ── 3. Milestone ladder ───────────────────────────────────────────
+            $milestones = [100, 500, 1000, 2500, 5000, 10000, 25000, 50000];
+            $milestoneLabels = [
+                0     => 'Ny',
+                100   => 'Lärling',
+                500   => 'Utövare',
+                1000  => 'Veteran',
+                2500  => 'Mästare',
+                5000  => 'Expert',
+                10000 => 'Platina',
+                25000 => 'Guld',
+                50000 => 'Hall of Fame',
+            ];
+
+            // ── 4. Build operator array ───────────────────────────────────────
+            $operators     = [];
+            $totalCareerIbc = 0;
+
+            foreach ($careerRows as $r) {
+                $opNum     = (int)$r['op_num'];
+                $careerIbc = (int)$r['career_ibc'];
+                $totalCareerIbc += $careerIbc;
+
+                // Current milestone and next
+                $currentMs = 0;
+                $nextMs    = $milestones[0];
+                foreach ($milestones as $m) {
+                    if ($careerIbc >= $m) {
+                        $currentMs = $m;
+                    } else {
+                        $nextMs = $m;
+                        break;
+                    }
+                }
+                if ($careerIbc >= end($milestones)) {
+                    $nextMs = null;
+                }
+
+                $label = $milestoneLabels[$currentMs] ?? 'Ny';
+
+                // Progress toward next milestone
+                if ($nextMs !== null) {
+                    $span        = $nextMs - $currentMs;
+                    $done        = $careerIbc - $currentMs;
+                    $progressPct = $span > 0 ? round($done / $span * 100, 1) : 100.0;
+                    $ibcToNext   = $nextMs - $careerIbc;
+                } else {
+                    $progressPct = 100.0;
+                    $ibcToNext   = 0;
+                }
+
+                // Career duration
+                $firstDate  = $r['first_shift_date'] ?? $today;
+                $daysSince  = (strtotime($today) - strtotime($firstDate)) / 86400;
+                $yearsSince = (int)floor($daysSince / 365);
+                $monthsSince = (int)floor($daysSince / 30.44);
+
+                $operators[] = [
+                    'number'          => $opNum,
+                    'name'            => $r['op_name'],
+                    'active'          => (int)($r['op_active'] ?? 1) === 1,
+                    'career_ibc'      => $careerIbc,
+                    'career_shifts'   => (int)$r['career_shifts'],
+                    'career_hours'    => round((float)$r['career_hours'], 1),
+                    'career_ibc_h'    => round((float)$r['career_ibc_h'], 2),
+                    'best_shift_ibch' => round((float)$r['best_shift_ibc_h'], 1),
+                    'first_shift'     => $firstDate,
+                    'last_shift'      => $r['last_shift_date'] ?? $today,
+                    'years_since'     => $yearsSince,
+                    'months_since'    => $monthsSince,
+                    'best_month'      => $bestMonths[$opNum] ?? null,
+                    'this_month'      => $thisMonthData[$opNum] ?? null,
+                    'current_ms'      => $currentMs,
+                    'next_ms'         => $nextMs,
+                    'ms_label'        => $label,
+                    'progress_pct'    => $progressPct,
+                    'ibc_to_next'     => $ibcToNext,
+                ];
+            }
+
+            $activeCount = count(array_filter($operators, fn($o) => $o['active']));
+            $avgCareer   = count($operators) > 0
+                ? (int)round($totalCareerIbc / count($operators))
+                : 0;
+
+            echo json_encode([
+                'success'    => true,
+                'today'      => $today,
+                'this_month' => $thisMonth,
+                'operators'  => $operators,
+                'kpi' => [
+                    'total_operators'  => count($operators),
+                    'active_operators' => $activeCount,
+                    'total_career_ibc' => $totalCareerIbc,
+                    'avg_career_ibc'   => $avgCareer,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getMilstolpar: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid milstolpar'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

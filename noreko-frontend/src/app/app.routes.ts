@@ -196,6 +196,7 @@ export const routes: Routes = [
       { path: 'rebotling/stjarnoperatorer', canActivate: [adminGuard], loadComponent: () => import('./pages/stjarnoperatorer/stjarnoperatorer').then(m => m.StjarnoperatororPage) },
       { path: 'rebotling/produkt-kvalitetstrender', canActivate: [adminGuard], loadComponent: () => import('./pages/produkt-kvalitetstrender/produkt-kvalitetstrender').then(m => m.ProduktKvalitetstrender) },
       { path: 'rebotling/maskinpark-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/maskinpark-analys/maskinpark-analys').then(m => m.MaskinparkAnalysPage) },
+      { path: 'rebotling/milstolpar', canActivate: [adminGuard], loadComponent: () => import('./pages/milstolpar/milstolpar').then(m => m.MilstolparPage) },
       { path: 'rebotling/produktbyten', canActivate: [adminGuard], loadComponent: () => import('./pages/produktbyten/produktbyten').then(m => m.ProduktbytenPage) },
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },
