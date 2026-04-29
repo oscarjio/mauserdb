@@ -1,0 +1,164 @@
+<div class="pk-page">
+
+  <!-- Header -->
+  <div class="pk-header">
+    <div class="pk-header-left">
+      <h1 class="pk-title">
+        <i class="fas fa-id-badge me-2" style="color:#76e4f7"></i>
+        Personalkalender
+      </h1>
+      <p class="pk-subtitle">Närvaro- och positionsöversikt per operatör och dag</p>
+    </div>
+    <div class="pk-month-nav">
+      <button class="pk-nav-btn" (click)="prevMonth()" title="Föregående månad">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="pk-month-label">{{ monthLabel }}</span>
+      <button class="pk-nav-btn" (click)="nextMonth()" title="Nästa månad">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="pk-loading">
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="ms-3 text-muted">Hämtar kalenderdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI row -->
+    <div class="pk-kpi-row">
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ activeOperators }}</span>
+        <span class="pk-kpi-lbl">Aktiva operatörer</span>
+      </div>
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ totalPersonShifts }}</span>
+        <span class="pk-kpi-lbl">Personskift totalt</span>
+      </div>
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ avgShiftsPerOp | number:'1.1-1' }}</span>
+        <span class="pk-kpi-lbl">Snitt skift / op</span>
+      </div>
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ productionDays }}</span>
+        <span class="pk-kpi-lbl">Produktionsdagar</span>
+      </div>
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ totalIbc }}</span>
+        <span class="pk-kpi-lbl">Totalt IBC OK</span>
+      </div>
+      <div class="pk-kpi-card">
+        <span class="pk-kpi-num">{{ monthAvg | number:'1.1-1' }}</span>
+        <span class="pk-kpi-lbl">Snitt IBC/h</span>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="pk-legend-row">
+      <span class="pk-legend-title">Dagsfärg (lag IBC/h vs månadssnitt):</span>
+      <span class="pk-leg-item"><span class="pk-leg-dot day-great"></span>≥ 110%</span>
+      <span class="pk-leg-item"><span class="pk-leg-dot day-good"></span>95–110%</span>
+      <span class="pk-leg-item"><span class="pk-leg-dot day-avg"></span>80–95%</span>
+      <span class="pk-leg-item"><span class="pk-leg-dot day-weak"></span>&lt; 80%</span>
+      <span class="pk-leg-sep">|</span>
+      <span class="pk-leg-item"><span class="pk-pos-chip pos-t">T</span>Tvättplats</span>
+      <span class="pk-leg-item"><span class="pk-pos-chip pos-k">K</span>Kontrollstation</span>
+      <span class="pk-leg-item"><span class="pk-pos-chip pos-tr">Tr</span>Truckförare</span>
+    </div>
+
+    <!-- Grid -->
+    <div class="pk-grid-wrap">
+      <table class="pk-grid">
+        <thead>
+          <!-- Weekday labels -->
+          <tr class="pk-row-wd">
+            <th class="pk-col-name"></th>
+            <th *ngFor="let date of dayDates"
+                class="pk-col-day"
+                [class.pk-col-weekend]="isWeekend(date)">
+              <span class="pk-wd-lbl">{{ weekdayLabel(date) }}</span>
+            </th>
+            <th class="pk-col-summary">Position</th>
+          </tr>
+          <!-- Day numbers -->
+          <tr class="pk-row-dn">
+            <th class="pk-col-name">Operatör</th>
+            <th *ngFor="let date of dayDates; let i = index"
+                class="pk-col-day pk-col-daynum"
+                [class.pk-col-weekend]="isWeekend(date)"
+                [class.pk-has-prod]="!!daily[date]"
+                [title]="daily[date] ? (daily[date].ibc_per_h | number:'1.1-1') + ' IBC/h' : ''">
+              {{ dayNumbers[i] }}
+            </th>
+            <th class="pk-col-summary">T / K / Tr</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operators" class="pk-op-row" [class.pk-op-inactive]="op.shift_count === 0">
+            <!-- Operator name -->
+            <td class="pk-col-name">
+              <a [routerLink]="['/rebotling/operator', op.number]" class="pk-op-link">
+                {{ op.name }}
+              </a>
+              <span class="pk-shift-badge">{{ op.shift_count }}</span>
+            </td>
+            <!-- Day cells -->
+            <td *ngFor="let date of dayDates"
+                class="pk-col-day pk-cell"
+                [ngClass]="getPos(op, date) ? cellBg(date) : 'pk-cell-empty'"
+                [class.pk-col-weekend]="isWeekend(date)"
+                [title]="dayTooltip(date, op)">
+              <span *ngIf="getPos(op, date) as pos"
+                    class="pk-pos-chip"
+                    [ngClass]="posClass(pos)">
+                {{ posLabel(pos) }}
+              </span>
+            </td>
+            <!-- Position summary -->
+            <td class="pk-col-summary">
+              <div class="pk-pos-bar" *ngIf="op.shift_count > 0">
+                <div *ngIf="op.pos_counts.op1 > 0"
+                     class="pk-bar-seg pos-t-bg"
+                     [style.width.%]="posBarWidth(op, 'op1')"
+                     [title]="'Tvättplats: ' + op.pos_counts.op1">
+                  <span *ngIf="posBarWidth(op, 'op1') >= 20">{{ op.pos_counts.op1 }}</span>
+                </div>
+                <div *ngIf="op.pos_counts.op2 > 0"
+                     class="pk-bar-seg pos-k-bg"
+                     [style.width.%]="posBarWidth(op, 'op2')"
+                     [title]="'Kontroll: ' + op.pos_counts.op2">
+                  <span *ngIf="posBarWidth(op, 'op2') >= 20">{{ op.pos_counts.op2 }}</span>
+                </div>
+                <div *ngIf="op.pos_counts.op3 > 0"
+                     class="pk-bar-seg pos-tr-bg"
+                     [style.width.%]="posBarWidth(op, 'op3')"
+                     [title]="'Truck: ' + op.pos_counts.op3">
+                  <span *ngIf="posBarWidth(op, 'op3') >= 20">{{ op.pos_counts.op3 }}</span>
+                </div>
+              </div>
+              <span *ngIf="op.shift_count === 0" class="pk-no-data">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer note -->
+    <p class="pk-footnote">
+      <i class="fas fa-info-circle me-1"></i>
+      Dagsfärg visar lagets samlade IBC/h vs månadssnitt ({{ monthAvg | number:'1.1-1' }} IBC/h).
+      Operatör kan visas vid flera positioner om de arbetade mer än en position samma dag.
+    </p>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && !operators.length" class="pk-empty">
+    <i class="fas fa-calendar-times fa-2x mb-2 text-muted"></i>
+    <p>Inga operatörsdata för {{ monthLabel }}.</p>
+  </div>
+
+</div>

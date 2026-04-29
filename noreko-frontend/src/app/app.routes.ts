@@ -188,6 +188,7 @@ export const routes: Routes = [
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },
       { path: 'rebotling/belastningsbalans', canActivate: [adminGuard], loadComponent: () => import('./pages/belastningsbalans/belastningsbalans').then(m => m.BelastningsbalansPage) },
+      { path: 'rebotling/personal-kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/personal-kalender/personal-kalender').then(m => m.PersonalKalenderPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

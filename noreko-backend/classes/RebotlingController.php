@@ -318,6 +318,8 @@ class RebotlingController {
                 $this->getVaderProduktion();
             } elseif ($action === 'belastningsbalans') {
                 $this->getBelastningsbalans();
+            } elseif ($action === 'personal-kalender') {
+                $this->getPersonalKalender();
             } else {
                 $this->getLiveStats();
             }
@@ -11239,6 +11241,132 @@ class RebotlingController {
             error_log('RebotlingController::getBelastningsbalans: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid belastningsbalans'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=personal-kalender&year=2026&month=4
+    private function getPersonalKalender(): void {
+        $year  = (int) ($_GET['year']  ?? date('Y'));
+        $month = (int) ($_GET['month'] ?? date('n'));
+        if ($year < 2020 || $year > 2100) $year  = (int) date('Y');
+        if ($month < 1   || $month > 12)  $month = (int) date('n');
+
+        $yearmonth   = sprintf('%04d-%02d', $year, $month);
+        $daysInMonth = cal_days_in_month(\CAL_GREGORIAN, $month, $year);
+
+        try {
+            // 1. Daily IBC/h: dedup per skiftraknare, then sum
+            $sql = "
+                SELECT datum,
+                       SUM(ibc_ok) / NULLIF(SUM(drifttid_h), 0) AS ibc_per_h,
+                       SUM(ibc_ok)    AS ibc_ok,
+                       SUM(drifttid_h) AS total_h,
+                       COUNT(*)       AS num_skift
+                FROM (
+                    SELECT datum, skiftraknare,
+                           MAX(ibc_ok)         AS ibc_ok,
+                           MAX(drifttid) / 60.0 AS drifttid_h
+                    FROM rebotling_skiftrapport
+                    WHERE DATE_FORMAT(datum, '%Y-%m') = :ym1
+                    GROUP BY datum, skiftraknare
+                ) dedup
+                GROUP BY datum
+                ORDER BY datum
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':ym1' => $yearmonth]);
+            $dailyRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $dailyIbch   = [];
+            $totalIbc    = 0;
+            $totalHours  = 0.0;
+            foreach ($dailyRows as $row) {
+                $dailyIbch[$row['datum']] = [
+                    'ibc_per_h' => round((float)$row['ibc_per_h'], 2),
+                    'ibc_ok'    => (int)$row['ibc_ok'],
+                    'num_skift' => (int)$row['num_skift'],
+                ];
+                $totalIbc   += (int)$row['ibc_ok'];
+                $totalHours += (float)$row['total_h'];
+            }
+            $monthAvg = $totalHours > 0 ? round($totalIbc / $totalHours, 2) : 0;
+
+            // 2. Active operators
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $operators = $opStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // 3. Attendance: which days each operator worked and at which position
+            // UNION (not UNION ALL) deduplicates same-day appearances
+            $atSql = "
+                SELECT datum, op1 AS op_num, 'op1' AS pos
+                FROM rebotling_skiftrapport
+                WHERE DATE_FORMAT(datum, '%Y-%m') = :ym2 AND op1 IS NOT NULL
+                UNION
+                SELECT datum, op2, 'op2'
+                FROM rebotling_skiftrapport
+                WHERE DATE_FORMAT(datum, '%Y-%m') = :ym3 AND op2 IS NOT NULL
+                UNION
+                SELECT datum, op3, 'op3'
+                FROM rebotling_skiftrapport
+                WHERE DATE_FORMAT(datum, '%Y-%m') = :ym4 AND op3 IS NOT NULL
+                ORDER BY datum, op_num
+            ";
+            $atStmt = $this->pdo->prepare($atSql);
+            $atStmt->execute([':ym2' => $yearmonth, ':ym3' => $yearmonth, ':ym4' => $yearmonth]);
+            $atRows = $atStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build attendance map [op_num][datum] = pos
+            // If operator worked multiple positions on same day, keep lowest (op1 < op2 < op3)
+            $attendance = [];
+            foreach ($atRows as $row) {
+                $opNum = (int)$row['op_num'];
+                $datum = $row['datum'];
+                if (!isset($attendance[$opNum][$datum]) ||
+                    $row['pos'] < $attendance[$opNum][$datum]) {
+                    $attendance[$opNum][$datum] = $row['pos'];
+                }
+            }
+
+            // 4. Build per-operator result, sorted by shift count desc then name
+            $opResults = [];
+            foreach ($operators as $op) {
+                $num    = (int)$op['number'];
+                $shifts = $attendance[$num] ?? [];
+                $posCounts = ['op1' => 0, 'op2' => 0, 'op3' => 0];
+                foreach ($shifts as $pos) {
+                    if (isset($posCounts[$pos])) $posCounts[$pos]++;
+                }
+                $opResults[] = [
+                    'number'      => $num,
+                    'name'        => $op['name'],
+                    'shifts'      => $shifts,
+                    'shift_count' => count($shifts),
+                    'pos_counts'  => $posCounts,
+                ];
+            }
+            usort($opResults, function ($a, $b) {
+                if ($b['shift_count'] !== $a['shift_count']) return $b['shift_count'] - $a['shift_count'];
+                return strcmp($a['name'], $b['name']);
+            });
+
+            echo json_encode([
+                'success'         => true,
+                'year'            => $year,
+                'month'           => $month,
+                'days_in_month'   => $daysInMonth,
+                'daily'           => $dailyIbch,
+                'month_avg'       => round($monthAvg, 2),
+                'total_ibc'       => $totalIbc,
+                'production_days' => count($dailyIbch),
+                'operators'       => $opResults,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getPersonalKalender: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid personal-kalender'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
