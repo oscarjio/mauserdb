@@ -1,0 +1,265 @@
+.rytm-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-sub {
+  color: #718096;
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+/* Controls */
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ctrl-label {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+.ctrl-period-label {
+  color: #718096;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+/* KPI row */
+.kpi-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+  min-width: 180px;
+}
+
+.kpi-val {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.kpi-val.kpi-green { color: #68d391; }
+.kpi-val.kpi-red   { color: #fc8181; }
+
+.kpi-lbl {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+/* Heatmap */
+.heatmap-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #4a5568;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.skift-header,
+.day-header,
+.avg-header {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.skift-header { text-align: left; min-width: 165px; }
+.avg-header   { background: #1a202c; }
+
+.skift-label {
+  background: #1a202c;
+  text-align: left;
+}
+
+.skift-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.skift-dag   { background: #2b6cb0; color: #bee3f8; }
+.skift-kvall { background: #744210; color: #feebc8; }
+.skift-natt  { background: #322659; color: #d6bcfa; }
+
+.skift-badge-sm {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Heat cells */
+.heat-cell {
+  cursor: default;
+  transition: filter 0.1s;
+  min-width: 95px;
+}
+
+.heat-cell:hover {
+  filter: brightness(1.15);
+}
+
+.cell-ibch {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cell-vs {
+  font-size: 0.7rem;
+  margin-top: 0.1rem;
+}
+
+.cell-n {
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+
+.cell-nodata {
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+/* Avg cells */
+.avg-cell {
+  background: #1a202c;
+  min-width: 80px;
+}
+
+.avg-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.avg-vs {
+  font-size: 0.7rem;
+}
+
+.avg-sub {
+  font-size: 0.68rem;
+  color: #718096;
+}
+
+.avg-total {
+  background: #171d26;
+}
+
+.footer-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  font-weight: 600;
+}
+
+/* vs colors */
+.vs-green   { color: #68d391; }
+.vs-red     { color: #fc8181; }
+.vs-neutral { color: #a0aec0; }
+
+/* Legend */
+.legend-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.legend-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+}
+
+.nodata-swatch {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+}
+
+/* Insight table */
+.insight-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+}
+
+.insight-header {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.no-data-row { opacity: 0.45; }
+
+.table-dark {
+  --bs-table-bg: transparent;
+}
+
+.table-dark th,
+.table-dark td {
+  border-color: #4a5568;
+  color: #e2e8f0;
+}

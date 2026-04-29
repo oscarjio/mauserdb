@@ -1,0 +1,186 @@
+<div class="rytm-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="page-title">
+        <i class="fas fa-grip-horizontal me-2" style="color:#63b3ed;"></i>
+        Produktionsrytm
+      </h2>
+      <p class="page-sub">
+        IBC/h per skifttyp × veckodag — identifiera systemiska mönster
+      </p>
+    </div>
+    <a routerLink="/rebotling/operator-prestation" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka
+    </a>
+  </div>
+
+  <!-- Period selector -->
+  <div class="controls-row mb-4">
+    <span class="ctrl-label">Period:</span>
+    <div class="btn-group btn-group-sm">
+      <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+      <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+      <button class="btn" [class.btn-primary]="days===365" [class.btn-outline-secondary]="days!==365" (click)="setDays(365)">1 år</button>
+      <button class="btn" [class.btn-primary]="days===730" [class.btn-outline-secondary]="days!==730" (click)="setDays(730)">2 år</button>
+    </div>
+    <span class="ctrl-period-label" *ngIf="from">{{ from }} – {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Analyserar produktionsrytm…</p>
+  </div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && grid.length">
+
+    <!-- KPI cards -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card kpi-avg">
+        <div class="kpi-val">{{ periodAvg | number:'1.1-1' }}</div>
+        <div class="kpi-lbl">Periodssnitt IBC/h</div>
+      </div>
+      <div class="kpi-card kpi-best" *ngIf="best">
+        <div class="kpi-val kpi-green">{{ best.ibc_per_h | number:'1.1-1' }}</div>
+        <div class="kpi-lbl">Starkaste slot</div>
+        <div class="kpi-sub">{{ best.label }}</div>
+        <div class="kpi-sub">{{ best.antal_skift }} skift</div>
+      </div>
+      <div class="kpi-card kpi-worst" *ngIf="worst">
+        <div class="kpi-val kpi-red">{{ worst.ibc_per_h | number:'1.1-1' }}</div>
+        <div class="kpi-lbl">Svagaste slot</div>
+        <div class="kpi-sub">{{ worst.label }}</div>
+        <div class="kpi-sub">{{ worst.antal_skift }} skift</div>
+      </div>
+    </div>
+
+    <!-- Heatmap table -->
+    <div class="card heatmap-card mb-4">
+      <div class="card-body p-0">
+        <div class="table-scroll">
+          <table class="heatmap-table">
+            <thead>
+              <tr>
+                <th class="skift-header">Skifttyp</th>
+                <th *ngFor="let col of colAvgs" class="day-header">{{ col.dag_namn }}</th>
+                <th class="avg-header">Radssnitt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of grid">
+                <td class="skift-label">
+                  <span class="skift-badge" [class]="'skift-' + row.skift_typ">{{ row.label }}</span>
+                </td>
+                <td *ngFor="let cell of row.cells"
+                    class="heat-cell"
+                    [style.background]="cellBg(cell.vs_avg_pct)"
+                    [style.color]="cellTextColor(cell.vs_avg_pct)"
+                    [title]="cell.dag_namn + ' ' + row.label + ': ' + (cell.ibc_per_h !== null ? (cell.ibc_per_h | number:'1.1-1') + ' IBC/h (' + vsLabel(cell.vs_avg_pct) + ' vs snitt), ' + cell.antal_skift + ' skift' : 'Ingen data')">
+                  <ng-container *ngIf="cell.ibc_per_h !== null; else noData">
+                    <div class="cell-ibch">{{ cell.ibc_per_h | number:'1.1-1' }}</div>
+                    <div class="cell-vs" [class]="vsClass(cell.vs_avg_pct)">{{ vsLabel(cell.vs_avg_pct) }}</div>
+                    <div class="cell-n">{{ cell.antal_skift }} skift</div>
+                  </ng-container>
+                  <ng-template #noData>
+                    <div class="cell-nodata">—</div>
+                  </ng-template>
+                </td>
+                <td class="avg-cell">
+                  <div class="avg-val">{{ row.row_avg | number:'1.1-1' }}</div>
+                  <div class="avg-vs" [class]="vsClass(periodAvg > 0 ? (row.row_avg / periodAvg - 1) * 100 : null)">
+                    {{ periodAvg > 0 ? vsLabel((row.row_avg / periodAvg - 1) * 100) : '' }}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td class="skift-label footer-label">Dagsssnitt</td>
+                <td *ngFor="let col of colAvgs" class="avg-cell"
+                    [style.background]="cellBg(colAvgVs(col.avg))"
+                    [style.color]="cellTextColor(colAvgVs(col.avg))">
+                  <div class="avg-val">{{ col.avg | number:'1.1-1' }}</div>
+                  <div class="avg-vs" [class]="vsClass(colAvgVs(col.avg))">{{ vsLabel(colAvgVs(col.avg)) }}</div>
+                </td>
+                <td class="avg-cell avg-total">
+                  <div class="avg-val">{{ periodAvg | number:'1.1-1' }}</div>
+                  <div class="avg-sub">Totalt</div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row mb-4">
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgb(56,211,56);"></div>
+        <span>≥ +20% vs snitt</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgb(45,55,72);"></div>
+        <span>≈ snitt (±5%)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:rgb(252,129,74);"></div>
+        <span>≤ −20% vs snitt</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch nodata-swatch"></div>
+        <span>Ingen data</span>
+      </div>
+    </div>
+
+    <!-- Insight table -->
+    <div class="card insight-card">
+      <div class="card-header insight-header">
+        <i class="fas fa-lightbulb me-2 text-warning"></i>Detaljvy per slot
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-dark mb-0">
+          <thead>
+            <tr>
+              <th>Skifttyp</th>
+              <th>Veckodag</th>
+              <th class="text-end">IBC/h</th>
+              <th class="text-end">Vs snitt</th>
+              <th class="text-end">Antal skift</th>
+              <th class="text-end">Tot IBC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let row of grid">
+              <tr *ngFor="let cell of row.cells" [class.no-data-row]="cell.ibc_per_h === null">
+                <td>
+                  <span class="skift-badge-sm" [class]="'skift-' + row.skift_typ">{{ row.skift_typ | titlecase }}</span>
+                </td>
+                <td>{{ cell.dag_namn }}</td>
+                <td class="text-end">
+                  <span *ngIf="cell.ibc_per_h !== null">{{ cell.ibc_per_h | number:'1.1-1' }}</span>
+                  <span *ngIf="cell.ibc_per_h === null" class="text-muted">—</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="cell.vs_avg_pct !== null" [class]="vsClass(cell.vs_avg_pct)">{{ vsLabel(cell.vs_avg_pct) }}</span>
+                  <span *ngIf="cell.vs_avg_pct === null" class="text-muted">—</span>
+                </td>
+                <td class="text-end">{{ cell.antal_skift || '—' }}</td>
+                <td class="text-end">{{ cell.tot_ibc || '—' }}</td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && !grid.length" class="text-center py-5 text-muted">
+    Ingen produktionsdata hittades för vald period.
+  </div>
+
+</div>

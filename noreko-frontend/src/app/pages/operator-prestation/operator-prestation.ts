@@ -54,6 +54,7 @@ export class OperatorPrestationPage {
         { title: 'Konsistensanalys', desc: 'Vem är mest pålitlig skift för skift? (CV)', route: '/rebotling/operator-konsistens', icon: 'fas fa-ruler', color: '#a78bfa' },
         { title: 'Operatörsvärde', desc: 'Hur påverkas IBC/h när operatören är frånvarande?', route: '/rebotling/operator-avsaknad', icon: 'fas fa-user-minus', color: '#fc8181' },
         { title: 'Rastanalys', desc: 'Rastmönster per skift — korrelation med IBC/h och veckovis trend', route: '/rebotling/rast-analys', icon: 'fas fa-coffee', color: '#f6ad55' },
+        { title: 'Produktionsrytm', desc: 'Heatmap: IBC/h per skifttyp × veckodag — vilka slot är systemiskt starka/svaga?', route: '/rebotling/produktionsrytm', icon: 'fas fa-grip-horizontal', color: '#63b3ed' },
       ]
     },
     {

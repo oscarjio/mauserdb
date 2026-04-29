@@ -300,6 +300,8 @@ class RebotlingController {
                 $this->getRastAnalys();
             } elseif ($action === 'sasongsanalys') {
                 $this->getSasongsanalys();
+            } elseif ($action === 'produktionsrytm') {
+                $this->getProduktionsrytm();
             } else {
                 $this->getLiveStats();
             }
@@ -9785,6 +9787,194 @@ class RebotlingController {
             error_log('RebotlingController::getSasongsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid säsongsanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // =========================================================
+    // Produktionsrytm — 3×7 heatmap (skifttyp × veckodag)
+    // GET ?action=rebotling&run=produktionsrytm&days=90|180|365
+    // =========================================================
+    private function getProduktionsrytm(): void {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(730, (int)$_GET['days'])) : 90;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Deduplicate by skiftraknare, assign skifttyp from created_at hour
+            $sql = "
+                SELECT
+                    DAYOFWEEK(datum)      AS dow,
+                    CASE
+                        WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                        WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                        ELSE 'natt'
+                    END                   AS skift_typ,
+                    SUM(MAX(COALESCE(ibc_ok,0)))     AS tot_ibc,
+                    SUM(MAX(COALESCE(drifttid,0)))   AS tot_min,
+                    COUNT(DISTINCT skiftraknare)     AS antal_skift
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                  AND ibc_ok > 0
+                  AND drifttid >= 30
+                GROUP BY DAYOFWEEK(datum), skiftraknare
+            ";
+            // Wrap in outer query to aggregate properly per (dow, skift_typ)
+            $sqlOuter = "
+                SELECT dow, skift_typ,
+                       SUM(max_ibc)    AS tot_ibc,
+                       SUM(max_min)    AS tot_min,
+                       COUNT(*)        AS antal_skift
+                FROM (
+                    SELECT
+                        DAYOFWEEK(datum) AS dow,
+                        skiftraknare,
+                        CASE
+                            WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                            WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                            ELSE 'natt'
+                        END AS skift_typ,
+                        MAX(COALESCE(ibc_ok, 0))    AS max_ibc,
+                        MAX(COALESCE(drifttid, 0))  AS max_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND ibc_ok > 0
+                      AND drifttid >= 30
+                    GROUP BY DAYOFWEEK(datum), skiftraknare, created_at
+                ) inner_q
+                GROUP BY dow, skift_typ
+            ";
+            // Simpler and correct: group inner by (dow, skiftraknare) and determine skifttyp per skiftraknare
+            $correctSql = "
+                SELECT dow, skift_typ,
+                       SUM(max_ibc)    AS tot_ibc,
+                       SUM(max_min)    AS tot_min,
+                       COUNT(*)        AS antal_skift
+                FROM (
+                    SELECT
+                        DAYOFWEEK(datum)                                AS dow,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))                       AS max_ibc,
+                        MAX(COALESCE(drifttid, 0))                     AS max_min,
+                        CASE
+                            WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                            WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                            ELSE 'natt'
+                        END AS skift_typ
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND ibc_ok > 0
+                      AND drifttid >= 30
+                    GROUP BY DAYOFWEEK(datum), skiftraknare
+                ) deduped
+                GROUP BY dow, skift_typ
+            ";
+
+            $stmt = $this->pdo->prepare($correctSql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute IBC/h for each cell and build indexed grid
+            $cells = [];
+            $allIbcH = [];
+            foreach ($rows as $r) {
+                $dow  = (int)$r['dow'];  // 1=Sun,2=Mon,...,7=Sat
+                $typ  = $r['skift_typ'];
+                $ibch = $r['tot_min'] > 0
+                    ? round($r['tot_ibc'] * 60.0 / $r['tot_min'], 2)
+                    : 0;
+                $cells[$typ][$dow] = [
+                    'ibc_per_h'   => $ibch,
+                    'tot_ibc'     => (int)$r['tot_ibc'],
+                    'antal_skift' => (int)$r['antal_skift'],
+                ];
+                if ($ibch > 0) $allIbcH[] = $ibch;
+            }
+
+            // Period average IBC/h across all cells
+            $periodAvg = count($allIbcH) > 0
+                ? round(array_sum($allIbcH) / count($allIbcH), 2)
+                : 0;
+
+            // Build structured grid: rows = [dag, kvall, natt], cols = Mon-Sun (dow 2..7,1)
+            // MySQL DAYOFWEEK: 1=Sun, 2=Mon, ..., 7=Sat → we want Mon=1..Sun=7 for display
+            $dowOrder    = [2, 3, 4, 5, 6, 7, 1]; // Mon→Sun in MySQL DAYOFWEEK
+            $dowLabels   = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+            $skiftTypar  = ['dag', 'kvall', 'natt'];
+            $skiftLabels = ['Dagskift (06–14)', 'Kvällsskift (14–22)', 'Nattskift (22–06)'];
+
+            $grid = [];
+            foreach ($skiftTypar as $idx => $typ) {
+                $row = [
+                    'skift_typ'   => $typ,
+                    'label'       => $skiftLabels[$idx],
+                    'cells'       => [],
+                    'row_avg'     => 0,
+                ];
+                $rowIbcH = [];
+                foreach ($dowOrder as $di => $dow) {
+                    $cell = $cells[$typ][$dow] ?? null;
+                    $ibch = $cell ? $cell['ibc_per_h'] : null;
+                    $row['cells'][] = [
+                        'dag_namn'    => $dowLabels[$di],
+                        'dow'         => $dow,
+                        'ibc_per_h'   => $ibch,
+                        'tot_ibc'     => $cell ? $cell['tot_ibc'] : 0,
+                        'antal_skift' => $cell ? $cell['antal_skift'] : 0,
+                        'vs_avg_pct'  => ($ibch !== null && $periodAvg > 0)
+                            ? round(($ibch / $periodAvg - 1) * 100, 1)
+                            : null,
+                    ];
+                    if ($ibch !== null && $ibch > 0) $rowIbcH[] = $ibch;
+                }
+                $row['row_avg'] = count($rowIbcH) > 0
+                    ? round(array_sum($rowIbcH) / count($rowIbcH), 2)
+                    : 0;
+                $grid[] = $row;
+            }
+
+            // Column averages (per weekday across all shift types)
+            $colAvgs = [];
+            foreach ($dowOrder as $di => $dow) {
+                $vals = [];
+                foreach ($skiftTypar as $typ) {
+                    $ibch = $cells[$typ][$dow]['ibc_per_h'] ?? null;
+                    if ($ibch !== null && $ibch > 0) $vals[] = $ibch;
+                }
+                $colAvgs[] = [
+                    'dag_namn' => $dowLabels[$di],
+                    'avg'      => count($vals) > 0 ? round(array_sum($vals) / count($vals), 2) : 0,
+                ];
+            }
+
+            // Best and worst cells
+            $best  = null;
+            $worst = null;
+            foreach ($grid as $row) {
+                foreach ($row['cells'] as $cell) {
+                    if ($cell['ibc_per_h'] === null || $cell['antal_skift'] < 2) continue;
+                    if ($best  === null || $cell['ibc_per_h'] > $best['ibc_per_h'])
+                        $best  = ['label' => $row['label'] . ' — ' . $cell['dag_namn'], 'ibc_per_h' => $cell['ibc_per_h'], 'antal_skift' => $cell['antal_skift']];
+                    if ($worst === null || $cell['ibc_per_h'] < $worst['ibc_per_h'])
+                        $worst = ['label' => $row['label'] . ' — ' . $cell['dag_namn'], 'ibc_per_h' => $cell['ibc_per_h'], 'antal_skift' => $cell['antal_skift']];
+                }
+            }
+
+            echo json_encode([
+                'success'    => true,
+                'days'       => $days,
+                'from'       => $from,
+                'to'         => $to,
+                'period_avg' => $periodAvg,
+                'grid'       => $grid,
+                'col_avgs'   => $colAvgs,
+                'best'       => $best,
+                'worst'      => $worst,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktionsrytm: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsrytm'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
