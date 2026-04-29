@@ -304,6 +304,8 @@ class RebotlingController {
                 $this->getProduktionsrytm();
             } elseif ($action === 'fart-kvalitet') {
                 $this->getSpeedQualityCorrelation();
+            } elseif ($action === 'stopptidsmonster') {
+                $this->getStopptidsmonster();
             } else {
                 $this->getLiveStats();
             }
@@ -10107,6 +10109,196 @@ class RebotlingController {
             error_log('RebotlingController::getSpeedQualityCorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-kvalitet-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getStopptidsmonster(): void {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(730, (int)$_GET['days'])) : 180;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Query 1: heatmap — stoppage rate by shift-type × weekday
+            $sql1 = "
+                SELECT dow, skift_typ,
+                       SUM(max_stopp)                                   AS tot_stopp,
+                       SUM(max_drift)                                   AS tot_drift,
+                       SUM(CASE WHEN max_stopp > 0 THEN 1 ELSE 0 END)  AS skift_med_stopp,
+                       COUNT(*)                                         AS antal_skift
+                FROM (
+                    SELECT
+                        DAYOFWEEK(datum)                               AS dow,
+                        skiftraknare,
+                        MAX(COALESCE(driftstopptime, 0))               AS max_stopp,
+                        MAX(COALESCE(drifttid, 0))                     AS max_drift,
+                        CASE
+                            WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                            WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                            ELSE 'natt'
+                        END AS skift_typ
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND drifttid >= 30
+                    GROUP BY DAYOFWEEK(datum), skiftraknare
+                ) deduped
+                GROUP BY dow, skift_typ
+            ";
+            $stmt1 = $this->pdo->prepare($sql1);
+            $stmt1->execute([':from1' => $from, ':to1' => $to]);
+            $rows1 = $stmt1->fetchAll(\PDO::FETCH_ASSOC);
+
+            $cells    = [];
+            $allStopp = 0;
+            $allDrift = 0;
+            foreach ($rows1 as $r) {
+                $dow = (int)$r['dow'];
+                $typ = $r['skift_typ'];
+                $stoppPct = $r['tot_drift'] > 0
+                    ? round($r['tot_stopp'] / $r['tot_drift'] * 100, 2)
+                    : 0;
+                $snittMin = $r['antal_skift'] > 0
+                    ? round($r['tot_stopp'] / $r['antal_skift'], 1)
+                    : 0;
+                $pctMed = $r['antal_skift'] > 0
+                    ? round($r['skift_med_stopp'] / $r['antal_skift'] * 100, 1)
+                    : 0;
+                $cells[$typ][$dow] = [
+                    'stopp_pct'       => $stoppPct,
+                    'snitt_stopp_min' => $snittMin,
+                    'pct_med_stopp'   => $pctMed,
+                    'tot_stopp'       => (int)$r['tot_stopp'],
+                    'tot_drift'       => (int)$r['tot_drift'],
+                    'antal_skift'     => (int)$r['antal_skift'],
+                ];
+                $allStopp += (int)$r['tot_stopp'];
+                $allDrift += (int)$r['tot_drift'];
+            }
+
+            $periodStoppPct = $allDrift > 0
+                ? round($allStopp / $allDrift * 100, 2)
+                : 0;
+
+            $dowOrder    = [2, 3, 4, 5, 6, 7, 1];
+            $dowLabels   = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+            $skiftTypar  = ['dag', 'kvall', 'natt'];
+            $skiftLabels = ['Dagskift (06–14)', 'Kvällsskift (14–22)', 'Nattskift (22–06)'];
+
+            $grid     = [];
+            $allCells = [];
+            foreach ($skiftTypar as $idx => $typ) {
+                $row = [
+                    'skift_typ' => $typ,
+                    'label'     => $skiftLabels[$idx],
+                    'cells'     => [],
+                    'row_avg'   => 0,
+                ];
+                $rowStopp = 0;
+                $rowDrift = 0;
+                foreach ($dowOrder as $di => $dow) {
+                    $cell = $cells[$typ][$dow] ?? null;
+                    $row['cells'][] = $cell
+                        ? array_merge(['dow_label' => $dowLabels[$di], 'dow_idx' => $di], $cell)
+                        : ['dow_label' => $dowLabels[$di], 'dow_idx' => $di,
+                           'stopp_pct' => null, 'snitt_stopp_min' => null,
+                           'pct_med_stopp' => null, 'tot_stopp' => 0,
+                           'tot_drift' => 0, 'antal_skift' => 0];
+                    if ($cell) {
+                        $rowStopp += $cell['tot_stopp'];
+                        $rowDrift += $cell['tot_drift'];
+                        $allCells[] = [
+                            'typ'       => $typ,
+                            'typ_label' => $skiftLabels[$idx],
+                            'dow_idx'   => $di,
+                            'dow_label' => $dowLabels[$di],
+                            'stopp_pct' => $cell['stopp_pct'],
+                            'antal'     => $cell['antal_skift'],
+                        ];
+                    }
+                }
+                $row['row_avg'] = $rowDrift > 0 ? round($rowStopp / $rowDrift * 100, 2) : 0;
+                $grid[] = $row;
+            }
+
+            // Column averages (per weekday, all shift types combined)
+            $colAvgs = [];
+            foreach ($dowOrder as $di => $dow) {
+                $cStopp = 0;
+                $cDrift = 0;
+                foreach ($skiftTypar as $typ) {
+                    $c = $cells[$typ][$dow] ?? null;
+                    if ($c) {
+                        $cStopp += $c['tot_stopp'];
+                        $cDrift += $c['tot_drift'];
+                    }
+                }
+                $colAvgs[] = $cDrift > 0 ? round($cStopp / $cDrift * 100, 2) : null;
+            }
+
+            // Best / worst cells (min 2 shifts)
+            $worst = null;
+            $best  = null;
+            foreach ($allCells as $c) {
+                if ($c['antal'] < 2) continue;
+                if ($worst === null || $c['stopp_pct'] > $worst['stopp_pct']) $worst = $c;
+                if ($best  === null || $c['stopp_pct'] < $best['stopp_pct'])  $best  = $c;
+            }
+
+            // Query 2: monthly trend (last 12 months, fixed range)
+            $from2 = date('Y-m-d', strtotime('-12 months'));
+            $sql2 = "
+                SELECT DATE_FORMAT(datum, '%Y-%m')                  AS manad,
+                       SUM(max_stopp)                               AS tot_stopp,
+                       SUM(max_drift)                               AS tot_drift,
+                       SUM(CASE WHEN max_stopp > 0 THEN 1 ELSE 0 END) AS skift_med_stopp,
+                       COUNT(*)                                     AS antal_skift
+                FROM (
+                    SELECT datum,
+                           MAX(COALESCE(driftstopptime, 0)) AS max_stopp,
+                           MAX(COALESCE(drifttid, 0))       AS max_drift
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND drifttid >= 30
+                    GROUP BY datum, skiftraknare
+                ) deduped2
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                ORDER BY manad
+            ";
+            $stmt2 = $this->pdo->prepare($sql2);
+            $stmt2->execute([':from2' => $from2, ':to2' => $to]);
+            $rows2 = $stmt2->fetchAll(\PDO::FETCH_ASSOC);
+
+            $trend = array_map(fn($r) => [
+                'manad'           => $r['manad'],
+                'stopp_pct'       => $r['tot_drift'] > 0
+                    ? round($r['tot_stopp'] / $r['tot_drift'] * 100, 2)
+                    : 0,
+                'snitt_stopp_min' => $r['antal_skift'] > 0
+                    ? round($r['tot_stopp'] / $r['antal_skift'], 1)
+                    : 0,
+                'antal_skift'     => (int)$r['antal_skift'],
+                'pct_med_stopp'   => $r['antal_skift'] > 0
+                    ? round($r['skift_med_stopp'] / $r['antal_skift'] * 100, 1)
+                    : 0,
+            ], $rows2);
+
+            echo json_encode([
+                'success'          => true,
+                'grid'             => $grid,
+                'col_avgs'         => $colAvgs,
+                'dow_labels'       => $dowLabels,
+                'period_stopp_pct' => $periodStoppPct,
+                'worst_cell'       => $worst,
+                'best_cell'        => $best,
+                'trend'            => $trend,
+                'from'             => $from,
+                'to'               => $to,
+                'days'             => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getStopptidsmonster: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsmönster'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

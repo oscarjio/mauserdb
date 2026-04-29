@@ -1,0 +1,179 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <a routerLink="/rebotling/operator-prestation" class="back-link">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="page-title">
+      <i class="fas fa-pause-circle me-2" style="color:#fc8181;"></i>Stopptidsmönster
+    </h1>
+    <p class="page-sub">
+      Maskinens stopptid per skifttyp × veckodag — identifiera systemiska mönster och planera underhåll
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="control-group">
+      <label class="ctrl-label">Period</label>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+        <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+        <button class="btn" [class.btn-primary]="days===365" [class.btn-outline-secondary]="days!==365" (click)="setDays(365)">1 år</button>
+        <button class="btn" [class.btn-primary]="days===730" [class.btn-outline-secondary]="days!==730" (click)="setDays(730)">2 år</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="ctrl-label">Visa</label>
+      <select [(ngModel)]="metric" class="form-select form-select-sm metric-select">
+        <option *ngFor="let m of metricOptions" [value]="m.val">{{ m.label }}</option>
+      </select>
+    </div>
+    <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2 text-secondary">Hämtar stopptidsdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI cards -->
+  <div *ngIf="!loading && anyData()" class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+      <div class="kpi-val">{{ periodStoppPct | number:'1.1-1' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-lbl">Periodssnitt stoppgrad</div>
+    </div>
+    <div class="kpi-card kpi-red" *ngIf="worstCell">
+      <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="kpi-val">{{ worstCell.stopp_pct | number:'1.1-1' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-lbl">Sämst: {{ worstCell.dow_label }} {{ worstCell.typ_label }}</div>
+    </div>
+    <div class="kpi-card kpi-green" *ngIf="bestCell">
+      <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="kpi-val">{{ bestCell.stopp_pct | number:'1.1-1' }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-lbl">Bäst: {{ bestCell.dow_label }} {{ bestCell.typ_label }}</div>
+    </div>
+    <div class="kpi-card" *ngIf="trend.length">
+      <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+      <div class="kpi-val">{{ trend[trend.length-1].snitt_stopp_min | number:'1.0-0' }}<span class="kpi-unit">min</span></div>
+      <div class="kpi-lbl">Snitt stopp/skift senaste månaden</div>
+    </div>
+  </div>
+
+  <!-- Heatmap -->
+  <div *ngIf="!loading && anyData()" class="heatmap-wrap">
+    <h2 class="section-title">
+      <i class="fas fa-th me-2"></i>Heatmap — Stopptid per skifttyp och veckodag
+    </h2>
+
+    <div class="heatmap-container">
+      <!-- Header row -->
+      <div class="heatmap-grid" [style.grid-template-columns]="'140px repeat(' + dowLabels.length + ', 1fr) 80px'">
+        <div class="cell-header cell-corner">Skifttyp</div>
+        <div class="cell-header" *ngFor="let lbl of dowLabels">{{ lbl.slice(0,3) }}</div>
+        <div class="cell-header cell-avg">Snitt</div>
+
+        <!-- Data rows -->
+        <ng-container *ngFor="let row of grid">
+          <div class="cell-label" [style.border-left-color]="skiftColor(row.skift_typ)">
+            {{ row.label }}
+          </div>
+          <div *ngFor="let cell of row.cells"
+               class="heat-cell"
+               [style.background]="cellColor(cellValue(cell))"
+               [style.color]="textColor(cellValue(cell))"
+               [class.no-data]="cell.antal_skift === 0"
+               (mouseenter)="hover(cell, row.label)"
+               (mouseleave)="clearHover()">
+            <span *ngIf="cell.antal_skift > 0">{{ formatCell(cellValue(cell)) }}</span>
+            <span *ngIf="cell.antal_skift === 0" class="no-data-text">–</span>
+          </div>
+          <div class="cell-row-avg">{{ formatCell(rowMetricAvg(row)) }}</div>
+        </ng-container>
+
+        <!-- Column averages -->
+        <div class="cell-col-avg-label">Dagssnitt</div>
+        <div *ngFor="let v of colAvgs" class="cell-col-avg">{{ formatColAvg(v) }}</div>
+        <div class="cell-col-avg"></div>
+      </div>
+    </div>
+
+    <!-- Color legend -->
+    <div class="legend-row">
+      <span class="legend-label">Låg stopptid</span>
+      <div class="legend-bar"></div>
+      <span class="legend-label">Hög stopptid</span>
+      <span class="legend-ref ms-3">Referens: periodssnitt {{ periodStoppPct | number:'1.1-1' }}%</span>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div *ngIf="hoveredCell" class="hover-tooltip">
+    <strong>{{ hoveredCell.rowLabel }} — {{ hoveredCell.dow_label }}</strong>
+    <div>Stoppgrad: <b>{{ hoveredCell.stopp_pct !== null ? (hoveredCell.stopp_pct | number:'1.1-1') + '%' : '–' }}</b></div>
+    <div>Snitt stopp/skift: <b>{{ hoveredCell.snitt_stopp_min !== null ? (hoveredCell.snitt_stopp_min | number:'1.0-0') + ' min' : '–' }}</b></div>
+    <div>% skift med stopp: <b>{{ hoveredCell.pct_med_stopp !== null ? (hoveredCell.pct_med_stopp | number:'1.0-0') + '%' : '–' }}</b></div>
+    <div>Antal skift: <b>{{ hoveredCell.antal_skift }}</b></div>
+  </div>
+
+  <!-- Monthly trend chart -->
+  <div *ngIf="!loading && trend.length" class="chart-card">
+    <h2 class="section-title">
+      <i class="fas fa-chart-line me-2"></i>Månadsvis stoppgrad (senaste 12 månader)
+    </h2>
+    <div class="chart-wrap">
+      <canvas #trendCanvas></canvas>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div *ngIf="!loading && anyData()" class="table-card">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2"></i>Detaljvy — alla celler
+    </h2>
+    <div class="table-responsive">
+      <table class="table table-dark table-sm table-hover">
+        <thead>
+          <tr>
+            <th>Skifttyp</th>
+            <th>Veckodag</th>
+            <th>Stoppgrad</th>
+            <th>Snitt stopp/skift</th>
+            <th>% skift med stopp</th>
+            <th>Antal skift</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let row of grid">
+            <ng-container *ngFor="let cell of row.cells">
+              <tr *ngIf="cell.antal_skift > 0">
+                <td>
+                  <span class="shift-dot" [style.background]="skiftColor(row.skift_typ)"></span>
+                  {{ row.label }}
+                </td>
+                <td>{{ cell.dow_label }}</td>
+                <td>
+                  <span [class.text-danger]="cell.stopp_pct !== null && cell.stopp_pct > periodStoppPct * 1.3"
+                        [class.text-success]="cell.stopp_pct !== null && cell.stopp_pct < periodStoppPct * 0.7">
+                    {{ cell.stopp_pct !== null ? (cell.stopp_pct | number:'1.1-1') + '%' : '–' }}
+                  </span>
+                </td>
+                <td>{{ cell.snitt_stopp_min !== null ? (cell.snitt_stopp_min | number:'1.0-0') + ' min' : '–' }}</td>
+                <td>{{ cell.pct_med_stopp !== null ? (cell.pct_med_stopp | number:'1.0-0') + '%' : '–' }}</td>
+                <td>{{ cell.antal_skift }}</td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && !anyData()" class="empty-state">
+    <i class="fas fa-database fa-2x mb-3 text-secondary"></i>
+    <p class="text-secondary">Ingen data tillgänglig för vald period.</p>
+  </div>
+</div>
