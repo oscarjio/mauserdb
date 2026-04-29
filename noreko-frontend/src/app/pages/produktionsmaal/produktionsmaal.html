@@ -1,0 +1,167 @@
+<div class="pm-page">
+  <div class="pm-header">
+    <h1><i class="fas fa-bullseye"></i> Produktionsmål</h1>
+    <p class="pm-subtitle">Sätt ett IBC-mål för {{ periodLabel }}en och följ om anläggningen håller takten.</p>
+  </div>
+
+  <!-- Period tabs -->
+  <div class="pm-period-tabs">
+    <button [class.active]="period === 'week'" (click)="setPeriod('week')">Vecka</button>
+    <button [class.active]="period === 'month'" (click)="setPeriod('month')">Månad</button>
+    <button [class.active]="period === 'quarter'" (click)="setPeriod('quarter')">Kvartal</button>
+  </div>
+
+  <!-- Target input card -->
+  <div class="pm-card pm-target-card">
+    <div class="pm-target-label">Mål för {{ periodLabelCap }} (IBC)</div>
+    <div class="pm-target-row">
+      <input
+        type="number"
+        [(ngModel)]="targetInput"
+        placeholder="t.ex. 500"
+        class="pm-target-input"
+        min="1"
+        (keydown.enter)="applyTarget()"
+      />
+      <button class="pm-btn-primary" (click)="applyTarget()">Sätt mål</button>
+    </div>
+    <div class="pm-presets">
+      <span class="pm-preset-label">Snabbval:</span>
+      <button *ngIf="period === 'week'" (click)="setPreset(100)">100</button>
+      <button *ngIf="period === 'week'" (click)="setPreset(150)">150</button>
+      <button *ngIf="period === 'week'" (click)="setPreset(200)">200</button>
+      <button *ngIf="period === 'month'" (click)="setPreset(400)">400</button>
+      <button *ngIf="period === 'month'" (click)="setPreset(500)">500</button>
+      <button *ngIf="period === 'month'" (click)="setPreset(600)">600</button>
+      <button *ngIf="period === 'month'" (click)="setPreset(700)">700</button>
+      <button *ngIf="period === 'month'" (click)="setPreset(800)">800</button>
+      <button *ngIf="period === 'quarter'" (click)="setPreset(1500)">1 500</button>
+      <button *ngIf="period === 'quarter'" (click)="setPreset(2000)">2 000</button>
+      <button *ngIf="period === 'quarter'" (click)="setPreset(2500)">2 500</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="pm-loading">
+    <i class="fas fa-spinner fa-spin"></i> Laddar produktionsdata…
+  </div>
+  <div *ngIf="error" class="pm-error">{{ error }}</div>
+
+  <ng-container *ngIf="loaded && !loading">
+
+    <!-- Status banner -->
+    <div class="pm-status-banner" [ngClass]="statusClass" *ngIf="target > 0">
+      <i class="fas" [class.fa-trophy]="achieved" [class.fa-check-circle]="!achieved && onTrack"
+         [class.fa-exclamation-circle]="!achieved && !onTrack"></i>
+      {{ statusLabel }}
+      <span class="pm-status-pct" *ngIf="!achieved">— prognos {{ projectedPct }}% av målet</span>
+    </div>
+
+    <!-- KPI row -->
+    <div class="pm-kpi-row">
+      <div class="pm-kpi-card">
+        <div class="pm-kpi-value">{{ actualIbc | number:'1.0-0':'sv' }}</div>
+        <div class="pm-kpi-label">IBC {{ periodLabelCap }}en</div>
+        <div class="pm-kpi-sub" *ngIf="target > 0">av mål {{ target | number:'1.0-0':'sv' }}</div>
+      </div>
+      <div class="pm-kpi-card" *ngIf="target > 0">
+        <div class="pm-kpi-value" [style.color]="progressColor">{{ progressPct }}%</div>
+        <div class="pm-kpi-label">Uppnått</div>
+        <div class="pm-kpi-sub">{{ (target - actualIbc) | number:'1.0-0':'sv' }} IBC kvar</div>
+      </div>
+      <div class="pm-kpi-card">
+        <div class="pm-kpi-value">{{ paceIbcDay | number:'1.1-1':'sv' }}</div>
+        <div class="pm-kpi-label">Takt IBC/dag</div>
+        <div class="pm-kpi-sub">Senaste 14 dagarna</div>
+      </div>
+      <div class="pm-kpi-card" *ngIf="target > 0 && daysLeft > 0">
+        <div class="pm-kpi-value" [style.color]="neededPerDay > paceIbcDay ? '#fc8181' : '#68d391'">
+          {{ neededPerDay | number:'1.0-0':'sv' }}
+        </div>
+        <div class="pm-kpi-label">Behövs/dag</div>
+        <div class="pm-kpi-sub">för att nå målet</div>
+      </div>
+      <div class="pm-kpi-card">
+        <div class="pm-kpi-value">{{ daysLeft }}</div>
+        <div class="pm-kpi-label">Dagar kvar</div>
+        <div class="pm-kpi-sub">av {{ totalDays }} totalt</div>
+      </div>
+      <div class="pm-kpi-card" *ngIf="target > 0">
+        <div class="pm-kpi-value" [style.color]="onTrack ? '#68d391' : '#fc8181'">
+          {{ projectedIbc | number:'1.0-0':'sv' }}
+        </div>
+        <div class="pm-kpi-label">Prognostiserat</div>
+        <div class="pm-kpi-sub">vid periodsslut</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="pm-card" *ngIf="target > 0">
+      <div class="pm-progress-header">
+        <span>Framsteg</span>
+        <span>{{ actualIbc | number:'1.0-0':'sv' }} / {{ target | number:'1.0-0':'sv' }} IBC ({{ progressPct }}%)</span>
+      </div>
+      <div class="pm-progress-track">
+        <div class="pm-progress-bar" [style.width.%]="progressPct" [style.background]="progressColor"></div>
+        <!-- pace marker -->
+        <div class="pm-pace-marker" *ngIf="totalDays > 0"
+             [style.left.%]="Math.min(100, daysElapsed / totalDays * 100)"
+             title="Idag ({{ daysElapsed }} av {{ totalDays }} dagar)">
+        </div>
+      </div>
+      <div class="pm-progress-labels">
+        <span>0</span>
+        <span>{{ target | number:'1.0-0':'sv' }}</span>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="pm-card pm-chart-card">
+      <div class="pm-card-title">Kumulativ IBC — {{ from }} → {{ to }}</div>
+      <div class="pm-chart-wrap">
+        <canvas #chartCanvas></canvas>
+      </div>
+      <div class="pm-chart-legend">
+        <span class="pm-legend-dot" style="background:#63b3ed"></span> Faktisk
+        <span class="pm-legend-dot" style="background:#f6ad55; margin-left:12px"></span> Prognos ({{ paceIbcDay | number:'1.1-1':'sv' }} IBC/dag)
+        <ng-container *ngIf="target > 0">
+          <span class="pm-legend-dot" style="background:#68d391; margin-left:12px"></span> Mål
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Daily table -->
+    <div class="pm-card pm-table-card" *ngIf="daily.length > 0">
+      <div class="pm-card-title">Daglig produktion</div>
+      <div class="pm-table-wrap">
+        <table class="pm-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th class="text-right">IBC</th>
+              <th class="text-right">Kumulativ</th>
+              <th class="text-right">% av mål</th>
+              <th class="text-right">Skift</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of daily">
+              <td>{{ d.datum }}</td>
+              <td class="text-right">{{ d.ibc | number:'1.0-0':'sv' }}</td>
+              <td class="text-right">{{ d.cumulative | number:'1.0-0':'sv' }}</td>
+              <td class="text-right">
+                <ng-container *ngIf="target > 0">
+                  <span [style.color]="d.cumulative >= target ? '#f6c90e' : d.cumulative / target >= 0.9 ? '#68d391' : '#a0aec0'">
+                    {{ (d.cumulative / target * 100) | number:'1.0-0':'sv' }}%
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="target === 0">—</ng-container>
+              </td>
+              <td class="text-right">{{ d.antal_skift }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

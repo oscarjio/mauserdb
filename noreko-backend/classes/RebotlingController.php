@@ -322,6 +322,8 @@ class RebotlingController {
                 $this->getPersonalKalender();
             } elseif ($action === 'skift-sekvens') {
                 $this->getSkiftSekvens();
+            } elseif ($action === 'produktionsmaal') {
+                $this->getProduktionsmaal();
             } else {
                 $this->getLiveStats();
             }
@@ -11508,6 +11510,115 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftSekvens: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-sekvens'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getProduktionsmaal(): void {
+        try {
+            $period = $_GET['period'] ?? 'month';
+            $today  = date('Y-m-d');
+
+            switch ($period) {
+                case 'week':
+                    $from = date('Y-m-d', strtotime('monday this week'));
+                    $to   = date('Y-m-d', strtotime('sunday this week'));
+                    break;
+                case 'quarter':
+                    $m      = (int)date('n');
+                    $qStart = ((int)(($m - 1) / 3)) * 3 + 1;
+                    $from   = date('Y-') . str_pad($qStart, 2, '0', STR_PAD_LEFT) . '-01';
+                    $qEnd   = $qStart + 2;
+                    $to     = date('Y-') . str_pad($qEnd, 2, '0', STR_PAD_LEFT)
+                              . '-' . date('t', mktime(0, 0, 0, $qEnd, 1, (int)date('Y')));
+                    break;
+                default: // month
+                    $from = date('Y-m-01');
+                    $to   = date('Y-m-t');
+            }
+
+            // Daily totals for the period up to today
+            $actualTo = $today < $to ? $today : $to;
+            $sqlDaily = "
+                SELECT
+                    datum,
+                    SUM(ibc_ok)    AS ibc,
+                    COUNT(*)       AS antal_skift
+                FROM (
+                    SELECT datum,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) dedup
+                GROUP BY datum
+                ORDER BY datum
+            ";
+            $stmt = $this->pdo->prepare($sqlDaily);
+            $stmt->execute([':from1' => $from, ':to1' => $actualTo]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build cumulative series
+            $daily       = [];
+            $runningSum  = 0;
+            foreach ($rows as $r) {
+                $runningSum += (int)$r['ibc'];
+                $daily[] = [
+                    'datum'       => $r['datum'],
+                    'ibc'         => (int)$r['ibc'],
+                    'cumulative'  => $runningSum,
+                    'antal_skift' => (int)$r['antal_skift'],
+                ];
+            }
+
+            // Recent 14-day pace for projection
+            $pace14From = date('Y-m-d', strtotime('-14 days'));
+            $sqlPace = "
+                SELECT SUM(ibc_ok)            AS total_ibc,
+                       COUNT(DISTINCT datum)  AS prod_days
+                FROM (
+                    SELECT datum,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) dedup
+            ";
+            $stmtP = $this->pdo->prepare($sqlPace);
+            $stmtP->execute([':from2' => $pace14From, ':to2' => $today]);
+            $paceRow     = $stmtP->fetch(\PDO::FETCH_ASSOC);
+            $paceIbcDay  = ($paceRow && $paceRow['prod_days'] > 0)
+                           ? round((float)$paceRow['total_ibc'] / (float)$paceRow['prod_days'], 1)
+                           : 0;
+
+            $totalDays   = max(1, (int)(round((strtotime($to) - strtotime($from)) / 86400)) + 1);
+            $daysElapsed = max(1, min($totalDays, (int)(round((strtotime($today) - strtotime($from)) / 86400)) + 1));
+            $daysLeft    = max(0, $totalDays - $daysElapsed);
+            $actualIbc   = $runningSum;
+            $projected   = (int)round($actualIbc + $paceIbcDay * $daysLeft);
+
+            echo json_encode([
+                'success'       => true,
+                'period'        => $period,
+                'from'          => $from,
+                'to'            => $to,
+                'today'         => $today,
+                'daily'         => $daily,
+                'actual_ibc'    => $actualIbc,
+                'projected_ibc' => $projected,
+                'pace_ibc_day'  => $paceIbcDay,
+                'days_elapsed'  => $daysElapsed,
+                'days_left'     => $daysLeft,
+                'total_days'    => $totalDays,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktionsmaal: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsmål'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
