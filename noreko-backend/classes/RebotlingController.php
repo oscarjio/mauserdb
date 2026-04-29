@@ -6584,106 +6584,94 @@ class RebotlingController {
             $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
             $to   = date('Y-m-d');
             $from = date('Y-m-d', strtotime("-{$days} days"));
+            $mid  = date('Y-m-d', strtotime("-" . (int)($days / 2) . " days"));
 
-            // Half-period split for trend calculation
-            $mid     = date('Y-m-d', strtotime("-" . (int)($days / 2) . " days"));
-
-            // Fetch all operators
             $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
             $opMap  = [];
             foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                 $opMap[(int)$r['number']] = $r['name'];
             }
 
-            // Aggregate kassation per operator (union op1/op2/op3)
-            $sql = "
-                SELECT op_num,
-                       SUM(ibc_ok_val)     AS ibc_ok,
-                       SUM(ibc_ej_val)     AS ibc_ej_ok,
-                       SUM(bur_ej_val)     AS bur_ej_ok,
-                       COUNT(*)            AS total_shifts,
-                       SUM(CASE WHEN datum < :mid1 THEN ibc_ok_val  ELSE 0 END) AS early_ibc_ok,
-                       SUM(CASE WHEN datum < :mid2 THEN ibc_ej_val  ELSE 0 END) AS early_ibc_ej,
-                       SUM(CASE WHEN datum >= :mid3 THEN ibc_ok_val ELSE 0 END) AS late_ibc_ok,
-                       SUM(CASE WHEN datum >= :mid4 THEN ibc_ej_val ELSE 0 END) AS late_ibc_ej
+            // ibc_ok, ibc_ej_ok, bur_ej_ok are PLC daily running counters — LAG() computes
+            // per-shift deltas so later shifts are not over-credited with cumulative totals.
+            $stmt = $pdo->prepare("
+                SELECT skiftraknare, datum, op1, op2, op3,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok,
+                       GREATEST(0, bur_end - COALESCE(LAG(bur_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS bur_ej_ok
                 FROM (
-                    SELECT op1    AS op_num,
-                           MAX(COALESCE(ibc_ok,0))      AS ibc_ok_val,
-                           MAX(COALESCE(ibc_ej_ok,0))   AS ibc_ej_val,
-                           MAX(COALESCE(bur_ej_ok,0))   AS bur_ej_val,
-                           datum
+                    SELECT skiftraknare,
+                           MAX(datum)       AS datum,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(ibc_ej_ok)   AS ej_end,
+                           MAX(bur_ej_ok)   AS bur_end
                     FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND op1 IS NOT NULL
-                    GROUP BY skiftraknare, datum, op1
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
+                ORDER BY datum, skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-                    UNION ALL
+            // PHP-side attribution: each operator (op1/op2/op3) in a shift gets credit for
+            // the actual per-shift kassation delta. Trend split tracked by mid-date.
+            $byOp = []; // [op_num => ['ibc'=>0,'ej'=>0,'bur'=>0,'skift'=>0,'early_ej'=>0,'early_prod'=>0,'late_ej'=>0,'late_prod'=>0]]
 
-                    SELECT op2,
-                           MAX(COALESCE(ibc_ok,0)),
-                           MAX(COALESCE(ibc_ej_ok,0)),
-                           MAX(COALESCE(bur_ej_ok,0)),
-                           datum
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND op2 IS NOT NULL
-                    GROUP BY skiftraknare, datum, op2
+            foreach ($shifts as $s) {
+                $ibc  = max(0, (int)$s['ibc_ok']);
+                $ej   = max(0, (int)$s['ibc_ej_ok']);
+                $bur  = max(0, (int)$s['bur_ej_ok']);
+                $dag  = $s['datum'];
+                $early = $dag < $mid;
 
-                    UNION ALL
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0 || !isset($opMap[$opNum])) continue;
+                    if (!isset($byOp[$opNum])) {
+                        $byOp[$opNum] = ['ibc' => 0, 'ej' => 0, 'bur' => 0, 'skift' => 0,
+                                         'early_ej' => 0, 'early_prod' => 0,
+                                         'late_ej'  => 0, 'late_prod'  => 0];
+                    }
+                    $byOp[$opNum]['ibc']   += $ibc;
+                    $byOp[$opNum]['ej']    += $ej;
+                    $byOp[$opNum]['bur']   += $bur;
+                    $byOp[$opNum]['skift'] += 1;
+                    if ($early) {
+                        $byOp[$opNum]['early_ej']   += $ej;
+                        $byOp[$opNum]['early_prod']  += $ibc + $ej;
+                    } else {
+                        $byOp[$opNum]['late_ej']    += $ej;
+                        $byOp[$opNum]['late_prod']   += $ibc + $ej;
+                    }
+                }
+            }
 
-                    SELECT op3,
-                           MAX(COALESCE(ibc_ok,0)),
-                           MAX(COALESCE(ibc_ej_ok,0)),
-                           MAX(COALESCE(bur_ej_ok,0)),
-                           datum
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from3 AND :to3
-                      AND op3 IS NOT NULL
-                    GROUP BY skiftraknare, datum, op3
-                ) u
-                GROUP BY op_num
-                HAVING total_shifts >= 3
-            ";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-                ':mid1'  => $mid,  ':mid2' => $mid,
-                ':mid3'  => $mid,  ':mid4' => $mid,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            $operators = [];
+            $operators   = [];
             $totalIbcOk  = 0;
             $totalIbcEj  = 0;
             $totalBurEj  = 0;
 
-            foreach ($rows as $r) {
-                $num     = (int)$r['op_num'];
-                if (!isset($opMap[$num])) continue;
+            foreach ($byOp as $num => $d) {
+                if ($d['skift'] < 3) continue;
 
-                $ibcOk  = (int)$r['ibc_ok'];
-                $ibcEj  = (int)$r['ibc_ej_ok'];
-                $burEj  = (int)$r['bur_ej_ok'];
-                $total  = $ibcOk + $ibcEj;
-                $kassGrad = $total > 0 ? round($ibcEj / $total * 100, 2) : 0.0;
+                $ibcOk = $d['ibc'];
+                $ibcEj = $d['ej'];
+                $burEj = $d['bur'];
+                $prod  = $ibcOk + $ibcEj;
+                $kassGrad = $prod > 0 ? round($ibcEj / $prod * 100, 2) : 0.0;
 
-                // Trend: early half vs late half
-                $earlyOk  = (int)$r['early_ibc_ok'];
-                $earlyEj  = (int)$r['early_ibc_ej'];
-                $lateOk   = (int)$r['late_ibc_ok'];
-                $lateEj   = (int)$r['late_ibc_ej'];
-                $earlyTotal = $earlyOk + $earlyEj;
-                $lateTotal  = $lateOk  + $lateEj;
-                $earlyKass  = $earlyTotal > 0 ? $earlyEj / $earlyTotal * 100 : null;
-                $lateKass   = $lateTotal  > 0 ? $lateEj  / $lateTotal  * 100 : null;
-
+                $earlyKass = $d['early_prod'] > 0 ? $d['early_ej'] / $d['early_prod'] * 100 : null;
+                $lateKass  = $d['late_prod']  > 0 ? $d['late_ej']  / $d['late_prod']  * 100 : null;
                 $trend = 'stable';
                 if ($earlyKass !== null && $lateKass !== null) {
                     $delta = $lateKass - $earlyKass;
-                    if ($delta > 1.0)       $trend = 'worse';
-                    elseif ($delta < -1.0)  $trend = 'better';
+                    if ($delta > 1.0)      $trend = 'worse';
+                    elseif ($delta < -1.0) $trend = 'better';
                 }
 
                 $totalIbcOk += $ibcOk;
@@ -6696,26 +6684,21 @@ class RebotlingController {
                     'ibc_ok'         => $ibcOk,
                     'ibc_ej_ok'      => $ibcEj,
                     'bur_ej_ok'      => $burEj,
-                    'total_shifts'   => (int)$r['total_shifts'],
+                    'total_shifts'   => $d['skift'],
                     'kassationsgrad' => $kassGrad,
                     'trend'          => $trend,
                 ];
             }
 
-            // Team average kassationsgrad
             $totalProd = $totalIbcOk + $totalIbcEj;
             $teamKass  = $totalProd > 0 ? round($totalIbcEj / $totalProd * 100, 2) : 0.0;
 
-            // Compute vs_team for each operator
             foreach ($operators as &$op) {
-                $op['vs_team'] = $teamKass > 0
-                    ? round($op['kassationsgrad'] - $teamKass, 2)
-                    : 0.0;
-                // quality status
+                $op['vs_team'] = round($op['kassationsgrad'] - $teamKass, 2);
                 $k = $op['kassationsgrad'];
-                if ($k <= max(1.0, $teamKass * 0.6))      $op['status'] = 'bra';
-                elseif ($k <= $teamKass * 1.3)            $op['status'] = 'normal';
-                else                                       $op['status'] = 'hog';
+                if ($k <= max(1.0, $teamKass * 0.6))  $op['status'] = 'bra';
+                elseif ($k <= $teamKass * 1.3)         $op['status'] = 'normal';
+                else                                    $op['status'] = 'hog';
             }
             unset($op);
 
@@ -6725,17 +6708,17 @@ class RebotlingController {
             $worst = count($operators) ? $operators[count($operators)-1]['kassationsgrad'] : 0.0;
 
             echo json_encode([
-                'success'         => true,
-                'days'            => $days,
-                'from'            => $from,
-                'to'              => $to,
-                'operators'       => $operators,
-                'team_kassgrad'   => $teamKass,
-                'total_ibc_ok'    => $totalIbcOk,
-                'total_ibc_ej'    => $totalIbcEj,
-                'total_bur_ej'    => $totalBurEj,
-                'best_kassgrad'   => $best,
-                'worst_kassgrad'  => $worst,
+                'success'        => true,
+                'days'           => $days,
+                'from'           => $from,
+                'to'             => $to,
+                'operators'      => $operators,
+                'team_kassgrad'  => $teamKass,
+                'total_ibc_ok'   => $totalIbcOk,
+                'total_ibc_ej'   => $totalIbcEj,
+                'total_bur_ej'   => $totalBurEj,
+                'best_kassgrad'  => $best,
+                'worst_kassgrad' => $worst,
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Throwable $e) {
@@ -12707,21 +12690,30 @@ class RebotlingController {
             $opMap  = [];
             foreach ($opRows as $r) $opMap[(int)$r['number']] = $r['name'];
 
+            // ibc_ok and ibc_ej_ok are PLC daily running counters (D4004/D4005) — they do not
+            // reset between shifts on the same day. LAG() computes per-shift deltas so later
+            // shifts in the same day are not over-credited with the cumulative day total.
             $stmt = $this->pdo->prepare("
-                SELECT skiftraknare,
-                       MAX(datum)          AS datum,
-                       MAX(ibc_ok)         AS ibc_ok,
-                       MAX(ibc_ej_ok)      AS ibc_ej_ok,
-                       MAX(drifttid)       AS drifttid,
-                       MAX(driftstopptime) AS driftstopptime,
-                       MAX(op1)            AS op1,
-                       MAX(op2)            AS op2,
-                       MAX(op3)            AS op3,
-                       MIN(created_at)     AS first_created
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to
-                  AND drifttid >= 30
-                GROUP BY skiftraknare
+                SELECT skiftraknare, datum,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok,
+                       drifttid, driftstopptime, op1, op2, op3, first_created
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(datum)          AS datum,
+                           MAX(ibc_ok)         AS ibc_end,
+                           MAX(ibc_ej_ok)      AS ej_end,
+                           MAX(drifttid)       AS drifttid,
+                           MAX(driftstopptime) AS driftstopptime,
+                           MAX(op1)            AS op1,
+                           MAX(op2)            AS op2,
+                           MAX(op3)            AS op3,
+                           MIN(created_at)     AS first_created
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) base
                 ORDER BY datum, skiftraknare
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
