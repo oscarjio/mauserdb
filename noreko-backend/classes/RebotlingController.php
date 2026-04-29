@@ -358,6 +358,8 @@ class RebotlingController {
                 $this->getArsKurva();
             } elseif ($action === 'schema-rekommendationer') {
                 $this->getSchemaRekommendationer();
+            } elseif ($action === 'kassationsorsak-per-produkt') {
+                $this->getKassationsorsakPerProdukt();
             } else {
                 $this->getLiveStats();
             }
@@ -14994,5 +14996,125 @@ class RebotlingController {
         if ($trend === 'rising')  return "{$base} Prestanda ökar — fortsätt med rotationsstöd och coaching. På rätt väg.";
         if ($trend === 'falling') return "{$base} Behöver stöd — boka uppföljning. Placera på stärkande position.";
         return "{$base} Fokusera schemaläggning på starkaste position och skifttyp för att bygga självförtroende.";
+    }
+
+    // GET ?action=rebotling&run=kassationsorsak-per-produkt&days=90
+    private function getKassationsorsakPerProdukt(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Graceful fallback if kassationsregistrering table doesn't exist
+            $check = $pdo->query("SHOW TABLES LIKE 'kassationsregistrering'");
+            if (!$check->fetch()) {
+                echo json_encode([
+                    'success'      => true,
+                    'products'     => [],
+                    'all_causes'   => [],
+                    'total_events' => 0,
+                    'from'         => $from,
+                    'to'           => $to,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Active cause names
+            $causeStmt = $pdo->query("SELECT id, namn FROM kassationsorsak_typer WHERE aktiv = 1 ORDER BY namn");
+            $causeMap  = [];
+            foreach ($causeStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $causeMap[(int)$r['id']] = $r['namn'];
+            }
+
+            // Join kassationsregistrering → deduplicated shift → product
+            // Use MAX(product_id) per skiftraknare to collapse multiple rows per shift.
+            $sql = "
+                SELECT
+                    s.product_id,
+                    COALESCE(p.name, CONCAT('Produkt #', s.product_id)) AS product_name,
+                    kr.orsak_id,
+                    SUM(kr.antal) AS antal
+                FROM kassationsregistrering kr
+                JOIN (
+                    SELECT skiftraknare, MAX(product_id) AS product_id
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                    GROUP BY skiftraknare
+                ) s ON s.skiftraknare = kr.skiftraknare
+                LEFT JOIN rebotling_products p ON p.id = s.product_id
+                WHERE kr.datum BETWEEN :from2 AND :to2
+                GROUP BY s.product_id, p.name, kr.orsak_id
+                ORDER BY s.product_id, antal DESC
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build per-product aggregation
+            $prodData    = [];
+            $totalEvents = 0;
+
+            foreach ($rows as $r) {
+                $pid   = (int)$r['product_id'];
+                $pname = $r['product_name'];
+                if (!isset($prodData[$pid])) {
+                    $prodData[$pid] = [
+                        'product_id'      => $pid,
+                        'name'            => $pname,
+                        'total_kassation' => 0,
+                        'top_cause'       => '',
+                        'causes'          => [],
+                    ];
+                }
+                $antal   = (int)$r['antal'];
+                $orsakId = (int)$r['orsak_id'];
+                $prodData[$pid]['total_kassation'] += $antal;
+                $prodData[$pid]['causes'][]         = [
+                    'orsak_id' => $orsakId,
+                    'namn'     => $causeMap[$orsakId] ?? 'Okänd',
+                    'antal'    => $antal,
+                    'pct'      => 0.0,
+                ];
+            }
+
+            // Compute percentages and top_cause
+            foreach ($prodData as &$prod) {
+                $tot = $prod['total_kassation'];
+                foreach ($prod['causes'] as &$c) {
+                    $c['pct'] = $tot > 0 ? round($c['antal'] / $tot * 100, 1) : 0.0;
+                }
+                unset($c);
+                $prod['top_cause'] = !empty($prod['causes']) ? $prod['causes'][0]['namn'] : '';
+                $totalEvents += $tot;
+            }
+            unset($prod);
+
+            // Sort products by total kassation descending
+            usort($prodData, static fn($a, $b) => $b['total_kassation'] - $a['total_kassation']);
+
+            // All active causes for legend/matrix
+            $allCauses = [];
+            foreach ($causeMap as $id => $namn) {
+                $allCauses[] = ['id' => $id, 'namn' => $namn];
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'products'     => array_values($prodData),
+                'all_causes'   => $allCauses,
+                'total_events' => $totalEvents,
+                'from'         => $from,
+                'to'           => $to,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKassationsorsakPerProdukt: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-per-produkt'], \JSON_UNESCAPED_UNICODE);
+        }
     }
 }

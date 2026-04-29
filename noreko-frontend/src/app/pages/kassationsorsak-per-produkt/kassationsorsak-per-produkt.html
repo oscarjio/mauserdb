@@ -1,0 +1,162 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h2 class="page-title">
+      <i class="fas fa-flask me-2"></i>Kassationsorsaker per Produkt
+    </h2>
+    <p class="page-sub">
+      Vilka kassationsorsaker registreras för varje produkttyp?
+      Används för att identifiera om vissa produkter systematiskt orsakar fler kassationer av en specifik typ.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row">
+    <div class="period-bar">
+      <span class="period-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="days=30;  load()">30 dagar</button>
+        <button class="btn" [class.btn-primary]="days===60"  [class.btn-outline-secondary]="days!==60"  (click)="days=60;  load()">60 dagar</button>
+        <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="days=90;  load()">90 dagar</button>
+        <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="days=180; load()">180 dagar</button>
+      </div>
+      <span class="period-range" *ngIf="from">{{ from }} → {{ to }}</span>
+    </div>
+    <div class="sort-bar">
+      <span class="period-label">Sortera:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-secondary]="sortBy==='total'"     [class.btn-outline-secondary]="sortBy!=='total'"     (click)="sortBy='total'">Flest kassationer</button>
+        <button class="btn" [class.btn-secondary]="sortBy==='top_cause'" [class.btn-outline-secondary]="sortBy!=='top_cause'" (click)="sortBy='top_cause'">Topporsak</button>
+        <button class="btn" [class.btn-secondary]="sortBy==='name'"      [class.btn-outline-secondary]="sortBy!=='name'"      (click)="sortBy='name'">Namn A–Ö</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Analyserar kassationsdata…</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger mt-3">{{ error }}</div>
+
+  <!-- KPI row -->
+  <div *ngIf="!loading && products.length" class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
+      <div class="kpi-value">{{ products.length }}</div>
+      <div class="kpi-label">Produkttyper med kassationsdata</div>
+    </div>
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="kpi-value">{{ totalEvents }}</div>
+      <div class="kpi-label">Totalt kasserade (alla produkter)</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-icon"><i class="fas fa-flag"></i></div>
+      <div class="kpi-value kpi-value-sm">{{ topCause }}</div>
+      <div class="kpi-label">Vanligaste orsak totalt</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="fas fa-list"></i></div>
+      <div class="kpi-value">{{ allCauses.length }}</div>
+      <div class="kpi-label">Unika kassationsorsaker</div>
+    </div>
+    <div class="kpi-card kpi-yellow" *ngIf="mostProblematicProduct">
+      <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="kpi-value kpi-value-sm">{{ mostProblematicProduct.name }}</div>
+      <div class="kpi-label">Produkt med flest kassationer</div>
+    </div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div *ngIf="!loading && products.length" class="info-note">
+    <i class="fas fa-info-circle me-1"></i>
+    Kassationsorsakerna kopplas till de produkter som producerades vid kassationstillfället — en korrelationsvy.
+    Orsaker kan bero på produktens egenskaper, körparametrar eller operatörsfaktorer.
+  </div>
+
+  <!-- Product cards -->
+  <div *ngIf="!loading && sorted.length" class="product-list">
+    <div *ngFor="let prod of sorted; let i = index" class="prod-card">
+
+      <!-- Card header — always visible -->
+      <div class="prod-header" (click)="toggleExpand(prod.product_id)">
+        <div class="prod-rank">#{{ i + 1 }}</div>
+        <div class="prod-name-wrap">
+          <span class="prod-name">{{ prod.name }}</span>
+        </div>
+
+        <!-- Top cause pill -->
+        <div class="top-cause-pill" *ngIf="prod.top_cause"
+             [style.background]="causeColorByName(prod.top_cause) + '33'"
+             [style.border-color]="causeColorByName(prod.top_cause)">
+          <span class="dot" [style.background]="causeColorByName(prod.top_cause)"></span>
+          {{ prod.top_cause }}
+        </div>
+
+        <!-- Mini stacked bar -->
+        <div class="mini-bar-wrap">
+          <div class="mini-bar">
+            <div *ngFor="let c of prod.causes"
+                 class="mini-segment"
+                 [style.width.%]="c.pct"
+                 [style.background]="causeColorByName(c.namn)"
+                 [title]="c.namn + ': ' + c.antal + ' (' + c.pct + '%)'">
+            </div>
+          </div>
+        </div>
+
+        <!-- Total -->
+        <div class="total-badge">
+          <span class="total-num">{{ prod.total_kassation }}</span>
+          <span class="total-lbl">kassationer</span>
+        </div>
+
+        <div class="expand-icon">
+          <i class="fas" [class.fa-chevron-down]="expandedProduct !== prod.product_id"
+                         [class.fa-chevron-up]="expandedProduct === prod.product_id"></i>
+        </div>
+      </div>
+
+      <!-- Expanded detail -->
+      <div *ngIf="expandedProduct === prod.product_id" class="prod-detail">
+        <div class="cause-list">
+          <div *ngFor="let c of prod.causes" class="cause-row">
+            <div class="cause-dot" [style.background]="causeColorByName(c.namn)"></div>
+            <div class="cause-name">{{ c.namn }}</div>
+            <div class="cause-bar-wrap">
+              <div class="cause-bar-fill"
+                   [style.width.%]="barWidth(c.antal, prod.total_kassation)"
+                   [style.background]="causeColorByName(c.namn)">
+              </div>
+            </div>
+            <div class="cause-stats">
+              <span class="cause-antal">{{ c.antal }}</span>
+              <span class="cause-pct text-muted">({{ c.pct }}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend row -->
+  <div *ngIf="!loading && allCauses.length" class="legend-row">
+    <span class="legend-title">Orsaker:</span>
+    <span *ngFor="let c of allCauses; let i = index" class="legend-chip">
+      <span class="legend-dot" [style.background]="causeColor(i)"></span>
+      {{ c.namn }}
+    </span>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && !products.length" class="empty-state">
+    <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Inga kassationsorsaker registrerade för vald period.</p>
+    <p class="text-muted small">
+      Data hämtas från Kassationsregistrering i skiftrapporten.
+    </p>
+  </div>
+
+</div>
