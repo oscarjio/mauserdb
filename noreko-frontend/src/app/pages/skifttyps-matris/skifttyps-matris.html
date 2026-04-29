@@ -1,0 +1,163 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h2>Skifttypsmatris</h2>
+    <p class="subtitle">IBC/h per skifttyp (Dag · Kväll · Natt) för varje dag i månaden — klicka en cell för lagets detaljer</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <button class="nav-btn" (click)="prevMonth()">&#8592;</button>
+    <div class="month-selectors">
+      <select [(ngModel)]="month" (ngModelChange)="load()" class="sel">
+        <option *ngFor="let m of monthOptions" [value]="m">{{ monthNames[m] }}</option>
+      </select>
+      <select [(ngModel)]="year" (ngModelChange)="load()" class="sel">
+        <option *ngFor="let y of yearOptions" [value]="y">{{ y }}</option>
+      </select>
+    </div>
+    <button class="nav-btn" (click)="nextMonth()">&#8594;</button>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="state-msg">Laddar data…</div>
+  <div *ngIf="error && !loading" class="state-msg error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && shifts.length > 0">
+
+    <!-- KPI bar -->
+    <div class="kpi-bar">
+      <div class="kpi-card">
+        <div class="kpi-label">Periodssnitt</div>
+        <div class="kpi-value">{{ periodAvg | number:'1.1-1' }} IBC/h</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Skift analyserade</div>
+        <div class="kpi-value">{{ shifts.length }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Över snitt</div>
+        <div class="kpi-value">{{ aboveAvgCount }} / {{ shifts.length }} ({{ aboveAvgPct }}%)</div>
+      </div>
+      <div class="kpi-card" *ngIf="bestShift">
+        <div class="kpi-label">Bästa skift</div>
+        <div class="kpi-value green">{{ bestShift.datum | date:'d/M' }} {{ typeLabels[bestShift.shift_type] }}: {{ bestShift.ibc_h | number:'1.1-1' }}</div>
+      </div>
+      <div class="kpi-card" *ngIf="worstShift">
+        <div class="kpi-label">Svagaste skift</div>
+        <div class="kpi-value red">{{ worstShift.datum | date:'d/M' }} {{ typeLabels[worstShift.shift_type] }}: {{ worstShift.ibc_h | number:'1.1-1' }}</div>
+      </div>
+    </div>
+
+    <!-- Type summary row -->
+    <div class="type-summary">
+      <div *ngFor="let t of types" class="type-summary-card">
+        <div class="ts-label">{{ typeLabels[t] }}</div>
+        <div class="ts-ibch">{{ typeAvg[t].ibc_h | number:'1.1-1' }} IBC/h</div>
+        <div class="ts-vs" [style.color]="typeVsColor(t)">{{ typeVsAvg(t) }} vs snitt</div>
+        <div class="ts-count">{{ typeAvg[t].count }} skift</div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row">
+      <span class="leg-item" style="background:#276749">≥+20%</span>
+      <span class="leg-item" style="background:#2f855a">+5% → +20%</span>
+      <span class="leg-item" style="background:#2a4a7f">±5%</span>
+      <span class="leg-item" style="background:#744210">-5% → -20%</span>
+      <span class="leg-item" style="background:#742a2a">≤-20%</span>
+      <span class="leg-item empty">Inget skift</span>
+    </div>
+
+    <!-- Matrix table -->
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="day-col">Dag</th>
+            <th class="vd-col">Vd</th>
+            <th *ngFor="let t of types" class="type-col">{{ typeLabels[t] }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let dm of dayMeta" [class.weekend-row]="dm.is_weekend">
+            <td class="day-cell">{{ dm.dag }}</td>
+            <td class="vd-cell" [class.weekend-text]="dm.is_weekend">{{ dm.veckodag }}</td>
+            <td *ngFor="let t of types"
+                class="shift-cell"
+                [style.background]="cellBg(matrix[dm.dag]?.[t] ?? null)"
+                [class.empty-cell]="!matrix[dm.dag]?.[t]"
+                [class.selected-cell]="selectedCell?.skiftraknare === matrix[dm.dag]?.[t]?.skiftraknare"
+                (click)="selectCell(matrix[dm.dag]?.[t] ?? null)">
+              <ng-container *ngIf="matrix[dm.dag]?.[t] as s">
+                <div class="cell-ibch">{{ s.ibc_h | number:'1.1-1' }}</div>
+                <div class="cell-vs">{{ vsLabel(s) }}</div>
+              </ng-container>
+              <span *ngIf="!matrix[dm.dag]?.[t]" class="cell-empty">–</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" *ngIf="selectedCell">
+      <div class="detail-header">
+        <span class="detail-date">{{ selectedCell.datum | date:'EEEE d MMMM yyyy':'':'sv' }}</span>
+        <span class="detail-type">{{ typeLabels[selectedCell.shift_type] }}</span>
+        <button class="close-btn" (click)="selectedCell = null">✕</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-metrics">
+          <div class="dm-item">
+            <div class="dm-label">IBC/h</div>
+            <div class="dm-val">{{ selectedCell.ibc_h | number:'1.1-1' }}</div>
+          </div>
+          <div class="dm-item">
+            <div class="dm-label">Vs periodssnitt</div>
+            <div class="dm-val" [style.color]="cellBg(selectedCell) === '#742a2a' || cellBg(selectedCell) === '#744210' ? '#fc8181' : '#68d391'">{{ vsLabel(selectedCell) }}</div>
+          </div>
+          <div class="dm-item">
+            <div class="dm-label">IBC godkänd</div>
+            <div class="dm-val">{{ selectedCell.ibc_ok }}</div>
+          </div>
+          <div class="dm-item">
+            <div class="dm-label">Kassation</div>
+            <div class="dm-val">{{ selectedCell.kassation_pct | number:'1.1-1' }}%</div>
+          </div>
+          <div class="dm-item">
+            <div class="dm-label">Stoppgrad</div>
+            <div class="dm-val">{{ selectedCell.stopp_pct | number:'1.1-1' }}%</div>
+          </div>
+          <div class="dm-item">
+            <div class="dm-label">Drifttid</div>
+            <div class="dm-val">{{ formatH(selectedCell.drifttid) }}</div>
+          </div>
+        </div>
+        <div class="detail-team">
+          <div class="team-title">Skiftlag</div>
+          <div class="team-row">
+            <span class="pos-badge">Tvättplats</span>
+            <a *ngIf="selectedCell.op1_num > 0" [routerLink]="['/rebotling/operator', selectedCell.op1_num]" class="op-link">{{ selectedCell.op1_name || '–' }}</a>
+            <span *ngIf="!selectedCell.op1_num" class="op-empty">–</span>
+          </div>
+          <div class="team-row">
+            <span class="pos-badge">Kontroll</span>
+            <a *ngIf="selectedCell.op2_num > 0" [routerLink]="['/rebotling/operator', selectedCell.op2_num]" class="op-link">{{ selectedCell.op2_name || '–' }}</a>
+            <span *ngIf="!selectedCell.op2_num" class="op-empty">–</span>
+          </div>
+          <div class="team-row">
+            <span class="pos-badge">Truck</span>
+            <a *ngIf="selectedCell.op3_num > 0" [routerLink]="['/rebotling/operator', selectedCell.op3_num]" class="op-link">{{ selectedCell.op3_name || '–' }}</a>
+            <span *ngIf="!selectedCell.op3_num" class="op-empty">–</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && shifts.length === 0" class="state-msg">Ingen data för vald period.</div>
+
+</div>

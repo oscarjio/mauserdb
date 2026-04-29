@@ -336,6 +336,8 @@ class RebotlingController {
                 $this->getRotationsanalys();
             } elseif ($action === 'manads-jamforelse') {
                 $this->getManadsJamforelse();
+            } elseif ($action === 'skifttyps-matris') {
+                $this->getSkifttypsMatris();
             } else {
                 $this->getLiveStats();
             }
@@ -12679,6 +12681,139 @@ class RebotlingController {
             error_log('RebotlingController::getManadsJamforelse: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid månads-jämförelse'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getSkifttypsMatris(): void {
+        $year  = isset($_GET['year'])  ? (int)$_GET['year']  : (int)date('Y');
+        $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
+        $month = max(1, min(12, $month));
+        $year  = max(2020, min(2030, $year));
+
+        $from = sprintf('%04d-%02d-01', $year, $month);
+        $to   = date('Y-m-t', strtotime($from));
+
+        try {
+            $opRows = $this->pdo->query("SELECT number, name FROM operators ORDER BY number")->fetchAll(\PDO::FETCH_ASSOC);
+            $opMap  = [];
+            foreach ($opRows as $r) $opMap[(int)$r['number']] = $r['name'];
+
+            $stmt = $this->pdo->prepare("
+                SELECT skiftraknare,
+                       MAX(datum)          AS datum,
+                       MAX(ibc_ok)         AS ibc_ok,
+                       MAX(ibc_ej_ok)      AS ibc_ej_ok,
+                       MAX(drifttid)       AS drifttid,
+                       MAX(driftstopptime) AS driftstopptime,
+                       MAX(op1)            AS op1,
+                       MAX(op2)            AS op2,
+                       MAX(op3)            AS op3,
+                       MIN(created_at)     AS first_created
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to
+                  AND drifttid >= 30
+                GROUP BY skiftraknare
+                ORDER BY datum, skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $shifts     = [];
+            $totalIbc   = 0;
+            $totalDrift = 0;
+            $byType     = [
+                'dag'   => ['ibc' => 0, 'drift' => 0, 'count' => 0],
+                'kvall' => ['ibc' => 0, 'drift' => 0, 'count' => 0],
+                'natt'  => ['ibc' => 0, 'drift' => 0, 'count' => 0],
+            ];
+
+            foreach ($rows as $r) {
+                $hour = (int)date('G', strtotime($r['first_created']));
+                if ($hour >= 6 && $hour < 14) {
+                    $shiftType = 'dag';
+                } elseif ($hour >= 14 && $hour < 22) {
+                    $shiftType = 'kvall';
+                } else {
+                    $shiftType = 'natt';
+                }
+
+                $ibc   = (int)($r['ibc_ok']    ?? 0);
+                $drft  = (int)($r['drifttid']   ?? 0);
+                $ibcEj = (int)($r['ibc_ej_ok']  ?? 0);
+                $stop  = (int)($r['driftstopptime'] ?? 0);
+                $ibcH  = $drft > 0 ? round($ibc / ($drft / 60.0), 2) : 0.0;
+                $kass  = ($ibc + $ibcEj) > 0 ? round(100.0 * $ibcEj / ($ibc + $ibcEj), 1) : 0.0;
+                $stoppPct = ($drft + $stop) > 0 ? round(100.0 * $stop / ($drft + $stop), 1) : 0.0;
+                $dag   = (int)date('j', strtotime($r['datum']));
+
+                $totalIbc   += $ibc;
+                $totalDrift += $drft;
+                $byType[$shiftType]['ibc']   += $ibc;
+                $byType[$shiftType]['drift'] += $drft;
+                $byType[$shiftType]['count']++;
+
+                $shifts[] = [
+                    'skiftraknare' => (int)$r['skiftraknare'],
+                    'datum'        => $r['datum'],
+                    'dag'          => $dag,
+                    'shift_type'   => $shiftType,
+                    'ibc_h'        => $ibcH,
+                    'ibc_ok'       => $ibc,
+                    'kassation_pct'=> $kass,
+                    'stopp_pct'    => $stoppPct,
+                    'drifttid'     => $drft,
+                    'op1_name'     => $r['op1'] ? ($opMap[(int)$r['op1']] ?? '') : '',
+                    'op2_name'     => $r['op2'] ? ($opMap[(int)$r['op2']] ?? '') : '',
+                    'op3_name'     => $r['op3'] ? ($opMap[(int)$r['op3']] ?? '') : '',
+                    'op1_num'      => (int)($r['op1'] ?? 0),
+                    'op2_num'      => (int)($r['op2'] ?? 0),
+                    'op3_num'      => (int)($r['op3'] ?? 0),
+                ];
+            }
+
+            $periodAvg = $totalDrift > 0 ? round($totalIbc / ($totalDrift / 60.0), 2) : 0.0;
+
+            $typeAvg = [];
+            foreach ($byType as $t => $v) {
+                $typeAvg[$t] = [
+                    'ibc_h' => $v['drift'] > 0 ? round($v['ibc'] / ($v['drift'] / 60.0), 2) : 0.0,
+                    'count' => $v['count'],
+                ];
+            }
+
+            $daysInMonth = (int)date('t', strtotime($from));
+            $monthNames  = ['', 'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+                            'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
+            $weekdayNames = ['', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+
+            // Build day metadata (weekday name for each day)
+            $dayMeta = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $d);
+                $dayMeta[] = [
+                    'dag'    => $d,
+                    'datum'  => $dateStr,
+                    'veckodag' => $weekdayNames[(int)date('N', strtotime($dateStr))],
+                    'is_weekend' => in_array((int)date('N', strtotime($dateStr)), [6, 7]),
+                ];
+            }
+
+            echo json_encode([
+                'success'     => true,
+                'year'        => $year,
+                'month'       => $month,
+                'month_name'  => $monthNames[$month],
+                'days'        => $daysInMonth,
+                'period_avg'  => $periodAvg,
+                'type_avg'    => $typeAvg,
+                'shifts'      => $shifts,
+                'day_meta'    => $dayMeta,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkifttypsMatris: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttypsmatris'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
