@@ -193,6 +193,7 @@ export const routes: Routes = [
       { path: 'rebotling/kassationstyper', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationstyper/kassationstyper').then(m => m.KassationstyperPage) },
       { path: 'rebotling/positions-specialisering', canActivate: [adminGuard], loadComponent: () => import('./pages/positions-specialisering/positions-specialisering').then(m => m.PositionsSpecialiseringPage) },
       { path: 'rebotling/korstraning', canActivate: [adminGuard], loadComponent: () => import('./pages/korstraning/korstraning').then(m => m.KorstraningPage) },
+      { path: 'rebotling/idag', canActivate: [adminGuard], loadComponent: () => import('./pages/idag/idag').then(m => m.IdagPage) },
       { path: 'rebotling/skift-logg', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-logg/skift-logg').then(m => m.SkiftLoggPage) },
       { path: 'rebotling/skift-avvikelser', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-avvikelser/skift-avvikelser').then(m => m.SkiftAvvikelserPage) },
       { path: 'rebotling/stjarnoperatorer', canActivate: [adminGuard], loadComponent: () => import('./pages/stjarnoperatorer/stjarnoperatorer').then(m => m.StjarnoperatororPage) },

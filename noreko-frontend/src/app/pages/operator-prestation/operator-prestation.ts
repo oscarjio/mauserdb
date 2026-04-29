@@ -79,6 +79,7 @@ export class OperatorPrestationPage {
     {
       label: 'Rapporter',
       tools: [
+        { title: 'Daglig Översikt', desc: 'Alla skift och KPI:er för ett valt datum — IBC, IBC/h, kassation, stoppgrad, operatörer och 7-dagars sparkline. Auto-uppdateras var 5:e minut.', route: '/rebotling/idag', icon: 'fas fa-sun', color: '#f6c90e' },
         { title: 'Månadsrapport', desc: 'Sammanfattning per månad', route: '/rebotling/operator-monthly-report', icon: 'fas fa-calendar-alt', color: '#63b3ed' },
         { title: 'Kvartalsutvärdering', desc: 'Tier + bonusnivå per kvartal', route: '/rebotling/operator-kvartal', icon: 'fas fa-award', color: '#68d391' },
         { title: 'Produktanalys', desc: 'IBC/h per produkt per operatör', route: '/rebotling/operator-produkt', icon: 'fas fa-box', color: '#63b3ed' },

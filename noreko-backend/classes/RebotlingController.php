@@ -362,6 +362,8 @@ class RebotlingController {
                 $this->getSchemaRekommendationer();
             } elseif ($action === 'kassationsorsak-per-produkt') {
                 $this->getKassationsorsakPerProdukt();
+            } elseif ($action === 'idag') {
+                $this->getIdag();
             } else {
                 $this->getLiveStats();
             }
@@ -15299,6 +15301,235 @@ class RebotlingController {
             error_log('RebotlingController::getKorstraningsplan: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid korsträningsplan'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ================================================================
+    // GET ?action=rebotling&run=idag[&datum=YYYY-MM-DD]
+    // Daglig produktionsöversikt — today's shifts with KPIs + delta vs yesterday + 30d avg
+    // ================================================================
+    private function getIdag(): void {
+        $datum = trim($_GET['datum'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || strtotime($datum) === false) {
+            $datum = date('Y-m-d');
+        }
+        $yesterday = date('Y-m-d', strtotime($datum . ' -1 day'));
+        $from30    = date('Y-m-d', strtotime($datum . ' -31 days'));
+        $to30      = date('Y-m-d', strtotime($datum . ' -1 day'));
+
+        try {
+            // ----- 1. Today's shifts (dedup by skiftraknare) -----
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    r.skiftraknare,
+                    MIN(r.datum)              AS datum,
+                    SUM(r.ibc_ok)             AS ibc_ok,
+                    SUM(r.ibc_ej_ok)          AS ibc_ej_ok,
+                    SUM(r.bur_ej_ok)          AS bur_ej_ok,
+                    SUM(r.totalt)             AS totalt,
+                    SUM(r.drifttid)           AS drifttid,
+                    SUM(r.driftstopptime)     AS driftstopptime,
+                    MAX(r.op1)                AS op1,
+                    MAX(r.op2)                AS op2,
+                    MAX(r.op3)                AS op3,
+                    MAX(r.product_id)         AS product_id
+                FROM rebotling_skiftrapport r
+                WHERE r.datum = :datum
+                GROUP BY r.skiftraknare
+                ORDER BY r.skiftraknare ASC
+            ");
+            $stmt->execute([':datum' => $datum]);
+            $raw = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ----- 2. Resolve operator + product names -----
+            $opNums = [];
+            foreach ($raw as $r) {
+                foreach (['op1','op2','op3'] as $k) {
+                    if (!empty($r[$k])) $opNums[] = (int)$r[$k];
+                }
+            }
+            $opNums  = array_values(array_unique(array_filter($opNums)));
+            $opNames = [];
+            if (!empty($opNums)) {
+                $ph = implode(',', array_fill(0, count($opNums), '?'));
+                $s2 = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
+                $s2->execute($opNums);
+                foreach ($s2->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                    $opNames[(int)$op['number']] = $op['name'];
+                }
+            }
+
+            $prodIds  = array_values(array_unique(array_filter(array_column($raw, 'product_id'))));
+            $prodNames = [];
+            if (!empty($prodIds)) {
+                $ph2 = implode(',', array_fill(0, count($prodIds), '?'));
+                $s3  = $this->pdo->prepare("SELECT id, name FROM rebotling_products WHERE id IN ($ph2)");
+                $s3->execute($prodIds);
+                foreach ($s3->fetchAll(\PDO::FETCH_ASSOC) as $pr) {
+                    $prodNames[(int)$pr['id']] = $pr['name'];
+                }
+            }
+
+            // ----- 3. Build shift rows -----
+            $shifts = [];
+            $totalIbc      = 0;
+            $totalDrifttid = 0;
+            $totalStopp    = 0;
+            $totalEjOk     = 0;
+            $totalTotalt   = 0;
+
+            foreach ($raw as $r) {
+                $ibc_ok   = (int)$r['ibc_ok'];
+                $ibc_ej   = (int)$r['ibc_ej_ok'] + (int)$r['bur_ej_ok'];
+                $totalt   = (int)$r['totalt'] ?: ($ibc_ok + $ibc_ej);
+                $drift    = (int)$r['drifttid'];
+                $stopp    = (int)$r['driftstopptime'];
+                $hours    = $drift / 60.0;
+                $ibc_h    = $hours > 0 ? round($ibc_ok / $hours, 2) : 0.0;
+                $kass_pct = $totalt > 0 ? round($ibc_ej / $totalt * 100, 2) : 0.0;
+                $sched    = $drift + $stopp;
+                $stopp_pct= $sched > 0 ? round($stopp / $sched * 100, 1) : 0.0;
+
+                $op1 = $r['op1'] ? (int)$r['op1'] : null;
+                $op2 = $r['op2'] ? (int)$r['op2'] : null;
+                $op3 = $r['op3'] ? (int)$r['op3'] : null;
+                $pid = $r['product_id'] ? (int)$r['product_id'] : null;
+
+                $shifts[] = [
+                    'skiftraknare'  => (int)$r['skiftraknare'],
+                    'datum'         => $r['datum'],
+                    'ibc_ok'        => $ibc_ok,
+                    'ibc_h'         => $ibc_h,
+                    'kass_pct'      => $kass_pct,
+                    'stopp_pct'     => $stopp_pct,
+                    'drifttid'      => $drift,
+                    'driftstopptime'=> $stopp,
+                    'op1'           => $op1,
+                    'op2'           => $op2,
+                    'op3'           => $op3,
+                    'op1_name'      => $op1 ? ($opNames[$op1] ?? "Op $op1") : null,
+                    'op2_name'      => $op2 ? ($opNames[$op2] ?? "Op $op2") : null,
+                    'op3_name'      => $op3 ? ($opNames[$op3] ?? "Op $op3") : null,
+                    'product_id'    => $pid,
+                    'product_name'  => $pid ? ($prodNames[$pid] ?? "Produkt $pid") : null,
+                ];
+
+                $totalIbc      += $ibc_ok;
+                $totalDrifttid += $drift;
+                $totalStopp    += $stopp;
+                $totalEjOk     += $ibc_ej;
+                $totalTotalt   += $totalt;
+            }
+
+            // Day-level KPIs using SUM/SUM
+            $totalHours    = $totalDrifttid / 60.0;
+            $dayIbcH       = $totalHours > 0 ? round($totalIbc / $totalHours, 2) : 0.0;
+            $dayKassPct    = $totalTotalt > 0 ? round($totalEjOk / $totalTotalt * 100, 2) : 0.0;
+            $daySched      = $totalDrifttid + $totalStopp;
+            $dayStoppPct   = $daySched > 0 ? round($totalStopp / $daySched * 100, 1) : 0.0;
+
+            // ----- 4. Yesterday totals -----
+            $yIbc = 0; $yHours = 0.0; $yIbcH = 0.0;
+            try {
+                $stmt2 = $this->pdo->prepare("
+                    SELECT SUM(s.ibc_ok) AS ibc_ok, SUM(s.drifttid) AS drifttid
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum = :yday
+                        GROUP BY skiftraknare
+                    ) s
+                ");
+                $stmt2->execute([':yday' => $yesterday]);
+                $yRow  = $stmt2->fetch(\PDO::FETCH_ASSOC);
+                $yIbc  = (int)($yRow['ibc_ok']  ?? 0);
+                $yMins = (int)($yRow['drifttid'] ?? 0);
+                $yHours = $yMins / 60.0;
+                $yIbcH  = $yHours > 0 ? round($yIbc / $yHours, 2) : 0.0;
+            } catch (\Throwable $e) {
+                error_log('RebotlingController::getIdag (yesterday): ' . $e->getMessage());
+            }
+
+            // ----- 5. 30-day average IBC/h (SUM/SUM across deduplicated shifts) -----
+            $avg30IbcH = 0.0;
+            try {
+                $stmt3 = $this->pdo->prepare("
+                    SELECT SUM(s.ibc_ok) AS tot_ibc, SUM(s.drifttid) AS tot_drift
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from30 AND :to30
+                        GROUP BY skiftraknare
+                        HAVING MAX(drifttid) >= 30
+                    ) s
+                ");
+                $stmt3->execute([':from30' => $from30, ':to30' => $to30]);
+                $row30  = $stmt3->fetch(\PDO::FETCH_ASSOC);
+                $tot30  = (float)($row30['tot_ibc']   ?? 0);
+                $hrs30  = (float)($row30['tot_drift']  ?? 0) / 60.0;
+                $avg30IbcH = $hrs30 > 0 ? round($tot30 / $hrs30, 2) : 0.0;
+            } catch (\Throwable $e) {
+                error_log('RebotlingController::getIdag (30d avg): ' . $e->getMessage());
+            }
+
+            // ----- 6. Per-week trend: last 7 days IBC totals (for sparkline) -----
+            $weekTrend = [];
+            try {
+                $stmt4 = $this->pdo->prepare("
+                    SELECT d.dag, COALESCE(SUM(s.ibc_ok), 0) AS ibc_ok
+                    FROM (
+                        SELECT DATE_SUB(:ref, INTERVAL seq DAY) AS dag
+                        FROM (SELECT 0 seq UNION SELECT 1 UNION SELECT 2 UNION SELECT 3
+                              UNION SELECT 4 UNION SELECT 5 UNION SELECT 6) nums
+                    ) d
+                    LEFT JOIN (
+                        SELECT datum, skiftraknare, MAX(ibc_ok) AS ibc_ok
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN DATE_SUB(:ref2, INTERVAL 6 DAY) AND :ref3
+                        GROUP BY datum, skiftraknare
+                    ) s ON s.datum = d.dag
+                    GROUP BY d.dag
+                    ORDER BY d.dag ASC
+                ");
+                $stmt4->execute([':ref' => $datum, ':ref2' => $datum, ':ref3' => $datum]);
+                foreach ($stmt4->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $weekTrend[] = [
+                        'datum'   => $row['dag'],
+                        'ibc_ok'  => (int)$row['ibc_ok'],
+                    ];
+                }
+            } catch (\Throwable $e) {
+                error_log('RebotlingController::getIdag (week_trend): ' . $e->getMessage());
+            }
+
+            echo json_encode([
+                'success' => true,
+                'datum'   => $datum,
+                'shifts'  => $shifts,
+                'kpis'    => [
+                    'ibc_ok'    => $totalIbc,
+                    'ibc_h'     => $dayIbcH,
+                    'kass_pct'  => $dayKassPct,
+                    'stopp_pct' => $dayStoppPct,
+                    'skift_count' => count($shifts),
+                ],
+                'yesterday' => [
+                    'ibc_ok' => $yIbc,
+                    'ibc_h'  => $yIbcH,
+                    'delta_ibc'  => $totalIbc - $yIbc,
+                    'delta_ibch' => round($dayIbcH - $yIbcH, 2),
+                ],
+                'avg_30d' => [
+                    'ibc_h'      => $avg30IbcH,
+                    'vs_avg_pct' => $avg30IbcH > 0 ? round(($dayIbcH - $avg30IbcH) / $avg30IbcH * 100, 1) : 0.0,
+                ],
+                'week_trend' => $weekTrend,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getIdag: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid daglig produktionsöversikt'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

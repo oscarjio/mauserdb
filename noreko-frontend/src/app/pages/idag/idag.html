@@ -1,0 +1,247 @@
+<div class="idag-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2><i class="fas fa-sun me-2"></i>Daglig Produktionsöversikt</h2>
+      <p class="subtitle">Skift, KPI:er och trend för valt datum</p>
+    </div>
+    <div class="header-right">
+      <div class="date-nav">
+        <button class="btn-nav" (click)="changeDate(-1)" title="Föregående dag">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <input type="date" [(ngModel)]="datum" (change)="load()" class="date-input" />
+        <button class="btn-nav" (click)="changeDate(1)" [disabled]="isToday()" title="Nästa dag">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        <button class="btn-today" (click)="goToday()" *ngIf="!isToday()">Idag</button>
+      </div>
+      <button class="btn-refresh" (click)="load()" [disabled]="loading" title="Uppdatera">
+        <i class="fas fa-sync-alt" [class.spinning]="loading"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-bar" *ngIf="loading">
+    <div class="loading-bar-fill"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+  </div>
+
+  <!-- No data -->
+  <div class="empty-box" *ngIf="!loading && !error && data && data.shifts.length === 0">
+    <i class="fas fa-calendar-times"></i>
+    <p>Inga skiftrapporter registrerade för {{ formatDate(datum) }}</p>
+  </div>
+
+  <ng-container *ngIf="data && data.shifts.length > 0">
+
+    <!-- KPI cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total IBC</div>
+        <div class="kpi-value">{{ data.kpis.ibc_ok }}</div>
+        <div class="kpi-delta" [class]="deltaClass(data.yesterday.delta_ibc)">
+          <i class="fas" [class.fa-arrow-up]="data.yesterday.delta_ibc > 0"
+                         [class.fa-arrow-down]="data.yesterday.delta_ibc < 0"
+                         [class.fa-minus]="data.yesterday.delta_ibc === 0"></i>
+          {{ deltaSign(data.yesterday.delta_ibc) }}{{ data.yesterday.delta_ibc }} vs igår
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">IBC/h</div>
+        <div class="kpi-value">{{ data.kpis.ibc_h | number:'1.1-1' }}</div>
+        <div class="kpi-delta" [class]="deltaClass(data.yesterday.delta_ibch)">
+          <i class="fas" [class.fa-arrow-up]="data.yesterday.delta_ibch > 0"
+                         [class.fa-arrow-down]="data.yesterday.delta_ibch < 0"
+                         [class.fa-minus]="data.yesterday.delta_ibch === 0"></i>
+          {{ deltaSign(data.yesterday.delta_ibch) }}{{ data.yesterday.delta_ibch | number:'1.1-1' }} vs igår
+        </div>
+        <div class="kpi-sub" *ngIf="data.avg_30d.ibc_h > 0" [class]="deltaClass(data.avg_30d.vs_avg_pct)">
+          {{ deltaSign(data.avg_30d.vs_avg_pct) }}{{ data.avg_30d.vs_avg_pct | number:'1.0-0' }}% vs 30d snitt
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Kassation</div>
+        <div class="kpi-value" [class]="kassClass(data.kpis.kass_pct)">
+          {{ data.kpis.kass_pct | number:'1.1-1' }}%
+        </div>
+        <div class="kpi-sub">av totalt producerat</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Stoppgrad</div>
+        <div class="kpi-value" [class]="stoppClass(data.kpis.stopp_pct)">
+          {{ data.kpis.stopp_pct | number:'1.0-0' }}%
+        </div>
+        <div class="kpi-sub">av schemalagd tid</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Skift</div>
+        <div class="kpi-value">{{ data.kpis.skift_count }}</div>
+        <div class="kpi-sub">registrerade skiftrapporter</div>
+      </div>
+
+      <div class="kpi-card kpi-avg30" *ngIf="data.avg_30d.ibc_h > 0">
+        <div class="kpi-label">30d Snitt IBC/h</div>
+        <div class="kpi-value">{{ data.avg_30d.ibc_h | number:'1.1-1' }}</div>
+        <div class="kpi-sub">referensvärde (sista 30 dagarna)</div>
+      </div>
+    </div>
+
+    <!-- Week sparkline -->
+    <div class="section-card" *ngIf="data.week_trend.length > 0">
+      <h3 class="section-title"><i class="fas fa-chart-bar me-2"></i>7 dagars IBC-trend</h3>
+      <div class="sparkline-row">
+        <div class="spark-bar-wrap" *ngFor="let t of data.week_trend"
+             [class.spark-today]="t.datum === datum">
+          <div class="spark-ibc-label">{{ t.ibc_ok || '' }}</div>
+          <div class="spark-bar-bg">
+            <div class="spark-bar-fill"
+                 [style.height.%]="weekBarHeight(t.ibc_ok, weekMax())"
+                 [class.spark-zero]="t.ibc_ok === 0"></div>
+          </div>
+          <div class="spark-day-label">{{ weekDayLabel(t.datum) }}</div>
+          <div class="spark-date-label">{{ formatDate(t.datum) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shifts table -->
+    <div class="section-card">
+      <h3 class="section-title"><i class="fas fa-list me-2"></i>Skift {{ formatDate(datum) }}</h3>
+      <div class="table-responsive">
+        <table class="shifts-table">
+          <thead>
+            <tr>
+              <th>Skift #</th>
+              <th>Tvättplats (Op1)</th>
+              <th>Kontroll (Op2)</th>
+              <th>Truck (Op3)</th>
+              <th>Produkt</th>
+              <th>IBC</th>
+              <th>IBC/h</th>
+              <th>Kassation</th>
+              <th>Stoppgrad</th>
+              <th>Drifttid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of data.shifts">
+              <td>
+                <a [routerLink]="['/rebotling/skift-insikt']" [queryParams]="{skiftraknare: s.skiftraknare}"
+                   class="shift-link">{{ s.skiftraknare }}</a>
+              </td>
+              <td>
+                <ng-container *ngIf="s.op1_name; else noOp">
+                  <a [routerLink]="['/rebotling/operator', s.op1]" class="op-link">{{ s.op1_name }}</a>
+                </ng-container>
+              </td>
+              <td>
+                <ng-container *ngIf="s.op2_name; else noOp">
+                  <a [routerLink]="['/rebotling/operator', s.op2]" class="op-link">{{ s.op2_name }}</a>
+                </ng-container>
+              </td>
+              <td>
+                <ng-container *ngIf="s.op3_name; else noOp">
+                  <a [routerLink]="['/rebotling/operator', s.op3]" class="op-link">{{ s.op3_name }}</a>
+                </ng-container>
+              </td>
+              <td>{{ s.product_name || '—' }}</td>
+              <td>{{ s.ibc_ok }}</td>
+              <td>
+                <span class="cell-badge" [class]="ibchClass(s.ibc_h, data.kpis.ibc_h)">
+                  {{ s.ibc_h | number:'1.1-1' }}
+                </span>
+              </td>
+              <td>
+                <span class="cell-badge" [class]="kassClass(s.kass_pct)">
+                  {{ s.kass_pct | number:'1.1-1' }}%
+                </span>
+              </td>
+              <td>
+                <span class="cell-badge" [class]="stoppClass(s.stopp_pct)">
+                  {{ s.stopp_pct | number:'1.0-0' }}%
+                </span>
+              </td>
+              <td>{{ s.drifttid }} min</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="5"><strong>Dagsummering</strong></td>
+              <td><strong>{{ data.kpis.ibc_ok }}</strong></td>
+              <td>
+                <span class="cell-badge" [class]="ibchClass(data.kpis.ibc_h, data.avg_30d.ibc_h)">
+                  <strong>{{ data.kpis.ibc_h | number:'1.1-1' }}</strong>
+                </span>
+              </td>
+              <td>
+                <span class="cell-badge" [class]="kassClass(data.kpis.kass_pct)">
+                  <strong>{{ data.kpis.kass_pct | number:'1.1-1' }}%</strong>
+                </span>
+              </td>
+              <td>
+                <span class="cell-badge" [class]="stoppClass(data.kpis.stopp_pct)">
+                  <strong>{{ data.kpis.stopp_pct | number:'1.0-0' }}%</strong>
+                </span>
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Yesterday comparison -->
+    <div class="section-card" *ngIf="data.yesterday.ibc_ok > 0 || data.yesterday.ibc_h > 0">
+      <h3 class="section-title"><i class="fas fa-calendar-minus me-2"></i>Jämförelse med igår</h3>
+      <div class="compare-grid">
+        <div class="compare-item">
+          <div class="compare-label">Total IBC</div>
+          <div class="compare-row">
+            <span class="compare-val-a">{{ data.kpis.ibc_ok }}</span>
+            <span class="compare-arrow">↔</span>
+            <span class="compare-val-b">{{ data.yesterday.ibc_ok }}</span>
+          </div>
+          <div class="compare-delta" [class]="deltaClass(data.yesterday.delta_ibc)">
+            {{ deltaSign(data.yesterday.delta_ibc) }}{{ data.yesterday.delta_ibc }} IBC
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">IBC/h</div>
+          <div class="compare-row">
+            <span class="compare-val-a">{{ data.kpis.ibc_h | number:'1.1-1' }}</span>
+            <span class="compare-arrow">↔</span>
+            <span class="compare-val-b">{{ data.yesterday.ibc_h | number:'1.1-1' }}</span>
+          </div>
+          <div class="compare-delta" [class]="deltaClass(data.yesterday.delta_ibch)">
+            {{ deltaSign(data.yesterday.delta_ibch) }}{{ data.yesterday.delta_ibch | number:'1.1-1' }} IBC/h
+          </div>
+        </div>
+        <div class="compare-item" *ngIf="data.avg_30d.ibc_h > 0">
+          <div class="compare-label">vs 30d snitt</div>
+          <div class="compare-row">
+            <span class="compare-val-a">{{ data.kpis.ibc_h | number:'1.1-1' }}</span>
+            <span class="compare-arrow">↔</span>
+            <span class="compare-val-b">{{ data.avg_30d.ibc_h | number:'1.1-1' }}</span>
+          </div>
+          <div class="compare-delta" [class]="deltaClass(data.avg_30d.vs_avg_pct)">
+            {{ deltaSign(data.avg_30d.vs_avg_pct) }}{{ data.avg_30d.vs_avg_pct | number:'1.0-0' }}%
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <ng-template #noOp><span class="no-op">—</span></ng-template>
+</div>
