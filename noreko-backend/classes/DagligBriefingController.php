@@ -122,7 +122,7 @@ class DagligBriefingController {
                 $prevRunning = $running;
             }
             $drifttidSek = max(0, $drifttidSek);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::calcOeeForDay (onoff): ' . $e->getMessage());
         }
 
@@ -148,7 +148,7 @@ class DagligBriefingController {
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::calcOeeForDay (ibc): ' . $e->getMessage());
         }
 
@@ -205,7 +205,7 @@ class DagligBriefingController {
                 $stmt->execute([':date' => $datum, ':dateb' => $datum]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $kasserade = (int)($row['kasserade'] ?? 0);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('DagligBriefingController::sammanfattning (kasserade): ' . $e->getMessage());
             }
 
@@ -226,7 +226,7 @@ class DagligBriefingController {
                     $stmt->execute([':date' => $datum, ':dateb' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $stoppMinuter = max(0, (int)($row['stopp_min'] ?? 0));
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::sammanfattning (stoppminuter): ' . $e->getMessage());
                 }
             }
@@ -239,7 +239,7 @@ class DagligBriefingController {
                     $stmt->execute([':date' => $datum, ':date2' => $datum]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row) $dagsmal = (int)$row['target_ibc'];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::sammanfattning (produktions_mal): ' . $e->getMessage());
                 }
             }
@@ -263,7 +263,7 @@ class DagligBriefingController {
                     $stmt->execute([':date1' => $datum, ':date2' => $datum]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::sammanfattning (avg_ibc): ' . $e->getMessage());
                 }
             }
@@ -303,7 +303,7 @@ class DagligBriefingController {
                         'total_ibc' => (int)$row['total_ibc'],
                     ];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('DagligBriefingController::sammanfattning (basta_operator): ' . $e->getMessage());
             }
 
@@ -328,7 +328,7 @@ class DagligBriefingController {
                     if ($row && (int)$row['minuter'] > 0) {
                         $framstaOrsak = $row['orsak'];
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::sammanfattning (framsta_orsak): ' . $e->getMessage());
                 }
             }
@@ -370,7 +370,7 @@ class DagligBriefingController {
             // Skriv cache innan svar
             @file_put_contents($cacheFile, json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE), LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
@@ -403,7 +403,7 @@ class DagligBriefingController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':date' => $datum, ':dateb' => $datum, ':to1' => date('Y-m-d', strtotime($datum . ' +1 day')) . ' 00:00:00']);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());
                 }
             }
@@ -426,7 +426,7 @@ class DagligBriefingController {
                 'orsaker'     => array_slice($orsaker, 0, 3),
                 'total_min'   => $totalMin,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta stopporsaker', 500);
         }
@@ -469,7 +469,7 @@ class DagligBriefingController {
                 'datum'     => $datum,
                 'stationer' => $results,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::stationsstatus: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta stationsstatus', 500);
         }
@@ -503,7 +503,7 @@ class DagligBriefingController {
                 try {
                     $stmt->execute([':date' => $dag, ':dateb' => $dag]);
                     $totalIbc = (int)$stmt->fetchColumn();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('DagligBriefingController::veckotrend: ' . $e->getMessage());
                 }
 
@@ -521,7 +521,7 @@ class DagligBriefingController {
                 'datum' => $datum,
                 'trend' => $trend,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::veckotrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckotrend', 500);
         }
@@ -566,7 +566,7 @@ class DagligBriefingController {
                     $op['ibc_idag'] = (int)$op['ibc_idag'];
                 }
                 unset($op);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('DagligBriefingController::bemanning: ' . $e->getMessage());
             }
 
@@ -575,7 +575,7 @@ class DagligBriefingController {
                 'operatorer'  => $operatorer,
                 'antal'       => count($operatorer),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligBriefingController::bemanning: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta bemanning', 500);
         }

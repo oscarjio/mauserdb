@@ -126,7 +126,7 @@ class RuntimeController {
                         ]
                     ], JSON_UNESCAPED_UNICODE);
                 }
-            } catch (\Exception $innerE) {
+            } catch (\Throwable $innerE) {
                 if ($this->pdo->inTransaction()) {
                     $this->pdo->rollBack();
                 }
@@ -372,7 +372,7 @@ class RuntimeController {
                     $totalBreakMinutes += $periodMinutes;
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RuntimeController::calculateBreakMinutes: ogiltigt datum i DB — ' . $e->getMessage());
             return 0;
         }

@@ -142,7 +142,7 @@ class HistoriskSammanfattningController {
             $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::getStationer: ' . $e->getMessage());
         }
 
@@ -288,7 +288,7 @@ class HistoriskSammanfattningController {
                 'manader' => $manader,
                 'kvartal' => $kvartal,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::perioder: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta perioder', 500);
         }
@@ -347,7 +347,7 @@ class HistoriskSammanfattningController {
                 'top_operator' => $topOp,
                 'rapport_text' => $text,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::rapport: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta rapport', 500);
         }
@@ -410,7 +410,7 @@ class HistoriskSammanfattningController {
             $namn = $nameRow ? $nameRow['name'] : "Op #{$opNum}";
 
             return ['op_num' => $opNum, 'namn' => $namn, 'ibc_ok' => $ibcOk];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::getTopOperator: ' . $e->getMessage());
             return null;
         }
@@ -570,7 +570,7 @@ class HistoriskSammanfattningController {
                 'period' => $p,
                 'trend'  => $trendPoints,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::trend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
         }
@@ -690,7 +690,7 @@ class HistoriskSammanfattningController {
                 'period'     => $p,
                 'operatorer' => $operatorer,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::operatorer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta operatorsdata', 500);
         }
@@ -737,7 +737,7 @@ class HistoriskSammanfattningController {
                 'period'    => $p,
                 'stationer' => $result,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::stationer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationsdata', 500);
         }
@@ -773,7 +773,7 @@ class HistoriskSammanfattningController {
                     $stmt->execute([$p['from'], $p['to']]);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('HistoriskSammanfattningController::stopporsaker (inner): ' . $e->getMessage());
             }
 
@@ -807,7 +807,7 @@ class HistoriskSammanfattningController {
                 'total_min'    => $totalMin,
                 'total_h'      => round($totalMin / 60, 1),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistoriskSammanfattningController::stopporsaker: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stopporsaker', 500);
         }

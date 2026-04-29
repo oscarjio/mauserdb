@@ -88,7 +88,7 @@ class ProduktionsTaktController {
             );
             $val = $stmt->fetchColumn();
             return $val !== false ? (float)$val : 12.0;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsTaktController::getTargetValue: ' . $e->getMessage());
             return 12.0;
         }
@@ -186,7 +186,7 @@ class ProduktionsTaktController {
                     : null,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsTaktController::getCurrentRate: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta aktuell takt', 500);
         }
@@ -253,7 +253,7 @@ class ProduktionsTaktController {
                 'target'  => $target,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsTaktController::getHourlyHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta timhistorik', 500);
         }
@@ -267,7 +267,7 @@ class ProduktionsTaktController {
         try {
             $target = $this->getTargetValue();
             $this->sendSuccess(['target' => $target]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsTaktController::getTarget: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta måltal', 500);
         }
@@ -318,7 +318,7 @@ class ProduktionsTaktController {
 
             $this->sendSuccess(['target' => $newTarget]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsTaktController::setTarget: ' . $e->getMessage());
             $this->sendError('Kunde inte spara måltal', 500);
         }

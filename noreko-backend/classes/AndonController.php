@@ -106,7 +106,7 @@ class AndonController {
                 if ($taktRad && is_numeric($taktRad['hourly_target']) && (float)$taktRad['hourly_target'] > 0) {
                     $taktMal = (float)$taktRad['hourly_target'];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('AndonController::takt_mal: ' . $e->getMessage());
             }
 
@@ -154,7 +154,7 @@ class AndonController {
                 'linje_status'            => $linjeStatus,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getStatus fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -199,7 +199,7 @@ class AndonController {
 
             echo json_encode(['success' => true, 'stoppages' => $result], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stoppregistreringar'], JSON_UNESCAPED_UNICODE);
@@ -248,7 +248,7 @@ class AndonController {
                 'unread_count' => count($notes),
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::andonNotes fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta andon-noter'], JSON_UNESCAPED_UNICODE);
@@ -327,7 +327,7 @@ class AndonController {
                 'data'     => $result,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getHourlyToday fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -547,7 +547,7 @@ class AndonController {
                 'datum'        => $datum,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getDailyChallenge fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -679,7 +679,7 @@ class AndonController {
                         $lastStopCreatedAt = $stopRow2['created_at'] ?? null;
                     }
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('AndonController::stopp: ' . $e->getMessage());
             }
 
@@ -724,7 +724,7 @@ class AndonController {
                 if ($opRow && !empty($opRow['op_name'])) {
                     $operator = $opRow['op_name'];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('AndonController::getBoardStatus(shift_plan): ' . $e->getMessage());
             }
 
@@ -763,7 +763,7 @@ class AndonController {
                 'timestamp' => $nu->format('Y-m-d H:i:s'),
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getBoardStatus fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -784,14 +784,14 @@ class AndonController {
             $stmt->execute([':wd' => $wd]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row && (int)$row['daily_goal'] > 0) return (int)$row['daily_goal'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getDagsMal weekday: ' . $e->getMessage());
         }
         try {
             $stmt2 = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1");
             $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
             if ($row2 && (int)$row2['rebotling_target'] > 0) return (int)$row2['rebotling_target'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('AndonController::getDagsMal settings: ' . $e->getMessage());
         }
         return 1000;

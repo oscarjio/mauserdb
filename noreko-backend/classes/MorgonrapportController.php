@@ -121,7 +121,7 @@ class MorgonrapportController {
             $stmt->execute([$weekday]);
             $val = $stmt->fetchColumn();
             return $val ? (int)$val : self::DEFAULT_DAILY_GOAL;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getDailyGoalForDate: ' . $e->getMessage());
             return self::DEFAULT_DAILY_GOAL;
         }
@@ -145,7 +145,7 @@ class MorgonrapportController {
             $stmt->execute([$date, $date]);
             $val = $stmt->fetchColumn();
             return round((float)($val ?: 0) / 60.0, 2);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getRuntimeHoursForDate: ' . $e->getMessage());
             return 0;
         }
@@ -221,7 +221,7 @@ class MorgonrapportController {
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getRapport: ' . $e->getMessage());
             $this->sendError('Kunde inte generera morgonrapport', 500);
         }
@@ -253,7 +253,7 @@ class MorgonrapportController {
             );
             $stmt->execute([$date, $date]);
             $totalIbc = (int)($stmt->fetchColumn() ?: 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getProduktionData (ibc): ' . $e->getMessage());
         }
 
@@ -277,7 +277,7 @@ class MorgonrapportController {
             );
             $stmt->execute([$prevWeekDate, $prevWeekDate]);
             $prevWeekIbc = (int)($stmt->fetchColumn() ?: 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getProduktionData (prevWeek): ' . $e->getMessage());
         }
 
@@ -301,7 +301,7 @@ class MorgonrapportController {
             );
             $stmt->execute([$avg30Start, $avg30End]);
             $avg30 = (float)($stmt->fetchColumn() ?: 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getProduktionData (avg30): ' . $e->getMessage());
         }
 
@@ -352,7 +352,7 @@ class MorgonrapportController {
             $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
             $stmtIbc->execute([$prevWeekDate, $prevWeekDate]);
             $prevIbc = (int)($stmtIbc->fetchColumn() ?: 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getEffektivitetData: ' . $e->getMessage());
         }
 
@@ -419,7 +419,7 @@ class MorgonrapportController {
             );
             $stmt->execute([$date, $date]);
             $topOrsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getStoppData (stoppage_log): ' . $e->getMessage());
         }
 
@@ -478,7 +478,7 @@ class MorgonrapportController {
                 // Sortera pa total_min DESC
                 usort($topOrsaker, fn($a, $b) => (float)$b['total_min'] <=> (float)$a['total_min']);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getStoppData (stopporsak_registreringar): ' . $e->getMessage());
         }
 
@@ -542,7 +542,7 @@ class MorgonrapportController {
             $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $prevKasserade += (int)($prevRow['kasserade'] ?? 0);
             $prevTotalt     = (int)($prevRow['total'] ?? 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getKvalitetData (ibc): ' . $e->getMessage());
         }
 
@@ -577,7 +577,7 @@ class MorgonrapportController {
                     $toppOrsak = $topRow['namn'];
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getKvalitetData (kassationsregistrering): ' . $e->getMessage());
         }
 
@@ -634,7 +634,7 @@ class MorgonrapportController {
             foreach ($rows as $row) {
                 $dagligIbc[$row['dag']] = (int)$row['cnt'];
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getTrenderData: ' . $e->getMessage());
         }
 
@@ -687,7 +687,7 @@ class MorgonrapportController {
                 $bastaTimme      = (int)$row['timme'];
                 $bastaTimmeAntal = (int)$row['cnt'];
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getHighlightsData (basta_timme): ' . $e->getMessage());
         }
 
@@ -733,7 +733,7 @@ class MorgonrapportController {
                     $snabbastAntal    = (int)$row['total_ibc'];
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MorgonrapportController::getHighlightsData (operator): ' . $e->getMessage());
         }
 

@@ -4820,7 +4820,7 @@ HTML;
                     ];
                 }
                 $hasParetoData = $totalKassation > 0;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController pareto-data: ' . $e->getMessage());
                 $hasParetoData = false;
             }
@@ -4855,7 +4855,7 @@ HTML;
                             : ($pd['antal'] < $prevAntal ? 'down' : 'stable');
                     }
                     unset($pd);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('RebotlingAnalyticsController pareto-trend: ' . $e->getMessage());
                 }
             }
@@ -4875,7 +4875,7 @@ HTML;
                 'has_pareto_data' => $hasParetoData,
                 'total_kassation' => (int)$totalKassation,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getRejectionAnalysis: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kvalitetsanalys.'], JSON_UNESCAPED_UNICODE);
@@ -4998,7 +4998,7 @@ HTML;
                     ];
                 }
                 $hasParetoData = $totalKassationRegistrerad > 0;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController kassation-pareto: ' . $e->getMessage());
                 $hasParetoData = false;
             }
@@ -5020,7 +5020,7 @@ HTML;
                 'has_pareto_data'  => $hasParetoData,
                 'total_kassation_registrerad' => $totalKassationRegistrerad,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getQualityRejectionBreakdown: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kassationsanalys.'], JSON_UNESCAPED_UNICODE);
@@ -5118,7 +5118,7 @@ HTML;
                 'orsaker' => $orsakerMeta,
                 'trend'   => $trendData,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getQualityRejectionTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kassationstrend.'], JSON_UNESCAPED_UNICODE);
@@ -7116,7 +7116,7 @@ HTML;
                 'leaderboard' => $leaderboard,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getTopOperatorsLeaderboard: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta leaderboard'], JSON_UNESCAPED_UNICODE);

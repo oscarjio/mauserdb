@@ -133,7 +133,7 @@ class OperatorJamforelseController {
             }, $rows);
 
             $this->sendSuccess(['operatorer' => $operatorer]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorJamforelseController::getOperatorsList: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta operatorslista', 500);
         }
@@ -258,7 +258,7 @@ class OperatorJamforelseController {
                 'operatorer' => $result,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorJamforelseController::getCompare: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
@@ -334,7 +334,7 @@ class OperatorJamforelseController {
                 'operatorer' => $result,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorJamforelseController::getCompareTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
         }

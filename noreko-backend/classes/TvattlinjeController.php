@@ -127,7 +127,7 @@ class TvattlinjeController {
             $this->ensureSettingsTable();
             $rows = $this->pdo->query("SELECT setting, value FROM tvattlinje_settings WHERE setting IS NOT NULL ORDER BY id DESC")->fetchAll(PDO::FETCH_KEY_PAIR);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
@@ -162,7 +162,7 @@ class TvattlinjeController {
             AuditLogger::log($this->pdo, 'update_tvattlinje_settings_v2', 'tvattlinje_settings', null,
                 json_encode(array_intersect_key($data, array_flip($allowed)), JSON_UNESCAPED_UNICODE));
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::setSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
@@ -190,14 +190,14 @@ class TvattlinjeController {
                     $diff         = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus plcLastSeen: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getSystemStatus plcLastSeen: ' . $e->getMessage()); }
 
             // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM tvattlinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
-            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
 
             // Antal poster idag
             $posterIdag = 0;
@@ -205,7 +205,7 @@ class TvattlinjeController {
                 $posterIdag = (int)$this->pdo->query(
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
-            } catch (\Exception $e) { error_log('TvattlinjeController::getSystemStatus posterIdag: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getSystemStatus posterIdag: ' . $e->getMessage()); }
 
             // Är linjen i drift? PLC-data < 15 min gammal
             $isRunning = ($plcAgeMinutes !== null && $plcAgeMinutes < 15);
@@ -214,7 +214,7 @@ class TvattlinjeController {
             $dbStatus = 'ok';
             try {
                 $this->pdo->query("SELECT 1");
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getSystemStatus: ' . $e->getMessage());
                 $dbStatus = 'error';
             }
@@ -235,7 +235,7 @@ class TvattlinjeController {
                     'server_time'      => $now->format('Y-m-d H:i:s'),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getSystemStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
@@ -257,7 +257,7 @@ class TvattlinjeController {
                 $ibcIdag = (int)$this->pdo->query(
                     "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
-            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
             // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
             $dagmal = 140;
@@ -280,8 +280,8 @@ class TvattlinjeController {
                     if ($wgRow && (int)$wgRow['mal'] > 0) {
                         $dagmal = (int)$wgRow['mal'];
                     }
-                } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
-            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
+                } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
 
             // Linjen kör? (senaste PLC < 15 min gammal)
             $isRunning = false;
@@ -295,7 +295,7 @@ class TvattlinjeController {
                     $ageMin = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     $isRunning = ($ageMin < 15);
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
 
             // Takt: IBC per timme senaste 2 timmar
             $taktPerTimme = 0.0;
@@ -304,7 +304,7 @@ class TvattlinjeController {
                     "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
                 )->fetchColumn();
                 $taktPerTimme = round($cnt / 2.0, 1);
-            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot taktPerTimme: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot taktPerTimme: ' . $e->getMessage()); }
 
             // Skiftlängd
             $skiftTimmar = 8.0;
@@ -323,7 +323,7 @@ class TvattlinjeController {
                 if ($slutDt > $startDt) {
                     $skiftTimmar = ($slutDt->getTimestamp() - $startDt->getTimestamp()) / 3600.0;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::getTodaySnapshot skiftTimmar: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot skiftTimmar: ' . $e->getMessage()); }
 
             // Prognos
             $shiftStart = new \DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
@@ -349,7 +349,7 @@ class TvattlinjeController {
                     'server_time'   => $now->format('H:i:s'),
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getTodaySnapshot: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
@@ -392,7 +392,7 @@ class TvattlinjeController {
                 }
             }
             echo json_encode(['success' => true, 'data' => $thresholds], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getAlertThresholds: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar'], JSON_UNESCAPED_UNICODE);
@@ -423,7 +423,7 @@ class TvattlinjeController {
             AuditLogger::log($this->pdo, 'update_tvattlinje_alert_thresholds', 'tvattlinje_settings', null,
                 'thresholds=' . $json);
             echo json_encode(['success' => true, 'message' => 'Alert-trösklar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::saveAlertThresholds: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara alert-trösklar'], JSON_UNESCAPED_UNICODE);
@@ -455,7 +455,7 @@ class TvattlinjeController {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, mal FROM tvattlinje_weekday_goals ORDER BY weekday")->fetchAll(\PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -488,7 +488,7 @@ class TvattlinjeController {
             AuditLogger::log($this->pdo, 'update_tvattlinje_weekday_goals', 'tvattlinje_weekday_goals', null,
                 'goals=' . count($goals));
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::setWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -521,7 +521,7 @@ class TvattlinjeController {
                     $settings = $this->loadSettings();
                     if (!empty($settings['antal_per_dag'])) $ibcTarget = (int)$settings['antal_per_dag'];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getLiveStats dagmal: ' . $e->getMessage());
             }
 
@@ -723,10 +723,10 @@ class TvattlinjeController {
 
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
-            } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+            } catch (\Throwable $e) { /* Kolumn finns redan — OK */ }
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
-            } catch (\Exception $e) { /* Kolumn finns redan — OK */ }
+            } catch (\Throwable $e) { /* Kolumn finns redan — OK */ }
 
             // Använd INSERT ... ON DUPLICATE KEY UPDATE för att undvika race condition
             // (concurrent requests som båda ser COUNT=0 och försöker INSERT)
@@ -761,10 +761,10 @@ class TvattlinjeController {
     private function loadSettings() {
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
-        } catch (\Exception) { /* Kolumn finns redan — OK */ }
+        } catch (\Throwable) { /* Kolumn finns redan — OK */ }
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
-        } catch (\Exception) { /* Kolumn finns redan — OK */ }
+        } catch (\Throwable) { /* Kolumn finns redan — OK */ }
 
         $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings ORDER BY id ASC LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -799,7 +799,7 @@ class TvattlinjeController {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'takt_mal' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 if ($sr && (float)$sr['value'] > 0) $target_cycle_time = (float)$sr['value'];
-            } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Throwable $e) { /* ignorera */ }
 
             // Hämta cyklar med PLC-fält (om de finns)
             $stmt = $this->pdo->prepare('
@@ -865,7 +865,7 @@ class TvattlinjeController {
                     $stmt->execute(['start' => $start, 'end' => $end]);
                     $rast_events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                     break; // Använd första funna tabellen
-                } catch (\Exception $e) { /* prova nästa tabell */ }
+                } catch (\Throwable $e) { /* prova nästa tabell */ }
             }
 
             // Beräkna runtime
@@ -904,7 +904,7 @@ class TvattlinjeController {
                 ');
                 $stmtTrue->execute(['start' => $start, 'end' => $end]);
                 $total_cycles_true = (int)$stmtTrue->fetchColumn();
-            } catch (\Exception $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
 
             $total_cycles = $total_cycles_true > 0 ? $total_cycles_true : count($cycles);
             if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
@@ -1006,7 +1006,7 @@ class TvattlinjeController {
                 ");
                 $stmt->execute(['start' => $start, 'end' => $end]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getSkiftrapportStatistik rows: ' . $e->getMessage());
                 // Försök utan JOIN
                 try {
@@ -1017,7 +1017,7 @@ class TvattlinjeController {
                     ");
                     $stmt->execute(['start' => $start, 'end' => $end]);
                     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\Exception $e2) {
+                } catch (\Throwable $e2) {
                     error_log('TvattlinjeController::getSkiftrapportStatistik fallback: ' . $e2->getMessage());
                 }
             }
@@ -1047,7 +1047,7 @@ class TvattlinjeController {
                     'skift_count'    => count($rows),
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getSkiftrapportStatistik: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapportstatistik'], JSON_UNESCAPED_UNICODE);
@@ -1081,7 +1081,7 @@ class TvattlinjeController {
                 ");
                 $stmt->execute(['datum' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getReport: ' . $e->getMessage());
                 // Tabell finns inte eller fel — returnera tom data
             }
@@ -1098,7 +1098,7 @@ class TvattlinjeController {
                 ");
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getReport prevRows: ' . $e->getMessage());
             }
 
@@ -1140,7 +1140,7 @@ class TvattlinjeController {
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());
             }
 
@@ -1170,7 +1170,7 @@ class TvattlinjeController {
                     'skift_data'      => $rows,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getReport: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,
@@ -1215,7 +1215,7 @@ class TvattlinjeController {
                     $row['event_type'] = intval($row['running'] ?? 0) === 1 ? 'ON' : 'OFF';
                     $events[] = $row;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream onoff: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream onoff: ' . $e->getMessage()); }
 
             // tvattlinje_ibc
             try {
@@ -1230,7 +1230,7 @@ class TvattlinjeController {
                     $row['event_type'] = 'IBC';
                     $events[] = $row;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
 
             // tvattlinje_rast
             try {
@@ -1245,7 +1245,7 @@ class TvattlinjeController {
                     $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
                     $events[] = $row;
                 }
-            } catch (\Exception $e) { error_log('TvattlinjeController::plcDiagnostikStream rast: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream rast: ' . $e->getMessage()); }
 
             usort($events, function ($a, $b) {
                 $cmp = strcmp($b['datum'], $a['datum']);
@@ -1262,12 +1262,12 @@ class TvattlinjeController {
             $latestOnoff = null;
             try {
                 $latestOnoff = $this->pdo->query("SELECT running, datum FROM tvattlinje_onoff ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {}
+            } catch (\Throwable $e) {}
 
             $ibcToday = 0;
             try {
                 $ibcToday = (int)$this->pdo->query("SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
-            } catch (\Exception $e) {}
+            } catch (\Throwable $e) {}
 
             echo json_encode([
                 'success' => true,
@@ -1284,7 +1284,7 @@ class TvattlinjeController {
                     'event_count' => count($events),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getPlcDiagnostikStream: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av PLC-diagnostik.'], JSON_UNESCAPED_UNICODE);
@@ -1311,7 +1311,7 @@ class TvattlinjeController {
                 $diff   = $now->diff($lastDt);
                 $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
             }
-        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics plcLastSeen: ' . $e->getMessage()); }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::getPlcDiagnostics plcLastSeen: ' . $e->getMessage()); }
 
         // Rådata IBC-poster för valt period
         $latestIbc = [];
@@ -1330,7 +1330,7 @@ class TvattlinjeController {
             ");
             $stmt->execute(['start' => $start, 'end' => $end]);
             $latestIbc = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics latestIbc: ' . $e->getMessage()); }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::getPlcDiagnostics latestIbc: ' . $e->getMessage()); }
 
         // On/off-händelser för valt period
         $latestOnoff = [];
@@ -1344,7 +1344,7 @@ class TvattlinjeController {
             ");
             $stmt->execute(['start' => $start, 'end' => $end]);
             $latestOnoff = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics latestOnoff: ' . $e->getMessage()); }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::getPlcDiagnostics latestOnoff: ' . $e->getMessage()); }
 
         // Datakvalitet
         $totalCount    = count($latestIbc);
@@ -1374,7 +1374,7 @@ class TvattlinjeController {
             ");
             $stmt->execute(['start' => $start, 'end' => $end]);
             $skiftrapporter = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) { error_log('TvattlinjeController::getPlcDiagnostics skiftrapporter: ' . $e->getMessage()); }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::getPlcDiagnostics skiftrapporter: ' . $e->getMessage()); }
 
         echo json_encode([
             'success' => true,
@@ -1428,7 +1428,7 @@ class TvattlinjeController {
                 ");
                 $stmt->execute(['dagar' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
             }
 
@@ -1492,7 +1492,7 @@ class TvattlinjeController {
                     'basta_ibc'      => $bestaIbc,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,

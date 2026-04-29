@@ -291,7 +291,7 @@ class UtnyttjandegradController {
                 'total_stopp_7d_h'  => round($totalStopp7d, 1),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UtnyttjandegradController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
@@ -312,7 +312,7 @@ class UtnyttjandegradController {
                 'daily' => $dagData,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UtnyttjandegradController::getDaily: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta daglig data', 500);
         }
@@ -426,7 +426,7 @@ class UtnyttjandegradController {
                 'topp_orsaker'        => $toppOrsaker,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UtnyttjandegradController::getLosses: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta förlustanalys', 500);
         }

@@ -228,7 +228,7 @@ class SkiftjamforelseController {
             $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::getStationer: ' . $e->getMessage());
         }
 
@@ -317,7 +317,7 @@ class SkiftjamforelseController {
                 'to_date'      => $today,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -431,7 +431,7 @@ class SkiftjamforelseController {
                 'to_date'    => $today,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::jamforelse: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
@@ -520,7 +520,7 @@ class SkiftjamforelseController {
                 'days'  => $days,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::trend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
         }
@@ -657,7 +657,7 @@ class SkiftjamforelseController {
                 'to_date'   => $today,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::bestPractices: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta best practices', 500);
         }
@@ -755,7 +755,7 @@ class SkiftjamforelseController {
                 'total'     => count($detaljer),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftjamforelseController::detaljer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta detaljer', 500);
         }

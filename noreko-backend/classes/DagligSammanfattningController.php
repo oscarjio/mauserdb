@@ -651,7 +651,7 @@ class DagligSammanfattningController {
                 'status_text'   => $statusText,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligSammanfattningController::getDailySummary: ' . $e->getMessage());
             $this->sendError('Kunde inte generera daglig sammanfattning', 500);
         }
@@ -734,7 +734,7 @@ class DagligSammanfattningController {
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DagligSammanfattningController::getComparison: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta jämförelsedata', 500);
         }

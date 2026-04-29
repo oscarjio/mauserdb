@@ -343,7 +343,7 @@ class OperatorOnboardingController {
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorOnboardingController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta onboarding-data', 500);
         }
@@ -382,7 +382,7 @@ class OperatorOnboardingController {
                 'weeks'            => $weeks,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorOnboardingController::getOperatorCurve: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdata', 500);
         }
@@ -415,7 +415,7 @@ class OperatorOnboardingController {
                 'antal_aktiva'     => $antalAktiva,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorOnboardingController::getTeamStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta teamstatistik', 500);
         }

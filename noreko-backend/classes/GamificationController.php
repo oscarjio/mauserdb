@@ -681,7 +681,7 @@ class GamificationController {
                 'from_date'   => $from,
                 'to_date'     => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('GamificationController::leaderboard: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta leaderboard', 500);
         }
@@ -735,7 +735,7 @@ class GamificationController {
                 'antal_badges' => count($earned),
                 'total_badges' => count($allBadges),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('GamificationController::badges: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta badges', 500);
         }
@@ -824,7 +824,7 @@ class GamificationController {
                 'milstolpar'       => $milstolpar,
                 'period'           => 'vecka',
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('GamificationController::minProfil: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta profil', 500);
         }
@@ -915,7 +915,7 @@ class GamificationController {
                 'from_date'            => $from,
                 'to_date'              => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('GamificationController::overview: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta oversikt', 500);
         }

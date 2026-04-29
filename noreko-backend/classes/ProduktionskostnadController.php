@@ -528,7 +528,7 @@ class ProduktionskostnadController {
                 if ($diffDays > 365) {
                     $from = (new \DateTime($to))->modify('-1 year')->format('Y-m-d');
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('ProduktionskostnadController: datumberäkning fallback — ' . $e->getMessage());
                 $from = (new \DateTime())->modify('-30 days')->format('Y-m-d');
                 $to   = date('Y-m-d');

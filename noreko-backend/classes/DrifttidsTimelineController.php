@@ -453,7 +453,7 @@ class DrifttidsTimelineController {
                 'stopped_min'   => round($stoppedMin, 1),
                 'unplanned_min' => round($unplannedMin, 1),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getTimelineData: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta timeline-data', 500);
         }
@@ -519,7 +519,7 @@ class DrifttidsTimelineController {
                 'utnyttjandegrad_pct' => $utnyttjandegrad,
                 'plannad_tid_min'     => $plannadTidMin,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna summary', 500);
         }
@@ -588,7 +588,7 @@ class DrifttidsTimelineController {
                 'okand_stopp_min'  => round($okandStoppMin, 1),
                 'okand_stopp_antal' => $okandAntal,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getOrsaksfordelning: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna orsaksfordelning', 500);
         }
@@ -675,7 +675,7 @@ class DrifttidsTimelineController {
                 'days' => $days,
                 'data' => $result,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getVeckotrend: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna veckotrend', 500);
         }
@@ -861,7 +861,7 @@ class DrifttidsTimelineController {
                 'total_antal_stopp'    => $totalAntalStopp,
                 'utnyttjandegrad_pct'  => $veckoUtnyttjandegrad,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getVeckoAggregat: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna veckoaggregat', 500);
         }
@@ -1075,7 +1075,7 @@ class DrifttidsTimelineController {
                 'total_plannad_min'    => round($totalPlannad, 1),
                 'utnyttjandegrad_pct'  => $manadsUtnyttjandegrad,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('DrifttidsTimelineController::getManadsAggregat: ' . $e->getMessage());
             $this->sendError('Kunde inte berakna manadsaggregat', 500);
         }

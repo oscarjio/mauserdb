@@ -207,7 +207,7 @@ class KvalitetscertifikatController {
                     'snitt_kvalitetspoang' => round($snittPoang, 1),
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetscertifikatController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta oversikt', 500);
         }
@@ -267,7 +267,7 @@ class KvalitetscertifikatController {
                     'operatorer' => $operatorer,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetscertifikatController::getLista: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta lista', 500);
         }
@@ -310,7 +310,7 @@ class KvalitetscertifikatController {
                     'kriterier'  => $kriterier,
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetscertifikatController::getDetalj: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta certifikat', 500);
         }
@@ -516,7 +516,7 @@ class KvalitetscertifikatController {
             )->fetchAll(\PDO::FETCH_ASSOC);
 
             $this->sendSuccess(['data' => $rows]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetscertifikatController::getKriterier: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta kriterier', 500);
         }
@@ -600,7 +600,7 @@ class KvalitetscertifikatController {
             $rows = array_reverse($rows);
 
             $this->sendSuccess(['data' => $rows]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetscertifikatController::getStatistik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta statistik', 500);
         }

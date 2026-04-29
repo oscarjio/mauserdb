@@ -233,7 +233,7 @@ class EffektivitetController {
                 'snitt_30d' => $snitt30d,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('EffektivitetController::getTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta trenddata', 500);
         }
@@ -314,7 +314,7 @@ class EffektivitetController {
                 'change_pct' => $changePct,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('EffektivitetController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
@@ -391,7 +391,7 @@ class EffektivitetController {
                 'basta_skift' => $bastaSkift,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('EffektivitetController::getByShift: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skiftdata', 500);
         }

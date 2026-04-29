@@ -72,7 +72,7 @@ class HistoriskProduktionController {
             try {
                 $dt1 = new \DateTime($from);
                 $dt2 = new \DateTime($to);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Ogiltigt datum trots korrekt format — fallback till default
                 error_log('HistoriskProduktionController: datumparse fallback — ' . $e->getMessage());
                 $days = 30;

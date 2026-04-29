@@ -307,7 +307,7 @@ class StopporsakOperatorController {
                 'total_min'        => round($totaltMin, 1),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StopporsakOperatorController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översiktsdata', 500);
         }

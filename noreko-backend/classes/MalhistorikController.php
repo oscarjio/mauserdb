@@ -198,7 +198,7 @@ class MalhistorikController {
                 'senaste_andring' => $senaste,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MalhistorikController::getGoalHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta målhistorik', 500);
         }
@@ -304,7 +304,7 @@ class MalhistorikController {
 
             $this->sendSuccess(['impact' => $impact]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('MalhistorikController::getGoalImpact: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna impact-data', 500);
         }

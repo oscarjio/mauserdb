@@ -79,7 +79,7 @@ class KvalitetstrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetstrendanalysController::getStationer: ' . $e->getMessage());
         }
         return [

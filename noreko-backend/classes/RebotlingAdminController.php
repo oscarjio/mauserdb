@@ -1103,7 +1103,7 @@ class RebotlingAdminController {
                 'message'   => 'Rekordnyhet skapad!'
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::createRecordNewsManual: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1134,13 +1134,13 @@ class RebotlingAdminController {
                     ':user_id'     => $userId,
                 ]);
                 echo json_encode(['success' => true, 'message' => 'Underhållsåtgärd sparad'], JSON_UNESCAPED_UNICODE);
-            } catch (\Exception $tableErr) {
+            } catch (\Throwable $tableErr) {
                 // Tabellen finns inte ännu
                 error_log('RebotlingAdminController::saveMaintenanceLog: rebotling_maintenance_log saknas: ' . $tableErr->getMessage());
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Logg-tabell ej konfigurerad'], JSON_UNESCAPED_UNICODE);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveMaintenanceLog: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);

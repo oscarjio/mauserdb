@@ -108,7 +108,7 @@ class StatistikOverblickController {
                 $okIbc = (int)($row['ok_ibc'] ?? 0);
                 $kasserade = (int)($row['kasserade'] ?? 0);
                 $totalIbc = $okIbc + $kasserade;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('StatistikOverblickController::getKpi ibc: ' . $e->getMessage());
             }
 
@@ -145,7 +145,7 @@ class StatistikOverblickController {
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $prevKasserade = (int)($row['kasserade'] ?? 0);
                 $prevTotalIbc = (int)($row['ok_ibc'] ?? 0) + $prevKasserade;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('StatistikOverblickController::getKpi prev: ' . $e->getMessage());
             }
 
@@ -177,7 +177,7 @@ class StatistikOverblickController {
                 'prev_oee'            => $prevSnittOee,
                 'prev_kassationsrate' => $prevKassationsrate,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::getKpi: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta KPI-data', 500);
         }
@@ -235,7 +235,7 @@ class StatistikOverblickController {
                 'labels'    => $labels,
                 'values'    => $values,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::getProduktion: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta produktionsdata', 500);
         }
@@ -291,7 +291,7 @@ class StatistikOverblickController {
                 'values'    => $values,
                 'mal'       => 65, // OEE-mal i procent
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::getOee: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta OEE-data', 500);
         }
@@ -352,7 +352,7 @@ class StatistikOverblickController {
                 'values'    => $values,
                 'troskel'   => 3, // Kassations-troskel i procent
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::getKassation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta kassationsdata', 500);
         }
@@ -413,7 +413,7 @@ class StatistikOverblickController {
                 }
                 $drifttidPerDag[$dag] = max(0, $driftSek);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::calcOeeBatch onoff: ' . $e->getMessage());
         }
 
@@ -442,7 +442,7 @@ class StatistikOverblickController {
                     'ej_ok_ibc' => (int)$row['ej_ok_ibc'],
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatistikOverblickController::calcOeeBatch ibc: ' . $e->getMessage());
         }
 

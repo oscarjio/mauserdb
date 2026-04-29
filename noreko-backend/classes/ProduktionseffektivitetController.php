@@ -66,7 +66,7 @@ class ProduktionseffektivitetController {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(PDO::FETCH_COLUMN);
             return in_array('timestamp', $cols, true) ? 'timestamp' : 'datum';
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionseffektivitetController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';
         }

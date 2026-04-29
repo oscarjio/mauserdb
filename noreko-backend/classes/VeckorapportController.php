@@ -126,7 +126,7 @@ class VeckorapportController {
             foreach ($rows as $row) {
                 $goals[(int)$row['weekday']] = (int)$row['daily_goal'];
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Tabellen kanske inte finns
             error_log('VeckorapportController::getWeekdayGoals: ' . $e->getMessage());
         }
@@ -191,7 +191,7 @@ class VeckorapportController {
                 'quality'    => $quality,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getReport: ' . $e->getMessage());
             $this->sendError('Kunde inte generera veckorapport', 500);
         }
@@ -358,7 +358,7 @@ class VeckorapportController {
             $stmt->execute([$fromDate, $toDate]);
             $val = $stmt->fetchColumn();
             return round((float)($val ?: 0) / 60.0, 2);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getTotalRuntimeHours: ' . $e->getMessage());
             return 0;
         }
@@ -407,7 +407,7 @@ class VeckorapportController {
             );
             $stmt->execute([$start, $end]);
             $topReasons = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getStopsData (stoppage_log): ' . $e->getMessage());
         }
 
@@ -467,7 +467,7 @@ class VeckorapportController {
                 // Sortera pa total_min DESC
                 usort($topReasons, fn($a, $b) => (float)$b['total_min'] <=> (float)$a['total_min']);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getStopsData (stopporsak_registreringar): ' . $e->getMessage());
         }
 
@@ -532,7 +532,7 @@ class VeckorapportController {
             $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
             $prevScrappedCount = (int)($prevRow['kasserade'] ?? 0);
             $prevTotalProduced = (int)($prevRow['total'] ?? 0);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getQualityData (ibc): ' . $e->getMessage());
         }
 
@@ -569,7 +569,7 @@ class VeckorapportController {
                     $topScrapReason = $topRow['namn'];
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckorapportController::getQualityData (kassationsregistrering): ' . $e->getMessage());
         }
 

@@ -428,7 +428,7 @@ class KvalitetstrendController {
                 'antal_operatorer'   => count($opData),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetstrendController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översiktsdata', 500);
         }
@@ -527,7 +527,7 @@ class KvalitetstrendController {
                 'operatorer'          => $operatorer,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetstrendController::getOperators: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdata', 500);
         }
@@ -682,7 +682,7 @@ class KvalitetstrendController {
                 'ibc_totalt'       => array_sum(array_column(array_values($opVeckodata), 'ibc_total')),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('KvalitetstrendController::getOperatorDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdetaljdata', 500);
         }

@@ -356,6 +356,8 @@ class RebotlingController {
                 $this->getProduktNormaliseradPrestanda();
             } elseif ($action === 'ars-kurva') {
                 $this->getArsKurva();
+            } elseif ($action === 'schema-rekommendationer') {
+                $this->getSchemaRekommendationer();
             } else {
                 $this->getLiveStats();
             }
@@ -2336,7 +2338,7 @@ class RebotlingController {
                     'team_best_month'   => $teamBestMonth,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getPersonalBests: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data'], JSON_UNESCAPED_UNICODE);
@@ -2406,7 +2408,7 @@ class RebotlingController {
             }
 
             echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getHallOfFameDays: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta hall of fame-data'], JSON_UNESCAPED_UNICODE);
@@ -2464,7 +2466,7 @@ class RebotlingController {
             }, $rows);
 
             echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getMonthlyLeaders: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata'], JSON_UNESCAPED_UNICODE);
@@ -2632,7 +2634,7 @@ class RebotlingController {
             }
 
             echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getHourlyRhythm: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Fel vid hämtning av produktionsrytm'], JSON_UNESCAPED_UNICODE);
@@ -2662,7 +2664,7 @@ class RebotlingController {
                 ];
             }, $rows);
             echo json_encode(['success' => true, 'operators' => $operators], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorListForTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista'], JSON_UNESCAPED_UNICODE);
@@ -2829,7 +2831,7 @@ class RebotlingController {
                 'trend_pct'     => $trendPct,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorWeeklyTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
@@ -2921,7 +2923,7 @@ class RebotlingController {
             $this->pdo->commit();
             error_log('RebotlingController::checkAndCreateRecordNews: Rekordnyhet skapad! Idag=' . $ibcIdag . ', Rekord=' . $rekordIbc);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -2950,7 +2952,7 @@ class RebotlingController {
             }
             unset($t);
             echo json_encode(['success' => true, 'data' => $typer], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationTyper: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationstyper'], JSON_UNESCAPED_UNICODE);
@@ -3036,7 +3038,7 @@ class RebotlingController {
                 'total_produktion' => (int)$totalProduktion,
                 'kassation_pct'    => $kassationPct,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationPareto: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data'], JSON_UNESCAPED_UNICODE);
@@ -3077,7 +3079,7 @@ class RebotlingController {
             }
             unset($row);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationSenaste: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationsregistreringar'], JSON_UNESCAPED_UNICODE);
@@ -3144,7 +3146,7 @@ class RebotlingController {
                 ':registrerad_av'  => $userId,
             ]);
             echo json_encode(['success' => true, 'id' => (int)$this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::registerKassation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara kassationsregistrering'], JSON_UNESCAPED_UNICODE);
@@ -3169,7 +3171,7 @@ class RebotlingController {
                 if ($sr && isset($sr['min_operators'])) {
                     $minOps = max(1, (int)$sr['min_operators']);
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingController::getStaffingWarning min_operators: ' . $e->getMessage());
             }
 
@@ -3222,7 +3224,7 @@ class RebotlingController {
                 'min_operators' => $minOps,
                 'warnings'      => $warnings,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getStaffingWarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning'], JSON_UNESCAPED_UNICODE);
@@ -3254,7 +3256,7 @@ class RebotlingController {
                     echo json_encode(['success' => true, 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingController::getTopStopp table check: ' . $e->getMessage());
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av stopporsaker', 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
@@ -3292,7 +3294,7 @@ class RebotlingController {
             }
 
             echo json_encode(['success' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getMonthlyStopSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker'], JSON_UNESCAPED_UNICODE);
@@ -3407,7 +3409,7 @@ class RebotlingController {
             try {
                 $s = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 if ($s) $dagMal = (int)$s["rebotling_target"];
-            } catch (\Exception $e2) {
+            } catch (\Throwable $e2) {
                 error_log("RebotlingController::getProductionRate: could not fetch rebotling_settings: " . $e2->getMessage());
             }
 
@@ -3420,7 +3422,7 @@ class RebotlingController {
                     "dag_mal"             => $dagMal
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("RebotlingController::getProductionRate: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(["success" => false, "error" => "Serverfel"], JSON_UNESCAPED_UNICODE);
@@ -3585,7 +3587,7 @@ class RebotlingController {
                     'skiftrapporter' => $skiftrapporter,
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("RebotlingController::getPlcDiagnostik: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av PLC-diagnostik.'], JSON_UNESCAPED_UNICODE);
@@ -3647,7 +3649,7 @@ class RebotlingController {
             }
 
             echo json_encode(['success' => true, 'message' => $msg], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("RebotlingController::plcSimulate: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Simulering misslyckades: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -3713,7 +3715,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorAnalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsanalys'], JSON_UNESCAPED_UNICODE);
@@ -4020,7 +4022,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorScores: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörspoäng'], JSON_UNESCAPED_UNICODE);
@@ -4161,7 +4163,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorMatcher: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsmatchning'], JSON_UNESCAPED_UNICODE);
@@ -4294,7 +4296,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getShiftDna: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid shift-dna'], JSON_UNESCAPED_UNICODE);
@@ -4482,7 +4484,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorProfile: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsprofil'], JSON_UNESCAPED_UNICODE);
@@ -4659,7 +4661,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorTrendHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid trendkarta'], JSON_UNESCAPED_UNICODE);
@@ -4862,7 +4864,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorMonthlyReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid månadsrapport'], JSON_UNESCAPED_UNICODE);
@@ -5049,7 +5051,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorKvartalReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kvartalsutvärdering'], JSON_UNESCAPED_UNICODE);
@@ -5167,7 +5169,7 @@ class RebotlingController {
                 'to'               => $to,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorPerformanceMap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandakarta'], JSON_UNESCAPED_UNICODE);
@@ -5301,7 +5303,7 @@ class RebotlingController {
                 'to'           => $to,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorAktivitet: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsaktivitet'], JSON_UNESCAPED_UNICODE);
@@ -5529,7 +5531,7 @@ class RebotlingController {
                 'to'               => $to,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorCompare: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsjämförelse'], JSON_UNESCAPED_UNICODE);
@@ -5637,7 +5639,7 @@ class RebotlingController {
                 'summary'        => $summary,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getBonusKalkylator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid bonuskalkylator'], JSON_UNESCAPED_UNICODE);
@@ -5785,7 +5787,7 @@ class RebotlingController {
                 'max_shifts' => $maxShifts,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorInlarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid inlärningsanalys'], JSON_UNESCAPED_UNICODE);
@@ -5929,7 +5931,7 @@ class RebotlingController {
                 'recent_from'  => $recent14,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorVarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid prestandavarning'], JSON_UNESCAPED_UNICODE);
@@ -5956,7 +5958,7 @@ class RebotlingController {
                 foreach ($pStmt->fetchAll(\PDO::FETCH_ASSOC) as $p) {
                     $productNames[(int)$p['id']] = $p['name'];
                 }
-            } catch (\Exception $e) { /* table may not exist */ }
+            } catch (\Throwable $e) { /* table may not exist */ }
 
             // Deduplicated shifts with product_id
             $stmt = $this->pdo->prepare("
@@ -6082,7 +6084,7 @@ class RebotlingController {
                 'days'             => $days,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorProdukt: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], JSON_UNESCAPED_UNICODE);
@@ -6206,7 +6208,7 @@ class RebotlingController {
                 'to'            => $to,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorStopptid: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsanalys'], JSON_UNESCAPED_UNICODE);
@@ -6328,7 +6330,7 @@ class RebotlingController {
                 'days'            => $days,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftKalender: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kalenderdata'], JSON_UNESCAPED_UNICODE);
@@ -6524,7 +6526,7 @@ class RebotlingController {
                 'recommendations'  => $recommendations,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorVeckodag: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckodag-analys'], JSON_UNESCAPED_UNICODE);
@@ -6691,7 +6693,7 @@ class RebotlingController {
                 'worst_kassgrad'  => $worst,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorKassation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsanalys'], JSON_UNESCAPED_UNICODE);
@@ -6880,7 +6882,7 @@ class RebotlingController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftPrognos: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftprognos'], JSON_UNESCAPED_UNICODE);
@@ -7016,7 +7018,7 @@ class RebotlingController {
                 'projected_gain'  => $projectedGain,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getIbcForlust: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid IBC-förlustkalkyl'], JSON_UNESCAPED_UNICODE);
@@ -7165,7 +7167,7 @@ class RebotlingController {
                 'pairs'     => $pairs,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorSynergy: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid teamkemi'], JSON_UNESCAPED_UNICODE);
@@ -7272,7 +7274,7 @@ class RebotlingController {
                 'limit'         => $limit,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftTopplista: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-topplista'], JSON_UNESCAPED_UNICODE);
@@ -7341,7 +7343,7 @@ class RebotlingController {
                 'months'   => $months,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktionHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsheatmap'], JSON_UNESCAPED_UNICODE);
@@ -7542,7 +7544,7 @@ class RebotlingController {
                 'team_by_skifttyp' => $teamBySkifttyp,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorSkifttyp: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttyp-analys'], JSON_UNESCAPED_UNICODE);
@@ -7761,7 +7763,7 @@ class RebotlingController {
                 'monthly_champions' => $monthlyChampions,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getRekordsStatistik: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rekord-statistik'], JSON_UNESCAPED_UNICODE);
@@ -7885,7 +7887,7 @@ class RebotlingController {
                 'total_teams' => count($teams),
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftlagHistorik: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftlag-historik'], JSON_UNESCAPED_UNICODE);
@@ -8046,7 +8048,7 @@ class RebotlingController {
                 'days'      => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getMomentum: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid momentumanalys'], \JSON_UNESCAPED_UNICODE);
@@ -8175,7 +8177,7 @@ class RebotlingController {
                 'operators'    => $operators,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorKonsistens: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid konsistensanalys'], \JSON_UNESCAPED_UNICODE);
@@ -8312,7 +8314,7 @@ class RebotlingController {
                 'days'          => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktAnalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktanalys'], \JSON_UNESCAPED_UNICODE);
@@ -8474,7 +8476,7 @@ class RebotlingController {
                 'overall_team_ibch' => $overallTeamIbcH,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getVeckansTopplista: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckans topplista'], \JSON_UNESCAPED_UNICODE);
@@ -8564,7 +8566,7 @@ class RebotlingController {
                 'operators'     => $results,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorAvsaknad: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid frånvaroanalys'], \JSON_UNESCAPED_UNICODE);
@@ -8701,7 +8703,7 @@ class RebotlingController {
                 'team_kassgrad' => $teamKass,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationsKarta: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationskarta'], \JSON_UNESCAPED_UNICODE);
@@ -8881,7 +8883,7 @@ class RebotlingController {
                 'team_avg_by_week' => $teamAvgByWeek,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationstrender'], \JSON_UNESCAPED_UNICODE);
@@ -9016,7 +9018,7 @@ class RebotlingController {
                 'to'           => $to,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationsorsakPerOperator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-analys'], \JSON_UNESCAPED_UNICODE);
@@ -9233,7 +9235,7 @@ class RebotlingController {
                 'to'         => $today,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getCoachView: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid tränarvy'], \JSON_UNESCAPED_UNICODE);
@@ -9373,7 +9375,7 @@ class RebotlingController {
                 ],
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktionsTidsserie: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionspuls'], \JSON_UNESCAPED_UNICODE);
@@ -9491,7 +9493,7 @@ class RebotlingController {
                     $stmtP->execute([':id' => $shift['product_id']]);
                     $prod = $stmtP->fetch(\PDO::FETCH_ASSOC);
                     if ($prod) $productName = $prod['name'];
-                } catch (\Exception $e) {}
+                } catch (\Throwable $e) {}
             }
 
             // 90-day context window ending on shift date
@@ -9592,7 +9594,7 @@ class RebotlingController {
                 ],
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftInsikt: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-insikt'], \JSON_UNESCAPED_UNICODE);
@@ -9732,7 +9734,7 @@ class RebotlingController {
                 'trend'        => $trend,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getRastAnalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rastanalys'], \JSON_UNESCAPED_UNICODE);
@@ -9845,7 +9847,7 @@ class RebotlingController {
                 'period_avg'  => round($periodAvg, 2),
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSasongsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid säsongsanalys'], \JSON_UNESCAPED_UNICODE);
@@ -10001,7 +10003,7 @@ class RebotlingController {
                 'worst'      => $worst,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktionsrytm: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsrytm'], \JSON_UNESCAPED_UNICODE);
@@ -10163,7 +10165,7 @@ class RebotlingController {
                 'days'      => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSpeedQualityCorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-kvalitet-analys'], \JSON_UNESCAPED_UNICODE);
@@ -10353,7 +10355,7 @@ class RebotlingController {
                 'days'             => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getStopptidsmonster: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsmönster'], \JSON_UNESCAPED_UNICODE);
@@ -10518,7 +10520,7 @@ class RebotlingController {
                 'team_avg_overall' => $teamAvgOverall,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSnabbhetProduktMatris: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-produkt-matris'], \JSON_UNESCAPED_UNICODE);
@@ -10680,7 +10682,7 @@ class RebotlingController {
                 'days'      => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getFartStoppKorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-stopp-analys'], \JSON_UNESCAPED_UNICODE);
@@ -10842,7 +10844,7 @@ class RebotlingController {
                 'days'      => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationStoppKorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassation-stopp-analys'], \JSON_UNESCAPED_UNICODE);
@@ -10995,7 +10997,7 @@ class RebotlingController {
                 ],
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktbytesanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktbytesanalys'], \JSON_UNESCAPED_UNICODE);
@@ -11177,7 +11179,7 @@ class RebotlingController {
                 'backup_matrix' => $backupMatrix,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getTackningsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid täckningsanalys'], \JSON_UNESCAPED_UNICODE);
@@ -11301,7 +11303,7 @@ class RebotlingController {
                 'days'        => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getVaderProduktion: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid väder-produktion'], \JSON_UNESCAPED_UNICODE);
@@ -11443,7 +11445,7 @@ class RebotlingController {
                 'days'        => $days,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getBelastningsbalans: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid belastningsbalans'], \JSON_UNESCAPED_UNICODE);
@@ -11569,7 +11571,7 @@ class RebotlingController {
                 'operators'       => $opResults,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getPersonalKalender: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid personal-kalender'], \JSON_UNESCAPED_UNICODE);
@@ -11708,7 +11710,7 @@ class RebotlingController {
                 'operators'      => $operators,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftSekvens: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-sekvens'], \JSON_UNESCAPED_UNICODE);
@@ -11817,7 +11819,7 @@ class RebotlingController {
                 'total_days'    => $totalDays,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getProduktionsmaal: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsmål'], \JSON_UNESCAPED_UNICODE);
@@ -11982,7 +11984,7 @@ class RebotlingController {
                 'operators'    => $result,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOperatorUtveckling: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsutveckling'], \JSON_UNESCAPED_UNICODE);
@@ -12194,7 +12196,7 @@ class RebotlingController {
                 'best_shift'=> $best,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getVeckosammanfattning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckosammanfattning'], \JSON_UNESCAPED_UNICODE);
@@ -12400,7 +12402,7 @@ class RebotlingController {
                 'shifts'   => $shifts,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getOEEDashboard: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid OEE-dashboard'], \JSON_UNESCAPED_UNICODE);
@@ -12520,7 +12522,7 @@ class RebotlingController {
                 ],
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getRotationsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rotationsanalys'], \JSON_UNESCAPED_UNICODE);
@@ -12703,7 +12705,7 @@ class RebotlingController {
                 'op_comparison'   => $opComparison,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getManadsJamforelse: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid månads-jämförelse'], \JSON_UNESCAPED_UNICODE);
@@ -12836,7 +12838,7 @@ class RebotlingController {
                 'day_meta'    => $dayMeta,
             ], \JSON_UNESCAPED_UNICODE);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingController::getSkifttypsMatris: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skifttypsmatris'], \JSON_UNESCAPED_UNICODE);
@@ -14636,5 +14638,361 @@ class RebotlingController {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid ars-kurva'], \JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    // GET ?action=rebotling&run=schema-rekommendationer[&days=90]
+    // Returns per-operator scheduling recommendations: best position, best shift type, tier, trend, recommendation text.
+    // Three focused queries (position perf / shift-type perf / overall 30d+90d trend) merged in PHP.
+    private function getSchemaRekommendationer(): void {
+        try {
+            $days   = max(30, min(365, (int)($_GET['days'] ?? 90)));
+            $to     = date('Y-m-d');
+            $from   = date('Y-m-d', strtotime("-{$days} days"));
+            $from30 = date('Y-m-d', strtotime('-30 days'));
+
+            $posNames  = ['op1' => 'Tvättplats', 'op2' => 'Kontroll', 'op3' => 'Truck'];
+            $typeNames = ['dag' => 'Dagskift', 'kvall' => 'Kvällsskift', 'natt' => 'Nattskift'];
+
+            // --- Query 1: per-operator per-position IBC/h (SUM/SUM, skiftraknare-dedup) ---
+            $stmt1 = $this->pdo->prepare("
+                SELECT
+                    u.op_num, u.pos,
+                    COALESCE(o.name, CONCAT('Op ', u.op_num)) AS op_name,
+                    COUNT(*)       AS antal_skift,
+                    SUM(u.ibc)     AS total_ibc,
+                    SUM(u.hours)   AS total_hours
+                FROM (
+                    SELECT op1 AS op_num, 'op1' AS pos, skiftraknare,
+                           MAX(ibc_ok) AS ibc, MAX(drifttid)/60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2, 'op2', skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3, 'op3', skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare
+                ) u
+                LEFT JOIN operators o ON o.number = u.op_num
+                GROUP BY u.op_num, u.pos, op_name
+                ORDER BY u.op_num, u.pos
+            ");
+            $stmt1->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+
+            $posByOp = [];
+            foreach ($stmt1->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNum = (int)$r['op_num'];
+                if (!isset($posByOp[$opNum])) {
+                    $posByOp[$opNum] = ['name' => $r['op_name'], 'positions' => []];
+                }
+                $h   = (float)$r['total_hours'];
+                $ibc = (float)$r['total_ibc'];
+                $posByOp[$opNum]['positions'][$r['pos']] = [
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'ibc_h'       => $h > 0 ? round($ibc / $h, 2) : 0.0,
+                ];
+            }
+
+            // --- Query 2: per-operator per-shift-type IBC/h (SUM/SUM, skiftraknare-dedup) ---
+            $stmt2 = $this->pdo->prepare("
+                SELECT op_num, skift_typ,
+                       COUNT(*) AS antal_skift,
+                       SUM(ibc) AS total_ibc, SUM(hours) AS total_hours
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare,
+                           CASE WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                                WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                                ELSE 'natt' END AS skift_typ,
+                           MAX(ibc_ok) AS ibc, MAX(drifttid)/60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from4 AND :to4
+                      AND op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2, skiftraknare,
+                           CASE WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                                WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                                ELSE 'natt' END,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from5 AND :to5
+                      AND op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3, skiftraknare,
+                           CASE WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                                WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                                ELSE 'natt' END,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from6 AND :to6
+                      AND op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare
+                ) u
+                WHERE op_num IS NOT NULL
+                GROUP BY op_num, skift_typ
+                ORDER BY op_num, skift_typ
+            ");
+            $stmt2->execute([
+                ':from4' => $from, ':to4' => $to,
+                ':from5' => $from, ':to5' => $to,
+                ':from6' => $from, ':to6' => $to,
+            ]);
+
+            $typByOp = [];
+            foreach ($stmt2->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNum = (int)$r['op_num'];
+                if (!isset($typByOp[$opNum])) $typByOp[$opNum] = [];
+                $h   = (float)$r['total_hours'];
+                $ibc = (float)$r['total_ibc'];
+                $typByOp[$opNum][$r['skift_typ']] = [
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'ibc_h'       => $h > 0 ? round($ibc / $h, 2) : 0.0,
+                ];
+            }
+
+            // --- Query 3: per-operator overall + 30d-window trend (single UNION ALL, SUM/SUM) ---
+            $stmt3 = $this->pdo->prepare("
+                SELECT op_num,
+                       SUM(ibc)                                                AS total_ibc,
+                       SUM(hours)                                              AS total_hours,
+                       COUNT(*)                                                AS total_skift,
+                       SUM(CASE WHEN datum >= :from30a THEN ibc   ELSE 0 END) AS ibc_30d,
+                       SUM(CASE WHEN datum >= :from30b THEN hours ELSE 0 END) AS hours_30d,
+                       SUM(CASE WHEN datum <  :from30c THEN ibc   ELSE 0 END) AS ibc_base,
+                       SUM(CASE WHEN datum <  :from30d THEN hours ELSE 0 END) AS hours_base
+                FROM (
+                    SELECT op1 AS op_num, datum, skiftraknare,
+                           MAX(ibc_ok) AS ibc, MAX(drifttid)/60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from7 AND :to7
+                      AND op1 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op1, skiftraknare, datum
+
+                    UNION ALL
+
+                    SELECT op2, datum, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from8 AND :to8
+                      AND op2 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op2, skiftraknare, datum
+
+                    UNION ALL
+
+                    SELECT op3, datum, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)/60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from9 AND :to9
+                      AND op3 > 0 AND drifttid >= 30 AND ibc_ok > 0
+                    GROUP BY op3, skiftraknare, datum
+                ) u
+                GROUP BY op_num
+            ");
+            $stmt3->execute([
+                ':from30a' => $from30, ':from30b' => $from30,
+                ':from30c' => $from30, ':from30d' => $from30,
+                ':from7'   => $from,   ':to7'     => $to,
+                ':from8'   => $from,   ':to8'     => $to,
+                ':from9'   => $from,   ':to9'     => $to,
+            ]);
+
+            $overallByOp   = [];
+            $teamTotalIbc  = 0.0;
+            $teamTotalHours = 0.0;
+            foreach ($stmt3->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNum   = (int)$r['op_num'];
+                $h       = (float)$r['total_hours'];
+                $ibc     = (float)$r['total_ibc'];
+                $h30     = (float)$r['hours_30d'];
+                $i30     = (float)$r['ibc_30d'];
+                $hBase   = (float)$r['hours_base'];
+                $iBase   = (float)$r['ibc_base'];
+                $overallByOp[$opNum] = [
+                    'ibc_h'       => $h    > 0 ? round($ibc   / $h,    2) : 0.0,
+                    'ibc_h_30d'   => $h30  > 0 ? round($i30   / $h30,  2) : 0.0,
+                    'ibc_h_base'  => $hBase > 0 ? round($iBase / $hBase, 2) : 0.0,
+                    'total_skift' => (int)$r['total_skift'],
+                    'hours_30d'   => $h30,
+                ];
+                $teamTotalIbc   += $ibc;
+                $teamTotalHours += $h;
+            }
+
+            $teamAvgIbch = $teamTotalHours > 0 ? round($teamTotalIbc / $teamTotalHours, 2) : 0.0;
+
+            // --- Build recommendations ---
+            $operators = [];
+            $allOpNums = array_unique(array_merge(array_keys($posByOp), array_keys($overallByOp)));
+
+            foreach ($allOpNums as $opNum) {
+                if (!isset($overallByOp[$opNum])) continue;
+                $ov   = $overallByOp[$opNum];
+                $name = $posByOp[$opNum]['name'] ?? "Op {$opNum}";
+                if ($ov['total_skift'] < 3) continue;
+
+                $ibch     = $ov['ibc_h'];
+                $ibch30   = $ov['ibc_h_30d'];
+                $ibchBase = $ov['ibc_h_base'];
+
+                // Tier vs team
+                $vsTeam = $teamAvgIbch > 0 ? round(($ibch / $teamAvgIbch - 1) * 100, 1) : 0.0;
+                if ($vsTeam >= 15)       $tier = 'elite';
+                elseif ($vsTeam >= 0)    $tier = 'solid';
+                elseif ($vsTeam >= -15)  $tier = 'developing';
+                else                     $tier = 'needs_support';
+
+                // Trend: compare last 30d IBC/h vs earlier baseline
+                $trend = 'stable';
+                if ($ov['hours_30d'] > 0.5 && $ibchBase > 0) {
+                    $trendPct = ($ibch30 - $ibchBase) / $ibchBase * 100;
+                    if ($trendPct >= 8)       $trend = 'rising';
+                    elseif ($trendPct <= -8)  $trend = 'falling';
+                }
+
+                // Best position (≥2 shifts required)
+                $bestPos     = null;
+                $bestPosIbch = 0.0;
+                foreach (($posByOp[$opNum]['positions'] ?? []) as $pos => $pd) {
+                    if ($pd['antal_skift'] >= 2 && $pd['ibc_h'] > $bestPosIbch) {
+                        $bestPosIbch = $pd['ibc_h'];
+                        $bestPos     = $pos;
+                    }
+                }
+
+                // Best shift type (≥2 shifts required)
+                $bestType     = null;
+                $bestTypeIbch = 0.0;
+                foreach (($typByOp[$opNum] ?? []) as $typ => $td) {
+                    if ($td['antal_skift'] >= 2 && $td['ibc_h'] > $bestTypeIbch) {
+                        $bestTypeIbch = $td['ibc_h'];
+                        $bestType     = $typ;
+                    }
+                }
+
+                $rec = $this->buildSchemaRec($tier, $trend, $bestPos, $bestType, $vsTeam, $posNames, $typeNames);
+
+                // Enrich position and shift-type details (all 3 slots, null if no data)
+                $posDetails  = [];
+                foreach (['op1', 'op2', 'op3'] as $p) {
+                    $posDetails[$p] = isset($posByOp[$opNum]['positions'][$p])
+                        ? $posByOp[$opNum]['positions'][$p]
+                        : null;
+                }
+                $typeDetails = [];
+                foreach (['dag', 'kvall', 'natt'] as $t) {
+                    $typeDetails[$t] = isset($typByOp[$opNum][$t]) ? $typByOp[$opNum][$t] : null;
+                }
+
+                $operators[] = [
+                    'number'               => $opNum,
+                    'name'                 => $name,
+                    'ibc_h'                => $ibch,
+                    'ibc_h_30d'            => $ibch30,
+                    'vs_team'              => $vsTeam,
+                    'tier'                 => $tier,
+                    'trend'                => $trend,
+                    'best_position'        => $bestPos,
+                    'best_position_name'   => $bestPos ? $posNames[$bestPos] : null,
+                    'best_position_ibc_h'  => $bestPos ? round($bestPosIbch, 2) : null,
+                    'best_shift_type'      => $bestType,
+                    'best_shift_type_name' => $bestType ? $typeNames[$bestType] : null,
+                    'best_shift_type_ibc_h'=> $bestType ? round($bestTypeIbch, 2) : null,
+                    'total_skift'          => $ov['total_skift'],
+                    'recommendation'       => $rec,
+                    'positions'            => $posDetails,
+                    'shift_types'          => $typeDetails,
+                ];
+            }
+
+            // Sort: Elite first, then by vs_team desc
+            $tierOrder = ['elite' => 0, 'solid' => 1, 'developing' => 2, 'needs_support' => 3];
+            usort($operators, function ($a, $b) use ($tierOrder) {
+                $ta = $tierOrder[$a['tier']] ?? 4;
+                $tb = $tierOrder[$b['tier']] ?? 4;
+                if ($ta !== $tb) return $ta - $tb;
+                return $b['vs_team'] <=> $a['vs_team'];
+            });
+
+            echo json_encode([
+                'success'        => true,
+                'from'           => $from,
+                'to'             => $to,
+                'days'           => $days,
+                'team_avg_ibc_h' => $teamAvgIbch,
+                'operators'      => $operators,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getSchemaRekommendationer: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid schemaläggningsassistenten'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // Builds a Swedish recommendation string based on tier, trend, best position and best shift type.
+    private function buildSchemaRec(
+        string $tier, string $trend, ?string $bestPos, ?string $bestType,
+        float $vsTeam, array $posNames, array $typeNames
+    ): string {
+        $posStr  = $bestPos  ? $posNames[$bestPos]   : null;
+        $typStr  = $bestType ? $typeNames[$bestType]  : null;
+
+        if ($tier === 'needs_support') {
+            if ($trend === 'falling') return 'Behöver akut stöd — prestandan sjunker och är under lagsnitt. Prioritera aktiv coaching och stöttande placering.';
+            if ($trend === 'rising')  return 'Prestanda förbättras från låg nivå — ge positiv förstärkning. Under lagsnitt men på rätt väg.';
+            return 'Under lagsnitt — sätt upp individuella mål, boka uppföljning och schemalägg på stöttande position.';
+        }
+
+        if ($tier === 'elite') {
+            $parts = [];
+            if ($posStr)  $parts[] = "Starkast på {$posStr}";
+            if ($typStr)  $parts[] = "bäst lämpad för {$typStr}";
+            $base = $parts ? implode(', ', $parts) . '.' : 'Toppprestanda.';
+            if ($trend === 'rising')  return "{$base} Prestandan stiger — nyckelspelare, fortsätt nyttja styrkan fullt ut.";
+            if ($trend === 'falling') return "{$base} OBS: nedgång senaste 30 dagarna — checka in om allt är ok.";
+            return "{$base} Nyckelspelare — prioritera placering på bästa position och skifttyp.";
+        }
+
+        if ($tier === 'solid') {
+            $parts = [];
+            if ($posStr)  $parts[] = "Bra på {$posStr}";
+            if ($typStr)  $parts[] = "föredrar {$typStr}";
+            $base = $parts ? implode(', ', $parts) . '.' : 'Pålitlig prestanda.';
+            if ($trend === 'rising')  return "{$base} Förbättras stadigt — kan nå Elite-nivå. Ge mer ansvar och variera positioner.";
+            if ($trend === 'falling') return "{$base} Håll koll — prestandan kan sjunka. Kontrollera schemaläggning och välmående.";
+            return "{$base} Stabil och pålitlig — håll nuvarande schemaläggning och nyttja styrkeposition.";
+        }
+
+        // developing
+        $parts = [];
+        if ($posStr)  $parts[] = "Bäst på {$posStr}";
+        if ($typStr)  $parts[] = "gynnas av {$typStr}";
+        $base = $parts ? implode(', ', $parts) . '.' : 'Under genomsnitt men med potential.';
+        if ($trend === 'rising')  return "{$base} Prestanda ökar — fortsätt med rotationsstöd och coaching. På rätt väg.";
+        if ($trend === 'falling') return "{$base} Behöver stöd — boka uppföljning. Placera på stärkande position.";
+        return "{$base} Fokusera schemaläggning på starkaste position och skifttyp för att bygga självförtroende.";
     }
 }

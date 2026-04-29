@@ -492,7 +492,7 @@ class OperatorsbonusController {
                 'antal_kvalificerade' => $antalKvalificerade,
                 'antal_operatorer'    => $antalOp,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorsbonusController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
@@ -516,7 +516,7 @@ class OperatorsbonusController {
                 'konfig'     => $konfig,
                 'operatorer' => $operatorer,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorsbonusController::getPerOperator: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdata', 500);
         }
@@ -554,7 +554,7 @@ class OperatorsbonusController {
                 'konfig'    => $result,
                 'max_total' => $maxTotal,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorsbonusController::getKonfiguration: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta konfiguration', 500);
         }
@@ -639,7 +639,7 @@ class OperatorsbonusController {
                     if ($diffDays > 365) {
                         $from = date('Y-m-d', strtotime($to . ' -365 days'));
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('OperatorsbonusController: datumberäkning fallback — ' . $e->getMessage());
                     $from = date('Y-m-d', strtotime('-30 days'));
                     $to   = date('Y-m-d');
@@ -721,7 +721,7 @@ class OperatorsbonusController {
                 'pct_av_max'      => $maxTotal > 0 ? round(($total / $maxTotal) * 100, 1) : 0,
                 'konfig'          => $konfig,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorsbonusController::getSimulering: ' . $e->getMessage());
             $this->sendError('Kunde inte köra simulering', 500);
         }
@@ -927,7 +927,7 @@ class OperatorsbonusController {
                 'trend'         => $trendData,
                 'snitt_bonus'   => $snittBonus,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorsbonusController::getTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta trenddata', 500);
         }

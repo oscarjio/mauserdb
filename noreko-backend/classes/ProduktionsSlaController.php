@@ -644,7 +644,7 @@ class ProduktionsSlaController {
             $stmt->execute([':wd' => $wd]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if ($row && (int)$row['daily_goal'] > 0) return (int)$row['daily_goal'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsSlaController::getWeekdayGoal: ' . $e->getMessage());
         }
         return 1000;

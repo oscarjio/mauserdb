@@ -107,7 +107,7 @@ class ProduktionsmalController {
                 'mal' => $mal ?: null,
                 'har_mal' => (bool)$mal,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getAktuelltMal: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta aktivt mal', 500);
         }
@@ -274,7 +274,7 @@ class ProduktionsmalController {
                 'daglig_produktion' => $dagligProduktion,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getProgress: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta progress', 500);
         }
@@ -359,7 +359,7 @@ class ProduktionsmalController {
                 'slut_datum' => $slutStr,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::sattMal: ' . $e->getMessage());
             $this->sendError('Kunde inte spara malet', 500);
         }
@@ -430,7 +430,7 @@ class ProduktionsmalController {
                 'historik' => $historik,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getMalHistorik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta malhistorik', 500);
         }
@@ -519,7 +519,7 @@ class ProduktionsmalController {
                 'datum'               => $today,
                 'veckonr'             => (int)date('W'),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getSammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -588,7 +588,7 @@ class ProduktionsmalController {
                 'total_utfall' => $totalUtfall,
                 'skift'        => $skift,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getPerSkift: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta skiftdata', 500);
         }
@@ -629,7 +629,7 @@ class ProduktionsmalController {
                 'mal'    => $malArr,
                 'utfall' => $utfallArr,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getVeckodata: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta veckodata', 500);
         }
@@ -678,7 +678,7 @@ class ProduktionsmalController {
                 'days'     => $days,
                 'historik' => array_reverse($historik),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getHistorik30d: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta historik', 500);
         }
@@ -749,7 +749,7 @@ class ProduktionsmalController {
                 'dag_utfall'  => $totalDagUtfall,
                 'stationer'   => $stationer,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getPerStation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationsdata', 500);
         }
@@ -787,7 +787,7 @@ class ProduktionsmalController {
                 'dag_mal'   => $dagMal,
                 'vecko_mal' => $veckoMal ?: null,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getHamtaMal: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta mal', 500);
         }
@@ -874,7 +874,7 @@ class ProduktionsmalController {
                     'slut_datum' => $slutDt->format('Y-m-d'),
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -977,7 +977,7 @@ class ProduktionsmalController {
                     'uppfyllnad' => $manadsPct, 'status' => $this->getStatus($manadsPct),
                 ],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -1012,7 +1012,7 @@ class ProduktionsmalController {
                 $current = strtotime('+1 day', $current);
             }
             $this->sendSuccess(['days' => $days, 'daily' => $result]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getDaily: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta daglig data', 500);
         }
@@ -1056,7 +1056,7 @@ class ProduktionsmalController {
                 $weekStart = strtotime('+7 days', $weekStart);
             }
             $this->sendSuccess(['weeks' => $weeks, 'weekly' => $result]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getWeekly: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta veckodata', 500);
         }
@@ -1096,7 +1096,7 @@ class ProduktionsmalController {
                 $goals[(int)$r['weekday']] = (int)$r['daily_goal'];
             }
             return $goals;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionsmalController::getWeekdayGoals: ' . $e->getMessage());
             return [];
         }

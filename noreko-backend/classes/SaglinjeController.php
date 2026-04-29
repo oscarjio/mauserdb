@@ -94,7 +94,7 @@ class SaglinjeController {
             $this->ensureSettingsTable();
             $rows = $this->pdo->query("SELECT setting, value FROM saglinje_settings ORDER BY id")->fetchAll(PDO::FETCH_KEY_PAIR);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
@@ -128,7 +128,7 @@ class SaglinjeController {
             AuditLogger::log($this->pdo, 'update_saglinje_settings', 'saglinje_settings', null,
                 json_encode(array_intersect_key($data, array_flip($allowed)), JSON_UNESCAPED_UNICODE));
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::setSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
@@ -154,20 +154,20 @@ class SaglinjeController {
                     $diff          = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
-            } catch (\Exception $e) { error_log('SaglinjeController::getSystemStatus plc: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getSystemStatus plc: ' . $e->getMessage()); }
 
             // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM saglinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
-            } catch (\Exception $e) { error_log('SaglinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getSystemStatus losnummer: ' . $e->getMessage()); }
 
             // Databas OK
             $dbStatus = 'ok';
             try {
                 $this->pdo->query("SELECT 1");
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('SaglinjeController::getSystemStatus: ' . $e->getMessage());
                 $dbStatus = 'error';
             }
@@ -183,7 +183,7 @@ class SaglinjeController {
                     'server_time'     => date('Y-m-d H:i:s'),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getSystemStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
@@ -215,7 +215,7 @@ class SaglinjeController {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, mal FROM saglinje_weekday_goals ORDER BY weekday")->fetchAll(\PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -248,7 +248,7 @@ class SaglinjeController {
             AuditLogger::log($this->pdo, 'update_saglinje_weekday_goals', 'saglinje_weekday_goals', null,
                 'goals=' . count($goals));
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::setWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -276,7 +276,7 @@ class SaglinjeController {
                 ");
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $ibcIdag = max(0, (int)($row['ibc_idag'] ?? 0));
-            } catch (\Exception $e) { error_log('SaglinjeController::getTodaySnapshot ibc: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getTodaySnapshot ibc: ' . $e->getMessage()); }
 
             // Senaste PLC-record — kontrollera om linjen kör
             $isRunning = false;
@@ -289,7 +289,7 @@ class SaglinjeController {
                     $diffMin = ($now->getTimestamp() - $lastDt->getTimestamp()) / 60;
                     $isRunning = ($diffMin < 15);
                 }
-            } catch (\Exception $e) { error_log('SaglinjeController::getTodaySnapshot plc: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getTodaySnapshot plc: ' . $e->getMessage()); }
 
             // Dagsmål från settings
             $dagmal = 0;
@@ -297,7 +297,7 @@ class SaglinjeController {
                 $this->ensureSettingsTable();
                 $val = $this->pdo->query("SELECT value FROM saglinje_settings WHERE setting = 'dagmal'")->fetchColumn();
                 $dagmal = (int)($val ?? 0);
-            } catch (\Exception $e) { error_log('SaglinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getTodaySnapshot dagmal: ' . $e->getMessage()); }
 
             // Tomt om ingen data idag
             if ($ibcIdag === 0 && !$isRunning) {
@@ -328,7 +328,7 @@ class SaglinjeController {
                     'senaste_datum' => $senasteDatum,
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getTodaySnapshot: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
@@ -353,7 +353,7 @@ class SaglinjeController {
             $result    = $stmt->fetch(PDO::FETCH_ASSOC);
             $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
             $lastUpdate = $result['datum'] ?? null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // saglinje_onoff existerar inte an — returnera default
             error_log('SaglinjeController::getRunningStatus: ' . $e->getMessage());
         }
@@ -377,7 +377,7 @@ class SaglinjeController {
                 ');
                 $stmt->execute();
                 $ibcToday = (int)$stmt->fetchColumn();
-            } catch (\Exception $tableErr) {
+            } catch (\Throwable $tableErr) {
                 error_log('SaglinjeController::getLiveStats (saglinje_ibc): ' . $tableErr->getMessage());
             }
 
@@ -393,7 +393,7 @@ class SaglinjeController {
                     'ibcTarget' => $dagmal,
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getLiveStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
@@ -419,7 +419,7 @@ class SaglinjeController {
                 ');
                 $stmt->execute(['start' => $start, 'end' => $end]);
                 $cycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Exception $tableErr) {
+            } catch (\Throwable $tableErr) {
                 error_log('SaglinjeController::getStatistics (saglinje_ibc): ' . $tableErr->getMessage());
             }
 
@@ -432,7 +432,7 @@ class SaglinjeController {
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getStatistics: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
@@ -463,7 +463,7 @@ class SaglinjeController {
                 ");
                 $stmt->execute(['datum' => $datum]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) { error_log('SaglinjeController::getReport rows: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getReport rows: ' . $e->getMessage()); }
 
             $prevDatum = date('Y-m-d', strtotime($datum . ' -1 day'));
             $prevRows  = [];
@@ -476,7 +476,7 @@ class SaglinjeController {
                 ");
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('SaglinjeController::getReport prevRows: ' . $e->getMessage());
             }
 
@@ -514,7 +514,7 @@ class SaglinjeController {
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('SaglinjeController::getReport runtime: ' . $e->getMessage());
             }
 
@@ -542,7 +542,7 @@ class SaglinjeController {
                     'skift_data'      => $rows,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -576,7 +576,7 @@ class SaglinjeController {
                 ");
                 $stmt->execute(['dagar' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) { error_log('SaglinjeController::getOeeTrend inner: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getOeeTrend inner: ' . $e->getMessage()); }
 
             if (empty($rows)) {
                 echo json_encode([
@@ -637,7 +637,7 @@ class SaglinjeController {
                     'basta_ibc'     => $bestaIbc,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SaglinjeController::getOeeTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([

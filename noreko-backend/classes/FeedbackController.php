@@ -94,7 +94,7 @@ class FeedbackController {
             unset($item);
 
             echo json_encode(['success' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackController::myHistory: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av historik'], JSON_UNESCAPED_UNICODE);
@@ -137,7 +137,7 @@ class FeedbackController {
                 'total'        => (int) $row['total'],
                 'per_dag'      => $perDag,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackController::summary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av sammanfattning'], JSON_UNESCAPED_UNICODE);
@@ -231,7 +231,7 @@ class FeedbackController {
             $this->pdo->commit();
 
             echo json_encode(['success' => true, 'message' => 'Tack för din feedback!'], JSON_UNESCAPED_UNICODE);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

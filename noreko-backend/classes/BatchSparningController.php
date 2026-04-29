@@ -399,7 +399,7 @@ class BatchSparningController {
                     if ($diffDays > 365) {
                         $from = date('Y-m-d', strtotime($to . ' -365 days'));
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('BatchSparningController: datumberäkning fallback — ' . $e->getMessage());
                     $from = date('Y-m-d', strtotime('-30 days'));
                     $to   = date('Y-m-d');

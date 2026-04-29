@@ -74,7 +74,7 @@ class ProduktionskalenderController {
                 $map[(int)$r['number']] = $r['name'];
             }
             return $map;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getOperatorMap: ' . $e->getMessage());
             return [];
         }
@@ -136,7 +136,7 @@ class ProduktionskalenderController {
                 $prevTime    = $ts;
                 $prevRunning = $running;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getDrifttid: ' . $e->getMessage());
         }
 
@@ -199,7 +199,7 @@ class ProduktionskalenderController {
             $mStmt = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1");
             $mRow  = $mStmt->fetch(PDO::FETCH_ASSOC);
             if ($mRow) $mål = (int)$mRow['rebotling_target'];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getMonthData (settings): ' . $e->getMessage());
         }
 
@@ -337,7 +337,7 @@ class ProduktionskalenderController {
                     'kvalitet' => $this->kvalitet($ibcOk, $ibcEjOk),
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::buildVeckoData (prev): ' . $e->getMessage());
         }
 
@@ -517,7 +517,7 @@ class ProduktionskalenderController {
                 ];
             }
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getTop5Operatorer: ' . $e->getMessage());
             return [];
         }
@@ -550,7 +550,7 @@ class ProduktionskalenderController {
                 ];
             }
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getStopporsaker: ' . $e->getMessage());
             return [];
         }

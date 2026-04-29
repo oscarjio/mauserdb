@@ -89,7 +89,7 @@ class UnderhallsprognosController {
             $dt = new \DateTime($senasteUnderhall);
             $dt->modify("+{$intervallDagar} days");
             return $dt->format('Y-m-d H:i:s');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::beraknaNextDatum: ' . $e->getMessage());
             return null;
         }
@@ -105,7 +105,7 @@ class UnderhallsprognosController {
         try {
             $diff = (new \DateTime('today'))->diff(new \DateTime($nextDatum));
             return $diff->invert ? -$diff->days : $diff->days;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::dagarKvar: ' . $e->getMessage());
             return null;
         }
@@ -131,7 +131,7 @@ class UnderhallsprognosController {
         if ($senasteUnderhall === null) return 100.0;
         try {
             $elapsed = (new \DateTime($senasteUnderhall))->diff(new \DateTime('today'))->days;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::beraknaProgress: ' . $e->getMessage());
             return 100.0;
         }
@@ -294,7 +294,7 @@ class UnderhallsprognosController {
                 'nasta_underhall_datum'=> $nastaDatum,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
@@ -366,7 +366,7 @@ class UnderhallsprognosController {
                 'ok'        => count(array_filter($schema, fn($r) => $r['status'] === 'ok')),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::getSchedule: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta underhållsschema', 500);
         }
@@ -475,7 +475,7 @@ class UnderhallsprognosController {
                 'dagar'  => $days,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('UnderhallsprognosController::getHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }

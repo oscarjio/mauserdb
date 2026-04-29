@@ -90,7 +90,7 @@ class TidrapportController {
                     if ($diffDays > 365) {
                         $fromDate = date('Y-m-d', strtotime($toDate . ' -365 days'));
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('TidrapportController: datumberäkning fallback — ' . $e->getMessage());
                     $fromDate = date('Y-m-d', strtotime('-30 days'));
                     $toDate   = $today;

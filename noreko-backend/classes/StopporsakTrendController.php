@@ -241,7 +241,7 @@ class StopporsakTrendController {
                 'total_min_senaste_vecka'  => round((float)$totalMinSenaste, 1),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StopporsakTrendController::getWeekly: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckodata', 500);
         }
@@ -353,7 +353,7 @@ class StopporsakTrendController {
                 'foregaende_veckor' => $foregaende,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StopporsakTrendController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
@@ -432,7 +432,7 @@ class StopporsakTrendController {
                 'trend'         => $trend,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StopporsakTrendController::getDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta detaljdata', 500);
         }

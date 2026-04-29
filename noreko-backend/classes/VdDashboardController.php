@@ -93,7 +93,7 @@ class VdDashboardController {
             $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::getStationer: ' . $e->getMessage());
         }
 
@@ -137,7 +137,7 @@ class VdDashboardController {
         $drifttidSek = 0;
         try {
             $drifttidSek = $this->calcDrifttidSek($from, $to);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::calcOeeForDay (drifttid): ' . $e->getMessage());
         }
 
@@ -159,7 +159,7 @@ class VdDashboardController {
             $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
             $rawOk    = (int)($ibcRow['ok_ibc'] ?? 0);
             $okIbc    = $rawOk > 0 ? min($totalIbc, $rawOk) : $totalIbc;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::calcOeeForDay (ibc): ' . $e->getMessage());
         }
 
@@ -203,7 +203,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
                 $aktivaOperatorer = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::oversikt (aktiva op ibc): ' . $e->getMessage());
             }
 
@@ -222,7 +222,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                     $aktivaOperatorer = (int)$stmt->fetchColumn();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('VdDashboardController::oversikt (aktiva op rebotling_skiftrapport): ' . $e->getMessage());
                 }
             }
@@ -242,7 +242,7 @@ class VdDashboardController {
                     if ($row) {
                         $dagsmal = (int)$row['target_ibc'];
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('VdDashboardController::oversikt (produktions_mal): ' . $e->getMessage());
                 }
             }
@@ -262,7 +262,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->query($sql);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('VdDashboardController::oversikt (snitt ibc fallback): ' . $e->getMessage());
                 }
             }
@@ -281,7 +281,7 @@ class VdDashboardController {
                 'mal_procent'          => $dagsmal > 0 ? round(($oee['total_ibc'] / $dagsmal) * 100, 1) : 0,
                 'datum'                => $today,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::oversikt: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta oversikt', 500);
         }
@@ -317,7 +317,7 @@ class VdDashboardController {
                         $s['varaktighet_min'] = (int)$s['varaktighet_min'];
                     }
                     unset($s);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('VdDashboardController::stoppNu (stopporsak_registreringar): ' . $e->getMessage());
                 }
             }
@@ -330,7 +330,7 @@ class VdDashboardController {
                 if ($row && !(int)$row['running']) {
                     $stoppadeStationer[] = ['station_id' => 0, 'senaste_stopp' => $row['datum']];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::stoppNu (rebotling_onoff): ' . $e->getMessage());
             }
 
@@ -340,7 +340,7 @@ class VdDashboardController {
                 'stoppade_stationer' => $stoppadeStationer,
                 'allt_kor'           => count($aktivaStopp) === 0,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::stoppNu: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stoppstatus', 500);
         }
@@ -385,7 +385,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
                 $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());
             }
 
@@ -411,7 +411,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                     $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('VdDashboardController::topOperatorer (rebotling_skiftrapport): ' . $e->getMessage());
                 }
             }
@@ -428,7 +428,7 @@ class VdDashboardController {
                 'top_operatorer' => $operators,
                 'datum'          => $today,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::topOperatorer: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta topp-operatorer', 500);
         }
@@ -476,7 +476,7 @@ class VdDashboardController {
                         'total_ibc' => (int)round($totalAllIbc / $sc),
                     ];
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::stationOee (ibc): ' . $e->getMessage());
             }
 
@@ -486,7 +486,7 @@ class VdDashboardController {
                 $from = $today . ' 00:00:00';
                 $to   = date('Y-m-d', strtotime($today . ' +1 day')) . ' 00:00:00';
                 $totalDrifttidSek = $this->calcDrifttidSek($from, $to);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::stationOee (drifttid): ' . $e->getMessage());
             }
             // Dela drifttid lika mellan stationer (onoff saknar station_id)
@@ -524,7 +524,7 @@ class VdDashboardController {
                 'stationer' => $results,
                 'datum'     => $today,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::stationOee: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta station-OEE', 500);
         }
@@ -551,7 +551,7 @@ class VdDashboardController {
             $this->sendSuccess([
                 'trend' => $trend,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::veckotrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta veckotrend', 500);
         }
@@ -624,7 +624,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from_dt' => $skiftFromTime, ':to_dt' => $skiftToTime]);
                 $ibcAktuellt = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::skiftstatus (aktuellt ibc): ' . $e->getMessage());
             }
 
@@ -653,7 +653,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from_dt' => $fFrom, ':to_dt' => $fTo]);
                 $ibcForra = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VdDashboardController::skiftstatus (forra ibc): ' . $e->getMessage());
             }
 
@@ -667,7 +667,7 @@ class VdDashboardController {
                 'ibc_forra'       => $ibcForra,
                 'jamforelse'      => $ibcForra > 0 ? round((($ibcAktuellt - $ibcForra) / $ibcForra) * 100, 1) : 0,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VdDashboardController::skiftstatus: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta skiftstatus', 500);
         }

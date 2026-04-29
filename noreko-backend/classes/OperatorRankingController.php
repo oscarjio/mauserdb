@@ -500,7 +500,7 @@ class OperatorRankingController {
                 'from_date'        => $from,
                 'to_date'          => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -521,7 +521,7 @@ class OperatorRankingController {
                 'from_date' => $from,
                 'to_date'   => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::ranking: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta ranking', 500);
         }
@@ -543,7 +543,7 @@ class OperatorRankingController {
                 'from_date' => $from,
                 'to_date'   => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::topplista: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta topplista', 500);
         }
@@ -577,7 +577,7 @@ class OperatorRankingController {
                 'from_date'  => $from,
                 'to_date'    => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::poangfordelning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta poangfordelning', 500);
         }
@@ -714,7 +714,7 @@ class OperatorRankingController {
                 'datasets'   => $datasets,
                 'operatorer' => array_values($operatorNames),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::historik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta historikdata', 500);
         }
@@ -746,7 +746,7 @@ class OperatorRankingController {
                 'from_date' => $from,
                 'to_date'   => $to,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorRankingController::mvp: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta MVP', 500);
         }

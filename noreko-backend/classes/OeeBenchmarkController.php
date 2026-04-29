@@ -241,7 +241,7 @@ class OeeBenchmarkController {
                 'to_date'        => $toDate,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeBenchmarkController::getCurrentOee: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna OEE', 500);
         }
@@ -312,7 +312,7 @@ class OeeBenchmarkController {
                 'days'                => $days,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeBenchmarkController::getBenchmark: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta benchmark-data', 500);
         }
@@ -358,7 +358,7 @@ class OeeBenchmarkController {
                 'days'       => $days,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeBenchmarkController::getTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta trenddata', 500);
         }
@@ -446,7 +446,7 @@ class OeeBenchmarkController {
                 'days'       => $days,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeBenchmarkController::getBreakdown: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta breakdown-data', 500);
         }

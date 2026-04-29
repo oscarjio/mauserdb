@@ -94,7 +94,7 @@ class OeeTrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM maskin_register WHERE aktiv = 1 ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::getStationer: ' . $e->getMessage());
         }
 
@@ -233,7 +233,7 @@ class OeeTrendanalysController {
                 $driftByStation[(int)$s['id']] = (int)($totalDrift / $stationCount);
             }
             // (Dead code removed: dummy loop with empty array)
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::calcOeePerStation drifttid: ' . $e->getMessage());
         }
 
@@ -392,7 +392,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -466,7 +466,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::perStation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationsdata', 500);
         }
@@ -639,7 +639,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::trend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
         }
@@ -733,7 +733,7 @@ class OeeTrendanalysController {
                         $stoppInfo[$fItem['station_id']] = $topOrsak;
                     }
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('OeeTrendanalysController::flaskhalsar stopporsaker: ' . $e->getMessage());
             }
 
@@ -751,7 +751,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::flaskhalsar: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta flaskhalsar', 500);
         }
@@ -862,7 +862,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::jamforelse: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
@@ -964,7 +964,7 @@ class OeeTrendanalysController {
             $jsonResult = json_encode(['success' => true, 'data' => $responseData, 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OeeTrendanalysController::prediktion: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta prediktionsdata', 500);
         }
