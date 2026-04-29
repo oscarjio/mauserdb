@@ -302,6 +302,8 @@ class RebotlingController {
                 $this->getSasongsanalys();
             } elseif ($action === 'produktionsrytm') {
                 $this->getProduktionsrytm();
+            } elseif ($action === 'fart-kvalitet') {
+                $this->getSpeedQualityCorrelation();
             } else {
                 $this->getLiveStats();
             }
@@ -9800,51 +9802,7 @@ class RebotlingController {
             $from = date('Y-m-d', strtotime("-{$days} days"));
             $to   = date('Y-m-d');
 
-            // Deduplicate by skiftraknare, assign skifttyp from created_at hour
             $sql = "
-                SELECT
-                    DAYOFWEEK(datum)      AS dow,
-                    CASE
-                        WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
-                        WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
-                        ELSE 'natt'
-                    END                   AS skift_typ,
-                    SUM(MAX(COALESCE(ibc_ok,0)))     AS tot_ibc,
-                    SUM(MAX(COALESCE(drifttid,0)))   AS tot_min,
-                    COUNT(DISTINCT skiftraknare)     AS antal_skift
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to
-                  AND ibc_ok > 0
-                  AND drifttid >= 30
-                GROUP BY DAYOFWEEK(datum), skiftraknare
-            ";
-            // Wrap in outer query to aggregate properly per (dow, skift_typ)
-            $sqlOuter = "
-                SELECT dow, skift_typ,
-                       SUM(max_ibc)    AS tot_ibc,
-                       SUM(max_min)    AS tot_min,
-                       COUNT(*)        AS antal_skift
-                FROM (
-                    SELECT
-                        DAYOFWEEK(datum) AS dow,
-                        skiftraknare,
-                        CASE
-                            WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
-                            WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
-                            ELSE 'natt'
-                        END AS skift_typ,
-                        MAX(COALESCE(ibc_ok, 0))    AS max_ibc,
-                        MAX(COALESCE(drifttid, 0))  AS max_min
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from AND :to
-                      AND ibc_ok > 0
-                      AND drifttid >= 30
-                    GROUP BY DAYOFWEEK(datum), skiftraknare, created_at
-                ) inner_q
-                GROUP BY dow, skift_typ
-            ";
-            // Simpler and correct: group inner by (dow, skiftraknare) and determine skifttyp per skiftraknare
-            $correctSql = "
                 SELECT dow, skift_typ,
                        SUM(max_ibc)    AS tot_ibc,
                        SUM(max_min)    AS tot_min,
@@ -9869,13 +9827,14 @@ class RebotlingController {
                 GROUP BY dow, skift_typ
             ";
 
-            $stmt = $this->pdo->prepare($correctSql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':from' => $from, ':to' => $to]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             // Compute IBC/h for each cell and build indexed grid
             $cells = [];
-            $allIbcH = [];
+            $totalIbc = 0;
+            $totalMin = 0;
             foreach ($rows as $r) {
                 $dow  = (int)$r['dow'];  // 1=Sun,2=Mon,...,7=Sat
                 $typ  = $r['skift_typ'];
@@ -9885,14 +9844,16 @@ class RebotlingController {
                 $cells[$typ][$dow] = [
                     'ibc_per_h'   => $ibch,
                     'tot_ibc'     => (int)$r['tot_ibc'],
+                    'tot_min'     => (int)$r['tot_min'],
                     'antal_skift' => (int)$r['antal_skift'],
                 ];
-                if ($ibch > 0) $allIbcH[] = $ibch;
+                $totalIbc += (int)$r['tot_ibc'];
+                $totalMin += (int)$r['tot_min'];
             }
 
-            // Period average IBC/h across all cells
-            $periodAvg = count($allIbcH) > 0
-                ? round(array_sum($allIbcH) / count($allIbcH), 2)
+            // Period average IBC/h — SUM/SUM across all cells (not AVG-of-cell-rates)
+            $periodAvg = $totalMin > 0
+                ? round($totalIbc * 60.0 / $totalMin, 2)
                 : 0;
 
             // Build structured grid: rows = [dag, kvall, natt], cols = Mon-Sun (dow 2..7,1)
@@ -9910,7 +9871,8 @@ class RebotlingController {
                     'cells'       => [],
                     'row_avg'     => 0,
                 ];
-                $rowIbcH = [];
+                $rowIbc = 0;
+                $rowMin = 0;
                 foreach ($dowOrder as $di => $dow) {
                     $cell = $cells[$typ][$dow] ?? null;
                     $ibch = $cell ? $cell['ibc_per_h'] : null;
@@ -9924,25 +9886,33 @@ class RebotlingController {
                             ? round(($ibch / $periodAvg - 1) * 100, 1)
                             : null,
                     ];
-                    if ($ibch !== null && $ibch > 0) $rowIbcH[] = $ibch;
+                    if ($cell) {
+                        $rowIbc += $cell['tot_ibc'];
+                        $rowMin += $cell['tot_min'];
+                    }
                 }
-                $row['row_avg'] = count($rowIbcH) > 0
-                    ? round(array_sum($rowIbcH) / count($rowIbcH), 2)
+                // row_avg: SUM/SUM across all weekdays in this shift type
+                $row['row_avg'] = $rowMin > 0
+                    ? round($rowIbc * 60.0 / $rowMin, 2)
                     : 0;
                 $grid[] = $row;
             }
 
-            // Column averages (per weekday across all shift types)
+            // Column averages (per weekday across all shift types) — SUM/SUM
             $colAvgs = [];
             foreach ($dowOrder as $di => $dow) {
-                $vals = [];
+                $colIbc = 0;
+                $colMin = 0;
                 foreach ($skiftTypar as $typ) {
-                    $ibch = $cells[$typ][$dow]['ibc_per_h'] ?? null;
-                    if ($ibch !== null && $ibch > 0) $vals[] = $ibch;
+                    $cell = $cells[$typ][$dow] ?? null;
+                    if ($cell) {
+                        $colIbc += $cell['tot_ibc'];
+                        $colMin += $cell['tot_min'];
+                    }
                 }
                 $colAvgs[] = [
                     'dag_namn' => $dowLabels[$di],
-                    'avg'      => count($vals) > 0 ? round(array_sum($vals) / count($vals), 2) : 0,
+                    'avg'      => $colMin > 0 ? round($colIbc * 60.0 / $colMin, 2) : 0,
                 ];
             }
 
@@ -9975,6 +9945,168 @@ class RebotlingController {
             error_log('RebotlingController::getProduktionsrytm: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsrytm'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getSpeedQualityCorrelation(): void {
+        $days = (int)($_GET['days'] ?? 90);
+        $days = in_array($days, [30, 90, 180, 365]) ? $days : 90;
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            $sql = "
+                SELECT
+                    d.skiftraknare,
+                    d.datum,
+                    DAYOFWEEK(d.datum) AS dow,
+                    d.op1, d.op2, d.op3,
+                    d.product_id,
+                    COALESCE(p.name, CONCAT('Produkt ', d.product_id)) AS product_name,
+                    d.start_hour,
+                    d.ibc_ok / (d.drifttid / 60.0)                                AS ibc_h,
+                    d.ibc_ej_ok / (d.ibc_ok + d.ibc_ej_ok) * 100                  AS kass_pct
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        datum,
+                        MAX(ibc_ok)         AS ibc_ok,
+                        MAX(ibc_ej_ok)      AS ibc_ej_ok,
+                        MAX(drifttid)       AS drifttid,
+                        MAX(op1)            AS op1,
+                        MAX(op2)            AS op2,
+                        MAX(op3)            AS op3,
+                        MAX(product_id)     AS product_id,
+                        HOUR(MIN(created_at)) AS start_hour
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) d
+                LEFT JOIN rebotling_products p ON d.product_id = p.id
+                WHERE d.drifttid > 0
+                  AND d.ibc_ok + d.ibc_ej_ok > 0
+                  AND d.ibc_ok > 0
+                ORDER BY d.datum
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $DOW_LABELS = ['', 'Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+
+            $shifts      = [];
+            $ibchVals    = [];
+            $kassVals    = [];
+
+            foreach ($rows as $row) {
+                $ibcH    = (float)$row['ibc_h'];
+                $kassPct = (float)$row['kass_pct'];
+
+                if ($ibcH <= 0 || $ibcH > 150) continue;
+                if ($kassPct < 0 || $kassPct > 100) continue;
+
+                $h = (int)$row['start_hour'];
+                if ($h >= 6 && $h < 14)       $skiftTyp = 'Dag';
+                elseif ($h >= 14 && $h < 22)   $skiftTyp = 'Kväll';
+                else                            $skiftTyp = 'Natt';
+
+                $shifts[] = [
+                    'skiftraknare' => (int)$row['skiftraknare'],
+                    'datum'        => $row['datum'],
+                    'ibc_h'        => round($ibcH, 2),
+                    'kass_pct'     => round($kassPct, 2),
+                    'product_id'   => (int)$row['product_id'],
+                    'product_name' => $row['product_name'],
+                    'shift_type'   => $skiftTyp,
+                    'dow'          => (int)$row['dow'],
+                    'dow_label'    => $DOW_LABELS[(int)$row['dow']] ?? '',
+                    'op1'          => (int)$row['op1'],
+                    'op2'          => (int)$row['op2'],
+                    'op3'          => (int)$row['op3'],
+                ];
+                $ibchVals[] = $ibcH;
+                $kassVals[] = $kassPct;
+            }
+
+            $count = count($shifts);
+            $meanIbcH    = $count > 0 ? array_sum($ibchVals) / $count : 0;
+            $meanKassPct = $count > 0 ? array_sum($kassVals)  / $count : 0;
+
+            $sortedIbc  = $ibchVals; sort($sortedIbc);
+            $sortedKass = $kassVals;  sort($sortedKass);
+            $mid = (int)floor($count / 2);
+            $medianIbcH    = $count > 0 ? (($count % 2 === 0) ? ($sortedIbc[$mid-1]  + $sortedIbc[$mid])  / 2 : $sortedIbc[$mid])  : 0;
+            $medianKassPct = $count > 0 ? (($count % 2 === 0) ? ($sortedKass[$mid-1] + $sortedKass[$mid]) / 2 : $sortedKass[$mid]) : 0;
+
+            // Pearson correlation
+            $corr = 0;
+            if ($count > 1) {
+                $sumX = 0; $sumY = 0; $sumXY = 0; $sumX2 = 0; $sumY2 = 0;
+                foreach ($shifts as $s) {
+                    $x = $s['ibc_h']; $y = $s['kass_pct'];
+                    $sumX  += $x;  $sumY  += $y;
+                    $sumXY += $x * $y;
+                    $sumX2 += $x * $x;
+                    $sumY2 += $y * $y;
+                }
+                $n = $count;
+                $denom = sqrt(($n * $sumX2 - $sumX * $sumX) * ($n * $sumY2 - $sumY * $sumY));
+                if ($denom > 0) $corr = ($n * $sumXY - $sumX * $sumY) / $denom;
+            }
+
+            $abs = abs($corr);
+            if ($abs >= 0.7)      $corrStr = $corr > 0 ? 'stark positiv' : 'stark negativ';
+            elseif ($abs >= 0.4)  $corrStr = $corr > 0 ? 'måttlig positiv' : 'måttlig negativ';
+            elseif ($abs >= 0.2)  $corrStr = $corr > 0 ? 'svag positiv' : 'svag negativ';
+            else                  $corrStr = 'ingen korrelation';
+
+            // Quadrant counts (relative to medians)
+            $q = ['elite' => 0, 'snabb' => 0, 'noggrann' => 0, 'svag' => 0];
+            foreach ($shifts as $s) {
+                $hi = $s['ibc_h']    >= $medianIbcH;
+                $lo = $s['kass_pct'] <= $medianKassPct;
+                if ($hi && $lo)  $q['elite']++;
+                elseif ($hi)     $q['snabb']++;
+                elseif ($lo)     $q['noggrann']++;
+                else             $q['svag']++;
+            }
+
+            // Product summary
+            $prodCounts = [];
+            foreach ($shifts as $s) {
+                $pid = $s['product_id'];
+                if (!isset($prodCounts[$pid])) {
+                    $prodCounts[$pid] = ['id' => $pid, 'name' => $s['product_name'], 'count' => 0];
+                }
+                $prodCounts[$pid]['count']++;
+            }
+            usort($prodCounts, fn($a, $b) => $b['count'] - $a['count']);
+
+            echo json_encode([
+                'success'   => true,
+                'shifts'    => $shifts,
+                'stats'     => [
+                    'count'           => $count,
+                    'mean_ibc_h'      => round($meanIbcH, 2),
+                    'mean_kass_pct'   => round($meanKassPct, 2),
+                    'median_ibc_h'    => round($medianIbcH, 2),
+                    'median_kass_pct' => round($medianKassPct, 2),
+                    'correlation'     => round($corr, 3),
+                    'corr_strength'   => $corrStr,
+                ],
+                'quadrants' => $q,
+                'products'  => array_values($prodCounts),
+                'from'      => $from,
+                'to'        => $to,
+                'days'      => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSpeedQualityCorrelation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-kvalitet-analys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
