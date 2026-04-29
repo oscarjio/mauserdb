@@ -1,0 +1,231 @@
+<div class="mp-page">
+
+  <!-- Header -->
+  <div class="mp-header">
+    <h1 class="mp-title">
+      <i class="fas fa-cogs me-2" style="color:#76e4f7"></i>
+      Maskinpark-Analys
+    </h1>
+    <p class="mp-subtitle">
+      Stopptidsanalys per maskin — identifiera flaskhalsar och trender
+    </p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="mp-controls">
+    <span class="mp-ctrl-label">Period:</span>
+    <div class="mp-btn-group">
+      <button *ngFor="let opt of daysOptions"
+              class="mp-period-btn"
+              [class.active]="days === opt.value"
+              (click)="setDays(opt.value)">
+        {{ opt.label }}
+      </button>
+    </div>
+    <span class="mp-period-range" *ngIf="overview">
+      {{ overview.from_date }} — {{ overview.to_date }}
+    </span>
+  </div>
+
+  <!-- Loading / Error for overview -->
+  <div *ngIf="loadingOverview && !overview" class="mp-loading">
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="ms-3 text-muted">Hämtar maskindata...</span>
+  </div>
+
+  <!-- KPI Row -->
+  <div *ngIf="overview" class="mp-kpi-row">
+    <div class="mp-kpi-card">
+      <span class="mp-kpi-icon"><i class="fas fa-clock"></i></span>
+      <span class="mp-kpi-num">{{ (overview.total_idag_min / 60).toFixed(1) }} h</span>
+      <span class="mp-kpi-lbl">Stopptid idag</span>
+      <span class="mp-kpi-sub">{{ overview.antal_stopp_idag }} stopp, snitt {{ overview.snitt_per_stopp_min }} min</span>
+    </div>
+    <div class="mp-kpi-card">
+      <span class="mp-kpi-icon"><i class="fas fa-calendar-alt"></i></span>
+      <span class="mp-kpi-num">{{ totalPeriodH }} h</span>
+      <span class="mp-kpi-lbl">Stopptid perioden</span>
+      <span class="mp-kpi-sub">{{ days }} dagar totalt</span>
+    </div>
+    <div class="mp-kpi-card" *ngIf="overview.flaskhals_maskin">
+      <span class="mp-kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></span>
+      <span class="mp-kpi-num mp-kpi-bottleneck">{{ overview.flaskhals_maskin }}</span>
+      <span class="mp-kpi-lbl">Flaskhals-maskin</span>
+      <span class="mp-kpi-sub">{{ overview.flaskhals_maskin_min }} min total</span>
+    </div>
+    <div class="mp-kpi-card" [ngClass]="trendClass()">
+      <span class="mp-kpi-icon"><i class="fas fa-chart-line"></i></span>
+      <span class="mp-kpi-num">
+        {{ trendIcon() }} {{ Math.abs(overview.trend_diff_min).toFixed(0) }} min
+      </span>
+      <span class="mp-kpi-lbl">Trend vs föregående period</span>
+      <span class="mp-kpi-sub">
+        <span *ngIf="overview.trend_direction === 'up'" class="text-danger">Fler stopp</span>
+        <span *ngIf="overview.trend_direction === 'down'" class="text-success">Färre stopp</span>
+        <span *ngIf="overview.trend_direction === 'flat'" class="text-muted">Stabilt</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- No data state -->
+  <div *ngIf="!loadingMaskiner && !errorMaskiner && maskiner.length === 0 && !loadingOverview" class="mp-empty">
+    <i class="fas fa-info-circle fa-2x mb-2 text-muted"></i>
+    <p>Inga maskinstoppar registrerade för perioden.<br>
+       Stoppar loggas via Underhållsloggen.</p>
+  </div>
+
+  <ng-container *ngIf="maskiner.length > 0">
+
+    <!-- Charts row -->
+    <div class="mp-charts-row">
+
+      <!-- Horizontal bar: per machine -->
+      <div class="mp-chart-card mp-chart-bar">
+        <h3 class="mp-chart-title">
+          <i class="fas fa-bars me-2" style="color:#63b3ed"></i>
+          Stopptid per maskin
+        </h3>
+        <div class="mp-bar-wrap">
+          <canvas #barCanvas></canvas>
+        </div>
+      </div>
+
+      <!-- Donut: category breakdown -->
+      <div class="mp-chart-card mp-chart-donut">
+        <h3 class="mp-chart-title">
+          <i class="fas fa-chart-pie me-2" style="color:#a78bfa"></i>
+          Stopporsaks-fördelning
+        </h3>
+        <div class="mp-donut-wrap">
+          <canvas #donutCanvas></canvas>
+        </div>
+        <!-- Kategori pills -->
+        <div class="mp-kat-pills" *ngIf="kategoriStats.length">
+          <div *ngFor="let k of kategoriStats" class="mp-kat-pill">
+            <span class="mp-kat-dot" [style.background]="k.color"></span>
+            <span class="mp-kat-name">{{ k.label }}</span>
+            <span class="mp-kat-pct">{{ k.pct }}%</span>
+            <span class="mp-kat-min">{{ k.total_min.toFixed(0) }} min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Machine table -->
+    <div class="mp-section">
+      <h3 class="mp-section-title">
+        <i class="fas fa-table me-2" style="color:#f6ad55"></i>
+        Maskiner — detaljvy
+      </h3>
+      <div class="mp-table-wrap">
+        <table class="mp-table">
+          <thead>
+            <tr>
+              <th>Maskin</th>
+              <th class="mp-th-sort" (click)="setSort('total_min')">
+                Total stopptid
+                <i class="fas" [class.fa-sort-down]="sortCol==='total_min' && sortDesc" [class.fa-sort-up]="sortCol==='total_min' && !sortDesc" [class.fa-sort]="sortCol!=='total_min'"></i>
+              </th>
+              <th class="mp-th-sort" (click)="setSort('antal_stopp')">
+                Antal stopp
+                <i class="fas" [class.fa-sort-down]="sortCol==='antal_stopp' && sortDesc" [class.fa-sort-up]="sortCol==='antal_stopp' && !sortDesc" [class.fa-sort]="sortCol!=='antal_stopp'"></i>
+              </th>
+              <th class="mp-th-sort" (click)="setSort('snitt_min')">
+                Snitt/stopp
+                <i class="fas" [class.fa-sort-down]="sortCol==='snitt_min' && sortDesc" [class.fa-sort-up]="sortCol==='snitt_min' && !sortDesc" [class.fa-sort]="sortCol!=='snitt_min'"></i>
+              </th>
+              <th class="mp-th-sort" (click)="setSort('max_stopp_min')">
+                Längsta stopp
+                <i class="fas" [class.fa-sort-down]="sortCol==='max_stopp_min' && sortDesc" [class.fa-sort-up]="sortCol==='max_stopp_min' && !sortDesc" [class.fa-sort]="sortCol!=='max_stopp_min'"></i>
+              </th>
+              <th>Andel</th>
+              <th>Senaste stopp</th>
+              <th>Filter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of sortedMaskiner" class="mp-table-row"
+                [class.mp-row-selected]="filterMaskinId === m.maskin_id">
+              <td class="mp-maskin-name">{{ m.maskin_namn }}</td>
+              <td>
+                <span class="mp-time-pill mp-time-total">{{ durationLabel(m.total_min) }}</span>
+              </td>
+              <td class="text-center">{{ m.antal_stopp }}</td>
+              <td>{{ durationLabel(m.snitt_min) }}</td>
+              <td>{{ durationLabel(m.max_stopp_min) }}</td>
+              <td>
+                <div class="mp-share-bar-wrap">
+                  <div class="mp-share-bar" [style.width.%]="m.andel_pct"></div>
+                  <span class="mp-share-pct">{{ m.andel_pct }}%</span>
+                </div>
+              </td>
+              <td class="mp-date-cell">{{ m.senaste_stopp | date:'dd MMM HH:mm' }}</td>
+              <td>
+                <button class="mp-filter-btn"
+                        [class.active]="filterMaskinId === m.maskin_id"
+                        (click)="filterMaskinId === m.maskin_id ? setMaskinFilter(0) : setMaskinFilter(m.maskin_id)">
+                  {{ filterMaskinId === m.maskin_id ? 'Visa alla' : 'Filtrera' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Incident log -->
+    <div class="mp-section">
+      <h3 class="mp-section-title">
+        <i class="fas fa-list me-2" style="color:#68d391"></i>
+        Stoppincidenter
+        <span class="mp-incident-count">
+          {{ filteredStopp.length }} poster
+          <span *ngIf="filterMaskinId" class="mp-filter-active">
+            — filtrerat
+            <button class="mp-clear-filter" (click)="setMaskinFilter(0)">✕ rensa</button>
+          </span>
+        </span>
+      </h3>
+      <div class="mp-incident-wrap">
+        <table class="mp-table mp-incident-table">
+          <thead>
+            <tr>
+              <th>Tidpunkt</th>
+              <th>Maskin</th>
+              <th>Varaktighet</th>
+              <th>Kategori</th>
+              <th>Orsak</th>
+              <th>Operatör</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of filteredStopp" class="mp-incident-row">
+              <td class="mp-date-cell">{{ s.startad_at | date:'dd MMM HH:mm' }}</td>
+              <td class="mp-maskin-name">{{ s.maskin_namn }}</td>
+              <td>
+                <span class="mp-time-pill" [class.mp-time-long]="s.duration_min >= 60">
+                  {{ durationLabel(s.duration_min) }}
+                </span>
+              </td>
+              <td>
+                <span class="mp-kat-badge"
+                      [style.background]="kategoriColor(s.orsak_kategori) + '33'"
+                      [style.border-color]="kategoriColor(s.orsak_kategori)"
+                      [style.color]="kategoriColor(s.orsak_kategori)">
+                  {{ kategoriLabel(s.orsak_kategori) }}
+                </span>
+              </td>
+              <td>{{ s.orsak }}</td>
+              <td>{{ s.operator_namn }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="filteredStopp.length === 0" class="mp-empty-table">
+          Inga incidenter för det valda filtret.
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
