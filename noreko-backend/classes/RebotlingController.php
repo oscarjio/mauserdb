@@ -9572,6 +9572,7 @@ class RebotlingController {
             }
 
             $scatter      = [];
+            $rawPoints    = []; // raw ibc/drift/rast for SUM/SUM comparison
             $totalRast    = 0;
             $totalDrift   = 0;
             $totalIbc     = 0;
@@ -9596,6 +9597,7 @@ class RebotlingController {
                     'drifttid'     => $drift,
                     'driftstopp'   => $stopp,
                 ];
+                $rawPoints[] = ['rast' => $rast, 'ibc' => $ibc, 'drift' => $drift];
 
                 $totalRast  += $rast;
                 $totalDrift += $drift;
@@ -9629,14 +9631,14 @@ class RebotlingController {
             $teamIbcH= $totalDrift > 0 ? round($totalIbc / ($totalDrift / 60.0), 2) : 0.0;
             $avgRastPct = $avgDrift > 0 ? round($avgRast / $avgDrift * 100.0, 1) : 0.0;
 
-            // IBC/h comparison: short-break skift vs long-break skift
-            $shortIbcH = []; $longIbcH = [];
-            foreach ($scatter as $p) {
-                if ($p['rasttime'] < $avgRast) $shortIbcH[] = $p['ibc_per_h'];
-                else                            $longIbcH[]  = $p['ibc_per_h'];
+            // IBC/h comparison: short-break vs long-break shifts — SUM/SUM (not AVG-of-ratios)
+            $shortIbc = 0; $shortMin = 0; $longIbc = 0; $longMin = 0;
+            foreach ($rawPoints as $r) {
+                if ($r['rast'] < $avgRast) { $shortIbc += $r['ibc']; $shortMin += $r['drift']; }
+                else                        { $longIbc  += $r['ibc']; $longMin  += $r['drift']; }
             }
-            $ibcHShort = count($shortIbcH) > 0 ? round(array_sum($shortIbcH) / count($shortIbcH), 2) : null;
-            $ibcHLong  = count($longIbcH)  > 0 ? round(array_sum($longIbcH)  / count($longIbcH),  2) : null;
+            $ibcHShort = $shortMin > 0 ? round($shortIbc / ($shortMin / 60.0), 2) : null;
+            $ibcHLong  = $longMin  > 0 ? round($longIbc  / ($longMin  / 60.0), 2) : null;
 
             ksort($weeklyTrend);
             $trend = [];
