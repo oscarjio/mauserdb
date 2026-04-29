@@ -183,6 +183,7 @@ export const routes: Routes = [
       { path: 'rebotling/fart-kvalitet', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-kvalitet/fart-kvalitet').then(m => m.FartKvalitetPage) },
       { path: 'rebotling/stopptidsmonster', canActivate: [adminGuard], loadComponent: () => import('./pages/stopptidsmonster/stopptidsmonster').then(m => m.StopptidsmönsterPage) },
       { path: 'rebotling/fart-produkt-matris', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-produkt-matris/fart-produkt-matris').then(m => m.FartProduktMatrisPage) },
+      { path: 'rebotling/fart-stopp', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-stopp/fart-stopp').then(m => m.FartStoppPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
