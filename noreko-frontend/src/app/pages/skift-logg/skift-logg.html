@@ -1,0 +1,143 @@
+<div class="logg-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h2 class="page-title"><i class="fas fa-list-alt me-2"></i>Skiftlogg</h2>
+    <p class="page-subtitle">Sökbar och filtrerbar historik över alla skift — datum, operatörer, produkt, IBC/h och kassation</p>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-card card-dark">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">Period</label>
+        <div class="preset-btns">
+          <button *ngFor="let opt of daysOptions" class="preset-btn" [class.active]="days === opt.value" (click)="applyPreset(opt.value)">{{ opt.label }}</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Från</label>
+        <input type="date" class="filter-input" [(ngModel)]="from" (change)="fetchData()">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Till</label>
+        <input type="date" class="filter-input" [(ngModel)]="to" (change)="fetchData()">
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">Operatör</label>
+        <select class="filter-select" [(ngModel)]="filterOp" (change)="fetchData()">
+          <option [ngValue]="0">Alla operatörer</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Produkt</label>
+        <select class="filter-select" [(ngModel)]="filterProduct" (change)="fetchData()">
+          <option [ngValue]="0">Alla produkter</option>
+          <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+      <div class="filter-group filter-actions">
+        <button class="btn-reset" (click)="resetFilters()"><i class="fas fa-times me-1"></i>Rensa filter</button>
+        <button class="btn-export" (click)="exportCsv()" [disabled]="shifts.length === 0"><i class="fas fa-download me-1"></i>CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <span>Hämtar skiftlogg…</span>
+  </div>
+  <div *ngIf="!loading && error" class="error-state">{{ error }}</div>
+
+  <!-- KPI row -->
+  <div class="kpi-row" *ngIf="!loading && !error && kpi">
+    <div class="kpi-card">
+      <div class="kpi-label">Skift</div>
+      <div class="kpi-value">{{ kpi.total_shifts }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total IBC ok</div>
+      <div class="kpi-value">{{ kpi.total_ibc | number:'1.0-0' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Snitt IBC/h</div>
+      <div class="kpi-value">{{ kpi.avg_ibch | number:'1.1-1' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Snitt kassation</div>
+      <div class="kpi-value">{{ kpi.avg_kass_pct | number:'1.1-1' }}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Snitt stoppgrad</div>
+      <div class="kpi-value">{{ kpi.avg_stopp_pct | number:'1.1-1' }}%</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap card-dark" *ngIf="!loading && !error && shifts.length > 0">
+    <table class="logg-table">
+      <thead>
+        <tr>
+          <th class="sortable" (click)="sortBy('skiftraknare')">
+            Skift# <i [class]="sortIcon('skiftraknare')"></i>
+          </th>
+          <th class="sortable" (click)="sortBy('datum')">
+            Datum <i [class]="sortIcon('datum')"></i>
+          </th>
+          <th>Operatörer</th>
+          <th>Produkt</th>
+          <th class="sortable num" (click)="sortBy('ibc_ok')">
+            IBC ok <i [class]="sortIcon('ibc_ok')"></i>
+          </th>
+          <th class="sortable num" (click)="sortBy('ibc_per_h')">
+            IBC/h <i [class]="sortIcon('ibc_per_h')"></i>
+          </th>
+          <th class="sortable num" (click)="sortBy('kassation_pct')">
+            Kass% <i [class]="sortIcon('kassation_pct')"></i>
+          </th>
+          <th class="sortable num" (click)="sortBy('stopp_pct')">
+            Stopp% <i [class]="sortIcon('stopp_pct')"></i>
+          </th>
+          <th class="num">Drifttid</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of shifts">
+          <td>
+            <a [routerLink]="['/rebotling/skift-insikt']" [queryParams]="{nr: s.skiftraknare}" class="shift-link">#{{ s.skiftraknare }}</a>
+          </td>
+          <td>{{ s.datum }}</td>
+          <td class="ops-cell">
+            <span class="op-pill" *ngIf="s.op1_name !== '-'">{{ s.op1_name }}</span>
+            <span class="op-pill" *ngIf="s.op2_name !== '-'">{{ s.op2_name }}</span>
+            <span class="op-pill" *ngIf="s.op3_name !== '-'">{{ s.op3_name }}</span>
+          </td>
+          <td class="prod-cell">{{ s.product_name !== '-' ? s.product_name : '' }}</td>
+          <td class="num">{{ s.ibc_ok }}</td>
+          <td class="num">
+            <span class="ibch-val" [class.ibch-hi]="s.ibc_per_h >= (kpi?.avg_ibch ?? 0) * 1.1" [class.ibch-lo]="s.ibc_per_h < (kpi?.avg_ibch ?? 0) * 0.9">
+              {{ s.ibc_per_h | number:'1.1-1' }}
+            </span>
+          </td>
+          <td class="num">
+            <span [class.kass-hi]="s.kassation_pct > 8" [class.kass-ok]="s.kassation_pct <= 3">{{ s.kassation_pct | number:'1.1-1' }}%</span>
+          </td>
+          <td class="num">
+            <span [class.stopp-hi]="s.stopp_pct > 20">{{ s.stopp_pct | number:'1.1-1' }}%</span>
+          </td>
+          <td class="num">{{ Math.round(s.drifttid / 60 * 10) / 10 }}h</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="row-count">Visar {{ shifts.length }} skift</div>
+  </div>
+
+  <div *ngIf="!loading && !error && shifts.length === 0" class="empty-state">
+    Inga skift hittades för valda filter.
+  </div>
+
+</div>

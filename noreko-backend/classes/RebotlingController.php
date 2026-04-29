@@ -342,6 +342,8 @@ class RebotlingController {
                 $this->getKassationstyper();
             } elseif ($action === 'positions-specialisering') {
                 $this->getPositionsSpecialisering();
+            } elseif ($action === 'skift-logg') {
+                $this->getSkiftLogg();
             } else {
                 $this->getLiveStats();
             }
@@ -13212,6 +13214,124 @@ class RebotlingController {
             error_log('RebotlingController::getPositionsSpecialisering: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid positionsspecialisering'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=skift-logg&from=YYYY-MM-DD&to=YYYY-MM-DD[&op=N][&product=N][&sort=datum][&dir=desc]
+    private function getSkiftLogg(): void {
+        $from    = $_GET['from']    ?? date('Y-m-d', strtotime('-90 days'));
+        $to      = $_GET['to']      ?? date('Y-m-d');
+        $op      = isset($_GET['op'])      ? (int)$_GET['op']      : 0;
+        $prod    = isset($_GET['product']) ? (int)$_GET['product'] : 0;
+        $sort    = $_GET['sort']    ?? 'datum';
+        $dir     = strtoupper($_GET['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+
+        $allowed = ['datum', 'skiftraknare', 'ibc_ok', 'ibc_per_h', 'kassation_pct', 'stopp_pct'];
+        if (!in_array($sort, $allowed, true)) $sort = 'datum';
+
+        try {
+            $params = [':from' => $from, ':to' => $to];
+
+            $outerParts = [];
+            if ($op > 0) {
+                $outerParts[] = '(s.op1 = :op OR s.op2 = :op OR s.op3 = :op)';
+                $params[':op'] = $op;
+            }
+            if ($prod > 0) {
+                $outerParts[] = 's.product_id = :prod';
+                $params[':prod'] = $prod;
+            }
+            $outerWhere = $outerParts ? 'WHERE ' . implode(' AND ', $outerParts) : '';
+
+            $sql = "
+                SELECT s.skiftraknare, s.datum, s.ibc_ok, s.ibc_ej_ok, s.bur_ej_ok,
+                       s.op1, s.op2, s.op3, s.product_id, s.drifttid, s.driftstopptime,
+                       COALESCE(p.name, CONCAT('Produkt #', s.product_id)) AS product_name,
+                       ROUND(s.ibc_ok / NULLIF(s.drifttid / 60.0, 0), 2)                          AS ibc_per_h,
+                       ROUND(s.ibc_ej_ok / NULLIF(s.ibc_ok + s.ibc_ej_ok, 0) * 100, 1)           AS kassation_pct,
+                       ROUND(s.driftstopptime / NULLIF(s.drifttid, 0) * 100, 1)                   AS stopp_pct,
+                       COALESCE(o1.name, '-') AS op1_name,
+                       COALESCE(o2.name, '-') AS op2_name,
+                       COALESCE(o3.name, '-') AS op3_name
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(datum)         AS datum,
+                           MAX(op1)           AS op1,
+                           MAX(op2)           AS op2,
+                           MAX(op3)           AS op3,
+                           MAX(product_id)    AS product_id,
+                           MAX(ibc_ok)        AS ibc_ok,
+                           MAX(ibc_ej_ok)     AS ibc_ej_ok,
+                           MAX(bur_ej_ok)     AS bur_ej_ok,
+                           MAX(drifttid)      AS drifttid,
+                           MAX(driftstopptime) AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                    GROUP BY skiftraknare
+                ) s
+                LEFT JOIN rebotling_products p  ON p.id        = s.product_id
+                LEFT JOIN operators          o1 ON o1.number   = s.op1
+                LEFT JOIN operators          o2 ON o2.number   = s.op2
+                LEFT JOIN operators          o3 ON o3.number   = s.op3
+                $outerWhere
+                ORDER BY $sort $dir
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Summary KPIs (SUM/SUM aggregation)
+            $sumParams = [':from2' => $from, ':to2' => $to];
+            $sumOuter  = [];
+            if ($op > 0) { $sumOuter[] = '(s.op1 = :op2 OR s.op2 = :op2 OR s.op3 = :op2)'; $sumParams[':op2']   = $op; }
+            if ($prod > 0) { $sumOuter[] = 's.product_id = :prod2';                           $sumParams[':prod2'] = $prod; }
+            $sumOuterWhere = $sumOuter ? 'WHERE ' . implode(' AND ', $sumOuter) : '';
+
+            $sumSql = "
+                SELECT COUNT(*) AS total_shifts,
+                       SUM(s.ibc_ok)                                                          AS total_ibc,
+                       ROUND(SUM(s.ibc_ok) / NULLIF(SUM(s.drifttid) / 60.0, 0), 2)           AS avg_ibch,
+                       ROUND(SUM(s.ibc_ej_ok) / NULLIF(SUM(s.ibc_ok)+SUM(s.ibc_ej_ok),0)*100, 1) AS avg_kass_pct,
+                       ROUND(SUM(s.driftstopptime) / NULLIF(SUM(s.drifttid), 0) * 100, 1)    AS avg_stopp_pct
+                FROM (
+                    SELECT skiftraknare, MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                           MAX(product_id) AS product_id,
+                           MAX(ibc_ok) AS ibc_ok, MAX(ibc_ej_ok) AS ibc_ej_ok,
+                           MAX(drifttid) AS drifttid, MAX(driftstopptime) AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                    GROUP BY skiftraknare
+                ) s
+                $sumOuterWhere
+            ";
+            $sumStmt = $this->pdo->prepare($sumSql);
+            $sumStmt->execute($sumParams);
+            $kpi = $sumStmt->fetch(\PDO::FETCH_ASSOC);
+
+            // Operators list (for filter dropdown)
+            $ops = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name")
+                             ->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Products list (for filter dropdown)
+            $prods = $this->pdo->query("SELECT id, name FROM rebotling_products ORDER BY name")
+                               ->fetchAll(\PDO::FETCH_ASSOC);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success'   => true,
+                'from'      => $from,
+                'to'        => $to,
+                'shifts'    => $rows,
+                'kpi'       => $kpi,
+                'operators' => $ops,
+                'products'  => $prods,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getSkiftLogg: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftlogg'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
