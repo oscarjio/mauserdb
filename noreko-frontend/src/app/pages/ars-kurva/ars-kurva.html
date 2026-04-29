@@ -1,0 +1,144 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h2 class="page-title">
+      <i class="fas fa-chart-area me-2" style="color:#63b3ed"></i>
+      Årsproduktionskurva
+    </h2>
+    <p class="page-sub">Kumulativ IBC-produktion per år på samma tidslinje — är årets takt snabbare eller långsammare än tidigare år?</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+    Laddar produktionshistorik…
+  </div>
+  <div *ngIf="error && !loading" class="error-msg">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && years.length > 0">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label">Totalt IBC (alla år)</div>
+        <div class="kpi-value">{{ formatIbc(allTimeIbc) }}</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">{{ curYear }} hittills</div>
+        <div class="kpi-value">{{ formatIbc(curAtSameDay) }}</div>
+      </div>
+      <div class="kpi-card" *ngIf="years.length >= 2">
+        <div class="kpi-label">vs {{ years[years.length - 2] }} (samma dag)</div>
+        <ng-container *ngIf="atSameDayDelta(years[years.length - 2]) !== null">
+          <div class="kpi-value" [class.text-green]="atSameDayDelta(years[years.length - 2])! >= 0"
+               [class.text-red]="atSameDayDelta(years[years.length - 2])! < 0">
+            {{ deltaLabel(atSameDayDelta(years[years.length - 2])) }}
+          </div>
+          <div class="kpi-sub">{{ formatIbc(atSameDay[years[years.length - 2]] ?? 0) }} IBC vid dag {{ curLastDag }}</div>
+        </ng-container>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">År analyserade</div>
+        <div class="kpi-value">{{ years.length }}</div>
+        <div class="kpi-sub">{{ years[0] }} – {{ curYear }}</div>
+      </div>
+    </div>
+
+    <!-- Year toggle chips -->
+    <div class="year-chips">
+      <span class="chip-label">Visa år:</span>
+      <button
+        *ngFor="let ar of years; let i = index"
+        class="year-chip"
+        [class.active]="visibleYears.has(ar)"
+        [class.current]="ar === curYear"
+        [style.border-color]="yearColor(ar)"
+        [style.background]="visibleYears.has(ar) ? yearColor(ar) + '33' : 'transparent'"
+        (click)="toggleYear(ar)">
+        {{ ar }}{{ ar === curYear ? ' ★' : '' }}
+      </button>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+      <div class="chart-title">Kumulativ IBC per dag på året</div>
+      <div class="chart-legend">
+        <span *ngFor="let ar of years; let i = index" class="legend-item" [class.dimmed]="!visibleYears.has(ar)">
+          <span class="legend-line" [style.background]="yearColor(ar)"
+                [style.border-style]="ar === curYear ? 'solid' : 'dashed'"></span>
+          {{ ar }}
+        </span>
+      </div>
+      <div class="chart-wrap">
+        <canvas #curveCanvas></canvas>
+      </div>
+      <div class="chart-note">X-axel = dag på året (1 Jan = dag 1). Streckad linje = tidigare år. Heldragen = {{ curYear }}.</div>
+    </div>
+
+    <!-- Year summary table -->
+    <div class="table-card">
+      <div class="table-title">Årssammanfattning</div>
+      <table class="sum-table">
+        <thead>
+          <tr>
+            <th>År</th>
+            <th class="num">Total IBC</th>
+            <th class="num">IBC/h</th>
+            <th class="num">Aktiva dagar</th>
+            <th class="num">vs föregående år</th>
+            <th class="num">vid dag {{ curLastDag }} jämfört med {{ curYear }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of yearSummary" [class.current-row]="s.ar === curYear">
+            <td>
+              <span class="year-dot" [style.background]="yearColor(s.ar)"></span>
+              <strong>{{ s.ar }}</strong>
+              <span *ngIf="s.ar === curYear" class="cur-badge">I år</span>
+            </td>
+            <td class="num">{{ formatIbc(s.total_ibc) }}</td>
+            <td class="num">{{ s.ibc_h }}</td>
+            <td class="num">{{ s.antal_dagar }}</td>
+            <td class="num">
+              <ng-container *ngIf="s.delta_pct !== null">
+                <span class="pill" [class.pill-green]="s.delta_pct! >= 0" [class.pill-red]="s.delta_pct! < 0">
+                  {{ deltaLabel(s.delta_pct) }}
+                </span>
+              </ng-container>
+              <span *ngIf="s.delta_pct === null" class="text-muted">–</span>
+            </td>
+            <td class="num">
+              <ng-container *ngIf="s.ar !== curYear && atSameDay[s.ar] !== null && atSameDay[s.ar] !== undefined">
+                <div>{{ formatIbc(atSameDay[s.ar]!) }} IBC</div>
+                <span class="pill" [ngClass]="'pill-' + deltaClass(atSameDayDelta(s.ar))">
+                  {{ deltaLabel(atSameDayDelta(s.ar)) }}
+                </span>
+              </ng-container>
+              <span *ngIf="s.ar === curYear" class="text-muted">–</span>
+              <span *ngIf="s.ar !== curYear && (atSameDay[s.ar] === null || atSameDay[s.ar] === undefined)" class="text-muted">Ingen data</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Daily top IBC per year -->
+    <div class="best-days-row">
+      <div *ngFor="let s of yearSummary" class="best-card">
+        <div class="bc-year" [style.border-color]="yearColor(s.ar)">{{ s.ar }}</div>
+        <div class="bc-total">{{ formatIbc(s.total_ibc) }} IBC</div>
+        <div class="bc-meta">{{ s.ibc_h }} IBC/h · {{ s.antal_dagar }} dagar</div>
+        <div *ngIf="s.delta_pct !== null" class="bc-delta"
+             [class.bc-pos]="s.delta_pct! >= 0" [class.bc-neg]="s.delta_pct! < 0">
+          {{ deltaLabel(s.delta_pct) }} vs {{ s.ar - 1 }}
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && years.length === 0" class="no-data">
+    Ingen produktionsdata hittad.
+  </div>
+
+</div>

@@ -354,6 +354,8 @@ class RebotlingController {
                 $this->getMilstolpar();
             } elseif ($action === 'produkt-normaliserad') {
                 $this->getProduktNormaliseradPrestanda();
+            } elseif ($action === 'ars-kurva') {
+                $this->getArsKurva();
             } else {
                 $this->getLiveStats();
             }
@@ -14496,6 +14498,143 @@ class RebotlingController {
             error_log('RebotlingController::getProduktNormaliseradPrestanda: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produkt-normaliserad'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=ars-kurva
+    private function getArsKurva(): void {
+        try {
+            // Dedup shifts then aggregate per year+dayofyear
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    YEAR(datum)          AS ar,
+                    DAYOFYEAR(datum)     AS dag,
+                    datum                AS datum,
+                    SUM(ibc_ok)          AS ibc_ok,
+                    SUM(drifttid)        AS drifttid
+                FROM (
+                    SELECT skiftraknare, MAX(datum) AS datum, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid >= 30
+                    GROUP BY skiftraknare
+                ) AS dedup
+                GROUP BY YEAR(datum), DAYOFYEAR(datum), datum
+                ORDER BY ar, dag
+            ");
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build per-year daily series with cumulative IBC
+            $byYear = [];
+            foreach ($rows as $r) {
+                $ar  = (int)$r['ar'];
+                $dag = (int)$r['dag'];
+                if (!isset($byYear[$ar])) {
+                    $byYear[$ar] = [];
+                }
+                $byYear[$ar][$dag] = [
+                    'dag'      => $dag,
+                    'datum'    => $r['datum'],
+                    'ibc_ok'   => (int)$r['ibc_ok'],
+                    'drifttid' => (int)$r['drifttid'],
+                ];
+            }
+
+            $years = array_keys($byYear);
+            sort($years);
+
+            // Build cumulative series per year
+            $seriesData = [];
+            $yearSummary = [];
+
+            foreach ($years as $ar) {
+                $days = $byYear[$ar];
+                ksort($days);
+
+                $cumIbc    = 0;
+                $cumDrift  = 0;
+                $totalIbc  = 0;
+                $totalDrift = 0;
+                $skiftAntal = count($days);
+                $series     = [];
+
+                foreach ($days as $dag => $d) {
+                    $cumIbc   += $d['ibc_ok'];
+                    $cumDrift += $d['drifttid'];
+                    $totalIbc  = $cumIbc;
+                    $totalDrift = $cumDrift;
+                    $series[] = [
+                        'dag'         => $dag,
+                        'datum'       => $d['datum'],
+                        'cum_ibc'     => $cumIbc,
+                        'daily_ibc'   => $d['ibc_ok'],
+                        'daily_ibch'  => $d['drifttid'] > 0
+                            ? round($d['ibc_ok'] / ($d['drifttid'] / 60.0), 2)
+                            : 0.0,
+                    ];
+                }
+
+                $ibcH = $totalDrift > 0 ? round($totalIbc / ($totalDrift / 60.0), 2) : 0.0;
+                $seriesData[$ar] = $series;
+                $yearSummary[$ar] = [
+                    'ar'          => $ar,
+                    'total_ibc'   => $totalIbc,
+                    'ibc_h'       => $ibcH,
+                    'antal_dagar' => $skiftAntal,
+                ];
+            }
+
+            // Year-over-year delta
+            $prevIbc = null;
+            foreach ($years as $ar) {
+                if ($prevIbc !== null && $prevIbc > 0) {
+                    $yearSummary[$ar]['delta_pct'] = round(
+                        ($yearSummary[$ar]['total_ibc'] - $prevIbc) / $prevIbc * 100, 1
+                    );
+                } else {
+                    $yearSummary[$ar]['delta_pct'] = null;
+                }
+                $prevIbc = $yearSummary[$ar]['total_ibc'];
+            }
+
+            // "At same day" comparison: for each prior year, find cumulative IBC at same day-of-year as latest data point
+            $curYear = max($years);
+            $curSeries = $seriesData[$curYear] ?? [];
+            $curLastDag = count($curSeries) > 0 ? end($curSeries)['dag'] : 0;
+
+            $atSameDay = [];
+            foreach ($years as $ar) {
+                if ($ar === $curYear) continue;
+                $s = $seriesData[$ar] ?? [];
+                // Find entry with dag <= curLastDag
+                $found = null;
+                foreach (array_reverse($s) as $pt) {
+                    if ($pt['dag'] <= $curLastDag) { $found = $pt; break; }
+                }
+                $atSameDay[$ar] = $found ? $found['cum_ibc'] : null;
+            }
+
+            $curAtSameDay = count($curSeries) > 0 ? end($curSeries)['cum_ibc'] : 0;
+
+            // All-time total IBC
+            $allTimeIbc = array_sum(array_column(array_values($yearSummary), 'total_ibc'));
+
+            echo json_encode([
+                'success'      => true,
+                'years'        => $years,
+                'cur_year'     => $curYear,
+                'cur_last_dag' => $curLastDag,
+                'series'       => $seriesData,
+                'year_summary' => array_values($yearSummary),
+                'at_same_day'  => $atSameDay,
+                'cur_at_same_day' => $curAtSameDay,
+                'all_time_ibc' => $allTimeIbc,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getArsKurva: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid ars-kurva'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

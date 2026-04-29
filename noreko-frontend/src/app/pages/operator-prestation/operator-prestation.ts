@@ -100,6 +100,7 @@ export class OperatorPrestationPage {
         { title: 'Belastningsbalans', desc: 'Hur jämnt är skiftarbetet fördelat? Gini-index + positionsfördelning per operatör', route: '/rebotling/belastningsbalans', icon: 'fas fa-balance-scale-right', color: '#a78bfa' },
         { title: 'OEE-Dashboard', desc: 'Overall Equipment Effectiveness — Tillgänglighet × Prestanda × Kvalitet. Industristandard-KPI för anläggningens totala effektivitet', route: '/rebotling/oee-dashboard', icon: 'fas fa-tachometer-alt', color: '#a78bfa' },
         { title: 'Månads-Jämförelse', desc: 'Jämför valfria månader sida vid sida — total IBC, IBC/h, kassation, stoppgrad, daglig overlay och operatörsförändring. Perfekt för månadsmöten och år-för-år-uppföljning.', route: '/rebotling/manads-jamforelse', icon: 'fas fa-columns', color: '#76e4f7' },
+        { title: 'Årsproduktionskurva', desc: 'Kumulativ IBC per år på samma tidslinje — är årets takt snabbare eller långsammare än förra året? Jämför alla år sida vid sida med "samma dag"-analys.', route: '/rebotling/ars-kurva', icon: 'fas fa-chart-area', color: '#63b3ed' },
       ]
     },
     {
