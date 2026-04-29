@@ -193,6 +193,7 @@ export const routes: Routes = [
       { path: 'rebotling/skift-sekvens', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-sekvens/skift-sekvens').then(m => m.SkiftSekvensPage) },
       { path: 'rebotling/produktionsmaal', canActivate: [adminGuard], loadComponent: () => import('./pages/produktionsmaal/produktionsmaal').then(m => m.ProduktionsmaalPage) },
       { path: 'rebotling/operator-utveckling', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-utveckling/operator-utveckling').then(m => m.OperatorUtvecklingPage) },
+      { path: 'rebotling/operatormaal', canActivate: [adminGuard], loadComponent: () => import('./pages/operatormaal/operatormaal').then(m => m.OperatormaalPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },

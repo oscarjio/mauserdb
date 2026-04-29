@@ -1,0 +1,225 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-bullseye me-2" style="color:#68d391;"></i>Operatörsmål
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      Sätt individuella IBC/h-mål per operatör och följ framsteg mot dessa mål. Mål sparas lokalt i webbläsaren.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:140px;">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+      </select>
+    </div>
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Sortera</label>
+      <div class="d-flex gap-2">
+        <button (click)="toggleSort('progress')" class="btn btn-sm"
+                [style.background]="sortBy==='progress' ? '#63b3ed' : '#2d3748'"
+                [style.color]="sortBy==='progress' ? '#1a202c' : '#e2e8f0'"
+                style="border:1px solid #4a5568;font-size:12px;">
+          Framsteg {{ sortBy==='progress' ? (sortDir==='asc' ? '↑' : '↓') : '' }}
+        </button>
+        <button (click)="toggleSort('ibch')" class="btn btn-sm"
+                [style.background]="sortBy==='ibch' ? '#63b3ed' : '#2d3748'"
+                [style.color]="sortBy==='ibch' ? '#1a202c' : '#e2e8f0'"
+                style="border:1px solid #4a5568;font-size:12px;">
+          IBC/h {{ sortBy==='ibch' ? (sortDir==='asc' ? '↑' : '↓') : '' }}
+        </button>
+        <button (click)="toggleSort('name')" class="btn btn-sm"
+                [style.background]="sortBy==='name' ? '#63b3ed' : '#2d3748'"
+                [style.color]="sortBy==='name' ? '#1a202c' : '#e2e8f0'"
+                style="border:1px solid #4a5568;font-size:12px;">
+          Namn {{ sortBy==='name' ? (sortDir==='asc' ? '↑' : '↓') : '' }}
+        </button>
+      </div>
+    </div>
+    <div *ngIf="opsWithTarget > 0" style="margin-left:auto;">
+      <button (click)="clearAllTargets()" class="btn btn-sm"
+              style="background:#2d3748;color:#fc8181;border:1px solid #4a5568;font-size:12px;">
+        <i class="fas fa-trash me-1"></i>Rensa alla mål
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#63b3ed;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p style="color:#a0aec0;margin-top:12px;">Hämtar operatörsdata...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- KPI Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#e2e8f0;">{{ opsWithTarget }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Med mål</div>
+          <div style="color:#718096;font-size:11px;">av {{ operators.length }} operatörer</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#68d391;">{{ opsAboveTarget }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Uppnått mål</div>
+          <div style="color:#718096;font-size:11px;">≥100% av mål</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#f6ad55;">{{ opsOnTrack }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Nära/I fas</div>
+          <div style="color:#718096;font-size:11px;">70–99% av mål</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="background:#2d3748;border-radius:12px;padding:16px;text-align:center;border:1px solid #4a5568;">
+          <div style="font-size:2rem;font-weight:800;color:#fc8181;">{{ opsBelow }}</div>
+          <div style="color:#a0aec0;font-size:13px;margin-top:4px;">Bakom</div>
+          <div style="color:#718096;font-size:11px;">&lt;70% av mål</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info tip -->
+    <div *ngIf="opsWithTarget === 0" class="mb-4 p-3" style="background:#2d3748;border-radius:10px;border:1px dashed #4a5568;">
+      <p style="color:#a0aec0;font-size:13px;margin:0;">
+        <i class="fas fa-info-circle me-2" style="color:#63b3ed;"></i>
+        Ange ett IBC/h-mål i fältet under varje operatör. Mål sparas automatiskt i webbläsaren — inga serveranrop behövs.
+      </p>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="row g-3">
+      <div class="col-12 col-lg-6" *ngFor="let op of filteredOperators">
+        <div class="goal-card" [class.goal-active]="op.target !== null">
+
+          <!-- Card header -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <a [routerLink]="['/rebotling/operator', op.number]"
+                 style="color:#e2e8f0;font-weight:700;font-size:1rem;text-decoration:none;">
+                {{ op.name }}
+              </a>
+              <div style="color:#a0aec0;font-size:12px;margin-top:2px;">
+                {{ op.antal_skift }} skift&nbsp;·&nbsp;
+                <span [style.color]="ratingColor(op.rating)">{{ op.rating }}</span>
+              </div>
+            </div>
+            <div *ngIf="op.target !== null" class="d-flex flex-column align-items-end gap-1">
+              <span class="status-badge"
+                    [style.background]="statusColor(op.status) + '22'"
+                    [style.color]="statusColor(op.status)"
+                    [style.border-color]="statusColor(op.status)">
+                {{ statusLabel(op.status) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Metrics row -->
+          <div class="d-flex gap-3 align-items-center mb-3 flex-wrap">
+            <div class="metric-box">
+              <div class="metric-val" style="color:#63b3ed;">{{ op.ibc_per_h | number:'1.1-1' }}</div>
+              <div class="metric-lbl">IBC/h nu</div>
+            </div>
+            <div *ngIf="op.target !== null" class="metric-box">
+              <div class="metric-val" [style.color]="progressBarColor(op.progress)">{{ op.target | number:'1.1-1' }}</div>
+              <div class="metric-lbl">Mål</div>
+            </div>
+            <div *ngIf="op.target !== null" class="metric-box">
+              <div class="metric-val" [style.color]="progressBarColor(op.progress)">{{ op.progress }}%</div>
+              <div class="metric-lbl">Av mål</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val"
+                   [style.color]="op.vs_avg_pct >= 0 ? '#68d391' : '#fc8181'">
+                {{ op.vs_avg_pct >= 0 ? '+' : '' }}{{ op.vs_avg_pct }}%
+              </div>
+              <div class="metric-lbl">vs lagsnitt</div>
+            </div>
+            <!-- Sparkline -->
+            <div *ngIf="op.trend_weeks.length >= 2" style="margin-left:auto;">
+              <svg width="80" height="24" viewBox="0 0 80 24">
+                <path [attr.d]="sparklinePath(op.trend_weeks)"
+                      fill="none" stroke="#63b3ed" stroke-width="1.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div style="color:#718096;font-size:10px;text-align:center;">8 veckor</div>
+            </div>
+          </div>
+
+          <!-- Progress bar (only when target set) -->
+          <div *ngIf="op.target !== null" class="mb-3">
+            <div class="progress-track">
+              <div class="progress-fill"
+                   [style.width.%]="Math.min(100, op.progress)"
+                   [style.background]="progressBarColor(op.progress)">
+              </div>
+              <div *ngIf="op.progress >= 100" class="progress-overflow"
+                   [style.width.%]="Math.min(20, op.progress - 100)">
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span style="color:#718096;font-size:11px;">0</span>
+              <span style="color:#718096;font-size:11px;">Mål: {{ op.target | number:'1.1-1' }} IBC/h</span>
+            </div>
+          </div>
+
+          <!-- Target input -->
+          <div class="d-flex gap-2 align-items-center">
+            <label style="color:#a0aec0;font-size:12px;white-space:nowrap;min-width:80px;">Mål IBC/h:</label>
+            <input type="number" min="0" step="0.5"
+                   [value]="op.target ?? ''"
+                   (change)="setTarget(op, $any($event.target).value)"
+                   class="form-control form-control-sm target-input"
+                   placeholder="ex. 20.0"
+                   style="background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;max-width:110px;">
+            <button *ngIf="op.target !== null" (click)="clearTarget(op)"
+                    class="btn btn-sm"
+                    style="background:#2d3748;color:#fc8181;border:1px solid #4a5568;font-size:11px;padding:2px 8px;">
+              <i class="fas fa-times"></i>
+            </button>
+            <span *ngIf="op.target !== null && op.target > op.ibc_per_h" style="color:#718096;font-size:11px;">
+              Behöver +{{ (op.target - op.ibc_per_h) | number:'1.1-1' }} IBC/h
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && !error && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-bullseye" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen operatörsdata för vald period.</p>
+  </div>
+
+</div>
