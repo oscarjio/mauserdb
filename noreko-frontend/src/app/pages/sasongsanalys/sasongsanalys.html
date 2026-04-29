@@ -17,8 +17,8 @@
     <div class="kpi-row" *ngIf="bestMonth">
       <div class="kpi-card kpi-green">
         <div class="kpi-label">Bästa månad</div>
-        <div class="kpi-value">{{ bestMonth?.name }}</div>
-        <div class="kpi-sub">{{ bestMonth?.ibch | number:'1.1-1' }} IBC/h</div>
+        <div class="kpi-value">{{ bestMonth.name }}</div>
+        <div class="kpi-sub">{{ bestMonth.ibch | number:'1.1-1' }} IBC/h</div>
       </div>
       <div class="kpi-card kpi-red">
         <div class="kpi-label">Svagaste månad</div>
