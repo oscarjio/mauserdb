@@ -320,6 +320,8 @@ class RebotlingController {
                 $this->getBelastningsbalans();
             } elseif ($action === 'personal-kalender') {
                 $this->getPersonalKalender();
+            } elseif ($action === 'skift-sekvens') {
+                $this->getSkiftSekvens();
             } else {
                 $this->getLiveStats();
             }
@@ -11367,6 +11369,145 @@ class RebotlingController {
             error_log('RebotlingController::getPersonalKalender: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid personal-kalender'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=skift-sekvens&days=365
+    // Analyses team IBC/h split by operator rest state:
+    //   fresh      = first shift after ≥2 days off
+    //   consecutive = shift immediately after yesterday's shift (1-day gap)
+    private function getSkiftSekvens(): void {
+        $days = max(30, min(730, (int)($_GET['days'] ?? 365)));
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // Aggregate fresh vs consecutive performance per operator using a CTE + window function.
+            // UNION ALL brings together each operator's shifts from each position;
+            // LAG gives previous work date per operator; conditional sums split the totals.
+            $sql = "
+                WITH base_shifts AS (
+                    SELECT op1 AS op_num, datum, skiftraknare,
+                           MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2, datum, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3, datum, skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid)
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND drifttid >= 30
+                    GROUP BY op3, skiftraknare
+                ),
+                with_lag AS (
+                    SELECT op_num, datum, ibc_ok, drifttid,
+                           LAG(datum) OVER (PARTITION BY op_num ORDER BY datum, skiftraknare) AS prev_datum
+                    FROM base_shifts
+                ),
+                agg AS (
+                    SELECT op_num,
+                        SUM(ibc_ok)          AS total_ibc,
+                        SUM(drifttid) / 60.0 AS total_h,
+                        COUNT(*)             AS total_n,
+                        SUM(CASE WHEN prev_datum IS NULL OR DATEDIFF(datum, prev_datum) >= 2
+                                 THEN ibc_ok ELSE 0 END)          AS fresh_ibc,
+                        SUM(CASE WHEN prev_datum IS NULL OR DATEDIFF(datum, prev_datum) >= 2
+                                 THEN drifttid / 60.0 ELSE 0 END) AS fresh_h,
+                        SUM(CASE WHEN prev_datum IS NULL OR DATEDIFF(datum, prev_datum) >= 2
+                                 THEN 1 ELSE 0 END)                AS fresh_n,
+                        SUM(CASE WHEN prev_datum IS NOT NULL AND DATEDIFF(datum, prev_datum) = 1
+                                 THEN ibc_ok ELSE 0 END)          AS consec_ibc,
+                        SUM(CASE WHEN prev_datum IS NOT NULL AND DATEDIFF(datum, prev_datum) = 1
+                                 THEN drifttid / 60.0 ELSE 0 END) AS consec_h,
+                        SUM(CASE WHEN prev_datum IS NOT NULL AND DATEDIFF(datum, prev_datum) = 1
+                                 THEN 1 ELSE 0 END)                AS consec_n
+                    FROM with_lag
+                    GROUP BY op_num
+                    HAVING fresh_n >= 3 AND consec_n >= 3
+                )
+                SELECT a.op_num, o.name,
+                       a.total_ibc, a.total_h, a.total_n,
+                       a.fresh_ibc,  a.fresh_h,  a.fresh_n,
+                       a.consec_ibc, a.consec_h, a.consec_n
+                FROM agg a
+                JOIN operators o ON o.number = a.op_num
+                WHERE o.active = 1
+                ORDER BY o.name
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $operators = [];
+            $freshIbchSum  = 0;
+            $consecIbchSum = 0;
+            $count = 0;
+
+            foreach ($rows as $row) {
+                $freshIbch  = (float)$row['fresh_h']  > 0 ? (float)$row['fresh_ibc']  / (float)$row['fresh_h']  : 0;
+                $consecIbch = (float)$row['consec_h'] > 0 ? (float)$row['consec_ibc'] / (float)$row['consec_h'] : 0;
+                $deltaPct   = $freshIbch > 0 ? round(($consecIbch / $freshIbch - 1) * 100, 1) : 0;
+
+                // badge: positive delta = improves on consecutive days; negative = better when rested
+                if ($deltaPct >= 10)       $badge = 'eldig';       // improves when running
+                elseif ($deltaPct <= -10)  $badge = 'behover_vila'; // better when rested
+                else                       $badge = 'konsistent';
+
+                $operators[] = [
+                    'number'      => (int)$row['op_num'],
+                    'name'        => $row['name'],
+                    'total_skift' => (int)$row['total_n'],
+                    'fresh_ibch'  => round($freshIbch, 2),
+                    'fresh_n'     => (int)$row['fresh_n'],
+                    'consec_ibch' => round($consecIbch, 2),
+                    'consec_n'    => (int)$row['consec_n'],
+                    'delta_pct'   => $deltaPct,
+                    'badge'       => $badge,
+                ];
+
+                $freshIbchSum  += $freshIbch;
+                $consecIbchSum += $consecIbch;
+                $count++;
+            }
+
+            // Sort by absolute delta descending (most interesting first)
+            usort($operators, fn($a, $b) => abs($b['delta_pct']) <=> abs($a['delta_pct']));
+
+            $avgFreshIbch  = $count > 0 ? round($freshIbchSum  / $count, 2) : 0;
+            $avgConsecIbch = $count > 0 ? round($consecIbchSum / $count, 2) : 0;
+            $avgDelta      = $avgFreshIbch > 0
+                ? round(($avgConsecIbch / $avgFreshIbch - 1) * 100, 1)
+                : 0;
+
+            echo json_encode([
+                'success'        => true,
+                'from'           => $from,
+                'to'             => $to,
+                'days'           => $days,
+                'avg_fresh_ibch' => $avgFreshIbch,
+                'avg_consec_ibch'=> $avgConsecIbch,
+                'avg_delta_pct'  => $avgDelta,
+                'operators'      => $operators,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSkiftSekvens: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-sekvens'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

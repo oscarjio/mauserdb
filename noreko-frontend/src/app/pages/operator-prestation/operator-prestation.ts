@@ -61,6 +61,7 @@ export class OperatorPrestationPage {
         { title: 'Fart–Stopp-Korrelation', desc: 'Scatter av alla skift: stoppgrad vs IBC/h — kompenserar operatörerna maskinstopp eller drabbas produktionen?', route: '/rebotling/fart-stopp', icon: 'fas fa-pause-circle', color: '#f6ad55' },
         { title: 'Produktbytesanalys', desc: 'IBC/h på första skiftet efter produktbyte jämfört med fortsättningsskift — visar bytteskostnaden per produkt', route: '/rebotling/produktbyten', icon: 'fas fa-random', color: '#76e4f7' },
         { title: 'Väder–Produktion', desc: 'Korrelation mellan utetemperatur och IBC/h — påverkar väder produktionstakten?', route: '/rebotling/vader-produktion', icon: 'fas fa-cloud-sun', color: '#76e4f7' },
+        { title: 'Skift-Sekvensanalys', desc: 'Prestanda vid utvilade starter vs sammanhängande skift — vem behöver vila, vem trivs på rad?', route: '/rebotling/skift-sekvens', icon: 'fas fa-redo', color: '#76e4f7' },
       ]
     },
     {

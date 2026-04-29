@@ -1,0 +1,156 @@
+<div class="ss-page">
+
+  <!-- Header -->
+  <div class="ss-header">
+    <h1 class="ss-title">
+      <i class="fas fa-redo me-2" style="color:#76e4f7"></i>
+      Skift-Sekvensanalys
+    </h1>
+    <p class="ss-subtitle">
+      Påverkas lagets IBC/h av om operatören är utvilad (≥2 dagars paus) eller kör sammanhängande skift?
+    </p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="ss-controls">
+    <span class="ss-ctrl-label">Period:</span>
+    <div class="ss-btn-group">
+      <button *ngFor="let opt of daysOptions"
+              class="ss-period-btn"
+              [class.active]="days === opt.value"
+              (click)="setDays(opt.value)">
+        {{ opt.label }}
+      </button>
+    </div>
+    <span class="ss-period-range" *ngIf="from">{{ from }} — {{ to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="ss-loading">
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="ms-3 text-muted">Analyserar skiftsekvenser...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI row -->
+    <div class="ss-kpi-row">
+      <div class="ss-kpi-card">
+        <span class="ss-kpi-num">{{ operators.length }}</span>
+        <span class="ss-kpi-lbl">Operatörer analyserade</span>
+      </div>
+      <div class="ss-kpi-card">
+        <span class="ss-kpi-num">{{ avgFreshIbch | number:'1.1-1' }}</span>
+        <span class="ss-kpi-lbl">Snitt IBC/h — Utvilad</span>
+      </div>
+      <div class="ss-kpi-card">
+        <span class="ss-kpi-num">{{ avgConsecIbch | number:'1.1-1' }}</span>
+        <span class="ss-kpi-lbl">Snitt IBC/h — Rad-skift</span>
+      </div>
+      <div class="ss-kpi-card" [ngClass]="deltaClass(avgDeltaPct)">
+        <span class="ss-kpi-num">{{ avgDeltaPct >= 0 ? '+' : '' }}{{ avgDeltaPct | number:'1.1-1' }}%</span>
+        <span class="ss-kpi-lbl">Genomsnittlig Δ (rad vs utvilad)</span>
+      </div>
+      <div class="ss-kpi-card badge-eldig-bg">
+        <span class="ss-kpi-num">{{ eldiga }}</span>
+        <span class="ss-kpi-lbl">Eldiga (bättre på rad)</span>
+      </div>
+      <div class="ss-kpi-card badge-vila-bg">
+        <span class="ss-kpi-num">{{ vilorBehov }}</span>
+        <span class="ss-kpi-lbl">Behöver vila</span>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="ss-filter-row">
+      <span class="ss-ctrl-label">Visa:</span>
+      <button *ngFor="let f of [
+          { key: 'alla', label: 'Alla' },
+          { key: 'eldig', label: '⚡ Eldiga' },
+          { key: 'behover_vila', label: '😴 Behöver vila' },
+          { key: 'konsistent', label: '✅ Konsekventa' }
+        ]"
+        class="ss-filter-btn"
+        [class.active]="filterBadge === f.key"
+        (click)="filterBadge = $any(f.key)">
+        {{ f.label }}
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="ss-table-wrap">
+      <table class="ss-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th class="text-center">Badge</th>
+            <th>Utvilad IBC/h<br><small class="text-muted">≥2 dagars paus</small></th>
+            <th>Rad-skift IBC/h<br><small class="text-muted">dagen efter jobbdag</small></th>
+            <th class="text-center">Δ Rad vs Utvilad</th>
+            <th class="text-center">Antal skift</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of filtered" class="ss-row">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="ss-op-link">
+                {{ op.name }}
+              </a>
+            </td>
+            <td class="text-center">
+              <span class="ss-badge" [ngClass]="badgeClass(op.badge)">
+                {{ badgeLabel(op.badge) }}
+              </span>
+            </td>
+            <td>
+              <div class="ss-bar-wrap">
+                <div class="ss-bar ss-bar-fresh"
+                     [style.width.%]="barWidth(op.fresh_ibch, maxIbch)">
+                </div>
+                <span class="ss-bar-label">{{ op.fresh_ibch | number:'1.1-1' }}</span>
+                <small class="ss-n-label">n={{ op.fresh_n }}</small>
+              </div>
+            </td>
+            <td>
+              <div class="ss-bar-wrap">
+                <div class="ss-bar ss-bar-consec"
+                     [style.width.%]="barWidth(op.consec_ibch, maxIbch)">
+                </div>
+                <span class="ss-bar-label">{{ op.consec_ibch | number:'1.1-1' }}</span>
+                <small class="ss-n-label">n={{ op.consec_n }}</small>
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="ss-delta" [ngClass]="deltaClass(op.delta_pct)">
+                {{ deltaLabel(op) }}
+              </span>
+            </td>
+            <td class="text-center ss-total-n">{{ op.total_skift }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Explanation -->
+    <div class="ss-explanation">
+      <p>
+        <strong>Hur tolkar man detta?</strong>
+        <span class="badge-eldig-txt">Eldiga</span> operatörer producerar bättre på sammanhängande skift (+10% eller mer) — bra att schemalägga på flerdagarslöpare.
+        <span class="badge-vila-txt">Behöver vila</span> presterar märkbart bättre efter minst 2 dagars paus — undvik att sätta dem på flera dagar i rad.
+        <span class="badge-konsistent-txt">Konsekventa</span> operatörer visar ingen signifikant skillnad och är flexibla att schemalägga.
+      </p>
+      <p class="ss-disclaimer">
+        <i class="fas fa-info-circle me-1"></i>
+        IBC/h är ett lagmått (hela skiftet delas av alla positioner). Δ speglar lagets prestanda under just de skiften, inte enbart operatörens individuella insats.
+      </p>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && !operators.length" class="ss-empty">
+    <i class="fas fa-chart-bar fa-2x mb-2 text-muted"></i>
+    <p>Inte tillräckligt med data för att analysera sekvenser (kräver minst 3 utvilade + 3 rad-skift per operatör).</p>
+  </div>
+
+</div>
