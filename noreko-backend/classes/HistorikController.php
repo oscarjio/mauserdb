@@ -134,7 +134,7 @@ class HistorikController {
             error_log('HistorikController::getMonthly PDOException: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av månadsdata'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistorikController::getMonthly Exception: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -283,7 +283,7 @@ class HistorikController {
             error_log('HistorikController::getDaglig PDOException: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av daglig historik'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistorikController::getDaglig Exception: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
@@ -349,7 +349,7 @@ class HistorikController {
             error_log('HistorikController::getYearly PDOException: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av årsdata'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('HistorikController::getYearly Exception: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);

@@ -200,7 +200,7 @@ class ProfileController {
             error_log('ProfileController::update: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }

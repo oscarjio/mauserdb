@@ -49,7 +49,7 @@ class RebotlingAnalyticsController {
                     $skiftSlut  = null;
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('resolveSkiftTider onoff: ' . $e->getMessage());
         }
 
@@ -64,7 +64,7 @@ class RebotlingAnalyticsController {
                 $ibcRow = $ibcStmt->fetch(PDO::FETCH_ASSOC);
                 if (!$skiftStart) $skiftStart = $ibcRow['first_cycle'] ?? null;
                 if (!$skiftSlut)  $skiftSlut  = $ibcRow['last_cycle'] ?? null;
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('resolveSkiftTider ibc fallback: ' . $e->getMessage());
             }
         }
@@ -86,7 +86,7 @@ class RebotlingAnalyticsController {
             $cdStmt->execute($skIds);
             $cdRow = $cdStmt->fetch(PDO::FETCH_ASSOC);
             $cykelDatum = $cdRow['cykel_datum'] ?? null;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('resolveSkiftTider cykel_datum: ' . $e->getMessage());
         }
 
@@ -169,7 +169,7 @@ class RebotlingAnalyticsController {
                      ADD COLUMN notification_config TEXT NULL DEFAULT NULL"
                 );
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::ensureNotificationEmailsColumn: ' . $e->getMessage());
         }
     }
@@ -310,7 +310,7 @@ class RebotlingAnalyticsController {
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getProductionReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte generera rapport'], JSON_UNESCAPED_UNICODE);
@@ -431,7 +431,7 @@ class RebotlingAnalyticsController {
                     'all_days'  => $days
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getWeekComparison: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckojämförelsedata'], JSON_UNESCAPED_UNICODE);
@@ -460,7 +460,7 @@ class RebotlingAnalyticsController {
             try {
                 $startDt = new DateTime($fromDate, new DateTimeZone('Europe/Stockholm'));
                 $endDt   = new DateTime($toDate, new DateTimeZone('Europe/Stockholm'));
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController::getPeriodicData — ogiltigt datumvärde: ' . $e->getMessage());
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
@@ -588,7 +588,7 @@ class RebotlingAnalyticsController {
             }
 
             echo json_encode(['success' => true, 'data' => $daily], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getOEETrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-trend'], JSON_UNESCAPED_UNICODE);
@@ -647,7 +647,7 @@ class RebotlingAnalyticsController {
             }
 
             echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getBestShifts: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bästa skift'], JSON_UNESCAPED_UNICODE);
@@ -688,7 +688,7 @@ class RebotlingAnalyticsController {
                         $dailyTarget = (int)$settingsRow['undantag_mal'];
                     }
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard settings: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard settings: ' . $e->getMessage()); }
 
             // ---- Konsoliderad IBC + OEE idag + igår (1 CTE-query istället för 3) ----
             $ibcToday = 0;
@@ -765,7 +765,7 @@ class RebotlingAnalyticsController {
                         $oeeYesterday = round($avail2 * $perf2 * $qual2 * 100, 1);
                     }
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard OEE combo: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::execDashboard OEE combo: ' . $e->getMessage()); }
 
             $shiftStartDt = new DateTime($now->format('Y-m-d') . ' ' . $shiftStart, $tz);
             if ($shiftStartDt > $now) {
@@ -883,14 +883,14 @@ class RebotlingAnalyticsController {
                         $ns = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
                         $ns->execute([$opId]);
                         $nameRow = $ns->fetch(PDO::FETCH_ASSOC);
-                    } catch (Exception $e) { error_log('RebotlingAnalyticsController::getExecDashboard bestOp name: ' . $e->getMessage()); }
+                    } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard bestOp name: ' . $e->getMessage()); }
                     $bestOperator = [
                         'id'    => $opId,
                         'name'  => $nameRow ? ($nameRow['name'] ?? 'Okänd') : 'Op #' . $opId,
                         'ibc_h' => $ibcH
                     ];
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard bestOp: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::execDashboard bestOp: ' . $e->getMessage()); }
 
             // ---- Aktiva operatörer senaste skiftet ----
             $lastShiftOps = [];
@@ -961,7 +961,7 @@ class RebotlingAnalyticsController {
                         ];
                     }
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::execDashboard lastShiftOps: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::execDashboard lastShiftOps: ' . $e->getMessage()); }
 
             // Produktionsprocent idag
             $pct = $dailyTarget > 0 ? round($ibcToday / $dailyTarget * 100, 1) : 0;
@@ -1110,7 +1110,7 @@ class RebotlingAnalyticsController {
                 'success' => true,
                 'data'    => $result
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getShiftCompare: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte jämföra skift'], JSON_UNESCAPED_UNICODE);
@@ -1220,7 +1220,7 @@ class RebotlingAnalyticsController {
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getCycleHistogram: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta cykeltidsfordelning'], JSON_UNESCAPED_UNICODE);
@@ -1319,7 +1319,7 @@ class RebotlingAnalyticsController {
                     'days'   => $days,
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getSPC: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta SPC-data'], JSON_UNESCAPED_UNICODE);
@@ -1353,7 +1353,7 @@ class RebotlingAnalyticsController {
         try {
             $startDt = new DateTime($startDate, new DateTimeZone('Europe/Stockholm'));
             $endDt   = new DateTime($endDate, new DateTimeZone('Europe/Stockholm'));
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getHourlyBreakdown — ogiltigt datumvärde: ' . $e->getMessage());
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
@@ -1488,7 +1488,7 @@ class RebotlingAnalyticsController {
                 'end_date'   => $endDate,
                 'data'       => $operators,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getCycleByOperator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta cykeltid per operatör'], JSON_UNESCAPED_UNICODE);
@@ -1514,13 +1514,13 @@ class RebotlingAnalyticsController {
                 foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
                 }
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getYearCalendar weekdayGoals: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getYearCalendar weekdayGoals: ' . $e->getMessage()); }
 
             $defaultGoal = 1000;
             try {
                 $sgRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sgRow) $defaultGoal = (int)$sgRow['rebotling_target'];
-            } catch (Exception $e) { error_log('RebotlingAnalyticsController::getYearCalendar defaultGoal: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getYearCalendar defaultGoal: ' . $e->getMessage()); }
 
             // Hämta produktion per dag för hela året från rebotling_skiftrapport
             // SUM(ibc_ok) per datum
@@ -1588,7 +1588,7 @@ class RebotlingAnalyticsController {
                 'year'    => $year,
                 'days'    => $days,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getYearCalendar: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kalenderdata'], JSON_UNESCAPED_UNICODE);
@@ -1762,7 +1762,7 @@ class RebotlingAnalyticsController {
                 ],
                 'operators' => $opList,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getDayDetail: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagdetalj'], JSON_UNESCAPED_UNICODE);
@@ -2011,7 +2011,7 @@ class RebotlingAnalyticsController {
                 'top_weeks'     => $topWeeks,
                 'monthly_totals'=> $monthlyTotals,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getBenchmarking: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta benchmarking-data'], JSON_UNESCAPED_UNICODE);
@@ -2064,7 +2064,7 @@ class RebotlingAnalyticsController {
                 if ($sr && isset($sr['rebotling_target'])) {
                     $dailyGoal = (int)$sr['rebotling_target'];
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController::getMonthCompare: kunde ej läsa dagsmål: ' . $e->getMessage());
             }
 
@@ -2275,7 +2275,7 @@ class RebotlingAnalyticsController {
                         ];
                     }
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController::getMonthCompare: operatörsranking fel: ' . $e->getMessage());
             }
 
@@ -2296,7 +2296,7 @@ class RebotlingAnalyticsController {
                     $bdRow = $bdStmt->fetch(PDO::FETCH_ASSOC);
                     $bestDayData['operator_count'] = (int)($bdRow['op_count'] ?? 0);
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController::getMonthCompare: best day operators fel: ' . $e->getMessage());
             }
 
@@ -2323,7 +2323,7 @@ class RebotlingAnalyticsController {
             header('X-Cache: MISS');
             echo $jsonResult;
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getMonthCompare: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta jämförelsedata'], JSON_UNESCAPED_UNICODE);
@@ -2360,7 +2360,7 @@ class RebotlingAnalyticsController {
                 if ($sr && isset($sr['rebotling_target'])) {
                     $dailyGoal = (int)$sr['rebotling_target'];
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController::getMonthlyReport: kunde inte läsa dagsmål: ' . $e->getMessage());
             }
 
@@ -2609,7 +2609,7 @@ class RebotlingAnalyticsController {
                 'daily_production' => $dailyProduction,
                 'week_summary'     => $weekSummary,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getMonthlyReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsrapport'], JSON_UNESCAPED_UNICODE);
@@ -2721,7 +2721,7 @@ class RebotlingAnalyticsController {
                 'current_cycle_time'  => $currentCycleTime,
                 'trend_pct'           => $trendPct,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getMaintenanceIndicator: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta underhållsindikator'], JSON_UNESCAPED_UNICODE);
@@ -2781,7 +2781,7 @@ class RebotlingAnalyticsController {
                     'label'     => 'Lång stopptid: ' . $hours . 'h',
                 ];
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getAnnotations stopp-källa: ' . $e->getMessage());
         }
 
@@ -2798,7 +2798,7 @@ class RebotlingAnalyticsController {
                 if ($sr && isset($sr['rebotling_target'])) {
                     $halfGoal = intval($sr['rebotling_target']) / 2;
                 }
-            } catch (Exception $e2) {
+            } catch (\Throwable $e2) {
                 error_log('RebotlingAnalyticsController::getAnnotations: kunde inte läsa rebotling_settings: ' . $e2->getMessage());
             }
 
@@ -2831,7 +2831,7 @@ class RebotlingAnalyticsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getAnnotations low_production-källa: ' . $e->getMessage());
         }
 
@@ -2873,7 +2873,7 @@ class RebotlingAnalyticsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getAnnotations audit-källa: ' . $e->getMessage());
         }
 
@@ -2969,7 +2969,7 @@ class RebotlingAnalyticsController {
                     'trend' => $trend,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getQualityTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kvalitetstrend.'], JSON_UNESCAPED_UNICODE);
@@ -3047,7 +3047,7 @@ class RebotlingAnalyticsController {
                 'ibc_ok'            => $ibcOk,
                 'ibc_ej_ok'         => $ibcEjOk,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getOeeWaterfall: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av OEE-waterfall.'], JSON_UNESCAPED_UNICODE);
@@ -3136,7 +3136,7 @@ class RebotlingAnalyticsController {
                 'veckodagar'  => $veckodagar,
                 'dagar'       => $dagar
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getWeekdayStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodag-statistik'], JSON_UNESCAPED_UNICODE);
@@ -3174,7 +3174,7 @@ class RebotlingAnalyticsController {
                 ], JSON_UNESCAPED_UNICODE);
                 return;
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getStoppageAnalysis check: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -3300,7 +3300,7 @@ class RebotlingAnalyticsController {
                 'total_minutes'=> round($totalMinutes, 1),
                 'days'         => $days
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getStoppageAnalysis: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -3664,7 +3664,7 @@ class RebotlingAnalyticsController {
                 'efficiency_timeline' => $effTimeline,
                 'stopp_logg'          => $stoppLogg,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getShiftTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -3698,7 +3698,7 @@ class RebotlingAnalyticsController {
                 ], JSON_UNESCAPED_UNICODE);
                 return;
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getParetoStoppage check: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -3773,7 +3773,7 @@ class RebotlingAnalyticsController {
                 'total_stopp'   => $totalStopp,
                 'total_minuter' => round($totalMinuter, 1)
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getParetoStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -3814,7 +3814,7 @@ class RebotlingAnalyticsController {
                 echo json_encode(['success' => false, 'error' => 'Tabellerna finns inte.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getStopCauseDrilldown check: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel.'], JSON_UNESCAPED_UNICODE);
@@ -3913,7 +3913,7 @@ class RebotlingAnalyticsController {
                 'by_day'      => $byDayArr,
                 'stops'       => $stops
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getStopCauseDrilldown: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid drill-down.'], JSON_UNESCAPED_UNICODE);
@@ -4019,7 +4019,7 @@ class RebotlingAnalyticsController {
                     'antal_skift'    => $antalSkift,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getSkiftrapportList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapporter'], JSON_UNESCAPED_UNICODE);
@@ -4057,7 +4057,7 @@ class RebotlingAnalyticsController {
                 'success' => true,
                 'operators' => $operators,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getSkiftrapportOperators: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista'], JSON_UNESCAPED_UNICODE);
@@ -4244,7 +4244,7 @@ class RebotlingAnalyticsController {
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController skift_kommentar: ' . $e->getMessage());
             }
 
@@ -4277,7 +4277,7 @@ class RebotlingAnalyticsController {
                     'antal_rapporter' => count($rows),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getShiftSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftsammanfattning'], JSON_UNESCAPED_UNICODE);
@@ -4416,7 +4416,7 @@ class RebotlingAnalyticsController {
                 ],
                 'weeks_param' => $weeks,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getMaintenanceCorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta korrelationsdata'], JSON_UNESCAPED_UNICODE);
@@ -4587,7 +4587,7 @@ class RebotlingAnalyticsController {
                 'shift_number' => $shift,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::sendAutoShiftReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sändning av skiftrapport'], JSON_UNESCAPED_UNICODE);
@@ -5231,7 +5231,7 @@ HTML;
                 while ($ct = $ctStmt->fetch(PDO::FETCH_ASSOC)) {
                     $productCycleTimes[$ct['name']] = max((int)$ct['cycle_time_minutes'], 1);
                 }
-            } catch (Exception $e) { error_log('ShiftPdf products: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('ShiftPdf products: ' . $e->getMessage()); }
 
             // Hämta start/stopptid från onoff (alla skifträknare)
             $tider = $this->resolveSkiftTider($skiftraknareList, $date, $totalDrift);
@@ -5273,7 +5273,7 @@ HTML;
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
-            } catch (Exception $e) { error_log("RebotlingAnalyticsController::getShiftPdfSummary kommentar: " . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log("RebotlingAnalyticsController::getShiftPdfSummary kommentar: " . $e->getMessage()); }
 
             $shiftNames = [1 => 'Formiddag (06-14)', 2 => 'Eftermiddag (14-22)', 3 => 'Natt (22-06)'];
             $shiftName = $shiftNames[$shift] ?? "Skift $shift";
@@ -5470,7 +5470,7 @@ HTML;
                     $lopnummerHtml .= '<strong>' . htmlspecialchars(implode(', ', $ranges), ENT_QUOTES, 'UTF-8') . '</strong>';
                     $lopnummerHtml .= ' <span style="color:#999;">(' . count($lopRows) . ' st)</span></div>';
                 }
-            } catch (Exception $e) { error_log('ShiftPdfSummary löpnummer: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('ShiftPdfSummary löpnummer: ' . $e->getMessage()); }
             if (!empty($lopnummerHtml)) {
                 $html .= '<div class="section-title">Löpnummer</div>' . $lopnummerHtml;
             }
@@ -5629,13 +5629,13 @@ HTML;
                         }
                     }
                 }
-            } catch (Exception $e) { error_log('ShiftPdfSummary graf/stopp: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('ShiftPdfSummary graf/stopp: ' . $e->getMessage()); }
 
             $html .= '<div class="footer"><span>Genererad: ' . $genererad . ' | Noreko Rebotling</span><span>Antal rapporter: ' . $antalRap . '</span></div>';
             $html .= '</body></html>';
 
             echo $html;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getShiftPdfSummary: ' . $e->getMessage());
             http_response_code(500);
             echo '<!DOCTYPE html><html><body><h1>Serverfel</h1><p>Kunde inte generera skiftsammanfattning</p></body></html>';
@@ -5890,7 +5890,7 @@ HTML;
                 $s['antal'] = (int)$s['antal'];
             }
             unset($s);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             // stoppage_log kanske inte finns
             error_log('RebotlingAnalyticsController::weeklySummary stoppage: ' . $e->getMessage());
         }
@@ -5941,7 +5941,7 @@ HTML;
             http_response_code(400);
             error_log('RebotlingAnalyticsController::getWeeklySummaryEmail validation: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Ogiltigt veckoformat. Anvand YYYY-WXX (t.ex. 2026-W10).'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getWeeklySummaryEmail: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid generering av veckosammanfattning'], JSON_UNESCAPED_UNICODE);
@@ -6026,7 +6026,7 @@ HTML;
             http_response_code(400);
             error_log('RebotlingAnalyticsController::sendWeeklySummaryEmail validation: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Ogiltigt veckoformat. Anvand YYYY-WXX (t.ex. 2026-W10).'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::sendWeeklySummaryEmail: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sändning av veckorapport'], JSON_UNESCAPED_UNICODE);
@@ -6268,7 +6268,7 @@ HTML;
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             echo json_encode(['success' => true, 'annotations' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getAnnotationsList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta annotationer'], JSON_UNESCAPED_UNICODE);
@@ -6323,7 +6323,7 @@ HTML;
             ]);
             $id = (int)$this->pdo->lastInsertId();
             echo json_encode(['success' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::createAnnotation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte skapa annotation'], JSON_UNESCAPED_UNICODE);
@@ -6356,7 +6356,7 @@ HTML;
             $stmt->execute([':id' => $id]);
             $deleted = $stmt->rowCount();
             echo json_encode(['success' => true, 'deleted' => $deleted], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::deleteAnnotation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort annotation'], JSON_UNESCAPED_UNICODE);
@@ -6430,7 +6430,7 @@ HTML;
                 );
                 $stmtStop->execute();
                 $stoppageMin = (float)$stmtStop->fetchColumn();
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController stoppage_log query: ' . $e->getMessage());
                 $stoppageMin = $rastMin;
             }
@@ -6468,7 +6468,7 @@ HTML;
                     // Ideal = 120% av median (top-performance benchmark)
                     $idealRatePerMin = $medianRate * 1.2;
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAnalyticsController median-rate query: ' . $e->getMessage());
             }
 
@@ -6504,7 +6504,7 @@ HTML;
                     'planned_hours'       => round($plannedMin / 60, 1),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getRealtimeOee: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte beräkna realtids-OEE'], JSON_UNESCAPED_UNICODE);
@@ -6624,7 +6624,7 @@ HTML;
                     'period_label'     => 'Idag',
                 ], JSON_UNESCAPED_UNICODE);
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getProductionGoalProgress: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktionsmål'], JSON_UNESCAPED_UNICODE);
@@ -6635,7 +6635,7 @@ HTML;
         $streak = 0;
         try {
             $date = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::calcDailyStreak — ogiltigt datum: ' . $e->getMessage());
             return 0;
         }
@@ -6776,7 +6776,7 @@ HTML;
                 'period_type'  => $periodType,
                 'target_count' => $targetCount,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -6975,7 +6975,7 @@ HTML;
                 'natt'     => $nattKpi,
                 'trend'    => $trend,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getShiftDayNightComparison: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftjämförelse'], JSON_UNESCAPED_UNICODE);
@@ -7209,7 +7209,7 @@ HTML;
                 'to'      => $today,
                 'cells'   => $result,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAnalyticsController::getMachineUptimeHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta maskinupptid-heatmap'], JSON_UNESCAPED_UNICODE);

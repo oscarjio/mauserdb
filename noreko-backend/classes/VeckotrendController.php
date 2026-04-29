@@ -94,7 +94,7 @@ class VeckotrendController {
                         ? (float)$row['snitt_drifttid_pct']
                         : null;
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('VeckotrendController::getWeeklyKpis — drifttid query misslyckades: ' . $e->getMessage());
             }
 
@@ -203,7 +203,7 @@ class VeckotrendController {
                 'kpis'    => $kpis,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('VeckotrendController::getWeeklyKpis: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel vid hämtning av vecko-KPI'], JSON_UNESCAPED_UNICODE);

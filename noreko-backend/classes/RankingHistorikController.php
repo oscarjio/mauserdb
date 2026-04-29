@@ -76,7 +76,7 @@ class RankingHistorikController {
                 $map[(int)$r['number']] = $r['name'];
             }
             return $map;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RankingHistorikController::getOperatorNames: ' . $e->getMessage());
             return [];
         }
@@ -323,7 +323,7 @@ class RankingHistorikController {
             @file_put_contents($cacheFile, $jsonResult, LOCK_EX);
             $this->sendSuccess($responseData);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RankingHistorikController::getWeeklyRankings: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckoplaceringarna', 500);
         }
@@ -396,7 +396,7 @@ class RankingHistorikController {
                 'storst_klattare' => $storstKlattare,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RankingHistorikController::getRankingChanges: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna placeringsändringar', 500);
         }
@@ -505,7 +505,7 @@ class RankingHistorikController {
                 'weeks'                 => $weeks,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RankingHistorikController::getStreakData: ' . $e->getMessage());
             $this->sendError('Kunde inte beräkna streak-data', 500);
         }

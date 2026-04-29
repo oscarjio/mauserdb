@@ -81,7 +81,7 @@ class NewsController {
                 ];
             }, $rows);
             echo json_encode(['success' => true, 'news' => $news], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::adminList: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -139,7 +139,7 @@ class NewsController {
             AuditLogger::log($this->pdo, 'create_news', 'news', $id,
                 "Skapade nyhet: $title", null, ['title' => $title, 'category' => $category]);
             echo json_encode(['success' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::create: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -206,7 +206,7 @@ class NewsController {
             AuditLogger::log($this->pdo, 'update_news', 'news', $id,
                 "Uppdaterade nyhet (ID: $id): $title", null, ['title' => $title, 'category' => $category]);
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::update: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -230,7 +230,7 @@ class NewsController {
             $stmt->execute([':id' => $id]);
             AuditLogger::log($this->pdo, 'delete_news', 'news', $id, "Tog bort nyhet (ID: $id)");
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::delete: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -276,7 +276,7 @@ class NewsController {
                     'priority' => isset($row['priority']) ? (int)$row['priority'] : 3,
                 ];
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:manuella nyheter: " . $e->getMessage());
         }
 
@@ -324,7 +324,7 @@ class NewsController {
                     'pinned'   => false,
                 ];
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:rekordag: " . $e->getMessage());
         }
 
@@ -366,7 +366,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:hog_oee: " . $e->getMessage());
         }
 
@@ -402,7 +402,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:certifiering: " . $e->getMessage());
         }
 
@@ -435,7 +435,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:urgent_note: " . $e->getMessage());
         }
 
@@ -468,7 +468,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:produktion: " . $e->getMessage());
         }
 
@@ -513,7 +513,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:produktionsrekord: " . $e->getMessage());
         }
 
@@ -552,7 +552,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:oee_milstolpe: " . $e->getMessage());
         }
 
@@ -592,7 +592,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:bonus_milstolpe: " . $e->getMessage());
         }
 
@@ -643,7 +643,7 @@ class NewsController {
                     ];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NewsController::getEvents:lang_streak: " . $e->getMessage());
         }
 

@@ -102,7 +102,7 @@ class ShiftHandoverController {
         $now     = new DateTime('now', $tz);
         try {
             $created = new DateTime($createdAt, $tz);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ShiftHandoverController::timeAgo — ogiltigt datum: ' . $e->getMessage());
             return 'Okänt datum';
         }
@@ -486,7 +486,7 @@ class ShiftHandoverController {
                 }
             }
             return $emails;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ShiftHandoverController::getAdminEmails: ' . $e->getMessage());
             return [];
         }

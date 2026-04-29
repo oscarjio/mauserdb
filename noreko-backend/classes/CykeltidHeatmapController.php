@@ -214,7 +214,7 @@ class CykeltidHeatmapController {
                 'days'      => $days,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CykeltidHeatmapController::getHeatmap: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta heatmap-data', 500);
         }
@@ -287,7 +287,7 @@ class CykeltidHeatmapController {
                 'days'    => $days,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CykeltidHeatmapController::getDayPattern: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta dygnsmönster', 500);
         }
@@ -419,7 +419,7 @@ class CykeltidHeatmapController {
                 'days'          => $days,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CykeltidHeatmapController::getOperatorDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdetaljer', 500);
         }

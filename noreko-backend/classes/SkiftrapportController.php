@@ -683,7 +683,7 @@ class SkiftrapportController {
                 $maxStmt->execute([$foundSkiftraknare]);
                 $slutTid = $maxStmt->fetchColumn() ?: null;
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftrapportController::getSkiftTider onoff: ' . $e->getMessage());
         }
 
@@ -721,7 +721,7 @@ class SkiftrapportController {
                         $slutTid = $slutDt->format('Y-m-d H:i:s');
                     }
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('SkiftrapportController::getSkiftTider runtime fallback: ' . $e->getMessage());
             }
         }

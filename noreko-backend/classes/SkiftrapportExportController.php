@@ -372,7 +372,7 @@ class SkiftrapportExportController {
                 'skiften'    => $skiftLista,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftrapportExportController::getReportData: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skiftdata', 500);
         }
@@ -524,7 +524,7 @@ class SkiftrapportExportController {
                 ],
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('SkiftrapportExportController::getMultiDay: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta multi-dag data', 500);
         }

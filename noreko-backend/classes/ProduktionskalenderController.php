@@ -187,7 +187,7 @@ class ProduktionskalenderController {
             ");
             $stmt->execute([$fromDate, $toDate]);
             $dagRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getMonthData: ' . $e->getMessage());
             $this->sendError('Databasfel vid hämtning av månadsdata', 500);
             return;
@@ -422,7 +422,7 @@ class ProduktionskalenderController {
             ");
             $stmt->execute([$date, $date]);
             $base = $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('ProduktionskalenderController::getDayDetail: ' . $e->getMessage());
             $this->sendError('Databasfel vid hämtning av dagdetaljer', 500);
             return;

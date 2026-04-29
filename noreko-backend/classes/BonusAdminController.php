@@ -859,7 +859,7 @@ class BonusAdminController {
             }
 
             $this->pdo->commit();
-            } catch (Exception $txEx) {
+            } catch (\Throwable $txEx) {
                 if ($this->pdo->inTransaction()) {
                     $this->pdo->rollBack();
                 }
@@ -1049,7 +1049,7 @@ class BonusAdminController {
 
             try {
                 $this->logAudit('update_status', 'bonus_payout', $id, null, ['status' => $status]);
-            } catch (Exception $ae) {
+            } catch (\Throwable $ae) {
                 error_log('BonusAdminController::updatePayoutStatus audit: ' . $ae->getMessage());
             }
 
@@ -1129,7 +1129,7 @@ class BonusAdminController {
                 $this->logAudit('create', 'bonus_payout', (int)$newId, null, [
                     'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "{$period_start}–{$period_end}"
                 ]);
-            } catch (Exception $ae) {
+            } catch (\Throwable $ae) {
                 error_log('BonusAdminController::recordPayout audit: ' . $ae->getMessage());
             }
 
@@ -1165,7 +1165,7 @@ class BonusAdminController {
             // Försök logga audit
             try {
                 $this->logAudit('delete', 'bonus_payout', $id, ['id' => $id], null);
-            } catch (Exception $ae) {
+            } catch (\Throwable $ae) {
                 error_log('BonusAdminController::deletePayout audit: ' . $ae->getMessage());
             }
 

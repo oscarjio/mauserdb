@@ -1320,7 +1320,7 @@ class BonusController {
             foreach ($rows as $row) {
                 try {
                     $dag = new DateTime($row['dag'], $tzBon);
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('BonusController streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     continue;
                 }
@@ -1346,7 +1346,7 @@ class BonusController {
             foreach ($rowsAsc as $row) {
                 try {
                     $d = new DateTime($row['dag'], $tzBon);
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('BonusController longest-streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     $current = 0;
                     continue;
@@ -1488,7 +1488,7 @@ class BonusController {
             foreach ($streakRows as $row) {
                 try {
                     $dag = new DateTime($row['dag'], $tzBon2);
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('BonusController current-streak: ogiltigt datum: ' . ($row['dag'] ?? 'null') . ' — ' . $e->getMessage());
                     continue;
                 }
@@ -1830,7 +1830,7 @@ class BonusController {
             try {
                 $startDt = new DateTime($start, $tzBon3);
                 $endDt   = new DateTime($end, $tzBon3);
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('BonusController::buildDateFilter — ogiltigt datumvärde: ' . $e->getMessage());
                 return "1=0";
             }

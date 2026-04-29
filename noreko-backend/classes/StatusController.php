@@ -84,7 +84,7 @@ class StatusController {
                 ],
                 'csrfToken' => $csrfToken
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatusController::handle: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte kontrollera session'], JSON_UNESCAPED_UNICODE);
@@ -173,7 +173,7 @@ class StatusController {
                             }
                         }
                     }
-                } catch (Exception $e) { error_log('StatusController::getAllLinesStatus OEE: ' . $e->getMessage()); }
+                } catch (\Throwable $e) { error_log('StatusController::getAllLinesStatus OEE: ' . $e->getMessage()); }
 
                 $lines[] = [
                     'id'              => 'rebotling',
@@ -186,7 +186,7 @@ class StatusController {
                     'oee_pct'         => $oeePct,
                     'ej_i_drift'      => false
                 ];
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('StatusController::all-lines rebotling: ' . $e->getMessage());
                 $lines[] = [
                     'id'           => 'rebotling',
@@ -229,7 +229,7 @@ class StatusController {
             ];
 
             echo json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('StatusController::all-lines: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta linjestatus'], JSON_UNESCAPED_UNICODE);

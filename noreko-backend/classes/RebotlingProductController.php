@@ -69,7 +69,7 @@ class RebotlingProductController {
                 'success' => true,
                 'data' => $products
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingProductController::getProducts: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
@@ -140,7 +140,7 @@ class RebotlingProductController {
                     'cycle_time_minutes' => $data['cycle_time_minutes']
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -216,7 +216,7 @@ class RebotlingProductController {
                     'error' => 'Produkt hittades inte'
                 ], JSON_UNESCAPED_UNICODE);
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -265,7 +265,7 @@ class RebotlingProductController {
                     'error' => 'Produkt hittades inte'
                 ], JSON_UNESCAPED_UNICODE);
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }

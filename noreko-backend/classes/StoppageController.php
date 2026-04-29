@@ -292,7 +292,7 @@ class StoppageController {
                 try {
                     $start = new DateTime($startTime, $tz);
                     $end = new DateTime($endTime, $tz);
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     error_log('StoppageController::createStoppage — ogiltigt datumvärde: ' . $e->getMessage());
                     http_response_code(400);
                     echo json_encode(['success' => false, 'error' => 'Ogiltigt datumvärde'], JSON_UNESCAPED_UNICODE);
@@ -382,7 +382,7 @@ class StoppageController {
                             $end = new DateTime($endTime, $tz);
                             $fields[] = 'duration_minutes = ?';
                             $params[] = max(0, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60));
-                        } catch (Exception $e) {
+                        } catch (\Throwable $e) {
                             error_log('StoppageController::updateStoppage: Ogiltigt datumvärde: ' . $e->getMessage());
                         }
                     }

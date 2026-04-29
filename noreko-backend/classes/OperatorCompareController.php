@@ -95,7 +95,7 @@ class OperatorCompareController {
                 'op_a'    => $dataA,
                 'op_b'    => $dataB,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorCompareController::compare: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
@@ -158,7 +158,7 @@ class OperatorCompareController {
                     ],
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorCompareController::radarData: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }

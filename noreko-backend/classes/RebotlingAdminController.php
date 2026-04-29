@@ -70,7 +70,7 @@ class RebotlingAdminController {
             ];
 
             echo json_encode(['success' => true, 'data' => $settings], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta admin-inställningar'], JSON_UNESCAPED_UNICODE);
@@ -139,7 +139,7 @@ class RebotlingAdminController {
                         "INSERT INTO rebotling_goal_history (goal_type, value, changed_by) VALUES ('dagmal', ?, ?)"
                     );
                     $logStmt->execute([intval($rebotlingTarget), $user]);
-                } catch (Exception $logEx) {
+                } catch (\Throwable $logEx) {
                     error_log('RebotlingAdminController::saveAdminSettings (goal history): ' . $logEx->getMessage());
                 }
             }
@@ -148,7 +148,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result', 'month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveAdminSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
@@ -190,7 +190,7 @@ class RebotlingAdminController {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, daily_goal, label FROM rebotling_weekday_goals ORDER BY weekday")->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -224,7 +224,7 @@ class RebotlingAdminController {
                     }
                 }
                 $this->pdo->commit();
-            } catch (Exception $txEx) {
+            } catch (\Throwable $txEx) {
                 if ($this->pdo->inTransaction()) {
                     $this->pdo->rollBack();
                 }
@@ -234,7 +234,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
@@ -267,7 +267,7 @@ class RebotlingAdminController {
                      ADD COLUMN alert_thresholds TEXT NULL DEFAULT NULL"
                 );
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::ensureAlertThresholdsColumn: ' . $e->getMessage());
         }
     }
@@ -303,7 +303,7 @@ class RebotlingAdminController {
             }
 
             echo json_encode(['success' => true, 'data' => $thresholds], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getAlertThresholds: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar'], JSON_UNESCAPED_UNICODE);
@@ -339,7 +339,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result', 'alarm_historik_*']);
 
             echo json_encode(['success' => true, 'message' => 'Trösklar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveAlertThresholds: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara trösklar'], JSON_UNESCAPED_UNICODE);
@@ -406,7 +406,7 @@ class RebotlingAdminController {
                     'server_time'  => $now->format('H:i:s'),
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getTodaySnapshot: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
@@ -448,7 +448,7 @@ class RebotlingAdminController {
             $this->ensureShiftTimesTable();
             $rows = $this->pdo->query("SELECT shift_name, start_time, end_time, enabled FROM rebotling_shift_times ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getShiftTimes: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skifttider'], JSON_UNESCAPED_UNICODE);
@@ -490,7 +490,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result', 'month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
             echo json_encode(['success' => true, 'message' => 'Skifttider sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -522,18 +522,18 @@ class RebotlingAdminController {
             try {
                 $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM rebotling_ibc")->fetch(PDO::FETCH_ASSOC);
                 $lastPlcPing = $row ? $row['last_ping'] : null;
-            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus lastPlcPing: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAdminController::getSystemStatus lastPlcPing: ' . $e->getMessage()); }
 
             try {
                 $row = $this->pdo->query("SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 $lastLopnummer = $row ? (int)$row['lopnummer'] : null;
-            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus lopnummer: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAdminController::getSystemStatus lopnummer: ' . $e->getMessage()); }
 
             // Databas OK
             $dbOk = true;
             try {
                 $this->pdo->query("SELECT 1");
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('RebotlingAdminController::systemStatus DB check failed: ' . $e->getMessage());
                 $dbOk = false;
             }
@@ -543,14 +543,14 @@ class RebotlingAdminController {
             try {
                 $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_skiftrapport WHERE created_at >= CURDATE() AND created_at < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
                 $reportsToday = (int)$row;
-            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus reportsToday: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAdminController::getSystemStatus reportsToday: ' . $e->getMessage()); }
 
             // Totalt IBC idag från PLC
             $ibcToday = 0;
             try {
                 $row = $this->pdo->query("SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps")->fetchColumn();
                 $ibcToday = (int)$row;
-            } catch (Exception $e) { error_log('RebotlingAdminController::getSystemStatus ibcToday: ' . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('RebotlingAdminController::getSystemStatus ibcToday: ' . $e->getMessage()); }
 
             echo json_encode([
                 'success' => true,
@@ -563,7 +563,7 @@ class RebotlingAdminController {
                     'server_time'     => date('Y-m-d H:i:s')
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getSystemStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
@@ -652,7 +652,7 @@ class RebotlingAdminController {
                 'mal_pct'         => $malPct,
                 'ej_i_drift'      => false
             ];
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getAllLinesStatus rebotling: ' . $e->getMessage());
             $lines[] = [
                 'id'         => 'rebotling',
@@ -710,7 +710,7 @@ class RebotlingAdminController {
                      ADD COLUMN notification_config TEXT NULL DEFAULT NULL"
                 );
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::ensureNotificationEmailsColumn: ' . $e->getMessage());
         }
     }
@@ -754,7 +754,7 @@ class RebotlingAdminController {
                     'config'              => $config,
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getNotificationSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta notifikationsinställningar'], JSON_UNESCAPED_UNICODE);
@@ -811,7 +811,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result']);
 
             echo json_encode(['success' => true, 'message' => 'Notifikationsinställningar sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveNotificationSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara notifikationsinställningar'], JSON_UNESCAPED_UNICODE);
@@ -872,7 +872,7 @@ class RebotlingAdminController {
             }
 
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getGoalHistory: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -902,7 +902,7 @@ class RebotlingAdminController {
                 'lr_poll_interval' => intval($rows['lr_poll_interval'] ?? 30),
                 'lr_title'         => $rows['lr_title'] ?? 'Live Ranking',
             ]], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -939,7 +939,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result']);
 
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -982,7 +982,7 @@ class RebotlingAdminController {
                 'sort_by'          => $rows['lrc_sort_by'] ?? 'ibc_per_hour',
                 'refresh_interval' => intval($rows['lrc_refresh_interval'] ?? 30),
             ]], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getLiveRankingConfig: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1029,7 +1029,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result']);
 
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -1177,7 +1177,7 @@ class RebotlingAdminController {
                 ];
             }, $rows);
             echo json_encode(['success' => true, 'exceptions' => $exceptions], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getGoalExceptions: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta undantag'], JSON_UNESCAPED_UNICODE);
@@ -1229,7 +1229,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveGoalException: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara undantag'], JSON_UNESCAPED_UNICODE);
@@ -1256,7 +1256,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::deleteGoalException: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort undantag'], JSON_UNESCAPED_UNICODE);
@@ -1319,7 +1319,7 @@ class RebotlingAdminController {
                 'pct_kvar'               => $pctKvar,
                 'status'                 => $status,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::getServiceStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1364,7 +1364,7 @@ class RebotlingAdminController {
                 'message'            => 'Service registrerad',
                 'ibc_total_at_reset' => $totalIbc,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::resetService: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
@@ -1392,7 +1392,7 @@ class RebotlingAdminController {
             $this->invalidateCache(['livestats_result']);
 
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RebotlingAdminController::saveServiceInterval: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);

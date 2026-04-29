@@ -153,7 +153,7 @@ class FeedbackAnalysController {
                 'from_date' => $fromDate,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackAnalysController::getFeedbackList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta feedback-lista', 500);
         }
@@ -243,7 +243,7 @@ class FeedbackAnalysController {
                 'from_date'        => $fromDate,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackAnalysController::getFeedbackStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta statistik', 500);
         }
@@ -292,7 +292,7 @@ class FeedbackAnalysController {
                 'from_date' => $fromDate,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackAnalysController::getFeedbackTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta trenddata', 500);
         }
@@ -355,7 +355,7 @@ class FeedbackAnalysController {
                 'from_date'  => $fromDate,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FeedbackAnalysController::getOperatorSentiment: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörs-sentiment', 500);
         }

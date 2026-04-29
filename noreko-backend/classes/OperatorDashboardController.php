@@ -254,7 +254,7 @@ class OperatorDashboardController {
                 'bast_namn'       => $bastNamn ?: null,
                 'bast_ibc_per_h'  => $bastRate,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getToday: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsstatus', 500);
         }
@@ -391,7 +391,7 @@ class OperatorDashboardController {
             }
 
             $this->sendSuccess(['success' => true, 'operatorer' => $operatorer, 'fran' => $sjuDagarSen, 'till' => $today]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getWeekly: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckostats', 500);
         }
@@ -505,7 +505,7 @@ class OperatorDashboardController {
                 'dates'     => $dates,
                 'operators' => $operators,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }
@@ -645,7 +645,7 @@ class OperatorDashboardController {
                 'vecka_bast_operatör'     => $veckaBastNamn,
                 'manad_total_ibc'         => (int)($rowManad['total_ibc'] ?? 0),
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getSummary: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
@@ -682,7 +682,7 @@ class OperatorDashboardController {
             }
 
             $this->sendSuccess(['success' => true, 'operatorer' => $ops]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getOperatorer: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);
         }
@@ -755,7 +755,7 @@ class OperatorDashboardController {
                 'ibc_per_timme' => $ibcPerTimme,
                 'datum'         => $today,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getMinProduktion: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta produktion', 500);
         }
@@ -856,7 +856,7 @@ class OperatorDashboardController {
                 'antal_operatorer' => $countOps,
                 'datum'            => $today,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getMittTempo: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta tempo', 500);
         }
@@ -985,7 +985,7 @@ class OperatorDashboardController {
                 $stoppRow = $stStopp->fetch(PDO::FETCH_ASSOC);
                 $antalStopp = (int)($stoppRow['cnt'] ?? 0);
                 $stopptidSek = max(0, (int)($stoppRow['sek'] ?? 0));
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('OperatorDashboardController::getMinBonus stopp: ' . $e->getMessage());
             }
 
@@ -1015,7 +1015,7 @@ class OperatorDashboardController {
                 'antal_stopp'        => $antalStopp,
                 'datum'              => $today,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getMinBonus: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta bonus', 500);
         }
@@ -1065,7 +1065,7 @@ class OperatorDashboardController {
                         'varaktighet_min' => round($sek / 60, 1),
                     ];
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log('OperatorDashboardController::getMinaStopp inner: ' . $e->getMessage());
             }
 
@@ -1077,7 +1077,7 @@ class OperatorDashboardController {
                 'total_stopptid_min' => round($totalSek / 60, 1),
                 'datum'          => $today,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getMinaStopp: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta stopp', 500);
         }
@@ -1145,7 +1145,7 @@ class OperatorDashboardController {
                 'from'    => $fromDate,
                 'to'      => $today,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('OperatorDashboardController::getMinVeckotrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckotrend', 500);
         }

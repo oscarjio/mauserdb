@@ -108,7 +108,7 @@ class CertificationController {
                 'count'         => $count,
                 'urgent_count'  => $urgentCount,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CertificationController::getExpiryCount: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringsdata', 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
@@ -173,7 +173,7 @@ class CertificationController {
                 'success'      => true,
                 'operators'    => array_values($grouped)
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CertificationController::getAll: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar'], JSON_UNESCAPED_UNICODE);
@@ -290,7 +290,7 @@ class CertificationController {
                 'lines'     => $linesOut,
                 'matrix'    => $matrix,
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CertificationController::getMatrix: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompetensmatris'], JSON_UNESCAPED_UNICODE);
@@ -375,7 +375,7 @@ class CertificationController {
                 "Certifiering tillagd: operatör #$opNumber, linje: $line",
                 null, ['op_number' => $opNumber, 'line' => $line, 'certified_date' => $certDate]);
             echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
@@ -408,7 +408,7 @@ class CertificationController {
             AuditLogger::log($this->pdo, 'revoke_certification', 'operator_certifications', $id,
                 "Certifiering återkallad (ID: $id)");
             echo json_encode(['success' => true, 'message' => 'Certifiering återkallad'], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('CertificationController::revokeCertification: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte återkalla certifiering'], JSON_UNESCAPED_UNICODE);

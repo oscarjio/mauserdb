@@ -101,7 +101,7 @@ class WeeklyReportController {
                 'operator_of_week'  => $operatorOfWeek,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("WeeklyReportController::getWeekCompare: " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
@@ -296,7 +296,7 @@ class WeeklyReportController {
                 if ($goalRow && isset($goalRow['rebotling_target'])) {
                     $dagmal = intval($goalRow['rebotling_target']);
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 error_log("WeeklyReportController::getSummary: kunde ej hämta dagmal: " . $e->getMessage());
             }
 
@@ -465,7 +465,7 @@ class WeeklyReportController {
                 'operators' => $operatorsFormatted,
             ], JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("WeeklyReportController::getSummary: " . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }

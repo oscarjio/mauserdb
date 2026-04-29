@@ -132,7 +132,7 @@ class RuntimeController {
                 }
                 throw $innerE;
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RuntimeController::registerBreakFromShelly: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
@@ -183,7 +183,7 @@ class RuntimeController {
                     'rast_status' => $rastStatus
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RuntimeController::registerBreak: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
@@ -228,7 +228,7 @@ class RuntimeController {
                     'total_break_hours' => round($totalBreakMinutes / 60, 2)
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RuntimeController::getTodayBreakTime: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid'], JSON_UNESCAPED_UNICODE);
@@ -280,7 +280,7 @@ class RuntimeController {
                     'total_break_hours' => round($totalBreakMinutes / 60, 2)
                 ]
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('RuntimeController::getBreakStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);

@@ -181,7 +181,7 @@ class NarvaroController {
                     ],
                 ],
             ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('NarvaroController::monthlyOverview: ' . $e->getMessage());
             http_response_code(500);
             header('Content-Type: application/json; charset=utf-8');

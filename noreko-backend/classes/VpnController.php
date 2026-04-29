@@ -231,7 +231,7 @@ class VpnController {
             
             echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             if (is_resource($socket)) {
                 @fclose($socket);
             }
