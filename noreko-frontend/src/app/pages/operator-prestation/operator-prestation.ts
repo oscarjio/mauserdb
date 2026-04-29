@@ -22,6 +22,7 @@ export class OperatorPrestationPage {
     {
       label: 'Träning & Uppföljning',
       tools: [
+        { title: 'Stjärnoperatörer', desc: 'Sammansatt poäng (fart, trend, mångsidighet, kassation) — rankar alla operatörer och identifierar nyckelspelare, dolda talanger och vem som behöver stöd', route: '/rebotling/stjarnoperatorer', icon: 'fas fa-star', color: '#f6c90e' },
         { title: 'Tränarvy', desc: 'Prioriterad coachingöversikt — vem behöver stöd, beröm eller bevakning?', route: '/rebotling/coach-view', icon: 'fas fa-chalkboard-teacher', color: '#a78bfa' },
         { title: 'Operatörsutveckling', desc: '12 månaders IBC/h-sparkline per operatör — se vem som förbättrar sig, är stabil eller försämras långsiktigt', route: '/rebotling/operator-utveckling', icon: 'fas fa-chart-line', color: '#a78bfa' },
       ]

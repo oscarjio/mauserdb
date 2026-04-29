@@ -1,0 +1,311 @@
+<div class="star-page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-star me-2" style="color:#f6c90e"></i>Stjärnoperatörer
+    </h1>
+    <p class="page-subtitle">
+      Sammansatt poäng baserat på fart, trend, mångsidighet och kassation — identifiera nyckelspelare och dolda talanger
+    </p>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button *ngFor="let opt of periodOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="period === opt.val"
+          [class.btn-outline-secondary]="period !== opt.val"
+          (click)="period = opt.val; load()">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Nivå</label>
+      <select class="form-select form-select-sm filter-select" [(ngModel)]="filterLevel">
+        <option *ngFor="let opt of levelOptions" [value]="opt.val">{{ opt.label }}</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Sortera</label>
+      <select class="form-select form-select-sm filter-select" [(ngModel)]="sortKey">
+        <option value="score">Poäng</option>
+        <option value="ibc_h">IBC/h</option>
+        <option value="trend">Trend</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isFetching" class="loading-state">
+    <div class="spinner-border text-warning" role="status"></div>
+    <span class="ms-3">Beräknar poäng...</span>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="!isFetching && error" class="error-state">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte hämta data. Kontrollera inloggning.
+    <button class="btn btn-sm btn-outline-secondary ms-3" (click)="load()">Försök igen</button>
+  </div>
+
+  <ng-container *ngIf="!isFetching && data">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-users" style="color:#63b3ed"></i></div>
+        <div class="kpi-value" style="color:#63b3ed">{{ totalCount }}</div>
+        <div class="kpi-label">Operatörer analyserade</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-star" style="color:#f6c90e"></i></div>
+        <div class="kpi-value" style="color:#f6c90e">{{ stjarnCount }}</div>
+        <div class="kpi-label">Stjärnor &amp; Nyckelspelare</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-chart-line" style="color:#68d391"></i></div>
+        <div class="kpi-value" style="color:#68d391">{{ data.improving }}</div>
+        <div class="kpi-label">Förbättrande trend (30d)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt" style="color:#a78bfa"></i></div>
+        <div class="kpi-value" style="color:#a78bfa">{{ data.team_ibc_h | number:'1.1-1' }}</div>
+        <div class="kpi-label">Lagsnitt IBC/h</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-trophy" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ topScore | number:'1.0-0' }}</div>
+        <div class="kpi-label">Topppoäng (max 100)</div>
+      </div>
+    </div>
+
+    <!-- Score legend -->
+    <div class="legend-bar">
+      <span class="legend-title">Poängskala:</span>
+      <span class="legend-item legend-stjarna">⭐⭐⭐⭐⭐ Stjärnoperatör ≥75p</span>
+      <span class="legend-item legend-nyckel">⭐⭐⭐⭐ Nyckelspelare 55–75p</span>
+      <span class="legend-item legend-solid">⭐⭐⭐ Solid 35–55p</span>
+      <span class="legend-item legend-potential">⭐⭐ Potential 15–35p</span>
+      <span class="legend-item legend-stod">⭐ Behöver stöd &lt;15p</span>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="filteredOperators.length === 0" class="empty-state">
+      <i class="fas fa-search me-2"></i>Inga operatörer matchar valt filter.
+    </div>
+
+    <!-- Operator cards -->
+    <div class="op-list">
+      <div *ngFor="let op of filteredOperators; let i = index" class="op-card"
+           [style.border-left-color]="levelColor(op.level)">
+
+        <!-- Card header (always visible) -->
+        <div class="op-header" (click)="toggleExpand(op.op_num)">
+          <div class="op-rank">{{ i + 1 }}</div>
+
+          <div class="op-stars-name">
+            <div class="op-stars" [style.color]="levelColor(op.level)">{{ stars(op.level) }}</div>
+            <div class="op-name">
+              <a [routerLink]="['/rebotling/operator', op.op_num]" (click)="$event.stopPropagation()">
+                {{ op.name }}
+              </a>
+            </div>
+            <div class="op-level-label" [style.color]="levelColor(op.level)">
+              {{ levelLabel(op.level) }}
+            </div>
+          </div>
+
+          <!-- Score bar -->
+          <div class="score-col">
+            <div class="score-value">{{ op.score | number:'1.0-0' }}p</div>
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" [style.width]="scoreBarWidth(op.score)"
+                   [style.background]="levelColor(op.level)"></div>
+            </div>
+          </div>
+
+          <!-- IBC/h metrics -->
+          <div class="metric-col">
+            <div class="metric-main">{{ op.period_ibc_h | number:'1.1-1' }} IBC/h</div>
+            <div class="metric-sub" *ngIf="op.recent_ibc_h !== null">
+              Senaste 30d: {{ op.recent_ibc_h | number:'1.1-1' }}
+            </div>
+          </div>
+
+          <!-- vs-team badge -->
+          <div class="vs-col">
+            <span class="vs-badge" [class]="vsTeamClass(op.vs_team_recent)">
+              {{ op.vs_team_recent >= 0 ? '+' : '' }}{{ op.vs_team_recent | number:'1.0-0' }}% vs lag
+            </span>
+          </div>
+
+          <!-- Trend -->
+          <div class="trend-col">
+            <span class="trend-arrow" [style.color]="trendColor(op.trend_label)">
+              {{ trendIcon(op.trend_label) }}
+            </span>
+            <span class="trend-pct" [style.color]="trendColor(op.trend_label)">
+              {{ op.trend_pct >= 0 ? '+' : '' }}{{ op.trend_pct | number:'1.0-0' }}%
+            </span>
+          </div>
+
+          <!-- Position pills -->
+          <div class="pos-col">
+            <span class="pos-pill pos-tvatt" [class.pos-active]="op.pos1 >= 2">T</span>
+            <span class="pos-pill pos-kontroll" [class.pos-active]="op.pos2 >= 2">K</span>
+            <span class="pos-pill pos-truck" [class.pos-active]="op.pos3 >= 2">Tr</span>
+          </div>
+
+          <!-- Expand chevron -->
+          <div class="expand-col">
+            <i class="fas" [class.fa-chevron-down]="expandedOp !== op.op_num"
+               [class.fa-chevron-up]="expandedOp === op.op_num"></i>
+          </div>
+        </div>
+
+        <!-- Strengths pills (always visible) -->
+        <div class="strengths-row">
+          <span *ngFor="let s of op.strengths" class="strength-pill">{{ s }}</span>
+        </div>
+
+        <!-- Expanded details -->
+        <div class="op-detail" *ngIf="expandedOp === op.op_num">
+          <div class="detail-grid">
+
+            <!-- Score breakdown -->
+            <div class="detail-card">
+              <div class="detail-title">Poänguppdelning</div>
+              <div class="score-row">
+                <span class="score-label">Fart (max 60)</span>
+                <div class="score-mini-bar-bg">
+                  <div class="score-mini-bar" [style.width]="(op.speed_score/60*100)+'%'" style="background:#63b3ed"></div>
+                </div>
+                <span class="score-pts">{{ op.speed_score | number:'1.0-0' }}p</span>
+              </div>
+              <div class="score-row">
+                <span class="score-label">Trend (max 20)</span>
+                <div class="score-mini-bar-bg">
+                  <div class="score-mini-bar" [style.width]="(op.trend_score/20*100)+'%'" style="background:#68d391"></div>
+                </div>
+                <span class="score-pts">{{ op.trend_score | number:'1.0-0' }}p</span>
+              </div>
+              <div class="score-row">
+                <span class="score-label">Mångsidighet (max 10)</span>
+                <div class="score-mini-bar-bg">
+                  <div class="score-mini-bar" [style.width]="(op.vers_score/10*100)+'%'" style="background:#a78bfa"></div>
+                </div>
+                <span class="score-pts">{{ op.vers_score | number:'1.0-0' }}p</span>
+              </div>
+              <div class="score-row">
+                <span class="score-label">Erfarenhet (max 5)</span>
+                <div class="score-mini-bar-bg">
+                  <div class="score-mini-bar" [style.width]="(op.exp_score/5*100)+'%'" style="background:#f6ad55"></div>
+                </div>
+                <span class="score-pts">{{ op.exp_score | number:'1.0-0' }}p</span>
+              </div>
+              <div class="score-row">
+                <span class="score-label">Kassation (max 5)</span>
+                <div class="score-mini-bar-bg">
+                  <div class="score-mini-bar" [style.width]="(op.kass_score/5*100)+'%'" style="background:#f6c90e"></div>
+                </div>
+                <span class="score-pts">{{ op.kass_score | number:'1.0-0' }}p</span>
+              </div>
+            </div>
+
+            <!-- Performance metrics -->
+            <div class="detail-card">
+              <div class="detail-title">Prestanda</div>
+              <table class="detail-table">
+                <tr>
+                  <td>IBC/h (period)</td>
+                  <td class="val">{{ op.period_ibc_h | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="op.recent_ibc_h !== null">
+                  <td>IBC/h (senaste 30d)</td>
+                  <td class="val" [style.color]="trendColor(op.trend_label)">
+                    {{ op.recent_ibc_h | number:'1.2-2' }}
+                  </td>
+                </tr>
+                <tr>
+                  <td>vs Lagsnitt (period)</td>
+                  <td class="val" [style.color]="op.vs_team_period >= 0 ? '#68d391' : '#fc8181'">
+                    {{ op.vs_team_period >= 0 ? '+' : '' }}{{ op.vs_team_period | number:'1.1-1' }}%
+                  </td>
+                </tr>
+                <tr>
+                  <td>vs Lagsnitt (30d)</td>
+                  <td class="val" [style.color]="op.vs_team_recent >= 0 ? '#68d391' : '#fc8181'">
+                    {{ op.vs_team_recent >= 0 ? '+' : '' }}{{ op.vs_team_recent | number:'1.1-1' }}%
+                  </td>
+                </tr>
+                <tr>
+                  <td>Kassation</td>
+                  <td class="val" [class]="kassClass(op)">
+                    {{ op.kassation_pct | number:'1.1-1' }}%
+                    <span class="kass-team">(lag: {{ op.team_kass_pct | number:'1.1-1' }}%)</span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Shifts & positions -->
+            <div class="detail-card">
+              <div class="detail-title">Aktivitet &amp; Positioner</div>
+              <table class="detail-table">
+                <tr>
+                  <td>Skift (period)</td>
+                  <td class="val">{{ op.p_shifts }}</td>
+                </tr>
+                <tr>
+                  <td>Skift (senaste 30d)</td>
+                  <td class="val">{{ op.r_shifts }}</td>
+                </tr>
+                <tr>
+                  <td>Tvättplats (op1)</td>
+                  <td class="val">{{ op.pos1 }} skift</td>
+                </tr>
+                <tr>
+                  <td>Kontrollstation (op2)</td>
+                  <td class="val">{{ op.pos2 }} skift</td>
+                </tr>
+                <tr>
+                  <td>Truckförare (op3)</td>
+                  <td class="val">{{ op.pos3 }} skift</td>
+                </tr>
+                <tr>
+                  <td>Positioner (≥2 skift)</td>
+                  <td class="val">{{ op.pos_used }} av 3</td>
+                </tr>
+              </table>
+              <a [routerLink]="['/rebotling/operator', op.op_num]" class="profile-link">
+                <i class="fas fa-external-link-alt me-1"></i>Visa profil →
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Score explanation -->
+    <div class="explain-box">
+      <div class="explain-title"><i class="fas fa-info-circle me-2"></i>Hur beräknas poängen?</div>
+      <div class="explain-grid">
+        <div><strong>Fart (0–60p)</strong>: vs lagsnittets IBC/h senaste 30 dagarna. +30% → 60p, lagsnitt → 30p, −30% → 0p.</div>
+        <div><strong>Trend (0–20p)</strong>: Senaste 30d IBC/h vs periodssnitt. ≥+10% förbättring → 20p.</div>
+        <div><strong>Mångsidighet (0–10p)</strong>: Antal positioner med ≥2 skift. Alla 3 → 10p, 2 → 5p.</div>
+        <div><strong>Erfarenhet (0–5p)</strong>: ≥20 skift i perioden → 5p, ≥10 skift → 3p.</div>
+        <div><strong>Kassation (0–5p)</strong>: Under lagets kassationssnitt → 5p, under 1.5× → 2p.</div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

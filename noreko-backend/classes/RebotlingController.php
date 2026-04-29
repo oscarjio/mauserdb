@@ -346,6 +346,8 @@ class RebotlingController {
                 $this->getSkiftLogg();
             } elseif ($action === 'skift-avvikelser') {
                 $this->getSkiftAvvikelser();
+            } elseif ($action === 'stjarnoperatorer') {
+                $this->getStjarnoperatorer();
             } else {
                 $this->getLiveStats();
             }
@@ -13617,6 +13619,247 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftAvvikelser: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftavvikelser'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ================================================================
+    // Stjärnoperatörer — composite performance score per operator
+    // ================================================================
+    private function getStjarnoperatorer(): void {
+        try {
+            $days    = max(30, min(365, intval($_GET['period'] ?? 90)));
+            $toDate  = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+            $from30  = date('Y-m-d', strtotime('-30 days'));
+
+            // ---- Per-operator aggregation (full period + last-30d split) ----
+            $sqlOp = "
+                SELECT
+                    op_num,
+                    MAX(naam) AS naam,
+                    SUM(ibc)             AS p_ibc,
+                    SUM(min_d)           AS p_min,
+                    SUM(kass_ej)         AS p_kass_ej,
+                    SUM(totalt)          AS p_totalt,
+                    COUNT(*)             AS p_shifts,
+                    SUM(CASE WHEN datum >= :from30a THEN ibc    ELSE 0 END) AS r_ibc,
+                    SUM(CASE WHEN datum >= :from30b THEN min_d  ELSE 0 END) AS r_min,
+                    SUM(CASE WHEN datum >= :from30c THEN 1      ELSE 0 END) AS r_shifts,
+                    SUM(CASE WHEN pos = 1 THEN 1 ELSE 0 END)   AS pos1,
+                    SUM(CASE WHEN pos = 2 THEN 1 ELSE 0 END)   AS pos2,
+                    SUM(CASE WHEN pos = 3 THEN 1 ELSE 0 END)   AS pos3
+                FROM (
+                    SELECT s.datum, s.skiftraknare, 1 AS pos,
+                           s.op1 AS op_num,
+                           COALESCE(o.name, CONCAT('Op ', s.op1)) AS naam,
+                           MAX(COALESCE(s.ibc_ok, 0))     AS ibc,
+                           MAX(COALESCE(s.drifttid, 0))   AS min_d,
+                           MAX(COALESCE(s.ibc_ej_ok, 0))  AS kass_ej,
+                           MAX(COALESCE(s.totalt, 0))     AS totalt
+                    FROM rebotling_skiftrapport s
+                    LEFT JOIN operators o ON o.number = s.op1
+                    WHERE s.datum BETWEEN :from1 AND :to1
+                      AND s.op1 > 0 AND s.drifttid >= 30
+                    GROUP BY s.skiftraknare, s.op1, s.datum
+
+                    UNION ALL
+
+                    SELECT s.datum, s.skiftraknare, 2 AS pos,
+                           s.op2 AS op_num,
+                           COALESCE(o.name, CONCAT('Op ', s.op2)) AS naam,
+                           MAX(COALESCE(s.ibc_ok, 0))     AS ibc,
+                           MAX(COALESCE(s.drifttid, 0))   AS min_d,
+                           MAX(COALESCE(s.ibc_ej_ok, 0))  AS kass_ej,
+                           MAX(COALESCE(s.totalt, 0))     AS totalt
+                    FROM rebotling_skiftrapport s
+                    LEFT JOIN operators o ON o.number = s.op2
+                    WHERE s.datum BETWEEN :from2 AND :to2
+                      AND s.op2 > 0 AND s.drifttid >= 30
+                    GROUP BY s.skiftraknare, s.op2, s.datum
+
+                    UNION ALL
+
+                    SELECT s.datum, s.skiftraknare, 3 AS pos,
+                           s.op3 AS op_num,
+                           COALESCE(o.name, CONCAT('Op ', s.op3)) AS naam,
+                           MAX(COALESCE(s.ibc_ok, 0))     AS ibc,
+                           MAX(COALESCE(s.drifttid, 0))   AS min_d,
+                           MAX(COALESCE(s.ibc_ej_ok, 0))  AS kass_ej,
+                           MAX(COALESCE(s.totalt, 0))     AS totalt
+                    FROM rebotling_skiftrapport s
+                    LEFT JOIN operators o ON o.number = s.op3
+                    WHERE s.datum BETWEEN :from3 AND :to3
+                      AND s.op3 > 0 AND s.drifttid >= 30
+                    GROUP BY s.skiftraknare, s.op3, s.datum
+                ) sub
+                GROUP BY op_num
+                HAVING p_shifts >= 3
+            ";
+            $stOp = $this->pdo->prepare($sqlOp);
+            $stOp->execute([
+                ':from30a' => $from30, ':from30b' => $from30, ':from30c' => $from30,
+                ':from1' => $fromDate, ':to1' => $toDate,
+                ':from2' => $fromDate, ':to2' => $toDate,
+                ':from3' => $fromDate, ':to3' => $toDate,
+            ]);
+            $opRows = $stOp->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ---- Team averages (period + recent-30d) ----
+            $sqlTeam = "
+                SELECT
+                    SUM(ibc)  AS t_ibc,  SUM(min_d) AS t_min,
+                    SUM(CASE WHEN datum >= :from30d THEN ibc   ELSE 0 END) AS tr_ibc,
+                    SUM(CASE WHEN datum >= :from30e THEN min_d ELSE 0 END) AS tr_min,
+                    SUM(kass_ej) AS t_kass_ej, SUM(totalt) AS t_totalt
+                FROM (
+                    SELECT datum, MAX(COALESCE(ibc_ok, 0)) AS ibc,
+                           MAX(COALESCE(drifttid, 0)) AS min_d,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS kass_ej,
+                           MAX(COALESCE(totalt, 0)) AS totalt
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from4 AND :to4 AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) dedup
+            ";
+            $stTeam = $this->pdo->prepare($sqlTeam);
+            $stTeam->execute([
+                ':from30d' => $from30, ':from30e' => $from30,
+                ':from4' => $fromDate, ':to4' => $toDate,
+            ]);
+            $team = $stTeam->fetch(\PDO::FETCH_ASSOC);
+
+            $teamIbcH   = ($team['t_min'] > 0)  ? $team['t_ibc']  / ($team['t_min']  / 60.0) : 0.0;
+            $teamRIbcH  = ($team['tr_min'] > 0) ? $team['tr_ibc'] / ($team['tr_min'] / 60.0) : $teamIbcH;
+            $teamKassR  = ($team['t_totalt'] > 0) ? $team['t_kass_ej'] / $team['t_totalt'] * 100.0 : 0.0;
+
+            // ---- Build per-operator result ----
+            $operators = [];
+            foreach ($opRows as $r) {
+                $pIbcH = ($r['p_min'] > 0) ? round($r['p_ibc'] / ($r['p_min'] / 60.0), 2) : 0.0;
+                $rIbcH = ($r['r_min'] > 0) ? round($r['r_ibc'] / ($r['r_min'] / 60.0), 2) : null;
+                $kassR = ($r['p_totalt'] > 0) ? round($r['p_kass_ej'] / $r['p_totalt'] * 100.0, 2) : 0.0;
+
+                // vs-team (period)
+                $vsTeamP = ($teamIbcH > 0) ? round(($pIbcH / $teamIbcH - 1.0) * 100, 1) : 0.0;
+                // vs-team (recent 30d)
+                $vsTeamR = ($rIbcH !== null && $teamRIbcH > 0)
+                    ? round(($rIbcH / $teamRIbcH - 1.0) * 100, 1)
+                    : $vsTeamP;
+
+                // Trend: how much has recent changed vs period (%)
+                $trendPct = ($pIbcH > 0 && $rIbcH !== null)
+                    ? round(($rIbcH / $pIbcH - 1.0) * 100, 1)
+                    : 0.0;
+
+                // Versatility: how many positions with ≥2 shifts
+                $posUsed = 0;
+                if ($r['pos1'] >= 2) $posUsed++;
+                if ($r['pos2'] >= 2) $posUsed++;
+                if ($r['pos3'] >= 2) $posUsed++;
+
+                // --- Composite star score (0-100) ---
+                // Speed (0-60 pts): capped at ±30% vs team (recent)
+                $speedScore = max(0.0, min(60.0, 30.0 + $vsTeamR));
+
+                // Trend (0-20 pts)
+                $trendScore = 0.0;
+                if ($trendPct >= 10.0)     $trendScore = 20.0;
+                elseif ($trendPct >= 5.0)  $trendScore = 12.0;
+                elseif ($trendPct >= 0.0)  $trendScore = 5.0;
+
+                // Versatility (0-10 pts)
+                $versScore = ($posUsed >= 3) ? 10.0 : (($posUsed >= 2) ? 5.0 : 0.0);
+
+                // Experience (0-5 pts)
+                $expScore = ($r['p_shifts'] >= 20) ? 5.0 : (($r['p_shifts'] >= 10) ? 3.0 : 0.0);
+
+                // Kassation quality (0-5 pts)
+                $kassScore = 0.0;
+                if ($teamKassR > 0) {
+                    if ($kassR <= $teamKassR)        $kassScore = 5.0;
+                    elseif ($kassR <= $teamKassR * 1.5) $kassScore = 2.0;
+                }
+
+                $totalScore = round($speedScore + $trendScore + $versScore + $expScore + $kassScore, 1);
+
+                // Star level
+                if ($totalScore >= 75)      $level = 'stjarna';
+                elseif ($totalScore >= 55)  $level = 'nyckel';
+                elseif ($totalScore >= 35)  $level = 'solid';
+                elseif ($totalScore >= 15)  $level = 'potential';
+                else                        $level = 'stod';
+
+                // Trend direction label
+                if ($trendPct >= 5.0)       $trendLabel = 'foerbattras';
+                elseif ($trendPct <= -5.0)  $trendLabel = 'forsamras';
+                else                        $trendLabel = 'stabil';
+
+                // Strengths array
+                $strengths = [];
+                if ($vsTeamR >= 15.0)       $strengths[] = 'Hög fart';
+                elseif ($vsTeamR >= 5.0)    $strengths[] = 'Bra fart';
+                if ($trendPct >= 5.0)       $strengths[] = 'Förbättrande trend';
+                elseif ($trendPct >= 10.0)  $strengths[] = 'Stark förbättring';
+                if ($posUsed >= 3)          $strengths[] = 'Mångsidig (3 pos)';
+                elseif ($posUsed >= 2)      $strengths[] = 'Flexibel (2 pos)';
+                if ($kassR < $teamKassR && $teamKassR > 0) $strengths[] = 'Låg kassation';
+                if ($r['p_shifts'] >= 20)   $strengths[] = 'Erfaren';
+                if (empty($strengths))      $strengths[] = 'Stabilt bidrag';
+
+                $operators[] = [
+                    'op_num'        => (int)$r['op_num'],
+                    'name'          => $r['naam'],
+                    'period_ibc_h'  => $pIbcH,
+                    'recent_ibc_h'  => $rIbcH,
+                    'vs_team_period' => $vsTeamP,
+                    'vs_team_recent' => $vsTeamR,
+                    'trend_pct'     => $trendPct,
+                    'trend_label'   => $trendLabel,
+                    'kassation_pct' => $kassR,
+                    'team_kass_pct' => round($teamKassR, 2),
+                    'p_shifts'      => (int)$r['p_shifts'],
+                    'r_shifts'      => (int)$r['r_shifts'],
+                    'pos1'          => (int)$r['pos1'],
+                    'pos2'          => (int)$r['pos2'],
+                    'pos3'          => (int)$r['pos3'],
+                    'pos_used'      => $posUsed,
+                    'score'         => $totalScore,
+                    'level'         => $level,
+                    'strengths'     => $strengths,
+                    'speed_score'   => round($speedScore, 1),
+                    'trend_score'   => $trendScore,
+                    'vers_score'    => $versScore,
+                    'exp_score'     => $expScore,
+                    'kass_score'    => $kassScore,
+                ];
+            }
+
+            usort($operators, fn($a, $b) => $b['score'] <=> $a['score']);
+
+            // KPI counts
+            $counts = ['stjarna' => 0, 'nyckel' => 0, 'solid' => 0, 'potential' => 0, 'stod' => 0];
+            $improving = 0;
+            foreach ($operators as $op) {
+                $counts[$op['level']]++;
+                if ($op['trend_label'] === 'foerbattras') $improving++;
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'period'        => $days,
+                'from_date'     => $fromDate,
+                'to_date'       => $toDate,
+                'team_ibc_h'    => round($teamIbcH, 2),
+                'team_kass_pct' => round($teamKassR, 2),
+                'counts'        => $counts,
+                'improving'     => $improving,
+                'operators'     => $operators,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getStjarnoperatorer: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid stjärnoperatörer'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
