@@ -1,0 +1,213 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div>
+      <h1 class="page-title">
+        <i class="fas fa-sync-alt me-2" style="color:#76e4f7;"></i>Rotationsanalys
+      </h1>
+      <p class="page-sub">
+        Jämför IBC/h när en operatör byter position mot när hen stannar kvar på samma position — gynnar rotation eller specialisering?
+      </p>
+    </div>
+
+    <!-- Period selector -->
+    <div class="period-btns">
+      <button *ngFor="let d of dayOptions"
+              [class.active]="days === d"
+              (click)="setDays(d)">{{ d }}d</button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#76e4f7;" role="status"></div>
+    <p class="mt-2 text-muted">Analyserar positionsbyten…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && kpi">
+
+    <!-- Verdict banner -->
+    <div class="verdict-banner mb-4" [class]="verdiktClass">
+      <i class="fas fa-balance-scale me-2"></i>
+      <strong>{{ verdiktText }}</strong>
+      <span *ngIf="kpi.avg_delta !== null" class="ms-3 verdict-delta">
+        Genomsnittlig Δ IBC/h: {{ deltaSign(kpi.avg_delta) }}{{ kpi.avg_delta | number:'1.2-2' }}
+      </span>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <div class="kpi-val">{{ kpi.antal_op }}</div>
+        <div class="kpi-lbl">Operatörer analyserade</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val">{{ kpi.total_skift }}</div>
+        <div class="kpi-lbl">Skift totalt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val">{{ kpi.rotation_rate | number:'1.0-1' }}%</div>
+        <div class="kpi-lbl">Rotationsfrekvens</div>
+      </div>
+      <div class="kpi-card" [class.kpi-positive]="(kpi.avg_delta ?? 0) > 0.3" [class.kpi-negative]="(kpi.avg_delta ?? 0) < -0.3">
+        <div class="kpi-val">
+          <span *ngIf="kpi.avg_delta !== null">{{ deltaSign(kpi.avg_delta) }}{{ kpi.avg_delta | number:'1.2-2' }}</span>
+          <span *ngIf="kpi.avg_delta === null">—</span>
+        </div>
+        <div class="kpi-lbl">Snitt Δ IBC/h (rot − spec)</div>
+      </div>
+      <div class="kpi-card kpi-positive">
+        <div class="kpi-val">{{ benefitsCount }}</div>
+        <div class="kpi-lbl">Gynnas av rotation</div>
+      </div>
+      <div class="kpi-card kpi-negative">
+        <div class="kpi-val">{{ hurtsCount }}</div>
+        <div class="kpi-lbl">Gynnas av specialisering</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-row mb-3">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <span class="ctrl-lbl">Sortera:</span>
+          <select class="form-select form-select-sm ctrl-select" [(ngModel)]="sortKey">
+            <option value="delta">Störst Δ IBC/h</option>
+            <option value="total">Flest skift</option>
+            <option value="rotation_pct">Mest rotation</option>
+            <option value="name">Namn A–Ö</option>
+          </select>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="ctrl-lbl">Filter:</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn" [class.btn-primary]="filterRotation === 'all'"
+                    [class.btn-outline-secondary]="filterRotation !== 'all'"
+                    (click)="filterRotation = 'all'">Alla</button>
+            <button class="btn" [class.btn-success]="filterRotation === 'benefits'"
+                    [class.btn-outline-secondary]="filterRotation !== 'benefits'"
+                    (click)="filterRotation = 'benefits'">Gynnas av rotation</button>
+            <button class="btn" [class.btn-danger]="filterRotation === 'hurts'"
+                    [class.btn-outline-secondary]="filterRotation !== 'hurts'"
+                    (click)="filterRotation = 'hurts'">Gynnas av specialisering</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Explanation -->
+    <div class="info-box mb-4">
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>Hur fungerar det?</strong> Ett skift klassas som <em>rotation</em> om operatören är på en annan position än föregående skift.
+      <em>Specialisering</em> = samma position som senast. IBC/h jämförs mellan de två typerna. Min. 2 skift per typ krävs.
+    </div>
+
+    <!-- Operator cards -->
+    <div class="op-grid">
+      <div *ngFor="let op of filtered" class="op-card"
+           [class.card-positive]="(op.delta_ibch ?? 0) > 0.3"
+           [class.card-negative]="(op.delta_ibch ?? 0) < -0.3">
+
+        <!-- Card header -->
+        <div class="op-head">
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-name">
+            {{ op.name }}
+          </a>
+          <span class="badge-pos">{{ favoritePos(op) }}</span>
+          <span class="badge-rot" *ngIf="(op.delta_ibch ?? 0) > 0.3">Rotationstalang ↑</span>
+          <span class="badge-spec" *ngIf="(op.delta_ibch ?? 0) < -0.3">Specialist ↓</span>
+        </div>
+
+        <!-- IBC/h comparison -->
+        <div class="ibch-comparison">
+          <div class="ibch-block rot-block">
+            <div class="ibch-label">Rotation</div>
+            <div class="ibch-val">
+              {{ op.rot_ibch !== null ? (op.rot_ibch | number:'1.1-1') : '—' }}
+            </div>
+            <div class="ibch-sub">{{ op.rotation_skift }} skift</div>
+          </div>
+
+          <div class="delta-block" [class.delta-pos]="(op.delta_ibch ?? 0) > 0"
+               [class.delta-neg]="(op.delta_ibch ?? 0) < 0">
+            <div class="delta-arrow">
+              {{ (op.delta_ibch ?? 0) > 0 ? '▲' : (op.delta_ibch ?? 0) < 0 ? '▼' : '=' }}
+            </div>
+            <div class="delta-val">
+              <span *ngIf="op.delta_ibch !== null">{{ deltaSign(op.delta_ibch) }}{{ op.delta_ibch | number:'1.1-1' }}</span>
+              <span *ngIf="op.delta_ibch === null">—</span>
+            </div>
+            <div class="delta-lbl">IBC/h</div>
+          </div>
+
+          <div class="ibch-block spec-block">
+            <div class="ibch-label">Specialisering</div>
+            <div class="ibch-val">
+              {{ op.spec_ibch !== null ? (op.spec_ibch | number:'1.1-1') : '—' }}
+            </div>
+            <div class="ibch-sub">{{ op.spec_skift }} skift</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+          <span class="stat-item">
+            <i class="fas fa-calendar-check"></i> {{ op.total_skift }} skift totalt
+          </span>
+          <span class="stat-item">
+            <i class="fas fa-sync-alt"></i> {{ op.rotation_pct | number:'1.0-0' }}% rotation
+          </span>
+          <span class="stat-item">
+            <i class="fas fa-chart-line"></i> Snitt {{ op.overall_ibch | number:'1.1-1' }} IBC/h
+          </span>
+        </div>
+
+        <!-- Position distribution bar -->
+        <div class="pos-bar-wrap">
+          <div class="pos-bar-label">Positionsfördelning</div>
+          <div class="pos-bar">
+            <div class="pos-seg seg-op1" [style.width.%]="posBarWidth(op, 'op1')"
+                 *ngIf="posBarWidth(op, 'op1') > 0"
+                 [title]="'Tvättplats: ' + op.op1_skift + ' skift (' + posBarWidth(op, 'op1') + '%)'">
+              <span *ngIf="posBarWidth(op, 'op1') >= 15">T {{ posBarWidth(op, 'op1') }}%</span>
+            </div>
+            <div class="pos-seg seg-op2" [style.width.%]="posBarWidth(op, 'op2')"
+                 *ngIf="posBarWidth(op, 'op2') > 0"
+                 [title]="'Kontroll: ' + op.op2_skift + ' skift (' + posBarWidth(op, 'op2') + '%)'">
+              <span *ngIf="posBarWidth(op, 'op2') >= 15">K {{ posBarWidth(op, 'op2') }}%</span>
+            </div>
+            <div class="pos-seg seg-op3" [style.width.%]="posBarWidth(op, 'op3')"
+                 *ngIf="posBarWidth(op, 'op3') > 0"
+                 [title]="'Truck: ' + op.op3_skift + ' skift (' + posBarWidth(op, 'op3') + '%)'">
+              <span *ngIf="posBarWidth(op, 'op3') >= 15">Tr {{ posBarWidth(op, 'op3') }}%</span>
+            </div>
+          </div>
+          <div class="pos-legend">
+            <span class="legend-dot dot-op1"></span>Tvättplats ({{ op.op1_skift }})
+            <span class="legend-dot dot-op2 ms-2"></span>Kontroll ({{ op.op2_skift }})
+            <span class="legend-dot dot-op3 ms-2"></span>Truck ({{ op.op3_skift }})
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="filtered.length === 0" class="text-center py-5 text-muted">
+      <i class="fas fa-search fa-2x mb-2"></i>
+      <p>Inga operatörer matchar filtret — justera period eller filter.</p>
+    </div>
+
+    <!-- Footer note -->
+    <p class="footer-note mt-4">
+      <i class="fas fa-exclamation-circle me-1"></i>
+      Observera att teamkompositionen skiljer sig mellan rotation- och specialiseringsskift — faktorn är inte isolerad.
+      Använd som indikation, inte bevis.
+    </p>
+
+  </div>
+</div>

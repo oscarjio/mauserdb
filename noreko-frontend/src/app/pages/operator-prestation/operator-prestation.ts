@@ -65,6 +65,7 @@ export class OperatorPrestationPage {
         { title: 'Produktbytesanalys', desc: 'IBC/h på första skiftet efter produktbyte jämfört med fortsättningsskift — visar bytteskostnaden per produkt', route: '/rebotling/produktbyten', icon: 'fas fa-random', color: '#76e4f7' },
         { title: 'Väder–Produktion', desc: 'Korrelation mellan utetemperatur och IBC/h — påverkar väder produktionstakten?', route: '/rebotling/vader-produktion', icon: 'fas fa-cloud-sun', color: '#76e4f7' },
         { title: 'Skift-Sekvensanalys', desc: 'Prestanda vid utvilade starter vs sammanhängande skift — vem behöver vila, vem trivs på rad?', route: '/rebotling/skift-sekvens', icon: 'fas fa-redo', color: '#76e4f7' },
+        { title: 'Rotationsanalys', desc: 'Jämför IBC/h när operatören byter position vs stannar kvar — gynnar rotation eller specialisering per individ?', route: '/rebotling/operator-rotation', icon: 'fas fa-sync-alt', color: '#76e4f7' },
       ]
     },
     {

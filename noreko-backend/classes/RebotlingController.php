@@ -332,6 +332,8 @@ class RebotlingController {
                 $this->getVeckosammanfattning();
             } elseif ($action === 'oee-dashboard') {
                 $this->getOEEDashboard();
+            } elseif ($action === 'operator-rotation') {
+                $this->getRotationsanalys();
             } else {
                 $this->getLiveStats();
             }
@@ -12372,6 +12374,126 @@ class RebotlingController {
             error_log('RebotlingController::getOEEDashboard: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid OEE-dashboard'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=operator-rotation&days=90
+    // Rotationsanalys: jämför IBC/h när en operatör byter position mot när hen stannar på samma position
+    private function getRotationsanalys(): void {
+        try {
+            $days = max(7, min(730, (int)($_GET['days'] ?? 90)));
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            $sql = "
+                WITH combined AS (
+                    SELECT op1 AS op_num, skiftraknare, ibc_ok, drifttid, 'op1' AS pos
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1 AND op1 > 0 AND drifttid >= 30
+                    UNION ALL
+                    SELECT op2, skiftraknare, ibc_ok, drifttid, 'op2'
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2 AND op2 > 0 AND drifttid >= 30
+                    UNION ALL
+                    SELECT op3, skiftraknare, ibc_ok, drifttid, 'op3'
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3 AND op3 > 0 AND drifttid >= 30
+                ),
+                with_lag AS (
+                    SELECT *,
+                        LAG(pos) OVER (PARTITION BY op_num ORDER BY skiftraknare) AS prev_pos
+                    FROM combined
+                ),
+                flagged AS (
+                    SELECT *,
+                        CASE WHEN prev_pos IS NOT NULL AND pos != prev_pos THEN 1 ELSE 0 END AS is_rot
+                    FROM with_lag
+                )
+                SELECT
+                    f.op_num,
+                    COALESCE(o.name, CONCAT('Op ', f.op_num)) AS op_name,
+                    COUNT(*)                      AS total_skift,
+                    SUM(f.is_rot)                 AS rotation_skift,
+                    COUNT(*) - SUM(f.is_rot)      AS spec_skift,
+                    ROUND(100.0 * SUM(f.is_rot) / COUNT(*), 1) AS rotation_pct,
+                    ROUND(SUM(CASE WHEN f.is_rot = 1 THEN f.ibc_ok ELSE 0 END) /
+                          NULLIF(SUM(CASE WHEN f.is_rot = 1 THEN f.drifttid / 60.0 ELSE 0 END), 0), 2) AS rot_ibch,
+                    ROUND(SUM(CASE WHEN f.is_rot = 0 THEN f.ibc_ok ELSE 0 END) /
+                          NULLIF(SUM(CASE WHEN f.is_rot = 0 THEN f.drifttid / 60.0 ELSE 0 END), 0), 2) AS spec_ibch,
+                    ROUND(SUM(f.ibc_ok) / NULLIF(SUM(f.drifttid / 60.0), 0), 2)                       AS overall_ibch,
+                    SUM(CASE WHEN f.pos = 'op1' THEN 1 ELSE 0 END) AS op1_skift,
+                    SUM(CASE WHEN f.pos = 'op2' THEN 1 ELSE 0 END) AS op2_skift,
+                    SUM(CASE WHEN f.pos = 'op3' THEN 1 ELSE 0 END) AS op3_skift
+                FROM flagged f
+                LEFT JOIN operators o ON o.number = f.op_num
+                GROUP BY f.op_num, op_name
+                HAVING total_skift >= 5
+                ORDER BY ABS(COALESCE(rot_ibch, 0) - COALESCE(spec_ibch, 0)) DESC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $operators   = [];
+            $totalRotSkift = 0;
+            $totalSkift    = 0;
+            $deltas        = [];
+
+            foreach ($rows as $r) {
+                $rotSkift  = (int)$r['rotation_skift'];
+                $specSkift = (int)$r['spec_skift'];
+                if ($rotSkift < 2 || $specSkift < 2) continue;
+
+                $rotIbch  = $r['rot_ibch']  !== null ? (float)$r['rot_ibch']  : null;
+                $specIbch = $r['spec_ibch'] !== null ? (float)$r['spec_ibch'] : null;
+                $delta    = ($rotIbch !== null && $specIbch !== null) ? round($rotIbch - $specIbch, 2) : null;
+                if ($delta !== null) $deltas[] = $delta;
+
+                $operators[] = [
+                    'number'         => (int)$r['op_num'],
+                    'name'           => $r['op_name'],
+                    'total_skift'    => (int)$r['total_skift'],
+                    'rotation_skift' => $rotSkift,
+                    'spec_skift'     => $specSkift,
+                    'rotation_pct'   => (float)$r['rotation_pct'],
+                    'rot_ibch'       => $rotIbch,
+                    'spec_ibch'      => $specIbch,
+                    'overall_ibch'   => (float)$r['overall_ibch'],
+                    'delta_ibch'     => $delta,
+                    'op1_skift'      => (int)$r['op1_skift'],
+                    'op2_skift'      => (int)$r['op2_skift'],
+                    'op3_skift'      => (int)$r['op3_skift'],
+                ];
+
+                $totalRotSkift += $rotSkift;
+                $totalSkift    += (int)$r['total_skift'];
+            }
+
+            $avgDelta = count($deltas) > 0 ? round(array_sum($deltas) / count($deltas), 2) : null;
+
+            echo json_encode([
+                'success'   => true,
+                'from'      => $from,
+                'to'        => $to,
+                'days'      => $days,
+                'operators' => $operators,
+                'kpi'       => [
+                    'antal_op'      => count($operators),
+                    'total_skift'   => $totalSkift,
+                    'rotation_rate' => $totalSkift > 0 ? round(100.0 * $totalRotSkift / $totalSkift, 1) : 0.0,
+                    'avg_delta'     => $avgDelta,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getRotationsanalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid rotationsanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
