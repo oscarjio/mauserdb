@@ -108,7 +108,7 @@ export class SkifttypsMatrisPage implements OnInit, OnDestroy {
     this.error = '';
     this.selectedCell = null;
 
-    const url = `${environment.apiUrl}/api/rebotling?action=skifttyps-matris&year=${this.year}&month=${this.month}`;
+    const url = `${environment.apiUrl}?action=rebotling&run=skifttyps-matris&year=${this.year}&month=${this.month}`;
     this.http.get<any>(url, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(15000), catchError(() => of(null)))
       .subscribe(data => {
