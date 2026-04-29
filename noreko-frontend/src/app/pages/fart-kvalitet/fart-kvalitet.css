@@ -1,0 +1,224 @@
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.ctrl-select {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  min-width: 130px;
+}
+
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.corr-explain-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  border-left: 4px solid #4a5568;
+  font-size: 0.9rem;
+}
+
+.corr-explain-card.is-good {
+  border-left-color: #68d391;
+  background: #1a2e23;
+}
+
+.corr-explain-card.is-warn {
+  border-left-color: #fc8181;
+  background: #2d1a1a;
+}
+
+.chart-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.chart-area {
+  height: 420px;
+  position: relative;
+}
+
+.chart-legend-note {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.quadrant-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.quad-card {
+  flex: 1;
+  min-width: 140px;
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  border-top: 3px solid transparent;
+}
+
+.quad-card.elite    { border-top-color: #68d391; }
+.quad-card.snabb    { border-top-color: #f6ad55; }
+.quad-card.noggrann { border-top-color: #63b3ed; }
+.quad-card.svag     { border-top-color: #fc8181; }
+
+.quad-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.4rem;
+  color: #a0aec0;
+}
+
+.quad-card.elite    .quad-icon { color: #68d391; }
+.quad-card.snabb    .quad-icon { color: #f6ad55; }
+.quad-card.noggrann .quad-icon { color: #63b3ed; }
+.quad-card.svag     .quad-icon { color: #fc8181; }
+
+.quad-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  margin-bottom: 0.2rem;
+}
+
+.quad-desc {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-bottom: 0.5rem;
+}
+
+.quad-count {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+.quad-pct {
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.products-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 1rem 0;
+}
+
+.prod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prod-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.prod-name {
+  width: 120px;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prod-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #1a202c;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.prod-bar {
+  height: 100%;
+  background: #63b3ed;
+  border-radius: 5px;
+  transition: width 0.3s;
+}
+
+.prod-count {
+  width: 70px;
+  text-align: right;
+  font-size: 0.8rem;
+}
+
+.info-note {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.text-success { color: #68d391 !important; }
+.text-danger  { color: #fc8181 !important; }
+.text-muted   { color: #a0aec0 !important; }
+.text-warning { color: #f6ad55 !important; }

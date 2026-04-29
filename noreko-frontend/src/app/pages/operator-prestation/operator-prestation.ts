@@ -55,6 +55,7 @@ export class OperatorPrestationPage {
         { title: 'Operatörsvärde', desc: 'Hur påverkas IBC/h när operatören är frånvarande?', route: '/rebotling/operator-avsaknad', icon: 'fas fa-user-minus', color: '#fc8181' },
         { title: 'Rastanalys', desc: 'Rastmönster per skift — korrelation med IBC/h och veckovis trend', route: '/rebotling/rast-analys', icon: 'fas fa-coffee', color: '#f6ad55' },
         { title: 'Produktionsrytm', desc: 'Heatmap: IBC/h per skifttyp × veckodag — vilka slot är systemiskt starka/svaga?', route: '/rebotling/produktionsrytm', icon: 'fas fa-grip-horizontal', color: '#63b3ed' },
+        { title: 'Fart–Kvalitet-Korrelation', desc: 'Scatter av alla skift: IBC/h vs kassation — finns en avvägning mellan takt och kvalitet?', route: '/rebotling/fart-kvalitet', icon: 'fas fa-project-diagram', color: '#76e4f7' },
       ]
     },
     {
