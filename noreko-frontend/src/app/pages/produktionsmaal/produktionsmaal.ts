@@ -97,6 +97,9 @@ export class ProduktionsmaalPage implements OnInit, OnDestroy, AfterViewInit {
     if (saved) {
       this.target = parseInt(saved, 10) || 0;
       this.targetInput = this.target > 0 ? String(this.target) : '';
+    } else {
+      this.target = 0;
+      this.targetInput = '';
     }
   }
 
