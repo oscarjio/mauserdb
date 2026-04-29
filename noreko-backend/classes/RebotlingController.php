@@ -4912,19 +4912,24 @@ class RebotlingController {
                 $operatorNames[(int)$r['number']] = $r['name'];
             }
 
-            // All shifts in quarter (one row per skiftraknare via MAX/GROUP BY)
+            // ibc_ok is a PLC daily running counter (does not reset per shift).
+            // LAG() computes the per-shift delta so later shifts are not over-credited.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    MAX(op1)      AS op1,
-                    MAX(op2)      AS op2,
-                    MAX(op3)      AS op3,
-                    MAX(ibc_ok)   AS ibc_ok,
-                    MAX(drifttid) AS drifttid,
-                    datum
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to
-                  AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid, dag AS datum,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS dag,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to
+                      AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) s
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -5084,19 +5089,26 @@ class RebotlingController {
                 $operatorNames[(int)$r['number']] = $r['name'];
             }
 
-            // One row per skiftraknare (deduplicated)
+            // ibc_ok/ibc_ej_ok are PLC daily running counters (do not reset per shift).
+            // LAG() computes per-shift deltas so later shifts are not over-credited.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    MAX(op1)       AS op1,
-                    MAX(op2)       AS op2,
-                    MAX(op3)       AS op3,
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok,
-                    MAX(drifttid)  AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to
-                  AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS dag,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(ibc_ej_ok)   AS ej_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to
+                      AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) s
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -5198,18 +5210,23 @@ class RebotlingController {
                 $operatorNames[(int)$op['number']] = $op['name'];
             }
 
-            // Deduplicated shifts
+            // ibc_ok is a PLC daily running counter (does not reset per shift).
+            // LAG() computes the per-shift delta so later shifts are not over-credited.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    MAX(op1)       AS op1,
-                    MAX(op2)       AS op2,
-                    MAX(op3)       AS op3,
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(drifttid)  AS drifttid,
-                    MAX(datum)     AS datum
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid, dag AS datum,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS dag,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) s
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -15136,13 +15153,23 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
+            // ibc_ok is a PLC daily running counter (does not reset per shift).
+            // LAG() computes the per-shift delta so later shifts are not over-credited.
             $stmt = $this->pdo->prepare("
-                SELECT skiftraknare,
-                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
-                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to AND drifttid >= 30
-                GROUP BY skiftraknare
+                SELECT skiftraknare, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS dag,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) s
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
