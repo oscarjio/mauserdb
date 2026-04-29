@@ -159,6 +159,7 @@ export const routes: Routes = [
       { path: 'rebotling/skift-prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-prognos/skift-prognos').then(m => m.SkiftPrognosPage) },
       { path: 'rebotling/ibc-forlust', canActivate: [adminGuard], loadComponent: () => import('./pages/ibc-forlust/ibc-forlust').then(m => m.IbcForlustPage) },
       { path: 'rebotling/operator-positioner', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-positioner/operator-positioner').then(m => m.OperatorPositionerPage) },
+      { path: 'rebotling/kompetens-matris', canActivate: [adminGuard], loadComponent: () => import('./pages/kompetens-matris/kompetens-matris').then(m => m.KompetensMatrisPage) },
       { path: 'rebotling/operator-synergy', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-synergy/operator-synergy').then(m => m.OperatorSynergyPage) },
       { path: 'rebotling/skift-topplista', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-topplista/skift-topplista').then(m => m.SkiftTopplista) },
       { path: 'rebotling/produktion-heatmap', canActivate: [adminGuard], loadComponent: () => import('./pages/produktion-heatmap/produktion-heatmap').then(m => m.ProduktionHeatmapPage) },
