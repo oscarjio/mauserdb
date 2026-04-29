@@ -310,6 +310,8 @@ class RebotlingController {
                 $this->getSnabbhetProduktMatris();
             } elseif ($action === 'fart-stopp') {
                 $this->getFartStoppKorrelation();
+            } elseif ($action === 'produktbyten') {
+                $this->getProduktbytesanalys();
             } else {
                 $this->getLiveStats();
             }
@@ -10630,6 +10632,159 @@ class RebotlingController {
             error_log('RebotlingController::getFartStoppKorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-stopp-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getProduktbytesanalys(): void {
+        $days = (int)($_GET['days'] ?? 90);
+        $days = in_array($days, [30, 90, 180, 365]) ? $days : 90;
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // Detect product changeovers using LAG() over chronologically ordered deduplicated shifts
+            $sql = "
+                SELECT
+                    f.skiftraknare,
+                    f.datum,
+                    f.product_id,
+                    COALESCE(p.name, CONCAT('Produkt ', f.product_id)) AS product_name,
+                    f.ibc_ok,
+                    f.drifttid,
+                    f.is_changeover
+                FROM (
+                    SELECT *,
+                        CASE
+                            WHEN LAG(product_id) OVER (ORDER BY datum, skiftraknare) IS NOT NULL
+                              AND product_id != LAG(product_id) OVER (ORDER BY datum, skiftraknare)
+                            THEN 1
+                            ELSE 0
+                        END AS is_changeover
+                    FROM (
+                        SELECT
+                            skiftraknare,
+                            datum,
+                            MAX(product_id)  AS product_id,
+                            MAX(ibc_ok)      AS ibc_ok,
+                            MAX(drifttid)    AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from AND :to
+                          AND drifttid >= 30
+                          AND ibc_ok > 0
+                          AND product_id IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) dedup
+                ) f
+                LEFT JOIN rebotling_products p ON p.id = f.product_id
+                ORDER BY f.datum, f.skiftraknare
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Aggregate per-product
+            $prodMap = [];
+            $totalChangeoversIbc   = 0.0;
+            $totalChangeoversHours = 0.0;
+            $totalContIbc          = 0.0;
+            $totalContHours        = 0.0;
+            $totalChangeovers      = 0;
+            $totalShifts           = 0;
+
+            foreach ($rows as $row) {
+                $pid  = (int)$row['product_id'];
+                $name = $row['product_name'];
+                $ibc  = (int)$row['ibc_ok'];
+                $h    = (float)$row['drifttid'] / 60.0;
+                $isC  = (int)$row['is_changeover'];
+
+                if (!isset($prodMap[$pid])) {
+                    $prodMap[$pid] = [
+                        'product_id'          => $pid,
+                        'product_name'        => $name,
+                        'changeover_ibc'      => 0.0,
+                        'changeover_hours'    => 0.0,
+                        'continuation_ibc'   => 0.0,
+                        'continuation_hours' => 0.0,
+                        'changeover_count'   => 0,
+                        'continuation_count' => 0,
+                    ];
+                }
+
+                $totalShifts++;
+                if ($isC === 1) {
+                    $prodMap[$pid]['changeover_ibc']    += $ibc;
+                    $prodMap[$pid]['changeover_hours']  += $h;
+                    $prodMap[$pid]['changeover_count']++;
+                    $totalChangeoversIbc   += $ibc;
+                    $totalChangeoversHours += $h;
+                    $totalChangeovers++;
+                } else {
+                    $prodMap[$pid]['continuation_ibc']   += $ibc;
+                    $prodMap[$pid]['continuation_hours'] += $h;
+                    $prodMap[$pid]['continuation_count']++;
+                    $totalContIbc   += $ibc;
+                    $totalContHours += $h;
+                }
+            }
+
+            // Compute IBC/h and delta for each product
+            $products = [];
+            foreach ($prodMap as $entry) {
+                $cIbch = $entry['changeover_hours'] > 0
+                    ? $entry['changeover_ibc'] / $entry['changeover_hours']
+                    : null;
+                $kIbch = $entry['continuation_hours'] > 0
+                    ? $entry['continuation_ibc'] / $entry['continuation_hours']
+                    : null;
+
+                $delta    = ($cIbch !== null && $kIbch !== null) ? $cIbch - $kIbch : null;
+                $deltaPct = ($delta !== null && $kIbch > 0) ? ($delta / $kIbch) * 100 : null;
+
+                if ($entry['changeover_count'] < 1) continue;
+
+                $products[] = [
+                    'product_id'         => $entry['product_id'],
+                    'product_name'       => $entry['product_name'],
+                    'changeover_ibc_h'   => $cIbch !== null ? round($cIbch, 2) : null,
+                    'continuation_ibc_h' => $kIbch !== null ? round($kIbch, 2) : null,
+                    'delta'              => $delta !== null ? round($delta, 2) : null,
+                    'delta_pct'          => $deltaPct !== null ? round($deltaPct, 1) : null,
+                    'changeover_count'   => $entry['changeover_count'],
+                    'continuation_count' => $entry['continuation_count'],
+                ];
+            }
+
+            usort($products, fn($a, $b) => $b['changeover_count'] - $a['changeover_count']);
+
+            // Overall stats
+            $overallCIbch = $totalChangeoversHours > 0 ? $totalChangeoversIbc / $totalChangeoversHours : null;
+            $overallKIbch = $totalContHours        > 0 ? $totalContIbc        / $totalContHours        : null;
+            $overallDelta = ($overallCIbch !== null && $overallKIbch !== null) ? $overallCIbch - $overallKIbch : null;
+            $overallDeltaPct = ($overallDelta !== null && $overallKIbch > 0) ? ($overallDelta / $overallKIbch) * 100 : null;
+
+            echo json_encode([
+                'success'  => true,
+                'from'     => $from,
+                'to'       => $to,
+                'days'     => $days,
+                'products' => $products,
+                'overall'  => [
+                    'total_shifts'       => $totalShifts,
+                    'total_changeovers'  => $totalChangeovers,
+                    'changeover_pct'     => $totalShifts > 0 ? round($totalChangeovers / $totalShifts * 100, 1) : 0,
+                    'changeover_ibc_h'   => $overallCIbch   !== null ? round($overallCIbch,   2) : null,
+                    'continuation_ibc_h' => $overallKIbch   !== null ? round($overallKIbch,   2) : null,
+                    'delta'              => $overallDelta    !== null ? round($overallDelta,    2) : null,
+                    'delta_pct'          => $overallDeltaPct !== null ? round($overallDeltaPct, 1) : null,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getProduktbytesanalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktbytesanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

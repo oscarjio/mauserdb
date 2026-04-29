@@ -1,0 +1,121 @@
+<div class="pb-page">
+  <div class="pb-header">
+    <div>
+      <h1 class="pb-title">Produktbytesanalys</h1>
+      <p class="pb-subtitle">IBC/h på första skiftet efter produktbyte jämfört med fortsättningsskift</p>
+    </div>
+    <div class="pb-controls">
+      <label class="ctrl-label">Period</label>
+      <div class="btn-group">
+        <button *ngFor="let d of [30,90,180,365]" class="btn-period"
+                [class.active]="days === d" (click)="days = d; load()">
+          {{ d }}d
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="pb-loading">Laddar data…</div>
+  <div *ngIf="error" class="pb-error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && overall">
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-value">{{ overall.total_changeovers }}</div>
+        <div class="kpi-label">Produktbyten</div>
+        <div class="kpi-sub">av {{ overall.total_shifts }} skift ({{ overall.changeover_pct }}%)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ overall.changeover_ibc_h !== null ? (overall.changeover_ibc_h | number:'1.1-1') : '–' }}</div>
+        <div class="kpi-label">IBC/h vid byte</div>
+        <div class="kpi-sub">första skiftet med ny produkt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ overall.continuation_ibc_h !== null ? (overall.continuation_ibc_h | number:'1.1-1') : '–' }}</div>
+        <div class="kpi-label">IBC/h vid fortsättning</div>
+        <div class="kpi-sub">skift 2+ med samma produkt</div>
+      </div>
+      <div class="kpi-card" [ngClass]="deltaClass(overall.delta)">
+        <div class="kpi-value">{{ costLabel(overall.delta) }}</div>
+        <div class="kpi-label">Bytteskostnad</div>
+        <div class="kpi-sub">{{ deltaPctLabel(overall.delta_pct) }} vs fortsättning</div>
+      </div>
+    </div>
+
+    <!-- Chart + table split -->
+    <div class="content-grid" *ngIf="products.length > 0">
+      <!-- Bar chart -->
+      <div class="chart-card">
+        <div class="card-title">IBC/h per produkt — Byte vs Fortsättning</div>
+        <div class="chart-wrap">
+          <canvas id="produktbytenChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sort controls + table -->
+      <div class="table-card">
+        <div class="table-header">
+          <div class="card-title">Per produkt</div>
+          <div class="sort-row">
+            <span class="sort-label">Sortera:</span>
+            <button class="sort-btn" [class.active]="sortBy==='count'" (click)="sortBy='count'">Antal byten</button>
+            <button class="sort-btn" [class.active]="sortBy==='delta'" (click)="sortBy='delta'">Delta</button>
+            <button class="sort-btn" [class.active]="sortBy==='name'" (click)="sortBy='name'">Namn</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="pb-table">
+            <thead>
+              <tr>
+                <th>Produkt</th>
+                <th class="num">IBC/h byte</th>
+                <th class="num">IBC/h fort.</th>
+                <th class="num">Delta</th>
+                <th class="num">Byten</th>
+                <th class="num">Fort.-skift</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of sortedProducts">
+                <td class="prod-name">{{ p.product_name }}</td>
+                <td class="num">
+                  <span class="ibch-val changeover-val">
+                    {{ p.changeover_ibc_h !== null ? (p.changeover_ibc_h | number:'1.1-1') : '–' }}
+                  </span>
+                </td>
+                <td class="num">
+                  <span class="ibch-val continuation-val">
+                    {{ p.continuation_ibc_h !== null ? (p.continuation_ibc_h | number:'1.1-1') : '–' }}
+                  </span>
+                </td>
+                <td class="num">
+                  <span class="delta-badge" [ngClass]="deltaClass(p.delta)">
+                    {{ costLabel(p.delta) }}
+                    <span class="delta-pct">{{ deltaPctLabel(p.delta_pct) }}</span>
+                  </span>
+                </td>
+                <td class="num count-col">{{ p.changeover_count }}</td>
+                <td class="num count-col muted">{{ p.continuation_count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="products.length === 0" class="pb-empty">
+      Ingen produktbytesdata hittades för den valda perioden.
+    </div>
+
+    <!-- Explanation -->
+    <div class="explain-card">
+      <div class="explain-icon">ℹ</div>
+      <div class="explain-text">
+        <strong>Om analysen:</strong> Ett <em>produktbyte</em> identifieras när produkten skiljer sig från föregående skifts produkt (sorterat på datum och skiftnummer). Analysen visar om det finns en prestationseffekt under första skiftet med en ny produkt — ett negativt delta indikerar att operatörerna producerar färre IBC/h vid produktbyte jämfört med skift där samma produkt körts tidigare. Confounders: personalbyte sker ofta samtidigt som produktbyte.
+      </div>
+    </div>
+
+    <div class="period-footer">Period: {{ from }} – {{ to }}</div>
+  </ng-container>
+</div>

@@ -59,6 +59,7 @@ export class OperatorPrestationPage {
         { title: 'Stopptidsmönster', desc: 'Stopptidens fördelning per skifttyp × veckodag — identifiera mönster för underhållsplanering', route: '/rebotling/stopptidsmonster', icon: 'fas fa-pause-circle', color: '#fc8181' },
         { title: 'Fart–Produkt-Matris', desc: 'IBC/h per operatör × produkt — se vilka kombinationer som är snabba eller långsamma vs produktsnitt', route: '/rebotling/fart-produkt-matris', icon: 'fas fa-table', color: '#76e4f7' },
         { title: 'Fart–Stopp-Korrelation', desc: 'Scatter av alla skift: stoppgrad vs IBC/h — kompenserar operatörerna maskinstopp eller drabbas produktionen?', route: '/rebotling/fart-stopp', icon: 'fas fa-pause-circle', color: '#f6ad55' },
+        { title: 'Produktbytesanalys', desc: 'IBC/h på första skiftet efter produktbyte jämfört med fortsättningsskift — visar bytteskostnaden per produkt', route: '/rebotling/produktbyten', icon: 'fas fa-random', color: '#76e4f7' },
       ]
     },
     {
