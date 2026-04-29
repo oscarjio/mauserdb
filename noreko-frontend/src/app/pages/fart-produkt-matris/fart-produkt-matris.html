@@ -1,0 +1,206 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-table me-2" style="color:#76e4f7;"></i>Fart–Produkt-Matris
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      IBC/h per operatör × produkt — se vilka kombinationer som är snabba eller långsamma jämfört med produktens teamsnitt
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:140px;">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+        <option [value]="365">365 dagar</option>
+      </select>
+    </div>
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Sortera operatörer</label>
+      <select [(ngModel)]="sortBy" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:180px;">
+        <option value="overall">Totalt IBC/h (hög→låg)</option>
+        <option value="name">Namn (A–Ö)</option>
+      </select>
+    </div>
+    <div *ngIf="from" style="color:#718096;font-size:12px;margin-top:16px;">
+      {{ from }} – {{ to }}
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#63b3ed;" role="status"><span class="visually-hidden">Laddar...</span></div>
+    <p style="color:#a0aec0;margin-top:12px;">Beräknar matris...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- Legend + KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-6 col-lg-3">
+        <div style="background:#2d3748;border-radius:10px;padding:14px;border:1px solid #4a5568;">
+          <div style="color:#a0aec0;font-size:12px;font-weight:600;margin-bottom:8px;">
+            <i class="fas fa-info-circle me-1" style="color:#63b3ed;"></i>Färgskala vs produktsnitt
+          </div>
+          <div class="d-flex flex-column gap-1" style="font-size:11px;">
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(72,187,120,0.55);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">≥+20% (utmärkt)</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(72,187,120,0.35);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">+10–+20%</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(72,187,120,0.15);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">0–+10%</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(252,129,129,0.2);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">−10–0%</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(252,129,129,0.38);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">−20–−10%</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:16px;height:12px;border-radius:2px;background:rgba(252,129,129,0.55);flex-shrink:0;"></div>
+              <span style="color:#a0aec0;">≤−20% (svagt)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-lg-3">
+        <div style="background:#2d3748;border-radius:10px;padding:14px;border:1px solid #4a5568;height:100%;">
+          <div style="color:#a0aec0;font-size:12px;font-weight:600;margin-bottom:8px;">Periodssnitt (alla)</div>
+          <div style="font-size:2rem;font-weight:800;color:#76e4f7;">{{ teamAvgOverall | number:'1.1-1' }}</div>
+          <div style="color:#718096;font-size:12px;">IBC/h (lag totalt)</div>
+          <div style="color:#718096;font-size:11px;margin-top:6px;">
+            {{ operators.length }} operatörer · {{ products.length }} produkter · {{ cells.length }} kombinationer
+          </div>
+        </div>
+      </div>
+      <!-- Best combos -->
+      <div class="col-12 col-lg-3">
+        <div style="background:#2d3748;border-radius:10px;padding:14px;border:1px solid #4a5568;">
+          <div style="color:#68d391;font-size:12px;font-weight:600;margin-bottom:8px;">
+            <i class="fas fa-trophy me-1"></i>Topp 5 kombinationer
+          </div>
+          <div *ngFor="let b of bestCells; let i = index" class="d-flex justify-content-between align-items-center mb-1">
+            <div style="font-size:11px;color:#a0aec0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">
+              {{ b.opName }} / {{ b.prodName }}
+            </div>
+            <div style="font-size:11px;color:#68d391;white-space:nowrap;">
+              {{ b.ibch | number:'1.1-1' }} &nbsp;<span style="color:#48bb78;">+{{ b.vs }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Worst combos -->
+      <div class="col-12 col-lg-3">
+        <div style="background:#2d3748;border-radius:10px;padding:14px;border:1px solid #4a5568;">
+          <div style="color:#fc8181;font-size:12px;font-weight:600;margin-bottom:8px;">
+            <i class="fas fa-exclamation-circle me-1"></i>Svagaste 5 kombinationer
+          </div>
+          <div *ngFor="let w of worstCells; let i = index" class="d-flex justify-content-between align-items-center mb-1">
+            <div style="font-size:11px;color:#a0aec0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">
+              {{ w.opName }} / {{ w.prodName }}
+            </div>
+            <div style="font-size:11px;color:#fc8181;white-space:nowrap;">
+              {{ w.ibch | number:'1.1-1' }} &nbsp;<span>{{ w.vs }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matrix table -->
+    <div style="overflow-x:auto;">
+      <table class="matris-table">
+        <thead>
+          <tr>
+            <th class="op-col">Operatör</th>
+            <th *ngFor="let p of products" class="prod-col">
+              {{ p.name }}
+              <div style="color:#718096;font-size:10px;font-weight:400;margin-top:2px;">
+                lag: {{ prodTeamAvg[p.id] | number:'1.1-1' }}
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of sortedOperators">
+            <td class="op-cell">
+              <a [routerLink]="['/rebotling/operator', op.number]"
+                 style="color:#e2e8f0;text-decoration:none;font-weight:600;font-size:13px;">
+                {{ op.name }}
+              </a>
+            </td>
+            <td *ngFor="let p of products" class="data-cell"
+                [style.background]="cell(op.number, p.id) ? cellBg(cell(op.number, p.id)!.ibc_per_h, p.id) : 'transparent'">
+              <ng-container *ngIf="cell(op.number, p.id) as c; else emptyCell">
+                <div [style.color]="cellColor(c.ibc_per_h, p.id)" style="font-weight:700;font-size:13px;">
+                  {{ c.ibc_per_h | number:'1.1-1' }}
+                </div>
+                <div style="font-size:10px;color:#718096;">
+                  <span [style.color]="vsTeam(c.ibc_per_h, p.id) >= 0 ? '#68d391' : '#fc8181'">
+                    {{ vsTeam(c.ibc_per_h, p.id) >= 0 ? '+' : '' }}{{ vsTeam(c.ibc_per_h, p.id) }}%
+                  </span>
+                  · {{ c.skift_count }}s
+                </div>
+              </ng-container>
+              <ng-template #emptyCell>
+                <div style="color:#4a5568;font-size:11px;text-align:center;">—</div>
+              </ng-template>
+            </td>
+          </tr>
+          <!-- Team avg row -->
+          <tr class="team-row">
+            <td class="op-cell" style="color:#a0aec0;font-style:italic;">Lagsnitt</td>
+            <td *ngFor="let p of products" class="data-cell" style="background:#2a3550;">
+              <div style="color:#76e4f7;font-weight:700;font-size:13px;">
+                {{ prodTeamAvg[p.id] | number:'1.1-1' }}
+              </div>
+              <div style="font-size:10px;color:#718096;">IBC/h</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="color:#718096;font-size:12px;margin-top:16px;">
+      <i class="fas fa-info-circle me-1"></i>
+      Kräver minst 2 skift och 60 min drifttid per kombination. Celler utan data visas som —.
+      Vs-% beräknas mot produktens egna teamsnitt (inte lagsnitt totalt).
+    </p>
+
+  </ng-container>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && !error && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-table" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen data för vald period. Prova en längre period.</p>
+  </div>
+
+</div>

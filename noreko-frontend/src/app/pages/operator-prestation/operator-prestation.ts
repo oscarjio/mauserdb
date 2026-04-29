@@ -57,6 +57,7 @@ export class OperatorPrestationPage {
         { title: 'Produktionsrytm', desc: 'Heatmap: IBC/h per skifttyp × veckodag — vilka slot är systemiskt starka/svaga?', route: '/rebotling/produktionsrytm', icon: 'fas fa-grip-horizontal', color: '#63b3ed' },
         { title: 'Fart–Kvalitet-Korrelation', desc: 'Scatter av alla skift: IBC/h vs kassation — finns en avvägning mellan takt och kvalitet?', route: '/rebotling/fart-kvalitet', icon: 'fas fa-project-diagram', color: '#76e4f7' },
         { title: 'Stopptidsmönster', desc: 'Stopptidens fördelning per skifttyp × veckodag — identifiera mönster för underhållsplanering', route: '/rebotling/stopptidsmonster', icon: 'fas fa-pause-circle', color: '#fc8181' },
+        { title: 'Fart–Produkt-Matris', desc: 'IBC/h per operatör × produkt — se vilka kombinationer som är snabba eller långsamma vs produktsnitt', route: '/rebotling/fart-produkt-matris', icon: 'fas fa-table', color: '#76e4f7' },
       ]
     },
     {

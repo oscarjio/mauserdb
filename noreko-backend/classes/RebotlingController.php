@@ -306,6 +306,8 @@ class RebotlingController {
                 $this->getSpeedQualityCorrelation();
             } elseif ($action === 'stopptidsmonster') {
                 $this->getStopptidsmonster();
+            } elseif ($action === 'fart-produkt-matris') {
+                $this->getSnabbhetProduktMatris();
             } else {
                 $this->getLiveStats();
             }
@@ -10299,6 +10301,171 @@ class RebotlingController {
             error_log('RebotlingController::getStopptidsmonster: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsmönster'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── FEATURE: Fart-Produkt-Matris — IBC/h per operator × product ─────────
+    // Heatmap-matris: rader=operatörer, kolumner=produkter, cell=IBC/h.
+    // Färgkodas mot produktens teamsnitt.
+    // Kräver minst 2 skift per (operatör, produkt).
+    private function getSnabbhetProduktMatris(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            $opStmt = $pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $opMap  = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+
+            $pStmt = $pdo->query("SELECT id, name FROM rebotling_products ORDER BY name");
+            $prodMap = [];
+            foreach ($pStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $prodMap[(int)$r['id']] = $r['name'];
+            }
+
+            // Dedup per (op, skiftraknare, product), aggregate ibc_ok + drifttid
+            $sql = "
+                SELECT u.op_num,
+                       u.product_id,
+                       SUM(u.ibc)       AS total_ibc,
+                       SUM(u.min)       AS total_min,
+                       COUNT(*)         AS skift_count
+                FROM (
+                    SELECT op1                                          AS op_num,
+                           MAX(COALESCE(product_id, 0))                AS product_id,
+                           MAX(COALESCE(ibc_ok, 0))                    AS ibc,
+                           MAX(COALESCE(drifttid, 0))                  AS min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ok, 0)),
+                           MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ok, 0)),
+                           MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op3
+                ) u
+                WHERE u.product_id > 0
+                GROUP BY u.op_num, u.product_id
+                HAVING total_min >= 60
+                ORDER BY u.op_num
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build cells + per-product totals for team avg
+            $cells      = [];
+            $prodTotals = []; // [prodId => [ibc, min]]
+            $usedOps    = [];
+            $usedProds  = [];
+
+            foreach ($rows as $r) {
+                $opNum  = (int)$r['op_num'];
+                $prodId = (int)$r['product_id'];
+                if (!isset($opMap[$opNum]) || !isset($prodMap[$prodId])) continue;
+                if ((int)$r['skift_count'] < 2) continue;
+
+                $ibc = (float)$r['total_ibc'];
+                $min = (float)$r['total_min'];
+                $ibch = $min > 0 ? round($ibc / ($min / 60.0), 2) : 0.0;
+
+                $cells[] = [
+                    'op_num'      => $opNum,
+                    'product_id'  => $prodId,
+                    'ibc_per_h'   => $ibch,
+                    'skift_count' => (int)$r['skift_count'],
+                    'total_ibc'   => (int)$ibc,
+                ];
+
+                $usedOps[$opNum]   = $opMap[$opNum];
+                $usedProds[$prodId] = $prodMap[$prodId];
+
+                if (!isset($prodTotals[$prodId])) {
+                    $prodTotals[$prodId] = ['ibc' => 0.0, 'min' => 0.0];
+                }
+                $prodTotals[$prodId]['ibc'] += $ibc;
+                $prodTotals[$prodId]['min'] += $min;
+            }
+
+            // Team IBC/h per product
+            $prodTeamAvg = [];
+            foreach ($prodTotals as $pid => $t) {
+                $prodTeamAvg[$pid] = $t['min'] > 0 ? round($t['ibc'] / ($t['min'] / 60.0), 2) : 0.0;
+            }
+
+            // Overall team avg (across all products in view)
+            $allIbc = array_sum(array_column($cells, 'total_ibc'));
+            $allMin = 0.0;
+            foreach ($prodTotals as $t) { $allMin += $t['min']; }
+            $teamAvgOverall = $allMin > 0 ? round($allIbc / ($allMin / 60.0), 2) : 0.0;
+
+            asort($usedOps);
+            asort($usedProds);
+
+            $operators = array_map(
+                fn($num, $name) => ['number' => $num, 'name' => $name],
+                array_keys($usedOps), array_values($usedOps)
+            );
+            $products = array_map(
+                fn($id, $name) => ['id' => $id, 'name' => $name],
+                array_keys($usedProds), array_values($usedProds)
+            );
+
+            // Reformat prodTeamAvg with string keys for JSON
+            $prodAvgArr = [];
+            foreach ($prodTeamAvg as $pid => $avg) {
+                $prodAvgArr[] = ['product_id' => $pid, 'team_avg_ibc_h' => $avg];
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'from'             => $from,
+                'to'               => $to,
+                'days'             => $days,
+                'operators'        => $operators,
+                'products'         => $products,
+                'cells'            => $cells,
+                'prod_team_avg'    => $prodAvgArr,
+                'team_avg_overall' => $teamAvgOverall,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getSnabbhetProduktMatris: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-produkt-matris'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

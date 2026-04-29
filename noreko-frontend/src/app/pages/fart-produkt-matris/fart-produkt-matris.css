@@ -1,0 +1,57 @@
+.matris-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  min-width: 600px;
+  font-size: 13px;
+}
+
+.matris-table th,
+.matris-table td {
+  border: 1px solid #2d3748;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.op-col {
+  background: #1e2940;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  min-width: 130px;
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.prod-col {
+  background: #1e2940;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+  min-width: 110px;
+}
+
+.op-cell {
+  background: #1e2940;
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.data-cell {
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.team-row .op-cell {
+  background: #1a2540;
+}
+
+.team-row td {
+  border-top: 2px solid #4a5568;
+}
