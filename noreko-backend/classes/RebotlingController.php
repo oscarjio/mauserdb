@@ -352,6 +352,8 @@ class RebotlingController {
                 $this->getProduktKvalitetstrender();
             } elseif ($action === 'milstolpar') {
                 $this->getMilstolpar();
+            } elseif ($action === 'produkt-normaliserad') {
+                $this->getProduktNormaliseradPrestanda();
             } else {
                 $this->getLiveStats();
             }
@@ -14290,6 +14292,210 @@ class RebotlingController {
             error_log('RebotlingController::getMilstolpar: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid milstolpar'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ─── Produktnormaliserad Prestanda ───────────────────────────────────────
+    // GET ?action=rebotling&run=produkt-normaliserad&days=90&min_shifts=3
+    // Computes each operator's IBC/h normalised for product difficulty:
+    //   normalized_index = actual_ibc / expected_ibc
+    //   expected_ibc = sum(team_ibc_h_for_product × operator_shift_hours)
+    // Index 1.0 = exactly team-average after adjusting for product mix.
+    private function getProduktNormaliseradPrestanda(): void {
+        try {
+            $pdo       = $this->pdo;
+            $days      = isset($_GET['days'])       ? max(1, (int)$_GET['days'])       : 90;
+            $minShifts = isset($_GET['min_shifts']) ? max(1, (int)$_GET['min_shifts']) : 3;
+            $to        = date('Y-m-d');
+            $from      = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Per-product team IBC/h (dedup by skiftraknare)
+            $teamSql = "
+                SELECT product_id,
+                       SUM(ibc)   AS team_ibc,
+                       SUM(min)   AS team_min,
+                       COUNT(*)   AS team_shifts
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(product_id, 0))  AS product_id,
+                           MAX(COALESCE(ibc_ok, 0))      AS ibc,
+                           MAX(COALESCE(drifttid, 0))    AS min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND drifttid >= 30
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare
+                ) d
+                GROUP BY product_id
+                HAVING team_min >= 60
+            ";
+            $stmt = $pdo->prepare($teamSql);
+            $stmt->execute([':from1' => $from, ':to1' => $to]);
+            $teamByProduct = [];
+            $overallTeamIbc = 0.0;
+            $overallTeamMin = 0.0;
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $pid   = (int)$r['product_id'];
+                $tIbc  = (float)$r['team_ibc'];
+                $tMin  = (float)$r['team_min'];
+                $teamByProduct[$pid] = [
+                    'team_ibc_h'  => $tMin > 0 ? $tIbc / ($tMin / 60) : 0.0,
+                    'team_shifts' => (int)$r['team_shifts'],
+                    'team_ibc'    => $tIbc,
+                    'team_min'    => $tMin,
+                ];
+                $overallTeamIbc += $tIbc;
+                $overallTeamMin += $tMin;
+            }
+            $overallTeamIbcH = $overallTeamMin > 0 ? $overallTeamIbc / ($overallTeamMin / 60) : 0.0;
+
+            // Per-operator per-product aggregates (UNION ALL op1/op2/op3, dedup per op+skiftraknare)
+            $opShiftSql = "
+                SELECT op_num, product_id,
+                       SUM(ibc)   AS ibc,
+                       SUM(min)   AS min,
+                       COUNT(*)   AS skift_count
+                FROM (
+                    SELECT op1                                     AS op_num,
+                           MAX(COALESCE(product_id, 0))            AS product_id,
+                           MAX(COALESCE(ibc_ok, 0))                AS ibc,
+                           MAX(COALESCE(drifttid, 0))              AS min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ok, 0)),
+                           MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           MAX(COALESCE(product_id, 0)),
+                           MAX(COALESCE(ibc_ok, 0)),
+                           MAX(COALESCE(drifttid, 0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from4 AND :to4
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND product_id IS NOT NULL AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op3
+                ) u
+                WHERE u.product_id > 0
+                GROUP BY op_num, product_id
+            ";
+            $stmt2 = $pdo->prepare($opShiftSql);
+            $stmt2->execute([
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+                ':from4' => $from, ':to4' => $to,
+            ]);
+
+            $opMap = [];
+            foreach ($pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name") as $r) {
+                $opMap[(int)$r['number']] = $r['name'];
+            }
+            $prodMap = [];
+            foreach ($pdo->query("SELECT id, name FROM rebotling_products ORDER BY name") as $r) {
+                $prodMap[(int)$r['id']] = $r['name'];
+            }
+
+            // Accumulate per-operator totals
+            $opData = [];
+            foreach ($stmt2->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNum  = (int)$r['op_num'];
+                $pid    = (int)$r['product_id'];
+                $ibc    = (float)$r['ibc'];
+                $min    = (float)$r['min'];
+                $nShift = (int)$r['skift_count'];
+                if (!isset($opMap[$opNum]))          continue;
+                if (!isset($teamByProduct[$pid]))     continue;
+                $teamH = $teamByProduct[$pid]['team_ibc_h'];
+                if ($teamH <= 0 || $min <= 0)        continue;
+
+                $hours       = $min / 60.0;
+                $opIbcH      = $ibc / $hours;
+                $expectedIbc = $teamH * $hours;
+
+                if (!isset($opData[$opNum])) {
+                    $opData[$opNum] = ['raw_ibc' => 0.0, 'raw_min' => 0.0, 'expected_ibc' => 0.0, 'skift_count' => 0, 'products' => []];
+                }
+                $opData[$opNum]['raw_ibc']      += $ibc;
+                $opData[$opNum]['raw_min']       += $min;
+                $opData[$opNum]['expected_ibc']  += $expectedIbc;
+                $opData[$opNum]['skift_count']   += $nShift;
+                $opData[$opNum]['products'][]     = [
+                    'product_id'   => $pid,
+                    'product_name' => $prodMap[$pid] ?? "Produkt $pid",
+                    'op_ibc_h'     => round($opIbcH, 2),
+                    'team_ibc_h'   => round($teamH, 2),
+                    'relative_eff' => $teamH > 0 ? round($opIbcH / $teamH, 3) : 0,
+                    'skift_count'  => $nShift,
+                    'total_ibc'    => (int)$ibc,
+                    'hours'        => round($hours, 1),
+                ];
+            }
+
+            // Build result array
+            $results = [];
+            foreach ($opData as $opNum => $d) {
+                if ($d['skift_count'] < $minShifts) continue;
+                $rawH    = $d['raw_min'] > 0 ? $d['raw_ibc'] / ($d['raw_min'] / 60) : 0.0;
+                $normIdx = $d['expected_ibc'] > 0 ? $d['raw_ibc'] / $d['expected_ibc'] : 0.0;
+                $vsRaw   = $overallTeamIbcH > 0 ? ($rawH / $overallTeamIbcH - 1) * 100 : 0.0;
+                usort($d['products'], fn($a, $b) => $b['skift_count'] - $a['skift_count']);
+                $results[] = [
+                    'op_num'           => $opNum,
+                    'name'             => $opMap[$opNum],
+                    'raw_ibc_h'        => round($rawH, 2),
+                    'normalized_index' => round($normIdx, 3),
+                    'vs_team_raw'      => round($vsRaw, 1),
+                    'skift_count'      => $d['skift_count'],
+                    'products'         => $d['products'],
+                ];
+            }
+
+            // Raw ranking (by raw_ibc_h desc)
+            usort($results, fn($a, $b) => $b['raw_ibc_h'] <=> $a['raw_ibc_h']);
+            $rank = 1;
+            foreach ($results as &$r) { $r['raw_rank'] = $rank++; }
+            unset($r);
+
+            // Normalized ranking (by normalized_index desc)
+            usort($results, fn($a, $b) => $b['normalized_index'] <=> $a['normalized_index']);
+            $rank = 1;
+            foreach ($results as &$r) {
+                $r['norm_rank']   = $rank++;
+                $r['rank_delta']  = $r['raw_rank'] - $r['norm_rank']; // >0 = rose, <0 = dropped
+            }
+            unset($r);
+
+            echo json_encode([
+                'success'      => true,
+                'from'         => $from,
+                'to'           => $to,
+                'days'         => $days,
+                'min_shifts'   => $minShifts,
+                'team_ibc_h'   => round($overallTeamIbcH, 2),
+                'operators'    => $results,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getProduktNormaliseradPrestanda: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produkt-normaliserad'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

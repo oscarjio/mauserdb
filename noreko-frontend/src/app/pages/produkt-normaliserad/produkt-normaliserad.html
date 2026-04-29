@@ -1,0 +1,226 @@
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h2 class="page-title">
+      <i class="fas fa-balance-scale me-2" style="color:#76e4f7;"></i>
+      Produktnormaliserad Prestanda
+    </h2>
+    <p class="page-sub">
+      Justerar varje operatörs IBC/h-ranking för vilka produkter de jobbat med —
+      visar vem som egentligen är snabbast, oberoende av produktmix.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-primary]="days===30"  [class.btn-outline-secondary]="days!==30"  (click)="setDays(30)">30 dagar</button>
+        <button class="btn" [class.btn-primary]="days===60"  [class.btn-outline-secondary]="days!==60"  (click)="setDays(60)">60 dagar</button>
+        <button class="btn" [class.btn-primary]="days===90"  [class.btn-outline-secondary]="days!==90"  (click)="setDays(90)">90 dagar</button>
+        <button class="btn" [class.btn-primary]="days===180" [class.btn-outline-secondary]="days!==180" (click)="setDays(180)">180 dagar</button>
+        <button class="btn" [class.btn-primary]="days===365" [class.btn-outline-secondary]="days!==365" (click)="setDays(365)">1 år</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Min. skift:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-secondary]="minShifts===3"  [class.btn-outline-secondary]="minShifts!==3"  (click)="setMinShifts(3)">3</button>
+        <button class="btn" [class.btn-secondary]="minShifts===5"  [class.btn-outline-secondary]="minShifts!==5"  (click)="setMinShifts(5)">5</button>
+        <button class="btn" [class.btn-secondary]="minShifts===10" [class.btn-outline-secondary]="minShifts!==10" (click)="setMinShifts(10)">10</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="ms-2">Normaliserar produktdata…</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && operators.length">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-value">{{ operators.length }}</div>
+        <div class="kpi-label">Operatörer analyserade</div>
+        <div class="kpi-sub">{{ from }} – {{ to }}</div>
+      </div>
+      <div class="kpi-card kpi-green" *ngIf="mostImproved && mostImproved.rank_delta > 0">
+        <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+        <div class="kpi-value">{{ mostImproved.name }}</div>
+        <div class="kpi-label">Steg upp mest efter normalisering</div>
+        <div class="kpi-sub">+{{ mostImproved.rank_delta }} placeringar (rå #{{ mostImproved.raw_rank }} → normaliserat #{{ mostImproved.norm_rank }})</div>
+      </div>
+      <div class="kpi-card kpi-red" *ngIf="mostDropped && mostDropped.rank_delta < 0">
+        <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+        <div class="kpi-value">{{ mostDropped.name }}</div>
+        <div class="kpi-label">Gynnas mest av produktmix</div>
+        <div class="kpi-sub">{{ mostDropped.rank_delta }} placeringar (rå #{{ mostDropped.raw_rank }} → normaliserat #{{ mostDropped.norm_rank }})</div>
+      </div>
+      <div class="kpi-card kpi-neutral">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-value">{{ teamIbcH | number:'1.1-1' }}</div>
+        <div class="kpi-label">Lagets snitt IBC/h</div>
+        <div class="kpi-sub">Index 1.00 = exakt lagsnitt</div>
+      </div>
+    </div>
+
+    <!-- Explanation card -->
+    <div class="explain-card">
+      <i class="fas fa-info-circle me-2 text-info"></i>
+      <strong>Hur fungerar det?</strong>
+      För varje skift beräknas vad <em>hela laget</em> i snitt producerar på just den produkten.
+      Operatörens normaliserade index = (faktisk IBC) / (förväntad IBC om laget jobbade samma skift).
+      Index &gt;1.00 = bättre än lagsnittet oavsett produktmix. En operatör som ser bra ut rårankat
+      men faller i normaliserat index jobbade på lättare produkter.
+    </div>
+
+    <!-- Filter + Sort -->
+    <div class="filter-sort-bar">
+      <div class="filter-group">
+        <span class="ctrl-label">Visa:</span>
+        <button class="btn btn-sm" [class.btn-secondary]="filterMode==='alla'"    [class.btn-outline-secondary]="filterMode!=='alla'"    (click)="setFilter('alla')">Alla ({{ operators.length }})</button>
+        <button class="btn btn-sm" [class.btn-success]="filterMode==='rose'"      [class.btn-outline-success]="filterMode!=='rose'"      (click)="setFilter('rose')">↑ Steg upp ({{ counts.rose }})</button>
+        <button class="btn btn-sm" [class.btn-danger]="filterMode==='dropped'"    [class.btn-outline-danger]="filterMode!=='dropped'"    (click)="setFilter('dropped')">↓ Föll ned ({{ counts.dropped }})</button>
+        <button class="btn btn-sm" [class.btn-secondary]="filterMode==='same'"    [class.btn-outline-secondary]="filterMode!=='same'"    (click)="setFilter('same')">– Oförändrad ({{ counts.same }})</button>
+      </div>
+      <div class="sort-group">
+        <span class="ctrl-label">Sortera:</span>
+        <button class="btn btn-sm" [class.btn-primary]="sortBy==='norm_rank'"   [class.btn-outline-secondary]="sortBy!=='norm_rank'"   (click)="setSort('norm_rank')">Normaliserat</button>
+        <button class="btn btn-sm" [class.btn-primary]="sortBy==='raw_rank'"    [class.btn-outline-secondary]="sortBy!=='raw_rank'"    (click)="setSort('raw_rank')">Rårankning</button>
+        <button class="btn btn-sm" [class.btn-primary]="sortBy==='rank_delta'"  [class.btn-outline-secondary]="sortBy!=='rank_delta'"  (click)="setSort('rank_delta')">Rankingdelta</button>
+        <button class="btn btn-sm" [class.btn-primary]="sortBy==='name'"        [class.btn-outline-secondary]="sortBy!=='name'"        (click)="setSort('name')">Namn</button>
+      </div>
+    </div>
+
+    <!-- Main table -->
+    <div class="content-card">
+      <table class="table table-dark table-hover norm-table">
+        <thead>
+          <tr>
+            <th class="th-rank">Norm. #</th>
+            <th>Operatör</th>
+            <th class="text-center">Rå IBC/h</th>
+            <th class="text-center">Rå #</th>
+            <th class="text-center">Norm. index</th>
+            <th class="text-center">Rankingdelta</th>
+            <th class="text-center">Skift</th>
+            <th class="text-center">Produkter</th>
+            <th class="text-center">Detalj</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let op of filtered">
+            <tr class="op-row" (click)="toggleExpand(op.op_num)" [class.expanded]="expandedOp === op.op_num">
+              <td class="td-rank">
+                <span class="rank-bubble">#{{ op.norm_rank }}</span>
+              </td>
+              <td>
+                <a [routerLink]="['/rebotling/operator', op.op_num]" class="op-link" (click)="$event.stopPropagation()">{{ op.name }}</a>
+              </td>
+              <td class="text-center">
+                <span class="ibc-val" [class.ibc-above]="op.vs_team_raw > 0" [class.ibc-below]="op.vs_team_raw < 0">
+                  {{ op.raw_ibc_h | number:'1.1-1' }}
+                </span>
+                <span class="vs-badge" [class.vs-pos]="op.vs_team_raw > 0" [class.vs-neg]="op.vs_team_raw < 0">
+                  {{ op.vs_team_raw > 0 ? '+' : '' }}{{ op.vs_team_raw | number:'1.0-1' }}%
+                </span>
+              </td>
+              <td class="text-center text-muted">#{{ op.raw_rank }}</td>
+              <td class="text-center">
+                <span class="index-badge" [style.background]="indexColor(op.normalized_index)" [style.color]="indexTextColor(op.normalized_index)">
+                  {{ op.normalized_index | number:'1.3-3' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="delta-pill" [class]="deltaClass(op.rank_delta)">
+                  {{ deltaLabel(op.rank_delta) }}
+                </span>
+              </td>
+              <td class="text-center text-muted">{{ op.skift_count }}</td>
+              <td class="text-center text-muted">{{ op.products.length }}</td>
+              <td class="text-center">
+                <i class="fas" [class.fa-chevron-down]="expandedOp !== op.op_num" [class.fa-chevron-up]="expandedOp === op.op_num"></i>
+              </td>
+            </tr>
+
+            <!-- Expanded product breakdown -->
+            <tr *ngIf="expandedOp === op.op_num" class="breakdown-row">
+              <td colspan="9">
+                <div class="breakdown-inner">
+                  <div class="breakdown-title">Produktuppdelning för {{ op.name }}</div>
+                  <table class="table table-dark table-sm prod-table">
+                    <thead>
+                      <tr>
+                        <th>Produkt</th>
+                        <th class="text-center">Op IBC/h</th>
+                        <th class="text-center">Team IBC/h</th>
+                        <th class="text-center">Relativ effektivitet</th>
+                        <th class="text-center">Skift</th>
+                        <th class="text-center">Total IBC</th>
+                        <th class="text-center">Timmar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let p of op.products">
+                        <td>{{ p.product_name }}</td>
+                        <td class="text-center">{{ p.op_ibc_h | number:'1.1-1' }}</td>
+                        <td class="text-center text-muted">{{ p.team_ibc_h | number:'1.1-1' }}</td>
+                        <td class="text-center">
+                          <span class="eff-pill" [style.color]="relEffColor(p.relative_eff)">
+                            {{ p.relative_eff >= 1 ? '+' : '' }}{{ ((p.relative_eff - 1) * 100) | number:'1.0-0' }}%
+                          </span>
+                          <span class="eff-idx text-muted ms-1">({{ p.relative_eff | number:'1.2-2' }}x)</span>
+                        </td>
+                        <td class="text-center text-muted">{{ p.skift_count }}</td>
+                        <td class="text-center text-muted">{{ p.total_ibc }}</td>
+                        <td class="text-center text-muted">{{ p.hours | number:'1.0-1' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!-- Mini visual bar: relative efficiency per product -->
+                  <div class="eff-bars">
+                    <div *ngFor="let p of op.products" class="eff-bar-row">
+                      <span class="eff-bar-name">{{ p.product_name }}</span>
+                      <div class="eff-bar-track">
+                        <div class="eff-bar-fill"
+                             [style.width.%]="Math.min(100, p.relative_eff * 50)"
+                             [style.background]="relEffColor(p.relative_eff)">
+                        </div>
+                        <div class="eff-bar-center"></div>
+                      </div>
+                      <span class="eff-bar-val" [style.color]="relEffColor(p.relative_eff)">
+                        {{ p.relative_eff >= 1 ? '+' : '' }}{{ ((p.relative_eff - 1) * 100) | number:'1.0-0' }}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-row">
+      <div class="legend-item"><span class="legend-dot" style="background:#2f855a;"></span> Index &gt;1.10 — klart bättre</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#276749;"></span> 1.02–1.10 — lite bättre</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#4a5568;"></span> 0.98–1.02 — i lagsnitt</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#744210;"></span> 0.90–0.98 — lite under</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#742a2a;"></span> &lt;0.90 — klart under</div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !error && !operators.length" class="empty-state">
+    <i class="fas fa-balance-scale fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen data hittad — kontrollera att produkter är registrerade i systemet och att det finns skift med product_id i vald period.</p>
+  </div>
+
+</div>
