@@ -4523,62 +4523,74 @@ class RebotlingController {
                 "SELECT number, name FROM operators WHERE active=1 ORDER BY name"
             )->fetchAll(\PDO::FETCH_ASSOC);
 
-            // All shifts in period — deduplicate per skiftraknare in each branch, then group by operator + week Monday
-            $sql = "
-                SELECT op_nr,
-                       DATE(DATE_SUB(datum, INTERVAL (WEEKDAY(datum)) DAY)) AS week_monday,
-                       COUNT(*)       AS antal_skift,
-                       SUM(ibc_ok)    AS total_ibc,
-                       SUM(drifttid)  AS total_drifttid
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta so later
+            // shifts in the same day are not over-credited with the cumulative total.
+            $shiftSql = "
+                SELECT skiftraknare, dag, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
                 FROM (
-                    SELECT op1 AS op_nr, MAX(datum) AS datum, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS dag,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE op1 > 0 AND datum BETWEEN :from1 AND :to1 AND drifttid > 0
-                    GROUP BY skiftraknare, op1
-                    UNION ALL
-                    SELECT op2, MAX(datum), MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE op2 > 0 AND datum BETWEEN :from2 AND :to2 AND drifttid > 0
-                    GROUP BY skiftraknare, op2
-                    UNION ALL
-                    SELECT op3, MAX(datum), MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE op3 > 0 AND datum BETWEEN :from3 AND :to3 AND drifttid > 0
-                    GROUP BY skiftraknare, op3
-                ) s
-                GROUP BY op_nr, week_monday
-                ORDER BY op_nr, week_monday
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
             ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $stmt = $this->pdo->prepare($shiftSql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Index by op_nr → week_monday
+            // PHP attribution: build per-operator per-week accumulator.
+            // Team accumulates once per shift (SUM/SUM, not AVG-of-ratios).
+            $byOpRaw    = []; // [op_nr => [week_monday => ['ibc'=>int,'min'=>int,'skift'=>int]]]
+            $teamWeekRaw = []; // [week_monday => ['ibc'=>int,'min'=>int]]
+
+            foreach ($allShifts as $s) {
+                $dag = $s['dag'];
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+
+                // ISO week Monday
+                $dt  = new \DateTime($dag);
+                $dow = (int)$dt->format('N') - 1; // 0=Mon
+                $dt->modify("-{$dow} days");
+                $wm  = $dt->format('Y-m-d');
+
+                if (!isset($teamWeekRaw[$wm])) $teamWeekRaw[$wm] = ['ibc' => 0, 'min' => 0];
+                $teamWeekRaw[$wm]['ibc'] += $ibc;
+                $teamWeekRaw[$wm]['min'] += $min;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0) continue;
+                    if (!isset($byOpRaw[$opNum][$wm])) $byOpRaw[$opNum][$wm] = ['ibc' => 0, 'min' => 0, 'skift' => 0];
+                    $byOpRaw[$opNum][$wm]['ibc']   += $ibc;
+                    $byOpRaw[$opNum][$wm]['min']   += $min;
+                    $byOpRaw[$opNum][$wm]['skift'] += 1;
+                }
+            }
+
+            // Build $byOp in format the rest of the code expects
             $byOp = [];
-            $teamByWeek = []; // week_monday => [ibc_per_h, ...]
-            foreach ($rows as $r) {
-                $num  = (int)$r['op_nr'];
-                $wm   = $r['week_monday'];
-                $d    = (int)$r['total_drifttid'];
-                $iph  = $d > 0 ? round((int)$r['total_ibc'] / ($d / 60.0), 1) : 0.0;
-                $byOp[$num][$wm] = [
-                    'ibc_per_h'   => $iph,
-                    'antal_skift' => (int)$r['antal_skift'],
-                ];
-                $teamByWeek[$wm][] = $iph;
+            foreach ($byOpRaw as $num => $weeks) {
+                foreach ($weeks as $wm => $d) {
+                    $iph = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 1) : 0.0;
+                    $byOp[$num][$wm] = ['ibc_per_h' => $iph, 'antal_skift' => $d['skift']];
+                }
             }
 
-            // Team average IBC/h per week (across all operator slots)
+            // Team average IBC/h per week (SUM/SUM — not AVG-of-ratios)
             $teamAvgByWeek = [];
-            foreach ($teamByWeek as $wm => $vals) {
-                $teamAvgByWeek[$wm] = count($vals) > 0
-                    ? round(array_sum($vals) / count($vals), 1)
-                    : null;
+            foreach ($teamWeekRaw as $wm => $d) {
+                $teamAvgByWeek[$wm] = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 1) : null;
             }
+
 
             // Build operator rows
             $opResults = [];
@@ -4695,40 +4707,50 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
-            // GROUP BY skiftraknare + HAVING drifttid >= 30 prevents bogus entries (test records
-            // with drifttid=1-10 min) from inflating IBC/h and causing vs_team_pct > 1000%.
-            $shiftSql = "
-                SELECT op_nr, pos, ibc_ok, drifttid
-                FROM (
-                    SELECT op1 AS op_nr, 'op1' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op1 IS NOT NULL AND op1 > 0 AND datum BETWEEN :from1 AND :to1
-                    GROUP BY skiftraknare, op1
-                    HAVING MAX(drifttid) >= 30
-                    UNION ALL
-                    SELECT op2 AS op_nr, 'op2' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op2 IS NOT NULL AND op2 > 0 AND datum BETWEEN :from2 AND :to2
-                    GROUP BY skiftraknare, op2
-                    HAVING MAX(drifttid) >= 30
-                    UNION ALL
-                    SELECT op3 AS op_nr, 'op3' AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE op3 IS NOT NULL AND op3 > 0 AND datum BETWEEN :from3 AND :to3
-                    GROUP BY skiftraknare, op3
-                    HAVING MAX(drifttid) >= 30
-                ) s
-            ";
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            // Closure gets shift-level data and expands to per-position rows (same shape as old UNION ALL).
+            $buildLagShifts = function(string $fromD, string $toD): array {
+                $sql = "
+                    SELECT skiftraknare, dag, op1, op2, op3, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum)) AS dag,
+                               MAX(op1)         AS op1,
+                               MAX(op2)         AS op2,
+                               MAX(op3)         AS op3,
+                               MAX(ibc_ok)      AS ibc_end,
+                               MAX(drifttid)    AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from AND :to
+                        GROUP BY skiftraknare
+                        HAVING MAX(drifttid) >= 30
+                    ) base
+                ";
+                $st = $this->pdo->prepare($sql);
+                $st->execute([':from' => $fromD, ':to' => $toD]);
+                $shifts = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+                // Expand to per-position rows (same shape as old UNION ALL output)
+                $rows = [];
+                foreach ($shifts as $s) {
+                    $ibc = max(0, (int)$s['ibc_ok']);
+                    $min = max(0, (int)$s['drifttid']);
+                    foreach (['op1', 'op2', 'op3'] as $pos) {
+                        $opNum = (int)$s[$pos];
+                        if ($opNum <= 0) continue;
+                        $rows[] = ['op_nr' => $opNum, 'pos' => $pos, 'ibc_ok' => $ibc, 'drifttid' => $min];
+                    }
+                }
+                return $rows;
+            };
 
             // Current month
-            $stmtCur = $this->pdo->prepare($shiftSql);
-            $stmtCur->execute([':from1'=>$from,':to1'=>$to,':from2'=>$from,':to2'=>$to,':from3'=>$from,':to3'=>$to]);
-            $curShifts = $stmtCur->fetchAll(\PDO::FETCH_ASSOC);
+            $curShifts = $buildLagShifts($from, $to);
 
             // Previous month
-            $stmtPrev = $this->pdo->prepare($shiftSql);
-            $stmtPrev->execute([':from1'=>$prevFrom,':to1'=>$prevTo,':from2'=>$prevFrom,':to2'=>$prevTo,':from3'=>$prevFrom,':to3'=>$prevTo]);
-            $prevShifts = $stmtPrev->fetchAll(\PDO::FETCH_ASSOC);
+            $prevShifts = $buildLagShifts($prevFrom, $prevTo);
+
 
             // Process current month per operator
             // Track raw ibc/min per position for SUM/SUM aggregation (not AVG-of-ratios)
