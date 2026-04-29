@@ -23,6 +23,7 @@ export class OperatorPrestationPage {
       label: 'Träning & Uppföljning',
       tools: [
         { title: 'Tränarvy', desc: 'Prioriterad coachingöversikt — vem behöver stöd, beröm eller bevakning?', route: '/rebotling/coach-view', icon: 'fas fa-chalkboard-teacher', color: '#a78bfa' },
+        { title: 'Operatörsutveckling', desc: '12 månaders IBC/h-sparkline per operatör — se vem som förbättrar sig, är stabil eller försämras långsiktigt', route: '/rebotling/operator-utveckling', icon: 'fas fa-chart-line', color: '#a78bfa' },
       ]
     },
     {

@@ -324,6 +324,8 @@ class RebotlingController {
                 $this->getSkiftSekvens();
             } elseif ($action === 'produktionsmaal') {
                 $this->getProduktionsmaal();
+            } elseif ($action === 'operator-utveckling') {
+                $this->getOperatorUtveckling();
             } else {
                 $this->getLiveStats();
             }
@@ -11619,6 +11621,171 @@ class RebotlingController {
             error_log('RebotlingController::getProduktionsmaal: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsmål'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=operator-utveckling&months=12
+    private function getOperatorUtveckling(): void {
+        try {
+            $months = max(6, min(24, (int)($_GET['months'] ?? 12)));
+            $today  = date('Y-m-d');
+            $from   = date('Y-m-d', strtotime("-{$months} months"));
+
+            // Active operators
+            $opStmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name"
+            );
+            $opNames = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                $opNames[(int)$op['number']] = $op['name'];
+            }
+
+            // All deduplicated shifts in period (one row per skiftraknare)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE_FORMAT(MAX(datum), '%Y-%m') AS ym,
+                    MAX(op1)      AS op1,
+                    MAX(op2)      AS op2,
+                    MAX(op3)      AS op3,
+                    MAX(ibc_ok)   AS ibc_ok,
+                    MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND drifttid >= 30 AND ibc_ok > 0
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $today]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build ordered month labels (oldest → newest)
+            $monthLabels = [];
+            for ($i = $months - 1; $i >= 0; $i--) {
+                $monthLabels[] = date('Y-m', strtotime("-{$i} months"));
+            }
+
+            // Accumulate IBC + minutes per operator per month, and team totals per month
+            $opData        = []; // $opData[$opNum][$ym] = ['ibc'=>0,'min'=>0,'shifts'=>0]
+            $teamByMonth   = []; // $teamByMonth[$ym] = ['ibc'=>0,'min'=>0]
+
+            foreach ($allShifts as $s) {
+                $ym  = $s['ym'];
+                $ibc = (float)$s['ibc_ok'];
+                $min = (float)$s['drifttid'];
+
+                if (!isset($teamByMonth[$ym])) {
+                    $teamByMonth[$ym] = ['ibc' => 0.0, 'min' => 0.0];
+                }
+                $teamByMonth[$ym]['ibc'] += $ibc;
+                $teamByMonth[$ym]['min'] += $min;
+
+                foreach ([$s['op1'], $s['op2'], $s['op3']] as $raw) {
+                    $opNum = (int)$raw;
+                    if ($opNum <= 0) continue;
+                    if (!isset($opData[$opNum][$ym])) {
+                        $opData[$opNum][$ym] = ['ibc' => 0.0, 'min' => 0.0, 'shifts' => 0];
+                    }
+                    $opData[$opNum][$ym]['ibc']    += $ibc;
+                    $opData[$opNum][$ym]['min']    += $min;
+                    $opData[$opNum][$ym]['shifts'] += 1;
+                }
+            }
+
+            // Team avg IBC/h per month
+            $teamAvgByMonth = [];
+            foreach ($monthLabels as $ym) {
+                $d = $teamByMonth[$ym] ?? null;
+                $teamAvgByMonth[$ym] = ($d && $d['min'] > 0)
+                    ? round($d['ibc'] / ($d['min'] / 60.0), 2)
+                    : 0.0;
+            }
+
+            // Build per-operator result
+            $result = [];
+            foreach ($opNames as $opNum => $opName) {
+                if (empty($opData[$opNum])) continue;
+
+                $monthly     = [];
+                $totalIbc    = 0.0;
+                $totalMin    = 0.0;
+                $totalShifts = 0;
+
+                foreach ($monthLabels as $ym) {
+                    $d    = $opData[$opNum][$ym] ?? null;
+                    $ibch = ($d && $d['min'] > 0)
+                        ? round($d['ibc'] / ($d['min'] / 60.0), 2)
+                        : 0.0;
+                    $monthly[] = [
+                        'ym'       => $ym,
+                        'ibch'     => $ibch,
+                        'shifts'   => $d ? (int)$d['shifts'] : 0,
+                        'team_avg' => $teamAvgByMonth[$ym] ?? 0.0,
+                    ];
+                    if ($d) {
+                        $totalIbc    += $d['ibc'];
+                        $totalMin    += $d['min'];
+                        $totalShifts += $d['shifts'];
+                    }
+                }
+
+                // Trend: compare first-3 active months vs last-3 active months
+                $active = array_values(array_filter($monthly, fn($m) => $m['ibch'] > 0));
+                $n      = count($active);
+
+                if ($n >= 4) {
+                    $first3    = array_slice($active, 0, 3);
+                    $last3     = array_slice($active, -3);
+                    $first3Avg = array_sum(array_column($first3, 'ibch')) / 3.0;
+                    $last3Avg  = array_sum(array_column($last3,  'ibch')) / 3.0;
+                    $deltaPct  = $first3Avg > 0
+                        ? round(($last3Avg - $first3Avg) / $first3Avg * 100.0, 1)
+                        : 0.0;
+                } else {
+                    $first3Avg = 0.0;
+                    $last3Avg  = $n > 0
+                        ? round(array_sum(array_column($active, 'ibch')) / $n, 2)
+                        : 0.0;
+                    $deltaPct  = 0.0;
+                }
+
+                $overallIbch = ($totalMin > 0)
+                    ? round($totalIbc / ($totalMin / 60.0), 2)
+                    : 0.0;
+
+                if ($overallIbch <= 0) continue;
+
+                if ($deltaPct >= 5.0)       $trend = 'forbattras';
+                elseif ($deltaPct <= -5.0)  $trend = 'forsamras';
+                else                         $trend = 'stabil';
+
+                $result[] = [
+                    'number'       => $opNum,
+                    'name'         => $opName,
+                    'overall_ibch' => $overallIbch,
+                    'total_shifts' => $totalShifts,
+                    'first3_avg'   => round($first3Avg, 2),
+                    'last3_avg'    => round($last3Avg, 2),
+                    'delta_pct'    => $deltaPct,
+                    'trend'        => $trend,
+                    'monthly'      => $monthly,
+                ];
+            }
+
+            usort($result, fn($a, $b) => $b['overall_ibch'] <=> $a['overall_ibch']);
+
+            echo json_encode([
+                'success'      => true,
+                'months'       => $months,
+                'from'         => $from,
+                'to'           => $today,
+                'month_labels' => $monthLabels,
+                'team_avg'     => $teamAvgByMonth,
+                'operators'    => $result,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getOperatorUtveckling: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsutveckling'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

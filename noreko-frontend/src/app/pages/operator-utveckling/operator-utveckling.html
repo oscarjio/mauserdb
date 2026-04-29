@@ -1,0 +1,188 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-chart-line me-2" style="color:#a78bfa;"></i>Operatörsutveckling
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      Månadsvis IBC/h-historik per operatör — identifiera långsiktiga trender och vem som förbättrar sig
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <select [(ngModel)]="months" (ngModelChange)="load()" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:140px;">
+        <option [value]="6">6 månader</option>
+        <option [value]="12">12 månader</option>
+        <option [value]="18">18 månader</option>
+        <option [value]="24">24 månader</option>
+      </select>
+    </div>
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Sortera på</label>
+      <select [(ngModel)]="sortBy" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:180px;">
+        <option value="overall">IBC/h totalt</option>
+        <option value="delta">Förbättring %</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#a78bfa;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p style="color:#a0aec0;margin-top:12px;">Hämtar månadsdata...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <!-- Content -->
+  <ng-container *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- KPI Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-4">
+        <div class="kpi-card" style="border-color:#68d391;">
+          <div class="kpi-value" style="color:#68d391;">{{ improvingCount }}</div>
+          <div class="kpi-label">Förbättras</div>
+          <div class="kpi-sub"><i class="fas fa-arrow-up me-1"></i>≥ +5%</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="kpi-card" style="border-color:#a0aec0;">
+          <div class="kpi-value" style="color:#a0aec0;">{{ stableCount }}</div>
+          <div class="kpi-label">Stabila</div>
+          <div class="kpi-sub"><i class="fas fa-minus me-1"></i>±5%</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="kpi-card" style="border-color:#fc8181;">
+          <div class="kpi-value" style="color:#fc8181;">{{ decliningCount }}</div>
+          <div class="kpi-label">Försämras</div>
+          <div class="kpi-sub"><i class="fas fa-arrow-down me-1"></i>≤ −5%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="d-flex gap-3 align-items-center flex-wrap mb-3" style="font-size:12px;color:#718096;">
+      <span><span class="legend-dot" style="background:#68d391;"></span>≥+10% vs lagsnitt</span>
+      <span><span class="legend-dot" style="background:#63b3ed;"></span>±10% vs lagsnitt</span>
+      <span><span class="legend-dot" style="background:#fc8181;"></span>≤−10% vs lagsnitt</span>
+      <span><span class="legend-dot" style="background:#2d3748;border:1px solid #4a5568;"></span>Ingen data</span>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="d-flex gap-2 mb-4 flex-wrap">
+      <button (click)="filterTrend='alla'" class="btn btn-sm filter-tab"
+              [class.active]="filterTrend==='alla'">
+        Alla ({{ operators.length }})
+      </button>
+      <button (click)="filterTrend='forbattras'" class="btn btn-sm filter-tab improving"
+              [class.active]="filterTrend==='forbattras'">
+        <i class="fas fa-arrow-up me-1"></i>Förbättras ({{ improvingCount }})
+      </button>
+      <button (click)="filterTrend='stabil'" class="btn btn-sm filter-tab stable"
+              [class.active]="filterTrend==='stabil'">
+        <i class="fas fa-minus me-1"></i>Stabila ({{ stableCount }})
+      </button>
+      <button (click)="filterTrend='forsamras'" class="btn btn-sm filter-tab declining"
+              [class.active]="filterTrend==='forsamras'">
+        <i class="fas fa-arrow-down me-1"></i>Försämras ({{ decliningCount }})
+      </button>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="row g-3">
+      <div class="col-12 col-lg-6" *ngFor="let op of filteredOperators">
+        <div class="op-card">
+
+          <!-- Card header -->
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <a [routerLink]="['/rebotling/operator', op.number]" class="op-name">
+                {{ op.name }}
+              </a>
+              <div style="color:#718096;font-size:12px;margin-top:2px;">
+                {{ op.total_shifts }} skift&nbsp;·&nbsp;{{ op.overall_ibch | number:'1.1-1' }} IBC/h totalt
+              </div>
+            </div>
+            <div class="trend-badge" [style.color]="trendColor(op.trend)"
+                 [style.border-color]="trendColor(op.trend)">
+              <i [class]="trendIcon(op.trend)" class="me-1"></i>{{ trendLabel(op.trend) }}
+              <span *ngIf="op.delta_pct !== 0" class="ms-1">
+                {{ op.delta_pct > 0 ? '+' : '' }}{{ op.delta_pct | number:'1.1-1' }}%
+              </span>
+            </div>
+          </div>
+
+          <!-- Sparkline -->
+          <div class="sparkline-wrapper mb-2">
+            <div class="sparkline">
+              <div *ngFor="let m of op.monthly" class="spark-col"
+                   [title]="formatMonth(m.ym) + ': ' + (m.ibch > 0 ? (m.ibch | number:'1.1-1') + ' IBC/h' : 'Ingen data')">
+                <div class="spark-bar"
+                     [style.height.%]="sparkBarHeight(m.ibch, op)"
+                     [style.background]="sparkBarColor(m)">
+                </div>
+              </div>
+            </div>
+            <!-- Month axis labels — show only every other label if 18+ months -->
+            <div class="spark-axis">
+              <div *ngFor="let m of op.monthly; let i = index" class="spark-label"
+                   [style.opacity]="months <= 12 || i % 2 === 0 ? '1' : '0'">
+                {{ formatMonthShort(m.ym) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Comparison row -->
+          <div *ngIf="op.first3_avg > 0" class="comparison-row">
+            <div class="cmp-block">
+              <div class="cmp-val">{{ op.first3_avg | number:'1.1-1' }}</div>
+              <div class="cmp-lbl">Första 3m snitt</div>
+            </div>
+            <div class="cmp-arrow">
+              <i [class]="trendIcon(op.trend)" [style.color]="trendColor(op.trend)"></i>
+            </div>
+            <div class="cmp-block">
+              <div class="cmp-val" [style.color]="trendColor(op.trend)">
+                {{ op.last3_avg | number:'1.1-1' }}
+              </div>
+              <div class="cmp-lbl">Senaste 3m snitt</div>
+            </div>
+            <div class="cmp-delta" [style.color]="trendColor(op.trend)">
+              {{ op.delta_pct > 0 ? '+' : '' }}{{ op.delta_pct | number:'1.1-1' }}%
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty -->
+  <div *ngIf="!loading && !error && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-chart-line" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen data för vald period.</p>
+  </div>
+
+</div>

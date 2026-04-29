@@ -1,0 +1,167 @@
+.kpi-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #4a5568;
+  border-top-width: 3px;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.filter-tab {
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  font-size: 13px;
+}
+
+.filter-tab.active {
+  background: #4a5568;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.filter-tab.improving.active { background: #276749; color: #c6f6d5; border-color: #68d391; }
+.filter-tab.stable.active    { background: #2d3748; color: #e2e8f0; border-color: #a0aec0; }
+.filter-tab.declining.active { background: #742a2a; color: #fed7d7; border-color: #fc8181; }
+
+.op-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #4a5568;
+  overflow: hidden;
+}
+
+.op-name {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+
+.op-name:hover { color: #63b3ed; text-decoration: underline; }
+
+.trend-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Sparkline */
+.sparkline-wrapper {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 10px 10px 0;
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  height: 48px;
+  gap: 2px;
+}
+
+.spark-col {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  cursor: default;
+}
+
+.spark-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+}
+
+.spark-axis {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 3px;
+  padding-bottom: 6px;
+}
+
+.spark-label {
+  flex: 1;
+  text-align: center;
+  color: #718096;
+  font-size: 9px;
+  line-height: 1;
+  overflow: hidden;
+}
+
+/* Comparison row */
+.comparison-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+
+.cmp-block {
+  text-align: center;
+  min-width: 60px;
+}
+
+.cmp-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.cmp-lbl {
+  font-size: 10px;
+  color: #718096;
+  margin-top: 2px;
+}
+
+.cmp-arrow {
+  flex: 1;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.cmp-delta {
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+}
