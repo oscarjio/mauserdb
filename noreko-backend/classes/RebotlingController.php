@@ -334,6 +334,8 @@ class RebotlingController {
                 $this->getOEEDashboard();
             } elseif ($action === 'operator-rotation') {
                 $this->getRotationsanalys();
+            } elseif ($action === 'manads-jamforelse') {
+                $this->getManadsJamforelse();
             } else {
                 $this->getLiveStats();
             }
@@ -12494,6 +12496,189 @@ class RebotlingController {
             error_log('RebotlingController::getRotationsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid rotationsanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=manads-jamforelse&month_a=YYYY-MM&month_b=YYYY-MM
+    private function getManadsJamforelse(): void {
+        $rawA = preg_replace('/[^0-9\-]/', '', $_GET['month_a'] ?? '');
+        $rawB = preg_replace('/[^0-9\-]/', '', $_GET['month_b'] ?? '');
+
+        // Default: current month vs same month last year
+        if (empty($rawA)) $rawA = date('Y-m');
+        if (empty($rawB)) {
+            $rawB = date('Y-m', strtotime('-12 months'));
+        }
+
+        // Validate YYYY-MM format
+        if (!preg_match('/^\d{4}-\d{2}$/', $rawA) || !preg_match('/^\d{4}-\d{2}$/', $rawB)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat'], \JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            $months = ['a' => $rawA, 'b' => $rawB];
+            $result = [];
+
+            foreach ($months as $key => $month) {
+                // Summary stats (dedup by skiftraknare first)
+                $sqlSum = "
+                    SELECT
+                        SUM(ibc_ok)  AS total_ibc,
+                        SUM(ibc_ej_ok) AS total_ibc_ej,
+                        SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0) AS ibc_per_h,
+                        SUM(ibc_ej_ok) / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0) * 100 AS kassation_pct,
+                        SUM(driftstopptime) / NULLIF(SUM(drifttid + driftstopptime), 0) * 100 AS stoppgrad,
+                        COUNT(DISTINCT skiftraknare) AS antal_skift,
+                        COUNT(DISTINCT datum) AS produktionsdagar,
+                        ROUND(SUM(drifttid) / 60.0, 1) AS total_timmar
+                    FROM (
+                        SELECT datum, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))          AS ibc_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0))       AS ibc_ej_ok,
+                               MAX(COALESCE(drifttid, 0))        AS drifttid,
+                               MAX(COALESCE(driftstopptime, 0))  AS driftstopptime
+                        FROM rebotling_skiftrapport
+                        WHERE DATE_FORMAT(datum, '%Y-%m') = :month
+                          AND drifttid >= 30
+                        GROUP BY datum, skiftraknare
+                    ) dedup
+                ";
+                $stmtSum = $this->pdo->prepare($sqlSum);
+                $stmtSum->execute([':month' => $month]);
+                $sum = $stmtSum->fetch(\PDO::FETCH_ASSOC);
+
+                // Per-day data for overlay chart
+                $sqlDay = "
+                    SELECT
+                        datum,
+                        DAY(datum)  AS dag,
+                        ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0), 2) AS ibc_per_h,
+                        SUM(ibc_ok) AS total_ibc
+                    FROM (
+                        SELECT datum, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                               MAX(COALESCE(drifttid, 0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE DATE_FORMAT(datum, '%Y-%m') = :month
+                          AND drifttid >= 30
+                        GROUP BY datum, skiftraknare
+                    ) dedup
+                    GROUP BY datum
+                    ORDER BY datum
+                ";
+                $stmtDay = $this->pdo->prepare($sqlDay);
+                $stmtDay->execute([':month' => $month]);
+                $days = $stmtDay->fetchAll(\PDO::FETCH_ASSOC);
+
+                // Per-operator IBC/h for this month
+                $sqlOp = "
+                    SELECT
+                        op_num,
+                        o.name,
+                        ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0), 2) AS ibc_per_h,
+                        COUNT(DISTINCT skiftraknare) AS antal_skift,
+                        SUM(ibc_ok) AS total_ibc
+                    FROM (
+                        SELECT skiftraknare, op1 AS op_num,
+                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                               MAX(COALESCE(drifttid, 0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE DATE_FORMAT(datum, '%Y-%m') = :montha
+                          AND op1 IS NOT NULL AND drifttid >= 30
+                        GROUP BY skiftraknare, op1
+                        UNION ALL
+                        SELECT skiftraknare, op2 AS op_num,
+                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                               MAX(COALESCE(drifttid, 0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE DATE_FORMAT(datum, '%Y-%m') = :monthb
+                          AND op2 IS NOT NULL AND drifttid >= 30
+                        GROUP BY skiftraknare, op2
+                        UNION ALL
+                        SELECT skiftraknare, op3 AS op_num,
+                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
+                               MAX(COALESCE(drifttid, 0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE DATE_FORMAT(datum, '%Y-%m') = :monthc
+                          AND op3 IS NOT NULL AND drifttid >= 30
+                        GROUP BY skiftraknare, op3
+                    ) combined
+                    LEFT JOIN operators o ON o.number = combined.op_num
+                    GROUP BY op_num, o.name
+                    HAVING antal_skift >= 2
+                    ORDER BY ibc_per_h DESC
+                ";
+                $stmtOp = $this->pdo->prepare($sqlOp);
+                $stmtOp->execute([':montha' => $month, ':monthb' => $month, ':monthc' => $month]);
+                $operators = $stmtOp->fetchAll(\PDO::FETCH_ASSOC);
+
+                $result[$key] = [
+                    'month'       => $month,
+                    'summary'     => $sum,
+                    'daily'       => $days,
+                    'operators'   => $operators,
+                ];
+            }
+
+            // Build operator comparison: merge month A and B operators by op_num
+            $opMap = [];
+            foreach ($result['a']['operators'] as $op) {
+                $opMap[$op['op_num']]['name']       = $op['name'] ?? 'Okänd';
+                $opMap[$op['op_num']]['op_num']     = $op['op_num'];
+                $opMap[$op['op_num']]['a_ibch']     = (float)$op['ibc_per_h'];
+                $opMap[$op['op_num']]['a_skift']    = (int)$op['antal_skift'];
+            }
+            foreach ($result['b']['operators'] as $op) {
+                $opMap[$op['op_num']]['b_ibch']     = (float)$op['ibc_per_h'];
+                $opMap[$op['op_num']]['b_skift']    = (int)$op['antal_skift'];
+                if (!isset($opMap[$op['op_num']]['name'])) {
+                    $opMap[$op['op_num']]['name']   = $op['name'] ?? 'Okänd';
+                    $opMap[$op['op_num']]['op_num'] = $op['op_num'];
+                }
+            }
+
+            $opComparison = [];
+            foreach ($opMap as $entry) {
+                $aIbch = $entry['a_ibch'] ?? null;
+                $bIbch = $entry['b_ibch'] ?? null;
+                $delta = ($aIbch !== null && $bIbch !== null && $bIbch > 0)
+                    ? round($aIbch - $bIbch, 2) : null;
+                $deltaPct = ($aIbch !== null && $bIbch !== null && $bIbch > 0)
+                    ? round(($aIbch - $bIbch) / $bIbch * 100, 1) : null;
+                $opComparison[] = [
+                    'op_num'    => $entry['op_num'],
+                    'name'      => $entry['name'],
+                    'a_ibch'    => $aIbch,
+                    'a_skift'   => $entry['a_skift'] ?? 0,
+                    'b_ibch'    => $bIbch,
+                    'b_skift'   => $entry['b_skift'] ?? 0,
+                    'delta'     => $delta,
+                    'delta_pct' => $deltaPct,
+                ];
+            }
+            // Sort by absolute delta descending (biggest change first)
+            usort($opComparison, function ($a, $b) {
+                $aa = abs($a['delta'] ?? 0);
+                $bb = abs($b['delta'] ?? 0);
+                return $bb <=> $aa;
+            });
+
+            echo json_encode([
+                'success'         => true,
+                'month_a'         => $rawA,
+                'month_b'         => $rawB,
+                'summary_a'       => $result['a']['summary'],
+                'summary_b'       => $result['b']['summary'],
+                'daily_a'         => $result['a']['daily'],
+                'daily_b'         => $result['b']['daily'],
+                'op_comparison'   => $opComparison,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getManadsJamforelse: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid månads-jämförelse'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

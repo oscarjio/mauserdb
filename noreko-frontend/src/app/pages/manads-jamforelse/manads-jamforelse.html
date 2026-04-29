@@ -1,0 +1,223 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Månads-Jämförelse</h2>
+    <p class="page-sub">Jämför valfria månader sida vid sida — KPI-delta, daglig IBC/h-overlay och operatörsförändring</p>
+  </div>
+
+  <!-- Month pickers -->
+  <div class="picker-bar">
+    <div class="picker-group">
+      <label class="picker-label">Månad A</label>
+      <input type="month" class="form-control form-control-sm month-input" [(ngModel)]="monthA" (change)="load()">
+    </div>
+    <div class="picker-vs">vs</div>
+    <div class="picker-group">
+      <label class="picker-label">Månad B</label>
+      <input type="month" class="form-control form-control-sm month-input" [(ngModel)]="monthB" (change)="load()">
+    </div>
+    <div class="quick-btns">
+      <button class="btn btn-sm btn-outline-secondary" (click)="setQuickA()">Denna vs Förra året</button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="setQuickPrev()">Förra vs Förre-förra</button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Hämtar månadsdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI comparison cards -->
+  <div *ngIf="!loading && summaryA" class="kpi-section">
+    <div class="kpi-month-label">
+      <span class="label-a">{{ monthLabel(monthA) }}</span>
+      <span class="label-sep">vs</span>
+      <span class="label-b">{{ monthLabel(monthB) }}</span>
+    </div>
+
+    <div class="kpi-grid">
+      <!-- Total IBC -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
+        <div class="kpi-title">Total IBC godkänd</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ (summaryA.total_ibc | number:'1.0-0') || '—' }}</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ (summaryB?.total_ibc | number:'1.0-0') || '—' }}</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(delta(summaryA.total_ibc, summaryB?.total_ibc))">
+          {{ deltaSign(delta(summaryA.total_ibc, summaryB?.total_ibc), 0) }} IBC
+          <span class="delta-pct" *ngIf="deltaPct(summaryA.total_ibc, summaryB?.total_ibc) !== null">
+            ({{ deltaSign(deltaPct(summaryA.total_ibc, summaryB?.total_ibc), 1) }}%)
+          </span>
+        </div>
+      </div>
+
+      <!-- IBC/h -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-title">IBC/h snitt</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ summaryA.ibc_per_h | number:'1.1-2' }}</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ summaryB?.ibc_per_h | number:'1.1-2' }}</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(delta(summaryA.ibc_per_h, summaryB?.ibc_per_h))">
+          {{ deltaSign(delta(summaryA.ibc_per_h, summaryB?.ibc_per_h)) }} IBC/h
+          <span class="delta-pct" *ngIf="deltaPct(summaryA.ibc_per_h, summaryB?.ibc_per_h) !== null">
+            ({{ deltaSign(deltaPct(summaryA.ibc_per_h, summaryB?.ibc_per_h), 1) }}%)
+          </span>
+        </div>
+      </div>
+
+      <!-- Kassation -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-trash-alt"></i></div>
+        <div class="kpi-title">Kassationsgrad</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ summaryA.kassation_pct | number:'1.1-2' }}%</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ summaryB?.kassation_pct | number:'1.1-2' }}%</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(-(delta(summaryA.kassation_pct, summaryB?.kassation_pct) ?? 0))">
+          {{ deltaSign(delta(summaryA.kassation_pct, summaryB?.kassation_pct)) }}pp
+          <span class="delta-pct text-muted" style="font-size:0.75em">(lägre = bättre)</span>
+        </div>
+      </div>
+
+      <!-- Stoppgrad -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-pause-circle"></i></div>
+        <div class="kpi-title">Stoppgrad</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ summaryA.stoppgrad | number:'1.1-2' }}%</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ summaryB?.stoppgrad | number:'1.1-2' }}%</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(-(delta(summaryA.stoppgrad, summaryB?.stoppgrad) ?? 0))">
+          {{ deltaSign(delta(summaryA.stoppgrad, summaryB?.stoppgrad)) }}pp
+          <span class="delta-pct text-muted" style="font-size:0.75em">(lägre = bättre)</span>
+        </div>
+      </div>
+
+      <!-- Antal skift -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-layer-group"></i></div>
+        <div class="kpi-title">Antal skift</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ summaryA.antal_skift }}</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ summaryB?.antal_skift }}</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(delta(summaryA.antal_skift, summaryB?.antal_skift))">
+          {{ deltaSign(delta(summaryA.antal_skift, summaryB?.antal_skift), 0) }} skift
+        </div>
+      </div>
+
+      <!-- Produktionsdagar -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="kpi-title">Produktionsdagar</div>
+        <div class="kpi-row-vals">
+          <span class="val-a">{{ summaryA.produktionsdagar }}</span>
+          <span class="val-sep">/</span>
+          <span class="val-b">{{ summaryB?.produktionsdagar }}</span>
+        </div>
+        <div class="kpi-delta" [class]="deltaClass(delta(summaryA.produktionsdagar, summaryB?.produktionsdagar))">
+          {{ deltaSign(delta(summaryA.produktionsdagar, summaryB?.produktionsdagar), 0) }} dagar
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay line chart -->
+  <div *ngIf="!loading && (dailyA.length || dailyB.length)" class="content-card">
+    <div class="section-title mb-3">
+      Daglig IBC/h — overlay
+      <span class="section-sub">Dag 1–31 för respektive månad</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas #overlayChart></canvas>
+    </div>
+  </div>
+
+  <!-- Operator comparison table -->
+  <div *ngIf="!loading && opComparison.length" class="content-card mt-3">
+    <div class="section-title mb-2">
+      Operatörsförändring
+      <span class="section-sub">
+        {{ bothCount }} operatörer med data i båda månader —
+        <span class="text-success">{{ improvedCount }} förbättrade</span>,
+        <span class="text-danger">{{ declinedCount }} försämrade</span>
+      </span>
+    </div>
+
+    <!-- Filter + sort bar -->
+    <div class="filter-sort-bar mb-3">
+      <div class="filter-group">
+        <span class="filter-label">Visa:</span>
+        <button class="btn btn-sm" [class.btn-secondary]="opFilter==='alla'"    [class.btn-outline-secondary]="opFilter!=='alla'"    (click)="opFilter='alla'">Alla</button>
+        <button class="btn btn-sm" [class.btn-success]="opFilter==='improved'"  [class.btn-outline-success]="opFilter!=='improved'"  (click)="opFilter='improved'">Förbättrade ({{ improvedCount }})</button>
+        <button class="btn btn-sm" [class.btn-danger]="opFilter==='declined'"   [class.btn-outline-danger]="opFilter!=='declined'"   (click)="opFilter='declined'">Försämrade ({{ declinedCount }})</button>
+      </div>
+      <div class="sort-group">
+        <span class="filter-label">Sortera:</span>
+        <button class="btn btn-sm" [class.btn-primary]="opSort==='delta'"   [class.btn-outline-secondary]="opSort!=='delta'"   (click)="opSort='delta'">Störst förändring</button>
+        <button class="btn btn-sm" [class.btn-primary]="opSort==='a_ibch'"  [class.btn-outline-secondary]="opSort!=='a_ibch'"  (click)="opSort='a_ibch'">IBC/h (A)</button>
+        <button class="btn btn-sm" [class.btn-primary]="opSort==='b_ibch'"  [class.btn-outline-secondary]="opSort!=='b_ibch'"  (click)="opSort='b_ibch'">IBC/h (B)</button>
+        <button class="btn btn-sm" [class.btn-primary]="opSort==='name'"    [class.btn-outline-secondary]="opSort!=='name'"    (click)="opSort='name'">Namn</button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-dark table-hover op-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th class="text-center">IBC/h <span class="col-month-a">{{ monthLabel(monthA) }}</span></th>
+            <th class="text-center">Skift A</th>
+            <th class="text-center">IBC/h <span class="col-month-b">{{ monthLabel(monthB) }}</span></th>
+            <th class="text-center">Skift B</th>
+            <th class="text-center">Delta</th>
+            <th class="text-center">Förändring %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of filteredOps" [class]="opDeltaClass(op)">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.op_num]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td class="text-center">
+              <span class="ibch-val ibch-a" *ngIf="op.a_ibch !== null">{{ op.a_ibch | number:'1.1-2' }}</span>
+              <span class="text-muted" *ngIf="op.a_ibch === null">—</span>
+            </td>
+            <td class="text-center text-muted">{{ op.a_skift || '—' }}</td>
+            <td class="text-center">
+              <span class="ibch-val ibch-b" *ngIf="op.b_ibch !== null">{{ op.b_ibch | number:'1.1-2' }}</span>
+              <span class="text-muted" *ngIf="op.b_ibch === null">—</span>
+            </td>
+            <td class="text-center text-muted">{{ op.b_skift || '—' }}</td>
+            <td class="text-center">
+              <span *ngIf="op.delta !== null" class="delta-pill" [class.pill-up]="op.delta > 0.2" [class.pill-down]="op.delta < -0.2" [class.pill-neutral]="op.delta >= -0.2 && op.delta <= 0.2">
+                {{ op.delta > 0 ? '+' : '' }}{{ op.delta | number:'1.1-2' }}
+              </span>
+              <span *ngIf="op.delta === null" class="text-muted">—</span>
+            </td>
+            <td class="text-center">
+              <span *ngIf="op.delta_pct !== null" class="delta-pct-pill" [class.pct-up]="op.delta_pct! > 2" [class.pct-down]="op.delta_pct! < -2">
+                {{ op.delta_pct! > 0 ? '+' : '' }}{{ op.delta_pct | number:'1.1-1' }}%
+              </span>
+              <span *ngIf="op.delta_pct === null" class="text-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !error && !summaryA?.total_ibc && !summaryB?.total_ibc" class="empty-state">
+    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen produktionsdata för de valda månaderna.</p>
+  </div>
+</div>

@@ -1,0 +1,166 @@
+.page-wrap {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header { margin-bottom: 1.5rem; }
+.page-title { color: #e2e8f0; font-size: 1.6rem; font-weight: 700; margin: 0; }
+.page-sub   { color: #a0aec0; font-size: 0.9rem; margin: 0.25rem 0 0; }
+
+/* Picker bar */
+.picker-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.picker-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.picker-label { color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.month-input  { background: #1a202c; border: 1px solid #4a5568; color: #e2e8f0; border-radius: 6px; padding: 0.3rem 0.6rem; min-width: 140px; }
+.month-input:focus { outline: none; border-color: #63b3ed; }
+.picker-vs { color: #a0aec0; font-weight: 700; padding-bottom: 0.1rem; }
+.quick-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; align-self: flex-end; }
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  color: #a0aec0;
+  padding: 2rem;
+}
+
+/* KPI section */
+.kpi-section { margin-bottom: 1.5rem; }
+
+.kpi-month-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.label-a   { color: #63b3ed; }
+.label-sep { color: #a0aec0; }
+.label-b   { color: #f6ad55; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.kpi-icon { color: #a0aec0; font-size: 1rem; }
+.kpi-title { color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi-row-vals { display: flex; align-items: center; gap: 0.4rem; font-size: 1.1rem; font-weight: 700; }
+.val-a { color: #63b3ed; }
+.val-sep { color: #4a5568; }
+.val-b { color: #f6ad55; }
+
+.kpi-delta { font-size: 0.8rem; font-weight: 600; }
+.delta-up   { color: #68d391; }
+.delta-down { color: #fc8181; }
+.delta-neutral { color: #a0aec0; }
+.delta-pct { margin-left: 0.25rem; font-weight: 400; color: #a0aec0; }
+
+/* Content card */
+.content-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.section-sub {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+/* Chart */
+.chart-wrap {
+  height: 320px;
+  position: relative;
+}
+
+/* Filter + sort bar */
+.filter-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.filter-group, .sort-group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.filter-label { color: #a0aec0; font-size: 0.8rem; white-space: nowrap; }
+
+/* Operator table */
+.op-table thead th { color: #a0aec0; font-size: 0.8rem; font-weight: 600; border-bottom: 1px solid #4a5568; }
+.op-link { color: #63b3ed; text-decoration: none; }
+.op-link:hover { text-decoration: underline; }
+
+.col-month-a { color: #63b3ed; font-weight: 400; font-size: 0.75em; display: block; }
+.col-month-b { color: #f6ad55; font-weight: 400; font-size: 0.75em; display: block; }
+
+.ibch-a { color: #63b3ed; font-weight: 600; }
+.ibch-b { color: #f6ad55; font-weight: 600; }
+.ibch-val { font-size: 0.95rem; }
+
+/* Row highlight */
+.op-improved { background: rgba(104,211,145,0.05); }
+.op-declined  { background: rgba(252,129,129,0.05); }
+.op-neutral   {}
+
+/* Delta pill */
+.delta-pill {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.pill-up      { background: rgba(104,211,145,0.18); color: #68d391; }
+.pill-down    { background: rgba(252,129,129,0.18); color: #fc8181; }
+.pill-neutral { background: rgba(160,174,192,0.15); color: #a0aec0; }
+
+.delta-pct-pill {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.pct-up   { color: #68d391; }
+.pct-down { color: #fc8181; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .picker-bar { flex-direction: column; align-items: flex-start; }
+  .quick-btns { margin-left: 0; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
