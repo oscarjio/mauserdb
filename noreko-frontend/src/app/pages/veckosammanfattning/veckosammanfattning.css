@@ -1,0 +1,163 @@
+.kpi-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 14px 16px;
+  height: 100%;
+}
+
+.kpi-label {
+  font-size: .72rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.kpi-delta {
+  font-size: .72rem;
+  margin-top: 4px;
+}
+
+.card-panel {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel-title {
+  color: #a0aec0;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.best-shift-card {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.best-ibch {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #f6c90e;
+  line-height: 1;
+}
+
+.best-ibch small {
+  font-size: 1rem;
+  color: #a0aec0;
+}
+
+.best-date {
+  color: #e2e8f0;
+  font-size: .85rem;
+  margin-top: 4px;
+}
+
+.best-ibc {
+  margin-top: 2px;
+}
+
+.compare-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compare-row {
+  display: flex;
+  align-items: center;
+  font-size: .85rem;
+}
+
+.compare-label {
+  color: #a0aec0;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.compare-prev {
+  color: #718096;
+  font-size: .8rem;
+}
+
+.compare-curr {
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.inline-bar {
+  height: 6px;
+  background: #1a202c;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 60px;
+}
+
+.inline-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .3s ease;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: .72rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.op-link {
+  color: #63b3ed;
+  text-decoration: none;
+  font-size: .88rem;
+}
+
+.op-link:hover {
+  text-decoration: underline;
+  color: #90cdf4;
+}
+
+.highlights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.highlights-list li {
+  font-size: .85rem;
+  color: #cbd5e0;
+  line-height: 1.4;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(255,255,255,0.02);
+  color: #cbd5e0;
+  font-size: .84rem;
+}
+
+.table-dark th {
+  border-bottom: 1px solid #4a5568;
+}
+
+.table-dark td {
+  border-bottom: 1px solid rgba(74,85,104,0.3);
+}

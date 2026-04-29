@@ -1,0 +1,326 @@
+<div class="container-fluid py-4 px-3 px-md-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-0 fw-bold" style="color:#e2e8f0">
+        <i class="fas fa-calendar-week me-2" style="color:#63b3ed"></i>Veckosammanfattning
+      </h2>
+      <div class="text-muted small mt-1" *ngIf="data">{{ weekRange }}</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary btn-sm" (click)="navigatePrev()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="fw-semibold px-2" style="color:#e2e8f0; font-size:1rem; min-width:80px; text-align:center">
+        V.{{ week }}, {{ year }}
+      </span>
+      <button class="btn btn-outline-secondary btn-sm" (click)="navigateNext()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"></div>
+    <div class="mt-2 text-muted">Laddar veckodata…</div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- No data -->
+  <div *ngIf="!loading && !error && data && !data.kpi" class="text-center py-5 text-muted">
+    <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+    Ingen produktionsdata för vecka {{ week }}, {{ year }}.
+  </div>
+
+  <ng-container *ngIf="!loading && !error && data && data.kpi">
+
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+
+      <!-- Total IBC -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Total IBC</div>
+          <div class="kpi-value">{{ data.kpi!.ibc_ok }}</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span [style.color]="deltaColor(deltaAbs(data.kpi!.ibc_ok, data.prev_kpi.ibc_ok))">
+              {{ deltaAbs(data.kpi!.ibc_ok, data.prev_kpi.ibc_ok) >= 0 ? '+' : '' }}{{ deltaAbs(data.kpi!.ibc_ok, data.prev_kpi.ibc_ok) }}
+              IBC vs förra v.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- IBC/h -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">IBC/h snitt</div>
+          <div class="kpi-value">{{ data.kpi!.ibc_per_h | number:'1.1-1' }}</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span [style.color]="deltaColor(delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h))">
+              {{ delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) >= 0 ? '+' : '' }}{{ delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) }}%
+              vs förra v.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kassation -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Kassation</div>
+          <div class="kpi-value">{{ data.kpi!.kass_pct | number:'1.1-1' }}%</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span [style.color]="deltaColorInverse(deltaAbs(data.kpi!.kass_pct, data.prev_kpi.kass_pct))">
+              {{ deltaAbs(data.kpi!.kass_pct, data.prev_kpi.kass_pct) >= 0 ? '+' : '' }}{{ deltaAbs(data.kpi!.kass_pct, data.prev_kpi.kass_pct) }} pp
+              vs förra v.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stoppgrad -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Stoppgrad</div>
+          <div class="kpi-value">{{ data.kpi!.stopp_pct | number:'1.1-1' }}%</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span [style.color]="deltaColorInverse(deltaAbs(data.kpi!.stopp_pct, data.prev_kpi.stopp_pct))">
+              {{ deltaAbs(data.kpi!.stopp_pct, data.prev_kpi.stopp_pct) >= 0 ? '+' : '' }}{{ deltaAbs(data.kpi!.stopp_pct, data.prev_kpi.stopp_pct) }} pp
+              vs förra v.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skift -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Skift</div>
+          <div class="kpi-value">{{ data.kpi!.antal_skift }}</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span style="color:#a0aec0">
+              {{ deltaAbs(data.kpi!.antal_skift, data.prev_kpi.antal_skift) >= 0 ? '+' : '' }}{{ deltaAbs(data.kpi!.antal_skift, data.prev_kpi.antal_skift) }}
+              vs förra v.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timmar -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Drifttimmar</div>
+          <div class="kpi-value">{{ data.kpi!.timmar | number:'1.0-0' }}h</div>
+          <div class="kpi-delta" *ngIf="data.prev_kpi">
+            <span style="color:#a0aec0">
+              förra v. {{ data.prev_kpi.timmar | number:'1.0-0' }}h
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content: chart + best shift -->
+    <div class="row g-3 mb-4">
+
+      <!-- Daily bar chart -->
+      <div class="col-12 col-lg-8">
+        <div class="card-panel">
+          <h6 class="panel-title">IBC/h per dag</h6>
+          <div *ngIf="data.days.length === 0" class="text-muted small py-3 text-center">Ingen daglig data</div>
+          <div *ngIf="data.days.length > 0" style="height:220px; position:relative">
+            <canvas #barCanvas></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Best shift + prev week comparison -->
+      <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+
+        <!-- Best shift card -->
+        <div class="card-panel flex-fill" *ngIf="data.best_shift">
+          <h6 class="panel-title"><i class="fas fa-trophy me-1" style="color:#f6c90e"></i>Veckans bästa skift</h6>
+          <div class="best-shift-card">
+            <div class="best-ibch">{{ data.best_shift!.ibc_per_h | number:'1.1-1' }} <small>IBC/h</small></div>
+            <div class="best-date">{{ data.best_shift!.datum }} · Skift #{{ data.best_shift!.skiftnr }}</div>
+            <div class="best-ibc text-muted small">{{ data.best_shift!.ibc_ok }} IBC totalt</div>
+          </div>
+        </div>
+
+        <!-- Previous week comparison pill -->
+        <div class="card-panel" *ngIf="data.prev_kpi">
+          <h6 class="panel-title">Jämfört med förra veckan</h6>
+          <div class="compare-grid">
+            <div class="compare-row">
+              <span class="compare-label">IBC/h</span>
+              <span class="compare-prev">{{ data.prev_kpi.ibc_per_h | number:'1.1-1' }}</span>
+              <i class="fas fa-arrow-right mx-1" style="color:#4a5568; font-size:.7rem"></i>
+              <span class="compare-curr" [style.color]="deltaColor(delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h))">
+                {{ data.kpi!.ibc_per_h | number:'1.1-1' }}
+              </span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">Kassation</span>
+              <span class="compare-prev">{{ data.prev_kpi.kass_pct | number:'1.1-1' }}%</span>
+              <i class="fas fa-arrow-right mx-1" style="color:#4a5568; font-size:.7rem"></i>
+              <span class="compare-curr" [style.color]="deltaColorInverse(deltaAbs(data.kpi!.kass_pct, data.prev_kpi.kass_pct))">
+                {{ data.kpi!.kass_pct | number:'1.1-1' }}%
+              </span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">Stoppgrad</span>
+              <span class="compare-prev">{{ data.prev_kpi.stopp_pct | number:'1.1-1' }}%</span>
+              <i class="fas fa-arrow-right mx-1" style="color:#4a5568; font-size:.7rem"></i>
+              <span class="compare-curr" [style.color]="deltaColorInverse(deltaAbs(data.kpi!.stopp_pct, data.prev_kpi.stopp_pct))">
+                {{ data.kpi!.stopp_pct | number:'1.1-1' }}%
+              </span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">Total IBC</span>
+              <span class="compare-prev">{{ data.prev_kpi.ibc_ok }}</span>
+              <i class="fas fa-arrow-right mx-1" style="color:#4a5568; font-size:.7rem"></i>
+              <span class="compare-curr" [style.color]="deltaColor(deltaAbs(data.kpi!.ibc_ok, data.prev_kpi.ibc_ok))">
+                {{ data.kpi!.ibc_ok }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily breakdown table -->
+    <div class="row g-3 mb-4" *ngIf="data.days.length > 0">
+      <div class="col-12">
+        <div class="card-panel">
+          <h6 class="panel-title">Daglig översikt</h6>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm mb-0 align-middle">
+              <thead>
+                <tr style="color:#a0aec0; font-size:.8rem">
+                  <th>Dag</th>
+                  <th>Datum</th>
+                  <th class="text-end">IBC/h</th>
+                  <th class="text-end">IBC OK</th>
+                  <th class="text-end">Kassation</th>
+                  <th class="text-end">Stoppgrad</th>
+                  <th class="text-end">Skift</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of data.days" [style.background]="weekDayColor(d.ibc_per_h)">
+                  <td class="fw-semibold" style="color:#e2e8f0">{{ d.dow }}</td>
+                  <td style="color:#a0aec0">{{ d.datum }}</td>
+                  <td class="text-end fw-semibold" style="color:#63b3ed">{{ d.ibc_per_h | number:'1.1-1' }}</td>
+                  <td class="text-end">{{ d.ibc_ok }}</td>
+                  <td class="text-end">
+                    <span [style.color]="d.kass_pct > 5 ? '#fc8181' : d.kass_pct > 2 ? '#f6ad55' : '#68d391'">
+                      {{ d.kass_pct | number:'1.1-1' }}%
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <span [style.color]="d.stopp_pct > 15 ? '#fc8181' : d.stopp_pct > 8 ? '#f6ad55' : '#68d391'">
+                      {{ d.stopp_pct | number:'1.1-1' }}%
+                    </span>
+                  </td>
+                  <td class="text-end text-muted">{{ d.antal_skift }}</td>
+                  <td>
+                    <div class="inline-bar">
+                      <div class="inline-bar-fill"
+                        [style.width.%]="data.kpi!.ibc_per_h > 0 ? Math.min(100, d.ibc_per_h / data.kpi!.ibc_per_h * 100) : 0"
+                        [style.background]="weekDayColor(d.ibc_per_h) !== '#2d3748' ? '#63b3ed' : '#4a5568'">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operator ranking for the week -->
+    <div class="row g-3" *ngIf="data.operators.length > 0">
+      <div class="col-12 col-lg-7">
+        <div class="card-panel">
+          <h6 class="panel-title"><i class="fas fa-medal me-1"></i>Veckans operatörsranking</h6>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm mb-0 align-middle">
+              <thead>
+                <tr style="color:#a0aec0; font-size:.8rem">
+                  <th>#</th>
+                  <th>Operatör</th>
+                  <th class="text-end">IBC/h</th>
+                  <th class="text-end">IBC OK</th>
+                  <th class="text-end">Skift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of data.operators; let i = index">
+                  <td>
+                    <span class="rank-badge" [style.background]="opRankColor(i)">{{ i + 1 }}</span>
+                  </td>
+                  <td>
+                    <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">
+                      {{ op.name }}
+                    </a>
+                  </td>
+                  <td class="text-end fw-semibold" style="color:#63b3ed">{{ op.ibc_per_h | number:'1.1-1' }}</td>
+                  <td class="text-end text-muted">{{ op.ibc_ok }}</td>
+                  <td class="text-end text-muted">{{ op.antal_skift }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary note -->
+      <div class="col-12 col-lg-5">
+        <div class="card-panel h-100 d-flex flex-column justify-content-between">
+          <h6 class="panel-title"><i class="fas fa-info-circle me-1"></i>Veckans höjdpunkter</h6>
+          <ul class="highlights-list" *ngIf="data.kpi">
+            <li *ngIf="data.operators[0] as top">
+              <i class="fas fa-crown me-1" style="color:#f6c90e"></i>
+              <strong>{{ top.name }}</strong> ledde veckan med {{ top.ibc_per_h | number:'1.1-1' }} IBC/h
+            </li>
+            <li *ngIf="data.best_shift">
+              <i class="fas fa-bolt me-1" style="color:#76e4f7"></i>
+              Bästa skift: <strong>{{ data.best_shift!.ibc_per_h | number:'1.1-1' }} IBC/h</strong> ({{ data.best_shift!.datum }})
+            </li>
+            <li *ngIf="data.prev_kpi">
+              <i class="fas fa-chart-line me-1"
+                [style.color]="delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) >= 0 ? '#68d391' : '#fc8181'">
+              </i>
+              Produktionstakt:
+              <strong [style.color]="delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) >= 0 ? '#68d391' : '#fc8181'">
+                {{ delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) >= 0 ? '+' : '' }}{{ delta(data.kpi!.ibc_per_h, data.prev_kpi.ibc_per_h) }}%
+              </strong>
+              vs förra veckan
+            </li>
+            <li>
+              <i class="fas fa-users me-1" style="color:#a78bfa"></i>
+              {{ data.operators.length }} operatörer aktiva denna vecka
+            </li>
+            <li *ngIf="data.days.length > 0">
+              <i class="fas fa-calendar-check me-1" style="color:#63b3ed"></i>
+              {{ data.days.length }} produktionsdagar av 7 möjliga
+            </li>
+          </ul>
+          <div class="mt-3">
+            <a routerLink="/rebotling/operator-prestation" class="btn btn-sm btn-outline-info w-100">
+              <i class="fas fa-arrow-left me-1"></i>Tillbaka till hubben
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

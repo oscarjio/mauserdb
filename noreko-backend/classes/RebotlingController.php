@@ -326,6 +326,8 @@ class RebotlingController {
                 $this->getProduktionsmaal();
             } elseif ($action === 'operator-utveckling') {
                 $this->getOperatorUtveckling();
+            } elseif ($action === 'veckosammanfattning') {
+                $this->getVeckosammanfattning();
             } else {
                 $this->getLiveStats();
             }
@@ -11786,6 +11788,218 @@ class RebotlingController {
             error_log('RebotlingController::getOperatorUtveckling: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörsutveckling'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=veckosammanfattning&year=2026&week=18
+    // Returns a full weekly digest: daily breakdown, operator ranking, KPIs vs prev week.
+    private function getVeckosammanfattning(): void {
+        $year = (int)($_GET['year'] ?? date('Y'));
+        $week = (int)($_GET['week'] ?? date('W'));
+        $week = max(1, min(53, $week));
+        $year = max(2020, min(2030, $year));
+
+        try {
+            // Compute Monday and Sunday of requested week (ISO week)
+            $monday = new \DateTimeImmutable();
+            $monday = $monday->setISODate($year, $week, 1);
+            $sunday = $monday->modify('+6 days');
+            $from  = $monday->format('Y-m-d');
+            $to    = $sunday->format('Y-m-d');
+
+            // Previous week
+            $prevMonday = $monday->modify('-7 days');
+            $prevSunday = $sunday->modify('-7 days');
+            $prevFrom   = $prevMonday->format('Y-m-d');
+            $prevTo     = $prevSunday->format('Y-m-d');
+
+            // ── Query 1: daily breakdown for the selected week ──
+            $sqlDay = "
+                SELECT
+                    datum,
+                    DAYOFWEEK(datum) AS dow,
+                    SUM(ibc_ok)     AS ibc_ok,
+                    SUM(drifttid)   AS drifttid_min,
+                    SUM(driftstopptime) AS stopp_min,
+                    SUM(ibc_ok + COALESCE(ibc_ej_ok,0) + COALESCE(bur_ej_ok,0)) AS tot_ibc,
+                    COUNT(*)        AS antal_skift
+                FROM (
+                    SELECT datum, DAYOFWEEK(datum) AS dow2,
+                           MAX(ibc_ok) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                           MAX(COALESCE(bur_ej_ok,0)) AS bur_ej_ok,
+                           MAX(drifttid) AS drifttid,
+                           MAX(COALESCE(driftstopptime,0)) AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) d
+                GROUP BY datum
+                ORDER BY datum ASC
+            ";
+            $stDay = $this->pdo->prepare($sqlDay);
+            $stDay->execute([':from1' => $from, ':to1' => $to]);
+            $dayRows = $stDay->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ── Query 2: operator ranking for the selected week ──
+            $sqlOp = "
+                SELECT op_num, op_name,
+                       SUM(ibc_ok) AS ibc_ok,
+                       SUM(drifttid_min) AS drifttid_min,
+                       COUNT(*) AS antal_skift
+                FROM (
+                    SELECT
+                        CASE pos WHEN 1 THEN op1 WHEN 2 THEN op2 ELSE op3 END AS op_num,
+                        CASE pos WHEN 1 THEN n1  WHEN 2 THEN n2  ELSE n3  END AS op_name,
+                        MAX(ibc_ok)   AS ibc_ok,
+                        MAX(drifttid) AS drifttid_min
+                    FROM (
+                        SELECT r.skiftraknare, r.op1, r.op2, r.op3, r.ibc_ok, r.drifttid,
+                               o1.name AS n1, o2.name AS n2, o3.name AS n3
+                        FROM rebotling_skiftrapport r
+                        LEFT JOIN operators o1 ON o1.number = r.op1
+                        LEFT JOIN operators o2 ON o2.number = r.op2
+                        LEFT JOIN operators o3 ON o3.number = r.op3
+                        WHERE r.datum BETWEEN :from2 AND :to2
+                          AND r.drifttid >= 30
+                    ) base
+                    JOIN (SELECT 1 AS pos UNION ALL SELECT 2 UNION ALL SELECT 3) positions
+                    GROUP BY pos, op_num, skiftraknare
+                    HAVING op_num IS NOT NULL AND op_num > 0
+                ) shifted
+                GROUP BY op_num, op_name
+                HAVING drifttid_min > 0
+                ORDER BY (ibc_ok / (drifttid_min / 60)) DESC
+            ";
+            $stOp = $this->pdo->prepare($sqlOp);
+            $stOp->execute([':from2' => $from, ':to2' => $to]);
+            $opRows = $stOp->fetchAll(\PDO::FETCH_ASSOC);
+
+            // ── Query 3: aggregated KPIs for this week and prev week ──
+            $sqlKpi = "
+                SELECT
+                    SUM(ibc_ok) AS ibc_ok,
+                    SUM(drifttid_min) AS drifttid_min,
+                    SUM(stopp_min) AS stopp_min,
+                    SUM(tot) AS tot_ibc,
+                    COUNT(*) AS antal_skift
+                FROM (
+                    SELECT MAX(ibc_ok) AS ibc_ok,
+                           MAX(drifttid) AS drifttid_min,
+                           MAX(COALESCE(driftstopptime,0)) AS stopp_min,
+                           MAX(ibc_ok + COALESCE(ibc_ej_ok,0) + COALESCE(bur_ej_ok,0)) AS tot
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) s
+            ";
+            $stKpi = $this->pdo->prepare($sqlKpi);
+            $stKpi->execute([':from3' => $from, ':to3' => $to]);
+            $kpiRow = $stKpi->fetch(\PDO::FETCH_ASSOC);
+
+            $stKpiP = $this->pdo->prepare($sqlKpi);
+            $stKpiP->execute([':from3' => $prevFrom, ':to3' => $prevTo]);
+            $prevKpiRow = $stKpiP->fetch(\PDO::FETCH_ASSOC);
+
+            // ── Query 4: best single shift this week ──
+            $sqlBest = "
+                SELECT r.datum, r.skiftraknare,
+                       MAX(r.ibc_ok) AS ibc_ok,
+                       MAX(r.drifttid) AS drifttid_min,
+                       GROUP_CONCAT(DISTINCT COALESCE(o1.name, r.op1) ORDER BY 1 SEPARATOR ', ') AS operators
+                FROM rebotling_skiftrapport r
+                LEFT JOIN operators o1 ON (o1.number = r.op1 OR o1.number = r.op2 OR o1.number = r.op3)
+                WHERE r.datum BETWEEN :from4 AND :to4
+                  AND r.drifttid >= 30
+                GROUP BY r.skiftraknare
+                ORDER BY (MAX(r.ibc_ok) / (MAX(r.drifttid) / 60)) DESC
+                LIMIT 1
+            ";
+            $stBest = $this->pdo->prepare($sqlBest);
+            $stBest->execute([':from4' => $from, ':to4' => $to]);
+            $bestShift = $stBest->fetch(\PDO::FETCH_ASSOC);
+
+            // Build response
+            $days = [];
+            $dowNames = ['', 'Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+            foreach ($dayRows as $r) {
+                $h = $r['drifttid_min'] > 0 ? round($r['ibc_ok'] / ($r['drifttid_min'] / 60), 2) : 0;
+                $kass = $r['tot_ibc'] > 0 ? round(($r['tot_ibc'] - $r['ibc_ok']) / $r['tot_ibc'] * 100, 1) : 0;
+                $stoppgrad = $r['drifttid_min'] > 0 ? round($r['stopp_min'] / $r['drifttid_min'] * 100, 1) : 0;
+                $days[] = [
+                    'datum'      => $r['datum'],
+                    'dow'        => $dowNames[(int)$r['dow']] ?? '',
+                    'ibc_ok'     => (int)$r['ibc_ok'],
+                    'ibc_per_h'  => $h,
+                    'kass_pct'   => $kass,
+                    'stopp_pct'  => $stoppgrad,
+                    'antal_skift'=> (int)$r['antal_skift'],
+                ];
+            }
+
+            $operators = [];
+            foreach ($opRows as $r) {
+                $h = $r['drifttid_min'] > 0 ? round($r['ibc_ok'] / ($r['drifttid_min'] / 60), 2) : 0;
+                $operators[] = [
+                    'number'     => (int)$r['op_num'],
+                    'name'       => $r['op_name'] ?? 'Op '.$r['op_num'],
+                    'ibc_ok'     => (int)$r['ibc_ok'],
+                    'ibc_per_h'  => $h,
+                    'antal_skift'=> (int)$r['antal_skift'],
+                ];
+            }
+
+            $buildKpi = function($row) {
+                if (!$row || !$row['drifttid_min']) return null;
+                $h = round($row['ibc_ok'] / ($row['drifttid_min'] / 60), 2);
+                $kass = $row['tot_ibc'] > 0 ? round(($row['tot_ibc'] - $row['ibc_ok']) / $row['tot_ibc'] * 100, 1) : 0;
+                $stopp = $row['drifttid_min'] > 0 ? round($row['stopp_min'] / $row['drifttid_min'] * 100, 1) : 0;
+                return [
+                    'ibc_ok'     => (int)$row['ibc_ok'],
+                    'ibc_per_h'  => $h,
+                    'kass_pct'   => $kass,
+                    'stopp_pct'  => $stopp,
+                    'antal_skift'=> (int)$row['antal_skift'],
+                    'timmar'     => round($row['drifttid_min'] / 60, 1),
+                ];
+            };
+
+            $kpi     = $buildKpi($kpiRow);
+            $prevKpi = $buildKpi($prevKpiRow);
+
+            $best = null;
+            if ($bestShift) {
+                $bh = $bestShift['drifttid_min'] > 0
+                    ? round($bestShift['ibc_ok'] / ($bestShift['drifttid_min'] / 60), 2) : 0;
+                $best = [
+                    'datum'      => $bestShift['datum'],
+                    'skiftnr'    => (int)$bestShift['skiftraknare'],
+                    'ibc_ok'     => (int)$bestShift['ibc_ok'],
+                    'ibc_per_h'  => $bh,
+                    'operators'  => $bestShift['operators'] ?? '',
+                ];
+            }
+
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success'   => true,
+                'year'      => $year,
+                'week'      => $week,
+                'from'      => $from,
+                'to'        => $to,
+                'kpi'       => $kpi,
+                'prev_kpi'  => $prevKpi,
+                'days'      => $days,
+                'operators' => $operators,
+                'best_shift'=> $best,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getVeckosammanfattning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid veckosammanfattning'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
