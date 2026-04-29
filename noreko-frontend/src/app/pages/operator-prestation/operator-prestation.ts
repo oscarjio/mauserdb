@@ -87,6 +87,7 @@ export class OperatorPrestationPage {
         { title: 'Produktionspuls', desc: 'Anläggningens IBC/h-tidsserie med 7-dagars MA och månadsöversikt', route: '/rebotling/produktions-tidsserie', icon: 'fas fa-chart-area', color: '#63b3ed' },
         { title: 'Säsongsanalys', desc: 'IBC/h per månad — säsongsmönster och år-för-år-jämförelse', route: '/rebotling/sasongsanalys', icon: 'fas fa-snowflake', color: '#76e4f7' },
         { title: 'Belastningsbalans', desc: 'Hur jämnt är skiftarbetet fördelat? Gini-index + positionsfördelning per operatör', route: '/rebotling/belastningsbalans', icon: 'fas fa-balance-scale-right', color: '#a78bfa' },
+        { title: 'OEE-Dashboard', desc: 'Overall Equipment Effectiveness — Tillgänglighet × Prestanda × Kvalitet. Industristandard-KPI för anläggningens totala effektivitet', route: '/rebotling/oee-dashboard', icon: 'fas fa-tachometer-alt', color: '#a78bfa' },
       ]
     },
     {

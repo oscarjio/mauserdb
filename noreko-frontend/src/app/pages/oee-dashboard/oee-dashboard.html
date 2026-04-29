@@ -1,0 +1,218 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1><i class="fas fa-tachometer-alt"></i> OEE-Dashboard</h1>
+    <p class="subtitle">Overall Equipment Effectiveness — Tillgänglighet × Prestanda × Kvalitet</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="controls-bar">
+    <div class="period-pills">
+      <button *ngFor="let d of dayOptions"
+              class="pill"
+              [class.active]="days === d"
+              (click)="days = d; load()">
+        {{ d }}d
+      </button>
+    </div>
+    <div class="filter-group">
+      <select class="form-select form-select-sm" [(ngModel)]="filterProduct" (change)="applyFilter()">
+        <option value="">Alla produkter</option>
+        <option *ngFor="let p of productNames" [value]="p">{{ p }}</option>
+      </select>
+    </div>
+    <div *ngIf="isFetching" class="spinner-border spinner-border-sm text-light ms-2"></div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger mt-3">{{ error }}</div>
+
+  <!-- KPI cards -->
+  <div class="kpi-grid" *ngIf="kpi.shifts > 0">
+    <!-- OEE main -->
+    <div class="kpi-main" [style.border-color]="oeeColor(kpi.oee)">
+      <div class="kpi-label">OEE</div>
+      <div class="kpi-value" [style.color]="oeeColor(kpi.oee)">
+        {{ kpi.oee !== null ? (kpi.oee | number:'1.1-1') + ' %' : '–' }}
+      </div>
+      <div class="kpi-badge" [style.background]="oeeColor(kpi.oee)">{{ oeeLabel(kpi.oee) }}</div>
+      <div class="kpi-sub">Perioden {{ kpi.shifts }} skift</div>
+      <div class="oee-formula">A × P × Q</div>
+    </div>
+
+    <!-- Availability -->
+    <div class="kpi-card">
+      <div class="kpi-icon" style="color:#63b3ed"><i class="fas fa-clock"></i></div>
+      <div class="kpi-card-label">Tillgänglighet</div>
+      <div class="kpi-card-value" [style.color]="pctColor(kpi.avail)">
+        {{ kpi.avail !== null ? (kpi.avail | number:'1.1-1') + ' %' : '–' }}
+      </div>
+      <div class="kpi-card-sub">Drifttid / (Drifttid + Stopp)</div>
+    </div>
+
+    <!-- Quality -->
+    <div class="kpi-card">
+      <div class="kpi-icon" style="color:#68d391"><i class="fas fa-check-circle"></i></div>
+      <div class="kpi-card-label">Kvalitet</div>
+      <div class="kpi-card-value" [style.color]="pctColor(kpi.qual)">
+        {{ kpi.qual !== null ? (kpi.qual | number:'1.1-1') + ' %' : '–' }}
+      </div>
+      <div class="kpi-card-sub">IBC godkänd / Totalt behandlad</div>
+    </div>
+
+    <!-- IBC/h -->
+    <div class="kpi-card">
+      <div class="kpi-icon" style="color:#f6ad55"><i class="fas fa-boxes"></i></div>
+      <div class="kpi-card-label">IBC/h</div>
+      <div class="kpi-card-value">
+        {{ kpi.ibc_h !== null ? (kpi.ibc_h | number:'1.1-1') : '–' }}
+      </div>
+      <div class="kpi-card-sub">Godkänd IBC per drifttimme</div>
+    </div>
+
+    <!-- Rejection rate -->
+    <div class="kpi-card">
+      <div class="kpi-icon" style="color:#fc8181"><i class="fas fa-trash-alt"></i></div>
+      <div class="kpi-card-label">Kassationsgrad</div>
+      <div class="kpi-card-value" [style.color]="kpi.kass !== null && kpi.kass > 5 ? '#fc8181' : '#68d391'">
+        {{ kpi.kass !== null ? (kpi.kass | number:'1.1-1') + ' %' : '–' }}
+      </div>
+      <div class="kpi-card-sub">Kasserade / Totalt behandlade</div>
+    </div>
+  </div>
+
+  <!-- OEE explanation banner -->
+  <div class="oee-info" *ngIf="kpi.oee !== null">
+    <div class="oee-info-item">
+      <span class="info-dot" style="background:#63b3ed"></span>
+      <strong>Tillgänglighet</strong> — Förlorad tid p.g.a. maskinstopp och haverier
+    </div>
+    <div class="oee-info-item">
+      <span class="info-dot" style="background:#f6ad55"></span>
+      <strong>Prestanda</strong> — Förlorad fart p.g.a. att maskinen körs under sin cykeltidsgräns (kräver produktcykeltid)
+    </div>
+    <div class="oee-info-item">
+      <span class="info-dot" style="background:#68d391"></span>
+      <strong>Kvalitet</strong> — Förlorad produktion p.g.a. kassation och omarbetning
+    </div>
+    <div class="oee-info-item" style="font-size:0.8rem;color:#a0aec0;margin-top:4px">
+      Notera: Prestanda beräknas bara för skift där produktens cykeltid är konfigurerad. OEE visas enbart när alla tre komponenter finns.
+    </div>
+  </div>
+
+  <!-- Monthly trend chart -->
+  <div class="chart-card" *ngIf="monthly.length > 0">
+    <h3>Månadsvis OEE-trend</h3>
+    <div class="chart-wrapper">
+      <canvas #trendChart></canvas>
+    </div>
+  </div>
+
+  <!-- Benchmark row -->
+  <div class="benchmark-row" *ngIf="kpi.oee !== null">
+    <div class="bm-item">
+      <div class="bm-label">Ert OEE</div>
+      <div class="bm-bar-wrap">
+        <div class="bm-bar" [style.width]="kpi.oee + '%'" [style.background]="oeeColor(kpi.oee)"></div>
+      </div>
+      <div class="bm-val">{{ kpi.oee | number:'1.1-1' }} %</div>
+    </div>
+    <div class="bm-item">
+      <div class="bm-label">Industrisnitt</div>
+      <div class="bm-bar-wrap">
+        <div class="bm-bar" style="width:65%;background:#718096"></div>
+      </div>
+      <div class="bm-val">~65 %</div>
+    </div>
+    <div class="bm-item">
+      <div class="bm-label">Världsklass</div>
+      <div class="bm-bar-wrap">
+        <div class="bm-bar" style="width:85%;background:#68d391"></div>
+      </div>
+      <div class="bm-val">≥85 %</div>
+    </div>
+  </div>
+
+  <!-- Product OEE table -->
+  <div class="section-card" *ngIf="products.length > 0">
+    <h3>OEE per produkt</h3>
+    <div class="note">Kräver att cykeltid är konfigurerad för produkten.</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Produkt</th>
+          <th>OEE %</th>
+          <th>Skift</th>
+          <th>Total IBC</th>
+          <th>Statusgraf</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of products">
+          <td class="name-cell">{{ p.name }}</td>
+          <td><span class="badge" [style.background]="oeeColor(p.avg_oee)">{{ p.avg_oee | number:'1.1-1' }} %</span></td>
+          <td>{{ p.shifts }}</td>
+          <td>{{ p.total_ibc }}</td>
+          <td>
+            <div class="mini-bar-wrap">
+              <div class="mini-bar" [style.width]="p.avg_oee + '%'" [style.background]="oeeColor(p.avg_oee)"></div>
+              <div class="mini-bar-ref" style="left:65%"></div>
+              <div class="mini-bar-ref" style="left:85%"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Per-shift table -->
+  <div class="section-card" *ngIf="filteredShifts.length > 0">
+    <div class="section-header">
+      <h3>Skiftdetaljer ({{ filteredShifts.length }} skift)</h3>
+      <div class="note">OEE visas enbart när produktens cykeltid är konfigurerad.</div>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table small-table">
+        <thead>
+          <tr>
+            <th (click)="sortBy('datum')" class="sortable">Datum</th>
+            <th>Produkt</th>
+            <th (click)="sortBy('avail')" class="sortable">Tillg. %</th>
+            <th (click)="sortBy('perf')" class="sortable">Prestr. %</th>
+            <th (click)="sortBy('qual')" class="sortable">Kval. %</th>
+            <th (click)="sortBy('oee')" class="sortable">OEE %</th>
+            <th (click)="sortBy('drifttid')" class="sortable">Drifttid</th>
+            <th (click)="sortBy('ibc_ok')" class="sortable">IBC OK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of filteredShifts">
+            <td>{{ s.datum }}</td>
+            <td>{{ s.product_name }}</td>
+            <td>
+              <span *ngIf="s.avail !== null" class="pct-cell" [style.color]="pctColor(s.avail)">{{ s.avail | number:'1.0-0' }}%</span>
+              <span *ngIf="s.avail === null" class="na">–</span>
+            </td>
+            <td>
+              <span *ngIf="s.perf !== null" class="pct-cell" [style.color]="pctColor(s.perf)">{{ s.perf | number:'1.0-0' }}%</span>
+              <span *ngIf="s.perf === null" class="na">–</span>
+            </td>
+            <td>
+              <span *ngIf="s.qual !== null" class="pct-cell" [style.color]="pctColor(s.qual)">{{ s.qual | number:'1.0-0' }}%</span>
+              <span *ngIf="s.qual === null" class="na">–</span>
+            </td>
+            <td>
+              <span *ngIf="s.oee !== null" class="badge" [style.background]="oeeColor(s.oee)">{{ s.oee | number:'1.0-0' }}%</span>
+              <span *ngIf="s.oee === null" class="na">–</span>
+            </td>
+            <td>{{ s.drifttid }} min</td>
+            <td>{{ s.ibc_ok }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="!isFetching && kpi.shifts === 0 && !error" class="empty-state">
+    <i class="fas fa-tachometer-alt fa-3x mb-3" style="color:#4a5568"></i>
+    <p>Ingen data hittades för vald period.</p>
+  </div>
+</div>
