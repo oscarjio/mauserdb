@@ -82,6 +82,7 @@ export class OperatorPrestationPage {
         { title: 'Veckans Topplista', desc: 'Vem vann varje vecka? Veckovis mästare', route: '/rebotling/veckans-topplista', icon: 'fas fa-crown', color: '#f6c90e' },
         { title: 'Produktionspuls', desc: 'Anläggningens IBC/h-tidsserie med 7-dagars MA och månadsöversikt', route: '/rebotling/produktions-tidsserie', icon: 'fas fa-chart-area', color: '#63b3ed' },
         { title: 'Säsongsanalys', desc: 'IBC/h per månad — säsongsmönster och år-för-år-jämförelse', route: '/rebotling/sasongsanalys', icon: 'fas fa-snowflake', color: '#76e4f7' },
+        { title: 'Belastningsbalans', desc: 'Hur jämnt är skiftarbetet fördelat? Gini-index + positionsfördelning per operatör', route: '/rebotling/belastningsbalans', icon: 'fas fa-balance-scale-right', color: '#a78bfa' },
       ]
     },
     {

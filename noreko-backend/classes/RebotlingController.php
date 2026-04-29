@@ -316,6 +316,8 @@ class RebotlingController {
                 $this->getTackningsanalys();
             } elseif ($action === 'vader-produktion') {
                 $this->getVaderProduktion();
+            } elseif ($action === 'belastningsbalans') {
+                $this->getBelastningsbalans();
             } else {
                 $this->getLiveStats();
             }
@@ -11095,6 +11097,148 @@ class RebotlingController {
             error_log('RebotlingController::getVaderProduktion: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid väder-produktion'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=belastningsbalans&days=90
+    // Returns per-operator shift count, operating hours, position breakdown for workload fairness analysis.
+    private function getBelastningsbalans(): void {
+        try {
+            $days = max(30, min(730, (int)($_GET['days'] ?? 90)));
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            // UNION ALL op1/op2/op3 — unique named params to avoid HY093
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    u.op_num                                    AS number,
+                    COALESCE(o.name, CONCAT('Op ', u.op_num))  AS name,
+                    COUNT(*)                                    AS antal_skift,
+                    SUM(u.drifttid_min)                        AS total_drifttid_min,
+                    SUM(u.driftstopptime_min)                  AS total_stoppmin,
+                    SUM(CASE WHEN u.pos='op1' THEN 1 ELSE 0 END) AS cnt_op1,
+                    SUM(CASE WHEN u.pos='op2' THEN 1 ELSE 0 END) AS cnt_op2,
+                    SUM(CASE WHEN u.pos='op3' THEN 1 ELSE 0 END) AS cnt_op3
+                FROM (
+                    SELECT op1 AS op_num, 'op1' AS pos, skiftraknare,
+                           MAX(drifttid) AS drifttid_min, MAX(driftstopptime) AS driftstopptime_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND drifttid >= 30
+                    GROUP BY op1, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2 AS op_num, 'op2' AS pos, skiftraknare,
+                           MAX(drifttid) AS drifttid_min, MAX(driftstopptime) AS driftstopptime_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND drifttid >= 30
+                    GROUP BY op2, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3 AS op_num, 'op3' AS pos, skiftraknare,
+                           MAX(drifttid) AS drifttid_min, MAX(driftstopptime) AS driftstopptime_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND drifttid >= 30
+                    GROUP BY op3, skiftraknare
+                ) u
+                LEFT JOIN operators o ON o.number = u.op_num
+                WHERE o.active = 1 OR o.active IS NULL
+                GROUP BY u.op_num, o.name
+                HAVING antal_skift >= 1
+                ORDER BY antal_skift DESC
+            ");
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                echo json_encode([
+                    'success'    => true,
+                    'operators'  => [],
+                    'kpi'        => ['total_skift' => 0, 'snitt_skift' => 0, 'snitt_h' => 0, 'antal_op' => 0, 'gini' => 0],
+                    'from'       => $from,
+                    'to'         => $to,
+                    'days'       => $days,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $counts    = array_column($rows, 'antal_skift');
+            $totalSkift = array_sum($counts);
+            $n         = count($rows);
+            $snittSkift = $n > 0 ? round($totalSkift / $n, 1) : 0;
+            $totalMin  = array_sum(array_column($rows, 'total_drifttid_min'));
+            $snittH    = $n > 0 ? round(($totalMin / $n) / 60.0, 1) : 0;
+
+            // Gini coefficient for shift distribution (0=perfect equal, 1=all to one)
+            sort($counts);
+            $gini = 0.0;
+            if ($n > 0 && $totalSkift > 0) {
+                $sumAbsDiff = 0;
+                foreach ($counts as $ci) {
+                    foreach ($counts as $cj) {
+                        $sumAbsDiff += abs($ci - $cj);
+                    }
+                }
+                $gini = round($sumAbsDiff / (2 * $n * $totalSkift), 3);
+            }
+
+            $operators = [];
+            foreach ($rows as $r) {
+                $skift    = (int)$r['antal_skift'];
+                $totMin   = (float)$r['total_drifttid_min'];
+                $totH     = round($totMin / 60.0, 1);
+                $avgH     = $skift > 0 ? round($totMin / $skift / 60.0, 1) : 0;
+                $vsSnitt  = $snittSkift > 0 ? round(($skift / $snittSkift - 1) * 100, 1) : 0;
+                $c1 = (int)$r['cnt_op1'];
+                $c2 = (int)$r['cnt_op2'];
+                $c3 = (int)$r['cnt_op3'];
+                $operators[] = [
+                    'number'       => (int)$r['number'],
+                    'name'         => $r['name'],
+                    'antal_skift'  => $skift,
+                    'total_h'      => $totH,
+                    'avg_h'        => $avgH,
+                    'vs_snitt'     => $vsSnitt,
+                    'cnt_op1'      => $c1,
+                    'cnt_op2'      => $c2,
+                    'cnt_op3'      => $c3,
+                    'pct_op1'      => $skift > 0 ? round($c1 / $skift * 100) : 0,
+                    'pct_op2'      => $skift > 0 ? round($c2 / $skift * 100) : 0,
+                    'pct_op3'      => $skift > 0 ? round($c3 / $skift * 100) : 0,
+                ];
+            }
+
+            echo json_encode([
+                'success'   => true,
+                'operators' => $operators,
+                'kpi'       => [
+                    'antal_op'   => $n,
+                    'total_skift'=> $totalSkift,
+                    'snitt_skift'=> $snittSkift,
+                    'snitt_h'    => $snittH,
+                    'gini'       => $gini,
+                ],
+                'snitt_skift' => $snittSkift,
+                'from'        => $from,
+                'to'          => $to,
+                'days'        => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getBelastningsbalans: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid belastningsbalans'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
