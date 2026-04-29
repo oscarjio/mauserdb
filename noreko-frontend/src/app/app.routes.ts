@@ -185,6 +185,7 @@ export const routes: Routes = [
       { path: 'rebotling/stopptidsmonster', canActivate: [adminGuard], loadComponent: () => import('./pages/stopptidsmonster/stopptidsmonster').then(m => m.StopptidsmönsterPage) },
       { path: 'rebotling/fart-produkt-matris', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-produkt-matris/fart-produkt-matris').then(m => m.FartProduktMatrisPage) },
       { path: 'rebotling/fart-stopp', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-stopp/fart-stopp').then(m => m.FartStoppPage) },
+      { path: 'rebotling/kassation-stopp', canActivate: [adminGuard], loadComponent: () => import('./pages/kassation-stopp/kassation-stopp').then(m => m.KassationStoppPage) },
       { path: 'rebotling/produktbyten', canActivate: [adminGuard], loadComponent: () => import('./pages/produktbyten/produktbyten').then(m => m.ProduktbytenPage) },
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },

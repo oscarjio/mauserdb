@@ -310,6 +310,8 @@ class RebotlingController {
                 $this->getSnabbhetProduktMatris();
             } elseif ($action === 'fart-stopp') {
                 $this->getFartStoppKorrelation();
+            } elseif ($action === 'kassation-stopp') {
+                $this->getKassationStoppKorrelation();
             } elseif ($action === 'produktbyten') {
                 $this->getProduktbytesanalys();
             } elseif ($action === 'tacknings-analys') {
@@ -10650,6 +10652,168 @@ class RebotlingController {
             error_log('RebotlingController::getFartStoppKorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-stopp-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getKassationStoppKorrelation(): void {
+        $days = (int)($_GET['days'] ?? 90);
+        $days = in_array($days, [30, 90, 180, 365]) ? $days : 90;
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            $sql = "
+                SELECT
+                    d.skiftraknare,
+                    d.datum,
+                    DAYOFWEEK(d.datum)                                               AS dow,
+                    d.op1, d.op2, d.op3,
+                    d.product_id,
+                    COALESCE(p.name, CONCAT('Produkt ', d.product_id))               AS product_name,
+                    d.start_hour,
+                    d.driftstopptime / d.drifttid * 100                               AS stopp_pct,
+                    d.ibc_ej_ok / (d.ibc_ok + d.ibc_ej_ok) * 100                     AS kass_pct
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        datum,
+                        MAX(ibc_ok)            AS ibc_ok,
+                        MAX(ibc_ej_ok)         AS ibc_ej_ok,
+                        MAX(drifttid)          AS drifttid,
+                        MAX(driftstopptime)    AS driftstopptime,
+                        MAX(op1)               AS op1,
+                        MAX(op2)               AS op2,
+                        MAX(op3)               AS op3,
+                        MAX(product_id)        AS product_id,
+                        HOUR(MIN(created_at))  AS start_hour
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, datum
+                ) d
+                LEFT JOIN rebotling_products p ON d.product_id = p.id
+                WHERE d.drifttid > 0
+                  AND (d.ibc_ok + d.ibc_ej_ok) > 0
+                ORDER BY d.datum
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $DOW_LABELS = ['', 'Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+
+            $shifts    = [];
+            $kassVals  = [];
+            $stoppVals = [];
+
+            foreach ($rows as $row) {
+                $kassPct  = (float)$row['kass_pct'];
+                $stoppPct = (float)$row['stopp_pct'];
+
+                if ($kassPct < 0 || $kassPct > 100) continue;
+                if ($stoppPct < 0 || $stoppPct > 100) continue;
+
+                $h = (int)$row['start_hour'];
+                if ($h >= 6 && $h < 14)      $skiftTyp = 'Dag';
+                elseif ($h >= 14 && $h < 22)  $skiftTyp = 'Kväll';
+                else                          $skiftTyp = 'Natt';
+
+                $shifts[] = [
+                    'skiftraknare' => (int)$row['skiftraknare'],
+                    'datum'        => $row['datum'],
+                    'stopp_pct'    => round($stoppPct, 2),
+                    'kass_pct'     => round($kassPct, 2),
+                    'product_id'   => (int)$row['product_id'],
+                    'product_name' => $row['product_name'],
+                    'shift_type'   => $skiftTyp,
+                    'dow'          => (int)$row['dow'],
+                    'dow_label'    => $DOW_LABELS[(int)$row['dow']] ?? '',
+                    'op1'          => (int)$row['op1'],
+                    'op2'          => (int)$row['op2'],
+                    'op3'          => (int)$row['op3'],
+                ];
+                $kassVals[]  = $kassPct;
+                $stoppVals[] = $stoppPct;
+            }
+
+            $count        = count($shifts);
+            $meanKassPct  = $count > 0 ? array_sum($kassVals)  / $count : 0;
+            $meanStoppPct = $count > 0 ? array_sum($stoppVals) / $count : 0;
+
+            $sortedKass  = $kassVals;  sort($sortedKass);
+            $sortedStopp = $stoppVals; sort($sortedStopp);
+            $mid = (int)floor($count / 2);
+            $medianKassPct  = $count > 0 ? (($count % 2 === 0) ? ($sortedKass[$mid-1]  + $sortedKass[$mid])  / 2 : $sortedKass[$mid])  : 0;
+            $medianStoppPct = $count > 0 ? (($count % 2 === 0) ? ($sortedStopp[$mid-1] + $sortedStopp[$mid]) / 2 : $sortedStopp[$mid]) : 0;
+
+            // Pearson correlation (X=stopp_pct, Y=kass_pct)
+            $corr = 0;
+            if ($count > 1) {
+                $sumX = 0; $sumY = 0; $sumXY = 0; $sumX2 = 0; $sumY2 = 0;
+                foreach ($shifts as $s) {
+                    $x = $s['stopp_pct']; $y = $s['kass_pct'];
+                    $sumX  += $x;  $sumY  += $y;
+                    $sumXY += $x * $y;
+                    $sumX2 += $x * $x;
+                    $sumY2 += $y * $y;
+                }
+                $n = $count;
+                $denom = sqrt(($n * $sumX2 - $sumX * $sumX) * ($n * $sumY2 - $sumY * $sumY));
+                if ($denom > 0) $corr = ($n * $sumXY - $sumX * $sumY) / $denom;
+            }
+
+            $abs = abs($corr);
+            if ($abs >= 0.7)      $corrStr = $corr > 0 ? 'stark positiv' : 'stark negativ';
+            elseif ($abs >= 0.4)  $corrStr = $corr > 0 ? 'måttlig positiv' : 'måttlig negativ';
+            elseif ($abs >= 0.2)  $corrStr = $corr > 0 ? 'svag positiv' : 'svag negativ';
+            else                  $corrStr = 'ingen korrelation';
+
+            // Quadrant counts (low stopp + low kassation = optimal)
+            $q = ['optimal' => 0, 'resilient' => 0, 'slarvig' => 0, 'dubbelproblem' => 0];
+            foreach ($shifts as $s) {
+                $lowStopp = $s['stopp_pct'] <= $medianStoppPct;
+                $lowKass  = $s['kass_pct']  <= $medianKassPct;
+                if ($lowStopp && $lowKass)   $q['optimal']++;
+                elseif (!$lowStopp && $lowKass) $q['resilient']++;
+                elseif ($lowStopp && !$lowKass) $q['slarvig']++;
+                else                            $q['dubbelproblem']++;
+            }
+
+            // Product summary
+            $prodCounts = [];
+            foreach ($shifts as $s) {
+                $pid = $s['product_id'];
+                if (!isset($prodCounts[$pid])) {
+                    $prodCounts[$pid] = ['id' => $pid, 'name' => $s['product_name'], 'count' => 0];
+                }
+                $prodCounts[$pid]['count']++;
+            }
+            usort($prodCounts, fn($a, $b) => $b['count'] - $a['count']);
+
+            echo json_encode([
+                'success'   => true,
+                'shifts'    => $shifts,
+                'stats'     => [
+                    'count'           => $count,
+                    'mean_kass_pct'   => round($meanKassPct, 2),
+                    'mean_stopp_pct'  => round($meanStoppPct, 2),
+                    'median_kass_pct' => round($medianKassPct, 2),
+                    'median_stopp_pct'=> round($medianStoppPct, 2),
+                    'correlation'     => round($corr, 3),
+                    'corr_strength'   => $corrStr,
+                ],
+                'quadrants' => $q,
+                'products'  => array_values($prodCounts),
+                'from'      => $from,
+                'to'        => $to,
+                'days'      => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getKassationStoppKorrelation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassation-stopp-analys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 
