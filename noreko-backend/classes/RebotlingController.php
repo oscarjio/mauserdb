@@ -4777,10 +4777,11 @@ class RebotlingController {
 
             usort($results, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
 
-            $allIbcPerH = array_filter(array_column($results, 'ibc_per_h'), fn($v) => $v > 0);
+            $allTeamIbc = array_sum(array_column($posTeamRaw, 'ibc'));
+            $allTeamMin = array_sum(array_column($posTeamRaw, 'min'));
             $summary = [
                 'total_ibc'        => array_sum(array_column($results, 'ibc_totalt')),
-                'team_avg_ibc_h'   => count($allIbcPerH) > 0 ? round(array_sum($allIbcPerH) / count($allIbcPerH), 2) : null,
+                'team_avg_ibc_h'   => $allTeamMin > 0 ? round($allTeamIbc / ($allTeamMin / 60.0), 2) : null,
                 'total_skift'      => array_sum(array_column($results, 'antal_skift')),
                 'antal_operatorer' => count($results),
                 'top_performer'    => count($results) > 0 ? $results[0]['name'] : null,
