@@ -80,30 +80,29 @@ class StatistikDashboardController {
      */
     private function getDaySummary(string $fromDate, string $toDate): array {
         try {
+            // ibc_count = daglig sekventiell räknare (startar om varje dag).
+            // MAX(ibc_count) GROUP BY DATE(datum) ger korrekt dagstotal per dag.
+            // ibc_ok nollställs inte korrekt per skift → ej användbar för dagssumma.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(shift_ok), 0)      AS ibc_ok,
-                    COALESCE(SUM(shift_ej_ok), 0)   AS ibc_ej_ok,
-                    COALESCE(SUM(shift_drift), 0)    AS drifttid_min
+                    COALESCE(SUM(day_total), 0)    AS ibc_total,
+                    COALESCE(SUM(day_ok), 0)       AS ibc_ok
                 FROM (
                     SELECT
-                        DATE(datum)     AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                        0                            AS shift_drift
+                        DATE(datum)          AS dag,
+                        MAX(ibc_count)       AS day_total,
+                        MAX(COALESCE(ibc_ok, 0)) AS day_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    GROUP BY DATE(datum)
+                ) AS per_day
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            $ok    = (int)($row['ibc_ok']    ?? 0);
-            $ejOk  = (int)($row['ibc_ej_ok'] ?? 0);
-            $total = $ok + $ejOk;
+            $total = (int)($row['ibc_total'] ?? 0);
+            $ok    = min($total, (int)($row['ibc_ok'] ?? 0));
+            $ejOk  = max(0, $total - $ok);
             $pct   = $total > 0 ? round($ejOk / $total * 100, 2) : 0.0;
 
             // Hämta drifttid från skiftrapport

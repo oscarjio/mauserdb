@@ -23,9 +23,9 @@ class PrediktivtUnderhallController {
     /** Rebotling-stationer */
     private const STATIONER = [
         1 => 'Station 1 - Avtappning',
-        2 => 'Station 2 - Hoglyckspolning',
-        3 => 'Station 3 - Invandlig tvatt',
-        4 => 'Station 4 - Utvandlig tvatt',
+        2 => 'Station 2 - Höglyckspolning',
+        3 => 'Station 3 - Invändig tvätt',
+        4 => 'Station 4 - Utvändig tvätt',
         5 => 'Station 5 - Inspektion',
         6 => 'Station 6 - Montering',
         7 => 'Station 7 - Funktionstest',
@@ -117,7 +117,7 @@ class PrediktivtUnderhallController {
                 $stmt = $this->pdo->prepare("
                     SELECT
                         station_id,
-                        COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okand orsak') AS orsak,
+                        COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okänd orsak') AS orsak,
                         COUNT(*) AS antal,
                         COALESCE(SUM(varaktighet_min), 0) AS total_min
                     FROM rebotling_underhallslogg
@@ -532,7 +532,7 @@ class PrediktivtUnderhallController {
                 // 1. Stationer med okande stoppfrekvens (jamnfor senaste 4v vs foregaende 4v)
                 $stmt = $this->pdo->prepare("
                     SELECT station_id,
-                           COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okand orsak') AS orsak,
+                           COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okänd orsak') AS orsak,
                            COUNT(*) AS antal
                     FROM rebotling_underhallslogg
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
@@ -576,7 +576,7 @@ class PrediktivtUnderhallController {
                             'station_id'   => $sid,
                             'station_namn' => $this->stationNamn($sid),
                             'orsak'        => $orsak,
-                            'meddelande'   => "Okande stoppfrekvens pa {$this->stationNamn($sid)}: \"{$orsak}\" (+{$okning}% senaste 4v, {$antalRecent} stopp)",
+                            'meddelande'   => "Ökande stoppfrekvens på {$this->stationNamn($sid)}: \"{$orsak}\" (+{$okning}% senaste 4v, {$antalRecent} stopp)",
                             'antal_recent' => $antalRecent,
                             'antal_old'    => $antalOld,
                             'okning_pct'   => $okning,
@@ -615,7 +615,7 @@ class PrediktivtUnderhallController {
                 $stmt = $this->pdo->prepare("
                     SELECT
                         station_id,
-                        COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okand orsak') AS orsak,
+                        COALESCE(NULLIF(TRIM(stopporsak), ''), 'Okänd orsak') AS orsak,
                         COALESCE(SUM(varaktighet_min), 0) AS total_min,
                         COUNT(*) AS antal
                     FROM rebotling_underhallslogg
@@ -639,7 +639,7 @@ class PrediktivtUnderhallController {
                             'station_id'   => $sid,
                             'station_namn' => $this->stationNamn($sid),
                             'orsak'        => $row['orsak'],
-                            'meddelande'   => "Lang stopptid pa {$this->stationNamn($sid)}: \"{$row['orsak']}\" — {$totalMin} min totalt ({$antal} tillfallen). Overväg förebyggande underhall.",
+                            'meddelande'   => "Lång stopptid på {$this->stationNamn($sid)}: \"{$row['orsak']}\" — {$totalMin} min totalt ({$antal} tillfällen). Överväg förebyggande underhall.",
                             'antal_recent' => $antal,
                             'antal_old'    => 0,
                             'okning_pct'   => 0,

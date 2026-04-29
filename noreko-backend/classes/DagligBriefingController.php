@@ -129,25 +129,22 @@ class DagligBriefingController {
         $schemaSek = self::SCHEMA_SEK_PER_DAG;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
-        // rebotling_ibc: MAX(ibc_ok) per skiftraknare, then SUM
+        // ibc_count = daglig sekventiell räknare (startar om varje dag).
+        // MAX(ibc_count) ger korrekt dagstotal. ibc_ok nollställs inte per skift.
         $totalIbc = 0;
         $okIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc
-                FROM (
-                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                ) AS per_skift
+                SELECT COALESCE(MAX(ibc_count), 0) AS total_ibc,
+                       COALESCE(MAX(ibc_ok), 0)    AS ok_ibc
+                FROM rebotling_ibc
+                WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
             ");
             $stmt->execute([':date' => $date, ':dateb' => $date]);
-            $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
-            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
+            $ibcRow   = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
+            $rawOk    = (int)($ibcRow['ok_ibc'] ?? 0);
+            $okIbc    = $rawOk > 0 ? min($totalIbc, $rawOk) : $totalIbc;
         } catch (\Throwable $e) {
             error_log('DagligBriefingController::calcOeeForDay (ibc): ' . $e->getMessage());
         }
