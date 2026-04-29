@@ -1,0 +1,349 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Skiftavvikelser</h2>
+    <p class="page-sub">Statistisk analys — skift som avviker >1.5σ från normalvärdet för IBC/h, kassation eller stopptid</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <span class="period-label">Period:</span>
+    <div class="btn-group btn-group-sm" role="group">
+      <button *ngFor="let opt of daysOptions"
+        class="btn" [class.btn-primary]="days===opt.value" [class.btn-outline-secondary]="days!==opt.value"
+        (click)="setDays(opt.value)">{{ opt.label }}</button>
+    </div>
+    <span class="period-range" *ngIf="period">{{ period.from }} → {{ period.to }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-secondary" role="status"></div>
+    <span class="ms-2">Analyserar skiftdata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI cards -->
+  <div *ngIf="!loading && period" class="kpi-row">
+    <div class="kpi-card kpi-neutral">
+      <div class="kpi-icon"><i class="fas fa-layer-group"></i></div>
+      <div class="kpi-value">{{ period.total_shifts }}</div>
+      <div class="kpi-label">Analyserade skift</div>
+    </div>
+    <div class="kpi-card" [ngClass]="anomalyRateClass">
+      <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <div class="kpi-value">{{ period.anomaly_rate }}<span class="kpi-unit">%</span></div>
+      <div class="kpi-label">Avvikelserate</div>
+      <div class="kpi-sub">{{ period.anomaly_count }} skift</div>
+    </div>
+    <div class="kpi-card kpi-warn">
+      <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+      <div class="kpi-value">{{ anomalies.low_prod.length }}</div>
+      <div class="kpi-label">Låg produktion</div>
+      <div class="kpi-sub" *ngIf="stats">&lt; {{ (stats.avg_ibc_h - 1.5 * stats.std_ibc_h) | number:'1.1-1' }} IBC/h</div>
+    </div>
+    <div class="kpi-card kpi-danger">
+      <div class="kpi-icon"><i class="fas fa-vial"></i></div>
+      <div class="kpi-value">{{ anomalies.high_kass.length }}</div>
+      <div class="kpi-label">Hög kassation</div>
+      <div class="kpi-sub" *ngIf="stats">&gt; {{ (stats.avg_kass + 1.5 * stats.std_kass) | number:'1.1-1' }}%</div>
+    </div>
+    <div class="kpi-card kpi-neutral">
+      <div class="kpi-icon"><i class="fas fa-pause-circle"></i></div>
+      <div class="kpi-value">{{ anomalies.high_stopp.length }}</div>
+      <div class="kpi-label">Hög stoppgrad</div>
+      <div class="kpi-sub" *ngIf="stats">&gt; {{ (stats.avg_stopp + 1.5 * stats.std_stopp) | number:'1.0-0' }}%</div>
+    </div>
+    <div class="kpi-card kpi-ok">
+      <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+      <div class="kpi-value">{{ anomalies.high_prod.length }}</div>
+      <div class="kpi-label">Toppskift</div>
+      <div class="kpi-sub" *ngIf="stats">&gt; {{ (stats.avg_ibc_h + 1.5 * stats.std_ibc_h) | number:'1.1-1' }} IBC/h</div>
+    </div>
+  </div>
+
+  <!-- Threshold info -->
+  <div *ngIf="!loading && stats" class="threshold-info">
+    <i class="fas fa-info-circle me-1"></i>
+    Normalgräns (±1.5σ): IBC/h {{ (stats.avg_ibc_h - 1.5*stats.std_ibc_h) | number:'1.1-1' }}–{{ (stats.avg_ibc_h + 1.5*stats.std_ibc_h) | number:'1.1-1' }}
+    &nbsp;|&nbsp; Kassation 0–{{ (stats.avg_kass + 1.5*stats.std_kass) | number:'1.1-1' }}%
+    &nbsp;|&nbsp; Stoppgrad 0–{{ (stats.avg_stopp + 1.5*stats.std_stopp) | number:'1.0-0' }}%
+    &nbsp;|&nbsp; Periodsnitt: {{ stats.avg_ibc_h | number:'1.1-1' }} IBC/h, σ={{ stats.std_ibc_h | number:'1.1-1' }}
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && period?.total_shifts === 0" class="empty-state">
+    <i class="fas fa-check-circle"></i>
+    <p>Inga skift hittades för perioden.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div *ngIf="!loading && period && period.total_shifts > 0" class="tab-row">
+    <button class="tab-btn" [class.active]="tab==='low_prod'"  (click)="setTab('low_prod')">
+      <i class="fas fa-arrow-down me-1"></i>Låg produktion
+      <span class="tab-count" *ngIf="anomalies.low_prod.length">{{ anomalies.low_prod.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="tab==='high_kass'" (click)="setTab('high_kass')">
+      <i class="fas fa-vial me-1"></i>Hög kassation
+      <span class="tab-count" *ngIf="anomalies.high_kass.length">{{ anomalies.high_kass.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="tab==='high_stopp'" (click)="setTab('high_stopp')">
+      <i class="fas fa-pause-circle me-1"></i>Hög stoppgrad
+      <span class="tab-count" *ngIf="anomalies.high_stopp.length">{{ anomalies.high_stopp.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="tab==='op_corr'"   (click)="setTab('op_corr')">
+      <i class="fas fa-user-times me-1"></i>Operatörsmönster
+    </button>
+    <button class="tab-btn" [class.active]="tab==='prod_corr'" (click)="setTab('prod_corr')" *ngIf="prodCorr.length">
+      <i class="fas fa-box me-1"></i>Produktmönster
+    </button>
+    <button class="tab-btn" [class.active]="tab==='trend'"     (click)="setTab('trend')">
+      <i class="fas fa-chart-line me-1"></i>Trend
+    </button>
+  </div>
+
+  <!-- TAB: Low production -->
+  <div *ngIf="!loading && tab==='low_prod'" class="tab-content">
+    <div *ngIf="anomalies.low_prod.length === 0" class="no-anomalies">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga avvikande lågproduktionsskift hittades.
+    </div>
+    <div *ngIf="anomalies.low_prod.length > 0" class="table-responsive">
+      <table class="table table-dark table-hover av-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>IBC/h</th>
+            <th>vs snitt</th>
+            <th>Z-värde</th>
+            <th>Kassation</th>
+            <th>Stopp</th>
+            <th>Operatörer</th>
+            <th>Produkt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of anomalies.low_prod">
+            <td class="datum-cell">{{ formatDate(row.datum) }}</td>
+            <td class="metric-cell">
+              <span class="metric-val">{{ row.ibc_h | number:'1.1-1' }}</span>
+              <span class="metric-unit"> IBC/h</span>
+            </td>
+            <td>
+              <span class="delta-pill delta-neg" *ngIf="stats">
+                {{ ((row.ibc_h - stats.avg_ibc_h) / stats.avg_ibc_h * 100) | number:'1.0-0' }}%
+              </span>
+            </td>
+            <td><span class="z-badge" [ngClass]="zClass(row.z_ibc)">{{ zLabel(row.z_ibc) }}</span></td>
+            <td class="metric-cell">{{ row.kass_pct | number:'1.1-1' }}%</td>
+            <td class="metric-cell">{{ row.stopp_pct | number:'1.0-0' }}%</td>
+            <td class="ops-cell">{{ ops(row) }}</td>
+            <td class="prod-cell">{{ row.product_name ?? '–' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: High kassation -->
+  <div *ngIf="!loading && tab==='high_kass'" class="tab-content">
+    <div *ngIf="anomalies.high_kass.length === 0" class="no-anomalies">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga avvikande kassationsskift hittades.
+    </div>
+    <div *ngIf="anomalies.high_kass.length > 0" class="table-responsive">
+      <table class="table table-dark table-hover av-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Kassation</th>
+            <th>vs snitt</th>
+            <th>Z-värde</th>
+            <th>IBC/h</th>
+            <th>Stopp</th>
+            <th>Operatörer</th>
+            <th>Produkt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of anomalies.high_kass">
+            <td class="datum-cell">{{ formatDate(row.datum) }}</td>
+            <td class="metric-cell">
+              <span class="metric-val kass-val">{{ row.kass_pct | number:'1.1-1' }}%</span>
+            </td>
+            <td>
+              <span class="delta-pill delta-neg" *ngIf="stats">
+                +{{ (row.kass_pct - stats.avg_kass) | number:'1.1-1' }}pp
+              </span>
+            </td>
+            <td><span class="z-badge" [ngClass]="zClass(row.z_kass, true)">{{ zLabel(row.z_kass) }}</span></td>
+            <td class="metric-cell">{{ row.ibc_h | number:'1.1-1' }} IBC/h</td>
+            <td class="metric-cell">{{ row.stopp_pct | number:'1.0-0' }}%</td>
+            <td class="ops-cell">{{ ops(row) }}</td>
+            <td class="prod-cell">{{ row.product_name ?? '–' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: High stoppage -->
+  <div *ngIf="!loading && tab==='high_stopp'" class="tab-content">
+    <div *ngIf="anomalies.high_stopp.length === 0" class="no-anomalies">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga avvikande stoppskift hittades.
+    </div>
+    <div *ngIf="anomalies.high_stopp.length > 0" class="table-responsive">
+      <table class="table table-dark table-hover av-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Stoppgrad</th>
+            <th>vs snitt</th>
+            <th>Z-värde</th>
+            <th>IBC/h</th>
+            <th>Kassation</th>
+            <th>Operatörer</th>
+            <th>Produkt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of anomalies.high_stopp">
+            <td class="datum-cell">{{ formatDate(row.datum) }}</td>
+            <td class="metric-cell">
+              <span class="metric-val stopp-val">{{ row.stopp_pct | number:'1.0-0' }}%</span>
+            </td>
+            <td>
+              <span class="delta-pill delta-neg" *ngIf="stats">
+                +{{ (row.stopp_pct - stats.avg_stopp) | number:'1.0-0' }}pp
+              </span>
+            </td>
+            <td><span class="z-badge" [ngClass]="zClass(row.z_stopp, true)">{{ zLabel(row.z_stopp) }}</span></td>
+            <td class="metric-cell">{{ row.ibc_h | number:'1.1-1' }} IBC/h</td>
+            <td class="metric-cell">{{ row.kass_pct | number:'1.1-1' }}%</td>
+            <td class="ops-cell">{{ ops(row) }}</td>
+            <td class="prod-cell">{{ row.product_name ?? '–' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Operator correlation -->
+  <div *ngIf="!loading && tab==='op_corr'" class="tab-content">
+    <p class="corr-disclaimer">
+      <i class="fas fa-info-circle me-1"></i>
+      Visar andelen av varje operatörs skift som var statistiska avvikare (ej kausalitet — kan bero på tidpunkt, produkt eller yttre faktorer). Kräver minst 3 analyserade skift.
+    </p>
+    <div *ngIf="opCorr.length === 0" class="no-anomalies">Otillräckligt dataunderlag för operatörsmönsteranalys.</div>
+    <div *ngIf="opCorr.length > 0" class="table-responsive">
+      <table class="table table-dark table-hover av-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th>Skift</th>
+            <th>% Låg prod.</th>
+            <th>% Hög kass.</th>
+            <th>% Hög stopp</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of opCorr">
+            <td>
+              <a [routerLink]="['/rebotling/operator', op.op_number]" class="op-link">{{ op.name }}</a>
+            </td>
+            <td>{{ op.total }}</td>
+            <td>
+              <div class="corr-bar-wrap">
+                <div class="corr-bar" [ngClass]="pctClass(op.low_prod_pct)"
+                  [style.width.%]="Math.min(100, op.low_prod_pct * 2)"></div>
+                <span class="corr-val" [ngClass]="pctClass(op.low_prod_pct)">{{ op.low_prod_pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <div class="corr-bar-wrap">
+                <div class="corr-bar" [ngClass]="pctClass(op.high_kass_pct)"
+                  [style.width.%]="Math.min(100, op.high_kass_pct * 2)"></div>
+                <span class="corr-val" [ngClass]="pctClass(op.high_kass_pct)">{{ op.high_kass_pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <div class="corr-bar-wrap">
+                <div class="corr-bar" [ngClass]="pctClass(op.high_stopp_pct)"
+                  [style.width.%]="Math.min(100, op.high_stopp_pct * 2)"></div>
+                <span class="corr-val" [ngClass]="pctClass(op.high_stopp_pct)">{{ op.high_stopp_pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="risk-badge" [ngClass]="opRiskClass(op)">{{ opRiskBadge(op) }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Product correlation -->
+  <div *ngIf="!loading && tab==='prod_corr'" class="tab-content">
+    <p class="corr-disclaimer">
+      <i class="fas fa-info-circle me-1"></i>
+      Visar andelen av varje produkts skift som var statistiska avvikare. Kräver minst 3 analyserade skift.
+    </p>
+    <div *ngIf="prodCorr.length === 0" class="no-anomalies">Otillräckligt dataunderlag för produktmönsteranalys.</div>
+    <div *ngIf="prodCorr.length > 0" class="table-responsive">
+      <table class="table table-dark table-hover av-table">
+        <thead>
+          <tr>
+            <th>Produkt</th>
+            <th>Skift</th>
+            <th>% Låg produktion</th>
+            <th>% Hög kassation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of prodCorr">
+            <td>{{ p.name }}</td>
+            <td>{{ p.total }}</td>
+            <td>
+              <div class="corr-bar-wrap">
+                <div class="corr-bar" [ngClass]="pctClass(p.low_prod_pct)"
+                  [style.width.%]="Math.min(100, p.low_prod_pct * 2)"></div>
+                <span class="corr-val" [ngClass]="pctClass(p.low_prod_pct)">{{ p.low_prod_pct }}%</span>
+              </div>
+            </td>
+            <td>
+              <div class="corr-bar-wrap">
+                <div class="corr-bar" [ngClass]="pctClass(p.high_kass_pct)"
+                  [style.width.%]="Math.min(100, p.high_kass_pct * 2)"></div>
+                <span class="corr-val" [ngClass]="pctClass(p.high_kass_pct)">{{ p.high_kass_pct }}%</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Monthly trend -->
+  <div *ngIf="!loading && tab==='trend'" class="tab-content">
+    <div *ngIf="monthTrend.length === 0" class="no-anomalies">Otillräcklig data för trendanalys.</div>
+    <div *ngIf="monthTrend.length > 0">
+      <p class="trend-desc">Andel avvikande skift per månad (låg produktion + hög kassation + hög stoppgrad)</p>
+      <div class="trend-chart">
+        <div *ngFor="let m of monthTrend" class="trend-row">
+          <div class="trend-month">{{ monthLabel(m.month) }}</div>
+          <div class="trend-bar-wrap">
+            <div class="trend-bar" [ngClass]="trendBarClass(m.anomaly_rate)"
+              [style.width.%]="trendBarWidth(m.anomaly_rate)"></div>
+          </div>
+          <div class="trend-stats">
+            <span class="trend-rate" [ngClass]="trendBarClass(m.anomaly_rate)">{{ m.anomaly_rate }}%</span>
+            <span class="trend-counts">{{ m.anomaly }}/{{ m.total }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="trend-legend">
+        <span class="legend-item"><span class="legend-dot bar-ok"></span>&lt;15% — Normalt</span>
+        <span class="legend-item"><span class="legend-dot bar-warn"></span>15–30% — Förhöjt</span>
+        <span class="legend-item"><span class="legend-dot bar-danger"></span>&gt;30% — Kritiskt</span>
+      </div>
+    </div>
+  </div>
+</div>

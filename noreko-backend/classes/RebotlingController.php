@@ -344,6 +344,8 @@ class RebotlingController {
                 $this->getPositionsSpecialisering();
             } elseif ($action === 'skift-logg') {
                 $this->getSkiftLogg();
+            } elseif ($action === 'skift-avvikelser') {
+                $this->getSkiftAvvikelser();
             } else {
                 $this->getLiveStats();
             }
@@ -4180,8 +4182,8 @@ class RebotlingController {
             ");
             $teamAvg = (float)($stmtAvg->fetchColumn() ?? 0);
 
-            $opWhere    = $opFilter > 0 ? "AND (op1 = :op OR op2 = :op OR op3 = :op)" : '';
-            $opWhereCnt = $opFilter > 0 ? "AND (op1 = :op OR op2 = :op OR op3 = :op)" : '';
+            $opWhere    = $opFilter > 0 ? "AND (op1 = :op1 OR op2 = :op2 OR op3 = :op3)" : '';
+            $opWhereCnt = $opFilter > 0 ? "AND (op1 = :opc1 OR op2 = :opc2 OR op3 = :opc3)" : '';
 
             $sql = "
                 SELECT skiftraknare, datum, op1, op2, op3, product_id,
@@ -4196,7 +4198,11 @@ class RebotlingController {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':lim', $limit,  \PDO::PARAM_INT);
             $stmt->bindValue(':off', $offset, \PDO::PARAM_INT);
-            if ($opFilter > 0) $stmt->bindValue(':op', $opFilter, \PDO::PARAM_INT);
+            if ($opFilter > 0) {
+                $stmt->bindValue(':op1', $opFilter, \PDO::PARAM_INT);
+                $stmt->bindValue(':op2', $opFilter, \PDO::PARAM_INT);
+                $stmt->bindValue(':op3', $opFilter, \PDO::PARAM_INT);
+            }
             $stmt->execute();
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -4252,7 +4258,11 @@ class RebotlingController {
             // Total count for pagination
             $countSql = "SELECT COUNT(*) FROM rebotling_skiftrapport WHERE drifttid > 0 $opWhereCnt";
             $stmtCnt  = $this->pdo->prepare($countSql);
-            if ($opFilter > 0) $stmtCnt->bindValue(':op', $opFilter, \PDO::PARAM_INT);
+            if ($opFilter > 0) {
+                $stmtCnt->bindValue(':opc1', $opFilter, \PDO::PARAM_INT);
+                $stmtCnt->bindValue(':opc2', $opFilter, \PDO::PARAM_INT);
+                $stmtCnt->bindValue(':opc3', $opFilter, \PDO::PARAM_INT);
+            }
             $stmtCnt->execute();
             $total = (int)$stmtCnt->fetchColumn();
 
@@ -13234,8 +13244,10 @@ class RebotlingController {
 
             $outerParts = [];
             if ($op > 0) {
-                $outerParts[] = '(s.op1 = :op OR s.op2 = :op OR s.op3 = :op)';
-                $params[':op'] = $op;
+                $outerParts[] = '(s.op1 = :op_a OR s.op2 = :op_b OR s.op3 = :op_c)';
+                $params[':op_a'] = $op;
+                $params[':op_b'] = $op;
+                $params[':op_c'] = $op;
             }
             if ($prod > 0) {
                 $outerParts[] = 's.product_id = :prod';
@@ -13284,7 +13296,7 @@ class RebotlingController {
             // Summary KPIs (SUM/SUM aggregation)
             $sumParams = [':from2' => $from, ':to2' => $to];
             $sumOuter  = [];
-            if ($op > 0) { $sumOuter[] = '(s.op1 = :op2 OR s.op2 = :op2 OR s.op3 = :op2)'; $sumParams[':op2']   = $op; }
+            if ($op > 0) { $sumOuter[] = '(s.op1 = :op2a OR s.op2 = :op2b OR s.op3 = :op2c)'; $sumParams[':op2a'] = $op; $sumParams[':op2b'] = $op; $sumParams[':op2c'] = $op; }
             if ($prod > 0) { $sumOuter[] = 's.product_id = :prod2';                           $sumParams[':prod2'] = $prod; }
             $sumOuterWhere = $sumOuter ? 'WHERE ' . implode(' AND ', $sumOuter) : '';
 
@@ -13332,6 +13344,279 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftLogg: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftlogg'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=skift-avvikelser&days=180
+    private function getSkiftAvvikelser(): void {
+        $days = max(30, min(730, (int)($_GET['days'] ?? 180)));
+        $to   = date('Y-m-d');
+        $from = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // 1. Fetch all deduplicated shifts in period
+            $sql = "
+                SELECT
+                    r.skiftraknare,
+                    MIN(r.datum)         AS datum,
+                    SUM(r.ibc_ok)        AS ibc_ok,
+                    SUM(r.ibc_ej_ok)     AS ibc_ej_ok,
+                    SUM(r.drifttid)      AS drifttid,
+                    SUM(r.driftstopptime) AS driftstopptime,
+                    MAX(r.op1)           AS op1,
+                    MAX(r.op2)           AS op2,
+                    MAX(r.op3)           AS op3,
+                    MAX(r.product_id)    AS product_id
+                FROM rebotling_skiftrapport r
+                WHERE r.datum BETWEEN :from AND :to
+                GROUP BY r.skiftraknare
+                HAVING SUM(r.drifttid) >= 30
+                ORDER BY MIN(r.datum) DESC
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $raw = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($raw)) {
+                echo json_encode([
+                    'success' => true,
+                    'period'  => ['from' => $from, 'to' => $to, 'days' => $days, 'total_shifts' => 0, 'anomaly_count' => 0, 'anomaly_rate' => 0],
+                    'stats'   => [],
+                    'anomalies' => ['low_prod' => [], 'high_prod' => [], 'high_kass' => [], 'high_stopp' => []],
+                    'operator_correlation' => [],
+                    'product_correlation'  => [],
+                    'monthly_trend'        => [],
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Resolve operator names
+            $opNums = [];
+            foreach ($raw as $r) {
+                foreach (['op1','op2','op3'] as $k) {
+                    if (!empty($r[$k])) $opNums[] = (int)$r[$k];
+                }
+            }
+            $opNums  = array_values(array_unique(array_filter($opNums)));
+            $opNames = [];
+            if (!empty($opNums)) {
+                $ph = implode(',', array_fill(0, count($opNums), '?'));
+                $s2 = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
+                $s2->execute($opNums);
+                foreach ($s2->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                    $opNames[(int)$op['number']] = $op['name'];
+                }
+            }
+
+            // Resolve product names
+            $prodIds  = array_values(array_unique(array_filter(array_column($raw, 'product_id'))));
+            $prodNames = [];
+            if (!empty($prodIds)) {
+                $ph2 = implode(',', array_fill(0, count($prodIds), '?'));
+                $s3  = $this->pdo->prepare("SELECT id, name FROM rebotling_products WHERE id IN ($ph2)");
+                $s3->execute($prodIds);
+                foreach ($s3->fetchAll(\PDO::FETCH_ASSOC) as $pr) {
+                    $prodNames[(int)$pr['id']] = $pr['name'];
+                }
+            }
+
+            // 2. Build per-shift metrics
+            $shifts = [];
+            foreach ($raw as $r) {
+                $hours = $r['drifttid'] / 60.0;
+                if ($hours <= 0) continue;
+                $ibc_h    = $r['ibc_ok'] / $hours;
+                $totalt   = $r['ibc_ok'] + $r['ibc_ej_ok'];
+                $kass_pct = $totalt > 0 ? ($r['ibc_ej_ok'] / $totalt) * 100 : 0.0;
+                $sched    = $r['drifttid'] + $r['driftstopptime'];
+                $stopp_pct = $sched > 0 ? ($r['driftstopptime'] / $sched) * 100 : 0.0;
+
+                $op1 = $r['op1'] ? (int)$r['op1'] : null;
+                $op2 = $r['op2'] ? (int)$r['op2'] : null;
+                $op3 = $r['op3'] ? (int)$r['op3'] : null;
+                $pid = $r['product_id'] ? (int)$r['product_id'] : null;
+
+                $shifts[] = [
+                    'skiftraknare' => (int)$r['skiftraknare'],
+                    'datum'        => $r['datum'],
+                    'ibc_h'        => round($ibc_h, 2),
+                    'ibc_ok'       => (int)$r['ibc_ok'],
+                    'kass_pct'     => round($kass_pct, 2),
+                    'stopp_pct'    => round($stopp_pct, 1),
+                    'drifttid'     => (int)$r['drifttid'],
+                    'op1'          => $op1,
+                    'op2'          => $op2,
+                    'op3'          => $op3,
+                    'op1_name'     => $op1 ? ($opNames[$op1] ?? "Op $op1") : null,
+                    'op2_name'     => $op2 ? ($opNames[$op2] ?? "Op $op2") : null,
+                    'op3_name'     => $op3 ? ($opNames[$op3] ?? "Op $op3") : null,
+                    'product_id'   => $pid,
+                    'product_name' => $pid ? ($prodNames[$pid] ?? "Produkt $pid") : null,
+                    'z_ibc'        => 0.0,
+                    'z_kass'       => 0.0,
+                    'z_stopp'      => 0.0,
+                ];
+            }
+
+            $n = count($shifts);
+            if ($n === 0) {
+                echo json_encode(['success' => true, 'period' => ['from' => $from, 'to' => $to, 'days' => $days,
+                    'total_shifts' => 0, 'anomaly_count' => 0, 'anomaly_rate' => 0],
+                    'stats' => [], 'anomalies' => [], 'operator_correlation' => [], 'product_correlation' => [], 'monthly_trend' => []], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // 3. Calculate mean + stddev for each metric
+            $sumH = array_sum(array_column($shifts, 'ibc_h'));
+            $sumK = array_sum(array_column($shifts, 'kass_pct'));
+            $sumS = array_sum(array_column($shifts, 'stopp_pct'));
+            $avgH = $sumH / $n;
+            $avgK = $sumK / $n;
+            $avgS = $sumS / $n;
+
+            $varH = array_sum(array_map(fn($s) => pow($s['ibc_h']    - $avgH, 2), $shifts)) / $n;
+            $varK = array_sum(array_map(fn($s) => pow($s['kass_pct'] - $avgK, 2), $shifts)) / $n;
+            $varS = array_sum(array_map(fn($s) => pow($s['stopp_pct']- $avgS, 2), $shifts)) / $n;
+            $stdH = sqrt($varH);
+            $stdK = sqrt($varK);
+            $stdS = sqrt($varS);
+
+            $threshold = 1.5;
+
+            // 4. Calculate Z-scores and classify anomalies
+            $lowProd   = [];
+            $highProd  = [];
+            $highKass  = [];
+            $highStopp = [];
+            $anomalySet = [];
+
+            foreach ($shifts as &$s) {
+                $s['z_ibc']   = $stdH > 0 ? round(($s['ibc_h']    - $avgH) / $stdH, 2) : 0.0;
+                $s['z_kass']  = $stdK > 0 ? round(($s['kass_pct'] - $avgK) / $stdK, 2) : 0.0;
+                $s['z_stopp'] = $stdS > 0 ? round(($s['stopp_pct']- $avgS) / $stdS, 2) : 0.0;
+
+                if ($s['z_ibc'] < -$threshold) { $lowProd[]   = $s; $anomalySet[$s['skiftraknare']] = true; }
+                if ($s['z_ibc'] >  $threshold) { $highProd[]  = $s; $anomalySet[$s['skiftraknare']] = true; }
+                if ($s['z_kass']>  $threshold) { $highKass[]  = $s; $anomalySet[$s['skiftraknare']] = true; }
+                if ($s['z_stopp']> $threshold) { $highStopp[] = $s; $anomalySet[$s['skiftraknare']] = true; }
+            }
+            unset($s);
+
+            usort($lowProd,   fn($a,$b) => $a['ibc_h']    <=> $b['ibc_h']);
+            usort($highProd,  fn($a,$b) => $b['ibc_h']    <=> $a['ibc_h']);
+            usort($highKass,  fn($a,$b) => $b['kass_pct'] <=> $a['kass_pct']);
+            usort($highStopp, fn($a,$b) => $b['stopp_pct']<=> $a['stopp_pct']);
+
+            $anomalyCount = count($anomalySet);
+            $anomalyRate  = round($anomalyCount / $n * 100, 1);
+
+            // 5. Operator correlation
+            $opStats = [];
+            foreach ($shifts as $s) {
+                foreach (['op1','op2','op3'] as $pos) {
+                    $num = $s[$pos];
+                    if (!$num) continue;
+                    if (!isset($opStats[$num])) {
+                        $opStats[$num] = [
+                            'op_number'   => $num,
+                            'name'        => $s[$pos.'_name'] ?? "Op $num",
+                            'total'       => 0,
+                            'low_prod'    => 0,
+                            'high_kass'   => 0,
+                            'high_stopp'  => 0,
+                        ];
+                    }
+                    $opStats[$num]['total']++;
+                    if ($s['z_ibc']  < -$threshold) $opStats[$num]['low_prod']++;
+                    if ($s['z_kass'] >  $threshold)  $opStats[$num]['high_kass']++;
+                    if ($s['z_stopp']>  $threshold)  $opStats[$num]['high_stopp']++;
+                }
+            }
+            $opCorr = [];
+            foreach ($opStats as $o) {
+                if ($o['total'] < 3) continue;
+                $o['low_prod_pct']   = round($o['low_prod']   / $o['total'] * 100, 1);
+                $o['high_kass_pct']  = round($o['high_kass']  / $o['total'] * 100, 1);
+                $o['high_stopp_pct'] = round($o['high_stopp'] / $o['total'] * 100, 1);
+                $opCorr[] = $o;
+            }
+            usort($opCorr, fn($a,$b) => ($b['low_prod_pct'] + $b['high_kass_pct']) <=> ($a['low_prod_pct'] + $a['high_kass_pct']));
+
+            // 6. Product correlation
+            $prodStats = [];
+            foreach ($shifts as $s) {
+                $pid = $s['product_id'];
+                if (!$pid) continue;
+                if (!isset($prodStats[$pid])) {
+                    $prodStats[$pid] = [
+                        'product_id' => $pid,
+                        'name'       => $s['product_name'] ?? "Produkt $pid",
+                        'total'      => 0, 'low_prod' => 0, 'high_kass' => 0,
+                    ];
+                }
+                $prodStats[$pid]['total']++;
+                if ($s['z_ibc']  < -$threshold) $prodStats[$pid]['low_prod']++;
+                if ($s['z_kass'] >  $threshold)  $prodStats[$pid]['high_kass']++;
+            }
+            $prodCorr = [];
+            foreach ($prodStats as $p) {
+                if ($p['total'] < 3) continue;
+                $p['low_prod_pct']  = round($p['low_prod']  / $p['total'] * 100, 1);
+                $p['high_kass_pct'] = round($p['high_kass'] / $p['total'] * 100, 1);
+                $prodCorr[] = $p;
+            }
+            usort($prodCorr, fn($a,$b) => $b['low_prod_pct'] <=> $a['low_prod_pct']);
+
+            // 7. Monthly anomaly trend
+            $monthStats = [];
+            foreach ($shifts as $s) {
+                $month = substr($s['datum'], 0, 7);
+                if (!isset($monthStats[$month])) {
+                    $monthStats[$month] = ['month' => $month, 'total' => 0, 'anomaly' => 0];
+                }
+                $monthStats[$month]['total']++;
+                if (isset($anomalySet[$s['skiftraknare']])) $monthStats[$month]['anomaly']++;
+            }
+            ksort($monthStats);
+            $monthTrend = array_values(array_map(function($m) {
+                $m['anomaly_rate'] = $m['total'] > 0 ? round($m['anomaly'] / $m['total'] * 100, 1) : 0.0;
+                return $m;
+            }, $monthStats));
+
+            echo json_encode([
+                'success' => true,
+                'period'  => [
+                    'from'          => $from,
+                    'to'            => $to,
+                    'days'          => $days,
+                    'total_shifts'  => $n,
+                    'anomaly_count' => $anomalyCount,
+                    'anomaly_rate'  => $anomalyRate,
+                ],
+                'stats' => [
+                    'avg_ibc_h'       => round($avgH, 2),
+                    'std_ibc_h'       => round($stdH, 2),
+                    'avg_kass'        => round($avgK, 2),
+                    'std_kass'        => round($stdK, 2),
+                    'avg_stopp'       => round($avgS, 1),
+                    'std_stopp'       => round($stdS, 1),
+                    'threshold_sigma' => $threshold,
+                ],
+                'anomalies' => [
+                    'low_prod'   => array_slice($lowProd, 0, 25),
+                    'high_prod'  => array_slice($highProd, 0, 10),
+                    'high_kass'  => array_slice($highKass, 0, 25),
+                    'high_stopp' => array_slice($highStopp, 0, 25),
+                ],
+                'operator_correlation' => $opCorr,
+                'product_correlation'  => $prodCorr,
+                'monthly_trend'        => $monthTrend,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getSkiftAvvikelser: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skiftavvikelser'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

@@ -41,6 +41,7 @@ export class OperatorPrestationPage {
         { title: 'Skift-DNA', desc: 'Feed med alla senaste skift', route: '/rebotling/shift-dna', icon: 'fas fa-dna', color: '#f6ad55' },
         { title: 'Skift-insikt', desc: 'Slå upp ett specifikt skift — fullständig analys per datum eller skiftnummer', route: '/rebotling/skift-insikt', icon: 'fas fa-search', color: '#63b3ed' },
         { title: 'Skiftlogg', desc: 'Filtrerbar historik: sök skift på operatör, produkt och datum — sortera på IBC/h, kassation eller stopptid, exportera CSV', route: '/rebotling/skift-logg', icon: 'fas fa-list-alt', color: '#63b3ed' },
+        { title: 'Skiftavvikelser', desc: 'Statistisk avvikelsedetektering — flaggar skift som avviker >1.5σ från normalvärdet för IBC/h, kassation eller stoppgrad. Visar operatör- och produktmönster i avvikelserna.', route: '/rebotling/skift-avvikelser', icon: 'fas fa-bell', color: '#fc8181' },
         { title: 'Trendkarta', desc: 'Värmekarta IBC/h per vecka', route: '/rebotling/operator-trend-heatmap', icon: 'fas fa-fire', color: '#fc8181' },
         { title: 'Prestandakarta', desc: 'Scatter IBC/h per operatör', route: '/rebotling/operator-performance-map', icon: 'fas fa-crosshairs', color: '#f6ad55' },
         { title: 'Prestanda per veckodag', desc: 'Vilken dag presterar bäst?', route: '/rebotling/operator-veckodag', icon: 'fas fa-calendar-day', color: '#f6ad55' },
