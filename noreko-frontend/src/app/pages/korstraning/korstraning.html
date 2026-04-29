@@ -1,0 +1,244 @@
+<div class="container-fluid p-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <h2 class="mb-0" style="color:#e2e8f0">
+      <i class="fas fa-people-arrows me-2" style="color:#a78bfa"></i>Korsträningsplan
+    </h2>
+    <span class="badge bg-secondary">Träning & Planering</span>
+    <span *ngIf="from && to" class="text-muted small ms-auto">{{ from }} – {{ to }}</span>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-2 mb-4 flex-wrap">
+    <div class="btn-group btn-group-sm">
+      <button *ngFor="let o of daysOptions" class="btn"
+        [class.btn-primary]="days === o.value"
+        [class.btn-outline-secondary]="days !== o.value"
+        (click)="setDays(o.value)">{{ o.label }}</button>
+    </div>
+    <div class="btn-group btn-group-sm ms-2">
+      <button *ngFor="let o of minSkiftOptions" class="btn"
+        [class.btn-info]="minSkift === o.value"
+        [class.btn-outline-secondary]="minSkift !== o.value"
+        (click)="setMinSkift(o.value)">{{ o.label }}</button>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info"></div>
+    <p class="text-muted mt-2">Analyserar täckning och träningsbehov…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-warning ms-3" (click)="load()">Försök igen</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Träningsrekommendationer</div>
+          <div class="kpi-value" style="color:#a78bfa">{{ recommendations.length }}</div>
+          <div class="kpi-sub">totalt identifierade</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Hög prioritet</div>
+          <div class="kpi-value" style="color:#fc8181">{{ highCount }}</div>
+          <div class="kpi-sub">kräver åtgärd snart</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Fullständig täckning</div>
+          <div class="kpi-value" style="color:#68d391">{{ fullCoverageCount }}</div>
+          <div class="kpi-sub">op. klarar alla 3 pos.</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Svagaste position</div>
+          <div class="kpi-value small-val" style="color:#f6ad55">{{ weakestPos }}</div>
+          <div class="kpi-sub">färst kvalificerade</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Position coverage summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4" *ngFor="let pos of POSITIONS">
+        <div class="pos-card">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i [class]="POS_ICONS[pos]" [style.color]="POS_COLORS[pos]"></i>
+            <span class="fw-semibold" style="color:#e2e8f0">{{ POS_LABELS[pos] }}</span>
+            <span class="badge ms-auto" [style.background]="POS_COLORS[pos]" style="color:#1a202c">
+              {{ qualifiedPerPos[pos] ?? 0 }} kvalificerade
+            </span>
+          </div>
+          <div class="text-muted small">Lagsnitt: <strong style="color:#e2e8f0">{{ (teamAvgPerPos[pos] ?? 0).toFixed(1) }} IBC/h</strong></div>
+          <div class="coverage-bar mt-2">
+            <div class="coverage-fill" [style.width]="((qualifiedPerPos[pos] ?? 0) / (operatorSummaries.length || 1) * 100) + '%'"
+                 [style.background]="POS_COLORS[pos]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="section-title mb-3">
+      <i class="fas fa-list-check me-2" style="color:#a78bfa"></i>Träningsrekommendationer
+      <span class="badge bg-secondary ms-2">{{ filtered.length }}</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+      <span class="text-muted small me-1">Filtrera:</span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn" [class.btn-danger]="filterPrio==='Hög'" [class.btn-outline-secondary]="filterPrio!=='Hög'" (click)="filterPrio='Hög'">Hög</button>
+        <button class="btn" [class.btn-warning]="filterPrio==='Medel'" [class.btn-outline-secondary]="filterPrio!=='Medel'" (click)="filterPrio='Medel'">Medel</button>
+        <button class="btn" [class.btn-secondary]="filterPrio==='Låg'" [class.btn-outline-secondary]="filterPrio!=='Låg'" (click)="filterPrio='Låg'">Låg</button>
+        <button class="btn" [class.btn-primary]="filterPrio==='alla'" [class.btn-outline-secondary]="filterPrio!=='alla'" (click)="filterPrio='alla'">Alla</button>
+      </div>
+      <div class="btn-group btn-group-sm ms-1">
+        <button class="btn" [class.btn-info]="filterType==='untrained'" [class.btn-outline-secondary]="filterType!=='untrained'" (click)="filterType='untrained'">Ej tränad</button>
+        <button class="btn" [class.btn-warning]="filterType==='weak'" [class.btn-outline-secondary]="filterType!=='weak'" (click)="filterType='weak'">Svag pos</button>
+        <button class="btn" [class.btn-primary]="filterType==='alla'" [class.btn-outline-secondary]="filterType!=='alla'" (click)="filterType='alla'">Alla</button>
+      </div>
+      <div class="btn-group btn-group-sm ms-1">
+        <button *ngFor="let p of POSITIONS" class="btn"
+          [class.btn-outline-secondary]="filterPos !== p" [class.btn-primary]="filterPos === p"
+          [style.border-color]="POS_COLORS[p]"
+          (click)="filterPos = filterPos === p ? 'alla' : p">{{ POS_LABELS[p] }}</button>
+      </div>
+    </div>
+
+    <div *ngIf="filtered.length === 0" class="text-center py-4 text-muted">
+      <i class="fas fa-check-circle fa-2x mb-2" style="color:#68d391"></i>
+      <p>Inga rekommendationer matchar valda filter.</p>
+    </div>
+
+    <div class="rec-grid">
+      <div *ngFor="let r of filtered" class="rec-card" [class.prio-hog-card]="r.priority==='Hög'">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <a [routerLink]="profileLink(r.op_num)" class="op-name">{{ r.op_name }}</a>
+          <span class="badge" [class]="prioClass(r.priority)">{{ r.priority }} prio</span>
+          <span class="badge ms-auto" [class]="typeClass(r.type)">{{ typeLabel(r.type) }}</span>
+        </div>
+
+        <!-- Target position -->
+        <div class="target-pos mb-2" [style.border-left-color]="POS_COLORS[r.position]">
+          <div class="d-flex align-items-center gap-2">
+            <i [class]="POS_ICONS[r.position]" [style.color]="POS_COLORS[r.position]"></i>
+            <span class="fw-semibold" style="color:#e2e8f0">Träna: {{ r.pos_label }}</span>
+          </div>
+          <div class="text-muted small mt-1">
+            <span *ngIf="r.type === 'untrained'">
+              Inga skift på denna position (min {{ minSkift }} krävs)
+            </span>
+            <span *ngIf="r.type === 'weak'">
+              {{ r.pos_shifts }} skift — {{ r.pos_ibch.toFixed(1) }} IBC/h
+              ({{ vsSign(r.pos_ibch - r.team_pos_avg) }} vs lagsnitt)
+            </span>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Operatörens snitt</div>
+            <div class="stat-val" style="color:#63b3ed">{{ r.overall_ibch.toFixed(1) }}</div>
+            <div class="stat-sub">IBC/h totalt</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Lagsnitt pos.</div>
+            <div class="stat-val" style="color:#e2e8f0">{{ r.team_pos_avg.toFixed(1) }}</div>
+            <div class="stat-sub">IBC/h</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Projicerad nivå</div>
+            <div class="stat-val" style="color:#68d391">{{ r.projected_ibch.toFixed(1) }}</div>
+            <div class="stat-sub">efter träning</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Annan kval.</div>
+            <div class="stat-val" [style.color]="r.other_qualified < 2 ? '#fc8181' : '#a0aec0'">
+              {{ r.other_qualified }}
+            </div>
+            <div class="stat-sub">oper. på pos.</div>
+          </div>
+        </div>
+
+        <!-- Urgency reason -->
+        <div class="urgency-note small mt-2" *ngIf="r.other_qualified < 2">
+          <i class="fas fa-exclamation-triangle me-1" style="color:#fc8181"></i>
+          Kritisk täckning — only {{ r.other_qualified }} annan kvalificerad
+        </div>
+        <div class="urgency-note small mt-2" *ngIf="r.overall_vs_team >= 10">
+          <i class="fas fa-star me-1" style="color:#f6c90e"></i>
+          Hög potential — operatören presterar {{ vsSign(r.overall_vs_team) }} vs lag
+        </div>
+      </div>
+    </div>
+
+    <!-- Operator coverage matrix -->
+    <div class="section-title mt-5 mb-3">
+      <i class="fas fa-table me-2" style="color:#76e4f7"></i>Täckningsöversikt per operatör
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-dark coverage-table">
+        <thead>
+          <tr>
+            <th>Operatör</th>
+            <th class="text-center" *ngFor="let p of POSITIONS">
+              <i [class]="POS_ICONS[p]" [style.color]="POS_COLORS[p]" class="me-1"></i>{{ POS_LABELS[p] }}
+            </th>
+            <th class="text-center">Täckning</th>
+            <th class="text-center">Totalt IBC/h</th>
+            <th class="text-center">Skift</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operatorSummaries">
+            <td>
+              <a [routerLink]="profileLink(op.number)" class="op-link">{{ op.name }}</a>
+            </td>
+            <td class="text-center" *ngFor="let p of POSITIONS">
+              <span class="pos-cell" [style.background]="posQualColor(op.positions[p])"
+                    [title]="op.positions[p]?.qualified ? (op.positions[p]?.ibch?.toFixed(1) + ' IBC/h, ' + op.positions[p]?.shifts + ' skift') : (op.positions[p]?.shifts + ' skift (ej kvalificerad)')">
+                {{ posQualText(op.positions[p], p) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="cov-bar-wrap">
+                <div class="cov-bar-fill" [style.width]="coverageBar(op)" [style.background]="coverageColor(op)"></div>
+                <span class="cov-bar-label">{{ op.covered_positions }}/3</span>
+              </div>
+            </td>
+            <td class="text-center">
+              <span [style.color]="op.overall_vs_team >= 0 ? '#68d391' : '#fc8181'">
+                {{ op.overall_ibch.toFixed(1) }}
+              </span>
+            </td>
+            <td class="text-center text-muted">{{ op.total_skift }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-secondary mt-3 small">
+      <i class="fas fa-info-circle me-1"></i>
+      <strong>Om beräkningarna:</strong> En operatör räknas som "kvalificerad" vid en position om hen har minst
+      <strong>{{ minSkift }} skift</strong> på den positionen under perioden. "Projicerad nivå" = 85% av operatörens
+      totala IBC/h-snitt (konservativ uppskattning vid tidig träning). Prioritet baseras på teamets behov (få
+      andra kvalificerade) × operatörens potential (vs lagsnitt).
+    </div>
+
+  </ng-container>
+</div>

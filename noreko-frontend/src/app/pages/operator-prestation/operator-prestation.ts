@@ -26,6 +26,7 @@ export class OperatorPrestationPage {
         { title: 'Tränarvy', desc: 'Prioriterad coachingöversikt — vem behöver stöd, beröm eller bevakning?', route: '/rebotling/coach-view', icon: 'fas fa-chalkboard-teacher', color: '#a78bfa' },
         { title: 'Operatörsutveckling', desc: '12 månaders IBC/h-sparkline per operatör — se vem som förbättrar sig, är stabil eller försämras långsiktigt', route: '/rebotling/operator-utveckling', icon: 'fas fa-chart-line', color: '#a78bfa' },
         { title: 'Milstolpar & Karriärrekord', desc: 'Karriär-IBC, personliga rekord och progress mot nästa milstolpe per operatör — från Lärling till Hall of Fame', route: '/rebotling/milstolpar', icon: 'fas fa-medal', color: '#f6c90e' },
+        { title: 'Korsträningsplan', desc: 'Vilka operatörer behöver träna på vilka positioner? Prioriterad lista baserad på teamets täckningsbehov och operatörens potential — identifiera SPOF-risker och träningskandidater', route: '/rebotling/korstraning', icon: 'fas fa-people-arrows', color: '#a78bfa' },
       ]
     },
     {

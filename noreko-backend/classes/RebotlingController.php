@@ -342,6 +342,8 @@ class RebotlingController {
                 $this->getKassationstyper();
             } elseif ($action === 'positions-specialisering') {
                 $this->getPositionsSpecialisering();
+            } elseif ($action === 'korstraning') {
+                $this->getKorstraningsplan();
             } elseif ($action === 'skift-logg') {
                 $this->getSkiftLogg();
             } elseif ($action === 'skift-avvikelser') {
@@ -15115,6 +15117,188 @@ class RebotlingController {
         } catch (\Throwable $e) {
             error_log('RebotlingController::getKassationsorsakPerProdukt: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-per-produkt'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=korstraning&days=180&min_skift=3
+    private function getKorstraningsplan(): void {
+        try {
+            $days     = max(30, min(730, (int)($_GET['days']      ?? 180)));
+            $minSkift = max(1,  min(20,  (int)($_GET['min_skift'] ?? 3)));
+            $to       = date('Y-m-d');
+            $from     = date('Y-m-d', strtotime("-{$days} days"));
+
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT skiftraknare,
+                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
+                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid >= 30
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opTotals    = [];
+            $opPosTotals = [];
+            $teamPosTotals = ['op1'=>['ibc'=>0,'min'=>0],'op2'=>['ibc'=>0,'min'=>0],'op3'=>['ibc'=>0,'min'=>0]];
+            $teamTotalIbc = 0;
+            $teamTotalMin = 0;
+
+            foreach ($shifts as $s) {
+                $ibc = max(0, (int)$s['ibc_ok']);
+                $min = max(0, (int)$s['drifttid']);
+                if ($min === 0) continue;
+                $teamTotalIbc += $ibc;
+                $teamTotalMin += $min;
+                foreach (['op1','op2','op3'] as $pos) {
+                    $num = (int)$s[$pos];
+                    if ($num <= 0) continue;
+                    $opTotals[$num]['ibc']   = ($opTotals[$num]['ibc']   ?? 0) + $ibc;
+                    $opTotals[$num]['min']   = ($opTotals[$num]['min']   ?? 0) + $min;
+                    $opTotals[$num]['count'] = ($opTotals[$num]['count'] ?? 0) + 1;
+                    $opPosTotals[$num][$pos]['ibc']   = ($opPosTotals[$num][$pos]['ibc']   ?? 0) + $ibc;
+                    $opPosTotals[$num][$pos]['min']   = ($opPosTotals[$num][$pos]['min']   ?? 0) + $min;
+                    $opPosTotals[$num][$pos]['count'] = ($opPosTotals[$num][$pos]['count'] ?? 0) + 1;
+                    $teamPosTotals[$pos]['ibc'] += $ibc;
+                    $teamPosTotals[$pos]['min'] += $min;
+                }
+            }
+
+            $teamAvgPerPos = [];
+            foreach ($teamPosTotals as $pos => $t) {
+                $teamAvgPerPos[$pos] = $t['min'] > 0 ? round($t['ibc'] / ($t['min'] / 60.0), 1) : 0;
+            }
+            $teamTotal = $teamTotalMin > 0 ? round($teamTotalIbc / ($teamTotalMin / 60.0), 1) : 0;
+
+            // Count operators qualified (≥ minSkift) per position
+            $qualifiedPerPos = ['op1'=>0,'op2'=>0,'op3'=>0];
+            foreach ($opNames as $num => $name) {
+                if (!isset($opTotals[$num]) || $opTotals[$num]['count'] < 3) continue;
+                foreach (['op1','op2','op3'] as $pos) {
+                    if (($opPosTotals[$num][$pos]['count'] ?? 0) >= $minSkift) {
+                        $qualifiedPerPos[$pos]++;
+                    }
+                }
+            }
+
+            $posLabels = ['op1'=>'Tvättplats','op2'=>'Kontrollstation','op3'=>'Truckförare'];
+
+            // Build training recommendations
+            $recommendations = [];
+            foreach ($opNames as $num => $name) {
+                if (!isset($opTotals[$num]) || $opTotals[$num]['count'] < 3) continue;
+                $tot         = $opTotals[$num];
+                $overallIbcH = $tot['min'] > 0 ? round($tot['ibc'] / ($tot['min'] / 60.0), 1) : 0;
+                $overallVs   = $teamTotal > 0 ? round(($overallIbcH / $teamTotal - 1) * 100) : 0;
+
+                foreach (['op1','op2','op3'] as $pos) {
+                    $posShifts = $opPosTotals[$num][$pos]['count'] ?? 0;
+                    $posMin    = $opPosTotals[$num][$pos]['min']   ?? 0;
+                    $posIbc    = $opPosTotals[$num][$pos]['ibc']   ?? 0;
+                    $posIbcH   = $posMin > 0 ? round($posIbc / ($posMin / 60.0), 1) : 0;
+                    $teamPos   = $teamAvgPerPos[$pos] ?? 0;
+
+                    $isUntrained = $posShifts < $minSkift;
+                    $isWeak      = !$isUntrained && $teamPos > 0 && $posIbcH < $teamPos * 0.82;
+
+                    if (!$isUntrained && !$isWeak) continue;
+
+                    // Team urgency: fewer qualified operators = higher urgency (0–5)
+                    $otherQ       = $qualifiedPerPos[$pos] - ($isUntrained ? 0 : 1);
+                    $teamUrgency  = max(0, min(5, 5 - $otherQ));
+                    // Operator potential based on overall vs team (-5 to +5 range mapped 0–5)
+                    $opPotential  = min(5, max(0, round($overallVs / 10 + 2.5)));
+                    $prioScore    = $teamUrgency * 2 + $opPotential;
+                    $prio         = $prioScore >= 7 ? 'Hög' : ($prioScore >= 4 ? 'Medel' : 'Låg');
+                    // Projected IBC/h after training ≈ 85% of overall avg (conservative estimate)
+                    $projectedIbcH = round($overallIbcH * 0.85, 1);
+                    $ibcHGap       = round($projectedIbcH - $teamPos, 1);
+
+                    $recommendations[] = [
+                        'op_num'          => $num,
+                        'op_name'         => $name,
+                        'position'        => $pos,
+                        'pos_label'       => $posLabels[$pos],
+                        'type'            => $isUntrained ? 'untrained' : 'weak',
+                        'pos_shifts'      => $posShifts,
+                        'pos_ibch'        => $posIbcH,
+                        'team_pos_avg'    => $teamPos,
+                        'overall_ibch'    => $overallIbcH,
+                        'overall_vs_team' => $overallVs,
+                        'projected_ibch'  => $projectedIbcH,
+                        'ibc_gap'         => $ibcHGap,
+                        'priority_score'  => $prioScore,
+                        'priority'        => $prio,
+                        'other_qualified' => $otherQ,
+                    ];
+                }
+            }
+
+            usort($recommendations, function($a, $b) {
+                if ($b['priority_score'] !== $a['priority_score']) return $b['priority_score'] <=> $a['priority_score'];
+                if ($a['type'] !== $b['type']) return strcmp($a['type'], $b['type']); // untrained first
+                return strcmp($a['op_name'], $b['op_name']);
+            });
+
+            // Per-operator coverage summary
+            $operatorSummaries = [];
+            foreach ($opNames as $num => $name) {
+                if (!isset($opTotals[$num]) || $opTotals[$num]['count'] < 3) continue;
+                $coveredPos = 0;
+                $posData    = [];
+                foreach (['op1','op2','op3'] as $pos) {
+                    $ps  = $opPosTotals[$num][$pos]['count'] ?? 0;
+                    $pm  = $opPosTotals[$num][$pos]['min']   ?? 0;
+                    $pi  = $opPosTotals[$num][$pos]['ibc']   ?? 0;
+                    $ph  = $pm > 0 ? round($pi / ($pm / 60.0), 1) : 0;
+                    $tpa = $teamAvgPerPos[$pos] ?? 0;
+                    $qual = $ps >= $minSkift;
+                    if ($qual) $coveredPos++;
+                    $posData[$pos] = [
+                        'shifts'    => $ps,
+                        'qualified' => $qual,
+                        'ibch'      => $ph,
+                        'vs_avg'    => $tpa > 0 ? round(($ph / $tpa - 1) * 100) : null,
+                    ];
+                }
+                $tot         = $opTotals[$num];
+                $overallIbcH = $tot['min'] > 0 ? round($tot['ibc'] / ($tot['min'] / 60.0), 1) : 0;
+                $operatorSummaries[] = [
+                    'number'           => $num,
+                    'name'             => $name,
+                    'total_skift'      => $tot['count'],
+                    'overall_ibch'     => $overallIbcH,
+                    'overall_vs_team'  => $teamTotal > 0 ? round(($overallIbcH / $teamTotal - 1) * 100) : 0,
+                    'covered_positions'=> $coveredPos,
+                    'positions'        => $posData,
+                ];
+            }
+            usort($operatorSummaries, fn($a,$b) => $b['covered_positions'] <=> $a['covered_positions'] ?: strcmp($a['name'],$b['name']));
+
+            echo json_encode([
+                'success'           => true,
+                'from'              => $from,
+                'to'                => $to,
+                'days'              => $days,
+                'min_skift'         => $minSkift,
+                'team_avg'          => $teamTotal,
+                'team_avg_per_pos'  => $teamAvgPerPos,
+                'qualified_per_pos' => $qualifiedPerPos,
+                'recommendations'   => $recommendations,
+                'operator_summaries'=> $operatorSummaries,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKorstraningsplan: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid korsträningsplan'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
