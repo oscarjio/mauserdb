@@ -1,0 +1,92 @@
+.page-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+.page-header { margin-bottom: 1.25rem; }
+.page-title { color: #e2e8f0; font-size: 1.4rem; font-weight: 600; margin: 0 0 .25rem; }
+.page-sub { color: #a0aec0; font-size: .9rem; margin: 0; }
+
+.period-bar {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: 1.25rem; flex-wrap: wrap;
+}
+.period-label { color: #a0aec0; font-size: .85rem; }
+
+/* KPI */
+.kpi-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
+.kpi-card {
+  background: #2d3748; border-radius: 8px; padding: .85rem 1.1rem;
+  min-width: 140px; flex: 1 1 140px; border-left: 3px solid #4a5568;
+}
+.kpi-card.kpi-good   { border-left-color: #68d391; }
+.kpi-card.kpi-bad    { border-left-color: #fc8181; }
+.kpi-card.kpi-improve{ border-left-color: #4fd1c5; }
+.kpi-card.kpi-degrade{ border-left-color: #f6ad55; }
+.kpi-label { color: #a0aec0; font-size: .75rem; margin-bottom: .25rem; text-transform: uppercase; letter-spacing: .04em; }
+.kpi-value { color: #e2e8f0; font-size: 1.6rem; font-weight: 700; }
+.kpi-value-sm { color: #e2e8f0; font-size: 1rem; font-weight: 600; }
+.kpi-sub { color: #718096; font-size: .8rem; margin-top: .15rem; }
+
+/* Chart section */
+.chart-section { background: #2d3748; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
+
+.product-toggles { margin-bottom: 1rem; }
+.toggle-header { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; margin-bottom: .6rem; }
+.toggle-label { color: #a0aec0; font-size: .8rem; }
+.team-avg-toggle { display: flex; align-items: center; gap: .4rem; cursor: pointer; }
+.team-avg-label { color: #a0aec0; font-size: .8rem; }
+
+.toggle-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .25rem .6rem; border-radius: 20px;
+  border: 1.5px solid; background: transparent;
+  font-size: .8rem; cursor: pointer; transition: opacity .15s;
+}
+.chip.chip-on { opacity: 1; }
+.chip:not(.chip-on) { opacity: .45; }
+.chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.btn-xs { padding: .15rem .5rem; font-size: .75rem; }
+
+.chart-wrap { position: relative; height: 340px; }
+.chart-wrap canvas { max-width: 100%; }
+
+/* Table */
+.table-section { background: #2d3748; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.table-header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.table-title { color: #e2e8f0; font-size: 1rem; font-weight: 600; margin: 0; }
+.sort-bar { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.sort-label { color: #a0aec0; font-size: .8rem; }
+
+.table-scroll { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.data-table th, .data-table td { padding: .5rem .6rem; text-align: left; border-bottom: 1px solid #4a5568; white-space: nowrap; }
+.data-table th { color: #a0aec0; font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+.data-table td { color: #e2e8f0; }
+.data-table tbody tr:hover { background: rgba(255,255,255,.04); }
+.num { text-align: right !important; }
+.month-col { text-align: center !important; font-size: .78rem; min-width: 68px; }
+.month-cell { border-radius: 3px; }
+.cell-null { color: #4a5568 !important; }
+
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .35rem; flex-shrink: 0; }
+
+/* Kass badge */
+.kass-badge { padding: .15rem .4rem; border-radius: 4px; font-weight: 600; font-size: .82rem; }
+.kass-low  { background: rgba(72,187,120,.2);  color: #68d391; }
+.kass-mid  { background: rgba(246,173,85,.2);  color: #f6ad55; }
+.kass-high { background: rgba(252,129,129,.2); color: #fc8181; }
+
+/* Trend badge */
+.trend-badge { padding: .15rem .45rem; border-radius: 4px; font-size: .8rem; font-weight: 500; }
+.trend-better { background: rgba(72,187,120,.2);  color: #68d391; }
+.trend-worse  { background: rgba(252,129,129,.2); color: #fc8181; }
+.trend-stable { background: rgba(160,174,192,.15); color: #a0aec0; }
+
+/* Delta */
+.delta-pos { color: #68d391 !important; }
+.delta-neg { color: #fc8181 !important; }
+
+/* States */
+.loading-state { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 3rem; color: #a0aec0; }
+.empty-state { text-align: center; padding: 3rem; color: #718096; }
+
+.disclaimer { color: #718096; font-size: .75rem; margin-top: 1rem; font-style: italic; }

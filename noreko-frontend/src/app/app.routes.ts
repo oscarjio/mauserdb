@@ -194,6 +194,7 @@ export const routes: Routes = [
       { path: 'rebotling/skift-logg', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-logg/skift-logg').then(m => m.SkiftLoggPage) },
       { path: 'rebotling/skift-avvikelser', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-avvikelser/skift-avvikelser').then(m => m.SkiftAvvikelserPage) },
       { path: 'rebotling/stjarnoperatorer', canActivate: [adminGuard], loadComponent: () => import('./pages/stjarnoperatorer/stjarnoperatorer').then(m => m.StjarnoperatororPage) },
+      { path: 'rebotling/produkt-kvalitetstrender', canActivate: [adminGuard], loadComponent: () => import('./pages/produkt-kvalitetstrender/produkt-kvalitetstrender').then(m => m.ProduktKvalitetstrender) },
       { path: 'rebotling/produktbyten', canActivate: [adminGuard], loadComponent: () => import('./pages/produktbyten/produktbyten').then(m => m.ProduktbytenPage) },
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },

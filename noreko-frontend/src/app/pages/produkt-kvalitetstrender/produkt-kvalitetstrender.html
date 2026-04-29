@@ -1,0 +1,156 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h2 class="page-title">Produktkvalitetstrender</h2>
+    <p class="page-sub">Månadsvis kassationsgrad per produkt — identifiera vilka produkter förbättras eller försämras i kvalitet över tid</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <span class="period-label">Period:</span>
+    <div class="btn-group btn-group-sm" role="group">
+      <button *ngFor="let opt of monthsOptions" class="btn"
+              [class.btn-primary]="months === opt.value"
+              [class.btn-outline-secondary]="months !== opt.value"
+              (click)="setMonths(opt.value)">{{ opt.label }}</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-info" role="status"></div>
+    <p>Laddar produktkvalitetsdata…</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- KPI row -->
+  <div *ngIf="kpi && !loading" class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Övergripande kassation</div>
+      <div class="kpi-value">{{ kpi.overall_kass_pct | number:'1.1-1' }}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Analyserade produkter</div>
+      <div class="kpi-value">{{ kpi.num_products }}</div>
+    </div>
+    <div class="kpi-card kpi-good" *ngIf="kpi.best_product">
+      <div class="kpi-label">Bäst kvalitet</div>
+      <div class="kpi-value-sm">{{ kpi.best_product.name }}</div>
+      <div class="kpi-sub">{{ kpi.best_product.kass_pct | number:'1.1-1' }}% kassation</div>
+    </div>
+    <div class="kpi-card kpi-bad" *ngIf="kpi.worst_product">
+      <div class="kpi-label">Sämst kvalitet</div>
+      <div class="kpi-value-sm">{{ kpi.worst_product.name }}</div>
+      <div class="kpi-sub">{{ kpi.worst_product.kass_pct | number:'1.1-1' }}% kassation</div>
+    </div>
+    <div class="kpi-card kpi-improve" *ngIf="kpi.most_improved">
+      <div class="kpi-label">Störst förbättring</div>
+      <div class="kpi-value-sm">{{ kpi.most_improved.name }}</div>
+      <div class="kpi-sub">{{ kpi.most_improved.delta_pp | number:'1.1-1' }} pp</div>
+    </div>
+    <div class="kpi-card kpi-degrade" *ngIf="kpi.most_degraded && kpi.most_degraded.delta_pp > 0">
+      <div class="kpi-label">Störst försämring</div>
+      <div class="kpi-value-sm">{{ kpi.most_degraded.name }}</div>
+      <div class="kpi-sub">+{{ kpi.most_degraded.delta_pp | number:'1.1-1' }} pp</div>
+    </div>
+  </div>
+
+  <!-- Chart section -->
+  <div *ngIf="products.length && !loading" class="chart-section">
+
+    <!-- Product toggles -->
+    <div class="product-toggles">
+      <div class="toggle-header">
+        <span class="toggle-label">Visa produkter:</span>
+        <button class="btn btn-xs btn-outline-secondary ms-2" (click)="toggleAll(true)">Alla</button>
+        <button class="btn btn-xs btn-outline-secondary ms-1" (click)="toggleAll(false)">Ingen</button>
+        <label class="team-avg-toggle ms-3">
+          <input type="checkbox" [(ngModel)]="showTeamAvg" (ngModelChange)="toggleTeamAvg()">
+          <span class="team-avg-label">Lagsnitt</span>
+        </label>
+      </div>
+      <div class="toggle-chips">
+        <button *ngFor="let p of products; let i = index"
+                class="chip"
+                [class.chip-on]="p.visible"
+                [style.border-color]="p.visible ? productColor(i) : '#4a5568'"
+                [style.color]="p.visible ? productColor(i) : '#718096'"
+                (click)="toggleProduct(p)">
+          <span class="chip-dot" [style.background]="p.visible ? productColor(i) : '#4a5568'"></span>
+          {{ p.name }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-wrap">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div *ngIf="products.length && !loading" class="table-section">
+    <div class="table-header-row">
+      <h3 class="table-title">Per produkt</h3>
+      <div class="sort-bar">
+        <span class="sort-label">Sortera:</span>
+        <button class="btn btn-xs" [class.btn-primary]="sortBy==='kass'"  [class.btn-outline-secondary]="sortBy!=='kass'"  (click)="sortBy='kass'">Kassation</button>
+        <button class="btn btn-xs" [class.btn-primary]="sortBy==='trend'" [class.btn-outline-secondary]="sortBy!=='trend'" (click)="sortBy='trend'">Trend</button>
+        <button class="btn btn-xs" [class.btn-primary]="sortBy==='name'"  [class.btn-outline-secondary]="sortBy!=='name'"  (click)="sortBy='name'">Namn</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Produkt</th>
+            <th class="num">Snittkassation</th>
+            <th class="num">Total IBC</th>
+            <th class="num">Totalt kasserade</th>
+            <th>Trend</th>
+            <th class="num">Δ (halvperiod)</th>
+            <th *ngFor="let m of monthLabels" class="month-col">{{ fmtMonth(m) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of sortedProducts; let i = index">
+            <td>
+              <span class="dot" [style.background]="productColor(i)"></span>
+              {{ p.name }}
+            </td>
+            <td class="num">
+              <span class="kass-badge" [class.kass-low]="p.avg_kass_pct < 5" [class.kass-mid]="p.avg_kass_pct >= 5 && p.avg_kass_pct < 10" [class.kass-high]="p.avg_kass_pct >= 10">
+                {{ p.avg_kass_pct | number:'1.1-1' }}%
+              </span>
+            </td>
+            <td class="num">{{ p.total_tot | number }}</td>
+            <td class="num">{{ p.total_ej | number }}</td>
+            <td>
+              <span class="trend-badge" [ngClass]="trendClass(p.trend)">{{ trendLabel(p.trend) }}</span>
+            </td>
+            <td class="num" [class.delta-pos]="p.delta_pp < 0" [class.delta-neg]="p.delta_pp > 0">
+              {{ deltaSign(p.delta_pp) }}
+            </td>
+            <td *ngFor="let m of p.monthly" class="month-col month-cell"
+                [class.cell-null]="m.kass_pct === null"
+                [style.background]="m.kass_pct !== null ? cellBg(m.kass_pct, p.avg_kass_pct) : null"
+                [title]="m.kass_pct !== null ? (m.kass_pct + '% | ' + m.num_shifts + ' skift') : 'Ingen data'">
+              {{ m.kass_pct !== null ? (m.kass_pct | number:'1.1-1') + '%' : '–' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="disclaimer">
+      Kassation = (IBC ej ok + Bur ej ok) / Totalt IBC. Produkter med minst 3 månaders data och 10+ totalt IBC inkluderas.
+      Trend beräknas som SUM/SUM-kassation för perioden senaste halvan vs första halvan.
+    </p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!products.length && !loading && !error" class="empty-state">
+    <i class="fas fa-chart-line fa-3x mb-3"></i>
+    <p>Ingen produktdata med tillräckligt underlag för vald period.</p>
+  </div>
+</div>

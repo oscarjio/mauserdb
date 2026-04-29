@@ -348,6 +348,8 @@ class RebotlingController {
                 $this->getSkiftAvvikelser();
             } elseif ($action === 'stjarnoperatorer') {
                 $this->getStjarnoperatorer();
+            } elseif ($action === 'produkt-kvalitetstrender') {
+                $this->getProduktKvalitetstrender();
             } else {
                 $this->getLiveStats();
             }
@@ -13860,6 +13862,212 @@ class RebotlingController {
             error_log('RebotlingController::getStjarnoperatorer: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stjärnoperatörer'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=produkt-kvalitetstrender&months=12
+    private function getProduktKvalitetstrender(): void {
+        try {
+            $pdo    = $this->pdo;
+            $months = isset($_GET['months']) ? max(3, min(24, (int)$_GET['months'])) : 12;
+            $to     = date('Y-m-d');
+            $from   = date('Y-m-d', strtotime("-{$months} months"));
+
+            // Deduplicate per skiftraknare, then aggregate by month + product
+            $sql = "
+                SELECT s.yr, s.mo, s.product_id,
+                       MAX(COALESCE(p.name, CONCAT('Produkt ', s.product_id))) AS product_name,
+                       SUM(s.ibc_ej) AS total_ibc_ej,
+                       SUM(s.bur_ej) AS total_bur_ej,
+                       SUM(s.tot)    AS total_tot,
+                       SUM(s.ibc_ok_val) AS total_ibc_ok,
+                       COUNT(*)          AS num_shifts
+                FROM (
+                    SELECT YEAR(datum)                AS yr,
+                           MONTH(datum)               AS mo,
+                           product_id,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej,
+                           MAX(COALESCE(bur_ej_ok, 0)) AS bur_ej,
+                           MAX(COALESCE(totalt,    0)) AS tot,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_ok_val
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare, YEAR(datum), MONTH(datum), product_id
+                ) s
+                LEFT JOIN rebotling_products p ON p.id = s.product_id
+                GROUP BY s.yr, s.mo, s.product_id
+                ORDER BY s.yr, s.mo, s.product_id
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build per-product monthly data
+            $productData = [];
+            $monthKeys   = [];
+
+            foreach ($rows as $r) {
+                $pid    = (int)$r['product_id'];
+                $yr     = (int)$r['yr'];
+                $mo     = (int)$r['mo'];
+                $mKey   = sprintf('%04d-%02d', $yr, $mo);
+                $tot    = (float)$r['total_tot'];
+                $ej     = (float)$r['total_ibc_ej'];
+                $bur    = (float)$r['total_bur_ej'];
+                $shifts = (int)$r['num_shifts'];
+
+                // Combined kassation% = (ibc_ej_ok + bur_ej_ok) / totalt * 100
+                $kass_pct = $tot > 0 ? round(($ej + $bur) / $tot * 100, 2) : 0.0;
+
+                $monthKeys[$mKey] = true;
+
+                if (!isset($productData[$pid])) {
+                    $productData[$pid] = [
+                        'id'        => $pid,
+                        'name'      => $r['product_name'],
+                        'total_ej'  => 0,
+                        'total_tot' => 0,
+                        'monthly'   => [],
+                    ];
+                }
+                $productData[$pid]['total_ej']  += ($ej + $bur);
+                $productData[$pid]['total_tot'] += $tot;
+                $productData[$pid]['monthly'][$mKey] = [
+                    'month'      => $mKey,
+                    'yr'         => $yr,
+                    'mo'         => $mo,
+                    'kass_pct'   => $kass_pct,
+                    'total_tot'  => (int)$tot,
+                    'total_ej'   => (int)($ej + $bur),
+                    'num_shifts' => $shifts,
+                ];
+            }
+
+            // Sorted month list (x-axis labels)
+            $allMonths = array_keys($monthKeys);
+            sort($allMonths);
+
+            // Filter: min 3 months data, min 10 totalt IBC; sort by volume desc; top 10
+            $filtered = array_values(array_filter($productData, function ($p) {
+                return count($p['monthly']) >= 3 && $p['total_tot'] >= 10;
+            }));
+            usort($filtered, fn($a, $b) => $b['total_tot'] <=> $a['total_tot']);
+            $topProducts = array_slice($filtered, 0, 10);
+
+            // Build result with full monthly series + trend
+            $result = [];
+            foreach ($topProducts as $p) {
+                $avgKass = $p['total_tot'] > 0
+                    ? round($p['total_ej'] / $p['total_tot'] * 100, 2) : 0.0;
+
+                // Align monthly series to allMonths
+                $series = [];
+                foreach ($allMonths as $mKey) {
+                    if (isset($p['monthly'][$mKey])) {
+                        $series[] = $p['monthly'][$mKey];
+                    } else {
+                        $series[] = [
+                            'month'      => $mKey,
+                            'yr'         => (int)substr($mKey, 0, 4),
+                            'mo'         => (int)substr($mKey, 5, 2),
+                            'kass_pct'   => null,
+                            'total_tot'  => 0,
+                            'total_ej'   => 0,
+                            'num_shifts' => 0,
+                        ];
+                    }
+                }
+
+                // Trend: compare SUM/SUM of first half vs second half of months with data
+                $withData   = array_values(array_filter($series, fn($s) => $s['kass_pct'] !== null));
+                $n          = count($withData);
+                $trend      = 'stabil';
+                $delta_pp   = 0.0;
+                if ($n >= 4) {
+                    $half       = intdiv($n, 2);
+                    $first      = array_slice($withData, 0, $half);
+                    $last       = array_slice($withData, $n - $half);
+                    $firstTot   = array_sum(array_column($first, 'total_tot'));
+                    $firstEj    = array_sum(array_column($first, 'total_ej'));
+                    $lastTot    = array_sum(array_column($last,  'total_tot'));
+                    $lastEj     = array_sum(array_column($last,  'total_ej'));
+                    $firstAvg   = $firstTot > 0 ? $firstEj / $firstTot * 100 : 0.0;
+                    $lastAvg    = $lastTot  > 0 ? $lastEj  / $lastTot  * 100 : 0.0;
+                    $delta_pp   = round($lastAvg - $firstAvg, 2);
+                    if      ($delta_pp >  1.5) $trend = 'försämras';
+                    elseif  ($delta_pp < -1.5) $trend = 'förbättras';
+                }
+
+                $result[] = [
+                    'id'          => $p['id'],
+                    'name'        => $p['name'],
+                    'avg_kass_pct'=> $avgKass,
+                    'total_tot'   => (int)$p['total_tot'],
+                    'total_ej'    => (int)$p['total_ej'],
+                    'trend'       => $trend,
+                    'delta_pp'    => $delta_pp,
+                    'monthly'     => $series,
+                ];
+            }
+
+            // Team-wide monthly cassation (all products)
+            $teamMonthly = [];
+            foreach ($allMonths as $mKey) {
+                $totAll = 0; $ejAll = 0; $shiftsAll = 0;
+                foreach ($productData as $p) {
+                    if (isset($p['monthly'][$mKey])) {
+                        $totAll    += $p['monthly'][$mKey]['total_tot'];
+                        $ejAll     += $p['monthly'][$mKey]['total_ej'];
+                        $shiftsAll += $p['monthly'][$mKey]['num_shifts'];
+                    }
+                }
+                $teamMonthly[] = [
+                    'month'      => $mKey,
+                    'kass_pct'   => $totAll > 0 ? round($ejAll / $totAll * 100, 2) : null,
+                    'num_shifts' => $shiftsAll,
+                ];
+            }
+
+            // KPI
+            $allEj  = array_sum(array_column($productData, 'total_ej'));
+            $allTot = array_sum(array_column($productData, 'total_tot'));
+            $overallKass = $allTot > 0 ? round($allEj / $allTot * 100, 2) : 0.0;
+
+            $bestProduct  = null; $worstProduct = null;
+            $mostImproved = null; $mostDegraded = null;
+            foreach ($result as $p) {
+                if ($bestProduct  === null || $p['avg_kass_pct'] < $bestProduct['avg_kass_pct'])  $bestProduct  = $p;
+                if ($worstProduct === null || $p['avg_kass_pct'] > $worstProduct['avg_kass_pct']) $worstProduct = $p;
+                if ($mostImproved === null || $p['delta_pp']    < $mostImproved['delta_pp'])       $mostImproved = $p;
+                if ($mostDegraded === null || $p['delta_pp']    > $mostDegraded['delta_pp'])       $mostDegraded = $p;
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'months'       => $months,
+                'from'         => $from,
+                'to'           => $to,
+                'month_labels' => $allMonths,
+                'products'     => $result,
+                'team_monthly' => $teamMonthly,
+                'kpi'          => [
+                    'overall_kass_pct' => $overallKass,
+                    'num_products'     => count($result),
+                    'best_product'     => $bestProduct  ? ['name' => $bestProduct['name'],  'kass_pct' => $bestProduct['avg_kass_pct']]  : null,
+                    'worst_product'    => $worstProduct ? ['name' => $worstProduct['name'], 'kass_pct' => $worstProduct['avg_kass_pct']] : null,
+                    'most_improved'    => $mostImproved ? ['name' => $mostImproved['name'], 'delta_pp' => $mostImproved['delta_pp']]     : null,
+                    'most_degraded'    => $mostDegraded ? ['name' => $mostDegraded['name'], 'delta_pp' => $mostDegraded['delta_pp']]     : null,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getProduktKvalitetstrender: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktkvalitetstrender'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
