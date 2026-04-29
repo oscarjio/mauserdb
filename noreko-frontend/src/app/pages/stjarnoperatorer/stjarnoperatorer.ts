@@ -7,7 +7,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-const API = `${environment.apiUrl}?action=stjarnoperatorer`;
+const API = `${environment.apiUrl}?action=rebotling&run=stjarnoperatorer`;
 
 interface Operator {
   op_num: number;
