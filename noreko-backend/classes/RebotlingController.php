@@ -312,6 +312,8 @@ class RebotlingController {
                 $this->getFartStoppKorrelation();
             } elseif ($action === 'produktbyten') {
                 $this->getProduktbytesanalys();
+            } elseif ($action === 'tacknings-analys') {
+                $this->getTackningsanalys();
             } else {
                 $this->getLiveStats();
             }
@@ -10785,6 +10787,188 @@ class RebotlingController {
             error_log('RebotlingController::getProduktbytesanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktbytesanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=tacknings-analys&days=90
+    private function getTackningsanalys(): void {
+        try {
+            $pdo  = $this->pdo;
+            $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 90;
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+
+            $posLabels = [
+                'op1' => 'Tvättplats',
+                'op2' => 'Kontrollstation',
+                'op3' => 'Truckförare',
+            ];
+
+            // Per operator+position: deduplicate per skiftraknare, then aggregate
+            $sql = "
+                SELECT u.op_num, u.pos,
+                       COALESCE(o.name, CONCAT('Op ', u.op_num)) AS op_name,
+                       SUM(u.ibc)   AS total_ibc,
+                       SUM(u.min)   AS total_min,
+                       COUNT(*)     AS skift_count
+                FROM (
+                    SELECT op1                       AS op_num,
+                           'op1'                     AS pos,
+                           MAX(COALESCE(ibc_ok,  0)) AS ibc,
+                           MAX(COALESCE(drifttid,0)) AS min
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT op2,
+                           'op2',
+                           MAX(COALESCE(ibc_ok,  0)),
+                           MAX(COALESCE(drifttid,0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT op3,
+                           'op3',
+                           MAX(COALESCE(ibc_ok,  0)),
+                           MAX(COALESCE(drifttid,0))
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare, op3
+                ) u
+                LEFT JOIN operators o ON o.number = u.op_num
+                GROUP BY u.op_num, u.pos
+                HAVING skift_count >= 2
+                ORDER BY op_name, u.pos
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build per-operator structure
+            $opData = [];
+            foreach ($rows as $r) {
+                $num  = (int)$r['op_num'];
+                $pos  = $r['pos'];
+                $ibc  = (float)$r['total_ibc'];
+                $min  = (float)$r['total_min'];
+                $ibch = $min > 0 ? round($ibc * 60.0 / $min, 2) : 0.0;
+
+                if (!isset($opData[$num])) {
+                    $opData[$num] = [
+                        'number'       => $num,
+                        'name'         => $r['op_name'],
+                        'total_skift'  => 0,
+                        'positions'    => [],
+                        'primary_pos'  => null,
+                    ];
+                }
+                $opData[$num]['positions'][$pos] = [
+                    'pos'         => $pos,
+                    'label'       => $posLabels[$pos] ?? $pos,
+                    'ibc_per_h'   => $ibch,
+                    'skift_count' => (int)$r['skift_count'],
+                    'total_ibc'   => (int)$ibc,
+                ];
+                $opData[$num]['total_skift'] += (int)$r['skift_count'];
+            }
+
+            // Determine primary position (most skift) per operator
+            foreach ($opData as &$op) {
+                $best = null; $bestSkift = 0;
+                foreach ($op['positions'] as $pos => $pd) {
+                    if ($pd['skift_count'] > $bestSkift) {
+                        $bestSkift = $pd['skift_count'];
+                        $best = $pos;
+                    }
+                }
+                $op['primary_pos']   = $best;
+                $op['primary_label'] = $best ? ($posLabels[$best] ?? $best) : '-';
+                $op['positions']     = array_values($op['positions']);
+            }
+            unset($op);
+
+            // Coverage summary per position: ranked list of qualified operators
+            $coverage = [];
+            foreach (['op1', 'op2', 'op3'] as $pos) {
+                $qualified = [];
+                foreach ($opData as $op) {
+                    foreach ($op['positions'] as $pd) {
+                        if ($pd['pos'] === $pos) {
+                            $qualified[] = [
+                                'number'      => $op['number'],
+                                'name'        => $op['name'],
+                                'ibc_per_h'   => $pd['ibc_per_h'],
+                                'skift_count' => $pd['skift_count'],
+                                'is_primary'  => $op['primary_pos'] === $pos,
+                            ];
+                        }
+                    }
+                }
+                usort($qualified, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+                // Team avg for this position (SUM/SUM)
+                $totIbc = array_sum(array_map(fn($q) => $q['ibc_per_h'] * $q['skift_count'], $qualified));
+                $totSkift = array_sum(array_column($qualified, 'skift_count'));
+
+                $coverage[$pos] = [
+                    'pos'          => $pos,
+                    'label'        => $posLabels[$pos],
+                    'count'        => count($qualified),
+                    'risk'         => count($qualified) < 2 ? 'high' : (count($qualified) < 3 ? 'medium' : 'low'),
+                    'operators'    => $qualified,
+                ];
+            }
+
+            // Backup matrix: for each operator, best backup at their primary position
+            $backupMatrix = [];
+            foreach ($opData as $op) {
+                if (!$op['primary_pos']) continue;
+                $pos = $op['primary_pos'];
+                $backups = array_filter(
+                    $coverage[$pos]['operators'] ?? [],
+                    fn($q) => $q['number'] !== $op['number']
+                );
+                $backups = array_values($backups); // re-index after filter
+                $backupMatrix[] = [
+                    'op_number'    => $op['number'],
+                    'op_name'      => $op['name'],
+                    'primary_pos'  => $pos,
+                    'primary_label'=> $posLabels[$pos] ?? $pos,
+                    'best_backup'  => count($backups) > 0 ? $backups[0] : null,
+                    'backup_count' => count($backups),
+                ];
+            }
+            usort($backupMatrix, fn($a, $b) => $a['backup_count'] <=> $b['backup_count']);
+
+            echo json_encode([
+                'success'       => true,
+                'days'          => $days,
+                'period'        => ['from' => $from, 'to' => $to],
+                'operators'     => array_values($opData),
+                'coverage'      => array_values($coverage),
+                'backup_matrix' => $backupMatrix,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getTackningsanalys: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid täckningsanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
