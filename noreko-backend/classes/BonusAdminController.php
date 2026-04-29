@@ -276,13 +276,13 @@ class BonusAdminController {
             // Build query dynamically with safe column name
             $query = "
                 INSERT INTO bonus_config (id, {$column})
-                VALUES (1, :weights)
+                VALUES (1, :weights_ins)
                 ON DUPLICATE KEY UPDATE
-                {$column} = :weights
+                {$column} = :weights_upd
             ";
 
             $stmt = $this->pdo->prepare($query);
-            $stmt->execute(['weights' => $weights_json]);
+            $stmt->execute([':weights_ins' => $weights_json, ':weights_upd' => $weights_json]);
 
             // Log to audit trail
             $this->logAudit('update_weights', 'config', 1, null, [
