@@ -109,7 +109,7 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - mb_string polyfill i api.php (servern saknar php-mbstring)
 - VIKTIGT: rsync --exclude='db_config.php' for backend deploy (fixat session #329)
 
-### Nasta (session #402+) — BEKRAFTADE BUGGAR FRAN AGAREN (2026-04-26):
+### Nasta (session #402+) — BEKRAFTADE BUGGAR FRAN AGAREN (2026-04-26/29):
 
 **Fixade i session #402 (denna session):**
 - operator-veckodag 500-fel: $this->db->getConnection() → $this->pdo (FIXAT)
@@ -117,25 +117,45 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - operator-inlarning browser freeze 60s+: full table scan utan datumgrans → 2-ars cap + SQL team-avg + early-exit PHP (FIXAT)
 - bonus-admin Tier-multiplikatorer tom: tier_multipliers NULL i DB → fallback till defaults (FIXAT)
 
-**Kvar att fixa (prioritetsordning):**
+**Fixade i session #403 (2026-04-29):**
+- DagligBriefingController::calcOeeForDay ibc_count-fix: morgonrapport visade 0 IBC (FIXAT, commit d32c29d0)
+- StatistikDashboardController::getDaySummary ibc_count-fix: statistik visade 124 IBC (FIXAT, commit d32c29d0)
+- PrediktivtUnderhallController: stationsnamn med å/ä/ö, "Ökande stoppfrekvens på", "Lång stopptid på" (FIXAT, commit d32c29d0)
+- Frontend NG build klar (2026-04-29) — dist uppdaterad lokalt, ej rsync:ad till servern ännu
+
+**PRIO 0 — FRONTEND DEPLOY KRÄVS (dist klar lokalt, ej på servern):**
+- Login-knapp ej klickbar: fix i login.ts commit cc11bcd7 (ta bort `|| !username || !password` från [disabled])
+- Operatorsportal toast-spam: fix i OperatorsportalController.php + operatorsportal.ts commit e19fcc62
+- operator-inlarning "fryser": trolig orsak = stale dist saknar lazy-loaded chunk. Nytt dist byggt 2026-04-29.
+- Funktioner-cards 404: alla routes finns i app.routes.ts — stale dist saknar chunk-filer. Nytt dist byggt.
+- Produktion-heatmap "Bästa dag = idag": completedDays-fix i produktion-heatmap.ts redan committed
+- DEPLOY: rsync noreko-frontend/dist/noreko-frontend/ till /var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/ -e "ssh -p 32546" + rsync noreko-backend/ (--exclude db_config.php)
+
+**PRIO 1 — ibc_count-fixar kvar i 5 controllers (alla visar fel IBC-siffror):**
+- RebotlingTrendanalysController: hamtaDagligData() + veckosammanfattning() använder MAX(ibc_ok) GROUP BY skiftraknare — byt till MAX(ibc_count) per DATE(datum)
+- RebotlingSammanfattningController: getOverview() + getProduktion7d() — samma mönster
+- MorgonrapportController: 5+ metoder — samma mönster
+- KvalitetstrendanalysController: hamtaDagarData() + hamtaVeckoData() — samma mönster
+- RebotlingStationsdetaljController: getIbcData() — samma mönster
+- Korrekt mönster: SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_total FROM rebotling_ibc GROUP BY DATE(datum) → SUM day_total i PHP
+
+**Kvar att fixa (övriga, prioritetsordning):**
 
 1. **ibc-forlust chart Nettopåverkan tom** — sidan visar 175 forlorat men stapeldiagrammet ar blankt. Rotorsak: `declare const Chart: any` (global) istallet for `import { Chart, registerables } from 'chart.js'`. Fix: byt till proper Chart.js-import + `Chart.register(...registerables)` i ibc-forlust.ts, precis som operator-inlarning.ts gor.
 
-2. **IBC-totaler inkonsekvent** — agaren rapporterar att IBC-siffror skiljer sig mellan sidor (live vs statistik vs ranking). Trolig orsak: blandning av COUNT(*) och MAX(ibc_ok) i olika endpoints, eller att UNION ALL triplar skift. Granska alla endpoints som aggregerar ibc_ok — anvand alltid MAX(ibc_ok) per skiftraknare, sedan SUM over skift.
+2. **Månadsrapport visar orealistiskt stora %** — procentsiffror i manadsrapporten ar orimliga (troligen >1000%). Trolig orsak: division pa fel namnare. Granska ManadsrapportController, sarskilt vs_snitt-berakningar.
 
-3. **Månadsrapport visar orealistiskt stora %** — procentsiffror i manadsrapporten ar orimliga (troligen >1000%). Trolig orsak: division pa fel namnare (t.ex. jämfor mot 0 eller mot en enstaka datapunkt). Granska ManadsrapportController, sarskilt vs_snitt-berakningar.
+3. **Andon-tavla visar orealistisk takt** — PLC-takt-varden ar orimliga pa andon-tavlan. Granska AndonController.php + encoding (å/ä/ö saknas i strangarna "Na dagsmalet", "Sla igars rekord").
 
-4. **Andon-tavla visar orealistisk takt** — PLC-takt-varden ar orimliga pa andon-tavlan. Kan vara att radata fran PLC inte klampas korrekt, eller att AndonController raknar fel enhet. Granska AndonController.php + encoding (a/a/o saknas i strangarna "Na dagsmalet", "Sla igars rekord" — encoding-bugg fran lead-agent-genererad fil).
+4. **operator-produkt Elite-stjarna pa lag prestanda** — badge/stjarna for "Elite" visas trots att operatoren presterar under snittet. Granska troskelvaerdet for Elite-klassificering i getOperatorProdukt() och frontend-logiken for badge-tilldelning.
 
-5. **operator-produkt Elite-stjarna pa lag prestanda** — badge/stjarna for "Elite" visas trots att operatoren presterar under snittet. Granska troskelvaerdet for Elite-klassificering i getOperatorProdukt() och frontend-logiken for badge-tilldelning.
+5. **saglinje/ root 404** — `/saglinje` ger 404. Granska app.routes.ts for saglinje-routes.
 
-6. **saglinje/ root 404** — `/saglinje` ger 404. Antingen saknas routen i app.routes.ts eller sa pekar den pa en komponent som inte finns/exporteras fel. Granska app.routes.ts for saglinje-routes.
+6. **admin/underhall KPI "Pagaende" och "Total kostnad" tom** — formatCost(0) returnerar '' (tom strang) istallet for "0 kr". Fix i maintenance-log.helpers.ts.
 
-7. **admin/underhall KPI "Pagaende" och "Total kostnad" tom** — formatCost(0) returnerar '' (tom strang) istallet for "0 kr". Fix i maintenance-log.helpers.ts: andra `if (+cost === 0) return ''` till att returnera "0 kr" eller "–". Pagaende-count kan ocksa vara NaN om bonus_config-raden saknar kolumnen.
+7. **Op 444 visas utan namn** — operator-nummer 444 finns i skiftrapporter men saknas i operators-tabellen. Lagg till COALESCE-fallback i getOperatorScores, getLiveRanking, getPersonalBests.
 
-8. **Op 444 visas utan namn** — operator-nummer 444 finns i skiftrapporter men saknas i operators-tabellen. Alla backend-queries som JOIN:ar operators-tabellen bor ha COALESCE-fallback: `COALESCE(o.name, CONCAT('Operatör ', sub.op_num))`. Granska getOperatorScores, getLiveRanking, getPersonalBests.
-
-9. **Skiftoverlamning v2 menylink** — menu-HTML och routes ser korrekta ut (routerLink="/rebotling/skiftoverlamning"). Kan vara feature-flag-problem: ff.canAccess('rebotling/skiftoverlamning') returnerar false → lanken visas inte → anvandaren ser bara v1. Kontrollera feature-flag-konfigurationen i databasen for nyckeln 'rebotling/skiftoverlamning'.
+8. **Skiftoverlamning v2 menylink** — kan vara feature-flag-problem. Kontrollera feature-flag-konfigurationen i databasen for nyckeln 'rebotling/skiftoverlamning'.
 
 **Ovrigt backlog (lagre prioritet):**
 - Rapport-sidor — granska veckorapport, manadsrapport, kvartalsrapport
