@@ -120,26 +120,27 @@ class RebotlingStationsdetaljController {
      */
     private function getIbcData(string $fromDate, string $toDate): array {
         try {
+            // ibc_count = daglig räknare → SUM av dagliga MAX ger korrekt totalt IBC
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                    COALESCE(SUM(day_total), 0) AS total_ibc,
+                    COALESCE(SUM(day_ok), 0)    AS total_ok
                 FROM (
                     SELECT
                         DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        MAX(ibc_count)           AS day_total,
+                        MAX(COALESCE(ibc_ok, 0)) AS day_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    GROUP BY DATE(datum)
+                ) AS per_dag
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $ok = (int)($row['total_ok'] ?? 0);
-            $ejOk = (int)($row['total_ej_ok'] ?? 0);
-            return ['ok' => $ok, 'ej_ok' => $ejOk, 'total' => $ok + $ejOk];
+            $total = (int)($row['total_ibc'] ?? 0);
+            $ok    = min($total, (int)($row['total_ok'] ?? 0));
+            $ejOk  = $total - $ok;
+            return ['ok' => $ok, 'ej_ok' => $ejOk, 'total' => $total];
         } catch (\PDOException $e) {
             error_log('RebotlingStationsdetaljController::getIbcData: ' . $e->getMessage());
             return ['ok' => 0, 'ej_ok' => 0, 'total' => 0];

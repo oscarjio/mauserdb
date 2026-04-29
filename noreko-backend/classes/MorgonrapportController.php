@@ -237,19 +237,13 @@ class MorgonrapportController {
         string $avg30Start,
         string $avg30End
     ): array {
-        // Totalt IBC for datumet — korrekt aggregering for kumulativa PLC-rakneverk
+        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
         $totalIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
-                 FROM (
-                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) sub"
+                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
             );
             $stmt->execute([$date, $date]);
             $totalIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -265,15 +259,9 @@ class MorgonrapportController {
         $prevWeekIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
-                 FROM (
-                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) sub"
+                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
             );
             $stmt->execute([$prevWeekDate, $prevWeekDate]);
             $prevWeekIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -281,21 +269,15 @@ class MorgonrapportController {
             error_log('MorgonrapportController::getProduktionData (prevWeek): ' . $e->getMessage());
         }
 
-        // Genomsnitt senaste 30 dagar — summerar korrekt IBC per dag och beraknar snitt
+        // Genomsnitt senaste 30 dagar
         $avg30 = 0;
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT ROUND(AVG(dag_ibc), 1) AS snitt
                  FROM (
-                     SELECT DATE(datum) AS dag, SUM(max_ok) AS dag_ibc
-                     FROM (
-                         SELECT datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                         FROM rebotling_ibc
-                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                         GROUP BY DATE(datum), skiftraknare
-                         HAVING COUNT(*) > 1
-                     ) sub_inner
+                     SELECT DATE(datum) AS dag, MAX(ibc_count) AS dag_ibc
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                      GROUP BY DATE(datum)
                  ) sub_outer"
             );
@@ -333,20 +315,14 @@ class MorgonrapportController {
         $drifttid      = $this->getRuntimeHoursForDate($date);
         $prevDrifttid  = $this->getRuntimeHoursForDate($prevWeekDate);
 
-        // Totalt IBC for utrakning av IBC/tim — korrekt aggregering for kumulativa PLC-rakneverk
+        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
         $totalIbc = 0;
         $prevIbc  = 0;
         try {
             $stmtIbc = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok
-                 FROM (
-                     SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) sub"
+                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
             );
             $stmtIbc->execute([$date, $date]);
             $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
@@ -517,31 +493,25 @@ class MorgonrapportController {
         $prevTotalt     = 0;
         $toppOrsak      = '-';
 
-        // rebotling_ibc: ibc_ej_ok — korrekt MAX/GROUP BY-aggregering for kumulativa PLC-rakneverk
+        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
         try {
             $stmtKval = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(max_ej_ok), 0) AS kasserade,
-                        COALESCE(SUM(max_ok), 0)    AS total
-                 FROM (
-                     SELECT skiftraknare,
-                            MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok,
-                            MAX(COALESCE(ibc_ok, 0))    AS max_ok
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) sub"
+                "SELECT COALESCE(MAX(ibc_count), 0) AS total,
+                        COALESCE(MAX(ibc_ok), 0)    AS ok_total
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
             );
             $stmtKval->execute([$date, $date]);
             $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);
-            $kasserade         += (int)($row['kasserade'] ?? 0);
-            $totaltProducerade  = (int)($row['total'] ?? 0);
+            $totaltProducerade = (int)($row['total'] ?? 0);
+            $okDag = min($totaltProducerade, (int)($row['ok_total'] ?? 0));
+            $kasserade        += $totaltProducerade - $okDag;
 
             $stmtKval->execute([$prevWeekDate, $prevWeekDate]);
             $prevRow = $stmtKval->fetch(\PDO::FETCH_ASSOC);
-            $prevKasserade += (int)($prevRow['kasserade'] ?? 0);
-            $prevTotalt     = (int)($prevRow['total'] ?? 0);
+            $prevTotalt = (int)($prevRow['total'] ?? 0);
+            $prevOk     = min($prevTotalt, (int)($prevRow['ok_total'] ?? 0));
+            $prevKasserade += $prevTotalt - $prevOk;
         } catch (\Throwable $e) {
             error_log('MorgonrapportController::getKvalitetData (ibc): ' . $e->getMessage());
         }

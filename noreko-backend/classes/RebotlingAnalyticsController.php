@@ -2084,30 +2084,29 @@ class RebotlingAnalyticsController {
                 $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
 
                 // En enda query med CTE: hämtar daglig aggregering (summary + OEE per dag)
+                // ibc_count = daglig räknare → GROUP BY DATE, MAX(ibc_count) för korrekt dagstotal
                 $stmt = $this->pdo->prepare("
-                    WITH per_shift AS (
+                    WITH per_dag AS (
                         SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            COALESCE(MAX(ibc_ok), 0)     AS shift_ibc,
-                            COALESCE(MAX(ibc_ej_ok), 0)  AS shift_ej_ok,
+                            DATE(datum)                                                        AS dag,
+                            COALESCE(MAX(ibc_ok), 0)                                           AS shift_ibc,
+                            GREATEST(0, COALESCE(MAX(ibc_count),0) - COALESCE(MAX(ibc_ok),0)) AS shift_ej_ok,
                             ROUND(COALESCE(MAX(ibc_ok),0)*100.0 /
-                                NULLIF(COALESCE(MAX(ibc_ok),0)+COALESCE(MAX(ibc_ej_ok),0),0),1) AS shift_quality,
-                            COALESCE(MAX(runtime_plc), 0) AS shift_runtime,
-                            COALESCE(MAX(rasttime), 0)    AS shift_rast
+                                NULLIF(COALESCE(MAX(ibc_count),0),0),1)                       AS shift_quality,
+                            MAX(COALESCE(runtime_plc, 0))                                     AS shift_runtime,
+                            MAX(COALESCE(rasttime, 0))                                        AS shift_rast
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < ?
-                        GROUP BY DATE(datum), skiftraknare
+                        GROUP BY DATE(datum)
                     )
                     SELECT
                         dag,
-                        SUM(shift_ibc)      AS ibc_ok,
-                        SUM(shift_ej_ok)    AS ibc_ej_ok,
-                        ROUND(AVG(shift_quality),1) AS avg_quality,
-                        SUM(shift_runtime)  AS runtime_min,
-                        SUM(shift_rast)     AS rast_min
-                    FROM per_shift
-                    GROUP BY dag
+                        shift_ibc        AS ibc_ok,
+                        shift_ej_ok      AS ibc_ej_ok,
+                        shift_quality    AS avg_quality,
+                        shift_runtime    AS runtime_min,
+                        shift_rast       AS rast_min
+                    FROM per_dag
                 ");
                 $stmt->execute([$firstDay, $nextMonth]);
                 $dayRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -2377,19 +2376,21 @@ class RebotlingAnalyticsController {
             // ---- Per-skift-subquery som bas (range scan istf DATE_FORMAT) ----
             $firstDay = $month . '-01';
             $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
+            // ibc_count = daglig räknare (startar om varje dag) → GROUP BY DATE, MAX(ibc_count)
+            // shift_ibc = MAX(ibc_ok) per dag, shift_ej_ok = MAX(ibc_count) - MAX(ibc_ok)
+            // sum(shift_ibc + shift_ej_ok) = MAX(ibc_count) = korrekt dagstotal
             $perShiftSQL = "
                 SELECT
-                    DATE(datum)                                                             AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))                                               AS shift_ibc,
-                    MAX(COALESCE(ibc_ej_ok, 0))                                            AS shift_ej_ok,
-                    ROUND(MAX(COALESCE(ibc_ok,0))*100.0 /
-                        NULLIF(MAX(COALESCE(ibc_ok,0))+MAX(COALESCE(ibc_ej_ok,0)),0),1)   AS shift_quality,
+                    DATE(datum)                                                              AS dag,
+                    MAX(COALESCE(ibc_ok, 0))                                                AS shift_ibc,
+                    GREATEST(0, COALESCE(MAX(ibc_count),0) - COALESCE(MAX(ibc_ok),0))      AS shift_ej_ok,
+                    ROUND(COALESCE(MAX(ibc_ok),0)*100.0 /
+                        NULLIF(COALESCE(MAX(ibc_count),0),0),1)                            AS shift_quality,
                     MAX(COALESCE(runtime_plc, 0))                                          AS shift_runtime,
                     MAX(COALESCE(rasttime, 0))                                             AS shift_rast
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < ?
-                GROUP BY DATE(datum), skiftraknare
+                GROUP BY DATE(datum)
             ";
 
             // ---- Summary ----

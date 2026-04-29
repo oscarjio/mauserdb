@@ -84,27 +84,20 @@ class RebotlingSammanfattningController {
             $dagensOk = 0;
             $dagensEjOk = 0;
             try {
+                // ibc_count = daglig räknare (startar om varje dag) → MAX ger dagstotal
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COALESCE(SUM(shift_ok), 0) AS ibc_ok,
-                        COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
-                    FROM (
-                        SELECT
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :idag AND datum < DATE_ADD(:idagb, INTERVAL 1 DAY)
-
-                        GROUP BY skiftraknare
-                    ) AS per_shift
+                        COALESCE(MAX(ibc_count), 0) AS ibc_total,
+                        COALESCE(MAX(ibc_ok), 0)    AS ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :idag AND datum < DATE_ADD(:idagb, INTERVAL 1 DAY)
                 ");
                 $stmt->execute([':idag' => $idag, ':idagb' => $idag]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
-                    $dagensOk    = (int)($row['ibc_ok'] ?? 0);
-                    $dagensEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
-                    $dagensProduktion = $dagensOk + $dagensEjOk;
+                    $dagensProduktion = (int)($row['ibc_total'] ?? 0);
+                    $dagensOk    = min($dagensProduktion, (int)($row['ibc_ok'] ?? 0));
+                    $dagensEjOk  = $dagensProduktion - $dagensOk;
                 }
             } catch (\PDOException $e) {
                 error_log('RebotlingSammanfattningController::overview produktion: ' . $e->getMessage());
@@ -211,23 +204,15 @@ class RebotlingSammanfattningController {
             $toDate   = date('Y-m-d');
             $fromDate = date('Y-m-d', strtotime('-6 days'));
 
+            // ibc_count = daglig räknare (startar om varje dag) → MAX per dag ger korrekt dagstotal
             $stmt = $this->pdo->prepare("
                 SELECT
-                    dag,
-                    COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
-                FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
-                GROUP BY dag
+                    DATE(datum)                 AS dag,
+                    COALESCE(MAX(ibc_count), 0) AS ibc_total,
+                    COALESCE(MAX(ibc_ok), 0)    AS ibc_ok
+                FROM rebotling_ibc
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                GROUP BY DATE(datum)
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -236,9 +221,11 @@ class RebotlingSammanfattningController {
             // Bygg komplett 7-dagars sekvens (inkludera dagar utan data)
             $dataMap = [];
             foreach ($rows as $r) {
+                $total = (int)$r['ibc_total'];
+                $ok    = min($total, (int)$r['ibc_ok']);
                 $dataMap[$r['dag']] = [
-                    'ibc_ok'    => (int)$r['ibc_ok'],
-                    'ibc_ej_ok' => (int)$r['ibc_ej_ok'],
+                    'ibc_ok'    => $ok,
+                    'ibc_ej_ok' => $total - $ok,
                 ];
             }
 

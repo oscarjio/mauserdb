@@ -113,24 +113,16 @@ class KvalitetstrendanalysController {
         $result = [];
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
-            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
+            // ibc_count = daglig räknare (startar om varje dag) → MAX per dag ger korrekt dagstotal
             $stmt = $this->pdo->prepare("
                 SELECT
-                    dag,
+                    DATE(datum) AS dag,
                     1 AS station_id,
-                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total,
-                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
-                FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
-                GROUP BY dag
+                    COALESCE(MAX(ibc_count), 0) AS total,
+                    GREATEST(0, COALESCE(MAX(ibc_count), 0) - COALESCE(MAX(ibc_ok), 0)) AS kasserade
+                FROM rebotling_ibc
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                GROUP BY DATE(datum)
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -519,25 +511,24 @@ class KvalitetstrendanalysController {
 
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
-            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
+            // ibc_count = daglig räknare → MAX per dag summeras per vecka
             $stmt = $this->pdo->prepare("
                 SELECT
                     1 AS station_id,
                     yearweek,
                     MIN(dag) AS week_start,
-                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total,
-                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                    COALESCE(SUM(day_total), 0) AS total,
+                    COALESCE(SUM(day_kasserade), 0) AS kasserade
                 FROM (
                     SELECT
                         YEARWEEK(datum, 1) AS yearweek,
                         DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        MAX(ibc_count) AS day_total,
+                        GREATEST(0, MAX(ibc_count) - MAX(COALESCE(ibc_ok, 0))) AS day_kasserade
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
-                ) AS per_shift
+                    GROUP BY YEARWEEK(datum, 1), DATE(datum)
+                ) AS per_dag
                 GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");

@@ -54,29 +54,21 @@ class RebotlingTrendanalysController {
     private function hamtaDagligData(int $dagar): array {
         $dagar = max(1, min(365, $dagar));
         try {
+        // ibc_count = daglig sekventiell räknare (startar om varje dag).
+        // MAX(ibc_count) GROUP BY DATE ger korrekt dagstotal.
+        // ibc_ok nollställs inte per skift → GROUP BY DATE ger korrekt ok-summa.
         $sql = "
             SELECT
-                datum,
-                SUM(max_ibc_ok) AS total_ibc,
-                SUM(max_ibc_ok) AS godkanda,
-                SUM(max_ibc_ej_ok) AS kasserade,
-                MIN(forsta_cykel) AS forsta_cykel,
-                MAX(sista_cykel) AS sista_cykel
-            FROM (
-                SELECT
-                    DATE(i.datum) AS datum,
-                    i.skiftraknare,
-                    COALESCE(MAX(i.ibc_ok), 0) AS max_ibc_ok,
-                    COALESCE(MAX(i.ibc_ej_ok), 0) AS max_ibc_ej_ok,
-                    MIN(i.datum) AS forsta_cykel,
-                    MAX(i.datum) AS sista_cykel
-                FROM rebotling_ibc i
-                WHERE i.datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                  AND i.datum < CURDATE() + INTERVAL 1 DAY
-                GROUP BY DATE(i.datum), i.skiftraknare
-            ) AS per_shift
-            GROUP BY datum
-            ORDER BY datum ASC
+                DATE(datum) AS datum,
+                COALESCE(MAX(ibc_count), 0) AS total_ibc,
+                COALESCE(MAX(ibc_ok), 0)    AS godkanda,
+                MIN(datum) AS forsta_cykel,
+                MAX(datum) AS sista_cykel
+            FROM rebotling_ibc
+            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+              AND datum < CURDATE() + INTERVAL 1 DAY
+            GROUP BY DATE(datum)
+            ORDER BY DATE(datum) ASC
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':dagar' => $dagar]);
@@ -86,7 +78,7 @@ class RebotlingTrendanalysController {
         foreach ($rows as $row) {
             $datum    = $row['datum'];
             $total    = (int)$row['total_ibc'];
-            $godkanda = (int)$row['godkanda'];
+            $godkanda = min($total, (int)$row['godkanda']);
 
             // Drifttid = tid mellan första och sista cykel (sekunder)
             $drifttid = 0;
@@ -352,25 +344,24 @@ class RebotlingTrendanalysController {
                 ar, vecka,
                 MIN(from_datum) AS from_datum,
                 MAX(to_datum)   AS to_datum,
-                SUM(max_ibc_ok) AS total_ibc,
-                SUM(max_ibc_ej_ok) AS kasserade,
+                SUM(day_total)  AS total_ibc,
+                SUM(day_ok)     AS godkanda_sum,
                 MIN(forsta_cykel) AS forsta_cykel,
                 MAX(sista_cykel)  AS sista_cykel
             FROM (
                 SELECT
                     YEAR(datum) AS ar,
                     WEEK(datum, 1) AS vecka,
-                    skiftraknare,
                     MIN(DATE(datum)) AS from_datum,
                     MAX(DATE(datum)) AS to_datum,
-                    COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
-                    COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok,
+                    COALESCE(MAX(ibc_count), 0) AS day_total,
+                    COALESCE(MAX(ibc_ok), 0)    AS day_ok,
                     MIN(datum) AS forsta_cykel,
                     MAX(datum) AS sista_cykel
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
-                GROUP BY YEAR(datum), WEEK(datum, 1), skiftraknare
-            ) AS per_shift
+                GROUP BY YEAR(datum), WEEK(datum, 1), DATE(datum)
+            ) AS per_dag
             GROUP BY ar, vecka
             ORDER BY ar DESC, vecka DESC
             LIMIT 12
@@ -383,8 +374,8 @@ class RebotlingTrendanalysController {
         $veckor = [];
         foreach ($rows as $row) {
             $total    = (int)$row['total_ibc'];
-            $kasserade = (int)$row['kasserade'];
-            $godkanda = $total - $kasserade;
+            $godkanda = min($total, (int)$row['godkanda_sum']);
+            $kasserade = $total - $godkanda;
 
             $drifttid = strtotime($row['sista_cykel']) - strtotime($row['forsta_cykel']);
             if ($drifttid < 0) $drifttid = 0;
