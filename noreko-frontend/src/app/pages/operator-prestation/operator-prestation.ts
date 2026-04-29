@@ -114,6 +114,7 @@ export class OperatorPrestationPage {
         { title: 'Skift-prognos', desc: 'Prognos baserad på historik', route: '/rebotling/skift-prognos', icon: 'fas fa-magic', color: '#f6ad55' },
         { title: 'Täckningsanalys', desc: 'Positionstäckning, reservstyrka och SPOF-varning per position', route: '/rebotling/tacknings-analys', icon: 'fas fa-shield-alt', color: '#68d391' },
         { title: 'Personalkalender', desc: 'Månadsvy med närvaro och positioner per operatör — vem jobbade vilken dag?', route: '/rebotling/personal-kalender', icon: 'fas fa-id-badge', color: '#76e4f7' },
+        { title: 'Schemaläggningsassistent', desc: 'Datadrivna rekommendationer per operatör — bästa position, bästa skifttyp och aktuell form sammanfattade i ett beslutsstöd för nästa veckas schema', route: '/rebotling/schema-rekommendationer', icon: 'fas fa-clipboard-list', color: '#68d391' },
       ]
     },
   ];

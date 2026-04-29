@@ -1,0 +1,191 @@
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h2>Schemaläggningsassistent</h2>
+    <p class="subtitle">Datadrivna rekommendationer — vem placeras var och när, baserat på position, skifttyp och aktuell form</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <label>Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="sel">
+        <option [value]="30">30 dagar</option>
+        <option [value]="60">60 dagar</option>
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Visa</label>
+      <select [(ngModel)]="filterTier" class="sel">
+        <option *ngFor="let t of tierOptions" [value]="t.value">{{ t.label }}</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <label>Sortera</label>
+      <select [(ngModel)]="sortBy" class="sel">
+        <option value="tier">Nivå</option>
+        <option value="vs_team">Vs lagsnitt</option>
+        <option value="ibc_h">IBC/h</option>
+        <option value="name">Namn</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="state-msg">Laddar rekommendationer…</div>
+  <div *ngIf="error && !loading" class="state-msg err">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && data">
+
+    <!-- KPI bar -->
+    <div class="kpi-bar">
+      <div class="kpi-card">
+        <div class="kpi-label">Lagsnitt IBC/h</div>
+        <div class="kpi-value">{{ data.team_avg_ibc_h | number:'1.1-1' }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#f6c90e">
+        <div class="kpi-label">Elite</div>
+        <div class="kpi-value" style="color:#f6c90e">{{ eliteCount }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#68d391">
+        <div class="kpi-label">Solid</div>
+        <div class="kpi-value" style="color:#68d391">{{ solidCount }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#f6ad55">
+        <div class="kpi-label">Developing</div>
+        <div class="kpi-value" style="color:#f6ad55">{{ developingCount }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#fc8181">
+        <div class="kpi-label">Behöver stöd</div>
+        <div class="kpi-value" style="color:#fc8181">{{ needsSupportCount }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#68d391">
+        <div class="kpi-label">↑ Stiger</div>
+        <div class="kpi-value" style="color:#68d391">{{ risingCount }}</div>
+      </div>
+      <div class="kpi-card" style="border-top-color:#fc8181">
+        <div class="kpi-label">↓ Sjunker</div>
+        <div class="kpi-value" style="color:#fc8181">{{ fallingCount }}</div>
+      </div>
+    </div>
+
+    <!-- Operator cards -->
+    <div class="cards-grid">
+
+      <div *ngFor="let op of filtered"
+           class="op-card"
+           [class.expanded]="expandedOp === op.number"
+           [class.card-alert]="op.tier === 'needs_support' || op.trend === 'falling'">
+
+        <!-- Card header (always visible) -->
+        <div class="card-head" (click)="toggleExpand(op.number)">
+          <div class="head-left">
+            <span class="tier-badge" [style.background]="tierColors[op.tier]">
+              {{ tierLabels[op.tier] }}
+            </span>
+            <span class="op-name">{{ op.name }}</span>
+            <span class="trend-pill" [style.color]="trendColors[op.trend]">
+              {{ trendLabels[op.trend] }}
+            </span>
+          </div>
+          <div class="head-right">
+            <span class="ibch-num">{{ op.ibc_h | number:'1.1-1' }} <small>IBC/h</small></span>
+            <span class="vs-num" [style.color]="vsColor(op.vs_team)">
+              {{ op.vs_team >= 0 ? '+' : '' }}{{ op.vs_team | number:'1.1-1' }}%
+            </span>
+            <span class="chevron">{{ expandedOp === op.number ? '▲' : '▼' }}</span>
+          </div>
+        </div>
+
+        <!-- Quick placement badges -->
+        <div class="quick-row">
+          <span *ngIf="op.best_position_name" class="pos-chip">
+            <i class="fas fa-map-pin"></i>
+            {{ op.best_position_name }}
+            <span class="chip-val">{{ op.best_position_ibc_h | number:'1.1-1' }}</span>
+          </span>
+          <span *ngIf="op.best_shift_type_name" class="type-chip">
+            <i class="fas fa-moon"></i>
+            {{ op.best_shift_type_name }}
+            <span class="chip-val">{{ op.best_shift_type_ibc_h | number:'1.1-1' }}</span>
+          </span>
+          <span *ngIf="!op.best_position_name && !op.best_shift_type_name" class="no-data-chip">
+            Otillräckliga data för placeringsrekommendation
+          </span>
+        </div>
+
+        <!-- Recommendation text -->
+        <div class="rec-box"
+             [class.rec-warn]="op.tier === 'needs_support' || op.trend === 'falling'"
+             [class.rec-good]="op.tier === 'elite' || op.trend === 'rising'">
+          <i class="fas fa-lightbulb rec-icon"></i>
+          {{ op.recommendation }}
+        </div>
+
+        <!-- Expanded detail -->
+        <div *ngIf="expandedOp === op.number" class="detail-wrap">
+          <div class="detail-cols">
+
+            <!-- Positions -->
+            <div class="detail-col">
+              <div class="detail-title">Position · IBC/h</div>
+              <div *ngFor="let pos of posKeys" class="bar-row">
+                <span class="bar-label" [class.best-label]="op.best_position === pos">
+                  {{ posLabels[pos] }}
+                  <span *ngIf="op.best_position === pos" class="best-star">★</span>
+                </span>
+                <ng-container *ngIf="getPos(op, pos) as pd">
+                  <div class="bar-track">
+                    <div class="bar-fill pos-fill"
+                         [style.width]="posBarWidth(op, pos)"
+                         [style.background]="op.best_position === pos ? '#68d391' : '#63b3ed'"></div>
+                  </div>
+                  <span class="bar-val">{{ pd.ibc_h | number:'1.1-1' }}</span>
+                  <span class="bar-n">({{ pd.antal_skift }})</span>
+                </ng-container>
+                <span *ngIf="!getPos(op, pos)" class="no-data">–</span>
+              </div>
+            </div>
+
+            <!-- Shift types -->
+            <div class="detail-col">
+              <div class="detail-title">Skifttyp · IBC/h</div>
+              <div *ngFor="let typ of typeKeys" class="bar-row">
+                <span class="bar-label" [class.best-label]="op.best_shift_type === typ">
+                  {{ typeLabels[typ] }}
+                  <span *ngIf="op.best_shift_type === typ" class="best-star">★</span>
+                </span>
+                <ng-container *ngIf="getType(op, typ) as td">
+                  <div class="bar-track">
+                    <div class="bar-fill type-fill"
+                         [style.width]="typeBarWidth(op, typ)"
+                         [style.background]="op.best_shift_type === typ ? '#f6c90e' : '#a78bfa'"></div>
+                  </div>
+                  <span class="bar-val">{{ td.ibc_h | number:'1.1-1' }}</span>
+                  <span class="bar-n">({{ td.antal_skift }})</span>
+                </ng-container>
+                <span *ngIf="!getType(op, typ)" class="no-data">–</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="detail-footer">
+            <a [routerLink]="['/rebotling/operator', op.number]" class="profile-link">
+              <i class="fas fa-user"></i> Visa profil
+            </a>
+            <span class="skift-total">{{ op.total_skift }} skift analyserade · Senaste 30d: {{ op.ibc_h_30d | number:'1.1-1' }} IBC/h</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div *ngIf="filtered.length === 0" class="state-msg">Inga operatörer matchar valt filter.</div>
+
+  </ng-container>
+
+</div>

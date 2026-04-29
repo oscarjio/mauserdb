@@ -199,6 +199,7 @@ export const routes: Routes = [
       { path: 'rebotling/milstolpar', canActivate: [adminGuard], loadComponent: () => import('./pages/milstolpar/milstolpar').then(m => m.MilstolparPage) },
       { path: 'rebotling/produkt-normaliserad', canActivate: [adminGuard], loadComponent: () => import('./pages/produkt-normaliserad/produkt-normaliserad').then(m => m.ProduktNormaliseradPage) },
       { path: 'rebotling/ars-kurva', canActivate: [adminGuard], loadComponent: () => import('./pages/ars-kurva/ars-kurva').then(m => m.ArsKurvaPage) },
+      { path: 'rebotling/schema-rekommendationer', canActivate: [adminGuard], loadComponent: () => import('./pages/schema-rekommendationer/schema-rekommendationer').then(m => m.SchemaRekommendationerPage) },
       { path: 'rebotling/produktbyten', canActivate: [adminGuard], loadComponent: () => import('./pages/produktbyten/produktbyten').then(m => m.ProduktbytenPage) },
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },
