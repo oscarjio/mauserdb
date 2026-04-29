@@ -190,6 +190,7 @@ export const routes: Routes = [
       { path: 'rebotling/manads-jamforelse', canActivate: [adminGuard], loadComponent: () => import('./pages/manads-jamforelse/manads-jamforelse').then(m => m.ManadsJamforelsePage) },
       { path: 'rebotling/skifttyps-matris', canActivate: [adminGuard], loadComponent: () => import('./pages/skifttyps-matris/skifttyps-matris').then(m => m.SkifttypsMatrisPage) },
       { path: 'rebotling/kassationstyper', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationstyper/kassationstyper').then(m => m.KassationstyperPage) },
+      { path: 'rebotling/positions-specialisering', canActivate: [adminGuard], loadComponent: () => import('./pages/positions-specialisering/positions-specialisering').then(m => m.PositionsSpecialiseringPage) },
       { path: 'rebotling/produktbyten', canActivate: [adminGuard], loadComponent: () => import('./pages/produktbyten/produktbyten').then(m => m.ProduktbytenPage) },
       { path: 'rebotling/tacknings-analys', canActivate: [adminGuard], loadComponent: () => import('./pages/tacknings-analys/tacknings-analys').then(m => m.TackningsAnalysPage) },
       { path: 'rebotling/vader-produktion', canActivate: [adminGuard], loadComponent: () => import('./pages/vader-produktion/vader-produktion').then(m => m.VaderProduktionPage) },

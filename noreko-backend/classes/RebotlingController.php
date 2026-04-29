@@ -340,6 +340,8 @@ class RebotlingController {
                 $this->getSkifttypsMatris();
             } elseif ($action === 'kassationstyper') {
                 $this->getKassationstyper();
+            } elseif ($action === 'positions-specialisering') {
+                $this->getPositionsSpecialisering();
             } else {
                 $this->getLiveStats();
             }
@@ -13025,6 +13027,191 @@ class RebotlingController {
             error_log('RebotlingController::getKassationstyper: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationstyper'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=positions-specialisering&days=90&min_skift=3
+    private function getPositionsSpecialisering(): void {
+        try {
+            $days     = max(30, min(730, (int)($_GET['days'] ?? 90)));
+            $minSkift = max(1, min(20, (int)($_GET['min_skift'] ?? 3)));
+            $to       = date('Y-m-d');
+            $from     = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Per operator per position: SUM(ibc) / SUM(hours) — unique named params, dedup by skiftraknare
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    u.op_num,
+                    u.pos,
+                    COALESCE(o.name, CONCAT('Op ', u.op_num)) AS op_name,
+                    COUNT(*)         AS antal_skift,
+                    SUM(u.ibc)       AS total_ibc,
+                    SUM(u.hours)     AS total_hours
+                FROM (
+                    SELECT op1 AS op_num, 'op1' AS pos, skiftraknare,
+                           MAX(ibc_ok) AS ibc, MAX(drifttid) / 60.0 AS hours
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from1 AND :to1
+                      AND op1 IS NOT NULL AND op1 > 0 AND drifttid >= 30
+                    GROUP BY op1, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2, 'op2', skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid) / 60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2
+                      AND op2 IS NOT NULL AND op2 > 0 AND drifttid >= 30
+                    GROUP BY op2, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3, 'op3', skiftraknare,
+                           MAX(ibc_ok), MAX(drifttid) / 60.0
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from3 AND :to3
+                      AND op3 IS NOT NULL AND op3 > 0 AND drifttid >= 30
+                    GROUP BY op3, skiftraknare
+                ) u
+                LEFT JOIN operators o ON o.number = u.op_num
+                GROUP BY u.op_num, u.pos, op_name
+                ORDER BY u.op_num, u.pos
+            ");
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Group by operator
+            $byOp = [];
+            foreach ($rows as $r) {
+                $opNum = (int)$r['op_num'];
+                if (!isset($byOp[$opNum])) {
+                    $byOp[$opNum] = [
+                        'number' => $opNum,
+                        'name'   => $r['op_name'],
+                        'pos'    => [],
+                    ];
+                }
+                $byOp[$opNum]['pos'][$r['pos']] = [
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'total_ibc'   => (float)$r['total_ibc'],
+                    'total_hours' => (float)$r['total_hours'],
+                ];
+            }
+
+            $operators    = [];
+            $spreadValues = [];
+            $specialists  = 0;
+            $generalister = 0;
+
+            foreach ($byOp as $opNum => $op) {
+                // Overall IBC/h across all positions (deduplicated — each shift counted once per operator)
+                $overallIbc   = 0.0;
+                $overallHours = 0.0;
+                $totalSkift   = 0;
+                foreach ($op['pos'] as $p) {
+                    $overallIbc   += $p['total_ibc'];
+                    $overallHours += $p['total_hours'];
+                    $totalSkift   += $p['antal_skift'];
+                }
+                if ($overallHours < 0.5) continue;
+                $overallIbch = round($overallIbc / $overallHours, 2);
+
+                // Per position specialization index (only positions with >= minSkift shifts)
+                $positions   = [];
+                $validIndices = [];
+                foreach (['op1', 'op2', 'op3'] as $posKey) {
+                    if (!isset($op['pos'][$posKey])) {
+                        $positions[$posKey] = null;
+                        continue;
+                    }
+                    $p = $op['pos'][$posKey];
+                    if ($p['antal_skift'] < $minSkift) {
+                        $positions[$posKey] = null;
+                        continue;
+                    }
+                    $posHours = $p['total_hours'];
+                    if ($posHours < 0.5) {
+                        $positions[$posKey] = null;
+                        continue;
+                    }
+                    $posIbch   = round($p['total_ibc'] / $posHours, 2);
+                    $specIndex = $overallIbch > 0 ? round($posIbch / $overallIbch * 100, 1) : 100.0;
+                    $positions[$posKey] = [
+                        'antal_skift' => $p['antal_skift'],
+                        'ibch'        => $posIbch,
+                        'spec_index'  => $specIndex,
+                    ];
+                    $validIndices[] = $specIndex;
+                }
+
+                // Need data at ≥ 2 positions to calculate specialization spread
+                if (count($validIndices) < 2) continue;
+
+                $spread = round(max($validIndices) - min($validIndices), 1);
+                $spreadValues[] = $spread;
+
+                // Best position = highest spec_index
+                $bestPos   = null;
+                $bestIndex = -1;
+                foreach ($positions as $pk => $pd) {
+                    if ($pd !== null && $pd['spec_index'] > $bestIndex) {
+                        $bestIndex = $pd['spec_index'];
+                        $bestPos   = $pk;
+                    }
+                }
+
+                // Badge: Specialist if spread > 15%, Generalist if < 8%
+                if ($spread > 15) {
+                    $badge = 'specialist';
+                    $specialists++;
+                } elseif ($spread < 8) {
+                    $badge = 'generalist';
+                    $generalister++;
+                } else {
+                    $badge = 'flexibel';
+                }
+
+                $operators[] = [
+                    'number'       => $opNum,
+                    'name'         => $op['name'],
+                    'total_skift'  => $totalSkift,
+                    'overall_ibch' => $overallIbch,
+                    'positions'    => $positions,
+                    'best_pos'     => $bestPos,
+                    'spread'       => $spread,
+                    'badge'        => $badge,
+                ];
+            }
+
+            // Sort by spread descending
+            usort($operators, fn($a, $b) => $b['spread'] <=> $a['spread']);
+
+            $avgSpread = count($spreadValues) > 0
+                ? round(array_sum($spreadValues) / count($spreadValues), 1)
+                : 0.0;
+
+            echo json_encode([
+                'success'   => true,
+                'from'      => $from,
+                'to'        => $to,
+                'days'      => $days,
+                'operators' => $operators,
+                'kpi' => [
+                    'antal_op'    => count($operators),
+                    'specialists' => $specialists,
+                    'generalister'=> $generalister,
+                    'avg_spread'  => $avgSpread,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getPositionsSpecialisering: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid positionsspecialisering'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

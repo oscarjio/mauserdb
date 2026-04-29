@@ -1,0 +1,181 @@
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <a routerLink="/rebotling/operator-prestation" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Tillbaka
+      </a>
+      <h1 class="h3 mb-0">Positionsspecialisering</h1>
+    </div>
+    <p class="text-muted mb-0">
+      Varje operatörs IBC/h per position jämfört med deras <em>eget</em> snitt —
+      avslöjar vem som trivs bäst var och vem som är en äkta generalist.
+    </p>
+  </div>
+
+  <!-- Filters -->
+  <div class="d-flex flex-wrap gap-3 mb-4 align-items-end">
+    <div>
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button *ngFor="let d of dayOptions" class="btn btn-sm"
+                [class.btn-primary]="days === d"
+                [class.btn-outline-secondary]="days !== d"
+                (click)="setDays(d)">
+          {{ d === 365 ? '1 år' : d + 'd' }}
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="filter-label">Min. skift/position</label>
+      <div class="btn-group">
+        <button *ngFor="let n of minSkiftOptions" class="btn btn-sm"
+                [class.btn-primary]="minSkift === n"
+                [class.btn-outline-secondary]="minSkift !== n"
+                (click)="setMinSkift(n)">
+          {{ n }}
+        </button>
+      </div>
+    </div>
+    <div class="ms-auto d-flex gap-2 align-items-end">
+      <div>
+        <label class="filter-label">Sortera</label>
+        <select class="form-select form-select-sm" [(ngModel)]="sortKey">
+          <option value="spread">Specialisering ↓</option>
+          <option value="ibch">IBC/h ↓</option>
+          <option value="name">Namn A–Ö</option>
+        </select>
+      </div>
+      <div>
+        <label class="filter-label">Visa</label>
+        <select class="form-select form-select-sm" [(ngModel)]="filterBadge">
+          <option value="alla">Alla</option>
+          <option value="specialist">Specialister</option>
+          <option value="generalist">Generalister</option>
+          <option value="flexibel">Flexibla</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row mb-4" *ngIf="kpi">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ kpi.antal_op }}</div>
+      <div class="kpi-label">Operatörer</div>
+    </div>
+    <div class="kpi-card kpi-specialist">
+      <div class="kpi-value">{{ kpi.specialists }}</div>
+      <div class="kpi-label">Specialister</div>
+    </div>
+    <div class="kpi-card kpi-generalist">
+      <div class="kpi-value">{{ kpi.generalister }}</div>
+      <div class="kpi-label">Generalister</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">{{ kpi.avg_spread }}%</div>
+      <div class="kpi-label">Snitt spridning</div>
+    </div>
+    <div class="kpi-card kpi-period">
+      <div class="kpi-value small-val">{{ from | date:'d MMM' }} – {{ to | date:'d MMM' }}</div>
+      <div class="kpi-label">Period</div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted mt-2">Beräknar specialiseringsindex…</p>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <!-- Legend -->
+  <div class="legend-row mb-3" *ngIf="!loading && operators.length">
+    <div class="legend-item">
+      <span class="legend-dot dot-strong"></span>≥ 110% av eget snitt
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot dot-neutral"></span>95–110%
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot dot-weak"></span>&lt; 95% av eget snitt
+    </div>
+    <div class="legend-item ms-4">
+      <span class="badge-inline badge-specialist-sm">Specialist</span> &gt;15% spridning
+    </div>
+    <div class="legend-item">
+      <span class="badge-inline badge-generalist-sm">Generalist</span> &lt;8% spridning
+    </div>
+  </div>
+
+  <!-- Operator cards -->
+  <div *ngIf="!loading && !error">
+    <div *ngIf="filtered.length === 0" class="text-muted text-center py-4">
+      Inga operatörer matchade filterkriteriet.
+    </div>
+
+    <div class="op-card" *ngFor="let op of filtered">
+      <div class="op-card-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="op-number">{{ op.number }}</span>
+          <div>
+            <div class="op-name">{{ op.name }}</div>
+            <div class="op-meta">{{ op.total_skift }} skift · Snitt IBC/h: <strong>{{ op.overall_ibch }}</strong></div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="best-pos-badge" *ngIf="op.best_pos">
+            <i [class]="posIcons[op.best_pos]"></i> Bäst: {{ bestPosLabel(op) }}
+          </span>
+          <span class="spread-badge">± {{ op.spread }}%</span>
+          <span class="badge" [class]="badgeClass(op.badge)">{{ badgeLabel(op.badge) }}</span>
+          <a [routerLink]="['/rebotling/operator', op.number]" class="btn btn-sm btn-outline-secondary">
+            Profil →
+          </a>
+        </div>
+      </div>
+
+      <div class="pos-bars">
+        <div class="pos-row" *ngFor="let posKey of ['op1', 'op2', 'op3']">
+          <div class="pos-label">
+            <i [class]="posIcons[posKey]"></i>
+            {{ posLabels[posKey] }}
+          </div>
+          <ng-container *ngIf="getPosData(op, posKey) as pd; else noData">
+            <div class="bar-track">
+              <div class="bar-fill" [class]="barClass(pd.spec_index)"
+                   [style.width.%]="barWidth(pd.spec_index)"></div>
+              <div class="ref-line"></div>
+            </div>
+            <div class="pos-stats">
+              <span class="index-val" [class]="barClass(pd.spec_index)">
+                {{ pd.spec_index }}%
+              </span>
+              <span class="delta-val" [class]="barClass(pd.spec_index)">
+                {{ delta(pd.spec_index) }}
+              </span>
+              <span class="ibch-val">{{ pd.ibch }} IBC/h</span>
+              <span class="skift-val">{{ pd.antal_skift }} skift</span>
+            </div>
+          </ng-container>
+          <ng-template #noData>
+            <div class="bar-track no-data-track">
+              <span class="no-data-label">— för få skift</span>
+            </div>
+            <div class="pos-stats"></div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info box -->
+  <div class="info-box mt-4" *ngIf="!loading && operators.length">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Obs:</strong> Specialiseringsindex mäter teamets IBC/h <em>när operatören är i respektive position</em>,
+    normaliserat mot operatörens eget totalsnitt. Confounders (vilka teamkamrater operatören har) påverkar värdena.
+    Se <a routerLink="/rebotling/kompetens-matris">Kompetensmatris</a> för jämförelse mot lagsnittet.
+  </div>
+
+</div>

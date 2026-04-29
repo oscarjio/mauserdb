@@ -46,7 +46,7 @@ export class OperatorPrestationPage {
         { title: 'Operatörsaktivitet', desc: 'Närvaro och aktivitetstrender', route: '/rebotling/operator-aktivitet', icon: 'fas fa-user-clock', color: '#63b3ed' },
         { title: 'Inlärningskurva', desc: 'Prestanda över tid för nya', route: '/rebotling/operator-inlarning', icon: 'fas fa-graduation-cap', color: '#63b3ed' },
         { title: 'Prestandavarning', desc: 'Flaggar operatörer med trend ned', route: '/rebotling/operator-varning', icon: 'fas fa-exclamation-triangle', color: '#fc8181' },
-        { title: 'Positionsindex', desc: 'Bästa position per operatör vs eget snitt', route: '/rebotling/operator-positioner', icon: 'fas fa-map-pin', color: '#f6ad55' },
+        { title: 'Positionsspecialisering', desc: 'Operatörens IBC/h per position normaliserat mot deras eget totalsnitt — identifiera specialist vs generalist och optimal positionsplacering', route: '/rebotling/positions-specialisering', icon: 'fas fa-map-pin', color: '#f6ad55' },
         { title: 'Kompetensmatris', desc: 'Operatör × position-matris — IBC/h-tier per position för schemaläggning och korsträning', route: '/rebotling/kompetens-matris', icon: 'fas fa-th', color: '#f6ad55' },
         { title: 'Teamkemi', desc: 'Vilka operatörer presterar bättre ihop?', route: '/rebotling/operator-synergy', icon: 'fas fa-heart', color: '#fc8181' },
         { title: 'Produktionsintensitet', desc: 'Daglig IBC/h-heatmap (GitHub-stil)', route: '/rebotling/produktion-heatmap', icon: 'fas fa-th', color: '#63b3ed' },
