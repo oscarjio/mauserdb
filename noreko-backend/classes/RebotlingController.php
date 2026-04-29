@@ -314,6 +314,8 @@ class RebotlingController {
                 $this->getProduktbytesanalys();
             } elseif ($action === 'tacknings-analys') {
                 $this->getTackningsanalys();
+            } elseif ($action === 'vader-produktion') {
+                $this->getVaderProduktion();
             } else {
                 $this->getLiveStats();
             }
@@ -10969,6 +10971,130 @@ class RebotlingController {
             error_log('RebotlingController::getTackningsanalys: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid täckningsanalys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=vader-produktion&days=365
+    private function getVaderProduktion(): void {
+        $days = intval($_GET['days'] ?? 365);
+        if ($days < 30 || $days > 1825) $days = 365;
+
+        $sql = "
+            WITH daily_prod AS (
+                SELECT
+                    datum AS dag,
+                    SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0) AS ibc_per_h,
+                    COUNT(DISTINCT skiftraknare) AS antal_skift,
+                    SUM(drifttid) / 60.0 AS total_timmar
+                FROM (
+                    SELECT datum, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                           MAX(COALESCE(drifttid, 0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days1 DAY)
+                      AND drifttid >= 30
+                    GROUP BY datum, skiftraknare
+                ) dedup
+                GROUP BY datum
+                HAVING total_timmar >= 1
+            ),
+            daily_temp AS (
+                SELECT
+                    DATE(datum) AS dag,
+                    AVG(utetemperatur) AS avg_temp
+                FROM vader_data
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days2 DAY)
+                GROUP BY DATE(datum)
+            )
+            SELECT
+                dp.dag,
+                ROUND(dp.ibc_per_h, 2) AS ibc_per_h,
+                dp.antal_skift,
+                ROUND(dp.total_timmar, 1) AS total_timmar,
+                ROUND(dt.avg_temp, 1) AS avg_temp
+            FROM daily_prod dp
+            INNER JOIN daily_temp dt ON dp.dag = dt.dag
+            ORDER BY dp.dag
+        ";
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':days1' => $days, ':days2' => $days]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (count($rows) < 3) {
+                echo json_encode(['success' => true, 'data' => [], 'bins' => [], 'kpi' => null, 'korrelation' => null], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Pearson r (temperature vs IBC/h)
+            $n = count($rows);
+            $xArr = array_column($rows, 'avg_temp');
+            $yArr = array_column($rows, 'ibc_per_h');
+            $xMean = array_sum($xArr) / $n;
+            $yMean = array_sum($yArr) / $n;
+            $num = 0; $denX = 0; $denY = 0;
+            foreach ($rows as $i => $r) {
+                $dx = (float)$r['avg_temp'] - $xMean;
+                $dy = (float)$r['ibc_per_h'] - $yMean;
+                $num += $dx * $dy;
+                $denX += $dx * $dx;
+                $denY += $dy * $dy;
+            }
+            $den = sqrt($denX * $denY);
+            $korrelation = $den > 0 ? round($num / $den, 3) : 0;
+
+            // Temperaturbin: 5-graders intervall
+            $binData = [];
+            foreach ($rows as $r) {
+                $temp = (float)$r['avg_temp'];
+                $binFloor = (int)(floor($temp / 5) * 5);
+                $key = $binFloor;
+                if (!isset($binData[$key])) {
+                    $binData[$key] = ['ibc_sum' => 0, 'timmar_sum' => 0, 'count' => 0];
+                }
+                $binData[$key]['ibc_sum'] += (float)$r['ibc_per_h'] * (float)$r['total_timmar'];
+                $binData[$key]['timmar_sum'] += (float)$r['total_timmar'];
+                $binData[$key]['count']++;
+            }
+            ksort($binData);
+            $bins = [];
+            foreach ($binData as $floor => $b) {
+                $bins[] = [
+                    'label'    => sprintf('%d till %d°C', $floor, $floor + 5),
+                    'floor'    => $floor,
+                    'ibc_per_h' => $b['timmar_sum'] > 0 ? round($b['ibc_sum'] / $b['timmar_sum'], 2) : 0,
+                    'antal_dagar' => $b['count'],
+                ];
+            }
+
+            // KPI
+            $allTemps  = array_map('floatval', array_column($rows, 'avg_temp'));
+            $allIbch   = array_map('floatval', array_column($rows, 'ibc_per_h'));
+            $allTimmar = array_map('floatval', array_column($rows, 'total_timmar'));
+            $ttSum = array_sum($allTimmar);
+            $ibchWeighted = array_sum(array_map(fn($ibch, $tt) => $ibch * $tt, $allIbch, $allTimmar));
+            $kpi = [
+                'antal_dagar'   => $n,
+                'min_temp'      => round(min($allTemps), 1),
+                'max_temp'      => round(max($allTemps), 1),
+                'avg_temp'      => round(array_sum($allTemps) / $n, 1),
+                'avg_ibc_per_h' => $ttSum > 0 ? round($ibchWeighted / $ttSum, 2) : 0.0,
+            ];
+
+            echo json_encode([
+                'success'     => true,
+                'data'        => $rows,
+                'bins'        => $bins,
+                'kpi'         => $kpi,
+                'korrelation' => $korrelation,
+                'days'        => $days,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            error_log('RebotlingController::getVaderProduktion: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid väder-produktion'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

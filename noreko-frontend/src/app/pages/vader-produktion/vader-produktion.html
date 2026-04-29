@@ -1,0 +1,195 @@
+<div style="background:#1a202c;min-height:100vh;padding:24px 16px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a routerLink="/rebotling/operator-prestation" style="color:#63b3ed;text-decoration:none;font-size:14px;">
+      <i class="fas fa-arrow-left me-1"></i>Tillbaka till operatörsanalys
+    </a>
+    <h1 class="mt-2 mb-1" style="color:#e2e8f0;font-size:1.5rem;font-weight:700;">
+      <i class="fas fa-cloud-sun me-2" style="color:#76e4f7;"></i>Väder–Produktion-Korrelation
+    </h1>
+    <p style="color:#a0aec0;font-size:14px;margin:0;">
+      Påverkar utetemperaturen produktionstakten? Varje punkt är en produktionsdag med genomsnittstemperatur och IBC/h.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="d-flex gap-3 align-items-center flex-wrap mb-4">
+    <div>
+      <label style="color:#a0aec0;font-size:12px;display:block;margin-bottom:4px;">Period</label>
+      <select [(ngModel)]="days" (ngModelChange)="load()" class="form-select form-select-sm"
+              style="background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;width:160px;">
+        <option [value]="90">90 dagar</option>
+        <option [value]="180">180 dagar</option>
+        <option [value]="365">1 år</option>
+        <option [value]="730">2 år</option>
+        <option [value]="1095">3 år</option>
+        <option [value]="1825">5 år</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border" style="color:#63b3ed;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p style="color:#a0aec0;margin-top:12px;">Analyserar väder och produktion...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="text-center py-5">
+    <i class="fas fa-exclamation-triangle" style="color:#fc8181;font-size:2rem;"></i>
+    <p style="color:#fc8181;margin-top:8px;">{{ error }}</p>
+    <button (click)="load()" class="btn btn-sm" style="background:#2d3748;color:#63b3ed;border:1px solid #4a5568;">
+      Försök igen
+    </button>
+  </div>
+
+  <!-- Content -->
+  <ng-container *ngIf="!loading && !error && data.length > 0">
+
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" [style.color]="korrelationColor">
+            {{ korrelation !== null ? (korrelation | number:'1.2-2') : '–' }}
+          </div>
+          <div class="kpi-label">Pearson r</div>
+          <div class="kpi-sub" [style.color]="korrelationColor">{{ korrelationText }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#76e4f7;">{{ kpi?.min_temp | number:'1.0-1' }}°C</div>
+          <div class="kpi-label">Kallaste dag</div>
+          <div class="kpi-sub">lägsta dygnsmedeltemperatur</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#fc8181;">{{ kpi?.max_temp | number:'1.0-1' }}°C</div>
+          <div class="kpi-label">Varmaste dag</div>
+          <div class="kpi-sub">högsta dygnsmedeltemperatur</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-val" style="color:#68d391;">{{ kpi?.antal_dagar }}</div>
+          <div class="kpi-label">Dagar analyserade</div>
+          <div class="kpi-sub">med både temp- och produktionsdata</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scatter plot -->
+    <div style="background:#2d3748;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #4a5568;">
+      <h3 style="color:#e2e8f0;font-size:1rem;font-weight:600;margin-bottom:4px;">
+        <i class="fas fa-project-diagram me-2" style="color:#76e4f7;"></i>Scatter: Utetemperatur vs IBC/h per dag
+      </h3>
+      <p style="color:#718096;font-size:13px;margin-bottom:16px;">
+        Streckad linje = linjär trend.
+        <span style="color:#63b3ed;">●</span> Under 0°C &nbsp;
+        <span style="color:#68d391;">●</span> 0–10°C &nbsp;
+        <span style="color:#f6ad55;">●</span> 10–20°C &nbsp;
+        <span style="color:#fc8181;">●</span> Över 20°C
+      </p>
+      <div style="height:360px;position:relative;">
+        <canvas #scatterCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Bar chart by temperature bin -->
+    <div style="background:#2d3748;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #4a5568;">
+      <h3 style="color:#e2e8f0;font-size:1rem;font-weight:600;margin-bottom:4px;">
+        <i class="fas fa-thermometer-half me-2" style="color:#f6ad55;"></i>Genomsnittlig IBC/h per temperaturintervall
+      </h3>
+      <p style="color:#718096;font-size:13px;margin-bottom:16px;">
+        Streckad linje = periodssnitt.
+        <span style="color:#68d391;">■</span> Över snitt &nbsp;
+        <span style="color:#a0aec0;">■</span> Nära snitt &nbsp;
+        <span style="color:#fc8181;">■</span> Under snitt
+      </p>
+      <div style="height:280px;position:relative;">
+        <canvas #binCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Temperature bin table -->
+    <div style="background:#2d3748;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #4a5568;">
+      <h3 style="color:#e2e8f0;font-size:1rem;font-weight:600;margin-bottom:16px;">
+        <i class="fas fa-table me-2" style="color:#a0aec0;"></i>Temperaturintervall — detaljer
+      </h3>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="color:#e2e8f0;">
+          <thead>
+            <tr style="border-bottom:1px solid #4a5568;">
+              <th style="color:#a0aec0;font-weight:500;">Temperatur</th>
+              <th style="color:#a0aec0;font-weight:500;text-align:right;">IBC/h</th>
+              <th style="color:#a0aec0;font-weight:500;text-align:right;">vs periodssnitt</th>
+              <th style="color:#a0aec0;font-weight:500;text-align:right;">Antal dagar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bin of bins" style="border-bottom:1px solid #2d3748;">
+              <td style="color:#e2e8f0;">{{ bin.label }}</td>
+              <td style="text-align:right;font-weight:600;color:#e2e8f0;">{{ bin.ibc_per_h | number:'1.1-1' }}</td>
+              <td style="text-align:right;">
+                <span [style.color]="bin.ibc_per_h >= (kpi?.avg_ibc_per_h ?? 0) * 1.05 ? '#68d391'
+                                   : bin.ibc_per_h >= (kpi?.avg_ibc_per_h ?? 0) * 0.95 ? '#a0aec0'
+                                   : '#fc8181'">
+                  {{ ((bin.ibc_per_h / (kpi?.avg_ibc_per_h ?? 1) - 1) * 100) | number:'1.0-0' }}%
+                </span>
+              </td>
+              <td style="text-align:right;color:#a0aec0;">{{ bin.antal_dagar }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="border-top:2px solid #4a5568;">
+              <td style="color:#a0aec0;font-weight:600;">Periodssnitt</td>
+              <td style="text-align:right;font-weight:700;color:#f6c90e;">{{ kpi?.avg_ibc_per_h | number:'1.1-1' }}</td>
+              <td style="text-align:right;color:#a0aec0;">—</td>
+              <td style="text-align:right;color:#a0aec0;">{{ kpi?.antal_dagar }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Interpretation card -->
+    <div style="background:#2d3748;border-radius:12px;padding:20px;border:1px solid #4a5568;">
+      <h3 style="color:#e2e8f0;font-size:1rem;font-weight:600;margin-bottom:12px;">
+        <i class="fas fa-info-circle me-2" style="color:#63b3ed;"></i>Tolkning
+      </h3>
+      <div style="color:#a0aec0;font-size:14px;line-height:1.7;">
+        <p style="margin-bottom:8px;">
+          <strong style="color:#e2e8f0;">r = {{ korrelation !== null ? (korrelation | number:'1.3-3') : '–' }}</strong>
+          — {{ korrelationText }}.
+        </p>
+        <p style="margin-bottom:8px;" *ngIf="korrelation !== null && korrelation < -0.2">
+          <i class="fas fa-arrow-down me-1" style="color:#68d391;"></i>
+          Negativ korrelation: lägre temperaturer är associerade med <em>lägre</em> IBC/h.
+          Kan bero på svalare utemiljö som påverkar tvätt-/torktider, eller säsongseffekter i beläggning.
+        </p>
+        <p style="margin-bottom:8px;" *ngIf="korrelation !== null && korrelation > 0.2">
+          <i class="fas fa-arrow-up me-1" style="color:#68d391;"></i>
+          Positiv korrelation: varmare dagar är associerade med <em>högre</em> IBC/h.
+          Kan avspegla säsongsmässigt ökad produktion eller att värme påverkar flödena positivt.
+        </p>
+        <p style="margin-bottom:0;color:#718096;font-size:12px;">
+          <i class="fas fa-exclamation-circle me-1"></i>
+          Observera att korrelation inte är kausalitet. Säsongsmässiga faktorer (produktmix, personalstyrka, semester) kan samvariera med temperaturen och påverka resultatet.
+        </p>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && !error && data.length === 0" class="text-center py-5">
+    <i class="fas fa-cloud" style="font-size:2rem;color:#4a5568;"></i>
+    <p style="color:#a0aec0;margin-top:12px;">Ingen matchande data för vald period (temperaturdata och produktionsdata saknar överlapp).</p>
+  </div>
+
+</div>
