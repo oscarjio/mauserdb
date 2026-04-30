@@ -6561,7 +6561,7 @@ HTML;
                 default => 'Idag'
             };
 
-            // Aggregera per skift (kumulativa PLC-värden → MAX per skiftraknare, sedan SUM)
+            // ibc_ok is a daily running counter — LAG() PARTITION BY dag gives per-shift delta.
             $stmt = $this->pdo->prepare("
                 SELECT
                     COUNT(*)                 AS shifts,
@@ -6570,17 +6570,21 @@ HTML;
                     SUM(shift_runtime)       AS total_runtime_min,
                     SUM(shift_rast)          AS total_rast_min
                 FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        MAX(COALESCE(rasttime,   0)) AS shift_rast
-                    FROM rebotling_ibc r
-                    WHERE $dateFilter
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare, shift_runtime, shift_rast,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok,     0)) AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok,  0)) AS ej_end,
+                               MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                               MAX(COALESCE(rasttime,   0)) AS shift_rast
+                        FROM rebotling_ibc r
+                        WHERE $dateFilter
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) lag_d
             ");
             $stmt->execute();
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
