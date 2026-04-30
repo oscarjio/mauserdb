@@ -378,6 +378,8 @@ class RebotlingController {
                 $this->getKassationsorsakTrend();
             } elseif ($action === 'stopp-per-produkt') {
                 $this->getStoppPerProdukt();
+            } elseif ($action === 'skift-duell') {
+                $this->getSkiftDuell();
             } else {
                 $this->getLiveStats();
             }
@@ -17234,6 +17236,185 @@ class RebotlingController {
             error_log('RebotlingController::getStoppPerProdukt: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopp-per-produkt'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=skift-duell[&op_a=X&op_b=Y&days=90]
+    // Per-shift IBC/h scatter for two operators on a shared time axis.
+    // Without op_a/op_b: returns operator list for dropdowns.
+    // With op_a/op_b: returns per-shift data for each operator (LAG()-corrected).
+    private function getSkiftDuell(): void {
+        try {
+            $opA  = (int)($_GET['op_a']  ?? 0);
+            $opB  = (int)($_GET['op_b']  ?? 0);
+            $days = max(30, min(730, (int)($_GET['days'] ?? 90)));
+
+            // Operator list (always returned for dropdowns)
+            $stmtOps = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active=1 ORDER BY name"
+            );
+            $opRows = $stmtOps->fetchAll(\PDO::FETCH_ASSOC);
+
+            if ($opA <= 0 || $opB <= 0 || $opA === $opB) {
+                echo json_encode(['success' => true, 'operators' => $opRows], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            $opNames = [];
+            foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
+            $nameA = $opNames[$opA] ?? "Operatör {$opA}";
+            $nameB = $opNames[$opB] ?? "Operatör {$opB}";
+
+            // LAG()-corrected per-shift data — compute delta for ALL shifts in period
+            // (operator filter applied AFTER LAG so intermediate shifts are not skipped).
+            $sql = "
+                WITH dedup AS (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))         AS dag,
+                           MAX(ibc_ok)              AS ibc_end,
+                           MAX(drifttid)            AS drifttid,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ),
+                lag_data AS (
+                    SELECT skiftraknare, dag, drifttid, op1, op2, op3,
+                           GREATEST(0, ibc_end
+                               - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                           ) AS delta_ibc
+                    FROM dedup
+                )
+                SELECT skiftraknare, dag, delta_ibc, drifttid, op1, op2, op3
+                FROM lag_data
+                WHERE (op1 = :opA1 OR op1 = :opB1
+                    OR op2 = :opA2 OR op2 = :opB2
+                    OR op3 = :opA3 OR op3 = :opB3)
+                ORDER BY dag, skiftraknare
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from' => $from, ':to' => $to,
+                ':opA1' => $opA, ':opA2' => $opA, ':opA3' => $opA,
+                ':opB1' => $opB, ':opB2' => $opB, ':opB3' => $opB,
+            ]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $shiftsA = [];
+            $shiftsB = [];
+            $totIbcA = 0; $totMinA = 0;
+            $totIbcB = 0; $totMinB = 0;
+            $totIbcAT = 0; $totMinAT = 0; // together
+            $totIbcBT = 0; $totMinBT = 0;
+            $totIbcAL = 0; $totMinAL = 0; // alone (without the other)
+            $totIbcBL = 0; $totMinBL = 0;
+
+            foreach ($rows as $r) {
+                $aP = ((int)$r['op1'] === $opA || (int)$r['op2'] === $opA || (int)$r['op3'] === $opA);
+                $bP = ((int)$r['op1'] === $opB || (int)$r['op2'] === $opB || (int)$r['op3'] === $opB);
+                $dIbc = max(0, (int)$r['delta_ibc']);
+                $dMin = max(1, (int)$r['drifttid']);
+                $ibcH = $dMin > 0 ? round($dIbc / ($dMin / 60.0), 2) : null;
+                $tog  = $aP && $bP;
+
+                if ($aP) {
+                    $shiftsA[] = ['dag' => $r['dag'], 'sk' => (int)$r['skiftraknare'], 'ibc_h' => $ibcH, 'together' => $tog];
+                    $totIbcA += $dIbc; $totMinA += $dMin;
+                    if ($tog)  { $totIbcAT += $dIbc; $totMinAT += $dMin; }
+                    else       { $totIbcAL += $dIbc; $totMinAL += $dMin; }
+                }
+                if ($bP) {
+                    $shiftsB[] = ['dag' => $r['dag'], 'sk' => (int)$r['skiftraknare'], 'ibc_h' => $ibcH, 'together' => $tog];
+                    $totIbcB += $dIbc; $totMinB += $dMin;
+                    if ($tog)  { $totIbcBT += $dIbc; $totMinBT += $dMin; }
+                    else       { $totIbcBL += $dIbc; $totMinBL += $dMin; }
+                }
+            }
+
+            // Team avg for period (all shifts, for reference baseline)
+            $teamSql = "
+                WITH dedup AS (
+                    SELECT skiftraknare, DATE(MAX(datum)) AS dag,
+                           MAX(ibc_ok) AS ibc_end, MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ),
+                lag_data AS (
+                    SELECT drifttid,
+                           GREATEST(0, ibc_end
+                               - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                           ) AS delta_ibc
+                    FROM dedup
+                )
+                SELECT SUM(delta_ibc) AS tot_ibc, SUM(drifttid) AS tot_min
+                FROM lag_data
+            ";
+            $stmtT = $this->pdo->prepare($teamSql);
+            $stmtT->execute([':from' => $from, ':to' => $to]);
+            $tRow    = $stmtT->fetch(\PDO::FETCH_ASSOC);
+            $teamAvg = ($tRow && $tRow['tot_min'] > 0)
+                ? round((float)$tRow['tot_ibc'] / ($tRow['tot_min'] / 60.0), 2)
+                : null;
+
+            $ibcH = fn(int $ibc, int $min) => $min > 0 ? round($ibc / ($min / 60.0), 2) : null;
+
+            $calcMedian = function(array $shifts): ?float {
+                $vals = array_values(array_filter(array_column($shifts, 'ibc_h'), fn($v) => $v !== null));
+                if (empty($vals)) return null;
+                sort($vals);
+                $n = count($vals);
+                return $n % 2 === 0
+                    ? round(($vals[$n/2-1] + $vals[$n/2]) / 2, 2)
+                    : (float)$vals[(int)($n/2)];
+            };
+
+            $bestA   = empty($shiftsA) ? null : max(array_filter(array_column($shiftsA, 'ibc_h'), fn($v) => $v !== null) ?: [null]);
+            $bestB   = empty($shiftsB) ? null : max(array_filter(array_column($shiftsB, 'ibc_h'), fn($v) => $v !== null) ?: [null]);
+            $togetherCount = count(array_filter($shiftsA, fn($s) => $s['together']));
+
+            echo json_encode([
+                'success'   => true,
+                'operators' => $opRows,
+                'data'      => [
+                    'a' => [
+                        'number'         => $opA,
+                        'name'           => $nameA,
+                        'shifts'         => $shiftsA,
+                        'avg_ibc_h'      => $ibcH($totIbcA, $totMinA),
+                        'median_ibc_h'   => $calcMedian($shiftsA),
+                        'best_ibc_h'     => $bestA,
+                        'shifts_count'   => count($shiftsA),
+                        'together_avg'   => $ibcH($totIbcAT, $totMinAT),
+                        'alone_avg'      => $ibcH($totIbcAL, $totMinAL),
+                        'together_count' => $togetherCount,
+                    ],
+                    'b' => [
+                        'number'         => $opB,
+                        'name'           => $nameB,
+                        'shifts'         => $shiftsB,
+                        'avg_ibc_h'      => $ibcH($totIbcB, $totMinB),
+                        'median_ibc_h'   => $calcMedian($shiftsB),
+                        'best_ibc_h'     => $bestB,
+                        'shifts_count'   => count($shiftsB),
+                        'together_avg'   => $ibcH($totIbcBT, $totMinBT),
+                        'alone_avg'      => $ibcH($totIbcBL, $totMinBL),
+                        'together_count' => $togetherCount,
+                    ],
+                    'team_avg' => $teamAvg,
+                    'from'     => $from,
+                    'to'       => $to,
+                    'days'     => $days,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getSkiftDuell: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-duell'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

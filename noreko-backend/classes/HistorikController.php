@@ -48,36 +48,28 @@ class HistorikController {
         $manader = isset($_GET['manader']) ? max(1, min(60, (int)$_GET['manader'])) : 24;
 
         try {
-            // Månadsaggregering i två steg:
-            // Steg 1: Daglig aggregering (MAX av kumulativa fält)
-            // Steg 2: Månadsaggregering (SUM/AVG/MAX på dagvärden)
-            // Korrekt aggregering: MAX(ibc_ok) per skifträknare per dag, sedan SUM per dag.
-            // rebotling_ibc har kumulativa räkneverk — varje skifträknare har sin egen räknare.
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH) AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                    FROM lag_base
+                )
                 SELECT
-                    ar,
-                    manad,
+                    ar, manad,
                     DATE_FORMAT(CONCAT(ar, '-', LPAD(manad, 2, '0'), '-01'), '%Y-%m') AS period,
                     COUNT(DISTINCT dag) AS antal_dagar,
                     SUM(daglig_ibc) AS total_ibc,
                     ROUND(AVG(daglig_ibc), 1) AS snitt_per_dag,
                     MAX(daglig_ibc) AS basta_dag_ibc
                 FROM (
-                    SELECT
-                        dag,
-                        YEAR(dag) AS ar,
-                        MONTH(dag) AS manad,
-                        SUM(shift_ibc) AS daglig_ibc
-                    FROM (
-                        SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            MAX(ibc_ok) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
-                          AND ibc_ok > 0
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_shift
+                    SELECT dag, YEAR(dag) AS ar, MONTH(dag) AS manad, SUM(shift_ibc) AS daglig_ibc
+                    FROM lag_shifts
                     GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, manad
@@ -219,30 +211,41 @@ class HistorikController {
             $totalPages = max(1, (int)ceil($totalRows / $perPage));
             $offset = ($page - 1) * $perPage;
 
-            // Hämta daglig data
+            // Hämta daglig data (LAG-korrigerad — ibc_ok är dagligt löpande räkneverk)
+            // LAG() beräknas över ALLA skift per dag; operator-filter via HAVING för korrekt delta
+            $opHaving = $operatorNr > 0
+                ? 'HAVING SUM(CASE WHEN op1 = :op_nr OR op2 = :op_nr2 OR op3 = :op_nr3 THEN 1 ELSE 0 END) > 0'
+                : '';
             $sql = "
-                SELECT
-                    dag,
-                    SUM(shift_ok) AS total_ibc,
-                    SUM(shift_ej_ok) AS total_ej_ok,
-                    SUM(shift_ok) + SUM(shift_ej_ok) AS total_all,
-                    CASE WHEN (SUM(shift_ok) + SUM(shift_ej_ok)) > 0
-                         THEN ROUND(SUM(shift_ej_ok) / (SUM(shift_ok) + SUM(shift_ej_ok)) * 100, 1)
-                         ELSE 0 END AS kassation_pct,
-                    COUNT(DISTINCT skiftraknare) AS antal_skift
-                FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                           MIN(COALESCE(op1, 0)) AS op1,
+                           MIN(COALESCE(op2, 0)) AS op2,
+                           MIN(COALESCE(op3, 0)) AS op3
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND ibc_ok IS NOT NULL
-                      {$opWhere}
                     GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                    FROM lag_base
+                )
+                SELECT dag,
+                       SUM(shift_ok) AS total_ibc,
+                       SUM(shift_ej_ok) AS total_ej_ok,
+                       SUM(shift_ok) + SUM(shift_ej_ok) AS total_all,
+                       CASE WHEN (SUM(shift_ok) + SUM(shift_ej_ok)) > 0
+                            THEN ROUND(SUM(shift_ej_ok) / (SUM(shift_ok) + SUM(shift_ej_ok)) * 100, 1)
+                            ELSE 0 END AS kassation_pct,
+                       COUNT(DISTINCT skiftraknare) AS antal_skift
+                FROM lag_shifts
                 GROUP BY dag
+                {$opHaving}
                 ORDER BY {$orderBy}
                 LIMIT {$perPage} OFFSET {$offset}
             ";
@@ -296,28 +299,22 @@ class HistorikController {
      */
     private function getYearly() {
         try {
-            // Korrekt aggregering: MAX(ibc_ok) per skifträknare per dag, sedan SUM per dag.
             $sql = "
-                SELECT
-                    ar,
-                    vecka,
-                    SUM(daglig_ibc) AS ibc_vecka
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 3 YEAR) AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                    FROM lag_base
+                )
+                SELECT ar, vecka, SUM(daglig_ibc) AS ibc_vecka
                 FROM (
-                    SELECT
-                        dag,
-                        YEAR(dag) AS ar,
-                        WEEK(dag, 1) AS vecka,
-                        SUM(shift_ibc) AS daglig_ibc
-                    FROM (
-                        SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            MAX(ibc_ok) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 3 YEAR)
-                          AND ibc_ok > 0
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_shift
+                    SELECT dag, YEAR(dag) AS ar, WEEK(dag, 1) AS vecka, SUM(shift_ibc) AS daglig_ibc
+                    FROM lag_shifts
                     GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, vecka

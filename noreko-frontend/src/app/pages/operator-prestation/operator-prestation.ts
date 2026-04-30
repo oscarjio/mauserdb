@@ -37,6 +37,7 @@ export class OperatorPrestationPage {
         { title: 'Operatörsjämförelse', desc: 'Jämför valfria operatörer', route: '/rebotling/operator-compare', icon: 'fas fa-exchange-alt', color: '#63b3ed' },
         { title: 'Schemaläggningsmatris', desc: 'Bästa operatör per position', route: '/rebotling/operator-matcher', icon: 'fas fa-th', color: '#63b3ed' },
         { title: 'Ranking-historik', desc: 'Veckovis rankningstrend per operatör — bump-diagram som visar vem som klättrar, placeringsändringar senaste veckan och pågående vinstserier', route: '/rebotling/ranking-historik', icon: 'fas fa-chart-bar', color: '#68d391' },
+        { title: 'Skiftduell', desc: 'Välj två operatörer — se alla deras enskilda skift på en gemensam tidslinje med 7-skift glidande snitt, bästa-skift-jämförelse och samarbetseffekt när de jobbat ihop', route: '/rebotling/skift-duell', icon: 'fas fa-swords', color: '#f6c90e' },
       ]
     },
     {

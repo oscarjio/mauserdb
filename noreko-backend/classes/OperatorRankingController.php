@@ -145,40 +145,42 @@ class OperatorRankingController {
     private function getOperatorIbcData(string $from, string $to): array {
         $operators = [];
 
-        // rebotling_ibc uses op1/op2/op3 (not user_id) and ibc_ok/ibc_ej_ok (not ok)
+        // LAG-korrigerad: ibc_ok är dagligt löpande räkneverk — per-skift delta via LAG()
         try {
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
                 SELECT op_id,
                        COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                       SUM(shift_ibc) AS total_ibc,
-                       MIN(first_dt) AS first_ibc,
-                       MAX(last_dt) AS last_ibc
+                       SUM(delta_ibc) AS total_ibc,
+                       MIN(dag) AS first_ibc,
+                       MAX(dag) AS last_ibc
                 FROM (
-                    SELECT op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum) AS first_dt, MAX(datum) AS last_dt
-                    FROM rebotling_ibc
-                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                    GROUP BY op1, skiftraknare
+                    SELECT op1 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum), MAX(datum)
-                    FROM rebotling_ibc
-                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                    GROUP BY op2, skiftraknare
+                    SELECT op2 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc, MIN(datum), MAX(datum)
-                    FROM rebotling_ibc
-                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                    GROUP BY op3, skiftraknare
+                    SELECT op3 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
                 GROUP BY op_id, o.name
                 ORDER BY total_ibc DESC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
+            $stmt->execute([':from' => $from, ':to' => $to]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['op_id'];
                 $operators[$uid] = [
@@ -408,29 +410,34 @@ class OperatorRankingController {
         $userIds = array_column($ranking, 'user_id');
         if (empty($userIds)) return;
 
-        // Batch-hamta daglig IBC per operator senaste 30 dagar i EN query
+        // Batch-hamta daglig IBC per operator senaste 30 dagar (LAG-korrigerad)
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $allDagData = []; // op_id => [{dag, ibc_count}, ...]
 
         try {
             $sql = "
-                SELECT op_id, dag, SUM(shift_ibc) AS ibc_count
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
+                SELECT op_id, dag, SUM(delta_ibc) AS ibc_count
                 FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op1, DATE(datum), skiftraknare
+                    SELECT op1 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op1 IN ({$placeholders})
                     UNION ALL
-                    SELECT op2 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op2, DATE(datum), skiftraknare
+                    SELECT op2 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op2 IN ({$placeholders})
                     UNION ALL
-                    SELECT op3 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op3, DATE(datum), skiftraknare
-                ) AS combined
+                    SELECT op3 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op3 IN ({$placeholders})
+                ) AS sub
                 GROUP BY op_id, dag
                 ORDER BY op_id, dag DESC
             ";
@@ -606,47 +613,38 @@ class OperatorRankingController {
                 $operatorNames[$op['user_id']] = $op['operator_namn'];
             }
 
-            // Hamta daglig IBC per operator via op1/op2/op3
+            // Hamta daglig IBC per operator via op1/op2/op3 (LAG-korrigerad)
             $historik = [];
             $placeholders = implode(',', array_fill(0, count($userIds), '?'));
 
             try {
                 $sql = "
-                    SELECT dag, op_id, SUM(shift_ibc) AS total_ibc
+                    WITH lag_base AS (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok) AS ibc_end,
+                               MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ),
+                    lag_shifts AS (
+                        SELECT dag, skiftraknare,
+                               GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                               op1, op2, op3
+                        FROM lag_base
+                    )
+                    SELECT dag, op_id, SUM(delta_ibc) AS total_ibc
                     FROM (
-                        SELECT DATE(datum) AS dag, op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op1 IN ({$placeholders})
-                          AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY DATE(datum), op1, skiftraknare
-
+                        SELECT op1 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op1 IN ({$placeholders})
                         UNION ALL
-
-                        SELECT DATE(datum) AS dag, op2 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op2 IN ({$placeholders})
-                          AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY DATE(datum), op2, skiftraknare
-
+                        SELECT op2 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op2 IN ({$placeholders})
                         UNION ALL
-
-                        SELECT DATE(datum) AS dag, op3 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op3 IN ({$placeholders})
-                          AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                          AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY DATE(datum), op3, skiftraknare
+                        SELECT op3 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op3 IN ({$placeholders})
                     ) AS combined
                     GROUP BY dag, op_id
                     ORDER BY dag ASC
                 ";
-                $params = array_merge(
-                    $userIds, [$from30, $to],
-                    $userIds, [$from30, $to],
-                    $userIds, [$from30, $to]
-                );
+                $params = array_merge([$from30, $to], $userIds, $userIds, $userIds);
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
 

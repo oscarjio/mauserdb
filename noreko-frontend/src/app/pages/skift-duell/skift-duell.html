@@ -1,0 +1,266 @@
+<div class="container-fluid py-3">
+
+  <!-- Controls -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="mb-3"><i class="fas fa-swords me-2 text-warning"></i>Skiftduell — per-skift IBC/h på gemensam tidslinje</h5>
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">Operatör A (blå)</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedA">
+            <option [ngValue]="0">Välj operatör A…</option>
+            <option *ngFor="let op of availableForA" [ngValue]="+op.number">{{ op.name }}</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">Operatör B (orange)</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedB">
+            <option [ngValue]="0">Välj operatör B…</option>
+            <option *ngFor="let op of availableForB" [ngValue]="+op.number">{{ op.name }}</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small text-muted">Period</label>
+          <select class="form-select form-select-sm" [(ngModel)]="days">
+            <option *ngFor="let d of daysOptions" [ngValue]="d">{{ d }} dagar</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-warning btn-sm w-100" (click)="compare()" [disabled]="!canCompare || loading">
+            <span *ngIf="loading"><i class="fas fa-spinner fa-spin me-1"></i>Laddar…</span>
+            <span *ngIf="!loading"><i class="fas fa-swords me-1"></i>Jämför</span>
+          </button>
+        </div>
+      </div>
+      <p class="text-muted small mb-0 mt-2">
+        <i class="fas fa-info-circle me-1"></i>
+        Varje punkt = ett enskilt skift. Trianglar = skift de jobbade <strong>tillsammans</strong>.
+        Linjerna visar 7-skift glidande snitt per operatör.
+      </p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-danger py-2">{{ error }}</div>
+
+  <!-- Results -->
+  <ng-container *ngIf="data; let d">
+
+    <!-- VS Banner -->
+    <div class="vs-banner card mb-3">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-center align-items-center gap-4 flex-wrap">
+          <div class="text-center">
+            <div class="op-name text-a">{{ d.a.name }}</div>
+            <small class="text-muted">{{ d.a.shifts_count }} skift</small>
+          </div>
+          <div class="vs-text">VS</div>
+          <div class="text-center">
+            <div class="op-name text-b">{{ d.b.name }}</div>
+            <small class="text-muted">{{ d.b.shifts_count }} skift</small>
+          </div>
+        </div>
+        <div class="text-center mt-1 text-muted small">
+          {{ d.from }} – {{ d.to }} &nbsp;·&nbsp; Lagsnitt {{ fmt(d.team_avg) }} IBC/h
+          <span *ngIf="d.a.together_count > 0" class="ms-2">·&nbsp;
+            <i class="fas fa-users me-1"></i>{{ d.a.together_count }} skift ihop
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="duellChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI comparison -->
+    <div class="row g-3 mb-3">
+      <!-- Operator A stats -->
+      <div class="col-12 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="text-a mb-3"><i class="fas fa-circle me-2" style="color:#4299e1"></i>{{ d.a.name }}</h6>
+            <div class="row g-2 text-center">
+              <div class="col-6">
+                <div class="kpi-box" [ngClass]="kpiClass(d.a.avg_ibc_h, d.team_avg)">
+                  <div class="kpi-val">{{ fmt(d.a.avg_ibc_h) }}</div>
+                  <div class="kpi-lbl">Snitt IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box">
+                  <div class="kpi-val">{{ fmt(d.a.median_ibc_h) }}</div>
+                  <div class="kpi-lbl">Median IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box kpi-good">
+                  <div class="kpi-val">{{ fmt(d.a.best_ibc_h) }}</div>
+                  <div class="kpi-lbl">Bästa skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box">
+                  <div class="kpi-val">{{ d.a.shifts_count }}</div>
+                  <div class="kpi-lbl">Antal skift</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operator B stats -->
+      <div class="col-12 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="text-b mb-3"><i class="fas fa-circle me-2" style="color:#f6ad55"></i>{{ d.b.name }}</h6>
+            <div class="row g-2 text-center">
+              <div class="col-6">
+                <div class="kpi-box" [ngClass]="kpiClass(d.b.avg_ibc_h, d.team_avg)">
+                  <div class="kpi-val">{{ fmt(d.b.avg_ibc_h) }}</div>
+                  <div class="kpi-lbl">Snitt IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box">
+                  <div class="kpi-val">{{ fmt(d.b.median_ibc_h) }}</div>
+                  <div class="kpi-lbl">Median IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box kpi-good">
+                  <div class="kpi-val">{{ fmt(d.b.best_ibc_h) }}</div>
+                  <div class="kpi-lbl">Bästa skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-box">
+                  <div class="kpi-val">{{ d.b.shifts_count }}</div>
+                  <div class="kpi-lbl">Antal skift</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Synergy section (only if they worked together) -->
+    <div *ngIf="d.a.together_count >= 3" class="card mb-3">
+      <div class="card-body">
+        <h6 class="mb-3"><i class="fas fa-handshake me-2 text-success"></i>Samarbetseffekt ({{ d.a.together_count }} skift ihop)</h6>
+        <div class="row g-2 text-center">
+          <!-- Together avg -->
+          <div class="col-6 col-md-3">
+            <div class="kpi-box" [ngClass]="kpiClass(d.a.together_avg, d.team_avg)">
+              <div class="kpi-val">{{ fmt(d.a.together_avg) }}</div>
+              <div class="kpi-lbl">IBC/h när ihop</div>
+            </div>
+          </div>
+          <!-- A alone avg -->
+          <div class="col-6 col-md-3">
+            <div class="kpi-box">
+              <div class="kpi-val">{{ fmt(d.a.alone_avg) }}</div>
+              <div class="kpi-lbl">{{ d.a.name }} utan {{ d.b.name }}</div>
+            </div>
+          </div>
+          <!-- B alone avg -->
+          <div class="col-6 col-md-3">
+            <div class="kpi-box">
+              <div class="kpi-val">{{ fmt(d.b.alone_avg) }}</div>
+              <div class="kpi-lbl">{{ d.b.name }} utan {{ d.a.name }}</div>
+            </div>
+          </div>
+          <!-- Synergy delta -->
+          <div class="col-6 col-md-3">
+            <div class="kpi-box" [ngClass]="synergyClass(synergyDelta())">
+              <div class="kpi-val">
+                <span *ngIf="synergyDelta() !== null">
+                  {{ synergyDelta()! > 0 ? '+' : '' }}{{ fmt(synergyDelta()) }}
+                </span>
+                <span *ngIf="synergyDelta() === null">—</span>
+              </div>
+              <div class="kpi-lbl">Ihop vs ensam (A)</div>
+            </div>
+          </div>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+          <i class="fas fa-info-circle me-1"></i>
+          IBC/h är ett lagmått — alla operatörer på skiftet delar samma värde.
+          "Ihop vs ensam" visar om lagets IBC/h är systematiskt högre eller lägre när just dessa två arbetar tillsammans.
+        </p>
+      </div>
+    </div>
+
+    <!-- Shift table -->
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3"><i class="fas fa-list me-2"></i>Skiftlista</h6>
+        <div class="row g-3">
+          <!-- A shifts -->
+          <div class="col-12 col-xl-6">
+            <div class="table-label text-a mb-1">{{ d.a.name }}</div>
+            <div class="table-scroll">
+              <table class="table table-sm table-dark mb-0">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>IBC/h</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of d.a.shifts">
+                    <td>{{ s.dag }}</td>
+                    <td [class.text-good]="s.ibc_h !== null && d.team_avg !== null && s.ibc_h >= d.team_avg"
+                        [class.text-bad]="s.ibc_h !== null && d.team_avg !== null && s.ibc_h < d.team_avg">
+                      {{ fmt(s.ibc_h) }}
+                    </td>
+                    <td>
+                      <span *ngIf="s.together" class="badge bg-info text-dark badge-sm">ihop</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- B shifts -->
+          <div class="col-12 col-xl-6">
+            <div class="table-label text-b mb-1">{{ d.b.name }}</div>
+            <div class="table-scroll">
+              <table class="table table-sm table-dark mb-0">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>IBC/h</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of d.b.shifts">
+                    <td>{{ s.dag }}</td>
+                    <td [class.text-good]="s.ibc_h !== null && d.team_avg !== null && s.ibc_h >= d.team_avg"
+                        [class.text-bad]="s.ibc_h !== null && d.team_avg !== null && s.ibc_h < d.team_avg">
+                      {{ fmt(s.ibc_h) }}
+                    </td>
+                    <td>
+                      <span *ngIf="s.together" class="badge bg-info text-dark badge-sm">ihop</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

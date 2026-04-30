@@ -104,25 +104,24 @@ class EffektivitetController {
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
-        // Hämta per dag och skiftraknare: MAX(ibc_ok) + MAX(runtime_plc)
-        // runtime_plc = maskinens runtime i minuter (kumulativ per skiftraknare).
-        // Vi summerar per dag för att få totalt per dag.
+        // LAG-korrigerad: ibc_ok är ett dagligt löpande räkneverk; runtime_plc återställs per skift.
         $stmt = $this->pdo->prepare(
-            "SELECT
-                dag,
-                SUM(max_ibc)     AS ibc_count,
-                SUM(max_runtime) AS runtime_min
-             FROM (
-                SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))      AS max_ibc,
-                    MAX(COALESCE(runtime_plc, 0)) AS max_runtime
+            "WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                       MAX(COALESCE(runtime_plc, 0)) AS max_runtime
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
                 GROUP BY DATE(datum), skiftraknare
-             ) sub
+             ),
+             lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc,
+                       max_runtime
+                FROM lag_base
+             )
+             SELECT dag, SUM(shift_ibc) AS ibc_count, SUM(max_runtime) AS runtime_min
+             FROM lag_shifts
              GROUP BY dag
              ORDER BY dag ASC"
         );
@@ -335,25 +334,29 @@ class EffektivitetController {
             $bastaIbcH  = -1.0;
 
             foreach (array_keys(self::SKIFT) as $skift) {
-                $timeCond = $this->skiftTimewhere($skift, 'datum');
+                // LAG() beräknas över alla skift per dag; sedan filtreras på skiftets starttid
+                $timeCond = $this->skiftTimewhere($skift, 'shift_start');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT
-                        COALESCE(SUM(max_ibc),     0) AS ibc_count,
-                        COALESCE(SUM(max_runtime),  0) AS runtime_min,
-                        COUNT(DISTINCT dag)            AS dagar_med_produktion
-                     FROM (
-                        SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0))      AS max_ibc,
-                            MAX(COALESCE(runtime_plc, 0)) AS max_runtime
+                    "WITH lag_base AS (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                               MAX(COALESCE(runtime_plc, 0)) AS max_runtime,
+                               MIN(datum)                    AS shift_start
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                          AND {$timeCond}
                         GROUP BY DATE(datum), skiftraknare
-                     ) sub"
+                     ),
+                     lag_shifts AS (
+                        SELECT dag, skiftraknare, shift_start, max_runtime,
+                               GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                        FROM lag_base
+                     )
+                     SELECT COALESCE(SUM(shift_ibc), 0) AS ibc_count,
+                            COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                            COUNT(DISTINCT dag)            AS dagar_med_produktion
+                     FROM lag_shifts
+                     WHERE {$timeCond}"
                 );
                 $stmt->execute([$fromDate, $toDate]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);

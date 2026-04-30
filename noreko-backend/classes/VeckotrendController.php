@@ -41,26 +41,29 @@ class VeckotrendController {
             $startDate = date('Y-m-d', strtotime('-7 days'));
             $endDate   = date('Y-m-d');
 
-            // --- IBC per dag + snitt cykeltid + kvalitet ---
+            // --- IBC per dag + snitt cykeltid + kvalitet (LAG-korrigerad) ---
             $stmt = $this->pdo->prepare("
-                SELECT
-                    dag,
-                    COALESCE(SUM(shift_ibc_ok), 0)            AS ibc_ok,
-                    COALESCE(SUM(shift_ibc_ej_ok), 0)         AS ibc_ej_ok,
-                    ROUND(COALESCE(AVG(avg_cykeltid), 0), 2)  AS snitt_cykeltid
-                FROM (
-                    SELECT
-                        DATE(datum)                         AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))            AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0))         AS shift_ibc_ej_ok,
-                        AVG(runtime_plc)                    AS avg_cykeltid
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
+                           AVG(runtime_plc)             AS avg_cykeltid
                     FROM rebotling_ibc
-                    WHERE datum >= ?
-                      AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                           avg_cykeltid
+                    FROM lag_base
+                )
+                SELECT dag,
+                       COALESCE(SUM(shift_ibc_ok), 0)           AS ibc_ok,
+                       COALESCE(SUM(shift_ibc_ej_ok), 0)        AS ibc_ej_ok,
+                       ROUND(COALESCE(AVG(avg_cykeltid), 0), 2) AS snitt_cykeltid
+                FROM lag_shifts
                 GROUP BY dag
                 ORDER BY dag ASC
             ");
