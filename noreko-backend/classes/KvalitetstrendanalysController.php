@@ -148,54 +148,39 @@ class KvalitetstrendanalysController {
     private function fetchOperatorData(string $fromDate, string $toDate): array {
         $result = [];
         try {
-            // Use MAX(ibc_ok)/MAX(ibc_ej_ok) per skiftraknare (cumulative PLC fields)
-            // then attribute per operator via op1/op2/op3
+            // CTE LAG() — ibc_ok/ibc_ej_ok are cumulative daily PLC counters that don't
+            // reset between shifts. SUM(MAX per shift) overcounts; LAG() delta is correct.
+            // Single CTE referenced three times for op1/op2/op3 attribution (no repeated params).
             $stmt = $this->pdo->prepare("
-                SELECT op_num, SUM(total) AS total, SUM(kasserade) AS kasserade FROM (
-                    SELECT op1 AS op_num,
-                           SUM(shift_ok + shift_ej_ok) AS total,
-                           SUM(shift_ej_ok) AS kasserade
-                    FROM (
-                        SELECT skiftraknare, op1,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY) AND op1 IS NOT NULL
-                        GROUP BY skiftraknare, op1
-                    ) ps1 GROUP BY op1
+                WITH base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(op1, 0))      AS op1,
+                           MAX(COALESCE(op2, 0))      AS op2,
+                           MAX(COALESCE(op3, 0))      AS op3,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                    FROM rebotling_ibc
+                    WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                    FROM base
+                )
+                SELECT op_num, SUM(ibc_delta) AS total, SUM(ibc_ej_delta) AS kasserade
+                FROM (
+                    SELECT op1 AS op_num, ibc_delta, ibc_ej_delta FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2 AS op_num,
-                           SUM(shift_ok + shift_ej_ok) AS total,
-                           SUM(shift_ej_ok) AS kasserade
-                    FROM (
-                        SELECT skiftraknare, op2,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :f2 AND datum < DATE_ADD(:t2, INTERVAL 1 DAY) AND op2 IS NOT NULL
-                        GROUP BY skiftraknare, op2
-                    ) ps2 GROUP BY op2
+                    SELECT op2, ibc_delta, ibc_ej_delta FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3 AS op_num,
-                           SUM(shift_ok + shift_ej_ok) AS total,
-                           SUM(shift_ej_ok) AS kasserade
-                    FROM (
-                        SELECT skiftraknare, op3,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :f3 AND datum < DATE_ADD(:t3, INTERVAL 1 DAY) AND op3 IS NOT NULL
-                        GROUP BY skiftraknare, op3
-                    ) ps3 GROUP BY op3
-                ) AS combined
+                    SELECT op3, ibc_delta, ibc_ej_delta FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                ) combined
                 GROUP BY op_num
                 ORDER BY total DESC
             ");
-            $stmt->execute([
-                ':f1' => $fromDate, ':t1' => $toDate,
-                ':f2' => $fromDate, ':t2' => $toDate,
-                ':f3' => $fromDate, ':t3' => $toDate,
-            ]);
+            $stmt->execute([':f1' => $fromDate, ':t1' => $toDate]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $opNum = (int)$row['op_num'];
                 if ($opNum <= 0) continue;

@@ -582,20 +582,23 @@ class MorgonrapportController {
         string $prevWeekDate,
         string $avg30Start
     ): array {
-        // Daglig IBC fran 30 dagar bakåt (for trendlinje) — korrekt MAX/GROUP BY-aggregering
+        // LAG() delta — ibc_ok is a cumulative daily PLC counter (doesn't reset per shift).
         $dagligIbc = [];
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT dag, SUM(max_ok) AS cnt
+                "SELECT dag, SUM(ibc_delta) AS cnt
                  FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) sub
+                     SELECT dag,
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                     FROM (
+                         SELECT DATE(datum) AS dag, skiftraknare,
+                                MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                         FROM rebotling_ibc
+                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                         GROUP BY DATE(datum), skiftraknare
+                         HAVING COUNT(*) > 1
+                     ) base
+                 ) lag_q
                  GROUP BY dag
                  ORDER BY dag ASC"
             );
@@ -634,20 +637,13 @@ class MorgonrapportController {
         $snabbastOperator  = null;
         $snabbastAntal     = 0;
 
-        // Basta timme (flest IBC) — korrekt MAX/GROUP BY per skiftraknare+timme
+        // Bästa timme: COUNT(*) per hour = antal IBC-cykler (ingen kumulativ räknare behövs).
         try {
             $stmt = $this->pdo->prepare("
-                SELECT timme, SUM(max_ok) AS cnt
-                FROM (
-                    SELECT HOUR(datum) AS timme, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), HOUR(datum), skiftraknare
-                    HAVING COUNT(*) > 1
-                ) sub
-                GROUP BY timme
+                SELECT HOUR(datum) AS timme, COUNT(*) AS cnt
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                GROUP BY HOUR(datum)
                 ORDER BY cnt DESC
                 LIMIT 1
             ");
@@ -666,37 +662,38 @@ class MorgonrapportController {
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'operators'");
             if ($check && $check->rowCount() > 0) {
-                // Operator-IBC raknas per skiftraknare dar operatorn ar registrerad (korrekt aggregering)
+                // Two-level LAG() CTE: base groups per (dag,skiftraknare), lag_shifts computes delta.
                 $stmt = $this->pdo->prepare("
-                    SELECT op, SUM(max_ok) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
+                    WITH base AS (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(op1, 0))     AS op1,
+                               MAX(COALESCE(op2, 0))     AS op2,
+                               MAX(COALESCE(op3, 0))     AS op3,
+                               MAX(COALESCE(ibc_ok, 0))  AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ),
+                    lag_shifts AS (
+                        SELECT dag, skiftraknare, op1, op2, op3,
+                               GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                        FROM base
+                    )
+                    SELECT op, SUM(ibc_delta) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
                     FROM (
-                        SELECT op1 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-
-                        GROUP BY DATE(datum), skiftraknare, op1
-                        HAVING COUNT(*) > 1
+                        SELECT op1 AS op, ibc_delta FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                         UNION ALL
-                        SELECT op2 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-
-                        GROUP BY DATE(datum), skiftraknare, op2
-                        HAVING COUNT(*) > 1
+                        SELECT op2, ibc_delta FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                         UNION ALL
-                        SELECT op3 AS op, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-
-                        GROUP BY DATE(datum), skiftraknare, op3
-                        HAVING COUNT(*) > 1
+                        SELECT op3, ibc_delta FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
                     GROUP BY op, o.name
                     ORDER BY total_ibc DESC
                     LIMIT 1
                 ");
-                $stmt->execute([$date, $date, $date, $date, $date, $date]);
+                $stmt->execute([$date, $date]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
                     $snabbastOperator = $row['operator_namn'];

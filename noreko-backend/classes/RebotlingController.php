@@ -310,6 +310,8 @@ class RebotlingController {
                 $this->getSnabbhetProduktMatris();
             } elseif ($action === 'fart-stopp') {
                 $this->getFartStoppKorrelation();
+            } elseif ($action === 'kassationsrytm') {
+                $this->getKassationsrytm();
             } elseif ($action === 'kassation-stopp') {
                 $this->getKassationStoppKorrelation();
             } elseif ($action === 'produktbyten') {
@@ -1454,30 +1456,38 @@ class RebotlingController {
         };
 
         try {
-            // Steg 1: per skiftraknare MAX (kumulativa värden)
-            // Steg 2: summera korrekt över skift
+            // LAG() delta pattern — ibc_ok/ej_ok/bur_ej_ok are cumulative daily PLC counters
+            // that do NOT reset between shifts (only at midnight). SUM(MAX per shift) overcounts
+            // on multi-shift days; LAG() gives the true per-shift production delta.
+            // runtime_plc/rasttime reset per shift so MAX per skiftraknare is correct for those.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) as total_cycles,
-                    SUM(shift_ibc_ok)    as total_ibc_ok,
-                    SUM(shift_ibc_ej_ok) as total_ibc_ej_ok,
-                    SUM(shift_bur_ej_ok) as total_bur_ej_ok,
-                    SUM(shift_runtime)   as total_runtime_min,
-                    SUM(shift_rast)      as total_rast_min
+                    SUM(shift_cycles)        AS total_cycles,
+                    SUM(ibc_ok_delta)        AS total_ibc_ok,
+                    SUM(ibc_ej_ok_delta)     AS total_ibc_ej_ok,
+                    SUM(bur_ej_ok_delta)     AS total_bur_ej_ok,
+                    SUM(shift_runtime)       AS total_runtime_min,
+                    SUM(shift_rast)          AS total_rast_min
                 FROM (
-                    SELECT
-                        skiftraknare,
-                        COUNT(*)              AS total_cycles,
-                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        MAX(COALESCE(rasttime,   0)) AS shift_rast
-                    FROM rebotling_ibc r
-                    WHERE $dateFilter
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare, shift_cycles, shift_runtime, shift_rast,
+                           GREATEST(0, ibc_ok_end - COALESCE(LAG(ibc_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok_delta,
+                           GREATEST(0, ibc_ej_ok_end - COALESCE(LAG(ibc_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta,
+                           GREATEST(0, bur_ej_ok_end - COALESCE(LAG(bur_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS bur_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum)                    AS dag,
+                               skiftraknare,
+                               COUNT(*)                       AS shift_cycles,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                               MAX(COALESCE(rasttime,    0)) AS shift_rast,
+                               MAX(COALESCE(ibc_ok,     0)) AS ibc_ok_end,
+                               MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok_end,
+                               MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok_end
+                        FROM rebotling_ibc r
+                        WHERE $dateFilter
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) lag_q
             ");
             $stmt->execute();
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1575,20 +1585,25 @@ class RebotlingController {
             }
 
             if ($granularity === 'shift') {
-                // Per-skift granularitet: varje skift är en datapunkt
+                // Per-skift granularitet med LAG() för kumulativa ibc-räknare.
                 $stmt = $this->pdo->prepare("
-                    SELECT
-                        DATE(datum)          AS dag,
-                        skiftraknare,
-                        MIN(datum)           AS skift_start,
-                        COUNT(*)             AS cykler,
-                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= :cycle_start AND datum <= :cycle_end
-                    GROUP BY DATE(datum), skiftraknare
+                    SELECT dag, skiftraknare, skift_start, cykler, shift_runtime,
+                           GREATEST(0, ibc_ok_end - COALESCE(LAG(ibc_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                           GREATEST(0, ibc_ej_ok_end - COALESCE(LAG(ibc_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                           GREATEST(0, bur_ej_ok_end - COALESCE(LAG(bur_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_bur_ej_ok
+                    FROM (
+                        SELECT DATE(datum)                    AS dag,
+                               skiftraknare,
+                               MIN(datum)                     AS skift_start,
+                               COUNT(*)                       AS cykler,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                               MAX(COALESCE(ibc_ok,     0)) AS ibc_ok_end,
+                               MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok_end,
+                               MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :cycle_start AND datum <= :cycle_end
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
                 $stmt->execute(['cycle_start' => $cycleStart . ' 00:00:00', 'cycle_end' => $cycleEnd . ' 23:59:59']);
@@ -1630,31 +1645,35 @@ class RebotlingController {
                 return;
             }
 
-            // Daglig statistik. ibc_ok/ej_ok/bur_ej_ok är kumulativa PLC-värden per skift –
-            // aggregera korrekt med per-skift-subquery (MAX per skiftraknare → SUM per dag).
+            // LAG() delta for ibc fields — cumulative daily PLC counters, not per-shift reset.
             $stmt = $this->pdo->prepare("
                 SELECT
                     dag,
-                    SUM(cykler)          AS cycles,
-                    ROUND(AVG(avg_runtime), 1) AS avg_runtime,
-                    ROUND(SUM(shift_ibc_ok) * 60.0 / NULLIF(SUM(shift_runtime), 0), 1) AS avg_ibc_per_hour,
-                    SUM(shift_ibc_ok)    AS total_ibc_ok,
-                    SUM(shift_ibc_ej_ok) AS total_ibc_ej_ok,
-                    SUM(shift_bur_ej_ok) AS total_bur_ej_ok
+                    SUM(cykler)                                                          AS cycles,
+                    ROUND(AVG(avg_runtime), 1)                                           AS avg_runtime,
+                    ROUND(SUM(ibc_ok_delta) * 60.0 / NULLIF(SUM(shift_runtime), 0), 1) AS avg_ibc_per_hour,
+                    SUM(ibc_ok_delta)    AS total_ibc_ok,
+                    SUM(ibc_ej_ok_delta) AS total_ibc_ej_ok,
+                    SUM(bur_ej_ok_delta) AS total_bur_ej_ok
                 FROM (
-                    SELECT
-                        DATE(datum)          AS dag,
-                        skiftraknare,
-                        COUNT(*)             AS cykler,
-                        AVG(runtime_plc)     AS avg_runtime,
-                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= :cycle_start AND datum <= :cycle_end
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare, cykler, avg_runtime, shift_runtime,
+                           GREATEST(0, ibc_ok_end - COALESCE(LAG(ibc_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok_delta,
+                           GREATEST(0, ibc_ej_ok_end - COALESCE(LAG(ibc_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta,
+                           GREATEST(0, bur_ej_ok_end - COALESCE(LAG(bur_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS bur_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum)                    AS dag,
+                               skiftraknare,
+                               COUNT(*)                       AS cykler,
+                               AVG(runtime_plc)               AS avg_runtime,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                               MAX(COALESCE(ibc_ok,     0)) AS ibc_ok_end,
+                               MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok_end,
+                               MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :cycle_start AND datum <= :cycle_end
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) lag_q
                 GROUP BY dag
                 ORDER BY dag
             ");
@@ -3316,27 +3335,32 @@ class RebotlingController {
         if ($days > 90) $days = 90;
 
         try {
+            // LAG() delta for ibc fields — cumulative daily PLC counters.
             $sql = "
                 SELECT
-                    datum_day AS dag,
-                    SUM(shift_ibc_ok)     AS daily_ibc_ok,
-                    SUM(shift_ibc_ej_ok)  AS daily_ibc_ej_ok,
-                    SUM(shift_runtime)    AS daily_runtime_min,
-                    SUM(shift_rast)       AS daily_rast_min
+                    dag,
+                    SUM(ibc_ok_delta)    AS daily_ibc_ok,
+                    SUM(ibc_ej_ok_delta) AS daily_ibc_ej_ok,
+                    SUM(shift_runtime)   AS daily_runtime_min,
+                    SUM(shift_rast)      AS daily_rast_min
                 FROM (
-                    SELECT
-                        DATE(datum)                         AS datum_day,
-                        skiftraknare,
-                        COALESCE(MAX(ibc_ok), 0)            AS shift_ibc_ok,
-                        COALESCE(MAX(ibc_ej_ok), 0)         AS shift_ibc_ej_ok,
-                        COALESCE(MAX(runtime_plc), 0)       AS shift_runtime,
-                        COALESCE(MAX(rasttime), 0)          AS shift_rast
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) per_shift
-                GROUP BY datum_day
-                ORDER BY datum_day ASC
+                    SELECT dag, skiftraknare, shift_runtime, shift_rast,
+                           GREATEST(0, ibc_ok_end - COALESCE(LAG(ibc_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok_delta,
+                           GREATEST(0, ibc_ej_ok_end - COALESCE(LAG(ibc_ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum)                    AS dag,
+                               skiftraknare,
+                               COALESCE(MAX(runtime_plc), 0) AS shift_runtime,
+                               COALESCE(MAX(rasttime),    0) AS shift_rast,
+                               COALESCE(MAX(ibc_ok),      0) AS ibc_ok_end,
+                               COALESCE(MAX(ibc_ej_ok),   0) AS ibc_ej_ok_end
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) lag_q
+                GROUP BY dag
+                ORDER BY dag ASC
             ";
 
             $stmt = $this->pdo->prepare($sql);
@@ -10313,6 +10337,178 @@ class RebotlingController {
             error_log('RebotlingController::getSpeedQualityCorrelation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid fart-kvalitet-analys'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=kassationsrytm&days=90
+    // 3×7 heatmap of kassation% per shift type (dag/kvall/natt) × weekday (Mon-Sun).
+    // Uses LAG() for ibc_ok, ibc_ej_ok, bur_ej_ok (all PLC daily running counters).
+    private function getKassationsrytm(): void {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(730, (int)$_GET['days'])) : 90;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            $sql = "
+                SELECT dow, skift_typ,
+                       SUM(d_ibc_ok)  AS tot_ibc_ok,
+                       SUM(d_ibc_ej)  AS tot_ibc_ej,
+                       SUM(d_bur_ej)  AS tot_bur_ej,
+                       COUNT(*)       AS antal_skift
+                FROM (
+                    SELECT DAYOFWEEK(datum) AS dow,
+                           skift_typ,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS d_ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS d_ibc_ej,
+                           GREATEST(0, bur_end - COALESCE(LAG(bur_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS d_bur_ej
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))              AS datum,
+                               MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0))   AS ej_end,
+                               MAX(COALESCE(bur_ej_ok, 0))   AS bur_end,
+                               CASE
+                                   WHEN HOUR(MIN(created_at)) >=  6 AND HOUR(MIN(created_at)) < 14 THEN 'dag'
+                                   WHEN HOUR(MIN(created_at)) >= 14 AND HOUR(MIN(created_at)) < 22 THEN 'kvall'
+                                   ELSE 'natt'
+                               END AS skift_typ
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from AND :to
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) raw
+                ) deduped
+                GROUP BY dow, skift_typ
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build indexed cells by (skift_typ, dow)
+            $cells = [];
+            $grandOk = 0;
+            $grandEj = 0;
+            $grandBur = 0;
+
+            foreach ($rows as $r) {
+                $dow  = (int)$r['dow'];
+                $typ  = $r['skift_typ'];
+                $ok   = (int)$r['tot_ibc_ok'];
+                $ej   = (int)$r['tot_ibc_ej'];
+                $bur  = (int)$r['tot_bur_ej'];
+                $prod = $ok + $ej;
+                $kassP = $prod > 0 ? round($ej / $prod * 100, 2) : null;
+                $burP  = ($ok + $ej + $bur) > 0 ? round($bur / ($ok + $ej + $bur) * 100, 2) : null;
+                $cells[$typ][$dow] = [
+                    'kass_pct'    => $kassP,
+                    'bur_pct'     => $burP,
+                    'tot_ibc_ok'  => $ok,
+                    'tot_ibc_ej'  => $ej,
+                    'tot_bur_ej'  => $bur,
+                    'antal_skift' => (int)$r['antal_skift'],
+                ];
+                $grandOk  += $ok;
+                $grandEj  += $ej;
+                $grandBur += $bur;
+            }
+
+            $grandProd  = $grandOk + $grandEj;
+            $periodAvg  = $grandProd > 0 ? round($grandEj / $grandProd * 100, 2) : 0;
+            $periodBurAvg = ($grandOk + $grandEj + $grandBur) > 0
+                ? round($grandBur / ($grandOk + $grandEj + $grandBur) * 100, 2)
+                : 0;
+
+            // MySQL DAYOFWEEK: 1=Sun, 2=Mon, ..., 7=Sat → display Mon-Sun
+            $dowOrder   = [2, 3, 4, 5, 6, 7, 1];
+            $dowLabels  = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+            $typar      = ['dag', 'kvall', 'natt'];
+            $typLabels  = ['Dagskift (06–14)', 'Kvällsskift (14–22)', 'Nattskift (22–06)'];
+
+            $grid = [];
+            $best = null;
+            $worst = null;
+
+            foreach ($typar as $idx => $typ) {
+                $rowOk = 0; $rowEj = 0;
+                $rowCells = [];
+                foreach ($dowOrder as $di => $dow) {
+                    $c = $cells[$typ][$dow] ?? null;
+                    if ($c) {
+                        $rowOk += $c['tot_ibc_ok'];
+                        $rowEj += $c['tot_ibc_ej'];
+                    }
+                    $kassP = $c ? $c['kass_pct'] : null;
+                    $vsPct = ($kassP !== null && $periodAvg > 0)
+                        ? round($kassP - $periodAvg, 2)  // pp-difference from period avg
+                        : null;
+                    $rowCells[] = [
+                        'dag_namn'    => $dowLabels[$di],
+                        'dow'         => $dow,
+                        'kass_pct'    => $kassP,
+                        'bur_pct'     => $c ? $c['bur_pct']     : null,
+                        'tot_ibc_ok'  => $c ? $c['tot_ibc_ok']  : 0,
+                        'tot_ibc_ej'  => $c ? $c['tot_ibc_ej']  : 0,
+                        'tot_bur_ej'  => $c ? $c['tot_bur_ej']  : 0,
+                        'antal_skift' => $c ? $c['antal_skift']  : 0,
+                        'vs_avg_pp'   => $vsPct,  // pp deviation from period kassation%
+                    ];
+
+                    if ($kassP !== null && ($c['antal_skift'] ?? 0) >= 3) {
+                        if ($best  === null || $kassP < $best['kass_pct'])
+                            $best  = ['label' => $typLabels[$idx] . ' — ' . $dowLabels[$di], 'kass_pct' => $kassP, 'antal_skift' => $c['antal_skift']];
+                        if ($worst === null || $kassP > $worst['kass_pct'])
+                            $worst = ['label' => $typLabels[$idx] . ' — ' . $dowLabels[$di], 'kass_pct' => $kassP, 'antal_skift' => $c['antal_skift']];
+                    }
+                }
+                $rowProd = $rowOk + $rowEj;
+                $grid[] = [
+                    'skift_typ' => $typ,
+                    'label'     => $typLabels[$idx],
+                    'cells'     => $rowCells,
+                    'row_avg'   => $rowProd > 0 ? round($rowEj / $rowProd * 100, 2) : 0,
+                ];
+            }
+
+            // Column averages
+            $colAvgs = [];
+            foreach ($dowOrder as $di => $dow) {
+                $colOk = 0; $colEj = 0;
+                foreach ($typar as $typ) {
+                    if (!empty($cells[$typ][$dow])) {
+                        $colOk += $cells[$typ][$dow]['tot_ibc_ok'];
+                        $colEj += $cells[$typ][$dow]['tot_ibc_ej'];
+                    }
+                }
+                $prod = $colOk + $colEj;
+                $colAvgs[] = [
+                    'dag_namn' => $dowLabels[$di],
+                    'avg'      => $prod > 0 ? round($colEj / $prod * 100, 2) : 0,
+                ];
+            }
+
+            echo json_encode([
+                'success'        => true,
+                'days'           => $days,
+                'from'           => $from,
+                'to'             => $to,
+                'period_avg'     => $periodAvg,
+                'period_bur_avg' => $periodBurAvg,
+                'grid'           => $grid,
+                'col_avgs'       => $colAvgs,
+                'best'           => $best,
+                'worst'          => $worst,
+                'totals'         => [
+                    'ibc_ok'  => $grandOk,
+                    'ibc_ej'  => $grandEj,
+                    'bur_ej'  => $grandBur,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKassationsrytm: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsrytm'], \JSON_UNESCAPED_UNICODE);
         }
     }
 
