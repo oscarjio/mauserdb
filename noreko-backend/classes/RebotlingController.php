@@ -372,6 +372,8 @@ class RebotlingController {
                 $this->getProduktPrognos();
             } elseif ($action === 'kassationsbudget') {
                 $this->getKassationsbudget();
+            } elseif ($action === 'stopptidsbudget') {
+                $this->getStopptidsbudget();
             } else {
                 $this->getLiveStats();
             }
@@ -16760,6 +16762,157 @@ class RebotlingController {
             error_log('RebotlingController::getKassationsbudget: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsbudget'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=stopptidsbudget[&year=YYYY&month=M]
+    private function getStopptidsbudget(): void {
+        try {
+            $year  = (int)($_GET['year']  ?? date('Y'));
+            $month = (int)($_GET['month'] ?? (int)date('n'));
+
+            $from          = sprintf('%04d-%02d-01', $year, $month);
+            $days_in_month = \cal_days_in_month(\CAL_GREGORIAN, $month, $year);
+            $to            = sprintf('%04d-%02d-%02d', $year, $month, $days_in_month);
+            $today         = date('Y-m-d');
+
+            if ($today < $from) {
+                $days_elapsed = 0;
+            } elseif ($today >= $to) {
+                $days_elapsed = $days_in_month;
+            } else {
+                $days_elapsed = (int)date('j', strtotime($today));
+            }
+
+            // drifttid and driftstopptime are per-shift values (D4007 resets per shift),
+            // so MAX() per skiftraknare is correct — no LAG() needed.
+            $sqlDaily = "
+                SELECT datum AS dag,
+                       SUM(max_stopp)    AS tot_stopp,
+                       SUM(max_drift)    AS tot_drift,
+                       COUNT(*)          AS antal_skift,
+                       SUM(CASE WHEN max_stopp > 0 THEN 1 ELSE 0 END) AS skift_med_stopp
+                FROM (
+                    SELECT DATE(datum) AS datum, skiftraknare,
+                           MAX(COALESCE(driftstopptime, 0)) AS max_stopp,
+                           MAX(COALESCE(drifttid,       0)) AS max_drift
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ) base
+                GROUP BY datum
+                ORDER BY datum
+            ";
+            $stmt = $this->pdo->prepare($sqlDaily);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $cum_stopp = 0.0; $cum_drift = 0.0;
+            $daily_out = [];
+            foreach ($rows as $r) {
+                $stopp = (float)$r['tot_stopp'];
+                $drift = (float)$r['tot_drift'];
+                $cum_stopp += $stopp;
+                $cum_drift += $drift;
+                $daily_out[] = [
+                    'datum'           => $r['dag'],
+                    'stopp_min'       => round($stopp, 1),
+                    'drifttid_min'    => round($drift, 1),
+                    'antal_skift'     => (int)$r['antal_skift'],
+                    'skift_med_stopp' => (int)$r['skift_med_stopp'],
+                    'stopp_pct'       => $drift > 0 ? round($stopp / $drift * 100, 2) : null,
+                    'cum_stopp_pct'   => $cum_drift > 0 ? round($cum_stopp / $cum_drift * 100, 2) : null,
+                ];
+            }
+
+            $tot_stopp  = $cum_stopp;
+            $tot_drift  = $cum_drift;
+            $stopp_pct  = $tot_drift > 0 ? round($tot_stopp / $tot_drift * 100, 2) : null;
+            $tillgang   = $stopp_pct !== null ? round(100 - $stopp_pct, 2) : null;
+            $tot_skift  = (int)array_sum(array_column($daily_out, 'antal_skift'));
+            $tot_med    = (int)array_sum(array_column($daily_out, 'skift_med_stopp'));
+            $projected  = ($days_elapsed > 0 && $days_elapsed < $days_in_month) ? $stopp_pct : null;
+
+            // By product — stoppgrad per product, worst 10
+            $sqlProd = "
+                SELECT rs.product_id,
+                       COALESCE(p.name, CONCAT('Produkt ', rs.product_id)) AS product_name,
+                       SUM(rs.max_stopp) AS tot_stopp,
+                       SUM(rs.max_drift) AS tot_drift,
+                       COUNT(*) AS antal_skift
+                FROM (
+                    SELECT DATE(datum) AS datum, skiftraknare,
+                           MAX(product_id) AS product_id,
+                           MAX(COALESCE(driftstopptime, 0)) AS max_stopp,
+                           MAX(COALESCE(drifttid,       0)) AS max_drift
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from2 AND :to2 AND drifttid > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ) rs
+                LEFT JOIN rebotling_products p ON p.id = rs.product_id
+                WHERE rs.max_stopp > 0
+                GROUP BY rs.product_id, p.name
+                HAVING SUM(rs.max_drift) > 0
+                ORDER BY SUM(rs.max_stopp) / SUM(rs.max_drift) DESC
+                LIMIT 10
+            ";
+            $stmt = $this->pdo->prepare($sqlProd);
+            $stmt->execute([':from2' => $from, ':to2' => $to]);
+            $by_product = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $stopp = (float)$r['tot_stopp'];
+                $drift = (float)$r['tot_drift'];
+                $by_product[] = [
+                    'product_id'   => $r['product_id'],
+                    'product_name' => $r['product_name'],
+                    'stopp_min'    => round($stopp, 1),
+                    'drifttid_min' => round($drift, 1),
+                    'antal_skift'  => (int)$r['antal_skift'],
+                    'stopp_pct'    => $drift > 0 ? round($stopp / $drift * 100, 2) : null,
+                ];
+            }
+
+            // Available months
+            $stmt = $this->pdo->prepare("
+                SELECT YEAR(datum) AS yr, MONTH(datum) AS mo
+                FROM rebotling_skiftrapport
+                GROUP BY YEAR(datum), MONTH(datum)
+                ORDER BY yr DESC, mo DESC
+                LIMIT 24
+            ");
+            $stmt->execute();
+            $available_months = array_map(fn($r) => [
+                'year'  => (int)$r['yr'],
+                'month' => (int)$r['mo'],
+                'label' => date('F Y', mktime(0, 0, 0, (int)$r['mo'], 1, (int)$r['yr'])),
+            ], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+
+            echo json_encode([
+                'success'          => true,
+                'year'             => $year,
+                'month'            => $month,
+                'from'             => $from,
+                'to'               => $to,
+                'days_in_month'    => $days_in_month,
+                'days_elapsed'     => $days_elapsed,
+                'kpi'              => [
+                    'stopp_pct'       => $stopp_pct,
+                    'tillgang_pct'    => $tillgang,
+                    'stopp_min'       => round($tot_stopp, 1),
+                    'drift_min'       => round($tot_drift, 1),
+                    'antal_skift'     => $tot_skift,
+                    'skift_med_stopp' => $tot_med,
+                    'projected'       => $projected,
+                ],
+                'daily'            => $daily_out,
+                'by_product'       => $by_product,
+                'available_months' => $available_months,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getStopptidsbudget: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsbudget'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

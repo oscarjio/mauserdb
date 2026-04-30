@@ -1,0 +1,305 @@
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center mb-3 gap-3 flex-wrap">
+    <h4 class="mb-0 text-light fw-bold">
+      <i class="fas fa-pause-circle text-warning me-2"></i>Stopptidsbudget
+    </h4>
+
+    <!-- Month selector -->
+    <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+      <label class="text-secondary small mb-0">Månad:</label>
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+              [(ngModel)]="month" (ngModelChange)="onMonthChange(year, month)">
+        <option *ngFor="let m of availableMonths" [ngValue]="m.month"
+                [selected]="m.year === year && m.month === month">
+          {{ monthLabel(m.year, m.month) }}
+        </option>
+      </select>
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+              [(ngModel)]="year" (ngModelChange)="onMonthChange(year, month)">
+        <option *ngFor="let m of availableMonths" [ngValue]="m.year">{{ m.year }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Budget input -->
+  <div class="card bg-dark border-secondary mb-4">
+    <div class="card-body py-3">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <span class="text-secondary small">
+          <i class="fas fa-bullseye me-1"></i>Stopptidsbudget för {{ monthLabel(year, month) }}:
+        </span>
+        <div class="input-group" style="max-width:200px">
+          <input type="number" class="form-control form-control-sm bg-secondary text-light border-0"
+                 placeholder="t.ex. 10.0"
+                 [(ngModel)]="budgetInput" step="0.5" min="0" max="100"
+                 (keyup.enter)="saveBudget()">
+          <span class="input-group-text bg-secondary text-light border-0">%</span>
+        </div>
+        <button class="btn btn-sm btn-success" (click)="saveBudget()">Spara</button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="clearBudget()" *ngIf="budget !== null">Rensa</button>
+        <span class="text-secondary small ms-auto">Budget sparas i webbläsaren per månad</span>
+      </div>
+      <div class="mt-2" *ngIf="budget !== null">
+        <span class="badge bg-warning text-dark">Aktiv budget: max {{ budget }}% stoppgrad</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div class="text-center py-5" *ngIf="loading">
+    <div class="spinner-border text-warning"></div>
+    <p class="text-secondary mt-2 small">Hämtar stopptidsdata…</p>
+  </div>
+  <div class="alert alert-danger" *ngIf="error && !loading">{{ error }}</div>
+
+  <ng-container *ngIf="data && !loading">
+
+    <!-- Status banner -->
+    <div class="status-banner mb-4" [ngClass]="statusClass">
+      <i class="fas"
+         [ngClass]="statusClass === 'status-ok' ? 'fa-check-circle' :
+                    (statusClass === 'status-over' ? 'fa-exclamation-triangle' : 'fa-info-circle')"></i>
+      {{ statusText }}
+      <span class="ms-3 text-secondary small">Dag {{ data.days_elapsed }} av {{ data.days_in_month }}</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="mb-4">
+      <div class="d-flex justify-content-between small text-secondary mb-1">
+        <span>Månadsframsteg</span>
+        <span>{{ progressPct }}% av månaden avklarad</span>
+      </div>
+      <div class="progress" style="height:6px;background:#2d3748">
+        <div class="progress-bar bg-info" [style.width.%]="progressPct"></div>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Stoppgrad%</div>
+          <div class="kpi-value"
+               [class.text-success]="budget !== null && data.kpi.stopp_pct !== null && data.kpi.stopp_pct <= budget"
+               [class.text-danger]="budget !== null && data.kpi.stopp_pct !== null && data.kpi.stopp_pct > budget"
+               [class.text-warning]="budget === null">
+            {{ fmtPct(data.kpi.stopp_pct) }}
+          </div>
+          <div class="kpi-sub text-secondary">hittills denna månad</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Tillgänglighet%</div>
+          <div class="kpi-value"
+               [class.text-success]="data.kpi.tillgang_pct !== null && data.kpi.tillgang_pct >= 90"
+               [class.text-warning]="data.kpi.tillgang_pct !== null && data.kpi.tillgang_pct >= 80 && data.kpi.tillgang_pct < 90"
+               [class.text-danger]="data.kpi.tillgang_pct !== null && data.kpi.tillgang_pct < 80">
+            {{ fmtPct(data.kpi.tillgang_pct) }}
+          </div>
+          <div class="kpi-sub text-secondary">100% − stoppgrad</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Total stopptid</div>
+          <div class="kpi-value text-warning">{{ fmtHours(data.kpi.stopp_min) }}</div>
+          <div class="kpi-sub text-secondary">av {{ fmtHours(data.kpi.drift_min) }} drifttid</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">vs Budget</div>
+          <ng-container *ngIf="budget !== null && data.kpi.stopp_pct !== null; else noBudget">
+            <div class="kpi-value"
+                 [class.text-success]="data.kpi.stopp_pct <= budget"
+                 [class.text-danger]="data.kpi.stopp_pct > budget">
+              {{ data.kpi.stopp_pct <= budget ? '–' : '+' }}{{ (data.kpi.stopp_pct - budget).toFixed(2) }} pp
+            </div>
+          </ng-container>
+          <ng-template #noBudget><div class="kpi-value text-secondary">–</div></ng-template>
+          <div class="kpi-sub text-secondary">budget: {{ budget !== null ? budget + '%' : 'ej satt' }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Prognos (EOM)</div>
+          <div class="kpi-value" *ngIf="data.kpi.projected !== null"
+               [class.text-success]="budget !== null && data.kpi.projected <= budget"
+               [class.text-danger]="budget !== null && data.kpi.projected > budget"
+               [class.text-warning]="budget === null">
+            {{ fmtPct(data.kpi.projected) }}
+          </div>
+          <div class="kpi-value text-secondary" *ngIf="data.kpi.projected === null">–</div>
+          <div class="kpi-sub text-secondary">vid oförändrad takt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Skift med stopp</div>
+          <div class="kpi-value text-danger">{{ data.kpi.skift_med_stopp }}</div>
+          <div class="kpi-sub text-secondary">
+            av {{ data.kpi.antal_skift }} skift
+            ({{ data.kpi.antal_skift > 0 ? (data.kpi.skift_med_stopp / data.kpi.antal_skift * 100).toFixed(0) : 0 }}%)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily cumulative chart -->
+    <div class="card bg-dark border-secondary mb-4">
+      <div class="card-header border-secondary text-light small fw-bold">
+        <i class="fas fa-chart-line me-2 text-warning"></i>Kumulativ stoppgrad% per dag
+        <span class="text-secondary ms-2" *ngIf="budget !== null">
+          — grön streckad linje = budget {{ budget }}%
+        </span>
+      </div>
+      <div class="card-body">
+        <div style="height:260px;position:relative" *ngIf="data.daily.length; else noDaily">
+          <canvas #lineCanvas></canvas>
+        </div>
+        <ng-template #noDaily>
+          <p class="text-secondary text-center py-4">Inga dagliga data för denna månad.</p>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- By product + daily log -->
+    <div class="row g-3 mb-4">
+
+      <!-- By product -->
+      <div class="col-12 col-lg-6">
+        <div class="card bg-dark border-secondary h-100">
+          <div class="card-header border-secondary text-light small fw-bold">
+            <i class="fas fa-box me-2 text-warning"></i>Stoppgrad per produkt (topp 10 högst)
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-dark table-sm table-hover mb-0" *ngIf="data.by_product.length; else noProd">
+              <thead>
+                <tr>
+                  <th>Produkt</th>
+                  <th class="text-end">Stoppgrad%</th>
+                  <th class="text-end">Stopptid</th>
+                  <th class="text-end">Skift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of data.by_product">
+                  <td class="text-light">{{ p.product_name }}</td>
+                  <td class="text-end">
+                    <span class="badge"
+                          [ngClass]="stoppCellClass(p.stopp_pct) === 'cell-bad' ? 'bg-danger' :
+                                     stoppCellClass(p.stopp_pct) === 'cell-warn' ? 'bg-warning text-dark' :
+                                     stoppCellClass(p.stopp_pct) === 'cell-ok' ? 'bg-success' : 'bg-secondary'">
+                      {{ fmtPct(p.stopp_pct) }}
+                    </span>
+                  </td>
+                  <td class="text-end text-secondary">{{ fmtHours(p.stopp_min) }}</td>
+                  <td class="text-end text-secondary">{{ p.antal_skift }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <ng-template #noProd>
+              <p class="text-secondary text-center py-4">Inga produktdata — inga stopp denna månad.</p>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary info card -->
+      <div class="col-12 col-lg-6">
+        <div class="card bg-dark border-secondary h-100">
+          <div class="card-header border-secondary text-light small fw-bold">
+            <i class="fas fa-info-circle me-2 text-info"></i>Om stoppgraden
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="text-secondary small mb-1">Formel</div>
+              <div class="formula-box">
+                Stoppgrad = Driftstopptid ÷ Drifttid × 100
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="text-secondary small mb-2">Riktmärken (OEE-standard)</div>
+              <div class="d-flex flex-column gap-1">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success" style="width:60px">≤ 5%</span>
+                  <span class="text-light small">Excellent — minimal stillestånd</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success" style="width:60px">≤ 10%</span>
+                  <span class="text-light small">God tillgänglighet (≥ 90%)</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-warning text-dark" style="width:60px">≤ 20%</span>
+                  <span class="text-light small">Acceptabelt — planerat underhåll</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-danger" style="width:60px">> 20%</span>
+                  <span class="text-light small">Åtgärd krävs</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-secondary small">
+              <i class="fas fa-lightbulb me-1 text-warning"></i>
+              Sätt ett månadsbudget-mål (t.ex. 10%) så visas avvikelse och prognos för månadsslut.
+              Budgeten sparas per månad i webbläsaren.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily detail table -->
+    <div class="card bg-dark border-secondary">
+      <div class="card-header border-secondary text-light small fw-bold">
+        <i class="fas fa-calendar-alt me-2 text-secondary"></i>Daglig stopplogg
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover mb-0" *ngIf="data.daily.length; else noDailyTable">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th class="text-end">Stoppgrad%</th>
+                <th class="text-end">Kumulativt%</th>
+                <th class="text-end">Stopptid</th>
+                <th class="text-end">Drifttid</th>
+                <th class="text-end">Skift</th>
+                <th class="text-end">Skift m. stopp</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of data.daily">
+                <td class="text-secondary">{{ d.datum }}</td>
+                <td class="text-end">
+                  <span *ngIf="d.stopp_pct !== null"
+                        [class]="stoppCellClass(d.stopp_pct)">
+                    {{ d.stopp_pct.toFixed(2) }}%
+                  </span>
+                  <span *ngIf="d.stopp_pct === null" class="text-secondary">–</span>
+                </td>
+                <td class="text-end text-secondary">
+                  {{ d.cum_stopp_pct !== null ? d.cum_stopp_pct.toFixed(2) + '%' : '–' }}
+                </td>
+                <td class="text-end text-secondary">{{ fmtHours(d.stopp_min) }}</td>
+                <td class="text-end text-secondary">{{ fmtHours(d.drifttid_min) }}</td>
+                <td class="text-end text-secondary">{{ d.antal_skift }}</td>
+                <td class="text-end">
+                  <span [class.text-danger]="d.skift_med_stopp > 0"
+                        [class.text-secondary]="d.skift_med_stopp === 0">
+                    {{ d.skift_med_stopp }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noDailyTable>
+            <p class="text-secondary text-center py-4">Inga dagliga data för vald period.</p>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

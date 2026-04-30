@@ -1,0 +1,73 @@
+.kpi-card {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 14px 16px;
+  height: 100%;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.kpi-sub {
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.status-banner {
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-banner i {
+  font-size: 1.1rem;
+}
+
+.status-ok {
+  background: rgba(72, 187, 120, 0.15);
+  border: 1px solid #48bb78;
+  color: #68d391;
+}
+
+.status-over {
+  background: rgba(252, 129, 129, 0.15);
+  border: 1px solid #fc8181;
+  color: #fc8181;
+}
+
+.status-neutral {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+}
+
+.cell-great { color: #68d391; }
+.cell-ok    { color: #9ae6b4; }
+.cell-warn  { color: #f6ad55; }
+.cell-bad   { color: #fc8181; }
+
+.formula-box {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+}

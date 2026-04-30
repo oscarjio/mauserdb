@@ -123,6 +123,7 @@ export class OperatorPrestationPage {
         { title: 'Personalkalender', desc: 'Månadsvy med närvaro och positioner per operatör — vem jobbade vilken dag?', route: '/rebotling/personal-kalender', icon: 'fas fa-id-badge', color: '#76e4f7' },
         { title: 'Schemaläggningsassistent', desc: 'Datadrivna rekommendationer per operatör — bästa position, bästa skifttyp och aktuell form sammanfattade i ett beslutsstöd för nästa veckas schema', route: '/rebotling/schema-rekommendationer', icon: 'fas fa-clipboard-list', color: '#68d391' },
         { title: 'Kassationsbudget', desc: 'Sätt ett kassations%-mål per månad och följ framsteg — kumulativ daglig kurva vs budget, produkter och operatörer med högst kassation. Prognos för månadsslut vid oförändrad takt.', route: '/rebotling/kassationsbudget', icon: 'fas fa-vial', color: '#fc8181' },
+        { title: 'Stopptidsbudget', desc: 'Sätt ett max stoppgrad%-mål per månad och följ maskinens tillgänglighet mot budget — kumulativ daglig stoppgradskurva, stoppgrad per produkt och prognos för månadsslut.', route: '/rebotling/stopptidsbudget', icon: 'fas fa-pause-circle', color: '#f6ad55' },
       ]
     },
   ];
