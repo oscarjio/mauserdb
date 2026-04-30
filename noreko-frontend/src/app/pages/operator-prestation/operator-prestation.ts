@@ -122,6 +122,7 @@ export class OperatorPrestationPage {
         { title: 'Täckningsanalys', desc: 'Positionstäckning, reservstyrka och SPOF-varning per position', route: '/rebotling/tacknings-analys', icon: 'fas fa-shield-alt', color: '#68d391' },
         { title: 'Personalkalender', desc: 'Månadsvy med närvaro och positioner per operatör — vem jobbade vilken dag?', route: '/rebotling/personal-kalender', icon: 'fas fa-id-badge', color: '#76e4f7' },
         { title: 'Schemaläggningsassistent', desc: 'Datadrivna rekommendationer per operatör — bästa position, bästa skifttyp och aktuell form sammanfattade i ett beslutsstöd för nästa veckas schema', route: '/rebotling/schema-rekommendationer', icon: 'fas fa-clipboard-list', color: '#68d391' },
+        { title: 'Kassationsbudget', desc: 'Sätt ett kassations%-mål per månad och följ framsteg — kumulativ daglig kurva vs budget, produkter och operatörer med högst kassation. Prognos för månadsslut vid oförändrad takt.', route: '/rebotling/kassationsbudget', icon: 'fas fa-vial', color: '#fc8181' },
       ]
     },
   ];

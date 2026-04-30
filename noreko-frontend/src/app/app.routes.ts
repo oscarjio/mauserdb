@@ -188,6 +188,7 @@ export const routes: Routes = [
       { path: 'rebotling/fart-stopp', canActivate: [adminGuard], loadComponent: () => import('./pages/fart-stopp/fart-stopp').then(m => m.FartStoppPage) },
       { path: 'rebotling/kassation-stopp', canActivate: [adminGuard], loadComponent: () => import('./pages/kassation-stopp/kassation-stopp').then(m => m.KassationStoppPage) },
       { path: 'rebotling/kassationsrytm', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsrytm/kassationsrytm').then(m => m.KassationsrytmPage) },
+      { path: 'rebotling/kassationsbudget', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsbudget/kassationsbudget').then(m => m.KassationsbudgetPage) },
       { path: 'rebotling/operator-rotation', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-rotation/operator-rotation').then(m => m.OperatorRotationPage) },
       { path: 'rebotling/manads-jamforelse', canActivate: [adminGuard], loadComponent: () => import('./pages/manads-jamforelse/manads-jamforelse').then(m => m.ManadsJamforelsePage) },
       { path: 'rebotling/skifttyps-matris', canActivate: [adminGuard], loadComponent: () => import('./pages/skifttyps-matris/skifttyps-matris').then(m => m.SkifttypsMatrisPage) },
