@@ -6737,7 +6737,7 @@ HTML;
                 $weekEnd   = $sunday->format('Y-m-d 23:59:59');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0 GROUP BY skiftraknare) ps"
+                    "SELECT COALESCE(SUM(delta_ibc), 0) AS cnt FROM (SELECT GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc FROM (SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0 GROUP BY DATE(datum), skiftraknare) base) lag_d"
                 );
                 $stmt->execute([$weekStart, $weekEnd]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
@@ -6771,7 +6771,7 @@ HTML;
                 $today = $now->format('Y-m-d');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0 GROUP BY skiftraknare) ps"
+                    "SELECT COALESCE(MAX(ibc_ok), 0) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0"
                 );
                 $stmt->execute([$today, $today]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
