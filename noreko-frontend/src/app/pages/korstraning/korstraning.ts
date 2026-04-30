@@ -73,8 +73,8 @@ export class KorstraningPage implements OnInit, OnDestroy {
   minSkift = 3;
 
   teamAvg = 0;
-  teamAvgPerPos: Record<string, number> = {};
-  qualifiedPerPos: Record<string, number> = {};
+  teamAvgPerPos: Partial<Record<string, number>> = {};
+  qualifiedPerPos: Partial<Record<string, number>> = {};
   recommendations: Recommendation[] = [];
   operatorSummaries: OperatorSummary[] = [];
 
