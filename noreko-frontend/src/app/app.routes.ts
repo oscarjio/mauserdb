@@ -177,6 +177,7 @@ export const routes: Routes = [
       { path: 'rebotling/kassationsorsak-per-operator', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsorsak-per-operator/kassationsorsak-per-operator').then(m => m.KassationsorsakPerOperatorPage) },
       { path: 'rebotling/kassationsorsak-per-produkt', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsorsak-per-produkt/kassationsorsak-per-produkt').then(m => m.KassationsorsakPerProduktPage) },
       { path: 'rebotling/kassationsorsak-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/kassationsorsak-trend/kassationsorsak-trend').then(m => m.KassationsorsakTrendPage) },
+      { path: 'rebotling/stopp-per-produkt', canActivate: [adminGuard], loadComponent: () => import('./pages/stopp-per-produkt/stopp-per-produkt').then(m => m.StoppPerProduktPage) },
       { path: 'rebotling/coach-view', canActivate: [adminGuard], loadComponent: () => import('./pages/tranar-vy/tranar-vy').then(m => m.TranarVyPage) },
       { path: 'rebotling/produktions-tidsserie', canActivate: [adminGuard], loadComponent: () => import('./pages/produktions-tidsserie/produktions-tidsserie').then(m => m.ProduktionsTidsseriePage) },
       { path: 'rebotling/skift-insikt', canActivate: [adminGuard], loadComponent: () => import('./pages/skift-insikt/skift-insikt').then(m => m.SkiftInsiktPage) },

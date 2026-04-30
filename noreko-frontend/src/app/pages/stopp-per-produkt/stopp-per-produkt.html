@@ -1,0 +1,146 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>Maskin-Stopp per Produkt</h1>
+    <p class="subtitle">Stoppgrad (driftstoppbortfall) uppdelat på produkttyp — identifiera vilka produkter som orsakar mest maskinproblem</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="controls-row">
+    <div class="period-group">
+      <span class="label">Period:</span>
+      <div class="btn-group">
+        <button *ngFor="let d of daysOptions"
+                class="btn-period"
+                [class.active]="days === d"
+                (click)="days = d; load()">
+          {{ d }}d
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="loading-state">Laddar data…</div>
+  <div *ngIf="error" class="error-state">{{ error }}</div>
+
+  <ng-container *ngIf="data && !loading">
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <span class="kpi-label">Periodssnitt Stoppgrad</span>
+        <span class="kpi-value">{{ data.period_stoppgrad.toFixed(1) }}%</span>
+        <span class="kpi-sub">{{ data.period_days }} dagar</span>
+      </div>
+      <div class="kpi-card" *ngIf="worstProduct() as wp">
+        <span class="kpi-label">Högst Stoppgrad</span>
+        <span class="kpi-value danger">{{ wp.stoppgrad.toFixed(1) }}%</span>
+        <span class="kpi-sub">{{ wp.product_name }}</span>
+      </div>
+      <div class="kpi-card" *ngIf="bestProduct() as bp">
+        <span class="kpi-label">Lägst Stoppgrad</span>
+        <span class="kpi-value good">{{ bp.stoppgrad.toFixed(1) }}%</span>
+        <span class="kpi-sub">{{ bp.product_name }}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Antal Produkter</span>
+        <span class="kpi-value">{{ data.products.length }}</span>
+        <span class="kpi-sub">med ≥3 skift</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Analyserade Skift</span>
+        <span class="kpi-value">{{ data.period_antal_skift }}</span>
+        <span class="kpi-sub">totalt</span>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="card chart-card" *ngIf="sortedProducts.length">
+      <div class="card-header">
+        <h2>Stoppgrad per Produkt</h2>
+        <span class="hint">Gult streck = periodssnitt</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Sortable table -->
+    <div class="card table-card" *ngIf="sortedProducts.length">
+      <div class="card-header">
+        <h2>Detaljtabell</h2>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="sortBy('product_name')">
+                Produkt
+                <span class="sort-icon" *ngIf="sortField === 'product_name'">{{ sortAsc ? '↑' : '↓' }}</span>
+              </th>
+              <th class="sortable" (click)="sortBy('stoppgrad')">
+                Stoppgrad %
+                <span class="sort-icon" *ngIf="sortField === 'stoppgrad'">{{ sortAsc ? '↑' : '↓' }}</span>
+              </th>
+              <th class="sortable" (click)="sortBy('avg_stopp_per_shift')">
+                Snitt stopp/skift
+                <span class="sort-icon" *ngIf="sortField === 'avg_stopp_per_shift'">{{ sortAsc ? '↑' : '↓' }}</span>
+              </th>
+              <th class="sortable" (click)="sortBy('pct_skift_med_stopp')">
+                Skift med stopp %
+                <span class="sort-icon" *ngIf="sortField === 'pct_skift_med_stopp'">{{ sortAsc ? '↑' : '↓' }}</span>
+              </th>
+              <th>Total stopptid</th>
+              <th class="sortable" (click)="sortBy('antal_skift')">
+                Antal skift
+                <span class="sort-icon" *ngIf="sortField === 'antal_skift'">{{ sortAsc ? '↑' : '↓' }}</span>
+              </th>
+              <th>vs Snitt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of sortedProducts">
+              <td class="product-name">{{ p.product_name }}</td>
+              <td>
+                <div class="bar-cell">
+                  <div class="mini-bar-bg">
+                    <div class="mini-bar-fill"
+                         [style.width.%]="Math.min(p.stoppgrad / (data!.period_stoppgrad * 2 + 1) * 100, 100)"
+                         [style.background]="stoppColor(p.stoppgrad, data!.period_stoppgrad)">
+                    </div>
+                  </div>
+                  <span class="bar-value">{{ p.stoppgrad.toFixed(1) }}%</span>
+                </div>
+              </td>
+              <td>{{ p.avg_stopp_per_shift.toFixed(0) }} min</td>
+              <td>{{ p.pct_skift_med_stopp.toFixed(0) }}%</td>
+              <td>{{ p.total_stopptid_h.toFixed(1) }} h</td>
+              <td>{{ p.antal_skift }}</td>
+              <td>
+                <span class="badge" [class]="badgeClass(p.vs_snitt_pp)">
+                  {{ badgeLabel(p.vs_snitt_pp) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Monthly trend -->
+    <div class="card chart-card" *ngIf="data.monthly_trend.length">
+      <div class="card-header">
+        <h2>Stoppgrad — månadsvis trend (12 månader)</h2>
+      </div>
+      <div class="chart-wrap trend-wrap">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!data.products.length" class="empty-state">
+      Ingen data hittades för vald period. Försök med en längre period.
+    </div>
+
+  </ng-container>
+</div>

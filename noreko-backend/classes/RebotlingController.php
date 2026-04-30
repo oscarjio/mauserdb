@@ -376,6 +376,8 @@ class RebotlingController {
                 $this->getStopptidsbudget();
             } elseif ($action === 'kassationsorsak-trend') {
                 $this->getKassationsorsakTrend();
+            } elseif ($action === 'stopp-per-produkt') {
+                $this->getStoppPerProdukt();
             } else {
                 $this->getLiveStats();
             }
@@ -17093,6 +17095,145 @@ class RebotlingController {
             error_log('RebotlingController::getKassationsorsakTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-trend'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getStoppPerProdukt(): void {
+        try {
+            $days = isset($_GET['days']) ? max(30, min(730, (int)$_GET['days'])) : 90;
+            $from = date('Y-m-d', strtotime("-{$days} days"));
+            $to   = date('Y-m-d');
+
+            // Per-product downtime: MAX(driftstopptime)/MAX(drifttid) per skiftraknare
+            // (driftstopptime and drifttid reset per shift — no LAG() needed)
+            $sql = "
+                SELECT
+                    s.product_id,
+                    COALESCE(p.name, CONCAT('Produkt #', s.product_id)) AS product_name,
+                    COUNT(*)                                              AS antal_skift,
+                    SUM(s.max_stopp)                                      AS tot_stopp_min,
+                    SUM(s.max_drift)                                      AS tot_drift_min,
+                    SUM(CASE WHEN s.max_stopp > 0 THEN 1 ELSE 0 END)     AS skift_med_stopp
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(COALESCE(product_id, 0))         AS product_id,
+                        MAX(COALESCE(driftstopptime, 0))     AS max_stopp,
+                        MAX(COALESCE(drifttid, 0))           AS max_drift
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND product_id IS NOT NULL
+                      AND product_id > 0
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) s
+                LEFT JOIN rebotling_products p ON p.id = s.product_id
+                GROUP BY s.product_id, p.name
+                HAVING COUNT(*) >= 3
+                ORDER BY s.product_id
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute period totals and per-product metrics
+            $periodTotStopp = 0;
+            $periodTotDrift = 0;
+            $periodAntalSkift = 0;
+            $products = [];
+
+            foreach ($rows as $r) {
+                $totStopp = (int)$r['tot_stopp_min'];
+                $totDrift = (int)$r['tot_drift_min'];
+                $antal    = (int)$r['antal_skift'];
+                $medStopp = (int)$r['skift_med_stopp'];
+
+                $stoppgrad   = ($totDrift > 0) ? round($totStopp / $totDrift * 100, 2) : 0.0;
+                $avgStoppMin = ($antal > 0) ? round($totStopp / $antal, 1) : 0.0;
+                $pctMed      = ($antal > 0) ? round($medStopp / $antal * 100, 1) : 0.0;
+                $totStoppH   = round($totStopp / 60, 2);
+
+                $products[] = [
+                    'product_id'          => (int)$r['product_id'],
+                    'product_name'        => $r['product_name'],
+                    'antal_skift'         => $antal,
+                    'stoppgrad'           => $stoppgrad,
+                    'avg_stopp_per_shift' => $avgStoppMin,
+                    'pct_skift_med_stopp' => $pctMed,
+                    'total_stopptid_h'    => $totStoppH,
+                    'tot_stopp_min'       => $totStopp,
+                    'tot_drift_min'       => $totDrift,
+                ];
+
+                $periodTotStopp   += $totStopp;
+                $periodTotDrift   += $totDrift;
+                $periodAntalSkift += $antal;
+            }
+
+            $periodStoppgrad = ($periodTotDrift > 0)
+                ? round($periodTotStopp / $periodTotDrift * 100, 2)
+                : 0.0;
+
+            // Attach vs_snitt_pp (pp diff vs period average) to each product
+            foreach ($products as &$p) {
+                $p['vs_snitt_pp'] = round($p['stoppgrad'] - $periodStoppgrad, 2);
+            }
+            unset($p);
+
+            // Sort by stoppgrad descending
+            usort($products, fn($a, $b) => $b['stoppgrad'] <=> $a['stoppgrad']);
+
+            // Monthly trend — last 12 months overall stoppgrad
+            $sqlTrend = "
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m') AS yearmonth,
+                    SUM(max_stopp)              AS tot_stopp,
+                    SUM(max_drift)              AS tot_drift,
+                    COUNT(*)                    AS antal_skift
+                FROM (
+                    SELECT
+                        datum,
+                        skiftraknare,
+                        MAX(COALESCE(driftstopptime, 0)) AS max_stopp,
+                        MAX(COALESCE(drifttid, 0))       AS max_drift
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                      AND drifttid >= 30
+                    GROUP BY datum, skiftraknare
+                ) d
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                ORDER BY yearmonth ASC
+            ";
+            $stmtTrend = $this->pdo->prepare($sqlTrend);
+            $stmtTrend->execute();
+            $trendRows = $stmtTrend->fetchAll(\PDO::FETCH_ASSOC);
+
+            $monthlyTrend = [];
+            foreach ($trendRows as $tr) {
+                $monthlyTrend[] = [
+                    'yearmonth' => $tr['yearmonth'],
+                    'stoppgrad' => ($tr['tot_drift'] > 0)
+                        ? round($tr['tot_stopp'] / $tr['tot_drift'] * 100, 2)
+                        : 0.0,
+                    'antal_skift' => (int)$tr['antal_skift'],
+                ];
+            }
+
+            echo json_encode([
+                'success'                => true,
+                'period_days'            => $days,
+                'period_from'            => $from,
+                'period_to'              => $to,
+                'period_stoppgrad'       => $periodStoppgrad,
+                'period_antal_skift'     => $periodAntalSkift,
+                'products'               => $products,
+                'monthly_trend'          => $monthlyTrend,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getStoppPerProdukt: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid stopp-per-produkt'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
