@@ -1826,41 +1826,51 @@ class RebotlingController {
                 $isHistorik  = true;
             }
 
-            // Aggregera per operatör (op1/op2/op3 lagras som operator-nummer)
-            // Varje skiftrapport kan ha upp till 3 operatörer.
-            // Vi slår ihop dem via UNION och aggregerar sedan.
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            // Single LAG() subquery, then UNION ALL for op1/op2/op3 attribution.
             $sql = "
+                WITH lag_shifts AS (
+                    SELECT skiftraknare, lag_d.datum AS datum, op1, op2, op3, totalt, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY lag_d.datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS datum,
+                               MAX(op1)                    AS op1,
+                               MAX(op2)                    AS op2,
+                               MAX(op3)                    AS op3,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(totalt,    0)) AS totalt,
+                               MAX(COALESCE(drifttid,  0)) AS drifttid
+                        FROM rebotling_skiftrapport s
+                        WHERE {$dateFilter}
+                        GROUP BY skiftraknare
+                    ) lag_d
+                )
                 SELECT
-                    sub.op_num                                        AS op_number,
-                    COALESCE(o.name, CONCAT('Operatör ', sub.op_num)) AS name,
-                    SUM(sub.ibc_ok)   AS ibc_ok,
-                    SUM(sub.totalt)   AS totalt,
-                    SUM(sub.drifttid) AS drifttid,
-                    COUNT(sub.skift_id) AS shifts_count
+                    t.op_num                                         AS op_number,
+                    COALESCE(o.name, CONCAT('Operatör ', t.op_num)) AS name,
+                    SUM(t.ibc_ok)   AS ibc_ok,
+                    SUM(t.totalt)   AS totalt,
+                    SUM(t.drifttid) AS drifttid,
+                    COUNT(t.skiftraknare) AS shifts_count
                 FROM (
-                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op1 IS NOT NULL AND s.op1 > 0
+                    SELECT skiftraknare, op1 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op2 IS NOT NULL AND s.op2 > 0
+                    SELECT skiftraknare, op2, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE {$dateFilter} AND s.op3 IS NOT NULL AND s.op3 > 0
-                ) sub
-                LEFT JOIN operators o ON o.number = sub.op_num
-                GROUP BY sub.op_num, o.name
-                ORDER BY (SUM(sub.ibc_ok) / GREATEST(SUM(sub.drifttid)/60, 0.01)) DESC
+                    SELECT skiftraknare, op3, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                ) t
+                LEFT JOIN operators o ON o.number = t.op_num
+                GROUP BY t.op_num, o.name
+                ORDER BY (SUM(t.ibc_ok) / GREATEST(SUM(t.drifttid)/60, 0.01)) DESC
                 LIMIT 10
             ";
 
-            // PDO named placeholders kan inte upprepas — bygg om med positional
+            // :dateFrom appears once in the CTE inner query → single positional param
             $sqlPos = str_replace(':dateFrom', '?', $sql);
             $stmt2  = $this->pdo->prepare($sqlPos);
             $d      = $dateParam['dateFrom'];
-            $stmt2->execute([$d, $d, $d]);
+            $stmt2->execute([$d]);
             $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
             $ranking = [];
@@ -1903,11 +1913,21 @@ class RebotlingController {
                 $stmtRecord = $this->pdo->prepare("
                     SELECT MAX(dag_total) AS rekord_ibc, datum_rekord
                     FROM (
-                        SELECT DATE(datum) AS datum_rekord, SUM(ibc_ok) AS dag_total
-                        FROM rebotling_skiftrapport
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
-                          AND datum < CURDATE()
-                        GROUP BY DATE(datum)
+                        SELECT datum AS datum_rekord, SUM(ibc_ok) AS dag_total
+                        FROM (
+                            SELECT datum,
+                                   GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                            FROM (
+                                SELECT skiftraknare,
+                                       DATE(MAX(datum))            AS datum,
+                                       MAX(COALESCE(ibc_ok, 0))    AS ibc_end
+                                FROM rebotling_skiftrapport
+                                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+                                  AND datum < CURDATE()
+                                GROUP BY skiftraknare
+                            ) base
+                        ) lag_d
+                        GROUP BY datum
                     ) y
                 ");
                 $stmtRecord->execute();
@@ -2159,24 +2179,37 @@ class RebotlingController {
     private function getPersonalBests() {
         try {
             $pdo = $this->pdo;
-            // Beräkna IBC/h och kvalitet per skift per operatör
-            // rebotling_skiftrapport: op1/op2/op3 = operator number, ibc_ok, totalt, drifttid
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            // Single CTE + UNION ALL for op1/op2/op3 attribution.
             $sql = "
+                WITH lag_shifts AS (
+                    SELECT skiftraknare, datum, op1, op2, op3, totalt, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS datum,
+                               MAX(op1)                    AS op1,
+                               MAX(op2)                    AS op2,
+                               MAX(op3)                    AS op3,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(totalt,    0)) AS totalt,
+                               MAX(COALESCE(drifttid,  0)) AS drifttid
+                        FROM rebotling_skiftrapport
+                        GROUP BY skiftraknare
+                    ) base
+                )
                 SELECT
                     t.op_num AS op_number,
                     COALESCE(o.name, CONCAT('Operatör ', t.op_num)) AS op_name,
                     MAX(CASE WHEN t.drifttid > 0 THEN ROUND(t.ibc_ok / (t.drifttid / 60.0), 2) ELSE NULL END) AS best_ibc_h,
                     MAX(CASE WHEN t.totalt   > 0 THEN ROUND(t.ibc_ok / t.totalt * 100, 1) ELSE NULL END)     AS best_kvalitet,
-                    COUNT(DISTINCT t.skift_id) AS total_skift
+                    COUNT(DISTINCT t.skiftraknare) AS total_skift
                 FROM (
-                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op1 IS NOT NULL AND s.op1 > 0 AND s.ibc_ok > 0
+                    SELECT skiftraknare, op1 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0 AND ibc_ok > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op2 IS NOT NULL AND s.op2 > 0 AND s.ibc_ok > 0
+                    SELECT skiftraknare, op2, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0 AND ibc_ok > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s WHERE s.op3 IS NOT NULL AND s.op3 > 0 AND s.ibc_ok > 0
+                    SELECT skiftraknare, op3, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0 AND ibc_ok > 0
                 ) t
                 LEFT JOIN operators o ON o.number = t.op_num
                 GROUP BY t.op_num, o.name
@@ -2434,18 +2467,34 @@ class RebotlingController {
 
             $idealRatePerMin = 15.0 / 60.0;
 
-            // rebotling_skiftrapport: varje rad = ett skift
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
             $sql = "
                 SELECT
-                    DATE_FORMAT(datum, '%Y-%m')                              AS manad,
-                    SUM(COALESCE(ibc_ok, 0))                                AS total_ibc,
-                    SUM(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))      AS total_all,
-                    SUM(COALESCE(drifttid, 0))                              AS runtime_min,
-                    SUM(COALESCE(rasttime, 0))                              AS rast_min,
-                    MAX(COALESCE(ibc_ok, 0) / GREATEST(COALESCE(drifttid, 0) / 60.0, 0.01)) AS top_ibc_h
-                FROM rebotling_skiftrapport
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL ? MONTH)
-                  AND ibc_ok IS NOT NULL
+                    DATE_FORMAT(datum, '%Y-%m')                                  AS manad,
+                    SUM(ibc_ok)                                                  AS total_ibc,
+                    SUM(ibc_ok + ibc_ej_ok)                                      AS total_all,
+                    SUM(drifttid_min)                                            AS runtime_min,
+                    SUM(rasttime_min)                                            AS rast_min,
+                    MAX(ibc_ok / GREATEST(drifttid_min / 60.0, 0.01))           AS top_ibc_h
+                FROM (
+                    SELECT datum,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok,
+                           drifttid_min,
+                           rasttime_min
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS datum,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                               MAX(COALESCE(drifttid,  0)) AS drifttid_min,
+                               MAX(COALESCE(rasttime,  0)) AS rasttime_min
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) base
+                ) lag_q
                 GROUP BY DATE_FORMAT(datum, '%Y-%m')
                 ORDER BY manad DESC
                 LIMIT ?
@@ -9325,7 +9374,7 @@ class RebotlingController {
             $to   = date('Y-m-d');
             $from = date('Y-m-d', strtotime("-{$days} days"));
 
-            // Daily totals — inner GROUP BY skiftraknare deduplicates same-shift data
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
             $sqlDaily = "
                 SELECT
                     datum,
@@ -9335,14 +9384,19 @@ class RebotlingController {
                     COUNT(*)               AS antal_skift
                 FROM (
                     SELECT datum,
-                           skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))       AS ibc_ok,
-                           MAX(COALESCE(drifttid, 0))/60.0 AS hours
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, datum
-                ) dedup
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           drifttid_min/60.0 AS hours
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))             AS datum,
+                               MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                               MAX(COALESCE(drifttid, 0))   AS drifttid_min
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from1 AND :to1
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) base
+                ) lag_d
                 GROUP BY datum
                 ORDER BY datum
             ";
@@ -9350,7 +9404,7 @@ class RebotlingController {
             $stmtD->execute([':from1' => $from, ':to1' => $to]);
             $daily = $stmtD->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Monthly aggregation
+            // Monthly aggregation — same LAG() pattern
             $sqlMonthly = "
                 SELECT
                     DATE_FORMAT(datum, '%Y-%m')   AS yearmonth,
@@ -9360,14 +9414,19 @@ class RebotlingController {
                     COUNT(*)                       AS antal_skift
                 FROM (
                     SELECT datum,
-                           skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))       AS ibc_ok,
-                           MAX(COALESCE(drifttid, 0))/60.0 AS hours
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, datum
-                ) dedup
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           drifttid_min/60.0 AS hours
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))             AS datum,
+                               MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                               MAX(COALESCE(drifttid, 0))   AS drifttid_min
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from2 AND :to2
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) base
+                ) lag_d
                 GROUP BY yearmonth
                 ORDER BY yearmonth
             ";
