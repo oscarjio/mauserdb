@@ -364,6 +364,8 @@ class RebotlingController {
                 $this->getKassationsorsakPerProdukt();
             } elseif ($action === 'idag') {
                 $this->getIdag();
+            } elseif ($action === 'produkt-jamforelse') {
+                $this->getProduktJamforelse();
             } else {
                 $this->getLiveStats();
             }
@@ -2709,6 +2711,8 @@ class RebotlingController {
             $startDate = date('Y-m-d', strtotime("-{$weeks} weeks"));
 
             // --- Operatörens veckovisa IBC/h (dedup per skiftraknare) ---
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            // Operator filter applied AFTER LAG() so no shift is dropped from the window.
             $sql = "
                 SELECT
                     YEAR(datum)                                              AS yr,
@@ -2726,19 +2730,24 @@ class RebotlingController {
                     )                                                        AS kvalitet_pct,
                     COUNT(*)                                                  AS antal_skift
                 FROM (
-                    SELECT
-                        datum,
-                        skiftraknare,
-                        MAX(ibc_ok)                AS ibc_ok,
-                        MAX(COALESCE(totalt,  0))  AS totalt,
-                        MAX(COALESCE(drifttid,0))  AS drifttid_min
-                    FROM rebotling_skiftrapport
-                    WHERE datum >= ?
-                      AND (op1 = ? OR op2 = ? OR op3 = ?)
-                      AND ibc_ok > 0
-                    GROUP BY datum, skiftraknare
-                    HAVING MAX(COALESCE(drifttid,0)) >= 30
-                ) AS deduped
+                    SELECT datum, op1, op2, op3, totalt, drifttid_min,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS datum,
+                               MAX(op1)                    AS op1,
+                               MAX(op2)                    AS op2,
+                               MAX(op3)                    AS op3,
+                               MAX(ibc_ok)                 AS ibc_end,
+                               MAX(COALESCE(totalt,  0))   AS totalt,
+                               MAX(COALESCE(drifttid, 0))  AS drifttid_min
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= ? AND ibc_ok > 0
+                        GROUP BY skiftraknare
+                        HAVING MAX(COALESCE(drifttid, 0)) >= 30
+                    ) base
+                ) lag_q
+                WHERE drifttid_min >= 30 AND (op1 = ? OR op2 = ? OR op3 = ?)
                 GROUP BY yr, wk
                 ORDER BY yr ASC, wk ASC
             ";
@@ -2748,6 +2757,7 @@ class RebotlingController {
             $opRows = $opStmt2->fetchAll(PDO::FETCH_ASSOC);
 
             // --- Lagsnitt per vecka (alla skift, dedup per skiftraknare) ---
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
             $teamSql = "
                 SELECT
                     YEAR(datum)                                              AS yr,
@@ -2759,17 +2769,20 @@ class RebotlingController {
                     )                                                        AS team_ibc_per_h,
                     COUNT(*)                                                  AS team_skift
                 FROM (
-                    SELECT
-                        datum,
-                        skiftraknare,
-                        MAX(ibc_ok)                AS ibc_ok,
-                        MAX(COALESCE(drifttid,0))  AS drifttid_min
-                    FROM rebotling_skiftrapport
-                    WHERE datum >= ?
-                      AND ibc_ok > 0
-                    GROUP BY datum, skiftraknare
-                    HAVING MAX(COALESCE(drifttid,0)) >= 30
-                ) AS deduped
+                    SELECT datum, drifttid_min,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS datum,
+                               MAX(ibc_ok)                 AS ibc_end,
+                               MAX(COALESCE(drifttid, 0))  AS drifttid_min
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= ? AND ibc_ok > 0
+                        GROUP BY skiftraknare
+                        HAVING MAX(COALESCE(drifttid, 0)) >= 30
+                    ) base
+                ) lag_q
+                WHERE drifttid_min >= 30
                 GROUP BY yr, wk
                 ORDER BY yr ASC, wk ASC
             ";
@@ -5400,28 +5413,46 @@ class RebotlingController {
                 return;
             }
 
-            // Main period: unique shifts via GROUP BY skiftraknare
+            // Main period: unique shifts with per-shift IBC via LAG()
+            // ibc_ok/ibc_ej_ok are PLC daily running counters — LAG() computes per-shift delta.
             $stmt = $this->pdo->prepare("
-                SELECT skiftraknare, datum,
-                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
-                       MAX(ibc_ok) AS ibc_ok, MAX(ibc_ej_ok) AS ibc_ej_ok,
-                       MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT datum, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))    AS datum,
+                           MAX(op1)            AS op1,
+                           MAX(op2)            AS op2,
+                           MAX(op3)            AS op3,
+                           MAX(ibc_ok)         AS ibc_end,
+                           MAX(ibc_ej_ok)      AS ej_end,
+                           MAX(drifttid)       AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
                 ORDER BY datum ASC
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // 6-month window for monthly trend charts
+            // 6-month window for monthly trend charts — same LAG() pattern
             $stmt6m = $this->pdo->prepare("
-                SELECT skiftraknare, datum,
-                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
-                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from6m AND :to6m AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT datum, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))    AS datum,
+                           MAX(op1)            AS op1,
+                           MAX(op2)            AS op2,
+                           MAX(op3)            AS op3,
+                           MAX(ibc_ok)         AS ibc_end,
+                           MAX(drifttid)       AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from6m AND :to6m AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
                 ORDER BY datum ASC
             ");
             $stmt6m->execute([':from6m' => $from6m, ':to6m' => $to]);
@@ -5725,46 +5756,45 @@ class RebotlingController {
             $opNames = [];
             foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
 
-            // Team avg per position via SQL (SUM/SUM on unique shifts) — avoids PHP triple-loop
-            $teamAvgStmt = $this->pdo->prepare("
-                SELECT pos, SUM(ibc_ok) / GREATEST(SUM(drifttid) / 60.0, 0.01) AS avg_ibc_h
-                FROM (
-                    SELECT 1 AS pos, MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE drifttid > 30 AND datum >= :from1 AND op1 IS NOT NULL
-                    GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT 2, MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE drifttid > 30 AND datum >= :from2 AND op2 IS NOT NULL
-                    GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT 3, MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE drifttid > 30 AND datum >= :from3 AND op3 IS NOT NULL
-                    GROUP BY skiftraknare
-                ) t
-                GROUP BY pos
-            ");
-            $teamAvgStmt->execute([':from1' => $fromDate, ':from2' => $fromDate, ':from3' => $fromDate]);
-            $teamAvg = [1 => 0.0, 2 => 0.0, 3 => 0.0];
-            foreach ($teamAvgStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-                $teamAvg[(int)$r['pos']] = round((float)$r['avg_ibc_h'], 1);
-            }
-
-            // Fetch shifts in chronological order — date-capped to avoid full table scan
+            // Fetch all shifts with per-shift IBC delta via LAG() — ibc_ok is a PLC daily
+            // running counter; LAG() gives the per-shift contribution, not the cumulative total.
+            // Single query drives both team averages (PHP-computed) and per-operator learning curves.
             $stmt = $this->pdo->prepare("
-                SELECT datum, skiftraknare,
-                       MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
-                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE drifttid > 30 AND datum >= :fromDate
-                GROUP BY skiftraknare
+                SELECT datum, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))   AS datum,
+                           MAX(op1)           AS op1,
+                           MAX(op2)           AS op2,
+                           MAX(op3)           AS op3,
+                           MAX(ibc_ok)        AS ibc_end,
+                           MAX(drifttid)      AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE drifttid > 30 AND datum >= :fromDate
+                    GROUP BY skiftraknare
+                ) base
                 ORDER BY datum ASC, skiftraknare ASC
                 LIMIT 5000
             ");
             $stmt->execute([':fromDate' => $fromDate]);
             $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute team avg IBC/h per position from the LAG-corrected shifts
+            $teamPosIbc = [1 => 0.0, 2 => 0.0, 3 => 0.0];
+            $teamPosMin = [1 => 0.0, 2 => 0.0, 3 => 0.0];
+            foreach ($allShifts as $r) {
+                $ibc = max(0, (float)$r['ibc_ok']); $min = max(0, (float)$r['drifttid']);
+                if ($min < 30) continue;
+                if ((int)$r['op1'] > 0) { $teamPosIbc[1] += $ibc; $teamPosMin[1] += $min; }
+                if ((int)$r['op2'] > 0) { $teamPosIbc[2] += $ibc; $teamPosMin[2] += $min; }
+                if ((int)$r['op3'] > 0) { $teamPosIbc[3] += $ibc; $teamPosMin[3] += $min; }
+            }
+            $teamAvg = [
+                1 => $teamPosMin[1] > 0 ? round($teamPosIbc[1] / ($teamPosMin[1] / 60.0), 1) : 0.0,
+                2 => $teamPosMin[2] > 0 ? round($teamPosIbc[2] / ($teamPosMin[2] / 60.0), 1) : 0.0,
+                3 => $teamPosMin[3] > 0 ? round($teamPosIbc[3] / ($teamPosMin[3] / 60.0), 1) : 0.0,
+            ];
 
             // Group into (op_num, pos_num) buckets; stop collecting once maxShifts reached per bucket
             $byOpPos = [];
@@ -5876,18 +5906,23 @@ class RebotlingController {
             }
 
             // All deduplicated shifts in last 90 days, ordered oldest first (for streak)
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta
             $stmt = $this->pdo->prepare("
-                SELECT
-                    MAX(op1)      AS op1,
-                    MAX(op2)      AS op2,
-                    MAX(op3)      AS op3,
-                    MAX(ibc_ok)   AS ibc_ok,
-                    MAX(drifttid) AS drifttid,
-                    MAX(datum)    AS datum
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
-                GROUP BY skiftraknare
-                ORDER BY MAX(datum) ASC
+                SELECT op1, op2, op3, drifttid, datum,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS datum,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) base
+                ORDER BY datum ASC, skiftraknare ASC
             ");
             $stmt->execute([':from' => $base90, ':to' => $today]);
             $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -6027,19 +6062,25 @@ class RebotlingController {
             } catch (\Throwable $e) { /* table may not exist */ }
 
             // Deduplicated shifts with product_id
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta
             $stmt = $this->pdo->prepare("
-                SELECT
-                    MAX(op1)        AS op1,
-                    MAX(op2)        AS op2,
-                    MAX(op3)        AS op3,
-                    MAX(ibc_ok)     AS ibc_ok,
-                    MAX(drifttid)   AS drifttid,
-                    MAX(product_id) AS product_id
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to
-                  AND drifttid > 0 AND ibc_ok > 0
-                  AND product_id IS NOT NULL AND product_id > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid, product_id,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))  AS datum,
+                           MAX(op1)          AS op1,
+                           MAX(op2)          AS op2,
+                           MAX(op3)          AS op3,
+                           MAX(ibc_ok)       AS ibc_end,
+                           MAX(drifttid)     AS drifttid,
+                           MAX(product_id)   AS product_id
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to
+                      AND drifttid > 0 AND ibc_ok > 0
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare
+                ) base
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -6297,20 +6338,26 @@ class RebotlingController {
             $opMap  = [];
             foreach ($opRows as $r) $opMap[(int)$r['number']] = $r['name'];
 
+            // ibc_ok/ibc_ej_ok are PLC daily running counters — LAG() computes per-shift delta
             $stmt = $pdo->prepare("
-                SELECT skiftraknare,
-                       MAX(datum)          AS datum,
-                       MAX(op1)            AS op1,
-                       MAX(op2)            AS op2,
-                       MAX(op3)            AS op3,
-                       MAX(ibc_ok)         AS ibc_ok,
-                       MAX(ibc_ej_ok)      AS ibc_ej_ok,
-                       MAX(drifttid)       AS drifttid,
-                       MAX(driftstopptime) AS driftstopptime,
-                       MAX(product_id)     AS product_id
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to
-                GROUP BY skiftraknare
+                SELECT skiftraknare, datum, op1, op2, op3, drifttid, driftstopptime, product_id,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))    AS datum,
+                           MAX(op1)            AS op1,
+                           MAX(op2)            AS op2,
+                           MAX(op3)            AS op3,
+                           MAX(ibc_ok)         AS ibc_end,
+                           MAX(ibc_ej_ok)      AS ej_end,
+                           MAX(drifttid)       AS drifttid,
+                           MAX(driftstopptime) AS driftstopptime,
+                           MAX(product_id)     AS product_id
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                    GROUP BY skiftraknare
+                ) base
                 ORDER BY datum, skiftraknare
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
@@ -6419,86 +6466,77 @@ class RebotlingController {
 
             $dowNames = [1=>'Söndag',2=>'Måndag',3=>'Tisdag',4=>'Onsdag',5=>'Torsdag',6=>'Fredag',7=>'Lördag'];
 
-            // Team average per weekday (SUM/SUM with skiftraknare dedup)
-            $teamStmt = $pdo->prepare("
-                SELECT dow,
-                       SUM(ibc_ok) / (SUM(drifttid) / 60.0) AS team_avg,
-                       COUNT(*) AS shifts
+            // Single LAG()-corrected query for all shifts — drives both team avg and per-operator DOW.
+            // ibc_ok is a PLC daily running counter; LAG() computes the per-shift delta.
+            // Position filter applied AFTER LAG() so no shifts are dropped from the window.
+            $allShiftsStmt = $pdo->prepare("
+                SELECT datum, op1, op2, op3, drifttid,
+                       DAYOFWEEK(datum) AS dow,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
                 FROM (
-                    SELECT DAYOFWEEK(MAX(datum)) AS dow,
-                           MAX(ibc_ok) AS ibc_ok,
-                           MAX(drifttid) AS drifttid
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))   AS datum,
+                           MAX(op1)           AS op1,
+                           MAX(op2)           AS op2,
+                           MAX(op3)           AS op3,
+                           MAX(ibc_ok)        AS ibc_end,
+                           MAX(drifttid)      AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from AND :to
-                      AND drifttid > 0 AND ibc_ok > 0
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0 AND ibc_ok > 0
                     GROUP BY skiftraknare
-                ) deduped
-                GROUP BY dow
-                ORDER BY dow
+                ) base
             ");
-            $teamStmt->execute([':from' => $from, ':to' => $to]);
+            $allShiftsStmt->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $allShiftsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build team avg per DOW and per-operator per-DOW from PHP
+            $teamDowIbc = []; $teamDowMin = []; $teamDowCnt = [];
+            $opDowIbc   = []; $opDowMin   = []; $opDowCnt   = [];
+            foreach ($allShifts as $s) {
+                $ibc = max(0, (float)$s['ibc_ok']); $min = max(0, (float)$s['drifttid']);
+                if ($min <= 0) continue;
+                $dow = (int)$s['dow'];
+                // Team
+                $teamDowIbc[$dow] = ($teamDowIbc[$dow] ?? 0) + $ibc;
+                $teamDowMin[$dow] = ($teamDowMin[$dow] ?? 0) + $min;
+                $teamDowCnt[$dow] = ($teamDowCnt[$dow] ?? 0) + 1;
+                // Per operator (each position independently)
+                foreach ([1,2,3] as $p) {
+                    $num = (int)$s["op$p"];
+                    if ($num <= 0 || !isset($opMap[$num])) continue;
+                    $opDowIbc[$num][$dow] = ($opDowIbc[$num][$dow] ?? 0) + $ibc;
+                    $opDowMin[$num][$dow] = ($opDowMin[$num][$dow] ?? 0) + $min;
+                    $opDowCnt[$num][$dow] = ($opDowCnt[$num][$dow] ?? 0) + 1;
+                }
+            }
 
             $teamByDow = [];
             $teamWeightedSum = 0.0;
             $teamShiftsTotal = 0;
-            foreach ($teamStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-                $dow = (int)$r['dow'];
-                $avg = round((float)$r['team_avg'], 2);
-                $cnt = (int)$r['shifts'];
+            foreach ($teamDowIbc as $dow => $ibcSum) {
+                $minSum = $teamDowMin[$dow] ?? 0;
+                $cnt    = $teamDowCnt[$dow] ?? 0;
+                $avg    = $minSum > 0 ? round($ibcSum / ($minSum / 60.0), 2) : 0.0;
                 $teamByDow[$dow] = ['dow' => $dow, 'name' => $dowNames[$dow] ?? '', 'team_avg' => $avg, 'team_shifts' => $cnt];
                 $teamWeightedSum += $avg * $cnt;
                 $teamShiftsTotal += $cnt;
             }
+            ksort($teamByDow);
             $teamAvgOverall = $teamShiftsTotal > 0 ? round($teamWeightedSum / $teamShiftsTotal, 2) : 0.0;
 
-            // Per-operator per-weekday — SUM/SUM aggregation to match team query
-            $opDowStmt = $pdo->prepare("
-                SELECT op_num, dow,
-                       SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0) AS avg_ibc_h,
-                       COUNT(*) AS shifts
-                FROM (
-                    SELECT op1 AS op_num, DAYOFWEEK(MAX(datum)) AS dow,
-                           MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND op1 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT op2, DAYOFWEEK(MAX(datum)),
-                           MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND op2 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT op3, DAYOFWEEK(MAX(datum)),
-                           MAX(ibc_ok), MAX(drifttid)
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from3 AND :to3
-                      AND op3 IS NOT NULL AND drifttid > 0 AND ibc_ok > 0
-                    GROUP BY skiftraknare
-                ) combined
-                GROUP BY op_num, dow
-                HAVING shifts >= 2
-                ORDER BY op_num, dow
-            ");
-            $opDowStmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-
             $byOp = [];
-            foreach ($opDowStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-                $num = (int)$r['op_num'];
-                if (!isset($opMap[$num])) continue;
-                $dow     = (int)$r['dow'];
-                $avgIbcH = round((float)$r['avg_ibc_h'], 2);
-                $vsTeam  = (isset($teamByDow[$dow]) && $teamByDow[$dow]['team_avg'] > 0)
-                    ? round($avgIbcH / $teamByDow[$dow]['team_avg'] * 100, 1)
-                    : null;
-                if (!isset($byOp[$num])) $byOp[$num] = [];
-                $byOp[$num][$dow] = ['avg_ibc_h' => $avgIbcH, 'shifts' => (int)$r['shifts'], 'vs_team' => $vsTeam];
+            foreach ($opDowIbc as $num => $dowMap) {
+                foreach ($dowMap as $dow => $ibcSum) {
+                    $minSum = $opDowMin[$num][$dow] ?? 0;
+                    $cnt    = $opDowCnt[$num][$dow] ?? 0;
+                    if ($cnt < 2) continue;
+                    $avgIbcH = $minSum > 0 ? round($ibcSum / ($minSum / 60.0), 2) : 0.0;
+                    $vsTeam  = (isset($teamByDow[$dow]) && $teamByDow[$dow]['team_avg'] > 0)
+                        ? round($avgIbcH / $teamByDow[$dow]['team_avg'] * 100, 1)
+                        : null;
+                    if (!isset($byOp[$num])) $byOp[$num] = [];
+                    $byOp[$num][$dow] = ['avg_ibc_h' => $avgIbcH, 'shifts' => $cnt, 'vs_team' => $vsTeam];
+                }
             }
 
             // Total unique shifts per operator (dedup by skiftraknare)
@@ -6949,17 +6987,23 @@ class RebotlingController {
             $to   = date('Y-m-d');
             $from = date('Y-m-d', strtotime("-{$days} days"));
 
-            // All unique shifts in period (one row per shift via GROUP BY skiftraknare)
+            // All unique shifts in period — ibc_ok is a PLC daily running counter,
+            // LAG() computes the per-shift delta so later shifts are not over-credited
             $stmt = $pdo->prepare("
-                SELECT skiftraknare,
-                       MAX(op1)      AS op1,
-                       MAX(op2)      AS op2,
-                       MAX(op3)      AS op3,
-                       MAX(ibc_ok)   AS ibc_ok,
-                       MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum BETWEEN :from AND :to AND drifttid > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS datum,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -7089,12 +7133,22 @@ class RebotlingController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta
             $stmt = $this->pdo->prepare("
-                SELECT MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3,
-                       MAX(ibc_ok) AS ibc_ok, MAX(drifttid) AS drifttid
-                FROM rebotling_skiftrapport
-                WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
-                GROUP BY skiftraknare
+                SELECT op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum)) AS datum,
+                           MAX(op1)         AS op1,
+                           MAX(op2)         AS op2,
+                           MAX(op3)         AS op3,
+                           MAX(ibc_ok)      AS ibc_end,
+                           MAX(drifttid)    AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from AND datum <= :to AND drifttid > 0 AND ibc_ok > 0
+                    GROUP BY skiftraknare
+                ) base
             ");
             $stmt->execute([':from' => $from, ':to' => $to]);
             $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -7249,23 +7303,32 @@ class RebotlingController {
             $opNames = [];
             foreach ($opRows as $r) $opNames[(int)$r['number']] = $r['name'];
 
-            // Deduplicated shifts, ordered best→worst
+            // Deduplicated shifts with per-shift IBC delta via LAG()
+            // ibc_ok/ibc_ej_ok are PLC daily running counters — later shifts would get
+            // cumulative totals without LAG(); ORDER BY in outer_q after delta computation
             $sql = "
-                SELECT
-                    skiftraknare,
-                    MAX(datum)              AS datum,
-                    MAX(op1)                AS op1,
-                    MAX(op2)                AS op2,
-                    MAX(op3)                AS op3,
-                    MAX(ibc_ok)             AS ibc_ok,
-                    MAX(ibc_ej_ok)          AS ibc_ej_ok,
-                    MAX(drifttid)           AS drifttid,
-                    MAX(driftstopptime)     AS driftstopptime
-                FROM rebotling_skiftrapport
-                WHERE drifttid >= :mindt {$dateFilter}
-                GROUP BY skiftraknare
-                HAVING MAX(ibc_ok) >= 1
-                ORDER BY MAX(ibc_ok) / (MAX(drifttid) / 60.0) DESC
+                SELECT skiftraknare, datum, op1, op2, op3, drifttid, driftstopptime, ibc_ok, ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare, datum, op1, op2, op3, drifttid, driftstopptime,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))    AS datum,
+                               MAX(op1)            AS op1,
+                               MAX(op2)            AS op2,
+                               MAX(op3)            AS op3,
+                               MAX(ibc_ok)         AS ibc_end,
+                               MAX(ibc_ej_ok)      AS ej_end,
+                               MAX(drifttid)       AS drifttid,
+                               MAX(driftstopptime) AS driftstopptime
+                        FROM rebotling_skiftrapport
+                        WHERE drifttid >= :mindt {$dateFilter}
+                        GROUP BY skiftraknare
+                    ) inner_q
+                ) outer_q
+                WHERE ibc_ok >= 1
+                ORDER BY ibc_ok / (drifttid / 60.0) DESC
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':mindt', $minDrifttid, \PDO::PARAM_INT);
@@ -7337,11 +7400,12 @@ class RebotlingController {
             $from   = date('Y-m-d', strtotime("-{$months} months"));
             $to     = date('Y-m-d');
 
-            // Aggregate per day using deduped skiftraknare
+            // Aggregate per day: ibc_ok is a PLC daily running counter so MAX per day
+            // gives the true daily total; SUM(shift drifttid) gives total runtime
             $stmt = $this->pdo->prepare("
                 SELECT
                     datum,
-                    SUM(ibc_ok)   AS day_ibc,
+                    MAX(ibc_ok)   AS day_ibc,
                     SUM(drifttid) AS day_min,
                     COUNT(*)      AS skift_count
                 FROM (
@@ -7352,7 +7416,7 @@ class RebotlingController {
                     FROM rebotling_skiftrapport
                     WHERE datum BETWEEN :from AND :to
                       AND drifttid > 0
-                    GROUP BY skiftraknare
+                    GROUP BY datum, skiftraknare
                 ) AS uniq
                 GROUP BY datum
                 ORDER BY datum ASC
@@ -8175,7 +8239,8 @@ class RebotlingController {
             $to   = date('Y-m-d');
             $from = date('Y-m-d', strtotime("-{$days} days"));
 
-            // Deduplicate by skiftraknare, then aggregate per product
+            // Deduplicate by skiftraknare with LAG() for PLC running counters,
+            // then aggregate per product
             $stmt = $this->pdo->prepare("
                 SELECT
                     d.product_id,
@@ -8192,21 +8257,28 @@ class RebotlingController {
                          THEN SUM(d.ibc_ej_ok) * 100.0 / (SUM(d.ibc_ok) + SUM(d.ibc_ej_ok))
                          ELSE 0 END                                             AS kassgrad
                 FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(product_id)      AS product_id,
-                        MAX(ibc_ok)          AS ibc_ok,
-                        MAX(ibc_ej_ok)       AS ibc_ej_ok,
-                        MAX(bur_ej_ok)       AS bur_ej_ok,
-                        MAX(drifttid)        AS drifttid,
-                        MAX(driftstopptime)  AS driftstopptime
-                    FROM rebotling_skiftrapport
-                    WHERE datum >= :from AND datum <= :to
-                      AND drifttid >= 30
-                      AND product_id IS NOT NULL AND product_id > 0
-                    GROUP BY skiftraknare
+                    SELECT product_id, drifttid, driftstopptime,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok,
+                           GREATEST(0, bur_end - COALESCE(LAG(bur_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS bur_ej_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))     AS datum,
+                               MAX(product_id)      AS product_id,
+                               MAX(ibc_ok)          AS ibc_end,
+                               MAX(ibc_ej_ok)       AS ej_end,
+                               MAX(bur_ej_ok)       AS bur_end,
+                               MAX(drifttid)        AS drifttid,
+                               MAX(driftstopptime)  AS driftstopptime
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= :from AND datum <= :to
+                          AND drifttid >= 30
+                          AND product_id IS NOT NULL AND product_id > 0
+                        GROUP BY skiftraknare
+                    ) base
                 ) d
                 LEFT JOIN rebotling_products p ON p.id = d.product_id
+                WHERE d.ibc_ok >= 0
                 GROUP BY d.product_id, p.name, p.cycle_time_minutes
                 HAVING antal_skift >= 1
                 ORDER BY ibc_per_h DESC
@@ -8260,17 +8332,20 @@ class RebotlingController {
                     COUNT(*)       AS antal_skift,
                     SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid) / 60.0, 0) AS ibc_per_h
                 FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(datum)        AS datum,
-                        MAX(product_id)   AS product_id,
-                        MAX(ibc_ok)       AS ibc_ok,
-                        MAX(drifttid)     AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE datum >= :from6 AND datum <= :to6
-                      AND drifttid >= 30
-                      AND product_id IS NOT NULL AND product_id > 0
-                    GROUP BY skiftraknare
+                    SELECT product_id, datum, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))   AS datum,
+                               MAX(product_id)    AS product_id,
+                               MAX(ibc_ok)        AS ibc_end,
+                               MAX(drifttid)      AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= :from6 AND datum <= :to6
+                          AND drifttid >= 30
+                          AND product_id IS NOT NULL AND product_id > 0
+                        GROUP BY skiftraknare
+                    ) base
                 ) d
                 GROUP BY d.product_id, yr, mo
                 ORDER BY d.product_id, yr, mo
@@ -15568,6 +15643,244 @@ class RebotlingController {
             error_log('RebotlingController::getIdag: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid daglig produktionsöversikt'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=produkt-jamforelse&days=90[&prodA=1&prodB=2]
+    // Returns product list (always) + comparison data when prodA+prodB are given.
+    private function getProduktJamforelse(): void {
+        try {
+            $days  = max(30, min(730, (int)($_GET['days'] ?? 90)));
+            $to    = date('Y-m-d');
+            $from  = date('Y-m-d', strtotime("-{$days} days"));
+            $t6from = date('Y-m-d', strtotime('-180 days'));
+            $prodA = isset($_GET['prodA']) ? (int)$_GET['prodA'] : 0;
+            $prodB = isset($_GET['prodB']) ? (int)$_GET['prodB'] : 0;
+
+            // Always return product list for the dropdowns
+            $listStmt = $this->pdo->prepare("
+                SELECT d.product_id,
+                       COALESCE(p.name, CONCAT('Produkt ', d.product_id)) AS name,
+                       COUNT(*)       AS antal_skift,
+                       SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid) / 60.0, 0) AS ibc_per_h
+                FROM (
+                    SELECT product_id, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))  AS datum,
+                               MAX(product_id)   AS product_id,
+                               MAX(ibc_ok)       AS ibc_end,
+                               MAX(drifttid)     AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= :from1 AND datum <= :to1
+                          AND drifttid >= 30
+                          AND product_id IS NOT NULL AND product_id > 0
+                        GROUP BY skiftraknare
+                    ) base
+                ) d
+                LEFT JOIN rebotling_products p ON p.id = d.product_id
+                GROUP BY d.product_id, p.name
+                HAVING antal_skift >= 2
+                ORDER BY ibc_per_h DESC
+            ");
+            $listStmt->execute([':from1' => $from, ':to1' => $to]);
+            $productList = [];
+            foreach ($listStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $productList[] = [
+                    'id'          => (int)$r['product_id'],
+                    'name'        => $r['name'],
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'ibc_per_h'   => round((float)$r['ibc_per_h'], 2),
+                ];
+            }
+
+            if ($prodA <= 0 || $prodB <= 0 || $prodA === $prodB) {
+                echo json_encode([
+                    'success'    => true,
+                    'products'   => $productList,
+                    'comparison' => null,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // --- Main KPI query for both products in one go ---
+            $kpiStmt = $this->pdo->prepare("
+                SELECT d.product_id,
+                       COALESCE(p.name, CONCAT('Produkt ', d.product_id)) AS name,
+                       COALESCE(p.cycle_time_minutes, 0)                   AS cycle_time,
+                       COUNT(*)          AS antal_skift,
+                       SUM(d.ibc_ok)     AS total_ibc,
+                       SUM(d.ibc_ej)     AS total_ibc_ej,
+                       SUM(d.drifttid)   AS total_min,
+                       SUM(d.stopptid)   AS total_stopp_min
+                FROM (
+                    SELECT product_id, drifttid, stopptid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))    AS datum,
+                               MAX(product_id)     AS product_id,
+                               MAX(ibc_ok)         AS ibc_end,
+                               MAX(ibc_ej_ok)      AS ej_end,
+                               MAX(drifttid)       AS drifttid,
+                               MAX(driftstopptime) AS stopptid
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= :kfrom AND datum <= :kto
+                          AND drifttid >= 30
+                          AND product_id IN (:kpa, :kpb)
+                        GROUP BY skiftraknare
+                    ) base
+                ) d
+                LEFT JOIN rebotling_products p ON p.id = d.product_id
+                GROUP BY d.product_id, p.name, p.cycle_time_minutes
+            ");
+            $kpiStmt->execute([':kfrom' => $from, ':kto' => $to, ':kpa' => $prodA, ':kpb' => $prodB]);
+            $kpiMap = [];
+            foreach ($kpiStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $kpiMap[(int)$r['product_id']] = $r;
+            }
+
+            // --- Monthly trend (6 months) for both products ---
+            $trendStmt = $this->pdo->prepare("
+                SELECT d.product_id,
+                       YEAR(d.datum)  AS yr,
+                       MONTH(d.datum) AS mo,
+                       COUNT(*)       AS antal,
+                       SUM(d.ibc_ok) / NULLIF(SUM(d.drifttid) / 60.0, 0) AS ibc_per_h,
+                       CASE WHEN SUM(d.ibc_ok) + SUM(d.ibc_ej) > 0
+                            THEN SUM(d.ibc_ej) * 100.0 / (SUM(d.ibc_ok) + SUM(d.ibc_ej))
+                            ELSE 0 END AS kassgrad
+                FROM (
+                    SELECT product_id, datum, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))  AS datum,
+                               MAX(product_id)   AS product_id,
+                               MAX(ibc_ok)       AS ibc_end,
+                               MAX(ibc_ej_ok)    AS ej_end,
+                               MAX(drifttid)     AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= :tfrom AND datum <= :tto
+                          AND drifttid >= 30
+                          AND product_id IN (:tpa, :tpb)
+                        GROUP BY skiftraknare
+                    ) base
+                ) d
+                GROUP BY d.product_id, yr, mo
+                ORDER BY d.product_id, yr, mo
+            ");
+            $trendStmt->execute([':tfrom' => $t6from, ':tto' => $to, ':tpa' => $prodA, ':tpb' => $prodB]);
+            $trendMap = [];
+            foreach ($trendStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $pid = (int)$r['product_id'];
+                if (!isset($trendMap[$pid])) $trendMap[$pid] = [];
+                $trendMap[$pid][] = [
+                    'yr'       => (int)$r['yr'],
+                    'mo'       => (int)$r['mo'],
+                    'antal'    => (int)$r['antal'],
+                    'ibc_per_h'=> round((float)$r['ibc_per_h'], 2),
+                    'kassgrad' => round((float)$r['kassgrad'], 2),
+                ];
+            }
+
+            // --- Top operators: who has the most shifts on each product (shared IBC/h = team metric) ---
+            $opStmt = $this->pdo->prepare("
+                SELECT d.product_id, d.op_num,
+                       COALESCE(o.name, CONCAT('Op ', d.op_num)) AS op_name,
+                       COUNT(DISTINCT d.skiftraknare) AS antal_skift
+                FROM (
+                    SELECT product_id, skiftraknare, op1 AS op_num
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :ofrom AND datum <= :oto
+                      AND drifttid >= 30 AND op1 > 0
+                      AND product_id IN (:opa, :opb)
+                    UNION ALL
+                    SELECT product_id, skiftraknare, op2
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :ofrom2 AND datum <= :oto2
+                      AND drifttid >= 30 AND op2 > 0
+                      AND product_id IN (:opa2, :opb2)
+                    UNION ALL
+                    SELECT product_id, skiftraknare, op3
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :ofrom3 AND datum <= :oto3
+                      AND drifttid >= 30 AND op3 > 0
+                      AND product_id IN (:opa3, :opb3)
+                ) d
+                LEFT JOIN operators o ON o.number = d.op_num
+                GROUP BY d.product_id, d.op_num, o.name
+                HAVING antal_skift >= 2
+                ORDER BY d.product_id, antal_skift DESC
+            ");
+            $opStmt->execute([
+                ':ofrom' => $from, ':oto' => $to, ':opa' => $prodA, ':opb' => $prodB,
+                ':ofrom2' => $from, ':oto2' => $to, ':opa2' => $prodA, ':opb2' => $prodB,
+                ':ofrom3' => $from, ':oto3' => $to, ':opa3' => $prodA, ':opb3' => $prodB,
+            ]);
+            $opMap = [];
+            foreach ($opStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $pid = (int)$r['product_id'];
+                if (!isset($opMap[$pid])) $opMap[$pid] = [];
+                if (count($opMap[$pid]) < 5) {
+                    $opMap[$pid][] = [
+                        'number'     => (int)$r['op_num'],
+                        'name'       => $r['op_name'],
+                        'antal_skift'=> (int)$r['antal_skift'],
+                    ];
+                }
+            }
+
+            // --- Build structured data for each product ---
+            $buildData = function (int $pid) use ($kpiMap, $trendMap, $opMap): array {
+                $r          = $kpiMap[$pid] ?? [];
+                $totalMin   = (float)($r['total_min']       ?? 0);
+                $totalIbc   = (float)($r['total_ibc']       ?? 0);
+                $totalIbcEj = (float)($r['total_ibc_ej']    ?? 0);
+                $totalStopp = (float)($r['total_stopp_min'] ?? 0);
+                $cycleTime  = (float)($r['cycle_time']      ?? 0);
+                $antalSkift = (int)($r['antal_skift']        ?? 0);
+                $ibcH       = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 2) : 0.0;
+                $kassgrad   = ($totalIbc + $totalIbcEj) > 0
+                    ? round($totalIbcEj * 100.0 / ($totalIbc + $totalIbcEj), 2) : 0.0;
+                $stoppgrad  = ($totalMin + $totalStopp) > 0
+                    ? round($totalStopp * 100.0 / ($totalMin + $totalStopp), 2) : 0.0;
+                $expectedH  = $cycleTime > 0 ? round(60.0 / $cycleTime, 2) : null;
+                $effPct     = ($expectedH !== null && $expectedH > 0)
+                    ? round($ibcH / $expectedH * 100.0, 1) : null;
+                return [
+                    'id'            => $pid,
+                    'name'          => $r['name'] ?? "Produkt $pid",
+                    'ibc_per_h'     => $ibcH,
+                    'kassgrad'      => $kassgrad,
+                    'stoppgrad'     => $stoppgrad,
+                    'antal_skift'   => $antalSkift,
+                    'total_ibc'     => (int)$totalIbc,
+                    'total_timmar'  => round($totalMin / 60.0, 1),
+                    'cycle_time'    => $cycleTime,
+                    'expected_ibch' => $expectedH,
+                    'effektivitet'  => $effPct,
+                    'trend'         => $trendMap[$pid] ?? [],
+                    'top_ops'       => $opMap[$pid] ?? [],
+                ];
+            };
+
+            echo json_encode([
+                'success'    => true,
+                'days'       => $days,
+                'from'       => $from,
+                'to'         => $to,
+                'products'   => $productList,
+                'comparison' => ['a' => $buildData($prodA), 'b' => $buildData($prodB)],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getProduktJamforelse: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktjämförelse'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

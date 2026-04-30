@@ -213,6 +213,7 @@ export const routes: Routes = [
       { path: 'rebotling/operator-utveckling', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-utveckling/operator-utveckling').then(m => m.OperatorUtvecklingPage) },
       { path: 'rebotling/operatormaal', canActivate: [adminGuard], loadComponent: () => import('./pages/operatormaal/operatormaal').then(m => m.OperatormaalPage) },
       { path: 'rebotling/veckosammanfattning', canActivate: [adminGuard], loadComponent: () => import('./pages/veckosammanfattning/veckosammanfattning').then(m => m.VeckosammanfattningPage) },
+      { path: 'rebotling/produkt-jamforelse', canActivate: [adminGuard], loadComponent: () => import('./pages/produkt-jamforelse/produkt-jamforelse').then(m => m.ProduktJamforelsePage) },
       { path: 'rebotling/oee-dashboard', canActivate: [adminGuard], loadComponent: () => import('./pages/oee-dashboard/oee-dashboard').then(m => m.OEEDashboardPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },

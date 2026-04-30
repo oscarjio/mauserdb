@@ -96,6 +96,7 @@ export class OperatorPrestationPage {
         { title: 'Rekord & Karriär', desc: 'Bästa skift, karriärtotaler, månadsrekord', route: '/rebotling/rekord-statistik', icon: 'fas fa-crown', color: '#f6c90e' },
         { title: 'Skiftlag-historik', desc: 'Vilka tremannalag har presterat bäst historiskt?', route: '/rebotling/skiftlag-historik', icon: 'fas fa-users', color: '#68d391' },
         { title: 'Produkteffektivitet', desc: 'Effektivitet och kassation per produkt', route: '/rebotling/produkt-analys', icon: 'fas fa-flask', color: '#a78bfa' },
+        { title: 'Produkt-Jämförelse', desc: 'Jämför två produkttyper sida vid sida — IBC/h, kassation, stoppgrad, effektivitet vs cykeltid, månadsvis trendlinje och vanligaste operatörer per produkt', route: '/rebotling/produkt-jamforelse', icon: 'fas fa-columns', color: '#76e4f7' },
         { title: 'Veckosammanfattning', desc: 'Veckans digest — IBC, IBC/h, kassation, stoppgrad, operatörsranking och jämförelse med förra veckan', route: '/rebotling/veckosammanfattning', icon: 'fas fa-calendar-week', color: '#63b3ed' },
         { title: 'Veckans Topplista', desc: 'Vem vann varje vecka? Veckovis mästare', route: '/rebotling/veckans-topplista', icon: 'fas fa-crown', color: '#f6c90e' },
         { title: 'Produktionspuls', desc: 'Anläggningens IBC/h-tidsserie med 7-dagars MA och månadsöversikt', route: '/rebotling/produktions-tidsserie', icon: 'fas fa-chart-area', color: '#63b3ed' },
