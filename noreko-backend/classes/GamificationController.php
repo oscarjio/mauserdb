@@ -114,65 +114,47 @@ class GamificationController {
 
     /**
      * Hamta IBC-data per operator for en period.
-     *
-     * Korrekt aggregering: MAX(ibc_ok) per skiftraknare per dag (kumulativa rakneverk),
-     * sedan tilldelning till alla operatorer (op1/op2/op3) som var aktiva pa skiftet.
-     * IBC delas till alla 3 ops pa ett skift (varje op far hela skiftets IBC — standard for team-KPI).
+     * LAG()-korrigerad: ibc_ok ar ett dagligt lopande raknever — per-skift delta beraknas
+     * med LAG() PARTITION BY dag ORDER BY skiftraknare.
      */
     private function getOperatorIbcData(string $from, string $to): array {
         $operators = [];
 
-        // Steg 1: Aggregera IBC per skift (MAX per skiftraknare per dag)
-        // Steg 2: Tilldela IBC till alla operatorer (op1/op2/op3) pa skiftet
         try {
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                           op1, op2, op3
+                    FROM lag_base
+                )
                 SELECT op_id, COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                       SUM(shift_ibc) AS total_ibc,
-                       SUM(shift_ok) AS ok_ibc
+                       SUM(delta_ibc + delta_ej) AS total_ibc,
+                       SUM(delta_ibc) AS ok_ibc
                 FROM (
-                    SELECT op1 AS op_id, shift_ibc, shift_ok FROM (
-                        SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
-                               MAX(ibc_ok) AS shift_ok,
-                               MIN(op1) AS op1
-                        FROM rebotling_ibc
-                        WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                          AND ibc_ok > 0
-                        GROUP BY skiftraknare, DATE(datum)
-                    ) s WHERE op1 IS NOT NULL AND op1 > 0
+                    SELECT op1 AS op_id, delta_ibc, delta_ej FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2 AS op_id, shift_ibc, shift_ok FROM (
-                        SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
-                               MAX(ibc_ok) AS shift_ok,
-                               MIN(op2) AS op2
-                        FROM rebotling_ibc
-                        WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                          AND ibc_ok > 0
-                        GROUP BY skiftraknare, DATE(datum)
-                    ) s WHERE op2 IS NOT NULL AND op2 > 0
+                    SELECT op2 AS op_id, delta_ibc, delta_ej FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3 AS op_id, shift_ibc, shift_ok FROM (
-                        SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(ibc_ok) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
-                               MAX(ibc_ok) AS shift_ok,
-                               MIN(op3) AS op3
-                        FROM rebotling_ibc
-                        WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                          AND ibc_ok > 0
-                        GROUP BY skiftraknare, DATE(datum)
-                    ) s WHERE op3 IS NOT NULL AND op3 > 0
+                    SELECT op3 AS op_id, delta_ibc, delta_ej FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
                 GROUP BY op_id, o.name
                 ORDER BY total_ibc DESC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
+            $stmt->execute([':from' => $from, ':to' => $to]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['op_id'];
                 $operators[$uid] = [
@@ -345,24 +327,31 @@ class GamificationController {
         $userIds = array_column($ranking, 'user_id');
         if (empty($userIds)) return;
 
-        // Batch-hamta daglig IBC per operator senaste 30 dagar i EN query
+        // Batch-hamta daglig IBC-delta per operator senaste 30 dagar i EN query (LAG-korrigerad)
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $allDagData = []; // op_id => [{dag, ibc_count}, ...]
 
         try {
             $sql = "
-                SELECT op_id, dag, SUM(shift_ibc) AS ibc_count FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op1, DATE(datum), skiftraknare
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
+                SELECT op_id, dag, SUM(delta_ibc) AS ibc_count FROM (
+                    SELECT op1 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op1 IN ({$placeholders})
                     UNION ALL
-                    SELECT op2 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op2, DATE(datum), skiftraknare
+                    SELECT op2 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op2 IN ({$placeholders})
                     UNION ALL
-                    SELECT op3 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY op3, DATE(datum), skiftraknare
+                    SELECT op3 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op3 IN ({$placeholders})
                 ) AS sub
                 GROUP BY op_id, dag
                 ORDER BY op_id, dag DESC
@@ -421,20 +410,25 @@ class GamificationController {
     private function getBadges(int $userId): array {
         $badges = [];
 
-        // ---- Centurion: 100 IBC pa en dag ----
-        // rebotling_ibc uses op1/op2/op3, not user_id
+        // ---- Centurion: 100 IBC pa en dag (LAG-korrigerad) ----
         try {
             $sql = "
-                SELECT dag, SUM(shift_ibc) AS total_cnt FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op1 = :uid1 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
-                    UNION ALL
-                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op2 = :uid2 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
-                    UNION ALL
-                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE op3 = :uid3 AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum), skiftraknare
-                ) AS sub
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
+                SELECT dag, SUM(delta_ibc) AS total_cnt
+                FROM lag_shifts
+                WHERE op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3
                 GROUP BY dag HAVING total_cnt >= 100
                 ORDER BY dag DESC LIMIT 1
             ";
@@ -579,30 +573,36 @@ class GamificationController {
             }
         }
 
-        // ---- Teamspelare: basta operatoren sammanlagt (vecka) ----
+        // ---- Teamspelare: basta operatoren sammanlagt (vecka, LAG-korrigerad) ----
         try {
             $mondayThisWeek = $this->getMondayThisWeek();
             $today = date('Y-m-d');
 
             $sql = "
-                SELECT op_id, SUM(shift_ibc) AS total_ibc FROM (
-                    SELECT op1 AS op_id, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1, skiftraknare
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
+                SELECT op_id, SUM(delta_ibc) AS total_ibc FROM (
+                    SELECT op1 AS op_id, delta_ibc FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2, skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
-                    WHERE datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2, skiftraknare
+                    SELECT op2 AS op_id, delta_ibc FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3, skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
-                    WHERE datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3, skiftraknare
+                    SELECT op3 AS op_id, delta_ibc FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                 ) AS sub
                 GROUP BY op_id ORDER BY total_ibc DESC LIMIT 1
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $mondayThisWeek, ':to1' => $today,
-                ':from2' => $mondayThisWeek, ':to2' => $today,
-                ':from3' => $mondayThisWeek, ':to3' => $today,
-            ]);
+            $stmt->execute([':from' => $mondayThisWeek, ':to' => $today]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if ($row && (int)$row['op_id'] === $userId) {
@@ -846,13 +846,20 @@ class GamificationController {
         $totalIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT SUM(shift_ibc) AS total FROM (
-                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc WHERE op1 = ? GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE op2 = ? GROUP BY skiftraknare
-                    UNION ALL
-                    SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE op3 = ? GROUP BY skiftraknare
-                ) AS sub
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                )
+                SELECT SUM(delta_ibc) AS total FROM lag_shifts
+                WHERE op1 = ? OR op2 = ? OR op3 = ?
             ");
             $stmt->execute([$userId, $userId, $userId]);
             $totalIbc = (int)($stmt->fetchColumn() ?? 0);
@@ -932,21 +939,35 @@ class GamificationController {
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         $total = 0;
 
-        // 1. Centurion: operatorer med >= 100 IBC pa en dag (senaste 90 dagar)
+        // 1. Centurion: operatorer med >= 100 IBC pa en dag (senaste 90 dagar, LAG-korrigerad)
         try {
             $sql = "
-                SELECT COUNT(DISTINCT op_id) FROM (
-                    SELECT op_id, dag, SUM(shift_ibc) AS total_cnt FROM (
-                        SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE op1 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op1, DATE(datum), skiftraknare
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end,
+                           MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           op1, op2, op3
+                    FROM lag_base
+                ),
+                op_day AS (
+                    SELECT op_id, dag, SUM(delta_ibc) AS total_ibc
+                    FROM (
+                        SELECT op1 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op1 IN ({$placeholders})
                         UNION ALL
-                        SELECT op2, DATE(datum), skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
-                        WHERE op2 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op2, DATE(datum), skiftraknare
+                        SELECT op2 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op2 IN ({$placeholders})
                         UNION ALL
-                        SELECT op3, DATE(datum), skiftraknare, COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
-                        WHERE op3 IN ({$placeholders}) AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY op3, DATE(datum), skiftraknare
-                    ) AS sub GROUP BY op_id, dag HAVING total_cnt >= 100
-                ) AS centurions
+                        SELECT op3 AS op_id, dag, delta_ibc FROM lag_shifts WHERE op3 IN ({$placeholders})
+                    ) AS sub
+                    GROUP BY op_id, dag
+                    HAVING total_ibc >= 100
+                )
+                SELECT COUNT(DISTINCT op_id) FROM op_day
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute(array_merge($userIds, $userIds, $userIds));
