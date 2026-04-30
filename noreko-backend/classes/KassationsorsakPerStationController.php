@@ -88,17 +88,24 @@ class KassationsorsakPerStationController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(shift_ok), 0)    AS total_ok,
-                    COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok
+                    COALESCE(SUM(ibc_delta), 0)    AS total_ok,
+                    COALESCE(SUM(ej_ok_delta), 0)  AS total_ej_ok
                 FROM (
                     SELECT
+                        dag,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))       AS ibc_delta,
+                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))  AS ej_ok_delta
+                    FROM (
+                        SELECT
+                            DATE(datum)                     AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))        AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0))     AS ej_ok_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift_raw
                 ) AS per_shift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -336,18 +343,24 @@ class KassationsorsakPerStationController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     dag,
-                    COALESCE(SUM(shift_ok), 0)    AS dag_ok,
-                    COALESCE(SUM(shift_ej_ok), 0) AS dag_ej_ok
+                    COALESCE(SUM(ibc_delta), 0)    AS dag_ok,
+                    COALESCE(SUM(ej_ok_delta), 0)  AS dag_ej_ok
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
+                        dag,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))       AS ibc_delta,
+                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))  AS ej_ok_delta
+                    FROM (
+                        SELECT
+                            DATE(datum)                     AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))        AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0))     AS ej_ok_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift_raw
                 ) AS per_shift
                 GROUP BY dag
                 ORDER BY dag ASC

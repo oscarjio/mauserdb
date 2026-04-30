@@ -106,24 +106,31 @@ class HeatmapController {
             }
 
             // Aggregera IBC per dag+timme.
-            // rebotling_ibc lagrar kumulativa rakneverk per skiftraknare,
-            // sa vi tar MAX(ibc_ok) per skiftraknare+timme och summerar.
+            // rebotling_ibc lagrar kumulativa rakneverk per skiftraknare (nollstalls vid midnatt, ej per skift).
+            // Korrekt metod: LAG() per (dag, timme) for att rakna delta per skift, sedan SUM(delta).
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum)  AS date,
-                    HOUR(datum)  AS hour,
-                    SUM(shift_ibc) AS ibc_count
+                    date,
+                    hour,
+                    SUM(ibc_delta) AS ibc_count
                 FROM (
                     SELECT
-                        datum,
+                        dag AS date,
+                        hour,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), HOUR(datum), skiftraknare
-                ) AS per_hour_shift
-                GROUP BY DATE(datum), HOUR(datum)
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag, hour ORDER BY skiftraknare), 0)) AS ibc_delta
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            HOUR(datum) AS hour,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), HOUR(datum), skiftraknare
+                    ) AS innermost
+                ) AS with_delta
+                GROUP BY date, hour
                 HAVING ibc_count > 0
                 ORDER BY date ASC, hour ASC
             ");
@@ -195,39 +202,56 @@ class HeatmapController {
             }
 
             // Totalt IBC under perioden
+            // LAG() per dag for att rakna delta per skift (ibc_ok nollstalls vid midnatt, ej per skift).
             $stmtTotal = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ibc), 0) AS total_ibc
+                SELECT COALESCE(SUM(ibc_delta), 0) AS total_ibc
                 FROM (
-                    SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    SELECT
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS innermost
+                ) AS with_delta
             ");
             $stmtTotal->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $totalRow  = $stmtTotal->fetch(\PDO::FETCH_ASSOC);
             $totalIbc  = (int)($totalRow['total_ibc'] ?? 0);
 
             // Snitt IBC per timme (genomsnitt over alla dagar)
+            // LAG() per (dag, timme) for korrekt delta per skift.
             $stmtHour = $this->pdo->prepare("
                 SELECT
                     hour,
                     AVG(daily_count) AS avg_count
                 FROM (
                     SELECT
-                        DATE(datum)  AS day,
-                        HOUR(datum)  AS hour,
-                        SUM(shift_ibc) AS daily_count
+                        dag AS day,
+                        hour,
+                        SUM(ibc_delta) AS daily_count
                     FROM (
-                        SELECT datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                        GROUP BY DATE(datum), HOUR(datum), skiftraknare
-                    ) AS hs
-                    GROUP BY DATE(datum), HOUR(datum)
+                        SELECT
+                            dag,
+                            hour,
+                            skiftraknare,
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag, hour ORDER BY skiftraknare), 0)) AS ibc_delta
+                        FROM (
+                            SELECT
+                                DATE(datum) AS dag,
+                                HOUR(datum) AS hour,
+                                skiftraknare,
+                                MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                            FROM rebotling_ibc
+                            WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), HOUR(datum), skiftraknare
+                        ) AS innermost
+                    ) AS with_delta
+                    GROUP BY dag, hour
                     HAVING daily_count > 0
                 ) AS hd
                 GROUP BY hour
@@ -252,23 +276,31 @@ class HeatmapController {
 
             // Snitt IBC per veckodag (1=man..7=son, MySQL: DAYOFWEEK 1=son, 2=man..7=lor)
             // Vi anvander WEEKDAY() som ger 0=man..6=son, plus 1 for ISO-format
+            // LAG() per dag for korrekt delta per skift.
             $stmtWday = $this->pdo->prepare("
                 SELECT
                     (WEEKDAY(day) + 1) AS weekday,
                     AVG(day_count) AS avg_count
                 FROM (
                     SELECT
-                        DATE(datum) AS day,
-                        SUM(shift_ibc) AS day_count
+                        dag AS day,
+                        SUM(ibc_delta) AS day_count
                     FROM (
-                        SELECT datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS ds
-                    GROUP BY DATE(datum)
+                        SELECT
+                            dag,
+                            skiftraknare,
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                        FROM (
+                            SELECT
+                                DATE(datum) AS dag,
+                                skiftraknare,
+                                MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                            FROM rebotling_ibc
+                            WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), skiftraknare
+                        ) AS innermost
+                    ) AS with_delta
+                    GROUP BY dag
                     HAVING day_count > 0
                 ) AS dd
                 GROUP BY weekday

@@ -1,0 +1,12 @@
+:host {
+  display: block;
+}
+
+.card {
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+}
+
+table td, table th {
+  vertical-align: middle;
+}

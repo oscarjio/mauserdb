@@ -147,16 +147,24 @@ class OeeBenchmarkController {
         // Använd kumulativa PLC-fält ibc_ok / ibc_ej_ok per skiftraknare
         $sqlIbc = "
             SELECT
-                COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                COALESCE(SUM(ibc_delta), 0)    AS ok_ibc,
+                COALESCE(SUM(ej_ok_delta), 0)  AS ej_ok_ibc
             FROM (
-                SELECT skiftraknare,
-                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
-
-                GROUP BY skiftraknare
+                SELECT
+                    dag,
+                    skiftraknare,
+                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))       AS ibc_delta,
+                    GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))  AS ej_ok_delta
+                FROM (
+                    SELECT
+                        DATE(datum)                     AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))        AS ibc_end,
+                        MAX(COALESCE(ibc_ej_ok, 0))     AS ej_ok_end
+                    FROM rebotling_ibc
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift_raw
             ) sub
         ";
         $stmtIbc = $this->pdo->prepare($sqlIbc);

@@ -113,19 +113,31 @@ class ProduktTypEffektivitetController {
                     1)                                                     AS snitt_cykeltid_sek
                 FROM (
                     SELECT
-                        produkt                     AS produkt_id,
+                        produkt_id,
+                        dag,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc_ej_ok,
-                        MAX(COALESCE(runtime_plc, 0)) AS shift_runtime_min,
-                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus,
-                        SUBSTRING_INDEX(GROUP_CONCAT(kvalitet    ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_kvalitet
-                    FROM rebotling_ibc
-                    WHERE produkt IS NOT NULL
-                      AND produkt > 0
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                        shift_runtime_min,
+                        last_bonus,
+                        last_kvalitet
+                    FROM (
+                        SELECT
+                            produkt                     AS produkt_id,
+                            DATE(datum)                 AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
+                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime_min,
+                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus,
+                            SUBSTRING_INDEX(GROUP_CONCAT(kvalitet    ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_kvalitet
+                        FROM rebotling_ibc
+                        WHERE produkt IS NOT NULL
+                          AND produkt > 0
 
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY produkt, skiftraknare
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY produkt, DATE(datum), skiftraknare
+                    ) AS innermost
                 ) AS agg
                 LEFT JOIN rebotling_products p ON p.id = agg.produkt_id
                 GROUP BY agg.produkt_id, p.name
@@ -187,20 +199,24 @@ class ProduktTypEffektivitetController {
         try {
             // Hämta top-produkttyper (max 6)
             $stmtTop = $this->pdo->prepare("
-                SELECT produkt AS produkt_id,
-                       COALESCE(p.name, CONCAT('Produkt #', produkt)) AS produkt_namn,
+                SELECT produkt_id,
+                       COALESCE(p.name, CONCAT('Produkt #', produkt_id)) AS produkt_namn,
                        COALESCE(SUM(sub.shift_ibc_ok), 0) AS total_ibc
                 FROM (
-                    SELECT produkt, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
-                    FROM rebotling_ibc
-                    WHERE produkt IS NOT NULL AND produkt > 0
+                    SELECT produkt_id,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok
+                    FROM (
+                        SELECT produkt AS produkt_id, DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE produkt IS NOT NULL AND produkt > 0
 
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY produkt, skiftraknare
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY produkt, DATE(datum), skiftraknare
+                    ) AS innermost
                 ) AS sub
-                LEFT JOIN rebotling_products p ON p.id = sub.produkt
-                GROUP BY produkt, p.name
+                LEFT JOIN rebotling_products p ON p.id = sub.produkt_id
+                GROUP BY sub.produkt_id, p.name
                 HAVING total_ibc > 0
                 ORDER BY total_ibc DESC
                 LIMIT 6
@@ -227,8 +243,8 @@ class ProduktTypEffektivitetController {
             // Daglig data per produkt
             $stmtDaily = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) AS dag,
-                    produkt AS produkt_id,
+                    dag,
+                    produkt_id,
                     COALESCE(SUM(shift_ok), 0) AS dag_ibc,
                     ROUND(
                         CASE WHEN COALESCE(SUM(shift_ok), 0) > 0
@@ -237,18 +253,26 @@ class ProduktTypEffektivitetController {
                     1) AS dag_cykeltid_sek
                 FROM (
                     SELECT
-                        datum,
-                        produkt,
+                        dag,
+                        produkt_id,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))      AS shift_ok,
-                        MAX(COALESCE(runtime_plc, 0))  AS shift_runtime
-                    FROM rebotling_ibc
-                    WHERE produkt IN ({$placeholders})
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                        shift_runtime
+                    FROM (
+                        SELECT
+                            DATE(datum)                   AS dag,
+                            produkt                       AS produkt_id,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                        FROM rebotling_ibc
+                        WHERE produkt IN ({$placeholders})
 
-                      AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), produkt, skiftraknare
+                          AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), produkt, skiftraknare
+                    ) AS innermost
                 ) AS per_shift
-                GROUP BY DATE(datum), produkt
+                GROUP BY dag, produkt_id
                 ORDER BY dag ASC
             ");
             $params = array_merge($topIds, [$fromDate, $toDate]);
@@ -381,16 +405,26 @@ class ProduktTypEffektivitetController {
                     1)                                   AS snitt_cykeltid_sek
                 FROM (
                     SELECT
+                        dag,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))      AS shift_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ibc_ej_ok,
-                        MAX(COALESCE(runtime_plc, 0))  AS shift_runtime_min,
-                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus
-                    FROM rebotling_ibc
-                    WHERE produkt = :produkt_id
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                        shift_runtime_min,
+                        last_bonus
+                    FROM (
+                        SELECT
+                            DATE(datum)                   AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_end,
+                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime_min,
+                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'), '|', 1) + 0 AS last_bonus
+                        FROM rebotling_ibc
+                        WHERE produkt = :produkt_id
 
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
+                          AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS innermost
                 ) AS agg
             ");
             $stmtName = $this->pdo->prepare("SELECT name FROM rebotling_products WHERE id = ? LIMIT 1");

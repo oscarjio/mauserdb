@@ -225,16 +225,20 @@ class DagligSammanfattningController {
 
         // IBC via kumulativa PLC-fält
         $ibcStmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+            "SELECT COALESCE(SUM(ibc_delta), 0) AS ok_antal,
+                    COALESCE(SUM(ej_ok_delta), 0) AS ej_ok_antal
              FROM (
-                 SELECT skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-
-                 GROUP BY skiftraknare
+                 SELECT dag, skiftraknare,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ej_ok_delta
+                 FROM (
+                     SELECT DATE(datum) AS dag, skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS ej_ok_end
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), skiftraknare
+                 ) innermost
              ) sub"
         );
         $ibcStmt->execute([$date, $date]);
@@ -438,12 +442,16 @@ class DagligSammanfattningController {
 
         // Summera per skift + datum föreg
         $foStmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(max_ok), 0) AS ibc_ok FROM (
-                SELECT skiftraknare, MAX(ibc_ok) AS max_ok
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                GROUP BY skiftraknare
-                HAVING COUNT(*) > 1
+            "SELECT COALESCE(SUM(ibc_delta), 0) AS ibc_ok FROM (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) innermost
              ) skiften"
         );
         $foStmt->execute([$foregDatum, $foregDatum]);
@@ -476,12 +484,16 @@ class DagligSammanfattningController {
         $placeholders = implode(',', array_fill(0, count($dates), '?'));
 
         $s = $this->pdo->prepare(
-            "SELECT dag, COALESCE(SUM(max_ok), 0) AS ibc FROM (
-                SELECT DATE(datum) AS dag, MAX(ibc_ok) AS max_ok
-                FROM rebotling_ibc
-                WHERE DATE(datum) IN ({$placeholders})
-                GROUP BY DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
+            "SELECT dag, COALESCE(SUM(ibc_delta), 0) AS ibc FROM (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) IN ({$placeholders})
+                    GROUP BY DATE(datum), skiftraknare
+                ) innermost
              ) t
              GROUP BY dag"
         );

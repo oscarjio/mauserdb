@@ -156,15 +156,21 @@ class ProduktionsPrognosController {
         $ibcHittills = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(max_ok + max_ej), 0) AS total_ibc
+                SELECT COALESCE(SUM(ibc_delta + ej_delta), 0) AS total_ibc
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
-                    FROM rebotling_ibc
-                    WHERE {$ibcCol} >= :shift_start
-                      AND {$ibcCol} <= :now_dt
-                    GROUP BY skiftraknare
+                    SELECT
+                        skiftraknare,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0))  AS ibc_delta,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY skiftraknare), 0))  AS ej_delta
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end
+                        FROM rebotling_ibc
+                        WHERE {$ibcCol} >= :shift_start
+                          AND {$ibcCol} <= :now_dt
+                        GROUP BY skiftraknare
+                    ) AS per_shift_raw
                 ) AS per_shift
             ");
             $stmt->execute([':shift_start' => $shiftStartStr, ':now_dt' => $nowStr]);
@@ -217,14 +223,20 @@ class ProduktionsPrognosController {
         $ibcIdag = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(max_ok + max_ej), 0) AS total_ibc
+                SELECT COALESCE(SUM(ibc_delta + ej_delta), 0) AS total_ibc
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
-                    FROM rebotling_ibc
-                    WHERE {$ibcCol} >= CURDATE() AND {$ibcCol} < CURDATE() + INTERVAL 1 DAY
-                    GROUP BY skiftraknare
+                    SELECT
+                        skiftraknare,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0))  AS ibc_delta,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY skiftraknare), 0))  AS ej_delta
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end
+                        FROM rebotling_ibc
+                        WHERE {$ibcCol} >= CURDATE() AND {$ibcCol} < CURDATE() + INTERVAL 1 DAY
+                        GROUP BY skiftraknare
+                    ) AS per_shift_raw
                 ) AS per_shift
             ");
             $stmt->execute();

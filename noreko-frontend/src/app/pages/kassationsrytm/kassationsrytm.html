@@ -1,0 +1,212 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold text-white">
+        <i class="fas fa-calendar-times me-2 text-danger"></i>Kassationsrytm
+      </h4>
+      <small class="text-secondary" *ngIf="from">
+        {{ from }} — {{ to }}
+      </small>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <!-- Mode toggle -->
+      <div class="btn-group btn-group-sm">
+        <button class="btn"
+          [class.btn-danger]="!showBur"
+          [class.btn-outline-secondary]="showBur"
+          (click)="showBur = false; load()">IBC-kassation</button>
+        <button class="btn"
+          [class.btn-warning]="showBur"
+          [class.btn-outline-secondary]="!showBur"
+          (click)="showBur = true; load()">Bur-kassation</button>
+      </div>
+      <!-- Period selector -->
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let d of dayOptions"
+          class="btn"
+          [class.btn-primary]="days === d"
+          [class.btn-outline-secondary]="days !== d"
+          (click)="days = d; load()">{{ d }}d</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center py-5 text-secondary">
+    <div class="spinner-border spinner-border-sm me-2"></div>Hämtar kassationsdata…
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error && grid.length > 0">
+
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card text-center" style="background:#2d3748;">
+          <div class="card-body py-2">
+            <div class="text-secondary small mb-1">Periodnitt kassation</div>
+            <div class="fw-bold fs-4" style="color:#fc8181;">{{ activeAvg().toFixed(1) }}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3" *ngIf="best">
+        <div class="card text-center" style="background:#2d3748;">
+          <div class="card-body py-2">
+            <div class="text-secondary small mb-1">Bäst (lägst kassation)</div>
+            <div class="fw-bold" style="color:#68d391;">{{ best.kass_pct.toFixed(1) }}%</div>
+            <div class="text-secondary" style="font-size:0.72rem;">{{ best.label }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3" *ngIf="worst">
+        <div class="card text-center" style="background:#2d3748;">
+          <div class="card-body py-2">
+            <div class="text-secondary small mb-1">Sämst (högst kassation)</div>
+            <div class="fw-bold" style="color:#fc8181;">{{ worst.kass_pct.toFixed(1) }}%</div>
+            <div class="text-secondary" style="font-size:0.72rem;">{{ worst.label }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center" style="background:#2d3748;">
+          <div class="card-body py-2">
+            <div class="text-secondary small mb-1">Total IBC kasserade</div>
+            <div class="fw-bold fs-5 text-light">{{ totals.ibc_ej | number }}</div>
+            <div class="text-secondary" style="font-size:0.72rem;">av {{ (totals.ibc_ok + totals.ibc_ej) | number }} tot</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color legend -->
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+      <small class="text-secondary">Färgskala:</small>
+      <span class="badge" style="background:#2d6a4f; color:#d8f3dc;">Låg kassation</span>
+      <span class="badge" style="background:#8b8000; color:#fffde7;">≈ Periodssnitt</span>
+      <span class="badge" style="background:#7f1d1d; color:#fecaca;">Hög kassation</span>
+      <small class="text-secondary ms-2">Färgskiftet = ±3pp (eller ±50% av snittet)</small>
+    </div>
+
+    <!-- Heatmap grid -->
+    <div class="card mb-4" style="background:#2d3748; overflow-x:auto;">
+      <div class="card-body p-0">
+        <table class="w-100" style="border-collapse:collapse; min-width:600px;">
+          <thead>
+            <tr style="background:#1a202c;">
+              <th style="padding:8px 12px; color:#a0aec0; font-size:0.78rem; width:140px;">Skifttyp</th>
+              <th *ngFor="let ca of colAvgs"
+                  style="padding:8px 6px; color:#a0aec0; font-size:0.72rem; text-align:center; min-width:76px;">
+                {{ ca.dag_namn.substring(0,3) }}
+                <div style="color:#68d391; font-size:0.68rem; font-weight:600;">{{ ca.avg.toFixed(1) }}%</div>
+              </th>
+              <th style="padding:8px 8px; color:#a0aec0; font-size:0.72rem; text-align:center; min-width:64px;">Snitt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of grid">
+              <td style="padding:6px 12px; color:#e2e8f0; font-size:0.8rem; font-weight:500; white-space:nowrap; background:#1a202c;">
+                {{ row.label }}
+              </td>
+              <td *ngFor="let cell of row.cells"
+                  [style.background]="cellColor(activeKass(cell))"
+                  style="padding:6px 4px; text-align:center; border:1px solid rgba(0,0,0,0.25); transition:background 0.15s;"
+                  [title]="cell.dag_namn + ' ' + row.label + ': ' + (activeKass(cell)?.toFixed(1) ?? '–') + '% kassation (' + cell.antal_skift + ' skift, ' + cell.tot_ibc_ej + ' kasserade)'">
+                <ng-container *ngIf="cell.antal_skift >= 3 && activeKass(cell) !== null; else emptyCell">
+                  <div style="font-size:0.85rem; font-weight:700; color:#fff;">
+                    {{ activeKass(cell)!.toFixed(1) }}%
+                  </div>
+                  <div style="font-size:0.65rem; color:rgba(255,255,255,0.7);">
+                    {{ cell.antal_skift }} sk
+                  </div>
+                </ng-container>
+                <ng-template #emptyCell>
+                  <span style="color:rgba(255,255,255,0.3); font-size:0.75rem;">–</span>
+                </ng-template>
+              </td>
+              <td style="padding:6px 8px; text-align:center; background:#22303c; border-left:2px solid #4a5568;">
+                <span style="font-size:0.82rem; font-weight:600; color:#e2e8f0;">
+                  {{ activeRowAvg(row).toFixed(1) }}%
+                </span>
+              </td>
+            </tr>
+            <!-- Period average row -->
+            <tr style="border-top:2px solid #4a5568;">
+              <td style="padding:6px 12px; color:#a0aec0; font-size:0.75rem; font-style:italic; background:#1a202c;">
+                Alla skifttyper
+              </td>
+              <td *ngFor="let ca of colAvgs"
+                  style="padding:6px 4px; text-align:center; background:#22303c;">
+                <span style="font-size:0.8rem; color:#76e4f7; font-weight:500;">{{ ca.avg.toFixed(1) }}%</span>
+              </td>
+              <td style="padding:6px 8px; text-align:center; background:#1a202c; border-left:2px solid #4a5568;">
+                <span style="font-size:0.82rem; font-weight:700; color:#76e4f7;">{{ activeAvg().toFixed(1) }}%</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Explanation callout -->
+    <div class="alert" style="background:#2a2d35; border:1px solid #4a5568; color:#a0aec0; font-size:0.8rem;">
+      <i class="fas fa-info-circle me-2 text-info"></i>
+      <strong style="color:#e2e8f0;">Hur tolkar man kartan?</strong>
+      Röda celler = systematiskt hög kassation vid denna skifttyp och veckodag.
+      Gröna celler = systematiskt låg kassation. Celler kräver minst 3 skift för att visas.
+      <strong style="color:#e2e8f0;">IBC-kassation</strong> = IBC som underkändes vid kontroll /
+      (godkända + underkända). <strong style="color:#e2e8f0;">Bur-kassation</strong> = burarna (stålramarna)
+      som underkändes / alla hanterade.
+    </div>
+
+    <!-- Detail table -->
+    <div class="card" style="background:#2d3748;">
+      <div class="card-header" style="background:#22303c; color:#e2e8f0; font-size:0.85rem; font-weight:600;">
+        Detaljvy — alla celler
+      </div>
+      <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="table table-dark table-sm table-hover mb-0" style="font-size:0.8rem;">
+          <thead>
+            <tr>
+              <th>Skifttyp</th>
+              <th>Veckodag</th>
+              <th class="text-end">IBC-kass%</th>
+              <th class="text-end">Bur-kass%</th>
+              <th class="text-end">IBC kasserade</th>
+              <th class="text-end">IBC ok</th>
+              <th class="text-end">Antal skift</th>
+              <th class="text-end">vs snitt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let row of grid">
+              <tr *ngFor="let cell of row.cells" [class.d-none]="cell.antal_skift < 3">
+                <td style="color:#a0aec0;">{{ row.label }}</td>
+                <td>{{ cell.dag_namn }}</td>
+                <td class="text-end">
+                  <span [style.color]="cell.kass_pct !== null && cell.kass_pct > periodAvg ? '#fc8181' : '#68d391'">
+                    {{ cell.kass_pct !== null ? cell.kass_pct.toFixed(1) + '%' : '–' }}
+                  </span>
+                </td>
+                <td class="text-end text-secondary">{{ cell.bur_pct !== null ? cell.bur_pct.toFixed(1) + '%' : '–' }}</td>
+                <td class="text-end">{{ cell.tot_ibc_ej | number }}</td>
+                <td class="text-end text-secondary">{{ cell.tot_ibc_ok | number }}</td>
+                <td class="text-end">{{ cell.antal_skift }}</td>
+                <td class="text-end">
+                  <span *ngIf="cell.vs_avg_pp !== null"
+                    [style.color]="cell.vs_avg_pp > 0 ? '#fc8181' : '#68d391'">
+                    {{ cell.vs_avg_pp > 0 ? '+' : '' }}{{ cell.vs_avg_pp!.toFixed(1) }}pp
+                  </span>
+                  <span *ngIf="cell.vs_avg_pp === null" class="text-secondary">–</span>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>
