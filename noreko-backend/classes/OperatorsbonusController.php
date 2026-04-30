@@ -207,56 +207,48 @@ class OperatorsbonusController {
             return [];
         }
 
-        // --- Batch-hämta all produktionsdata i EN query (eliminerar N+1) ---
+        // --- Batch-hämta all produktionsdata i EN query med LAG() delta ---
+        // ibc_ok is a cumulative daily PLC counter — LAG() gives per-shift true production.
         $batchData = [];
         try {
             $stmt = $this->pdo->prepare("
+                WITH base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(op1, 0))        AS op1,
+                           MAX(COALESCE(op2, 0))        AS op2,
+                           MAX(COALESCE(op3, 0))        AS op3,
+                           MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0))  AS ibc_ej_end,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                team_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3, shift_runtime,
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                    FROM base
+                )
                 SELECT
                     op_id,
-                    COALESCE(SUM(shift_ibc), 0) AS total_ibc,
-                    COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
-                    COALESCE(SUM(shift_ok), 0) AS total_ok,
-                    COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
-                    COALESCE(SUM(shift_ok), 0) + COALESCE(SUM(shift_ej_ok), 0) AS total_all,
-                    COUNT(DISTINCT dag) AS unika_dagar,
-                    COUNT(*) AS antal_skift
+                    COALESCE(SUM(ibc_delta), 0)                                      AS total_ibc,
+                    COALESCE(SUM(shift_runtime), 0)                                  AS total_runtime_min,
+                    COALESCE(SUM(ibc_delta), 0)                                      AS total_ok,
+                    COALESCE(SUM(ibc_ej_delta), 0)                                   AS total_ej_ok,
+                    COALESCE(SUM(ibc_delta), 0) + COALESCE(SUM(ibc_ej_delta), 0)    AS total_all,
+                    COUNT(DISTINCT dag)                                               AS unika_dagar,
+                    COUNT(*)                                                          AS antal_skift
                 FROM (
-                    SELECT
-                        op_id,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                        MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
-                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                        DATE(MAX(datum)) AS dag
-                    FROM (
-                        SELECT op1 AS op_id, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                        FROM rebotling_ibc
-                        WHERE op1 IS NOT NULL AND op1 > 0
-
-                          AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                        UNION ALL
-                        SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                        FROM rebotling_ibc
-                        WHERE op2 IS NOT NULL AND op2 > 0
-
-                          AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                        UNION ALL
-                        SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                        FROM rebotling_ibc
-                        WHERE op3 IS NOT NULL AND op3 > 0
-
-                          AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                    ) AS all_ops
-                    GROUP BY op_id, skiftraknare
-                ) AS per_shift
+                    SELECT op1 AS op_id, dag, ibc_delta, ibc_ej_delta, shift_runtime FROM team_shifts WHERE op1 IS NOT NULL AND op1 > 0
+                    UNION ALL
+                    SELECT op2, dag, ibc_delta, ibc_ej_delta, shift_runtime FROM team_shifts WHERE op2 IS NOT NULL AND op2 > 0
+                    UNION ALL
+                    SELECT op3, dag, ibc_delta, ibc_ej_delta, shift_runtime FROM team_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                ) op_rows
                 GROUP BY op_id
             ");
-            $stmt->execute([
-                ':from1' => $fromDate, ':to1' => $toDate,
-                ':from2' => $fromDate, ':to2' => $toDate,
-                ':from3' => $fromDate, ':to3' => $toDate,
-            ]);
+            $stmt->execute([':from1' => $fromDate, ':to1' => $toDate]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $batchData[(int)$row['op_id']] = $row;
             }
@@ -351,19 +343,13 @@ class OperatorsbonusController {
 
             if ($dailyGoal <= 0) $dailyGoal = 200;
 
-            // Hämta faktisk produktion per dag
+            // MAX per dag = korrekt dagstotal (räknaren nollställs vid midnatt).
             $stmt = $this->pdo->prepare("
-                SELECT
-                    DATE(datum) AS dag,
-                    COALESCE(SUM(shift_ok), 0) AS ibc_ok
-                FROM (
-                    SELECT DATE(datum) AS datum, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
-                GROUP BY dag
+                SELECT DATE(datum) AS dag, MAX(COALESCE(ibc_ok, 0)) AS ibc_ok
+                FROM rebotling_ibc
+                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                GROUP BY DATE(datum)
+                ORDER BY dag
             ");
             $stmt->execute([':from_date' => $from, ':to_date' => $to]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -775,88 +761,74 @@ class OperatorsbonusController {
             $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
             if ($granularity === 'dag') {
-                // Daglig aggregering
+                // Daglig aggregering — CTE LAG() för korrekt per-skift ibc_ok (kumulativ räknare)
                 $stmt = $this->pdo->prepare("
+                    WITH base AS (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_end,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                        FROM rebotling_ibc
+                        WHERE (op1 = :op1a OR op2 = :op1b OR op3 = :op1c)
+                          AND datum >= :from1
+                          AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ), lag_shifts AS (
+                        SELECT dag, skiftraknare, shift_runtime,
+                               GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                               GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                        FROM base
+                    )
                     SELECT
                         dag,
-                        COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                        COALESCE(SUM(ibc_delta),     0) AS total_ibc,
                         COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
-                        COALESCE(SUM(shift_ok), 0) AS total_ok,
-                        COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
+                        COALESCE(SUM(ibc_delta),     0) AS total_ok,
+                        COALESCE(SUM(ibc_ej_delta),  0) AS total_ej_ok,
                         COUNT(*) AS antal_skift
-                    FROM (
-                        SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
-                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM (
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op1 = :op1 AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op2 = :op2 AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op3 = :op3 AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                        ) AS all_ops
-                        GROUP BY dag, skiftraknare
-                    ) AS per_shift
+                    FROM lag_shifts
                     GROUP BY dag
                     ORDER BY dag ASC
                 ");
                 $stmt->execute([
-                    ':op1' => $opNumber, ':from1' => $fromDate, ':to1' => $toDate,
-                    ':op2' => $opNumber, ':from2' => $fromDate, ':to2' => $toDate,
-                    ':op3' => $opNumber, ':from3' => $fromDate, ':to3' => $toDate,
+                    ':op1a' => $opNumber, ':op1b' => $opNumber, ':op1c' => $opNumber,
+                    ':from1' => $fromDate, ':to1' => $toDate,
                 ]);
             } else {
-                // Veckovis aggregering
+                // Veckovis aggregering — CTE LAG() för korrekt per-skift ibc_ok
                 $stmt = $this->pdo->prepare("
+                    WITH base AS (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_end,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                        FROM rebotling_ibc
+                        WHERE (op1 = :op1a OR op2 = :op1b OR op3 = :op1c)
+                          AND datum >= :from1
+                          AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ), lag_shifts AS (
+                        SELECT dag, skiftraknare, shift_runtime,
+                               GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                               GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                        FROM base
+                    )
                     SELECT
                         YEARWEEK(dag, 1) AS vecka,
-                        MIN(dag) AS vecka_start,
-                        MAX(dag) AS vecka_slut,
-                        COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                        MIN(dag)         AS vecka_start,
+                        MAX(dag)         AS vecka_slut,
+                        COALESCE(SUM(ibc_delta),     0) AS total_ibc,
                         COALESCE(SUM(shift_runtime), 0) AS total_runtime_min,
-                        COALESCE(SUM(shift_ok), 0) AS total_ok,
-                        COALESCE(SUM(shift_ej_ok), 0) AS total_ej_ok,
+                        COALESCE(SUM(ibc_delta),     0) AS total_ok,
+                        COALESCE(SUM(ibc_ej_delta),  0) AS total_ej_ok,
                         COUNT(*) AS antal_skift
-                    FROM (
-                        SELECT
-                            DATE(datum) AS dag,
-                            skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
-                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                        FROM (
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op1 = :op1 AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op2 = :op2 AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc, datum
-                            FROM rebotling_ibc
-                            WHERE op3 = :op3 AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                        ) AS all_ops
-                        GROUP BY dag, skiftraknare
-                    ) AS per_shift
+                    FROM lag_shifts
                     GROUP BY YEARWEEK(dag, 1)
                     ORDER BY vecka ASC
                 ");
                 $stmt->execute([
-                    ':op1' => $opNumber, ':from1' => $fromDate, ':to1' => $toDate,
-                    ':op2' => $opNumber, ':from2' => $fromDate, ':to2' => $toDate,
-                    ':op3' => $opNumber, ':from3' => $fromDate, ':to3' => $toDate,
+                    ':op1a' => $opNumber, ':op1b' => $opNumber, ':op1c' => $opNumber,
+                    ':from1' => $fromDate, ':to1' => $toDate,
                 ]);
             }
 

@@ -133,25 +133,25 @@ class StatusController {
                     }
                 }
 
-                // IBC idag
+                // IBC idag — MAX per day = korrekt (räknaren nollställs vid midnatt).
                 $ibcIdag = (int)$pdo->query(
-                    "SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY GROUP BY skiftraknare) ps"
+                    "SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
 
-                // OEE idag
+                // OEE idag — ibc_ok: MAX per dag (daily counter resets at midnight).
+                // runtime_plc/rasttime reset per skift → MAX per skiftraknare then SUM is correct.
                 $oeePct = null;
                 try {
                     $oeeRow = $pdo->query(
                         "SELECT
-                            COALESCE(SUM(max_ibc_ok), 0)      AS ibc_ok,
-                            COALESCE(SUM(max_runtime_plc), 0) AS runtime,
-                            COALESCE(SUM(max_rasttime), 0)    AS rasttime
+                            (SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
+                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_ok,
+                            COALESCE(SUM(max_runtime_plc), 0)  AS runtime,
+                            COALESCE(SUM(max_rasttime), 0)     AS rasttime
                          FROM (
-                            SELECT
-                                skiftraknare,
-                                MAX(ibc_ok)      AS max_ibc_ok,
-                                MAX(runtime_plc) AS max_runtime_plc,
-                                MAX(rasttime)    AS max_rasttime
+                            SELECT skiftraknare,
+                                   MAX(runtime_plc) AS max_runtime_plc,
+                                   MAX(rasttime)    AS max_rasttime
                             FROM rebotling_ibc
                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                             GROUP BY skiftraknare
