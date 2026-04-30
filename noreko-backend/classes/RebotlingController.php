@@ -374,6 +374,8 @@ class RebotlingController {
                 $this->getKassationsbudget();
             } elseif ($action === 'stopptidsbudget') {
                 $this->getStopptidsbudget();
+            } elseif ($action === 'kassationsorsak-trend') {
+                $this->getKassationsorsakTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -11201,7 +11203,9 @@ class RebotlingController {
         $from = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // Detect product changeovers using LAG() over chronologically ordered deduplicated shifts
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta so later
+            // shifts in the same day are not over-credited with earlier shifts' cumulative total.
+            // Two LAG() levels: inner for ibc_ok delta, outer for product changeover detection.
             $sql = "
                 SELECT
                     f.skiftraknare,
@@ -11212,7 +11216,7 @@ class RebotlingController {
                     f.drifttid,
                     f.is_changeover
                 FROM (
-                    SELECT *,
+                    SELECT skiftraknare, datum, product_id, ibc_ok, drifttid,
                         CASE
                             WHEN LAG(product_id) OVER (ORDER BY datum, skiftraknare) IS NOT NULL
                               AND product_id != LAG(product_id) OVER (ORDER BY datum, skiftraknare)
@@ -11220,19 +11224,24 @@ class RebotlingController {
                             ELSE 0
                         END AS is_changeover
                     FROM (
-                        SELECT
-                            skiftraknare,
-                            datum,
-                            MAX(product_id)  AS product_id,
-                            MAX(ibc_ok)      AS ibc_ok,
-                            MAX(drifttid)    AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE datum BETWEEN :from AND :to
-                          AND drifttid >= 30
-                          AND ibc_ok > 0
-                          AND product_id IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) dedup
+                        SELECT skiftraknare, dag AS datum, product_id, drifttid,
+                               GREATEST(0, ibc_end - COALESCE(
+                                   LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0
+                               )) AS ibc_ok
+                        FROM (
+                            SELECT skiftraknare,
+                                   DATE(MIN(datum)) AS dag,
+                                   MAX(product_id)  AS product_id,
+                                   MAX(ibc_ok)      AS ibc_end,
+                                   MAX(drifttid)    AS drifttid
+                            FROM rebotling_skiftrapport
+                            WHERE datum BETWEEN :from AND :to
+                              AND drifttid >= 30
+                              AND ibc_ok > 0
+                              AND product_id IS NOT NULL
+                            GROUP BY skiftraknare
+                        ) base
+                    ) lag_base
                 ) f
                 LEFT JOIN rebotling_products p ON p.id = f.product_id
                 ORDER BY f.datum, f.skiftraknare
@@ -16913,6 +16922,177 @@ class RebotlingController {
             error_log('RebotlingController::getStopptidsbudget: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid stopptidsbudget'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=kassationsorsak-trend&months=12
+    private function getKassationsorsakTrend(): void
+    {
+        try {
+            $months = max(3, min(24, (int)($_GET['months'] ?? 12)));
+            $to     = date('Y-m-d');
+            $from   = date('Y-m-d', strtotime("-{$months} months"));
+
+            // Graceful fallback
+            $check = $this->pdo->query("SHOW TABLES LIKE 'kassationsregistrering'");
+            if (!$check->fetch()) {
+                echo json_encode([
+                    'success'    => true,
+                    'months'     => [],
+                    'causes'     => [],
+                    'monthly'    => [],
+                    'kpi'        => ['total' => 0, 'top_cause' => null, 'unique_causes' => 0, 'months_with_data' => 0],
+                    'from'       => $from,
+                    'to'         => $to,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Cause names
+            $causeRows = $this->pdo->query(
+                "SELECT id, namn, color FROM kassationsorsak_typer WHERE aktiv = 1 ORDER BY namn"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+            $causeMap = [];
+            foreach ($causeRows as $r) {
+                $causeMap[(int)$r['id']] = ['namn' => $r['namn'], 'color' => $r['color'] ?? null];
+            }
+
+            if (empty($causeMap)) {
+                echo json_encode([
+                    'success'    => true,
+                    'months'     => [],
+                    'causes'     => [],
+                    'monthly'    => [],
+                    'kpi'        => ['total' => 0, 'top_cause' => null, 'unique_causes' => 0, 'months_with_data' => 0],
+                    'from'       => $from,
+                    'to'         => $to,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Monthly totals per cause
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    YEAR(datum)  AS yr,
+                    MONTH(datum) AS mo,
+                    orsak_id,
+                    SUM(antal)   AS total
+                FROM kassationsregistrering
+                WHERE datum BETWEEN :from AND :to
+                GROUP BY YEAR(datum), MONTH(datum), orsak_id
+                ORDER BY yr, mo, orsak_id
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Build month list (all months in range, including empty)
+            $monthKeys = [];
+            $cur = new \DateTime($from);
+            $cur->modify('first day of this month');
+            $end = new \DateTime($to);
+            while ($cur <= $end) {
+                $monthKeys[] = $cur->format('Y-m');
+                $cur->modify('+1 month');
+            }
+
+            // Build matrix [cause_id][month_key] = total
+            $matrix     = []; // [cause_id][month_key] = count
+            $causeTotals = []; // [cause_id] = total across period
+            $monthTotals = []; // [month_key] = total
+
+            foreach ($rows as $r) {
+                $mk  = sprintf('%04d-%02d', (int)$r['yr'], (int)$r['mo']);
+                $cid = (int)$r['orsak_id'];
+                $tot = (int)$r['total'];
+                if (!isset($causeMap[$cid])) continue;
+
+                $matrix[$cid][$mk]       = ($matrix[$cid][$mk] ?? 0) + $tot;
+                $causeTotals[$cid]        = ($causeTotals[$cid] ?? 0) + $tot;
+                $monthTotals[$mk]         = ($monthTotals[$mk] ?? 0) + $tot;
+            }
+
+            // Only include causes with at least one event
+            $activeCauseIds = array_keys($causeTotals);
+            arsort($causeTotals);
+
+            // Trend per cause: compare first half vs second half of period
+            $half = (int)floor(count($monthKeys) / 2);
+            $firstHalf  = array_slice($monthKeys, 0, $half);
+            $secondHalf = array_slice($monthKeys, $half);
+
+            $causes = [];
+            foreach ($causeTotals as $cid => $total) {
+                $info = $causeMap[$cid];
+
+                $firstSum  = array_sum(array_map(fn($mk) => $matrix[$cid][$mk] ?? 0, $firstHalf));
+                $secondSum = array_sum(array_map(fn($mk) => $matrix[$cid][$mk] ?? 0, $secondHalf));
+                $firstAvg  = count($firstHalf)  > 0 ? $firstSum  / count($firstHalf)  : 0;
+                $secondAvg = count($secondHalf) > 0 ? $secondSum / count($secondHalf) : 0;
+
+                $delta = $secondAvg - $firstAvg;
+                if ($firstAvg > 0) {
+                    $deltaPct = ($delta / $firstAvg) * 100;
+                } else {
+                    $deltaPct = $secondAvg > 0 ? 100.0 : 0.0;
+                }
+
+                if ($deltaPct >= 15) {
+                    $trend = 'ökande';
+                } elseif ($deltaPct <= -15) {
+                    $trend = 'minskande';
+                } else {
+                    $trend = 'stabil';
+                }
+
+                $causes[] = [
+                    'id'        => $cid,
+                    'namn'      => $info['namn'],
+                    'color'     => $info['color'],
+                    'total'     => $total,
+                    'trend'     => $trend,
+                    'delta_pct' => round($deltaPct, 1),
+                    'monthly'   => array_map(fn($mk) => $matrix[$cid][$mk] ?? 0, $monthKeys),
+                ];
+            }
+
+            // Monthly breakdown with totals
+            $monthlyOut = [];
+            foreach ($monthKeys as $mk) {
+                $parts = explode('-', $mk);
+                $monthlyOut[] = [
+                    'month'      => $mk,
+                    'label'      => date('M y', mktime(0,0,0,(int)$parts[1],1,(int)$parts[0])),
+                    'total'      => $monthTotals[$mk] ?? 0,
+                ];
+            }
+
+            $grandTotal   = array_sum($causeTotals);
+            $topCauseName = count($causes) > 0 ? $causes[0]['namn'] : null;
+            $okande    = count(array_filter($causes, fn($c) => $c['trend'] === 'ökande'));
+            $minskande = count(array_filter($causes, fn($c) => $c['trend'] === 'minskande'));
+
+            echo json_encode([
+                'success' => true,
+                'months'  => $monthKeys,
+                'labels'  => array_column($monthlyOut, 'label'),
+                'causes'  => $causes,
+                'monthly' => $monthlyOut,
+                'kpi'     => [
+                    'total'            => $grandTotal,
+                    'top_cause'        => $topCauseName,
+                    'unique_causes'    => count($causes),
+                    'months_with_data' => count(array_filter($monthTotals)),
+                    'okande'           => $okande,
+                    'minskande'        => $minskande,
+                ],
+                'from'    => $from,
+                'to'      => $to,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKassationsorsakTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsorsak-trend'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

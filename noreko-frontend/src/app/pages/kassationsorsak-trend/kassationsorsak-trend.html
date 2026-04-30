@@ -1,0 +1,161 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Kassationsorsaker – Månadsvis Trend</h1>
+    <p class="subtitle">Hur förändras frekvensen av registrerade kassationsorsaker över tid?</p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="controls-row">
+    <div class="period-buttons">
+      <button *ngFor="let m of monthOptions"
+              class="btn-period"
+              [class.active]="months === m"
+              (click)="onMonthsChange(m)">
+        {{ m }} mån
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">Laddar orsakstrender...</div>
+  <div *ngIf="error" class="error-state">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- No data fallback -->
+    <div *ngIf="noData" class="no-data-card">
+      <div class="no-data-icon">📋</div>
+      <p>Inga kassationsorsaker registrerade för perioden.</p>
+      <p class="hint">Registrera kassationsorsaker via Kassationsregistrering.</p>
+    </div>
+
+    <ng-container *ngIf="!noData && kpi">
+
+      <!-- KPI row -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ kpi.total }}</div>
+          <div class="kpi-label">Totalt händelser</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ kpi.unique_causes }}</div>
+          <div class="kpi-label">Unika orsaker</div>
+        </div>
+        <div class="kpi-card highlight">
+          <div class="kpi-value small">{{ kpi.top_cause ?? '–' }}</div>
+          <div class="kpi-label">Vanligaste orsak</div>
+        </div>
+        <div class="kpi-card trend-up" *ngIf="kpi.okande > 0">
+          <div class="kpi-value text-danger">{{ kpi.okande }}</div>
+          <div class="kpi-label">Orsaker ökar ↑</div>
+        </div>
+        <div class="kpi-card trend-down" *ngIf="kpi.minskande > 0">
+          <div class="kpi-value text-success">{{ kpi.minskande }}</div>
+          <div class="kpi-label">Orsaker minskar ↓</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ kpi.months_with_data }}</div>
+          <div class="kpi-label">Månader med data</div>
+        </div>
+      </div>
+
+      <!-- Cause toggles -->
+      <div class="cause-toggles">
+        <button *ngFor="let c of causes; let i = index"
+                class="cause-chip"
+                [class.hidden]="!isCauseVisible(c.id)"
+                [style.borderColor]="causeColor(c, i)"
+                [style.backgroundColor]="isCauseVisible(c.id) ? causeColor(c, i) + '33' : 'transparent'"
+                (click)="toggleCause(c.id)">
+          <span class="chip-dot" [style.backgroundColor]="causeColor(c, i)"></span>
+          {{ c.namn }}
+        </button>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sort + table -->
+      <div class="table-section">
+        <div class="table-header-row">
+          <h3>Detaljer per orsak</h3>
+          <div class="sort-row">
+            <label>Sortera:</label>
+            <button [class.active]="sortBy === 'total'" (click)="sortBy = 'total'">Totalt</button>
+            <button [class.active]="sortBy === 'trend'" (click)="sortBy = 'trend'">Trend</button>
+            <button [class.active]="sortBy === 'namn'"  (click)="sortBy = 'namn'">Namn</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Orsak</th>
+                <th class="num-col">Totalt</th>
+                <th class="num-col">Trend</th>
+                <th class="num-col">Δ%</th>
+                <th class="bar-col">Månadsvis (senaste {{ months }} mån)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of sortedCauses; let i = index">
+                <td>
+                  <span class="cause-dot" [style.backgroundColor]="causeColor(c, i)"></span>
+                  {{ c.namn }}
+                </td>
+                <td class="num-col">{{ c.total }}</td>
+                <td class="num-col">
+                  <span [class]="trendClass(c.trend)">
+                    {{ trendIcon(c.trend) }} {{ c.trend | titlecase }}
+                  </span>
+                </td>
+                <td class="num-col">
+                  <span [class]="c.delta_pct > 0 ? 'text-danger' : c.delta_pct < 0 ? 'text-success' : 'text-warning'">
+                    {{ c.delta_pct > 0 ? '+' : '' }}{{ c.delta_pct }}%
+                  </span>
+                </td>
+                <td class="bar-col">
+                  <div class="mini-sparkline">
+                    <span *ngFor="let v of c.monthly; let j = index"
+                          class="spark-bar"
+                          [style.height.%]="Math.max(100 * v / maxCauseMonthly(c), 5)"
+                          [style.backgroundColor]="causeColor(c, i)"
+                          [title]="labels[j] + ': ' + v + ' händelser'">
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Monthly totals -->
+      <div class="monthly-section">
+        <h3>Totalt per månad</h3>
+        <div class="monthly-bars">
+          <div *ngFor="let m of monthly" class="month-col">
+            <div class="month-bar-wrap">
+              <div class="month-bar"
+                   [style.height.%]="Math.max(100 * m.total / maxMonthTotal(), 4)"
+                   [class.has-data]="m.total > 0">
+              </div>
+            </div>
+            <div class="month-total">{{ m.total }}</div>
+            <div class="month-label">{{ m.label }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Not:</strong> Kassationsorsaker registreras manuellt via Kassationsregistrering och kopplas till skift.
+        Trendanalysen jämför första och andra halvperioden. ≥15% förändring = ökande/minskande.
+      </div>
+
+    </ng-container>
+  </ng-container>
+</div>
