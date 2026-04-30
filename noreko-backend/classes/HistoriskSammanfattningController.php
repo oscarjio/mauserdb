@@ -160,24 +160,28 @@ class HistoriskSammanfattningController {
      */
     private function calcPeriodData(string $from, string $to): array {
         try {
-        // IBC-data
+        // IBC-data — LAG()-delta for kumulativa PLC-rakneverk
         $stmt = $this->pdo->prepare(
             "SELECT
                 COUNT(DISTINCT skiftraknare) AS antal_skift,
-                COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                COALESCE(SUM(delta_ok),    0) AS ibc_ok,
+                COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                 COALESCE(SUM(max_runtime), 0) AS runtime_min
              FROM (
-                SELECT
-                    skiftraknare,
-                    MAX(ibc_ok)      AS max_ok,
-                    MAX(ibc_ej_ok)   AS max_ej_ok,
-                    MAX(runtime_plc) AS max_runtime
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                GROUP BY skiftraknare
-                HAVING COUNT(*) > 1
-             ) s"
+                SELECT skiftraknare, max_runtime,
+                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                    GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(ibc_ok)      AS ibc_end,
+                        MAX(ibc_ej_ok)   AS ej_end,
+                        MAX(runtime_plc) AS max_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                    HAVING COUNT(*) > 1
+                ) shifts
+             ) deltas"
         );
         $stmt->execute([$from, $to]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -378,19 +382,20 @@ class HistoriskSammanfattningController {
     private function getTopOperator(string $from, string $to): ?array {
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT
-                    MIN(NULLIF(op1, 0)) AS op_num,
-                    SUM(max_ok) AS total_ibc
+                "SELECT op1 AS op_num, SUM(delta_ok) AS total_ibc
                  FROM (
-                    SELECT
-                        skiftraknare,
-                        MIN(NULLIF(op1, 0)) AS op1,
-                        MAX(ibc_ok) AS max_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) s
+                    SELECT op1,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                            MIN(NULLIF(op1, 0)) AS op1,
+                            MAX(ibc_ok) AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ) shifts
+                 ) deltas
                  WHERE op1 IS NOT NULL
                  GROUP BY op1
                  ORDER BY total_ibc DESC
@@ -421,21 +426,25 @@ class HistoriskSammanfattningController {
             // rebotling_ibc har ingen station_id-kolumn — returnera all data (enda linjen)
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    COALESCE(SUM(max_ok),    0) AS ibc_ok,
-                    COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
-                    COALESCE(SUM(max_runtime), 0) AS runtime_min,
-                    COUNT(DISTINCT skiftraknare) AS antal_skift
+                    COUNT(DISTINCT skiftraknare) AS antal_skift,
+                    COALESCE(SUM(delta_ok),    0) AS ibc_ok,
+                    COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(ibc_ok)      AS max_ok,
-                        MAX(ibc_ej_ok)   AS max_ej_ok,
-                        MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) s"
+                    SELECT skiftraknare, max_runtime,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                            MAX(ibc_ok)      AS ibc_end,
+                            MAX(ibc_ej_ok)   AS ej_end,
+                            MAX(runtime_plc) AS max_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ) shifts
+                 ) deltas"
             );
             $stmt->execute([$from, $to]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -489,28 +498,31 @@ class HistoriskSammanfattningController {
             $from = $p['from'];
             $to   = $p['to'];
 
-            // OEE/IBC per dag
+            // OEE/IBC per dag — LAG()-delta
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    DATE(datum) AS datum,
+                    dag AS datum,
                     COUNT(DISTINCT skiftraknare) AS antal_skift,
-                    SUM(max_ok) AS ibc_ok,
-                    SUM(max_ej_ok) AS ibc_ej_ok,
-                    SUM(max_runtime) AS runtime_min
+                    COALESCE(SUM(delta_ok),    0) AS ibc_ok,
+                    COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
-                    SELECT
-                        skiftraknare,
-                        DATE(datum) AS datum,
-                        MAX(ibc_ok)      AS max_ok,
-                        MAX(ibc_ej_ok)   AS max_ej_ok,
-                        MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare, DATE(datum)
-                    HAVING COUNT(*) > 1
-                 ) s
-                 GROUP BY DATE(datum)
-                 ORDER BY datum"
+                    SELECT dag, skiftraknare, max_runtime,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                            MAX(ibc_ok)      AS ibc_end,
+                            MAX(ibc_ej_ok)   AS ej_end,
+                            MAX(runtime_plc) AS max_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ) shifts
+                 ) deltas
+                 GROUP BY dag
+                 ORDER BY dag"
             );
             $stmt->execute([$from, $to]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -584,26 +596,29 @@ class HistoriskSammanfattningController {
         try {
             $p = $this->parsePeriod();
 
-            // Hamta top operatorer for aktuell period
+            // Hamta top operatorer for aktuell period — LAG()-delta
             $stmt = $this->pdo->prepare(
-                "SELECT
-                    op1 AS op_num,
-                    SUM(max_ok) AS ibc_ok,
-                    SUM(max_ej_ok) AS ibc_ej_ok,
-                    SUM(max_runtime) AS runtime_min,
-                    COUNT(DISTINCT skiftraknare) AS antal_skift
+                "SELECT op1 AS op_num,
+                    COUNT(DISTINCT skiftraknare) AS antal_skift,
+                    COALESCE(SUM(delta_ok),    0) AS ibc_ok,
+                    COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
-                    SELECT
-                        skiftraknare,
-                        MIN(NULLIF(op1, 0)) AS op1,
-                        MAX(ibc_ok)      AS max_ok,
-                        MAX(ibc_ej_ok)   AS max_ej_ok,
-                        MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) s
+                    SELECT op1, skiftraknare, max_runtime,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                            MIN(NULLIF(op1, 0)) AS op1,
+                            MAX(ibc_ok)      AS ibc_end,
+                            MAX(ibc_ej_ok)   AS ej_end,
+                            MAX(runtime_plc) AS max_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ) shifts
+                 ) deltas
                  WHERE op1 IS NOT NULL
                  GROUP BY op1
                  ORDER BY ibc_ok DESC
@@ -612,21 +627,22 @@ class HistoriskSammanfattningController {
             $stmt->execute([$p['from'], $p['to']]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Foregaende period
+            // Foregaende period — LAG()-delta
             $prevStmt = $this->pdo->prepare(
-                "SELECT
-                    op1 AS op_num,
-                    SUM(max_ok) AS ibc_ok
+                "SELECT op1 AS op_num, COALESCE(SUM(delta_ok), 0) AS ibc_ok
                  FROM (
-                    SELECT
-                        skiftraknare,
-                        MIN(NULLIF(op1, 0)) AS op1,
-                        MAX(ibc_ok) AS max_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                    HAVING COUNT(*) > 1
-                 ) s
+                    SELECT op1,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                            MIN(NULLIF(op1, 0)) AS op1,
+                            MAX(ibc_ok) AS ibc_end
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                        HAVING COUNT(*) > 1
+                    ) shifts
+                 ) deltas
                  WHERE op1 IS NOT NULL
                  GROUP BY op1"
             );

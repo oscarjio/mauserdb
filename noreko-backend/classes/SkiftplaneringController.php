@@ -471,10 +471,24 @@ class SkiftplaneringController {
                     $toDt   = $date . ' ' . $slutTid;
                 }
 
-                $prodStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(max_ok), 0) FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? GROUP BY skiftraknare) ps"
-                );
-                $prodStmt->execute([$fromDt, $toDt]);
+                $prodStmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(GREATEST(0, end_val - COALESCE(start_val, 0))), 0) AS faktisk
+                    FROM (
+                        SELECT e.dag, e.end_val, s.start_val
+                        FROM (
+                            SELECT DATE(datum) AS dag, MAX(ibc_ok) AS end_val
+                            FROM rebotling_ibc WHERE datum BETWEEN ? AND ?
+                            GROUP BY DATE(datum)
+                        ) e
+                        LEFT JOIN (
+                            SELECT DATE(datum) AS dag, MAX(ibc_ok) AS start_val
+                            FROM rebotling_ibc
+                            WHERE datum < ? AND DATE(datum) BETWEEN DATE(?) AND DATE(?)
+                            GROUP BY DATE(datum)
+                        ) s ON e.dag = s.dag
+                    ) combined
+                ");
+                $prodStmt->execute([$fromDt, $toDt, $fromDt, $fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();
             } catch (\PDOException $e) {
                 error_log('SkiftplaneringController::getShiftDetail rebotling_ibc: ' . $e->getMessage());

@@ -245,14 +245,17 @@ class DagligBriefingController {
                 try {
                     $sql = "
                         SELECT ROUND(AVG(dag_ibc)) AS avg_ibc FROM (
-                            SELECT DATE(datum) AS dag, COALESCE(SUM(max_ok), 0) AS dag_ibc
-                            FROM (
-                                SELECT DATE(datum) AS datum_dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok, datum
-                                FROM rebotling_ibc
-                                WHERE datum >= DATE_SUB(:date1, INTERVAL 30 DAY) AND datum < DATE_ADD(DATE_SUB(:date2, INTERVAL 1 DAY), INTERVAL 1 DAY)
-                                GROUP BY DATE(datum), skiftraknare
-                            ) AS per_shift
-                            GROUP BY DATE(datum)
+                            SELECT dag, SUM(delta_ok) AS dag_ibc FROM (
+                                SELECT dag,
+                                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                                FROM (
+                                    SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
+                                    FROM rebotling_ibc
+                                    WHERE datum >= DATE_SUB(:date1, INTERVAL 30 DAY) AND datum < DATE_ADD(DATE_SUB(:date2, INTERVAL 1 DAY), INTERVAL 1 DAY)
+                                    GROUP BY DATE(datum), skiftraknare
+                                ) shifts
+                            ) deltas
+                            GROUP BY dag
                             HAVING dag_ibc > 0
                         ) AS sub
                     ";

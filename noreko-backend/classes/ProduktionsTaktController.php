@@ -69,12 +69,31 @@ class ProduktionsTaktController {
 
     /**
      * Räkna IBC:er i ett tidsintervall.
+     * ibc_ok är en daglig löpande räknare (nollställs vid midnatt) — SUM(MAX per skiftraknare)
+     * dubbelräknar på flesskiftsdagar. Korrekt metod: per-dag-delta = MAX(ibc_ok i fönstret)
+     * minus MAX(ibc_ok innan fönstret samma dag), summerat per dag.
      */
     private function countIbcBetween(string $from, string $to): int {
-        $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(max_ok), 0) AS cnt FROM (SELECT skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? GROUP BY skiftraknare) AS ps"
-        );
-        $stmt->execute([$from, $to]);
+        $stmt = $this->pdo->prepare("
+            SELECT COALESCE(SUM(GREATEST(0, end_val - COALESCE(start_val, 0))), 0) AS cnt
+            FROM (
+                SELECT e.dag, e.end_val, s.start_val
+                FROM (
+                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS end_val
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN ? AND ?
+                    GROUP BY DATE(datum)
+                ) e
+                LEFT JOIN (
+                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS start_val
+                    FROM rebotling_ibc
+                    WHERE datum < ?
+                      AND DATE(datum) BETWEEN DATE(?) AND DATE(?)
+                    GROUP BY DATE(datum)
+                ) s ON e.dag = s.dag
+            ) combined
+        ");
+        $stmt->execute([$from, $to, $from, $from, $to]);
         return (int)($stmt->fetchColumn() ?: 0);
     }
 
@@ -202,16 +221,25 @@ class ProduktionsTaktController {
             $twentyFourHoursAgo = date('Y-m-d H:i:s', strtotime('-24 hours'));
 
             $stmt = $this->pdo->prepare("
-                SELECT timme, SUM(max_ok) AS ibc_count
+                SELECT
+                    h.timme,
+                    GREATEST(0, h.ibc_end - COALESCE(
+                        (SELECT MAX(r2.ibc_ok)
+                         FROM rebotling_ibc r2
+                         WHERE DATE(r2.datum) = h.dag
+                           AND r2.datum < h.timme),
+                        0
+                    )) AS ibc_count
                 FROM (
-                    SELECT DATE_FORMAT(datum, '%Y-%m-%d %H:00:00') AS timme, skiftraknare,
-                           COALESCE(MAX(ibc_ok), 0) AS max_ok
+                    SELECT
+                        DATE_FORMAT(datum, '%Y-%m-%d %H:00:00') AS timme,
+                        DATE(datum) AS dag,
+                        MAX(ibc_ok) AS ibc_end
                     FROM rebotling_ibc
                     WHERE datum BETWEEN ? AND ?
-                    GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00'), skiftraknare
-                ) AS per_shift
-                GROUP BY timme
-                ORDER BY timme ASC
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00'), DATE(datum)
+                ) h
+                ORDER BY h.timme ASC
             ");
             $stmt->execute([$twentyFourHoursAgo, $now]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);

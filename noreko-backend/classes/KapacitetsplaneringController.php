@@ -345,12 +345,17 @@ class KapacitetsplaneringController {
         try {
             $stmtTrend = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
-                    SELECT dag, SUM(max_ok) AS dag_total FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                    ) ps GROUP BY dag
+                    SELECT dag, SUM(delta_ok) AS dag_total FROM (
+                        SELECT dag,
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                        FROM (
+                            SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
+                            FROM rebotling_ibc
+                            WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), skiftraknare
+                        ) shifts
+                    ) deltas
+                    GROUP BY dag
                 ) t
             ");
             $stmtTrend->execute([':from_date' => $refFrom, ':to_date' => $today]);
@@ -456,12 +461,17 @@ class KapacitetsplaneringController {
         try {
             $stmtSnitt = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
-                    SELECT dag, SUM(max_ok) AS dag_total FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                    ) ps GROUP BY dag
+                    SELECT dag, SUM(delta_ok) AS dag_total FROM (
+                        SELECT dag,
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                        FROM (
+                            SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
+                            FROM rebotling_ibc
+                            WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), skiftraknare
+                        ) shifts
+                    ) deltas
+                    GROUP BY dag
                 ) t
             ");
             $stmtSnitt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
@@ -477,15 +487,21 @@ class KapacitetsplaneringController {
             $stmtBatch = $this->pdo->prepare("
                 SELECT
                     dag,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    COALESCE(SUM(delta_ok),    0) AS ok_antal,
+                    COALESCE(SUM(delta_ej_ok), 0) AS ej_ok_antal
                 FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT dag, skiftraknare,
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS ibc_end,
+                               MAX(ibc_ej_ok) AS ej_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) shifts
+                ) deltas
                 GROUP BY dag
                 ORDER BY dag ASC
             ");
