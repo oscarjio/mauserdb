@@ -2226,129 +2226,74 @@ class RebotlingController {
                 if ($val > $teamRecord) $teamRecord = $val;
             }
 
-            // Bästa dag per operatör (ibc_ok från rebotling_ibc, summerat per dag)
-            // Använder ROW_NUMBER() istället för korrelerad subquery för bästa dag-datum
-            $sqlBestDay = "
-                SELECT ranked.op_num,
-                       ranked.day_ibc AS best_day_ibc,
-                       ranked.dag     AS best_day_date
+            // ibc_ok is a PLC daily running counter — use LAG() on rebotling_skiftrapport
+            // (rebotling_ibc has the same running-counter issue: shift2's MAX = cumulative daily total)
+            $stmtAllShifts = $pdo->query("
+                SELECT dag, op1, op2, op3,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
                 FROM (
-                    SELECT t.op_num, t.dag, t.day_ibc,
-                           ROW_NUMBER() OVER (PARTITION BY t.op_num ORDER BY t.day_ibc DESC) AS rn
-                    FROM (
-                        SELECT sub.op_num, DATE(sub.datum) AS dag, SUM(sub.shift_ibc) AS day_ibc
-                        FROM (
-                            SELECT r.op1 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                            GROUP BY r.op1, DATE(r.datum), r.skiftraknare
-                            UNION ALL
-                            SELECT r.op2 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                            GROUP BY r.op2, DATE(r.datum), r.skiftraknare
-                            UNION ALL
-                            SELECT r.op3 AS op_num, r.datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                            GROUP BY r.op3, DATE(r.datum), r.skiftraknare
-                        ) sub
-                        GROUP BY sub.op_num, DATE(sub.datum)
-                    ) t
-                ) ranked
-                WHERE ranked.rn = 1
-            ";
-            $stmtBD = $pdo->query($sqlBestDay);
-            $bestDayByOp = [];
-            foreach ($stmtBD->fetchAll(\PDO::FETCH_ASSOC) as $bd) {
-                $bestDayByOp[intval($bd['op_num'])] = [
-                    'ibc' => intval($bd['best_day_ibc']),
-                    'date' => $bd['best_day_date'],
-                ];
-            }
-
-            // Bästa vecka per operatör
-            $sqlBestWeek = "
-                SELECT t.op_num, MAX(t.week_ibc) AS best_week_ibc
-                FROM (
-                    SELECT sub.op_num, YEAR(sub.datum) AS yr, WEEK(sub.datum, 1) AS wk, SUM(sub.shift_ibc) AS week_ibc
-                    FROM (
-                        SELECT r.op1 AS op_num, DATE(r.datum) AS datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op1, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op2, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op2, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op3, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op3, DATE(r.datum), r.skiftraknare
-                    ) sub
-                    GROUP BY sub.op_num, YEAR(sub.datum), WEEK(sub.datum, 1)
-                ) t
-                GROUP BY t.op_num
-            ";
-            $stmtBW = $pdo->query($sqlBestWeek);
-            $bestWeekByOp = [];
-            foreach ($stmtBW->fetchAll(\PDO::FETCH_ASSOC) as $bw) {
-                $bestWeekByOp[intval($bw['op_num'])] = intval($bw['best_week_ibc']);
-            }
-
-            // Bästa månad per operatör
-            $sqlBestMonth = "
-                SELECT t.op_num, MAX(t.month_ibc) AS best_month_ibc
-                FROM (
-                    SELECT sub.op_num, DATE_FORMAT(sub.datum, '%Y-%m') AS mon, SUM(sub.shift_ibc) AS month_ibc
-                    FROM (
-                        SELECT r.op1 AS op_num, DATE(r.datum) AS datum, r.skiftraknare, COALESCE(MAX(r.ibc_ok),0) AS shift_ibc
-                        FROM rebotling_ibc r WHERE r.op1 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op1, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op2, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op2 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op2, DATE(r.datum), r.skiftraknare
-                        UNION ALL
-                        SELECT r.op3, DATE(r.datum), r.skiftraknare, COALESCE(MAX(r.ibc_ok),0)
-                        FROM rebotling_ibc r WHERE r.op3 IS NOT NULL AND r.ibc_ok IS NOT NULL
-                        GROUP BY r.op3, DATE(r.datum), r.skiftraknare
-                    ) sub
-                    GROUP BY sub.op_num, DATE_FORMAT(sub.datum, '%Y-%m')
-                ) t
-                GROUP BY t.op_num
-            ";
-            $stmtBM = $pdo->query($sqlBestMonth);
-            $bestMonthByOp = [];
-            foreach ($stmtBM->fetchAll(\PDO::FETCH_ASSOC) as $bm) {
-                $bestMonthByOp[intval($bm['op_num'])] = intval($bm['best_month_ibc']);
-            }
-
-            // Team-rekord dag/vecka/månad (alla operatörer sammanslagna) — en enda query
-            $stmtTeamAll = $pdo->query("
-                SELECT
-                    (SELECT MAX(day_ibc) FROM (
-                        SELECT SUM(shift_ibc) AS day_ibc FROM (
-                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
-                            GROUP BY DATE(datum), skiftraknare
-                        ) ps GROUP BY DATE(datum)
-                    ) td) AS best_day,
-                    (SELECT MAX(week_ibc) FROM (
-                        SELECT SUM(shift_ibc) AS week_ibc FROM (
-                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
-                            GROUP BY DATE(datum), skiftraknare
-                        ) ps GROUP BY YEAR(datum), WEEK(datum,1)
-                    ) tw) AS best_week,
-                    (SELECT MAX(month_ibc) FROM (
-                        SELECT SUM(shift_ibc) AS month_ibc FROM (
-                            SELECT DATE(datum) AS datum, skiftraknare, COALESCE(MAX(ibc_ok),0) AS shift_ibc
-                            FROM rebotling_ibc WHERE 1=1 AND ibc_ok IS NOT NULL
-                            GROUP BY DATE(datum), skiftraknare
-                        ) ps GROUP BY DATE_FORMAT(datum, '%Y-%m')
-                    ) tm) AS best_month
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))            AS dag,
+                           MAX(COALESCE(op1, 0))       AS op1,
+                           MAX(COALESCE(op2, 0))       AS op2,
+                           MAX(COALESCE(op3, 0))       AS op3,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end
+                    FROM rebotling_skiftrapport
+                    WHERE ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) base
             ");
-            $teamRow = $stmtTeamAll->fetch(\PDO::FETCH_ASSOC);
-            $teamBestDay   = intval($teamRow['best_day']   ?? 0);
-            $teamBestWeek  = intval($teamRow['best_week']  ?? 0);
-            $teamBestMonth = intval($teamRow['best_month'] ?? 0);
+            $allShiftRows = $stmtAllShifts->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opDays   = [];
+            $opWeeks  = [];
+            $opMonths = [];
+            $teamDays   = [];
+            $teamWeeks  = [];
+            $teamMonths = [];
+
+            foreach ($allShiftRows as $s) {
+                $dag   = $s['dag'];
+                $delta = max(0, (int)$s['ibc_delta']);
+                if ($delta <= 0) continue;
+
+                $dt = new \DateTime($dag);
+                $yw = $dt->format('Y') . '-' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
+                $ym = $dt->format('Y-m');
+
+                $teamDays[$dag]  = ($teamDays[$dag]  ?? 0) + $delta;
+                $teamWeeks[$yw]  = ($teamWeeks[$yw]  ?? 0) + $delta;
+                $teamMonths[$ym] = ($teamMonths[$ym] ?? 0) + $delta;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0) continue;
+                    $opDays[$opNum][$dag] = ($opDays[$opNum][$dag] ?? 0) + $delta;
+                    $opWeeks[$opNum][$yw] = ($opWeeks[$opNum][$yw] ?? 0) + $delta;
+                    $opMonths[$opNum][$ym] = ($opMonths[$opNum][$ym] ?? 0) + $delta;
+                }
+            }
+
+            $bestDayByOp = [];
+            foreach ($opDays as $opNum => $days) {
+                arsort($days);
+                $bestDate = array_key_first($days);
+                $bestDayByOp[$opNum] = ['ibc' => $days[$bestDate], 'date' => $bestDate];
+            }
+
+            $bestWeekByOp = [];
+            foreach ($opWeeks as $opNum => $weeks) {
+                $bestWeekByOp[$opNum] = max($weeks);
+            }
+
+            $bestMonthByOp = [];
+            foreach ($opMonths as $opNum => $months) {
+                $bestMonthByOp[$opNum] = max($months);
+            }
+
+            $teamBestDay   = $teamDays   ? max($teamDays)   : 0;
+            $teamBestWeek  = $teamWeeks  ? max($teamWeeks)  : 0;
+            $teamBestMonth = $teamMonths ? max($teamMonths) : 0;
 
             $result = array_map(function($r) use ($teamRecord, $bestDayByOp, $bestWeekByOp, $bestMonthByOp) {
                 $opNum = intval($r['op_number']);
@@ -2394,28 +2339,26 @@ class RebotlingController {
         try {
             $pdo = $this->pdo;
 
-            // Topp 5 dagar — summa IBC per dag (alla skift sammanslagna)
-            // Vi hämtar även vilka operatörer som jobbade den dagen
+            // Topp 5 dagar — summa IBC per dag med LAG() delta (rebotling_ibc har samma
+            // löpande-räknare-problem som rebotling_skiftrapport).
             $sql = "
-                SELECT
-                    ps.datum,
-                    SUM(ps.shift_ibc) AS ibc_total,
-                    ROUND(AVG(ps.shift_quality), 1) AS avg_quality
+                SELECT dag, SUM(ibc_delta) AS ibc_total,
+                       ROUND(100.0 * SUM(ibc_delta) / NULLIF(SUM(tot_delta), 0), 1) AS avg_quality
                 FROM (
-                    SELECT
-                        DATE(datum) AS datum,
-                        skiftraknare,
-                        COALESCE(MAX(ibc_ok), 0) AS shift_ibc,
-                        ROUND(
-                            COALESCE(MAX(ibc_ok), 0) * 100.0
-                            / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
-                        1) AS shift_quality
-                    FROM rebotling_ibc
-                    WHERE 1=1
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS ps
-                GROUP BY ps.datum
+                    SELECT dag,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                           GREATEST(0, tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS tot_delta
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))            AS dag,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(totalt,    0)) AS tot_end
+                        FROM rebotling_skiftrapport
+                        WHERE ibc_ok IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) base
+                ) lag_q
+                GROUP BY dag
                 ORDER BY ibc_total DESC
                 LIMIT 5
             ";
@@ -2426,16 +2369,14 @@ class RebotlingController {
             $result = [];
             $opStmt = $pdo->prepare("
                 SELECT DISTINCT o.name
-                FROM rebotling_ibc r
+                FROM rebotling_skiftrapport r
                 JOIN operators o ON o.number IN (r.op1, r.op2, r.op3)
-                WHERE r.datum >= ? AND r.datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND r.ibc_ok IS NOT NULL
+                WHERE DATE(r.datum) = ?
                 ORDER BY o.name
             ");
             foreach ($topDays as $i => $day) {
-                $date = $day['datum'];
-                // Hämta unika operatörer den dagen
-                $opStmt->execute([$date, $date]);
+                $date = $day['dag'];
+                $opStmt->execute([$date]);
                 $operators = $opStmt->fetchAll(\PDO::FETCH_COLUMN);
 
                 $result[] = [
@@ -2931,15 +2872,12 @@ class RebotlingController {
                 return;
             }
 
-            // Hämta dagens IBC-total (alla skift idag, korrekta aggregerade värden)
+            // Hämta dagens IBC-total — MAX(ibc_ok) per dag är korrekt eftersom räknaren
+            // nollställs vid midnatt (inte per skift); SUM per skiftraknare övertäljer.
             $stmtToday = $this->pdo->query("
-                SELECT COALESCE(SUM(dag_ibc), 0) AS idag_total
-                FROM (
-                    SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                    GROUP BY skiftraknare
-                ) AS per_shift
+                SELECT COALESCE(MAX(ibc_ok), 0) AS idag_total
+                FROM rebotling_ibc
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ");
             $todayRow = $stmtToday->fetch(PDO::FETCH_ASSOC);
             $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
@@ -2949,19 +2887,14 @@ class RebotlingController {
                 return;
             }
 
-            // Hämta historiskt rekord (bästa dag före idag)
+            // Hämta historiskt rekord (bästa dag före idag) — MAX per dag är korrekt
             $stmtRekord = $this->pdo->query("
                 SELECT MAX(dag_total) AS rekord_ibc, datum_rekord
                 FROM (
-                    SELECT DATE(datum) AS datum_rekord, SUM(shift_ibc) AS dag_total
-                    FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE datum < CURDATE()
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_shift
-                    GROUP BY datum_rekord
+                    SELECT DATE(datum) AS datum_rekord, MAX(COALESCE(ibc_ok, 0)) AS dag_total
+                    FROM rebotling_ibc
+                    WHERE datum < CURDATE()
+                    GROUP BY DATE(datum)
                 ) AS per_day
             ");
             $rekordRow = $stmtRekord->fetch(PDO::FETCH_ASSOC);
@@ -3452,20 +3385,17 @@ class RebotlingController {
 
     private function getProductionRate(): void {
         try {
+            // MAX(ibc_ok) per day = korrekt dagstotal (räknaren nollställs vid midnatt)
             $stmt = $this->pdo->prepare("
                 SELECT
                     COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_7d,
                     COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_30d,
                     COALESCE(AVG(ibc_total), 0) as avg_ibc_per_day_90d
                 FROM (
-                    SELECT dag, SUM(max_ok) as ibc_total
-                    FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS max_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                    ) per_shift
-                    GROUP BY dag
+                    SELECT DATE(datum) AS dag, MAX(COALESCE(ibc_ok, 0)) AS ibc_total
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    GROUP BY DATE(datum)
                     HAVING ibc_total > 0
                 ) t
             ");
