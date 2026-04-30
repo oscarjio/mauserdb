@@ -1,0 +1,401 @@
+<div class="pp-page">
+  <div class="page-header">
+    <a routerLink="/rebotling/operator-prestation" class="back-link">
+      <i class="fas fa-arrow-left"></i> Tillbaka till hub
+    </a>
+    <h1 class="page-title">Produkt-Prognos</h1>
+    <p class="page-subtitle">
+      Välj lag och produkt — se varje operatörs produkt-specifika historik och lagets förväntade IBC/h för skiftet.
+    </p>
+  </div>
+
+  <!-- Selector card -->
+  <div class="selector-card">
+    <!-- Days chips -->
+    <div class="days-row">
+      <span class="days-label">Historik:</span>
+      <button *ngFor="let opt of daysOptions"
+              class="day-chip"
+              [class.active]="days === opt.value"
+              (click)="setDays(opt.value)">
+        {{ opt.label }}
+      </button>
+    </div>
+
+    <!-- Operator + product selectors -->
+    <div class="selectors-grid">
+      <div class="selector-col">
+        <label class="pos-label pos-op1"><i class="fas fa-tint"></i> Tvättplats (op1)</label>
+        <select class="form-select dark-select" [(ngModel)]="op1">
+          <option [ngValue]="0">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="selector-col">
+        <label class="pos-label pos-op2"><i class="fas fa-eye"></i> Kontrollstation (op2)</label>
+        <select class="form-select dark-select" [(ngModel)]="op2">
+          <option [ngValue]="0">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="selector-col">
+        <label class="pos-label pos-op3"><i class="fas fa-truck"></i> Truckförare (op3)</label>
+        <select class="form-select dark-select" [(ngModel)]="op3">
+          <option [ngValue]="0">— Ingen vald —</option>
+          <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
+        </select>
+      </div>
+      <div class="selector-col product-col">
+        <label class="pos-label pos-product"><i class="fas fa-box"></i> Produkt</label>
+        <select class="form-select dark-select" [(ngModel)]="productId">
+          <option [ngValue]="0">— Välj produkt —</option>
+          <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="selector-actions">
+      <button class="btn-berakna"
+              (click)="calculate()"
+              [disabled]="loading || !hasAllInputs()">
+        <i class="fas fa-magic"></i>
+        <span *ngIf="!loading">Beräkna prognos</span>
+        <span *ngIf="loading">Beräknar...</span>
+      </button>
+      <span *ngIf="!hasAllInputs() && !loading" class="hint-text">
+        Välj alla tre positioner och en produkt
+      </span>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert-error">{{ error }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-row">
+    <div class="spinner"></div>
+    <span>Hämtar historisk data...</span>
+  </div>
+
+  <!-- Results -->
+  <ng-container *ngIf="forecast && !loading">
+
+    <!-- Prognosis banner -->
+    <div class="prognosis-banner" [ngClass]="bannerClass(forecast.vs_product_avg)">
+      <div class="banner-main">
+        <div class="banner-label">Prognostiserad IBC/h</div>
+        <div class="banner-value" *ngIf="forecast.prognosed_ibc_h !== null">
+          {{ forecast.prognosed_ibc_h | number:'1.1-1' }}
+        </div>
+        <div class="banner-value banner-na" *ngIf="forecast.prognosed_ibc_h === null">—</div>
+      </div>
+      <div class="banner-divider"></div>
+      <div class="banner-meta">
+        <div class="meta-row" *ngIf="forecast.prognosed_8h_ibc !== null">
+          <span class="meta-label">8h prognos</span>
+          <span class="meta-value">≈ {{ forecast.prognosed_8h_ibc }} IBC</span>
+        </div>
+        <div class="meta-row" *ngIf="forecast.vs_product_avg !== null">
+          <span class="meta-label">vs produkt-snitt</span>
+          <span class="meta-value" [ngClass]="vsClass(forecast.vs_product_avg)">
+            {{ forecast.vs_product_avg >= 0 ? '+' : '' }}{{ forecast.vs_product_avg | number:'1.1-1' }}%
+          </span>
+        </div>
+        <div class="meta-row" *ngIf="forecast.vs_team_period !== null">
+          <span class="meta-label">vs periodnitt</span>
+          <span class="meta-value" [ngClass]="vsClass(forecast.vs_team_period)">
+            {{ forecast.vs_team_period >= 0 ? '+' : '' }}{{ forecast.vs_team_period | number:'1.1-1' }}%
+          </span>
+        </div>
+        <div class="meta-row source-row">
+          <span class="meta-label">Datakälla</span>
+          <span class="source-badge">
+            <i [class]="sourceIcon(forecast.prognosis_source)"></i>
+            {{ sourceLabel(forecast.prognosis_source) }}
+          </span>
+        </div>
+      </div>
+      <div class="banner-divider"></div>
+      <div class="banner-refs">
+        <div class="ref-item" *ngIf="forecast.product_team_avg !== null">
+          <div class="ref-label">Lagsnitt ({{ forecast.product_name }})</div>
+          <div class="ref-val">{{ forecast.product_team_avg | number:'1.1-1' }} IBC/h</div>
+        </div>
+        <div class="ref-item" *ngIf="forecast.period_team_avg !== null">
+          <div class="ref-label">Lagsnitt (alla produkter)</div>
+          <div class="ref-val">{{ forecast.period_team_avg | number:'1.1-1' }} IBC/h</div>
+        </div>
+        <div class="ref-item">
+          <div class="ref-label">Produkt</div>
+          <div class="ref-val">{{ forecast.product_name }}</div>
+        </div>
+        <div class="ref-item">
+          <div class="ref-label">Period</div>
+          <div class="ref-val">{{ from }} – {{ to }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="warnings-panel" *ngIf="warningOps.length > 0">
+      <div class="warnings-header"><i class="fas fa-exclamation-triangle"></i> Riskindikationer</div>
+      <div class="warning-row" *ngFor="let w of warningOps">
+        <span class="warn-pos">{{ w.pos }}</span>
+        <span class="warn-name">{{ w.name }}</span>
+        <span class="warn-reason">{{ w.reason }}</span>
+      </div>
+    </div>
+
+    <!-- Per-position cards -->
+    <div class="pos-cards-grid">
+
+      <!-- Op1 -->
+      <div class="pos-card" *ngIf="forecast.op1 as op">
+        <div class="pos-card-header pos-op1">
+          <span class="pos-badge"><i class="fas fa-tint"></i></span>
+          <span class="pos-title">Tvättplats</span>
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">
+            {{ op.name }}
+          </a>
+          <span *ngIf="op.trend" class="trend-pill" [class]="'trend-' + op.trend">
+            <i [class]="trendIcon(op.trend)"></i>
+            {{ trendLabel(op.trend, op.trend_pct) }}
+          </span>
+        </div>
+        <div class="pos-card-body">
+          <div class="metric-row highlight">
+            <span class="metric-label">Denna produkt — IBC/h</span>
+            <span class="metric-val" *ngIf="op.product_ibc_h !== null">
+              {{ op.product_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_product)"
+                    *ngIf="op.vs_team_product !== null">
+                {{ op.vs_team_product >= 0 ? '+' : '' }}{{ op.vs_team_product | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.product_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Alla produkter — IBC/h</span>
+            <span class="metric-val" *ngIf="op.overall_ibc_h !== null">
+              {{ op.overall_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_overall)"
+                    *ngIf="op.vs_team_overall !== null">
+                {{ op.vs_team_overall >= 0 ? '+' : '' }}{{ op.vs_team_overall | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.overall_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lagsnitt denna position</span>
+            <span class="metric-val" *ngIf="op.team_avg_pos !== null">{{ op.team_avg_pos | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.team_avg_pos === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Senaste 30d</span>
+            <span class="metric-val" *ngIf="op.recent_ibc_h !== null">{{ op.recent_ibc_h | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.recent_ibc_h === null">—</span>
+          </div>
+          <div class="reliability-row">
+            <span>Produktskift:</span>
+            <span class="reliability-count">{{ op.antal_skift_product }}</span>
+            <span class="rel-badge" [ngClass]="reliabilityBadge(op.antal_skift_product).cls">
+              {{ reliabilityBadge(op.antal_skift_product).label }} tillförlitlighet
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="pos-card pos-card-empty" *ngIf="!forecast.op1">
+        <div class="pos-card-header pos-op1">
+          <span class="pos-badge"><i class="fas fa-tint"></i></span>
+          <span class="pos-title">Tvättplats</span>
+        </div>
+        <div class="pos-card-body"><em>Ingen operatör vald</em></div>
+      </div>
+
+      <!-- Op2 -->
+      <div class="pos-card" *ngIf="forecast.op2 as op">
+        <div class="pos-card-header pos-op2">
+          <span class="pos-badge"><i class="fas fa-eye"></i></span>
+          <span class="pos-title">Kontrollstation</span>
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">
+            {{ op.name }}
+          </a>
+          <span *ngIf="op.trend" class="trend-pill" [class]="'trend-' + op.trend">
+            <i [class]="trendIcon(op.trend)"></i>
+            {{ trendLabel(op.trend, op.trend_pct) }}
+          </span>
+        </div>
+        <div class="pos-card-body">
+          <div class="metric-row highlight">
+            <span class="metric-label">Denna produkt — IBC/h</span>
+            <span class="metric-val" *ngIf="op.product_ibc_h !== null">
+              {{ op.product_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_product)"
+                    *ngIf="op.vs_team_product !== null">
+                {{ op.vs_team_product >= 0 ? '+' : '' }}{{ op.vs_team_product | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.product_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Alla produkter — IBC/h</span>
+            <span class="metric-val" *ngIf="op.overall_ibc_h !== null">
+              {{ op.overall_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_overall)"
+                    *ngIf="op.vs_team_overall !== null">
+                {{ op.vs_team_overall >= 0 ? '+' : '' }}{{ op.vs_team_overall | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.overall_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lagsnitt denna position</span>
+            <span class="metric-val" *ngIf="op.team_avg_pos !== null">{{ op.team_avg_pos | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.team_avg_pos === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Senaste 30d</span>
+            <span class="metric-val" *ngIf="op.recent_ibc_h !== null">{{ op.recent_ibc_h | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.recent_ibc_h === null">—</span>
+          </div>
+          <div class="reliability-row">
+            <span>Produktskift:</span>
+            <span class="reliability-count">{{ op.antal_skift_product }}</span>
+            <span class="rel-badge" [ngClass]="reliabilityBadge(op.antal_skift_product).cls">
+              {{ reliabilityBadge(op.antal_skift_product).label }} tillförlitlighet
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="pos-card pos-card-empty" *ngIf="!forecast.op2">
+        <div class="pos-card-header pos-op2">
+          <span class="pos-badge"><i class="fas fa-eye"></i></span>
+          <span class="pos-title">Kontrollstation</span>
+        </div>
+        <div class="pos-card-body"><em>Ingen operatör vald</em></div>
+      </div>
+
+      <!-- Op3 -->
+      <div class="pos-card" *ngIf="forecast.op3 as op">
+        <div class="pos-card-header pos-op3">
+          <span class="pos-badge"><i class="fas fa-truck"></i></span>
+          <span class="pos-title">Truckförare</span>
+          <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">
+            {{ op.name }}
+          </a>
+          <span *ngIf="op.trend" class="trend-pill" [class]="'trend-' + op.trend">
+            <i [class]="trendIcon(op.trend)"></i>
+            {{ trendLabel(op.trend, op.trend_pct) }}
+          </span>
+        </div>
+        <div class="pos-card-body">
+          <div class="metric-row highlight">
+            <span class="metric-label">Denna produkt — IBC/h</span>
+            <span class="metric-val" *ngIf="op.product_ibc_h !== null">
+              {{ op.product_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_product)"
+                    *ngIf="op.vs_team_product !== null">
+                {{ op.vs_team_product >= 0 ? '+' : '' }}{{ op.vs_team_product | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.product_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Alla produkter — IBC/h</span>
+            <span class="metric-val" *ngIf="op.overall_ibc_h !== null">
+              {{ op.overall_ibc_h | number:'1.1-1' }}
+              <span class="vs-chip" [ngClass]="vsClass(op.vs_team_overall)"
+                    *ngIf="op.vs_team_overall !== null">
+                {{ op.vs_team_overall >= 0 ? '+' : '' }}{{ op.vs_team_overall | number:'1.0-0' }}%
+              </span>
+            </span>
+            <span class="metric-val metric-na" *ngIf="op.overall_ibc_h === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lagsnitt denna position</span>
+            <span class="metric-val" *ngIf="op.team_avg_pos !== null">{{ op.team_avg_pos | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.team_avg_pos === null">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Senaste 30d</span>
+            <span class="metric-val" *ngIf="op.recent_ibc_h !== null">{{ op.recent_ibc_h | number:'1.1-1' }}</span>
+            <span class="metric-val metric-na" *ngIf="op.recent_ibc_h === null">—</span>
+          </div>
+          <div class="reliability-row">
+            <span>Produktskift:</span>
+            <span class="reliability-count">{{ op.antal_skift_product }}</span>
+            <span class="rel-badge" [ngClass]="reliabilityBadge(op.antal_skift_product).cls">
+              {{ reliabilityBadge(op.antal_skift_product).label }} tillförlitlighet
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="pos-card pos-card-empty" *ngIf="!forecast.op3">
+        <div class="pos-card-header pos-op3">
+          <span class="pos-badge"><i class="fas fa-truck"></i></span>
+          <span class="pos-title">Truckförare</span>
+        </div>
+        <div class="pos-card-body"><em>Ingen operatör vald</em></div>
+      </div>
+
+    </div>
+
+    <!-- Team chemistry -->
+    <div class="chemistry-card">
+      <div class="chemistry-header">
+        <i class="fas fa-users"></i>
+        Lagkemi — {{ forecast.op1?.name ?? '?' }} + {{ forecast.op2?.name ?? '?' }} + {{ forecast.op3?.name ?? '?' }}
+      </div>
+      <div class="chemistry-stats">
+        <div class="chem-stat">
+          <div class="chem-label">Jobbat tillsammans</div>
+          <div class="chem-val">{{ forecast.team_chemistry.team_shifts }} skift</div>
+          <div class="chem-sub" *ngIf="forecast.team_chemistry.team_ibc_h !== null">
+            Snitt: {{ forecast.team_chemistry.team_ibc_h | number:'1.1-1' }} IBC/h
+          </div>
+        </div>
+        <div class="chem-stat chem-highlight">
+          <div class="chem-label">Tillsammans med {{ forecast.product_name }}</div>
+          <div class="chem-val">{{ forecast.team_chemistry.product_shifts }} skift</div>
+          <div class="chem-sub" *ngIf="forecast.team_chemistry.product_ibc_h !== null">
+            Snitt: {{ forecast.team_chemistry.product_ibc_h | number:'1.1-1' }} IBC/h
+          </div>
+          <div class="chem-sub chem-na" *ngIf="forecast.team_chemistry.product_shifts === 0">
+            Laget har aldrig jobbat med denna produkt
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent shared product shifts -->
+      <div *ngIf="forecast.team_chemistry.similar_shifts.length > 0" class="similar-shifts">
+        <div class="similar-title">Senaste skift — detta lag med {{ forecast.product_name }}</div>
+        <table class="similar-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>IBC ok</th>
+              <th>IBC/h</th>
+              <th>Kassation %</th>
+              <th>Drifttid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of forecast.team_chemistry.similar_shifts">
+              <td>{{ s.datum }}</td>
+              <td>{{ s.ibc_ok }}</td>
+              <td [ngClass]="vsClass(forecast.product_team_avg !== null ? (s.ibc_h - forecast.product_team_avg) / (forecast.product_team_avg || 1) * 100 : null)">
+                {{ s.ibc_h | number:'1.1-1' }}
+              </td>
+              <td>{{ s.kassation | number:'1.1-1' }}%</td>
+              <td>{{ s.drifttid_min }} min</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="forecast.team_chemistry.similar_shifts.length === 0" class="no-similar">
+        Inga historiska skift hittade för detta lag + produkt.
+      </div>
+    </div>
+
+  </ng-container>
+</div>

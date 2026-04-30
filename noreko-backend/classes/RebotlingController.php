@@ -366,6 +366,8 @@ class RebotlingController {
                 $this->getIdag();
             } elseif ($action === 'produkt-jamforelse') {
                 $this->getProduktJamforelse();
+            } elseif ($action === 'produkt-prognos') {
+                $this->getProduktPrognos();
             } else {
                 $this->getLiveStats();
             }
@@ -9560,21 +9562,28 @@ class RebotlingController {
             $fromCtx = date('Y-m-d', strtotime($datum . ' -90 days'));
             $toCtx   = $datum;
 
-            // Team average over context window
+            // Team average over context window.
+            // ibc_ok/ibc_ej_ok are PLC daily running counters — LAG() computes per-shift deltas.
             $stmtTeam = $this->pdo->prepare("
                 SELECT
                     ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0), 2)        AS team_avg_ibc_h,
                     ROUND(SUM(ibc_ej_ok) / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0) * 100, 1) AS team_avg_kass
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok,
-                           MAX(COALESCE(drifttid, 0))  AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :fromCtx AND :toCtx
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare
-                ) dedup
+                    SELECT drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                    FROM (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))              AS datum,
+                               MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0))   AS ej_end,
+                               MAX(COALESCE(drifttid, 0))    AS drifttid
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :fromCtx AND :toCtx
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) base
+                ) lag_q
             ");
             $stmtTeam->execute([':fromCtx' => $fromCtx, ':toCtx' => $toCtx]);
             $teamRow = $stmtTeam->fetch(\PDO::FETCH_ASSOC);
@@ -9595,20 +9604,29 @@ class RebotlingController {
                 $opNum = (int)$shift[$pos['field']];
                 if (!$opNum) continue;
 
+                // Personal average — LAG() applied to all shifts on same day so the
+                // operator filter can use the position-specific ibc_ok delta correctly.
                 $stmtPers = $this->pdo->prepare("
                     SELECT
                         ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid) / 60.0, 0), 2) AS personal_avg,
                         COUNT(*) AS antal_skift
                     FROM (
-                        SELECT skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
-                               MAX(COALESCE(drifttid, 0)) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE {$pos['field']} = :opNum
-                          AND datum BETWEEN :fromCtx AND :toCtx
-                          AND drifttid >= 30
-                        GROUP BY skiftraknare
-                    ) d
+                        SELECT drifttid,
+                               GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                               op_filter
+                        FROM (
+                            SELECT skiftraknare,
+                                   DATE(MAX(datum))            AS datum,
+                                   MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                                   MAX(COALESCE(drifttid, 0))  AS drifttid,
+                                   MAX({$pos['field']})        AS op_filter
+                            FROM rebotling_skiftrapport
+                            WHERE datum BETWEEN :fromCtx AND :toCtx
+                              AND drifttid >= 30
+                            GROUP BY skiftraknare
+                        ) base
+                    ) lag_q
+                    WHERE op_filter = :opNum
                 ");
                 $stmtPers->execute([':opNum' => $opNum, ':fromCtx' => $fromCtx, ':toCtx' => $toCtx]);
                 $pers = $stmtPers->fetch(\PDO::FETCH_ASSOC);
@@ -10445,64 +10463,51 @@ class RebotlingController {
                 $prodMap[(int)$r['id']] = $r['name'];
             }
 
-            // Dedup per (op, skiftraknare, product), aggregate ibc_ok + drifttid
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            // PHP-side attribution to op1/op2/op3 avoids UNION ALL duplicate-param issues.
             $sql = "
-                SELECT u.op_num,
-                       u.product_id,
-                       SUM(u.ibc)       AS total_ibc,
-                       SUM(u.min)       AS total_min,
-                       COUNT(*)         AS skift_count
+                SELECT skiftraknare, datum, op1, op2, op3, product_id, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
                 FROM (
-                    SELECT op1                                          AS op_num,
-                           MAX(COALESCE(product_id, 0))                AS product_id,
-                           MAX(COALESCE(ibc_ok, 0))                    AS ibc,
-                           MAX(COALESCE(drifttid, 0))                  AS min
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))    AS datum,
+                           MAX(op1)            AS op1,
+                           MAX(op2)            AS op2,
+                           MAX(op3)            AS op3,
+                           MAX(product_id)     AS product_id,
+                           MAX(ibc_ok)         AS ibc_end,
+                           MAX(drifttid)       AS drifttid
                     FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND op1 IS NOT NULL
+                    WHERE datum BETWEEN :from AND :to
                       AND product_id IS NOT NULL AND product_id > 0
                       AND drifttid >= 30
-                    GROUP BY skiftraknare, op1
-
-                    UNION ALL
-
-                    SELECT op2,
-                           MAX(COALESCE(product_id, 0)),
-                           MAX(COALESCE(ibc_ok, 0)),
-                           MAX(COALESCE(drifttid, 0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND op2 IS NOT NULL
-                      AND product_id IS NOT NULL AND product_id > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op2
-
-                    UNION ALL
-
-                    SELECT op3,
-                           MAX(COALESCE(product_id, 0)),
-                           MAX(COALESCE(ibc_ok, 0)),
-                           MAX(COALESCE(drifttid, 0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from3 AND :to3
-                      AND op3 IS NOT NULL
-                      AND product_id IS NOT NULL AND product_id > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op3
-                ) u
-                WHERE u.product_id > 0
-                GROUP BY u.op_num, u.product_id
-                HAVING total_min >= 60
-                ORDER BY u.op_num
+                    GROUP BY skiftraknare
+                ) base
             ";
 
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // PHP-side: attribute each shift's ibc_ok delta to each operator position
+            $byOpProd = []; // [opNum => [prodId => [ibc, min, skift_count]]]
+            foreach ($shifts as $s) {
+                $ibc    = max(0, (int)$s['ibc_ok']);
+                $min    = max(0, (int)$s['drifttid']);
+                $prodId = (int)$s['product_id'];
+                if ($min <= 0 || $prodId <= 0) continue;
+
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0) continue;
+                    if (!isset($byOpProd[$opNum][$prodId])) {
+                        $byOpProd[$opNum][$prodId] = ['ibc' => 0, 'min' => 0, 'skift_count' => 0];
+                    }
+                    $byOpProd[$opNum][$prodId]['ibc']        += $ibc;
+                    $byOpProd[$opNum][$prodId]['min']        += $min;
+                    $byOpProd[$opNum][$prodId]['skift_count'] += 1;
+                }
+            }
 
             // Build cells + per-product totals for team avg
             $cells      = [];
@@ -10510,32 +10515,34 @@ class RebotlingController {
             $usedOps    = [];
             $usedProds  = [];
 
-            foreach ($rows as $r) {
-                $opNum  = (int)$r['op_num'];
-                $prodId = (int)$r['product_id'];
-                if (!isset($opMap[$opNum]) || !isset($prodMap[$prodId])) continue;
-                if ((int)$r['skift_count'] < 2) continue;
+            foreach ($byOpProd as $opNum => $prods) {
+                if (!isset($opMap[$opNum])) continue;
+                foreach ($prods as $prodId => $acc) {
+                    if (!isset($prodMap[$prodId])) continue;
+                    if ($acc['skift_count'] < 2) continue;
+                    if ($acc['min'] < 60) continue;
 
-                $ibc = (float)$r['total_ibc'];
-                $min = (float)$r['total_min'];
-                $ibch = $min > 0 ? round($ibc / ($min / 60.0), 2) : 0.0;
+                    $ibc  = (float)$acc['ibc'];
+                    $min  = (float)$acc['min'];
+                    $ibch = round($ibc / ($min / 60.0), 2);
 
-                $cells[] = [
-                    'op_num'      => $opNum,
-                    'product_id'  => $prodId,
-                    'ibc_per_h'   => $ibch,
-                    'skift_count' => (int)$r['skift_count'],
-                    'total_ibc'   => (int)$ibc,
-                ];
+                    $cells[] = [
+                        'op_num'      => $opNum,
+                        'product_id'  => $prodId,
+                        'ibc_per_h'   => $ibch,
+                        'skift_count' => $acc['skift_count'],
+                        'total_ibc'   => (int)$ibc,
+                    ];
 
-                $usedOps[$opNum]   = $opMap[$opNum];
-                $usedProds[$prodId] = $prodMap[$prodId];
+                    $usedOps[$opNum]    = $opMap[$opNum];
+                    $usedProds[$prodId] = $prodMap[$prodId];
 
-                if (!isset($prodTotals[$prodId])) {
-                    $prodTotals[$prodId] = ['ibc' => 0.0, 'min' => 0.0];
+                    if (!isset($prodTotals[$prodId])) {
+                        $prodTotals[$prodId] = ['ibc' => 0.0, 'min' => 0.0];
+                    }
+                    $prodTotals[$prodId]['ibc'] += $ibc;
+                    $prodTotals[$prodId]['min'] += $min;
                 }
-                $prodTotals[$prodId]['ibc'] += $ibc;
-                $prodTotals[$prodId]['min'] += $min;
             }
 
             // Team IBC/h per product
@@ -10595,6 +10602,8 @@ class RebotlingController {
         $from = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta so
+            // later shifts in the same day are not over-credited with the cumulative total.
             $sql = "
                 SELECT
                     d.skiftraknare,
@@ -10607,21 +10616,25 @@ class RebotlingController {
                     d.ibc_ok / (d.drifttid / 60.0)                                   AS ibc_h,
                     d.driftstopptime / d.drifttid * 100                               AS stopp_pct
                 FROM (
-                    SELECT
-                        skiftraknare,
-                        datum,
-                        MAX(ibc_ok)            AS ibc_ok,
-                        MAX(drifttid)          AS drifttid,
-                        MAX(driftstopptime)    AS driftstopptime,
-                        MAX(op1)               AS op1,
-                        MAX(op2)               AS op2,
-                        MAX(op3)               AS op3,
-                        MAX(product_id)        AS product_id,
-                        HOUR(MIN(created_at))  AS start_hour
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from AND :to
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, datum
+                    SELECT skiftraknare, datum, op1, op2, op3, product_id, drifttid, driftstopptime, start_hour,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM (
+                        SELECT
+                            skiftraknare,
+                            DATE(MAX(datum))       AS datum,
+                            MAX(ibc_ok)            AS ibc_end,
+                            MAX(drifttid)          AS drifttid,
+                            MAX(driftstopptime)    AS driftstopptime,
+                            MAX(op1)               AS op1,
+                            MAX(op2)               AS op2,
+                            MAX(op3)               AS op3,
+                            MAX(product_id)        AS product_id,
+                            HOUR(MIN(created_at))  AS start_hour
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from AND :to
+                          AND drifttid >= 30
+                        GROUP BY skiftraknare
+                    ) base
                 ) d
                 LEFT JOIN rebotling_products p ON d.product_id = p.id
                 WHERE d.drifttid > 0
@@ -12610,98 +12623,114 @@ class RebotlingController {
             $months = ['a' => $rawA, 'b' => $rawB];
             $result = [];
 
+            // Operator name map for PHP-side attribution
+            $opNameMap = [];
+            foreach ($this->pdo->query("SELECT number, name FROM operators") as $r) {
+                $opNameMap[(int)$r['number']] = $r['name'];
+            }
+
             foreach ($months as $key => $month) {
-                // Summary stats (dedup by skiftraknare first)
-                $sqlSum = "
-                    SELECT
-                        SUM(ibc_ok)  AS total_ibc,
-                        SUM(ibc_ej_ok) AS total_ibc_ej,
-                        SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0) AS ibc_per_h,
-                        SUM(ibc_ej_ok) / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0) * 100 AS kassation_pct,
-                        SUM(driftstopptime) / NULLIF(SUM(drifttid + driftstopptime), 0) * 100 AS stoppgrad,
-                        COUNT(DISTINCT skiftraknare) AS antal_skift,
-                        COUNT(DISTINCT datum) AS produktionsdagar,
-                        ROUND(SUM(drifttid) / 60.0, 1) AS total_timmar
+                // Single LAG() query for per-shift ibc_ok/ibc_ej_ok deltas.
+                // ibc_ok/ibc_ej_ok are PLC daily running counters — LAG() computes actual
+                // per-shift contribution so later shifts are not over-credited.
+                $sqlShifts = "
+                    SELECT skiftraknare, datum, op1, op2, op3, drifttid, driftstopptime,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
                     FROM (
-                        SELECT datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))          AS ibc_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0))       AS ibc_ej_ok,
-                               MAX(COALESCE(drifttid, 0))        AS drifttid,
-                               MAX(COALESCE(driftstopptime, 0))  AS driftstopptime
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))             AS datum,
+                               MAX(op1)                     AS op1,
+                               MAX(op2)                     AS op2,
+                               MAX(op3)                     AS op3,
+                               MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0))  AS ej_end,
+                               MAX(COALESCE(drifttid, 0))   AS drifttid,
+                               MAX(COALESCE(driftstopptime,0)) AS driftstopptime
                         FROM rebotling_skiftrapport
                         WHERE DATE_FORMAT(datum, '%Y-%m') = :month
                           AND drifttid >= 30
-                        GROUP BY datum, skiftraknare
-                    ) dedup
+                        GROUP BY skiftraknare
+                    ) base
                 ";
-                $stmtSum = $this->pdo->prepare($sqlSum);
-                $stmtSum->execute([':month' => $month]);
-                $sum = $stmtSum->fetch(\PDO::FETCH_ASSOC);
+                $stmtShifts = $this->pdo->prepare($sqlShifts);
+                $stmtShifts->execute([':month' => $month]);
+                $shiftRows = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
+
+                // Summary stats (PHP-side aggregation of LAG-fixed deltas)
+                $sumIbc = 0.0; $sumEj = 0.0; $sumMin = 0.0; $sumStopp = 0.0;
+                $antSkift = 0; $datumSet = [];
+                foreach ($shiftRows as $s) {
+                    $ibc  = max(0, (float)$s['ibc_ok']);
+                    $ej   = max(0, (float)$s['ibc_ej_ok']);
+                    $min  = max(0, (float)$s['drifttid']);
+                    $stp  = max(0, (float)$s['driftstopptime']);
+                    if ($min <= 0) continue;
+                    $sumIbc  += $ibc; $sumEj  += $ej; $sumMin += $min; $sumStopp += $stp;
+                    $antSkift++;
+                    $datumSet[$s['datum']] = true;
+                }
+                $sum = [
+                    'total_ibc'       => (int)$sumIbc,
+                    'total_ibc_ej'    => (int)$sumEj,
+                    'ibc_per_h'       => $sumMin > 0 ? round($sumIbc / ($sumMin / 60.0), 2) : null,
+                    'kassation_pct'   => ($sumIbc + $sumEj) > 0 ? round($sumEj / ($sumIbc + $sumEj) * 100, 1) : null,
+                    'stoppgrad'       => ($sumMin + $sumStopp) > 0 ? round($sumStopp / ($sumMin + $sumStopp) * 100, 1) : null,
+                    'antal_skift'     => $antSkift,
+                    'produktionsdagar'=> count($datumSet),
+                    'total_timmar'    => round($sumMin / 60.0, 1),
+                ];
 
                 // Per-day data for overlay chart
-                $sqlDay = "
-                    SELECT
-                        datum,
-                        DAY(datum)  AS dag,
-                        ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0), 2) AS ibc_per_h,
-                        SUM(ibc_ok) AS total_ibc
-                    FROM (
-                        SELECT datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
-                               MAX(COALESCE(drifttid, 0)) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE DATE_FORMAT(datum, '%Y-%m') = :month
-                          AND drifttid >= 30
-                        GROUP BY datum, skiftraknare
-                    ) dedup
-                    GROUP BY datum
-                    ORDER BY datum
-                ";
-                $stmtDay = $this->pdo->prepare($sqlDay);
-                $stmtDay->execute([':month' => $month]);
-                $days = $stmtDay->fetchAll(\PDO::FETCH_ASSOC);
+                $dayAcc = []; // [datum => [ibc, min]]
+                foreach ($shiftRows as $s) {
+                    $d   = $s['datum'];
+                    $ibc = max(0, (float)$s['ibc_ok']);
+                    $min = max(0, (float)$s['drifttid']);
+                    if ($min <= 0) continue;
+                    if (!isset($dayAcc[$d])) $dayAcc[$d] = ['ibc' => 0.0, 'min' => 0.0];
+                    $dayAcc[$d]['ibc'] += $ibc;
+                    $dayAcc[$d]['min'] += $min;
+                }
+                $days = [];
+                foreach ($dayAcc as $datum => $acc) {
+                    $days[] = [
+                        'datum'     => $datum,
+                        'dag'       => (int)substr($datum, 8, 2),
+                        'ibc_per_h' => $acc['min'] > 0 ? round($acc['ibc'] / ($acc['min'] / 60.0), 2) : 0.0,
+                        'total_ibc' => (int)$acc['ibc'],
+                    ];
+                }
+                usort($days, fn($a, $b) => strcmp($a['datum'], $b['datum']));
 
-                // Per-operator IBC/h for this month
-                $sqlOp = "
-                    SELECT
-                        op_num,
-                        o.name,
-                        ROUND(SUM(ibc_ok) / NULLIF(SUM(drifttid / 60.0), 0), 2) AS ibc_per_h,
-                        COUNT(DISTINCT skiftraknare) AS antal_skift,
-                        SUM(ibc_ok) AS total_ibc
-                    FROM (
-                        SELECT skiftraknare, op1 AS op_num,
-                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
-                               MAX(COALESCE(drifttid, 0)) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE DATE_FORMAT(datum, '%Y-%m') = :montha
-                          AND op1 IS NOT NULL AND drifttid >= 30
-                        GROUP BY skiftraknare, op1
-                        UNION ALL
-                        SELECT skiftraknare, op2 AS op_num,
-                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
-                               MAX(COALESCE(drifttid, 0)) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE DATE_FORMAT(datum, '%Y-%m') = :monthb
-                          AND op2 IS NOT NULL AND drifttid >= 30
-                        GROUP BY skiftraknare, op2
-                        UNION ALL
-                        SELECT skiftraknare, op3 AS op_num,
-                               MAX(COALESCE(ibc_ok, 0))   AS ibc_ok,
-                               MAX(COALESCE(drifttid, 0)) AS drifttid
-                        FROM rebotling_skiftrapport
-                        WHERE DATE_FORMAT(datum, '%Y-%m') = :monthc
-                          AND op3 IS NOT NULL AND drifttid >= 30
-                        GROUP BY skiftraknare, op3
-                    ) combined
-                    LEFT JOIN operators o ON o.number = combined.op_num
-                    GROUP BY op_num, o.name
-                    HAVING antal_skift >= 2
-                    ORDER BY ibc_per_h DESC
-                ";
-                $stmtOp = $this->pdo->prepare($sqlOp);
-                $stmtOp->execute([':montha' => $month, ':monthb' => $month, ':monthc' => $month]);
-                $operators = $stmtOp->fetchAll(\PDO::FETCH_ASSOC);
+                // Per-operator IBC/h (PHP-side attribution, avoids UNION ALL)
+                $opAcc = []; // [opNum => [ibc, min, skift_count]]
+                foreach ($shiftRows as $s) {
+                    $ibc = max(0, (float)$s['ibc_ok']);
+                    $min = max(0, (float)$s['drifttid']);
+                    if ($min <= 0) continue;
+                    foreach (['op1', 'op2', 'op3'] as $pos) {
+                        $opNum = (int)$s[$pos];
+                        if ($opNum <= 0) continue;
+                        if (!isset($opAcc[$opNum])) $opAcc[$opNum] = ['ibc' => 0.0, 'min' => 0.0, 'count' => 0];
+                        $opAcc[$opNum]['ibc']   += $ibc;
+                        $opAcc[$opNum]['min']   += $min;
+                        $opAcc[$opNum]['count'] += 1;
+                    }
+                }
+                $operators = [];
+                foreach ($opAcc as $opNum => $acc) {
+                    if ($acc['count'] < 2) continue;
+                    $ibcH = $acc['min'] > 0 ? round($acc['ibc'] / ($acc['min'] / 60.0), 2) : 0.0;
+                    $operators[] = [
+                        'op_num'      => $opNum,
+                        'name'        => $opNameMap[$opNum] ?? "Op $opNum",
+                        'ibc_per_h'   => $ibcH,
+                        'antal_skift' => $acc['count'],
+                        'total_ibc'   => (int)$acc['ibc'],
+                    ];
+                }
+                usort($operators, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
 
                 $result[$key] = [
                     'month'       => $month,
@@ -13454,24 +13483,31 @@ class RebotlingController {
         $from = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // 1. Fetch all deduplicated shifts in period
+            // 1. Fetch all deduplicated shifts in period.
+            // ibc_ok/ibc_ej_ok are PLC daily running counters — use MAX per skiftraknare
+            // then LAG() to compute the actual per-shift delta so later shifts in a day
+            // are not over-credited with the cumulative total.
             $sql = "
-                SELECT
-                    r.skiftraknare,
-                    MIN(r.datum)         AS datum,
-                    SUM(r.ibc_ok)        AS ibc_ok,
-                    SUM(r.ibc_ej_ok)     AS ibc_ej_ok,
-                    SUM(r.drifttid)      AS drifttid,
-                    SUM(r.driftstopptime) AS driftstopptime,
-                    MAX(r.op1)           AS op1,
-                    MAX(r.op2)           AS op2,
-                    MAX(r.op3)           AS op3,
-                    MAX(r.product_id)    AS product_id
-                FROM rebotling_skiftrapport r
-                WHERE r.datum BETWEEN :from AND :to
-                GROUP BY r.skiftraknare
-                HAVING SUM(r.drifttid) >= 30
-                ORDER BY MIN(r.datum) DESC
+                SELECT skiftraknare, datum, op1, op2, op3, product_id, drifttid, driftstopptime,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))      AS datum,
+                           MAX(op1)              AS op1,
+                           MAX(op2)              AS op2,
+                           MAX(op3)              AS op3,
+                           MAX(product_id)       AS product_id,
+                           MAX(ibc_ok)           AS ibc_end,
+                           MAX(ibc_ej_ok)        AS ej_end,
+                           MAX(drifttid)         AS drifttid,
+                           MAX(driftstopptime)   AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                    GROUP BY skiftraknare
+                    HAVING MAX(drifttid) >= 30
+                ) base
+                ORDER BY datum DESC
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':from' => $from, ':to' => $to]);
@@ -14389,100 +14425,6 @@ class RebotlingController {
             $to        = date('Y-m-d');
             $from      = date('Y-m-d', strtotime("-{$days} days"));
 
-            // Per-product team IBC/h (dedup by skiftraknare)
-            $teamSql = "
-                SELECT product_id,
-                       SUM(ibc)   AS team_ibc,
-                       SUM(min)   AS team_min,
-                       COUNT(*)   AS team_shifts
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(product_id, 0))  AS product_id,
-                           MAX(COALESCE(ibc_ok, 0))      AS ibc,
-                           MAX(COALESCE(drifttid, 0))    AS min
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND drifttid >= 30
-                      AND product_id IS NOT NULL AND product_id > 0
-                    GROUP BY skiftraknare
-                ) d
-                GROUP BY product_id
-                HAVING team_min >= 60
-            ";
-            $stmt = $pdo->prepare($teamSql);
-            $stmt->execute([':from1' => $from, ':to1' => $to]);
-            $teamByProduct = [];
-            $overallTeamIbc = 0.0;
-            $overallTeamMin = 0.0;
-            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-                $pid   = (int)$r['product_id'];
-                $tIbc  = (float)$r['team_ibc'];
-                $tMin  = (float)$r['team_min'];
-                $teamByProduct[$pid] = [
-                    'team_ibc_h'  => $tMin > 0 ? $tIbc / ($tMin / 60) : 0.0,
-                    'team_shifts' => (int)$r['team_shifts'],
-                    'team_ibc'    => $tIbc,
-                    'team_min'    => $tMin,
-                ];
-                $overallTeamIbc += $tIbc;
-                $overallTeamMin += $tMin;
-            }
-            $overallTeamIbcH = $overallTeamMin > 0 ? $overallTeamIbc / ($overallTeamMin / 60) : 0.0;
-
-            // Per-operator per-product aggregates (UNION ALL op1/op2/op3, dedup per op+skiftraknare)
-            $opShiftSql = "
-                SELECT op_num, product_id,
-                       SUM(ibc)   AS ibc,
-                       SUM(min)   AS min,
-                       COUNT(*)   AS skift_count
-                FROM (
-                    SELECT op1                                     AS op_num,
-                           MAX(COALESCE(product_id, 0))            AS product_id,
-                           MAX(COALESCE(ibc_ok, 0))                AS ibc,
-                           MAX(COALESCE(drifttid, 0))              AS min
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND op1 IS NOT NULL AND op1 > 0
-                      AND product_id IS NOT NULL AND product_id > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op1
-
-                    UNION ALL
-
-                    SELECT op2,
-                           MAX(COALESCE(product_id, 0)),
-                           MAX(COALESCE(ibc_ok, 0)),
-                           MAX(COALESCE(drifttid, 0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from3 AND :to3
-                      AND op2 IS NOT NULL AND op2 > 0
-                      AND product_id IS NOT NULL AND product_id > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op2
-
-                    UNION ALL
-
-                    SELECT op3,
-                           MAX(COALESCE(product_id, 0)),
-                           MAX(COALESCE(ibc_ok, 0)),
-                           MAX(COALESCE(drifttid, 0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from4 AND :to4
-                      AND op3 IS NOT NULL AND op3 > 0
-                      AND product_id IS NOT NULL AND product_id > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op3
-                ) u
-                WHERE u.product_id > 0
-                GROUP BY op_num, product_id
-            ";
-            $stmt2 = $pdo->prepare($opShiftSql);
-            $stmt2->execute([
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-                ':from4' => $from, ':to4' => $to,
-            ]);
-
             $opMap = [];
             foreach ($pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name") as $r) {
                 $opMap[(int)$r['number']] = $r['name'];
@@ -14492,40 +14434,110 @@ class RebotlingController {
                 $prodMap[(int)$r['id']] = $r['name'];
             }
 
+            // Single LAG() query for per-shift ibc_ok deltas — avoids over-crediting
+            // later shifts in the same day with the cumulative PLC running counter value.
+            $shiftSql = "
+                SELECT skiftraknare, datum, op1, op2, op3, product_id, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))             AS datum,
+                           MAX(op1)                     AS op1,
+                           MAX(op2)                     AS op2,
+                           MAX(op3)                     AS op3,
+                           MAX(COALESCE(product_id, 0)) AS product_id,
+                           MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                           MAX(COALESCE(drifttid, 0))   AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                      AND product_id IS NOT NULL AND product_id > 0
+                    GROUP BY skiftraknare
+                ) base
+            ";
+            $stmt = $pdo->prepare($shiftSql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // PHP-side: compute team totals per product + operator totals per (op, product)
+            $teamByProduct  = [];
+            $byOpProd       = []; // [opNum => [prodId => [ibc, min, count]]]
+            $overallTeamIbc = 0.0;
+            $overallTeamMin = 0.0;
+
+            foreach ($allShifts as $s) {
+                $ibc    = max(0, (float)$s['ibc_ok']);
+                $min    = max(0, (float)$s['drifttid']);
+                $prodId = (int)$s['product_id'];
+                if ($min <= 0 || $prodId <= 0) continue;
+
+                // Team totals (once per shift, not per position)
+                if (!isset($teamByProduct[$prodId])) {
+                    $teamByProduct[$prodId] = ['team_ibc' => 0.0, 'team_min' => 0.0, 'team_shifts' => 0];
+                }
+                $teamByProduct[$prodId]['team_ibc']    += $ibc;
+                $teamByProduct[$prodId]['team_min']    += $min;
+                $teamByProduct[$prodId]['team_shifts'] += 1;
+                $overallTeamIbc += $ibc;
+                $overallTeamMin += $min;
+
+                // Operator attribution
+                foreach (['op1', 'op2', 'op3'] as $pos) {
+                    $opNum = (int)$s[$pos];
+                    if ($opNum <= 0) continue;
+                    if (!isset($byOpProd[$opNum][$prodId])) {
+                        $byOpProd[$opNum][$prodId] = ['ibc' => 0.0, 'min' => 0.0, 'count' => 0];
+                    }
+                    $byOpProd[$opNum][$prodId]['ibc']   += $ibc;
+                    $byOpProd[$opNum][$prodId]['min']   += $min;
+                    $byOpProd[$opNum][$prodId]['count'] += 1;
+                }
+            }
+
+            // Filter and compute team IBC/h per product
+            foreach (array_keys($teamByProduct) as $pid) {
+                $t = &$teamByProduct[$pid];
+                if ($t['team_min'] < 60) { unset($teamByProduct[$pid]); continue; }
+                $t['team_ibc_h'] = $t['team_ibc'] / ($t['team_min'] / 60.0);
+            }
+            unset($t);
+
+            $overallTeamIbcH = $overallTeamMin > 0 ? $overallTeamIbc / ($overallTeamMin / 60) : 0.0;
+
             // Accumulate per-operator totals
             $opData = [];
-            foreach ($stmt2->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-                $opNum  = (int)$r['op_num'];
-                $pid    = (int)$r['product_id'];
-                $ibc    = (float)$r['ibc'];
-                $min    = (float)$r['min'];
-                $nShift = (int)$r['skift_count'];
-                if (!isset($opMap[$opNum]))          continue;
-                if (!isset($teamByProduct[$pid]))     continue;
-                $teamH = $teamByProduct[$pid]['team_ibc_h'];
-                if ($teamH <= 0 || $min <= 0)        continue;
+            foreach ($byOpProd as $opNum => $prods) {
+                if (!isset($opMap[$opNum])) continue;
+                foreach ($prods as $pid => $acc) {
+                    if (!isset($teamByProduct[$pid])) continue;
+                    $ibc    = $acc['ibc'];
+                    $min    = $acc['min'];
+                    $nShift = $acc['count'];
+                    $teamH  = $teamByProduct[$pid]['team_ibc_h'];
+                    if ($teamH <= 0 || $min <= 0) continue;
 
-                $hours       = $min / 60.0;
-                $opIbcH      = $ibc / $hours;
-                $expectedIbc = $teamH * $hours;
+                    $hours       = $min / 60.0;
+                    $opIbcH      = $ibc / $hours;
+                    $expectedIbc = $teamH * $hours;
 
-                if (!isset($opData[$opNum])) {
-                    $opData[$opNum] = ['raw_ibc' => 0.0, 'raw_min' => 0.0, 'expected_ibc' => 0.0, 'skift_count' => 0, 'products' => []];
+                    if (!isset($opData[$opNum])) {
+                        $opData[$opNum] = ['raw_ibc' => 0.0, 'raw_min' => 0.0, 'expected_ibc' => 0.0, 'skift_count' => 0, 'products' => []];
+                    }
+                    $opData[$opNum]['raw_ibc']     += $ibc;
+                    $opData[$opNum]['raw_min']      += $min;
+                    $opData[$opNum]['expected_ibc'] += $expectedIbc;
+                    $opData[$opNum]['skift_count']  += $nShift;
+                    $opData[$opNum]['products'][]    = [
+                        'product_id'   => $pid,
+                        'product_name' => $prodMap[$pid] ?? "Produkt $pid",
+                        'op_ibc_h'     => round($opIbcH, 2),
+                        'team_ibc_h'   => round($teamH, 2),
+                        'relative_eff' => round($opIbcH / $teamH, 3),
+                        'skift_count'  => $nShift,
+                        'total_ibc'    => (int)$ibc,
+                        'hours'        => round($hours, 1),
+                    ];
                 }
-                $opData[$opNum]['raw_ibc']      += $ibc;
-                $opData[$opNum]['raw_min']       += $min;
-                $opData[$opNum]['expected_ibc']  += $expectedIbc;
-                $opData[$opNum]['skift_count']   += $nShift;
-                $opData[$opNum]['products'][]     = [
-                    'product_id'   => $pid,
-                    'product_name' => $prodMap[$pid] ?? "Produkt $pid",
-                    'op_ibc_h'     => round($opIbcH, 2),
-                    'team_ibc_h'   => round($teamH, 2),
-                    'relative_eff' => $teamH > 0 ? round($opIbcH / $teamH, 3) : 0,
-                    'skift_count'  => $nShift,
-                    'total_ibc'    => (int)$ibc,
-                    'hours'        => round($hours, 1),
-                ];
             }
 
             // Build result array
@@ -15881,6 +15893,275 @@ class RebotlingController {
             error_log('RebotlingController::getProduktJamforelse: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produktjämförelse'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // =========================================================
+    // Produkt-Prognos — product-aware shift forecast
+    // GET ?action=rebotling&run=produkt-prognos&days=90[&op1=X&op2=Y&op3=Z&product_id=N]
+    // Returns operators + products always; forecast block when all 4 params given.
+    // =========================================================
+
+    private function getProduktPrognos(): void {
+        try {
+            $days      = max(30, min(365, (int)($_GET['days'] ?? 90)));
+            $to        = date('Y-m-d');
+            $from      = date('Y-m-d', strtotime("-{$days} days"));
+            $cutoff30  = date('Y-m-d', strtotime('-30 days'));
+
+            $op1       = isset($_GET['op1'])        ? (int)$_GET['op1']        : 0;
+            $op2       = isset($_GET['op2'])        ? (int)$_GET['op2']        : 0;
+            $op3       = isset($_GET['op3'])        ? (int)$_GET['op3']        : 0;
+            $productId = isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0;
+
+            // Always return operator + product lists
+            $opList = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name ASC"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prodRows = [];
+            try {
+                $prodRows = $this->pdo->query(
+                    "SELECT id, name, cycle_time_minutes FROM rebotling_products ORDER BY name ASC"
+                )->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Throwable $e) {
+                error_log('getProduktPrognos prodList: ' . $e->getMessage());
+            }
+
+            if (($op1 <= 0 && $op2 <= 0 && $op3 <= 0) || $productId <= 0) {
+                echo json_encode([
+                    'success'   => true,
+                    'operators' => $opList,
+                    'products'  => $prodRows,
+                    'days'      => $days,
+                    'forecast'  => null,
+                ], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // LAG()-corrected shifts for the entire period.
+            // Fetch ALL shifts first (no operator/product filter) so the LAG window is intact.
+            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
+            $stmt = $this->pdo->prepare("
+                SELECT dag, skiftraknare, op1, op2, op3, product_id, drifttid_min,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))   AS dag,
+                           MAX(op1)           AS op1,
+                           MAX(op2)           AS op2,
+                           MAX(op3)           AS op3,
+                           MAX(product_id)    AS product_id,
+                           MAX(ibc_ok)        AS ibc_end,
+                           MAX(ibc_ej_ok)     AS ej_end,
+                           MAX(drifttid)      AS drifttid_min
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from1 AND datum <= :to1
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ) base
+            ");
+            $stmt->execute([':from1' => $from, ':to1' => $to]);
+            $allShifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute per-position metrics for each selected operator
+            $positions = ['op1' => $op1, 'op2' => $op2, 'op3' => $op3];
+            $opData    = ['op1' => null, 'op2' => null, 'op3' => null];
+
+            foreach ($positions as $posKey => $opNum) {
+                if ($opNum <= 0) continue;
+
+                // Shifts where this operator is in this specific position
+                $posShifts  = array_values(array_filter($allShifts, fn($s) => (int)$s[$posKey] === $opNum));
+                $prodShifts = array_values(array_filter($posShifts,  fn($s) => (int)$s['product_id'] === $productId));
+
+                // Overall IBC/h at this position (all products)
+                $totIbc = array_sum(array_column($posShifts, 'ibc_ok'));
+                $totMin = array_sum(array_column($posShifts, 'drifttid_min'));
+                $overallIbcH = $totMin > 0 ? round($totIbc / ($totMin / 60.0), 2) : null;
+
+                // Product-specific IBC/h at this position
+                $prdIbc = array_sum(array_column($prodShifts, 'ibc_ok'));
+                $prdMin = array_sum(array_column($prodShifts, 'drifttid_min'));
+                $productIbcH = $prdMin > 0 ? round($prdIbc / ($prdMin / 60.0), 2) : null;
+
+                // Recent (last 30d) vs baseline IBC/h at this position
+                $recent   = array_values(array_filter($posShifts, fn($s) => $s['dag'] >= $cutoff30));
+                $baseline = array_values(array_filter($posShifts, fn($s) => $s['dag'] <  $cutoff30));
+
+                $recIbc  = array_sum(array_column($recent,   'ibc_ok'));
+                $recMin  = array_sum(array_column($recent,   'drifttid_min'));
+                $basIbc  = array_sum(array_column($baseline, 'ibc_ok'));
+                $basMin  = array_sum(array_column($baseline, 'drifttid_min'));
+
+                $recentIbcH   = $recMin  > 0 ? $recIbc  / ($recMin  / 60.0) : null;
+                $baselineIbcH = $basMin  > 0 ? $basIbc  / ($basMin  / 60.0) : null;
+                $trend        = null;
+                $trendPct     = null;
+                if ($recentIbcH !== null && $baselineIbcH !== null && $baselineIbcH > 0) {
+                    $trendPct = round(($recentIbcH - $baselineIbcH) / $baselineIbcH * 100, 1);
+                    $trend    = $trendPct >= 5 ? 'up' : ($trendPct <= -5 ? 'down' : 'stable');
+                }
+
+                // Team average at this position (all operators, all products)
+                $allAtPos  = array_values(array_filter($allShifts, fn($s) => (int)$s[$posKey] > 0));
+                $taIbc     = array_sum(array_column($allAtPos, 'ibc_ok'));
+                $taMin     = array_sum(array_column($allAtPos, 'drifttid_min'));
+                $teamAvg   = $taMin > 0 ? round($taIbc / ($taMin / 60.0), 2) : null;
+
+                // Team average at this position for selected product
+                $allAtPosProd = array_values(array_filter($allAtPos, fn($s) => (int)$s['product_id'] === $productId));
+                $tpIbc        = array_sum(array_column($allAtPosProd, 'ibc_ok'));
+                $tpMin        = array_sum(array_column($allAtPosProd, 'drifttid_min'));
+                $teamAvgProd  = $tpMin > 0 ? round($tpIbc / ($tpMin / 60.0), 2) : null;
+
+                $opData[$posKey] = [
+                    'number'               => $opNum,
+                    'name'                 => '?',
+                    'antal_skift_overall'  => count($posShifts),
+                    'antal_skift_product'  => count($prodShifts),
+                    'overall_ibc_h'        => $overallIbcH,
+                    'product_ibc_h'        => $productIbcH,
+                    'team_avg_pos'         => $teamAvg,
+                    'team_avg_pos_prod'    => $teamAvgProd,
+                    'trend'                => $trend,
+                    'trend_pct'            => $trendPct,
+                    'recent_ibc_h'         => $recentIbcH  !== null ? round($recentIbcH,  2) : null,
+                    'baseline_ibc_h'       => $baselineIbcH !== null ? round($baselineIbcH, 2) : null,
+                    'vs_team_overall'      => ($overallIbcH && $teamAvg && $teamAvg > 0)
+                                               ? round(($overallIbcH - $teamAvg) / $teamAvg * 100, 1) : null,
+                    'vs_team_product'      => ($productIbcH && $teamAvgProd && $teamAvgProd > 0)
+                                               ? round(($productIbcH - $teamAvgProd) / $teamAvgProd * 100, 1) : null,
+                ];
+            }
+
+            // Fill operator names in one query
+            $opNumbers = array_filter([$op1, $op2, $op3]);
+            if ($opNumbers) {
+                $ph   = implode(',', array_fill(0, count($opNumbers), '?'));
+                $ns   = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
+                $ns->execute(array_values($opNumbers));
+                $names = [];
+                foreach ($ns->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $names[(int)$r['number']] = $r['name'];
+                }
+                foreach (['op1', 'op2', 'op3'] as $pk) {
+                    if ($opData[$pk]) {
+                        $opData[$pk]['name'] = $names[$opData[$pk]['number']] ?? 'Okänd';
+                    }
+                }
+            }
+
+            // Team chemistry — exact 3-person team
+            $exactTeam     = array_values(array_filter($allShifts,
+                fn($s) => (int)$s['op1'] === $op1 && (int)$s['op2'] === $op2 && (int)$s['op3'] === $op3));
+            $exactTeamProd = array_values(array_filter($exactTeam,
+                fn($s) => (int)$s['product_id'] === $productId));
+
+            $etIbc  = array_sum(array_column($exactTeam,     'ibc_ok'));
+            $etMin  = array_sum(array_column($exactTeam,     'drifttid_min'));
+            $etpIbc = array_sum(array_column($exactTeamProd, 'ibc_ok'));
+            $etpMin = array_sum(array_column($exactTeamProd, 'drifttid_min'));
+
+            $similarShifts = array_values(array_slice(
+                array_map(fn($s) => [
+                    'datum'       => $s['dag'],
+                    'ibc_ok'      => (int)$s['ibc_ok'],
+                    'ibc_h'       => $s['drifttid_min'] > 0
+                                        ? round($s['ibc_ok'] / ($s['drifttid_min'] / 60.0), 1) : 0,
+                    'kassation'   => ($s['ibc_ok'] + $s['ibc_ej_ok']) > 0
+                                        ? round($s['ibc_ej_ok'] / ($s['ibc_ok'] + $s['ibc_ej_ok']) * 100, 1) : 0,
+                    'drifttid_min'=> (int)$s['drifttid_min'],
+                ], array_filter($exactTeamProd, fn($s) => $s['ibc_ok'] > 0)),
+                -8
+            ));
+
+            $teamChemistry = [
+                'team_shifts'   => count($exactTeam),
+                'team_ibc_h'    => $etMin  > 0 ? round($etIbc  / ($etMin  / 60.0), 2) : null,
+                'product_shifts'=> count($exactTeamProd),
+                'product_ibc_h' => $etpMin > 0 ? round($etpIbc / ($etpMin / 60.0), 2) : null,
+                'similar_shifts'=> $similarShifts,
+            ];
+
+            // Prognosis: best available estimate
+            // Source priority: exact-team+product → exact-team → per-position product → per-position overall
+            $prognosedIbcH   = null;
+            $prognosisSource = 'none';
+
+            if ($teamChemistry['product_ibc_h'] !== null && $teamChemistry['product_shifts'] >= 3) {
+                $prognosedIbcH   = $teamChemistry['product_ibc_h'];
+                $prognosisSource = 'team-product';
+            } elseif ($teamChemistry['team_ibc_h'] !== null && $teamChemistry['team_shifts'] >= 3) {
+                $prognosedIbcH   = $teamChemistry['team_ibc_h'];
+                $prognosisSource = 'team-overall';
+            } else {
+                // Average per-position product-specific rates (or fall back to overall)
+                $vals = [];
+                foreach (['op1', 'op2', 'op3'] as $pk) {
+                    if (!$opData[$pk]) continue;
+                    $v = $opData[$pk]['product_ibc_h'] ?? $opData[$pk]['overall_ibc_h'];
+                    if ($v !== null) $vals[] = $v;
+                }
+                if ($vals) {
+                    $prognosedIbcH   = round(array_sum($vals) / count($vals), 2);
+                    $prognosisSource = 'positions';
+                }
+            }
+
+            // Period-wide team averages for vs-comparisons
+            $allIbc       = array_sum(array_column($allShifts, 'ibc_ok'));
+            $allMin       = array_sum(array_column($allShifts, 'drifttid_min'));
+            $periodTeamAvg = $allMin > 0 ? round($allIbc / ($allMin / 60.0), 2) : null;
+
+            $prodAllShifts  = array_values(array_filter($allShifts, fn($s) => (int)$s['product_id'] === $productId));
+            $paIbc          = array_sum(array_column($prodAllShifts, 'ibc_ok'));
+            $paMin          = array_sum(array_column($prodAllShifts, 'drifttid_min'));
+            $productTeamAvg = $paMin > 0 ? round($paIbc / ($paMin / 60.0), 2) : null;
+
+            // Product metadata
+            $productName = 'Okänd produkt';
+            $cycleTime   = null;
+            foreach ($prodRows as $p) {
+                if ((int)$p['id'] === $productId) {
+                    $productName = $p['name'];
+                    $cycleTime   = isset($p['cycle_time_minutes']) ? (float)$p['cycle_time_minutes'] : null;
+                    break;
+                }
+            }
+
+            echo json_encode([
+                'success'   => true,
+                'days'      => $days,
+                'from'      => $from,
+                'to'        => $to,
+                'operators' => $opList,
+                'products'  => $prodRows,
+                'forecast'  => [
+                    'op1'                => $opData['op1'],
+                    'op2'                => $opData['op2'],
+                    'op3'                => $opData['op3'],
+                    'product_id'         => $productId,
+                    'product_name'       => $productName,
+                    'cycle_time_minutes' => $cycleTime,
+                    'prognosed_ibc_h'    => $prognosedIbcH,
+                    'prognosis_source'   => $prognosisSource,
+                    'prognosed_8h_ibc'   => $prognosedIbcH ? (int)round($prognosedIbcH * 8) : null,
+                    'period_team_avg'    => $periodTeamAvg,
+                    'product_team_avg'   => $productTeamAvg,
+                    'vs_team_period'     => ($prognosedIbcH && $periodTeamAvg && $periodTeamAvg > 0)
+                                            ? round(($prognosedIbcH - $periodTeamAvg) / $periodTeamAvg * 100, 1) : null,
+                    'vs_product_avg'     => ($prognosedIbcH && $productTeamAvg && $productTeamAvg > 0)
+                                            ? round(($prognosedIbcH - $productTeamAvg) / $productTeamAvg * 100, 1) : null,
+                    'team_chemistry'     => $teamChemistry,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getProduktPrognos: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid produkt-prognos'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }

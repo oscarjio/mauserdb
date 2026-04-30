@@ -116,6 +116,7 @@ export class OperatorPrestationPage {
         { title: 'Teamoptimering', desc: 'Föreslaget skiftlag', route: '/rebotling/team-optimizer', icon: 'fas fa-users-cog', color: '#63b3ed' },
         { title: 'Skift-kalender', desc: 'Kalender med skiftdata', route: '/rebotling/skift-kalender', icon: 'fas fa-calendar-week', color: '#63b3ed' },
         { title: 'Skift-prognos', desc: 'Prognos baserad på historik', route: '/rebotling/skift-prognos', icon: 'fas fa-magic', color: '#f6ad55' },
+        { title: 'Produkt-Prognos', desc: 'Välj lag och produkt — se varje operatörs produkt-specifika IBC/h vs lagsnitt och teamets förväntade utfall för skiftet. Inkluderar lagkemi, trendindikatorer och tillförlitlighetsbedömning.', route: '/rebotling/produkt-prognos', icon: 'fas fa-box-open', color: '#a78bfa' },
         { title: 'Täckningsanalys', desc: 'Positionstäckning, reservstyrka och SPOF-varning per position', route: '/rebotling/tacknings-analys', icon: 'fas fa-shield-alt', color: '#68d391' },
         { title: 'Personalkalender', desc: 'Månadsvy med närvaro och positioner per operatör — vem jobbade vilken dag?', route: '/rebotling/personal-kalender', icon: 'fas fa-id-badge', color: '#76e4f7' },
         { title: 'Schemaläggningsassistent', desc: 'Datadrivna rekommendationer per operatör — bästa position, bästa skifttyp och aktuell form sammanfattade i ett beslutsstöd för nästa veckas schema', route: '/rebotling/schema-rekommendationer', icon: 'fas fa-clipboard-list', color: '#68d391' },
