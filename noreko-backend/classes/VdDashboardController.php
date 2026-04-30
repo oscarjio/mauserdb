@@ -355,27 +355,35 @@ class VdDashboardController {
             $today = date('Y-m-d');
             $operators = [];
 
-            // rebotling_ibc uses op1/op2/op3, not user_id
-            // IBC-fält är kumulativa per skifträknare — använd MAX per skifträknare, sedan SUM
+            // rebotling_ibc: ibc_ok is a daily running counter (resets at midnight,
+            // not per shift). LAG() delta so later shifts don't include earlier shifts.
             try {
                 $sql = "
+                    WITH daily_dedup AS (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
+                               MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3
+                        FROM rebotling_ibc
+                        WHERE datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
+                        GROUP BY skiftraknare
+                    ),
+                    lag_shifts AS (
+                        SELECT skiftraknare, op1, op2, op3,
+                               GREATEST(0, ibc_end - COALESCE(
+                                   LAG(ibc_end) OVER (ORDER BY skiftraknare), 0
+                               )) AS ibc_delta
+                        FROM daily_dedup
+                    )
                     SELECT
                         op_id AS user_id,
                         COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                        SUM(shift_ibc) AS total_ibc
+                        SUM(ibc_delta) AS total_ibc
                     FROM (
-                        SELECT op_id, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM (
-                            SELECT op1 AS op_id, skiftraknare, ibc_ok FROM rebotling_ibc
-                            WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                            UNION ALL
-                            SELECT op2, skiftraknare, ibc_ok FROM rebotling_ibc
-                            WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                            UNION ALL
-                            SELECT op3, skiftraknare, ibc_ok FROM rebotling_ibc
-                            WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                        ) AS all_ops
-                        GROUP BY op_id, skiftraknare
+                        SELECT op1 AS op_id, ibc_delta FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
+                        UNION ALL
+                        SELECT op2, ibc_delta FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
+                        UNION ALL
+                        SELECT op3, ibc_delta FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                     ) AS per_shift
                     LEFT JOIN operators o ON o.number = per_shift.op_id
                     GROUP BY op_id, o.name
@@ -383,7 +391,7 @@ class VdDashboardController {
                     LIMIT 3
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today1' => $today, ':today1b' => $today, ':today2' => $today, ':today2b' => $today, ':today3' => $today, ':today3b' => $today]);
+                $stmt->execute([':today' => $today, ':todayb' => $today]);
                 $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());

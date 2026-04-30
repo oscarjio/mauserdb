@@ -605,7 +605,45 @@ class OperatorController {
             // -------------------------------------------------------
             // 8. Rank denna vecka
             // -------------------------------------------------------
+            // LAG() delta: ibc_ok resets at midnight but not between shifts on
+            // the same day, so shift2/3 operators were credited cumulative values.
             $stmtRank = $this->pdo->prepare("
+                WITH daily_dedup AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                           MAX(COALESCE(runtime_plc, 0)) AS runtime_min,
+                           MAX(op1) AS op1, MAX(op2) AS op2, MAX(op3) AS op3
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3,
+                           GREATEST(0, ibc_end - COALESCE(
+                               LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0
+                           )) AS ibc_delta,
+                           runtime_min
+                    FROM daily_dedup
+                ),
+                op_stats AS (
+                    SELECT op_id,
+                           SUM(ibc_delta)   AS total_ibc,
+                           SUM(runtime_min) AS total_min
+                    FROM (
+                        SELECT op1 AS op_id, ibc_delta, runtime_min FROM lag_shifts WHERE op1 IS NOT NULL
+                        UNION ALL
+                        SELECT op2, ibc_delta, runtime_min FROM lag_shifts WHERE op2 IS NOT NULL
+                        UNION ALL
+                        SELECT op3, ibc_delta, runtime_min FROM lag_shifts WHERE op3 IS NOT NULL
+                    ) expanded
+                    GROUP BY op_id
+                ),
+                ranked AS (
+                    SELECT op_id,
+                           RANK() OVER (ORDER BY total_ibc / NULLIF(total_min / 60.0, 0) DESC) AS rn
+                    FROM op_stats
+                )
                 SELECT ranked.op_id, ranked.rn AS rank_pos,
                        (SELECT COUNT(DISTINCT op_id) FROM (
                             SELECT op1 AS op_id FROM rebotling_ibc
@@ -617,34 +655,7 @@ class OperatorController {
                             SELECT op3 FROM rebotling_ibc
                             WHERE op3 IS NOT NULL AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                        ) AS all_ops WHERE op_id IS NOT NULL) AS total_ops
-                FROM (
-                    SELECT sub.op_id,
-                           RANK() OVER (ORDER BY SUM(sub.shift_ibc_ok) / NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0) DESC) AS rn
-                    FROM (
-                        SELECT op1 AS op_id, skiftraknare,
-                               MAX(ibc_ok)      AS shift_ibc_ok,
-                               MAX(runtime_plc) AS shift_runtime_min
-                        FROM rebotling_ibc
-                        WHERE op1 IS NOT NULL AND skiftraknare IS NOT NULL
-                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                        GROUP BY op1, skiftraknare
-                        UNION ALL
-                        SELECT op2, skiftraknare,
-                               MAX(ibc_ok), MAX(runtime_plc)
-                        FROM rebotling_ibc
-                        WHERE op2 IS NOT NULL AND skiftraknare IS NOT NULL
-                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                        GROUP BY op2, skiftraknare
-                        UNION ALL
-                        SELECT op3, skiftraknare,
-                               MAX(ibc_ok), MAX(runtime_plc)
-                        FROM rebotling_ibc
-                        WHERE op3 IS NOT NULL AND skiftraknare IS NOT NULL
-                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                        GROUP BY op3, skiftraknare
-                    ) sub
-                    GROUP BY sub.op_id
-                ) ranked
+                FROM ranked
                 WHERE ranked.op_id = ?
                 LIMIT 1
             ");

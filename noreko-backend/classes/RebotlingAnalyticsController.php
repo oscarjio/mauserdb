@@ -1522,12 +1522,12 @@ class RebotlingAnalyticsController {
                 if ($sgRow) $defaultGoal = (int)$sgRow['rebotling_target'];
             } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getYearCalendar defaultGoal: ' . $e->getMessage()); }
 
-            // Hämta produktion per dag för hela året från rebotling_skiftrapport
-            // SUM(ibc_ok) per datum
+            // ibc_ok is a daily running counter (resets at midnight, not per shift).
+            // MAX per date = final daily counter value = true daily production total.
             $stmt = $this->pdo->prepare("
                 SELECT
                     datum,
-                    SUM(ibc_ok) AS ibc_ok
+                    MAX(ibc_ok) AS ibc_ok
                 FROM rebotling_skiftrapport
                 WHERE YEAR(datum) = :year
                   AND ibc_ok IS NOT NULL
@@ -1542,10 +1542,10 @@ class RebotlingAnalyticsController {
                 $stmt2 = $this->pdo->prepare("
                     SELECT
                         DATE(datum) AS datum,
-                        SUM(shift_ibc_ok) AS ibc_ok
+                        MAX(shift_ibc_ok) AS ibc_ok
                     FROM (
                         SELECT
-                            datum,
+                            DATE(datum)              AS datum,
                             skiftraknare,
                             MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
                         FROM rebotling_ibc

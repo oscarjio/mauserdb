@@ -370,6 +370,8 @@ class RebotlingController {
                 $this->getProduktJamforelse();
             } elseif ($action === 'produkt-prognos') {
                 $this->getProduktPrognos();
+            } elseif ($action === 'kassationsbudget') {
+                $this->getKassationsbudget();
             } else {
                 $this->getLiveStats();
             }
@@ -11357,47 +11359,38 @@ class RebotlingController {
                 'op3' => 'Truckförare',
             ];
 
-            // Per operator+position: deduplicate per skiftraknare, then aggregate
+            // Per operator+position: LAG() delta so ibc_ok running-counter is
+            // correctly delta-corrected per shift before summing across the period.
             $sql = "
+                WITH dedup AS (
+                    SELECT datum, skiftraknare, op1, op2, op3,
+                           MAX(COALESCE(ibc_ok,   0)) AS ibc_end,
+                           MAX(COALESCE(drifttid, 0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                      AND drifttid >= 30
+                    GROUP BY datum, skiftraknare, op1, op2, op3
+                ),
+                lag_shifts AS (
+                    SELECT datum, skiftraknare, op1, op2, op3,
+                           GREATEST(0, ibc_end - COALESCE(
+                               LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0
+                           )) AS ibc_delta,
+                           drifttid
+                    FROM dedup
+                )
                 SELECT u.op_num, u.pos,
                        COALESCE(o.name, CONCAT('Op ', u.op_num)) AS op_name,
                        SUM(u.ibc)   AS total_ibc,
                        SUM(u.min)   AS total_min,
                        COUNT(*)     AS skift_count
                 FROM (
-                    SELECT op1                       AS op_num,
-                           'op1'                     AS pos,
-                           MAX(COALESCE(ibc_ok,  0)) AS ibc,
-                           MAX(COALESCE(drifttid,0)) AS min
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from1 AND :to1
-                      AND op1 IS NOT NULL AND op1 > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op1
-
+                    SELECT op1 AS op_num, 'op1' AS pos, ibc_delta AS ibc, drifttid AS min
+                    FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-
-                    SELECT op2,
-                           'op2',
-                           MAX(COALESCE(ibc_ok,  0)),
-                           MAX(COALESCE(drifttid,0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from2 AND :to2
-                      AND op2 IS NOT NULL AND op2 > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op2
-
+                    SELECT op2, 'op2', ibc_delta, drifttid FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-
-                    SELECT op3,
-                           'op3',
-                           MAX(COALESCE(ibc_ok,  0)),
-                           MAX(COALESCE(drifttid,0))
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from3 AND :to3
-                      AND op3 IS NOT NULL AND op3 > 0
-                      AND drifttid >= 30
-                    GROUP BY skiftraknare, op3
+                    SELECT op3, 'op3', ibc_delta, drifttid FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                 ) u
                 LEFT JOIN operators o ON o.number = u.op_num
                 GROUP BY u.op_num, u.pos
@@ -11406,11 +11399,7 @@ class RebotlingController {
             ";
 
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
+            $stmt->execute([':from' => $from, ':to' => $to]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             // Build per-operator structure
@@ -16551,6 +16540,226 @@ class RebotlingController {
             error_log('RebotlingController::getProduktPrognos: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid produkt-prognos'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // GET ?action=rebotling&run=kassationsbudget[&year=YYYY&month=M]
+    private function getKassationsbudget(): void {
+        try {
+            $year  = (int)($_GET['year']  ?? date('Y'));
+            $month = (int)($_GET['month'] ?? (int)date('n'));
+
+            $from          = sprintf('%04d-%02d-01', $year, $month);
+            $days_in_month = \cal_days_in_month(\CAL_GREGORIAN, $month, $year);
+            $to            = sprintf('%04d-%02d-%02d', $year, $month, $days_in_month);
+            $today         = date('Y-m-d');
+
+            if ($today < $from) {
+                $days_elapsed = 0;
+            } elseif ($today >= $to) {
+                $days_elapsed = $days_in_month;
+            } else {
+                $days_elapsed = (int)date('j', strtotime($today));
+            }
+
+            // --- Daily LAG-corrected kassation ---
+            $sqlDaily = "
+                SELECT dag,
+                       SUM(d_ibc_ej)                   AS ibc_ej_ok,
+                       SUM(d_bur_ej)                   AS bur_ej_ok,
+                       SUM(d_ibc_ej + d_bur_ej)        AS kassation,
+                       SUM(d_totalt)                    AS totalt
+                FROM (
+                    SELECT dag, skiftraknare,
+                        GREATEST(0, iej - COALESCE(LAG(iej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_ibc_ej,
+                        GREATEST(0, bej - COALESCE(LAG(bej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_bur_ej,
+                        GREATEST(0, tot - COALESCE(LAG(tot) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_totalt
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ej_ok) AS iej,
+                               MAX(bur_ej_ok) AS bej,
+                               MAX(totalt)    AS tot
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from AND :to
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) lag_d
+                GROUP BY dag
+                ORDER BY dag
+            ";
+            $stmt = $this->pdo->prepare($sqlDaily);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $cum_kass = 0; $cum_tot = 0;
+            $daily_out = [];
+            foreach ($rows as $r) {
+                $kass = (int)$r['kassation'];
+                $tot  = (int)$r['totalt'];
+                $cum_kass += $kass;
+                $cum_tot  += $tot;
+                $daily_out[] = [
+                    'datum'        => $r['dag'],
+                    'ibc_ej'       => (int)$r['ibc_ej_ok'],
+                    'bur_ej'       => (int)$r['bur_ej_ok'],
+                    'kassation'    => $kass,
+                    'totalt'       => $tot,
+                    'kass_pct'     => $tot > 0 ? round($kass / $tot * 100, 2) : null,
+                    'cum_kass_pct' => $cum_tot > 0 ? round($cum_kass / $cum_tot * 100, 2) : null,
+                ];
+            }
+
+            $tot_kass = array_sum(array_column($daily_out, 'kassation'));
+            $tot_tot  = array_sum(array_column($daily_out, 'totalt'));
+            $tot_iej  = array_sum(array_column($daily_out, 'ibc_ej'));
+            $tot_bej  = array_sum(array_column($daily_out, 'bur_ej'));
+            $kass_pct     = $tot_tot > 0 ? round($tot_kass / $tot_tot * 100, 2) : null;
+            $ibc_kass_pct = $tot_tot > 0 ? round($tot_iej  / $tot_tot * 100, 2) : null;
+            $bur_kass_pct = $tot_tot > 0 ? round($tot_bej  / $tot_tot * 100, 2) : null;
+
+            // Projection: current observed rate (valid for mid-month)
+            $projected = ($days_elapsed > 0 && $days_elapsed < $days_in_month) ? $kass_pct : null;
+
+            // --- By product ---
+            $sqlProd = "
+                SELECT rs.product_id,
+                       COALESCE(p.name, CONCAT('Produkt ', rs.product_id)) AS product_name,
+                       SUM(rs.d_ibc_ej + rs.d_bur_ej) AS kassation,
+                       SUM(rs.d_ibc_ej)                AS ibc_ej,
+                       SUM(rs.d_bur_ej)                AS bur_ej,
+                       SUM(rs.d_totalt)                AS totalt
+                FROM (
+                    SELECT dag, skiftraknare, product_id,
+                        GREATEST(0, iej - COALESCE(LAG(iej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_ibc_ej,
+                        GREATEST(0, bej - COALESCE(LAG(bej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_bur_ej,
+                        GREATEST(0, tot - COALESCE(LAG(tot) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_totalt
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, MAX(product_id) AS product_id,
+                               MAX(ibc_ej_ok) AS iej,
+                               MAX(bur_ej_ok) AS bej,
+                               MAX(totalt)    AS tot
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from2 AND :to2
+                        GROUP BY DATE(datum), skiftraknare
+                    ) base
+                ) rs
+                LEFT JOIN rebotling_products p ON p.id = rs.product_id
+                GROUP BY rs.product_id, p.name
+                HAVING SUM(rs.d_totalt) > 0
+                ORDER BY (SUM(rs.d_ibc_ej + rs.d_bur_ej)) / SUM(rs.d_totalt) DESC
+                LIMIT 10
+            ";
+            $stmt = $this->pdo->prepare($sqlProd);
+            $stmt->execute([':from2' => $from, ':to2' => $to]);
+            $by_product = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $tot  = (int)$r['totalt'];
+                $kass = (int)$r['kassation'];
+                $by_product[] = [
+                    'product_id'   => $r['product_id'],
+                    'product_name' => $r['product_name'],
+                    'kassation'    => $kass,
+                    'totalt'       => $tot,
+                    'ibc_ej'       => (int)$r['ibc_ej'],
+                    'bur_ej'       => (int)$r['bur_ej'],
+                    'kass_pct'     => $tot > 0 ? round($kass / $tot * 100, 2) : null,
+                ];
+            }
+
+            // --- By operator (CTE + UNION ALL so LAG window is correct across all shifts) ---
+            $sqlOp = "
+                WITH lag_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3,
+                        GREATEST(0, iej - COALESCE(LAG(iej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_ibc_ej,
+                        GREATEST(0, bej - COALESCE(LAG(bej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_bur_ej,
+                        GREATEST(0, tot - COALESCE(LAG(tot) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS d_totalt
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, op1, op2, op3,
+                               MAX(ibc_ej_ok) AS iej,
+                               MAX(bur_ej_ok) AS bej,
+                               MAX(totalt)    AS tot
+                        FROM rebotling_skiftrapport
+                        WHERE datum BETWEEN :from3 AND :to3
+                        GROUP BY DATE(datum), skiftraknare, op1, op2, op3
+                    ) base
+                ),
+                all_ops AS (
+                    SELECT op1 AS op_num, d_ibc_ej, d_bur_ej, d_totalt, skiftraknare FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
+                    UNION ALL
+                    SELECT op2, d_ibc_ej, d_bur_ej, d_totalt, skiftraknare FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
+                    UNION ALL
+                    SELECT op3, d_ibc_ej, d_bur_ej, d_totalt, skiftraknare FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                )
+                SELECT a.op_num,
+                       COALESCE(o.name, CONCAT('Op ', a.op_num)) AS name,
+                       SUM(d_ibc_ej + d_bur_ej) AS kassation,
+                       SUM(d_totalt)              AS totalt,
+                       COUNT(DISTINCT skiftraknare) AS antal_skift
+                FROM all_ops a
+                LEFT JOIN operators o ON o.number = a.op_num
+                GROUP BY a.op_num, o.name
+                HAVING SUM(d_totalt) > 0
+                ORDER BY (SUM(d_ibc_ej + d_bur_ej)) / SUM(d_totalt) DESC
+                LIMIT 10
+            ";
+            $stmt = $this->pdo->prepare($sqlOp);
+            $stmt->execute([':from3' => $from, ':to3' => $to]);
+            $by_operator = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $tot  = (int)$r['totalt'];
+                $kass = (int)$r['kassation'];
+                $by_operator[] = [
+                    'op_num'      => (int)$r['op_num'],
+                    'name'        => $r['name'],
+                    'kassation'   => $kass,
+                    'totalt'      => $tot,
+                    'antal_skift' => (int)$r['antal_skift'],
+                    'kass_pct'    => $tot > 0 ? round($kass / $tot * 100, 2) : null,
+                ];
+            }
+
+            // Available months for selector
+            $sqlM = "
+                SELECT YEAR(datum) AS yr, MONTH(datum) AS mo
+                FROM rebotling_skiftrapport
+                GROUP BY YEAR(datum), MONTH(datum)
+                ORDER BY yr DESC, mo DESC
+                LIMIT 24
+            ";
+            $stmt = $this->pdo->prepare($sqlM);
+            $stmt->execute();
+            $available_months = array_map(fn($r) => [
+                'year'  => (int)$r['yr'],
+                'month' => (int)$r['mo'],
+                'label' => date('F Y', mktime(0, 0, 0, (int)$r['mo'], 1, (int)$r['yr'])),
+            ], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+
+            echo json_encode([
+                'success'          => true,
+                'year'             => $year,
+                'month'            => $month,
+                'from'             => $from,
+                'to'               => $to,
+                'days_in_month'    => $days_in_month,
+                'days_elapsed'     => $days_elapsed,
+                'kpi'              => [
+                    'totalt'       => $tot_tot,
+                    'kassation'    => $tot_kass,
+                    'kass_pct'     => $kass_pct,
+                    'ibc_kass_pct' => $ibc_kass_pct,
+                    'bur_kass_pct' => $bur_kass_pct,
+                    'projected'    => $projected,
+                ],
+                'daily'            => $daily_out,
+                'by_product'       => $by_product,
+                'by_operator'      => $by_operator,
+                'available_months' => $available_months,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getKassationsbudget: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid kassationsbudget'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
