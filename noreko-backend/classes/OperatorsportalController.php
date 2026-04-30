@@ -12,8 +12,8 @@
  *   - $_SESSION['operator_id'] = operators.number (sätts vid inloggning)
  *   - rebotling_ibc.op1/op2/op3 = operators.number
  *
- * OBS: ibc_ok, runtime_plc m.fl. är KUMULATIVA PLC-värden per skift.
- * Aggregering sker i två steg: MAX() per skiftraknare, sedan SUM()/AVG() över skift.
+ * OBS: ibc_ok/ibc_ej_ok är kumulativa PLC-räknare per dag (återställs vid midnatt).
+ * Korrekt: MAX() per skiftraknare → LAG()-delta → SUM(). runtime_plc återställs per skift.
  */
 class OperatorsportalController {
     private $pdo;
@@ -73,31 +73,44 @@ class OperatorsportalController {
     }
 
     /**
-     * Hämtar kumulativt aggregerade IBC (ibc_ok) för en operatör under ett datumintervall.
-     * Steg 1: MAX(ibc_ok) per skiftraknare → ger skiftets faktiska produktion.
-     * Steg 2: SUM() över alla skift → total produktion för perioden.
+     * Bygg LAG-CTE för korrekta per-skift-deltor (ibc_ok är daglig kumulativ räknare).
+     * Datum injiceras via quote() (PHP-genererade, ej användarinput).
+     */
+    private function buildLagCte(string $fromDate, string $toDate): string {
+        $f = $this->pdo->quote($fromDate);
+        $t = $this->pdo->quote($toDate);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                       MIN(COALESCE(op1, 0))           AS op1,
+                       MIN(COALESCE(op2, 0))           AS op2,
+                       MIN(COALESCE(op3, 0))           AS op3
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare, op1, op2, op3,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                FROM lag_base
+            )
+        ";
+    }
+
+    /**
+     * IBC (ibc_ok) för en operatör under ett datumintervall, LAG-korrigerad.
      */
     private function getOperatorIbc(int $opId, string $fromDate, string $toDate): int {
         try {
-            $stmt = $this->pdo->prepare("
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $sql = "
+                {$lagCte}
                 SELECT COALESCE(SUM(shift_ibc), 0)
-                FROM (
-                    SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
-
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                ) AS per_shift
-            ");
-            $stmt->execute([
-                ':op_id1'    => $opId,
-                ':op_id2'    => $opId,
-                ':op_id3'    => $opId,
-                ':from_date' => $fromDate,
-                ':to_date'   => $toDate,
-            ]);
-            return (int)$stmt->fetchColumn();
+                FROM lag_shifts
+                WHERE op1 = {$opId} OR op2 = {$opId} OR op3 = {$opId}
+            ";
+            return (int)$this->pdo->query($sql)->fetchColumn();
         } catch (\PDOException $e) {
             error_log('OperatorsportalController::getOperatorIbc: ' . $e->getMessage());
             return 0;
@@ -136,26 +149,16 @@ class OperatorsportalController {
     }
 
     /**
-     * Hämtar total team-IBC för ett datumintervall (alla operatörer).
-     * Aggregerar per skiftraknare med MAX(), sedan SUM().
+     * Total team-IBC för ett datumintervall, LAG-korrigerad.
      */
     private function getTeamIbc(string $fromDate, string $toDate): int {
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ibc), 0)
-                FROM (
-                    SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE 1=1
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                ) AS per_shift
-            ");
-            $stmt->execute([
-                ':from_date' => $fromDate,
-                ':to_date'   => $toDate,
-            ]);
-            return (int)$stmt->fetchColumn();
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $sql = "
+                {$lagCte}
+                SELECT COALESCE(SUM(shift_ibc), 0) FROM lag_shifts
+            ";
+            return (int)$this->pdo->query($sql)->fetchColumn();
         } catch (\PDOException $e) {
             error_log('OperatorsportalController::getTeamIbc: ' . $e->getMessage());
             return 0;
@@ -249,45 +252,25 @@ class OperatorsportalController {
     }
 
     /**
-     * Beräknar ranking-position för operatören bland aktiva operatörer (senaste 30 dagar).
-     * Rangordnat på total IBC.
+     * Ranking-position för operatören bland aktiva operatörer (senaste 30 dagar), LAG-korrigerad.
      */
     private function getRankingPosition(int $opId, string $fromDate, string $toDate): array {
         try {
-            // Hämta IBC per operatör
-            $stmt = $this->pdo->prepare("
-                SELECT op_id, COALESCE(SUM(shift_ibc), 0) AS total_ibc
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $sql = "
+                {$lagCte}
+                SELECT op_id, SUM(shift_ibc) AS total_ibc
                 FROM (
-                    SELECT op1 AS op_id, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE op1 IS NOT NULL AND op1 > 0
-
-                      AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                    GROUP BY op1, skiftraknare
+                    SELECT op1 AS op_id, shift_ibc FROM lag_shifts WHERE op1 > 0
                     UNION ALL
-                    SELECT op2, MAX(COALESCE(ibc_ok, 0))
-                    FROM rebotling_ibc
-                    WHERE op2 IS NOT NULL AND op2 > 0
-
-                      AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                    GROUP BY op2, skiftraknare
+                    SELECT op2 AS op_id, shift_ibc FROM lag_shifts WHERE op2 > 0
                     UNION ALL
-                    SELECT op3, MAX(COALESCE(ibc_ok, 0))
-                    FROM rebotling_ibc
-                    WHERE op3 IS NOT NULL AND op3 > 0
-
-                      AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                    GROUP BY op3, skiftraknare
-                ) AS all_shifts
+                    SELECT op3 AS op_id, shift_ibc FROM lag_shifts WHERE op3 > 0
+                ) AS ops
                 GROUP BY op_id
                 ORDER BY total_ibc DESC
-            ");
-            $stmt->execute([
-                ':from1' => $fromDate, ':to1' => $toDate,
-                ':from2' => $fromDate, ':to2' => $toDate,
-                ':from3' => $fromDate, ':to3' => $toDate,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            ";
+            $rows = $this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
 
             $totalOps = count($rows);
             $position = 0;
@@ -437,67 +420,34 @@ class OperatorsportalController {
         $toDate   = date('Y-m-d');
 
         try {
-            // Operatörens IBC per dag
-            $stmtOp = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, COALESCE(SUM(shift_ibc), 0) AS ibc
-                FROM (
-                    SELECT datum,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
 
-                      AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
-                GROUP BY DATE(datum)
-                ORDER BY DATE(datum)
-            ");
-            $stmtOp->execute([
-                ':op_id1'    => $opId,
-                ':op_id2'    => $opId,
-                ':op_id3'    => $opId,
-                ':from_date' => $fromDate,
-                ':to_date'   => $toDate,
-            ]);
-            $opRows = $stmtOp->fetchAll(\PDO::FETCH_ASSOC);
-
-            // Team-IBC per dag + antal aktiva operatörer per dag
-            $stmtTeam = $this->pdo->prepare("
-                SELECT dag, COALESCE(SUM(shift_ibc), 0) AS team_ibc, COUNT(DISTINCT op_id) AS n_ops
-                FROM (
-                    SELECT DATE(datum) AS dag, op1 AS op_id,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM rebotling_ibc
-                    WHERE op1 IS NOT NULL AND op1 > 0
-
-                      AND datum >= :from1 AND datum < DATE_ADD(:to1, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), op1, skiftraknare
-                    UNION ALL
-                    SELECT DATE(datum), op2,
-                           MAX(COALESCE(ibc_ok, 0))
-                    FROM rebotling_ibc
-                    WHERE op2 IS NOT NULL AND op2 > 0
-
-                      AND datum >= :from2 AND datum < DATE_ADD(:to2, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), op2, skiftraknare
-                    UNION ALL
-                    SELECT DATE(datum), op3,
-                           MAX(COALESCE(ibc_ok, 0))
-                    FROM rebotling_ibc
-                    WHERE op3 IS NOT NULL AND op3 > 0
-
-                      AND datum >= :from3 AND datum < DATE_ADD(:to3, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), op3, skiftraknare
-                ) AS alla_skift
+            // Operatörens IBC per dag (LAG-korrigerad)
+            $sqlOp = "
+                {$lagCte}
+                SELECT dag, COALESCE(SUM(shift_ibc), 0) AS ibc
+                FROM lag_shifts
+                WHERE op1 = {$opId} OR op2 = {$opId} OR op3 = {$opId}
                 GROUP BY dag
                 ORDER BY dag
-            ");
-            $stmtTeam->execute([
-                ':from1' => $fromDate, ':to1' => $toDate,
-                ':from2' => $fromDate, ':to2' => $toDate,
-                ':from3' => $fromDate, ':to3' => $toDate,
-            ]);
-            $teamRows = $stmtTeam->fetchAll(\PDO::FETCH_ASSOC);
+            ";
+            $opRows = $this->pdo->query($sqlOp)->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Team-IBC per dag + antal aktiva operatörer per dag (LAG-korrigerad)
+            $sqlTeam = "
+                {$lagCte}
+                SELECT dag, SUM(shift_ibc) AS team_ibc, COUNT(DISTINCT op_id) AS n_ops
+                FROM (
+                    SELECT op1 AS op_id, dag, shift_ibc FROM lag_shifts WHERE op1 > 0
+                    UNION ALL
+                    SELECT op2 AS op_id, dag, shift_ibc FROM lag_shifts WHERE op2 > 0
+                    UNION ALL
+                    SELECT op3 AS op_id, dag, shift_ibc FROM lag_shifts WHERE op3 > 0
+                ) AS ops
+                GROUP BY dag
+                ORDER BY dag
+            ";
+            $teamRows = $this->pdo->query($sqlTeam)->fetchAll(\PDO::FETCH_ASSOC);
 
             // Bygg kartor dag → värde
             $opMap   = [];

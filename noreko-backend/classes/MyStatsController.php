@@ -23,8 +23,9 @@
  *   operators      (id, number, name, active)
  *   users          (id, operator_id, username)
  *
- * VIKTIGT: ibc_ok/ibc_ej_ok/runtime_plc är KUMULATIVA PLC-värden per skift.
- * Korrekt aggregering: MAX() per skiftraknare, sedan SUM() för perioden.
+ * VIKTIGT: ibc_ok/ibc_ej_ok är kumulativa PLC-räknare per dag (återställs vid midnatt).
+ * Korrekt aggregering: MAX() per skiftraknare → LAG()-delta → SUM().
+ * runtime_plc återställs per skift → MAX() per skiftraknare → SUM() är korrekt.
  */
 class MyStatsController {
     private $pdo;
@@ -87,9 +88,6 @@ class MyStatsController {
         ], JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Hämta operatörens namn från operators-tabellen via operators.number = op_num.
-     */
     private function getOperatorName(int $opNum): string {
         try {
             $stmt = $this->pdo->prepare(
@@ -105,38 +103,39 @@ class MyStatsController {
     }
 
     /**
-     * Bygg UNION ALL-subquery: op1/op2/op3 → rader med (op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc)
-     * Datum injiceras direkt (PHP-genererade värden, ej användarinput) — undviker HY093 med EMULATE_PREPARES=false.
-     * @param int|null $onlyOpNum  Om satt filtreras även på operatörsnumret.
-     * @param string   $fromDate   Start-datum 'YYYY-MM-DD' (från date()-anrop).
-     * @param string   $toDate     Slut-datum 'YYYY-MM-DD' (från date()-anrop).
+     * Bygg LAG-CTE för korrekta per-skift-deltor (ibc_ok är daglig kumulativ räknare).
+     * Datum och opNum injiceras direkt (PHP-genererade värden — ej användarinput).
+     * @param string|null $fromDate  NULL = ingen nedre datumgräns (all-time)
+     * @param string|null $toDate    NULL = idag
      */
-    private function buildUnion(?int $onlyOpNum = null, string $fromDate = '', string $toDate = ''): string {
-        $opFilter = $onlyOpNum !== null ? "AND op_num = {$onlyOpNum}" : '';
-        $f = $this->pdo->quote($fromDate);
-        $t = $this->pdo->quote($toDate);
+    private function buildLagCte(?string $fromDate = null, ?string $toDate = null): string {
+        if ($fromDate !== null) {
+            $f = $this->pdo->quote($fromDate);
+            $t = $this->pdo->quote($toDate ?? date('Y-m-d'));
+            $dateWhere = "WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)";
+        } else {
+            $dateWhere = '';
+        }
         return "
-            SELECT op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-            FROM (
-                SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_end,
+                       MAX(COALESCE(runtime_plc, 0))  AS runtime_end,
+                       MIN(COALESCE(op1, 0))           AS op1,
+                       MIN(COALESCE(op2, 0))           AS op2,
+                       MIN(COALESCE(op3, 0))           AS op3
                 FROM rebotling_ibc
-                WHERE op1 IS NOT NULL AND op1 > 0
-                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
-
-                UNION ALL
-                SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                FROM rebotling_ibc
-                WHERE op2 IS NOT NULL AND op2 > 0
-                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
-
-                UNION ALL
-                SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                FROM rebotling_ibc
-                WHERE op3 IS NOT NULL AND op3 > 0
-                  AND datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
-
-            ) AS u
-            WHERE 1=1 {$opFilter}
+                {$dateWhere}
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare, op1, op2, op3,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok,
+                       runtime_end AS shift_runtime
+                FROM lag_base
+            )
         ";
     }
 
@@ -144,16 +143,6 @@ class MyStatsController {
     // ENDPOINT: my-stats
     // ================================================================
 
-    /**
-     * Statistik för inloggad operatör under vald period.
-     *
-     * Returnerar:
-     * - operator_num, operator_namn, period (dagar)
-     * - total_ibc, snitt_ibc_per_h, kvalitet_pct
-     * - bast_dag (datum + IBC)
-     * - team_snitt_ibc_per_h, team_snitt_kvalitet_pct
-     * - ranking (plats + totalt antal)
-     */
     private function getMyStats(): void {
         $opNum = $this->getOperatorNumber();
         if (!$opNum) {
@@ -164,39 +153,25 @@ class MyStatsController {
         $period   = $this->getPeriod();
         $today    = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$period} days", strtotime($today)));
+        $lagCte   = $this->buildLagCte($fromDate, $today);
 
         try {
             // ---- Operatörens statistik ----
             $sqlOp = "
+                {$lagCte}
                 SELECT
-                    SUM(dag_ibc)     AS total_ibc,
-                    SUM(dag_ej_ok)   AS total_ej_ok,
-                    SUM(dag_runtime) AS total_runtime_s
-                FROM (
-                    SELECT DATE(datum) AS dag,
-                           SUM(shift_ibc)     AS dag_ibc,
-                           SUM(shift_ej_ok)   AS dag_ej_ok,
-                           SUM(shift_runtime) AS dag_runtime
-                    FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                               MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
-                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                        FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u2
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_shift
-                    GROUP BY DATE(datum)
-                ) AS per_dag
+                    COALESCE(SUM(shift_ibc), 0)     AS total_ibc,
+                    COALESCE(SUM(shift_ej_ok), 0)   AS total_ej_ok,
+                    COALESCE(SUM(shift_runtime), 0) AS total_runtime_s
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
             ";
-            $stmtOp = $this->pdo->prepare($sqlOp);
-            $stmtOp->execute([]);
-            $rowOp = $stmtOp->fetch(PDO::FETCH_ASSOC) ?: [];
+            $rowOp = $this->pdo->query($sqlOp)->fetch(PDO::FETCH_ASSOC) ?: [];
 
-            $totalIbc     = (int)($rowOp['total_ibc']     ?? 0);
-            $totalEjOk    = (int)($rowOp['total_ej_ok']   ?? 0);
-            $totalRuntime = (float)($rowOp['total_runtime_s'] ?? 0); // sekunder (runtime_plc är minuter? → kolla)
+            $totalIbc     = (int)($rowOp['total_ibc']      ?? 0);
+            $totalEjOk    = (int)($rowOp['total_ej_ok']    ?? 0);
+            $totalRuntime = (float)($rowOp['total_runtime_s'] ?? 0);
 
-            // runtime_plc är i minuter (baserat på befintliga controllers)
             $snittIbcPerH = ($totalRuntime > 0)
                 ? round($totalIbc * 60.0 / $totalRuntime, 2)
                 : 0.0;
@@ -208,51 +183,40 @@ class MyStatsController {
 
             // ---- Bästa dag ----
             $sqlBast = "
-                SELECT dag, dag_ibc
-                FROM (
-                    SELECT DATE(datum) AS dag,
-                           SUM(shift_ibc) AS dag_ibc
-                    FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u3
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS ps
-                    GROUP BY DATE(datum)
-                ) AS pd
+                {$lagCte}
+                SELECT dag, SUM(shift_ibc) AS dag_ibc
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                GROUP BY dag
+                HAVING dag_ibc > 0
                 ORDER BY dag_ibc DESC
                 LIMIT 1
             ";
-            $stmtBast = $this->pdo->prepare($sqlBast);
-            $stmtBast->execute([]);
-            $rowBast = $stmtBast->fetch(PDO::FETCH_ASSOC) ?: null;
-            $bastDag    = $rowBast ? $rowBast['dag']     : null;
+            $rowBast    = $this->pdo->query($sqlBast)->fetch(PDO::FETCH_ASSOC) ?: null;
+            $bastDag    = $rowBast ? $rowBast['dag']          : null;
             $bastDagIbc = $rowBast ? (int)$rowBast['dag_ibc'] : 0;
 
-            // ---- Teamsnitt IBC/h och kvalitet ----
+            // ---- Teamsnitt IBC/h och kvalitet (alla operatörer) ----
             $sqlTeam = "
-                SELECT
-                    op_num,
-                    SUM(shift_ibc)     AS op_ibc,
-                    SUM(shift_ej_ok)   AS op_ej_ok,
-                    SUM(shift_runtime) AS op_runtime
+                {$lagCte}
+                SELECT op_num,
+                       SUM(shift_ibc)     AS op_ibc,
+                       SUM(shift_ej_ok)   AS op_ej_ok,
+                       SUM(shift_runtime) AS op_runtime
                 FROM (
-                    SELECT op_num, DATE(datum) AS datum, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                           MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion(null, $fromDate, $today)}) AS tall
-                    GROUP BY op_num, DATE(datum), skiftraknare
-                ) AS tall2
+                    SELECT op1 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op1 > 0
+                    UNION ALL
+                    SELECT op2 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op2 > 0
+                    UNION ALL
+                    SELECT op3 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op3 > 0
+                ) AS ops
                 GROUP BY op_num
             ";
-            $stmtTeam = $this->pdo->prepare($sqlTeam);
-            $stmtTeam->execute([]);
-            $teamRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
+            $teamRows = $this->pdo->query($sqlTeam)->fetchAll(PDO::FETCH_ASSOC);
 
             $teamIbcPerHList  = [];
             $teamKvalitetList = [];
-            $rankingData      = []; // [op_num => ibc_per_h]
+            $rankingData      = [];
 
             foreach ($teamRows as $tr) {
                 $oIbc     = (int)$tr['op_ibc'];
@@ -275,7 +239,6 @@ class MyStatsController {
             $teamSnittIbcPerH  = count($teamIbcPerHList)  > 0 ? round(array_sum($teamIbcPerHList)  / count($teamIbcPerHList),  2) : 0.0;
             $teamSnittKvalitet = count($teamKvalitetList) > 0 ? round(array_sum($teamKvalitetList) / count($teamKvalitetList), 2) : null;
 
-            // Ranking: sortera på IBC/h, hitta plats för denna operatör
             arsort($rankingData);
             $ranking       = 1;
             $totalOpsCount = count($rankingData);
@@ -311,16 +274,6 @@ class MyStatsController {
     // ENDPOINT: my-trend
     // ================================================================
 
-    /**
-     * Daglig trend för operatören + teamsnitt per dag.
-     *
-     * Returnerar:
-     * - dates[]
-     * - my_ibc[]         — IBC/dag för operatören
-     * - my_ibc_per_h[]   — IBC/h per dag för operatören
-     * - my_kvalitet[]    — kvalitet% per dag (null om ingen data)
-     * - team_ibc_per_h[] — teamsnitt IBC/h per dag
-     */
     private function getMyTrend(): void {
         $opNum = $this->getOperatorNumber();
         if (!$opNum) {
@@ -331,9 +284,9 @@ class MyStatsController {
         $period   = $this->getPeriod();
         $today    = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$period} days", strtotime($today)));
+        $lagCte   = $this->buildLagCte($fromDate, $today);
 
         try {
-            // Generera datum-serie
             $dates = [];
             $cur   = strtotime($fromDate);
             $end   = strtotime($today);
@@ -344,26 +297,18 @@ class MyStatsController {
 
             // ---- Operatörens dagliga stats ----
             $sqlMy = "
+                {$lagCte}
                 SELECT dag,
                        SUM(shift_ibc)     AS dag_ibc,
                        SUM(shift_ej_ok)   AS dag_ej_ok,
                        SUM(shift_runtime) AS dag_runtime
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                           MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion($opNum, $fromDate, $today)}) AS u
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS ps
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
                 GROUP BY dag
                 ORDER BY dag
             ";
-            $stmtMy = $this->pdo->prepare($sqlMy);
-            $stmtMy->execute([]);
-            $myRows = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
+            $myRows = $this->pdo->query($sqlMy)->fetchAll(PDO::FETCH_ASSOC);
 
-            // Bygg lookup dag → data
             $myMap = [];
             foreach ($myRows as $r) {
                 $myMap[$r['dag']] = $r;
@@ -371,31 +316,29 @@ class MyStatsController {
 
             // ---- Teamsnitt IBC/h per dag ----
             $sqlTeamDag = "
+                {$lagCte}
                 SELECT dag,
                        ROUND(
                            SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0)
                            / NULLIF(COUNT(DISTINCT op_num), 0)
                        , 2) AS team_ibc_per_h
                 FROM (
-                    SELECT op_num, DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM ({$this->buildUnion(null, $fromDate, $today)}) AS tall
-                    GROUP BY op_num, DATE(datum), skiftraknare
-                ) AS tall2
+                    SELECT op1 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op1 > 0
+                    UNION ALL
+                    SELECT op2 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op2 > 0
+                    UNION ALL
+                    SELECT op3 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op3 > 0
+                ) AS ops
                 GROUP BY dag
                 ORDER BY dag
             ";
-            $stmtTeam = $this->pdo->prepare($sqlTeamDag);
-            $stmtTeam->execute([]);
-            $teamDagRows = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
+            $teamDagRows = $this->pdo->query($sqlTeamDag)->fetchAll(PDO::FETCH_ASSOC);
 
             $teamDagMap = [];
             foreach ($teamDagRows as $tr) {
                 $teamDagMap[$tr['dag']] = (float)$tr['team_ibc_per_h'];
             }
 
-            // Bygg arrays för Chart.js
             $myIbc       = [];
             $myIbcPerH   = [];
             $myKvalitet  = [];
@@ -421,14 +364,14 @@ class MyStatsController {
             }
 
             $this->sendSuccess([
-                'operator_num' => $opNum,
-                'period'       => $period,
-                'from_date'    => $fromDate,
-                'to_date'      => $today,
-                'dates'        => $dates,
-                'my_ibc'       => $myIbc,
-                'my_ibc_per_h' => $myIbcPerH,
-                'my_kvalitet'  => $myKvalitet,
+                'operator_num'   => $opNum,
+                'period'         => $period,
+                'from_date'      => $fromDate,
+                'to_date'        => $today,
+                'dates'          => $dates,
+                'my_ibc'         => $myIbc,
+                'my_ibc_per_h'   => $myIbcPerH,
+                'my_kvalitet'    => $myKvalitet,
                 'team_ibc_per_h' => $teamIbcPerH,
             ]);
 
@@ -442,17 +385,6 @@ class MyStatsController {
     // ENDPOINT: my-achievements
     // ================================================================
 
-    /**
-     * Milstolpar för operatören (all-time data).
-     *
-     * Returnerar:
-     * - karriar_total         — totalt IBC producerade genom tiderna
-     * - bast_dag_ever         — bästa dag (datum + IBC) all-time
-     * - bast_dag_ever_ibc
-     * - streak                — nuvarande antal dagar i rad med produktion (> 0 IBC)
-     * - forbattring_pct       — % förändring senaste 7 dagar vs föregående 7 dagar (IBC/h)
-     * - forbattring_direction — 'upp' | 'ner' | 'stabil'
-     */
     private function getMyAchievements(): void {
         $opNum = $this->getOperatorNumber();
         if (!$opNum) {
@@ -464,125 +396,48 @@ class MyStatsController {
 
         try {
             // ---- Karriär-total (all-time) ----
+            $lagCteAllTime = $this->buildLagCte();
             $sqlTotal = "
+                {$lagCteAllTime}
                 SELECT COALESCE(SUM(shift_ibc), 0) AS karriar_total
-                FROM (
-                    SELECT op_num, DATE(datum) AS datum, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                    FROM (
-                        SELECT op1 AS op_num, datum, skiftraknare, ibc_ok
-                        FROM rebotling_ibc
-                        WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                        UNION ALL
-                        SELECT op2 AS op_num, datum, skiftraknare, ibc_ok
-                        FROM rebotling_ibc
-                        WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                        UNION ALL
-                        SELECT op3 AS op_num, datum, skiftraknare, ibc_ok
-                        FROM rebotling_ibc
-                        WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                    ) AS u
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS ps
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
             ";
-            $stmtTotal = $this->pdo->prepare($sqlTotal);
-            $stmtTotal->execute([
-                ':op_num_a' => $opNum,
-                ':op_num_b' => $opNum,
-                ':op_num_c' => $opNum,
-            ]);
-            $karriarTotal = (int)($stmtTotal->fetchColumn() ?? 0);
+            $karriarTotal = (int)($this->pdo->query($sqlTotal)->fetchColumn() ?? 0);
 
-            // ---- Bästa dag ever ----
+            // ---- Bästa dag ever (all-time) ----
             $sqlBastEver = "
-                SELECT dag, dag_ibc
-                FROM (
-                    SELECT DATE(datum) AS dag, SUM(shift_ibc) AS dag_ibc
-                    FROM (
-                        SELECT op_num, DATE(datum) AS datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM (
-                            SELECT op1 AS op_num, datum, skiftraknare, ibc_ok
-                            FROM rebotling_ibc
-                            WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                            UNION ALL
-                            SELECT op2 AS op_num, datum, skiftraknare, ibc_ok
-                            FROM rebotling_ibc
-                            WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                            UNION ALL
-                            SELECT op3 AS op_num, datum, skiftraknare, ibc_ok
-                            FROM rebotling_ibc
-                            WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                        ) AS u
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS ps
-                    GROUP BY DATE(datum)
-                    HAVING dag_ibc > 0
-                ) AS pd
+                {$lagCteAllTime}
+                SELECT dag, SUM(shift_ibc) AS dag_ibc
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                GROUP BY dag
+                HAVING dag_ibc > 0
                 ORDER BY dag_ibc DESC
                 LIMIT 1
             ";
-            $stmtBast = $this->pdo->prepare($sqlBastEver);
-            $stmtBast->execute([
-                ':op_num_a' => $opNum,
-                ':op_num_b' => $opNum,
-                ':op_num_c' => $opNum,
-            ]);
-            $rowBast = $stmtBast->fetch(PDO::FETCH_ASSOC) ?: null;
+            $rowBast        = $this->pdo->query($sqlBastEver)->fetch(PDO::FETCH_ASSOC) ?: null;
             $bastDagEver    = $rowBast ? $rowBast['dag']          : null;
             $bastDagEverIbc = $rowBast ? (int)$rowBast['dag_ibc'] : 0;
 
             // ---- Streak: dagar i rad med > 0 IBC (bakåt från idag) ----
-            // Hämta senaste 90 dagar, kolla bakåt
-            $fromStreak = date('Y-m-d', strtotime('-90 days'));
-            $fs = $this->pdo->quote($fromStreak);
-            $ts = $this->pdo->quote($today);
-            $sqlStreak  = "
-                SELECT dag, SUM(dag_ibc) AS tot
-                FROM (
-                    SELECT DATE(datum) AS dag, SUM(shift_ibc) AS dag_ibc
-                    FROM (
-                        SELECT op1 AS op_num, datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                        UNION ALL
-                        SELECT op2 AS op_num, datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                        UNION ALL
-                        SELECT op3 AS op_num, datum, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
-                        FROM rebotling_ibc
-                        WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                          AND datum >= {$fs} AND datum < DATE_ADD({$ts}, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS u
-                    GROUP BY DATE(datum)
-                ) AS pd
+            $fromStreak    = date('Y-m-d', strtotime('-90 days'));
+            $lagCteStreak  = $this->buildLagCte($fromStreak, $today);
+            $sqlStreak = "
+                {$lagCteStreak}
+                SELECT dag, SUM(shift_ibc) AS tot
+                FROM lag_shifts
+                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
                 GROUP BY dag
                 ORDER BY dag DESC
             ";
-            $stmtStreak = $this->pdo->prepare($sqlStreak);
-            $stmtStreak->execute([
-                ':op_num_a' => $opNum,
-                ':op_num_b' => $opNum,
-                ':op_num_c' => $opNum,
-            ]);
-            $streakRows = $stmtStreak->fetchAll(PDO::FETCH_ASSOC);
+            $streakRows = $this->pdo->query($sqlStreak)->fetchAll(PDO::FETCH_ASSOC);
 
-            // Bygg map dag → total
             $streakMap = [];
             foreach ($streakRows as $sr) {
                 $streakMap[$sr['dag']] = (int)$sr['tot'];
             }
 
-            // Räkna streak bakåt från idag
             $streak  = 0;
             $checkTs = strtotime($today);
             for ($i = 0; $i <= 90; $i++) {
@@ -602,43 +457,17 @@ class MyStatsController {
             $week2Start = date('Y-m-d', strtotime('-13 days'));
 
             $getWeekIbcPerH = function(string $from, string $to) use ($opNum): float {
-                $qf = $this->pdo->quote($from);
-                $qt = $this->pdo->quote($to);
+                $lagCteWeek = $this->buildLagCte($from, $to);
                 $sql = "
+                    {$lagCteWeek}
                     SELECT ROUND(
                         SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0)
                     , 2) AS ibc_per_h
-                    FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                        FROM (
-                            SELECT op1 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
-                            FROM rebotling_ibc
-                            WHERE op1 = :op_num_a AND op1 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT op2 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
-                            FROM rebotling_ibc
-                            WHERE op2 = :op_num_b AND op2 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
-                            UNION ALL
-                            SELECT op3 AS op_num, datum, skiftraknare, ibc_ok, runtime_plc
-                            FROM rebotling_ibc
-                            WHERE op3 = :op_num_c AND op3 > 0 AND skiftraknare IS NOT NULL
-                              AND datum >= {$qf} AND datum < DATE_ADD({$qt}, INTERVAL 1 DAY)
-                        ) AS u
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS ps
+                    FROM lag_shifts
+                    WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
                 ";
                 try {
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([
-                        ':op_num_a' => $opNum,
-                        ':op_num_b' => $opNum,
-                        ':op_num_c' => $opNum,
-                    ]);
-                    $val = $stmt->fetchColumn();
+                    $val = $this->pdo->query($sql)->fetchColumn();
                     return $val !== null ? (float)$val : 0.0;
                 } catch (\PDOException $e) {
                     error_log('MyStatsController::getMyAchievements weekIbcPerH: ' . $e->getMessage());
@@ -664,16 +493,16 @@ class MyStatsController {
             }
 
             $this->sendSuccess([
-                'operator_num'           => $opNum,
-                'operator_namn'          => $this->getOperatorName($opNum),
-                'karriar_total'          => $karriarTotal,
-                'bast_dag_ever'          => $bastDagEver,
-                'bast_dag_ever_ibc'      => $bastDagEverIbc,
-                'streak'                 => $streak,
-                'forbattring_pct'        => $forbattringPct,
-                'forbattring_direction'  => $forbattringDir,
-                'week1_ibc_per_h'        => $week1IbcPerH,
-                'week2_ibc_per_h'        => $week2IbcPerH,
+                'operator_num'          => $opNum,
+                'operator_namn'         => $this->getOperatorName($opNum),
+                'karriar_total'         => $karriarTotal,
+                'bast_dag_ever'         => $bastDagEver,
+                'bast_dag_ever_ibc'     => $bastDagEverIbc,
+                'streak'                => $streak,
+                'forbattring_pct'       => $forbattringPct,
+                'forbattring_direction' => $forbattringDir,
+                'week1_ibc_per_h'       => $week1IbcPerH,
+                'week2_ibc_per_h'       => $week2IbcPerH,
             ]);
 
         } catch (\PDOException $e) {
