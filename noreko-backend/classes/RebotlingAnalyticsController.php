@@ -2616,37 +2616,48 @@ class RebotlingAnalyticsController {
             }
 
             // ---- Operatörsranking för månaden ----
+            // ibc_ok is a daily running counter — deduplicate snapshot rows per skiftraknare
+            // with MAX(), then apply LAG() per-shift delta before attributing to operators.
             $opSQL = "
+                WITH lag_base AS (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))            AS datum,
+                           MAX(COALESCE(op1, 0))       AS op1,
+                           MAX(COALESCE(op2, 0))       AS op2,
+                           MAX(COALESCE(op3, 0))       AS op3,
+                           MAX(COALESCE(ibc_ok,   0))  AS ibc_end,
+                           MAX(COALESCE(totalt,   0))  AS totalt_end,
+                           MAX(COALESCE(drifttid, 0))  AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE DATE_FORMAT(datum, '%Y-%m') = :month
+                    GROUP BY skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT skiftraknare, datum, op1, op2, op3, totalt_end AS totalt, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM lag_base
+                )
                 SELECT
-                    o.number        AS number,
-                    o.name          AS name,
-                    SUM(sub.ibc_ok)       AS ibc_ok,
-                    SUM(sub.totalt)       AS totalt,
-                    SUM(sub.drifttid)     AS drifttid,
-                    COUNT(sub.skift_id)   AS shifts
+                    o.number AS number,
+                    o.name   AS name,
+                    SUM(t.ibc_ok)         AS ibc_ok,
+                    SUM(t.totalt)         AS totalt,
+                    SUM(t.drifttid)       AS drifttid,
+                    COUNT(t.skiftraknare) AS shifts
                 FROM (
-                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
-                      AND s.op1 IS NOT NULL
+                    SELECT skiftraknare, op1 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op1 > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
-                      AND s.op2 IS NOT NULL
+                    SELECT skiftraknare, op2 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op2 > 0
                     UNION ALL
-                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
-                    FROM rebotling_skiftrapport s
-                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
-                      AND s.op3 IS NOT NULL
-                ) sub
-                JOIN operators o ON o.number = sub.op_num
+                    SELECT skiftraknare, op3 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op3 > 0
+                ) t
+                JOIN operators o ON o.number = t.op_num
                 GROUP BY o.number, o.name
-                ORDER BY (SUM(sub.ibc_ok) / GREATEST(SUM(sub.drifttid)/60.0, 0.01)) DESC
+                ORDER BY (SUM(t.ibc_ok) / GREATEST(SUM(t.drifttid)/60.0, 0.01)) DESC
                 LIMIT 20
             ";
             $stmt = $this->pdo->prepare($opSQL);
-            $stmt->execute([$month, $month, $month]);
+            $stmt->execute(['month' => $month]);
             $opRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $operatorRanking = [];
