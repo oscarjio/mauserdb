@@ -1,0 +1,277 @@
+<div class="pj-page">
+
+  <!-- Header -->
+  <div class="pj-header">
+    <h1 class="pj-title">
+      <i class="fas fa-columns me-2" style="color:#76e4f7"></i>
+      Produkt-Jämförelse
+    </h1>
+    <p class="pj-subtitle">
+      Jämför två produkttyper sida vid sida — IBC/h, kassation, stoppgrad, effektivitet och trend
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="pj-controls">
+    <div class="pj-selector-row">
+      <div class="pj-select-group">
+        <label class="pj-label">Produkt A</label>
+        <select class="pj-select pj-select-a" [(ngModel)]="prodA">
+          <option value="0" disabled>Välj produkt...</option>
+          <option *ngFor="let p of products" [value]="p.id"
+                  [disabled]="p.id === prodB">
+            {{ p.name }} ({{ p.antal_skift }} skift)
+          </option>
+        </select>
+      </div>
+
+      <div class="pj-vs-divider">VS</div>
+
+      <div class="pj-select-group">
+        <label class="pj-label">Produkt B</label>
+        <select class="pj-select pj-select-b" [(ngModel)]="prodB">
+          <option value="0" disabled>Välj produkt...</option>
+          <option *ngFor="let p of products" [value]="p.id"
+                  [disabled]="p.id === prodA">
+            {{ p.name }} ({{ p.antal_skift }} skift)
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pj-bottom-row">
+      <div class="pj-period-row">
+        <span class="pj-label">Period:</span>
+        <button *ngFor="let opt of daysOptions"
+                class="pj-period-btn"
+                [class.active]="days === opt.value"
+                (click)="setDays(opt.value)">
+          {{ opt.label }}
+        </button>
+      </div>
+      <button class="pj-compare-btn"
+              [disabled]="!prodA || !prodB || prodA === prodB || loading"
+              (click)="compare()">
+        <i class="fas fa-balance-scale me-1"></i>
+        Jämför
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="pj-loading">
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="ms-3 text-muted">Hämtar jämförelsedata...</span>
+  </div>
+  <div *ngIf="error && !loading" class="alert alert-danger mx-3">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && comparison">
+
+    <!-- VS Banner -->
+    <div class="pj-banner">
+      <div class="pj-banner-side pj-banner-a">
+        <span class="pj-banner-name">{{ comparison.a.name }}</span>
+        <span class="pj-banner-ibch">{{ comparison.a.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+      </div>
+      <div class="pj-banner-vs">VS</div>
+      <div class="pj-banner-side pj-banner-b">
+        <span class="pj-banner-name">{{ comparison.b.name }}</span>
+        <span class="pj-banner-ibch">{{ comparison.b.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+      </div>
+    </div>
+
+    <!-- Period label -->
+    <div class="pj-period-label" *ngIf="from">
+      {{ from }} — {{ to }} &nbsp;·&nbsp; {{ days }} dagar
+    </div>
+
+    <!-- KPI Comparison grid -->
+    <div class="pj-kpi-grid">
+
+      <!-- IBC/h -->
+      <div class="pj-kpi-card" [class.winner-a]="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'a'"
+                                 [class.winner-b]="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'b'">
+        <div class="pj-kpi-label">IBC/h</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a" [class.kpi-win]="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'a'">
+            {{ comparison.a.ibc_per_h | number:'1.1-1' }}
+            <i *ngIf="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'a'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+          <div class="pj-kpi-delta">{{ deltaSign(comparison.a.ibc_per_h, comparison.b.ibc_per_h) }}</div>
+          <div class="pj-kpi-val-b" [class.kpi-win]="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'b'">
+            {{ comparison.b.ibc_per_h | number:'1.1-1' }}
+            <i *ngIf="winner(comparison.a.ibc_per_h, comparison.b.ibc_per_h) === 'b'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kassation -->
+      <div class="pj-kpi-card" [class.winner-a]="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'a'"
+                                 [class.winner-b]="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'b'">
+        <div class="pj-kpi-label">Kassationsgrad</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a" [class.kpi-win]="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'a'">
+            {{ comparison.a.kassgrad | number:'1.1-1' }}%
+            <i *ngIf="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'a'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+          <div class="pj-kpi-delta">{{ deltaSign(comparison.a.kassgrad, comparison.b.kassgrad) }}pp</div>
+          <div class="pj-kpi-val-b" [class.kpi-win]="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'b'">
+            {{ comparison.b.kassgrad | number:'1.1-1' }}%
+            <i *ngIf="winner(comparison.a.kassgrad, comparison.b.kassgrad, true) === 'b'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stoppgrad -->
+      <div class="pj-kpi-card" [class.winner-a]="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'a'"
+                                 [class.winner-b]="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'b'">
+        <div class="pj-kpi-label">Stoppgrad</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a" [class.kpi-win]="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'a'">
+            {{ comparison.a.stoppgrad | number:'1.1-1' }}%
+            <i *ngIf="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'a'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+          <div class="pj-kpi-delta">{{ deltaSign(comparison.a.stoppgrad, comparison.b.stoppgrad) }}pp</div>
+          <div class="pj-kpi-val-b" [class.kpi-win]="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'b'">
+            {{ comparison.b.stoppgrad | number:'1.1-1' }}%
+            <i *ngIf="winner(comparison.a.stoppgrad, comparison.b.stoppgrad, true) === 'b'" class="fas fa-trophy pj-trophy"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total IBC -->
+      <div class="pj-kpi-card">
+        <div class="pj-kpi-label">Total IBC (godkänd)</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a">{{ comparison.a.total_ibc | number }}</div>
+          <div class="pj-kpi-delta">{{ deltaSign(comparison.a.total_ibc, comparison.b.total_ibc) }}</div>
+          <div class="pj-kpi-val-b">{{ comparison.b.total_ibc | number }}</div>
+        </div>
+      </div>
+
+      <!-- Antal skift -->
+      <div class="pj-kpi-card">
+        <div class="pj-kpi-label">Antal skift</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a">{{ comparison.a.antal_skift }}</div>
+          <div class="pj-kpi-delta">{{ deltaSign(comparison.a.antal_skift, comparison.b.antal_skift) }}</div>
+          <div class="pj-kpi-val-b">{{ comparison.b.antal_skift }}</div>
+        </div>
+      </div>
+
+      <!-- Effektivitet vs cykeltid -->
+      <div class="pj-kpi-card"
+           [class.winner-a]="comparison.a.effektivitet !== null && comparison.b.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'a'"
+           [class.winner-b]="comparison.a.effektivitet !== null && comparison.b.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'b'">
+        <div class="pj-kpi-label">Effektivitet vs förväntad</div>
+        <div class="pj-kpi-row">
+          <div class="pj-kpi-val-a" [class.kpi-win]="comparison.a.effektivitet !== null && comparison.b.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'a'">
+            <ng-container *ngIf="comparison.a.effektivitet !== null">
+              {{ comparison.a.effektivitet | number:'1.0-0' }}%
+              <i *ngIf="comparison.b.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'a'" class="fas fa-trophy pj-trophy"></i>
+            </ng-container>
+            <span *ngIf="comparison.a.effektivitet === null" class="text-muted">—</span>
+          </div>
+          <div class="pj-kpi-delta">
+            <ng-container *ngIf="comparison.a.effektivitet !== null && comparison.b.effektivitet !== null">
+              {{ deltaSign(comparison.a.effektivitet, comparison.b.effektivitet) }}pp
+            </ng-container>
+          </div>
+          <div class="pj-kpi-val-b" [class.kpi-win]="comparison.a.effektivitet !== null && comparison.b.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'b'">
+            <ng-container *ngIf="comparison.b.effektivitet !== null">
+              {{ comparison.b.effektivitet | number:'1.0-0' }}%
+              <i *ngIf="comparison.a.effektivitet !== null && winner(comparison.a.effektivitet, comparison.b.effektivitet) === 'b'" class="fas fa-trophy pj-trophy"></i>
+            </ng-container>
+            <span *ngIf="comparison.b.effektivitet === null" class="text-muted">—</span>
+          </div>
+        </div>
+        <div class="pj-kpi-sub">
+          Förväntad (cykeltid):
+          {{ comparison.a.expected_ibch !== null ? (comparison.a.expected_ibch | number:'1.1-1') + ' IBC/h' : '—' }}
+          /
+          {{ comparison.b.expected_ibch !== null ? (comparison.b.expected_ibch | number:'1.1-1') + ' IBC/h' : '—' }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Monthly Trend Chart -->
+    <div class="pj-chart-section" *ngIf="comparison.a.trend.length || comparison.b.trend.length">
+      <h2 class="pj-section-title">IBC/h per månad (senaste 6 månader)</h2>
+      <div class="pj-chart-wrap">
+        <canvas #trendCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Detail rows: cycle time + runtime -->
+    <div class="pj-detail-section">
+      <h2 class="pj-section-title">Detaljer</h2>
+      <table class="pj-detail-table">
+        <thead>
+          <tr>
+            <th>Mätvärde</th>
+            <th class="col-a">{{ comparison.a.name }}</th>
+            <th class="col-b">{{ comparison.b.name }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Körd drifttid</td>
+            <td class="col-a">{{ comparison.a.total_timmar | number:'1.1-1' }} h</td>
+            <td class="col-b">{{ comparison.b.total_timmar | number:'1.1-1' }} h</td>
+          </tr>
+          <tr>
+            <td>Snitt drifttid / skift</td>
+            <td class="col-a">{{ comparison.a.antal_skift > 0 ? (comparison.a.total_timmar / comparison.a.antal_skift | number:'1.1-1') : '—' }} h</td>
+            <td class="col-b">{{ comparison.b.antal_skift > 0 ? (comparison.b.total_timmar / comparison.b.antal_skift | number:'1.1-1') : '—' }} h</td>
+          </tr>
+          <tr>
+            <td>Cykeltid (konfigurerad)</td>
+            <td class="col-a">{{ comparison.a.cycle_time > 0 ? (comparison.a.cycle_time | number:'1.1-1') + ' min/IBC' : '—' }}</td>
+            <td class="col-b">{{ comparison.b.cycle_time > 0 ? (comparison.b.cycle_time | number:'1.1-1') + ' min/IBC' : '—' }}</td>
+          </tr>
+          <tr>
+            <td>Förväntad IBC/h (cykeltid)</td>
+            <td class="col-a">{{ comparison.a.expected_ibch !== null ? (comparison.a.expected_ibch | number:'1.1-1') + ' IBC/h' : '—' }}</td>
+            <td class="col-b">{{ comparison.b.expected_ibch !== null ? (comparison.b.expected_ibch | number:'1.1-1') + ' IBC/h' : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Top operators per product -->
+    <div class="pj-ops-section" *ngIf="comparison.a.top_ops.length || comparison.b.top_ops.length">
+      <h2 class="pj-section-title">Vanligaste operatörer</h2>
+      <div class="pj-ops-cols">
+
+        <div class="pj-ops-col pj-ops-a">
+          <div class="pj-ops-header">{{ comparison.a.name }}</div>
+          <div *ngFor="let op of comparison.a.top_ops; let i = index" class="pj-op-row">
+            <span class="pj-op-rank">{{ i + 1 }}</span>
+            <a [routerLink]="['/rebotling/operator', op.number]" class="pj-op-link">{{ op.name }}</a>
+            <span class="pj-op-n">{{ op.antal_skift }} skift</span>
+          </div>
+          <div *ngIf="!comparison.a.top_ops.length" class="text-muted pj-no-data">Otillräcklig data</div>
+        </div>
+
+        <div class="pj-ops-col pj-ops-b">
+          <div class="pj-ops-header">{{ comparison.b.name }}</div>
+          <div *ngFor="let op of comparison.b.top_ops; let i = index" class="pj-op-row">
+            <span class="pj-op-rank">{{ i + 1 }}</span>
+            <a [routerLink]="['/rebotling/operator', op.number]" class="pj-op-link">{{ op.name }}</a>
+            <span class="pj-op-n">{{ op.antal_skift }} skift</span>
+          </div>
+          <div *ngIf="!comparison.b.top_ops.length" class="text-muted pj-no-data">Otillräcklig data</div>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!loading && !comparison && products.length === 0" class="pj-empty">
+    <i class="fas fa-box-open fa-2x mb-2 text-muted"></i>
+    <p>Inga produkter hittades för perioden.</p>
+  </div>
+
+</div>
