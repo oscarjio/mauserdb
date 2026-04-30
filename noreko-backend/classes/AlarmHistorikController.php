@@ -173,23 +173,30 @@ class AlarmHistorikController {
         try {
             if (!$this->tableExists('rebotling_ibc')) return [];
 
-            // Hamta daglig produktion (MAX per skift, SUM per dag)
+            // Hamta daglig produktion (LAG()-korrigerad delta per skift, SUM per dag)
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) AS dag,
+                    dag,
                     COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
                 FROM (
                     SELECT
-                        datum,
+                        dag,
                         skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                    FROM (
+                        SELECT
+                            DATE(datum)                 AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
 
-                    GROUP BY DATE(datum), skiftraknare
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS innermost
                 ) AS per_shift
-                GROUP BY DATE(datum)
+                GROUP BY dag
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -261,19 +268,28 @@ class AlarmHistorikController {
                 $kassPerDag[$r['datum']] = (int)$r['kasserade'];
             }
 
-            // Produktion per dag (ej_ok fran PLC)
+            // Produktion per dag (LAG()-korrigerad delta per skift, SUM per dag)
             $stmtIbc = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
+                SELECT dag, COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
                 FROM (
-                    SELECT datum, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    SELECT
+                        dag,
+                        skiftraknare,
+                        GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                    FROM (
+                        SELECT
+                            DATE(datum)                 AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
 
-                    GROUP BY DATE(datum), skiftraknare
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS innermost
                 ) AS ps
-                GROUP BY DATE(datum)
+                GROUP BY dag
             ");
             $stmtIbc->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $ibcPerDag = [];
